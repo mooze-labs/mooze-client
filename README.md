@@ -1,2 +1,2 @@
-# mooze_mobile
+# moozeclient
 Mobile app for Mooze Wallet.
