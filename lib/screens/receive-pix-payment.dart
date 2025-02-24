@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:lwk/lwk.dart'; // Ensure this import for the Wallet object
-
+import 'package:lwk/lwk.dart'; 
 class ReceivePixPaymentScreen extends StatefulWidget {
   final Wallet wallet;
 
@@ -24,7 +23,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
   String? _qrCopyPaste;
   String? _errorMessage;
 
-  // For a simple fee calculation, use 2%
   static const double _feeRate = 0.02;
 
   @override
@@ -33,7 +31,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
     _generateAddress();
   }
 
-  /// Generate a new confidential address for receiving funds
   Future<void> _generateAddress() async {
     setState(() {
       _isLoading = true;
@@ -41,7 +38,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
     });
 
     try {
-      // Use the wallet to fetch last unused address
       final addressObj = await widget.wallet.addressLastUnused();
       final confidentialAddress = addressObj.confidential;
 
@@ -57,7 +53,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
     }
   }
 
-  /// Make the POST request to depix.eulen.app with 'amountInCents' and 'depixAddress'
   Future<void> _generatePayment() async {
     setState(() {
       _isLoading = true;
@@ -67,21 +62,17 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
     });
 
     try {
-      // Validate user input
       final rawInput = _amountController.text.trim();
       if (rawInput.isEmpty) {
         throw Exception("Digite um valor inteiro entre 50 e 5000");
       }
 
-      // Convert to int
       final amount = int.parse(rawInput);
 
-      // Ensure in range
       if (amount < 50 || amount > 5000) {
         throw Exception("O valor deve ser entre 50 e 5000");
       }
 
-      // Ensure we have an address
       if (_address == null) {
         throw Exception("Endereço não foi gerado ainda. Tente novamente.");
       }
@@ -128,7 +119,7 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
   /// Copy the qrCopyPaste string to clipboard
   void _copyQrCode() async {
     final code = _qrCopyPaste;
-    if (code == null) return; // Check null here
+    if (code == null) return; 
     await Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -150,8 +141,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
       ),
       body: Stack(
         children: [
-          // If you have a custom starry background, you can reuse it:
-          // StarryBackground(),
           Container(color: Colors.black),
           Center(
             child: SingleChildScrollView(
@@ -159,7 +148,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Title or instructions
                   Text(
                     "Gerar pagamento via PIX",
                     style: TextStyle(
@@ -223,7 +211,6 @@ class _ReceivePixPaymentScreenState extends State<ReceivePixPaymentScreen> {
                   ],
                   SizedBox(height: 16),
 
-                  // Gerar pagamento button
                   ElevatedButton(
                     onPressed:
                         _isLoading

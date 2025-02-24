@@ -4,11 +4,6 @@ import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:lwk/lwk.dart'; // For the Wallet class
 
-/// Your mainnet asset IDs:
-/// - LBTC: 6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d
-/// - Depix: 02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189
-/// - USDt: ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2
-
 class SwapScreen extends StatefulWidget {
   final Wallet wallet;
 
@@ -24,21 +19,15 @@ class _SwapScreenState extends State<SwapScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // We'll store the markets returned by "list_markets" (likely testnet in the current Sideswap config)
-  // But we will NOT map them to your mainnet IDs. We just show them for reference.
   List<Map<String, dynamic>> _markets = [];
 
-  // The user picks from which asset to deliver and which asset to receive
   String _fromAsset = "Depix"; // default selection
   String _toAsset = "LBTC"; // default selection
 
-  // The user enters an amount in a TextField
   final TextEditingController _amountController = TextEditingController();
 
-  // We'll display any quote result that comes from "start_quotes"
   String? _quoteResult;
 
-  // Addresses used in the "start_quotes" request
   String? _receiveAddress;
   String? _changeAddress;
 
@@ -49,7 +38,6 @@ class _SwapScreenState extends State<SwapScreen> {
     _generateAddresses();
   }
 
-  /// Generate a receiving (and change) address from your wallet
   Future<void> _generateAddresses() async {
     try {
       final addressObj = await widget.wallet.addressLastUnused();
@@ -62,7 +50,6 @@ class _SwapScreenState extends State<SwapScreen> {
     }
   }
 
-  /// Open the WebSocket and send "login_client"
   void _initWebSocket() {
     setState(() {
       _isLoading = true;
@@ -110,7 +97,6 @@ class _SwapScreenState extends State<SwapScreen> {
     _channel.sink.add(jsonEncode(loginRequest));
   }
 
-  /// After login, request "list_markets" if you want to see what's available
   void _requestListMarkets() {
     final marketRequest = {
       "id": 1,
@@ -128,13 +114,11 @@ class _SwapScreenState extends State<SwapScreen> {
     try {
       final data = jsonDecode(msgString);
 
-      // If login succeeded, request list_markets
       if (data["method"] == "login_client" && data["result"] != null) {
         _requestListMarkets();
         return;
       }
 
-      // If we got a "list_markets" response
       if (data["method"] == "market" &&
           data["result"] != null &&
           data["result"]["list_markets"] != null) {
@@ -146,7 +130,6 @@ class _SwapScreenState extends State<SwapScreen> {
         return;
       }
 
-      // If we got a "start_quotes" response
       if (data["method"] == "market" &&
           data["result"] != null &&
           data["result"]["start_quotes"] != null) {
@@ -157,7 +140,6 @@ class _SwapScreenState extends State<SwapScreen> {
         return;
       }
 
-      // If there's an error
       if (data["error"] != null) {
         setState(() {
           _errorMessage = data["error"]["message"];
@@ -242,8 +224,6 @@ class _SwapScreenState extends State<SwapScreen> {
           onChanged: (val) {
             setState(() {
               _fromAsset = val;
-              // For simplicity, if fromAsset is LBTC, default toAsset is Depix
-              // or if fromAsset is Depix, toAsset is LBTC, etc.
               if (_fromAsset == _toAsset) {
                 if (_fromAsset == "LBTC") {
                   _toAsset = "Depix";
@@ -263,7 +243,6 @@ class _SwapScreenState extends State<SwapScreen> {
             setState(() {
               _toAsset = val;
               if (_fromAsset == _toAsset) {
-                // Switch fromAsset if user tries to pick the same
                 if (_toAsset == "LBTC") {
                   _fromAsset = "Depix";
                 } else {
@@ -325,7 +304,6 @@ class _SwapScreenState extends State<SwapScreen> {
     );
   }
 
-  /// Build a labeled dropdown for the user to pick an asset
   Widget _buildAssetDropdown({
     required String label,
     required String value,
@@ -368,7 +346,6 @@ class _SwapScreenState extends State<SwapScreen> {
     );
   }
 
-  /// Build and send the "start_quotes" request using your mainnet asset IDs
   Future<void> _getQuote() async {
     setState(() {
       _quoteResult = null;
@@ -398,7 +375,6 @@ class _SwapScreenState extends State<SwapScreen> {
       return;
     }
 
-    // Your mainnet asset IDs
     const lbtcID =
         "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d";
     const depixID =
@@ -408,10 +384,9 @@ class _SwapScreenState extends State<SwapScreen> {
 
     late String baseID;
     late String quoteID;
-    late String assetType; // "Base" or "Quote"
-    late String tradeDir; // "Buy" or "Sell"
+    late String assetType; 
+    late String tradeDir; 
 
-    // Decide the combination
     if (_fromAsset == "Depix" && _toAsset == "LBTC") {
       baseID = depixID;
       quoteID = lbtcID;

@@ -72,7 +72,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 	return balance.toInt();
   }
 
-  /// Sums LBTC from lwk, converting to actual BTC (if lwk returns satoshis)
+  /// Sums LBTC from lwk
   double _sumLiquidBitcoin(List<Balance> allBalances, bool mainnet) {
     final lbtcId = (mainnet == true) ? liquid.lBtcAssetId : liquid.lTestAssetId;
     final lbtcBalance = allBalances.firstWhere(
