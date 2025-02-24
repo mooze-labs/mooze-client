@@ -1,0 +1,47 @@
+PODS:
+  - bdk_flutter (0.31.2):
+    - Flutter
+  - Flutter (1.0.0)
+  - lwk (0.1.5)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - share_plus (0.0.1):
+    - Flutter
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - bdk_flutter (from `.symlinks/plugins/bdk_flutter/ios`)
+  - Flutter (from `Flutter`)
+  - lwk (from `.symlinks/plugins/lwk/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - share_plus (from `.symlinks/plugins/share_plus/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+
+EXTERNAL SOURCES:
+  bdk_flutter:
+    :path: ".symlinks/plugins/bdk_flutter/ios"
+  Flutter:
+    :path: Flutter
+  lwk:
+    :path: ".symlinks/plugins/lwk/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  share_plus:
+    :path: ".symlinks/plugins/share_plus/ios"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+
+SPEC CHECKSUMS:
+  bdk_flutter: 08274535b7bd58a09bfa9c3733474fb44133484c
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  lwk: 22e06bc5664247d6b2dac91cfe209b63b70dd580
+  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
+  share_plus: 011d6fb4f9d2576b83179a3a5c5e323202cdabcf
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
+
+PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5
+
+COCOAPODS: 1.16.2
