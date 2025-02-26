@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwk/lwk.dart';
-import 'package:mooze_mobile/models/liquid/asset.dart';
+import 'package:mooze_mobile/models/liquid.dart';
+import 'package:mooze_mobile/services/liquid.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:http/http.dart' as http;
 
 final liquidAssetServiceProvider = Provider<LiquidAssetService>(
   (ref) => LiquidAssetService(),
