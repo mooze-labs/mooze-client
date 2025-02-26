@@ -5,8 +5,6 @@ import 'package:mooze_mobile/models/liquid/asset.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:http/http.dart' as http;
 
-part 'asset_provider.g.dart';
-
 final liquidAssetServiceProvider = Provider<LiquidAssetService>(
   (ref) => LiquidAssetService(),
 );
