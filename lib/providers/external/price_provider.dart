@@ -22,7 +22,9 @@ Future<double> _fetchBitcoinPrice() async {
     final brlPrice = data["bitcoin"]["brl"] as num;
     return brlPrice.toDouble();
   } else {
-    throw Exception("Erro ao buscar preço do Bitcoin: ${response.reasonPhrase}");
+    throw Exception(
+      "Erro ao buscar preço do Bitcoin: ${response.reasonPhrase}",
+    );
   }
 }
 
@@ -30,6 +32,6 @@ Future<double> _fetchBitcoinPrice() async {
 extension StartWithFuture<T> on Stream<T> {
   Stream<T> startWithFuture(Future<T> future) async* {
     yield await future; // emit once immediately
-    yield* this;        // then continue with periodic stream
+    yield* this; // then continue with periodic stream
   }
 }

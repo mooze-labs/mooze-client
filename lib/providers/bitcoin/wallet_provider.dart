@@ -16,7 +16,7 @@ Future<Blockchain?> blockchain(Ref ref, Network network) async {
         stopGap: BigInt.from(10),
         timeout: 5,
         retry: 5,
-        url: "${electrumUrl}:${port}",
+        url: "ssl://electrum.blockstream.info:60002",
         validateDomain: true,
       ),
     ),
@@ -28,7 +28,7 @@ Future<Blockchain?> blockchain(Ref ref, Network network) async {
 @riverpod
 class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
   @override
-  AsyncValue<Wallet?> build() {
+  AsyncValue<Wallet> build() {
     return const AsyncValue.loading();
   }
 

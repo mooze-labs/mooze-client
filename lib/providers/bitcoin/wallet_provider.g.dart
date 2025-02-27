@@ -148,13 +148,13 @@ class _BlockchainProviderElement
 }
 
 String _$bitcoinWalletNotifierHash() =>
-    r'e1bdde438001a15fbdcbefcaa6234f92ca7683c2';
+    r'7377afe2d26ec16cf9864b1e2228e26a688adef2';
 
 /// See also [BitcoinWalletNotifier].
 @ProviderFor(BitcoinWalletNotifier)
 final bitcoinWalletNotifierProvider = AutoDisposeNotifierProvider<
   BitcoinWalletNotifier,
-  AsyncValue<Wallet?>
+  AsyncValue<Wallet>
 >.internal(
   BitcoinWalletNotifier.new,
   name: r'bitcoinWalletNotifierProvider',
@@ -166,6 +166,6 @@ final bitcoinWalletNotifierProvider = AutoDisposeNotifierProvider<
   allTransitiveDependencies: null,
 );
 
-typedef _$BitcoinWalletNotifier = AutoDisposeNotifier<AsyncValue<Wallet?>>;
+typedef _$BitcoinWalletNotifier = AutoDisposeNotifier<AsyncValue<Wallet>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

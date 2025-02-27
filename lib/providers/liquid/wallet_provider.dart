@@ -10,12 +10,12 @@ const electrumUrl = "blockstream.info:995";
 @riverpod
 class LiquidWalletNotifier extends _$LiquidWalletNotifier {
   @override
-  AsyncValue<Wallet?> build() {
-    return const AsyncValue.loading(); 
-    }
+  AsyncValue<Wallet> build() {
+    return const AsyncValue.loading();
+  }
 
   Future<void> initializeWallet(Network network) async {
-    state = const AsyncValue.loading(); 
+    state = const AsyncValue.loading();
     try {
       final directory = await getApplicationDocumentsDirectory();
       final dbPath = '${directory.path}/lwk-db';
@@ -31,6 +31,7 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
         mnemonic: mnemonic,
       );
 
+      print("Initializing Liquid wallet.");
       final wallet = await Wallet.init(
         descriptor: descriptor,
         network: network,
@@ -38,7 +39,9 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
       );
 
       // Sync wallet
+      print("Syncing Liquid wallet");
       await wallet.sync(electrumUrl: electrumUrl, validateDomain: true);
+      print("Synced.");
 
       // Set wallet state
       state = AsyncValue.data(wallet);
@@ -56,10 +59,7 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
 
     try {
       state = const AsyncValue.loading();
-      await wallet.sync(
-        electrumUrl: electrumUrl,
-        validateDomain: true,
-      );
+      await wallet.sync(electrumUrl: electrumUrl, validateDomain: true);
       state = AsyncValue.data(wallet);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
@@ -79,7 +79,6 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
 
     state = AsyncValue.data(wallet);
     return address.confidential;
-
   }
 
   /// Fetches UTXOs
