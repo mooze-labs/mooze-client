@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/screens/first_access/first_access.dart';
+import 'package:mooze_mobile/screens/splash_screen/splash_screen.dart';
+import 'package:mooze_mobile/themes/theme_base.dart' as mooze_theme;
+import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:mooze_mobile/screens/confirm-mnemonic.dart';
 import 'package:mooze_mobile/screens/create-new-wallet.dart';
-import 'package:mooze_mobile/screens/import-wallet.dart';
+import 'package:mooze_mobile/screens/import_wallet/import_wallet.dart';
 import 'package:mooze_mobile/screens/receive-funds.dart';
 import 'package:mooze_mobile/screens/receive-pix-payment.dart';
 import 'package:mooze_mobile/screens/send-funds.dart';
 import 'package:mooze_mobile/screens/swap.dart';
-import 'package:mooze_mobile/screens/wallet.dart';
+import 'package:mooze_mobile/screens/wallet/wallet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
@@ -23,11 +27,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mooze Wallet',
-      theme: ThemeData.dark(),
-      initialRoute: '/',
+      title: 'Mooze',
+      theme: mooze_theme.themeData,
+      initialRoute: '/splash',
       routes: {
-        '/': (context) => StartScreen(),
+        // '/': (context) => StartScreen(),
+        '/first_access': (context) => FirstAccessScreen(),
+        '/splash': (context) => SplashScreen(),
         '/create-new-wallet': (context) => CreateNewWalletScreen(),
         '/confirm-mnemonic': (context) => ConfirmMnemonicScreen(),
         '/import-wallet': (context) => ImportWalletScreen(),
@@ -36,9 +42,7 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         if (settings.name == '/receive-funds') {
           final wallet = settings.arguments as Wallet;
-          return MaterialPageRoute(
-            builder: (context) => ReceiveFundsScreen(),
-          );
+          return MaterialPageRoute(builder: (context) => ReceiveFundsScreen());
         }
 
         if (settings.name == '/receive-pix-payment') {
@@ -50,9 +54,7 @@ class MyApp extends StatelessWidget {
 
         if (settings.name == '/send-funds') {
           final wallet = settings.arguments as Wallet;
-          return MaterialPageRoute(
-            builder: (context) => SendFundsScreen(),
-          );
+          return MaterialPageRoute(builder: (context) => SendFundsScreen());
         }
 
         if (settings.name == '/swap') {
@@ -67,6 +69,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/*
 class StartScreen extends StatefulWidget {
   @override
   _StartScreenState createState() => _StartScreenState();
@@ -76,118 +79,47 @@ class _StartScreenState extends State<StartScreen> {
   @override
   void initState() {
     super.initState();
-    _checkMnemonic();
-  }
-
-  Future<void> _checkMnemonic() async {
-    final prefs = await SharedPreferences.getInstance();
-    final mnemonic = prefs.getString('mnemonic');
-    if (mnemonic != null) {
-      // Navigate to wallet if mnemonic is already set
-      Navigator.pushReplacementNamed(context, '/wallet');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          StarryBackground(), // Custom background
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset('assets/mooze-logo.png', width: 200, height: 200),
-                SizedBox(height: 50),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.8,
-                  child: Column(
-                    children: [
-                      CustomButton(
-                        text: 'Criar nova carteira',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/create-new-wallet');
-                        },
-                        isPrimary: true,
-                      ),
-                      SizedBox(height: 20),
-                      CustomButton(
-                        text: 'Importar carteira existente',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/import-wallet');
-                        },
-                        isPrimary: false,
-                      ),
-                    ],
+      backgroundColor: Color(0xFF141818),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/mooze-logo.png', width: 200, height: 200),
+            SizedBox(height: 50),
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: Column(
+                children: [
+                  HighlightedButton(
+                    text: "Negociar agora",
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/create-new-wallet');
+                    },
+                    icon: Icons.swap_horiz,
                   ),
-                ),
-              ],
+                  SizedBox(height: 20),
+                  CommonButton(
+                    text: 'Acessar carteira',
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/import-wallet');
+                    },
+                    icon: Icons.wallet_rounded,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
-
-class CustomButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-  final bool isPrimary;
-
-  const CustomButton({
-    required this.text,
-    required this.onPressed,
-    required this.isPrimary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child:
-          isPrimary
-              ? ElevatedButton(
-                onPressed: onPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFD973C1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                ),
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              )
-              : OutlinedButton(
-                onPressed: onPressed,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Color(0xFFD973C1)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                ),
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFD973C1),
-                  ),
-                ),
-              ),
-    );
-  }
-}
-
+*/
 class StarryBackground extends StatelessWidget {
   final int starCount;
   final Color starColor;
