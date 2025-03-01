@@ -6,7 +6,7 @@ part of 'wallet_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$blockchainHash() => r'd9bdc24917c039ad6a492843a96926a0003084ce';
+String _$blockchainHash() => r'ec14570d71e2bb0508db232dc5c6236e60fed378';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -148,7 +148,7 @@ class _BlockchainProviderElement
 }
 
 String _$bitcoinWalletNotifierHash() =>
-    r'7377afe2d26ec16cf9864b1e2228e26a688adef2';
+    r'c492685785bb454e8ba3dbc46d614da2c3b6eba0';
 
 /// See also [BitcoinWalletNotifier].
 @ProviderFor(BitcoinWalletNotifier)

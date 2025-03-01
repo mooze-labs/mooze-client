@@ -1,7 +1,6 @@
 import 'package:bdk_flutter/bdk_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:mooze_mobile/providers/mnemonic_provider.dart';
 
 part 'wallet_provider.g.dart';
 
@@ -32,14 +31,11 @@ class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
     return const AsyncValue.loading();
   }
 
-  Future<void> initializeWallet(Network network) async {
+  Future<void> initializeWallet(bool mainnet, String mnemonic) async {
     state = const AsyncValue.loading();
-    try {
-      final mnemonic = await ref.read(mnemonicNotifierProvider.future);
-      if (mnemonic == null) {
-        throw Exception("Mnemônico não encontrado!");
-      }
+    final network = (mainnet == true) ? Network.bitcoin : Network.testnet;
 
+    try {
       final blockchain = await ref.read(blockchainProvider(network).future);
       if (blockchain == null) {
         throw Exception(

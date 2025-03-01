@@ -7,7 +7,7 @@ part of 'wallet_provider.dart';
 // **************************************************************************
 
 String _$liquidWalletNotifierHash() =>
-    r'2c0b8308c6ca6c1cd98f7a2021f49b2d9659d96e';
+    r'ac397551a434fcec1b7f5e92b8d39b3743227343';
 
 /// See also [LiquidWalletNotifier].
 @ProviderFor(LiquidWalletNotifier)

@@ -1,7 +1,6 @@
 import 'package:lwk/lwk.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:mooze_mobile/providers/mnemonic_provider.dart';
 
 part 'wallet_provider.g.dart';
 
@@ -14,24 +13,19 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
     return const AsyncValue.loading();
   }
 
-  Future<void> initializeWallet(Network network) async {
+  Future<void> initializeWallet(bool mainnet, String mnemonic) async {
     state = const AsyncValue.loading();
+    final network = (mainnet == true) ? Network.mainnet : Network.testnet;
+
     try {
       final directory = await getApplicationDocumentsDirectory();
       final dbPath = '${directory.path}/lwk-db';
-
-      // Retrieve the mnemonic (Ensure you have a provider for this)
-      final mnemonic = await ref.read(mnemonicNotifierProvider.future);
-      if (mnemonic == null) {
-        throw Exception("Mnemônico não encontrado!");
-      }
 
       final descriptor = await Descriptor.newConfidential(
         network: network,
         mnemonic: mnemonic,
       );
 
-      print("Initializing Liquid wallet.");
       final wallet = await Wallet.init(
         descriptor: descriptor,
         network: network,
@@ -39,9 +33,7 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
       );
 
       // Sync wallet
-      print("Syncing Liquid wallet");
       await wallet.sync(electrumUrl: electrumUrl, validateDomain: true);
-      print("Synced.");
 
       // Set wallet state
       state = AsyncValue.data(wallet);
