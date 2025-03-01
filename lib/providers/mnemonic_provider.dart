@@ -1,6 +1,7 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 part 'mnemonic_provider.g.dart';
 
@@ -8,8 +9,10 @@ part 'mnemonic_provider.g.dart';
 class MnemonicNotifier extends _$MnemonicNotifier {
   @override
   Future<String?> build() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString("mnemonic");
+    final storage = FlutterSecureStorage();
+    final mnemonic = await storage.read(key: "mnemonic");
+
+    return mnemonic;
   }
 
   Future<void> generateMnemonic() async {
@@ -26,8 +29,9 @@ class MnemonicNotifier extends _$MnemonicNotifier {
   }
 
   Future<void> _saveMnemonic(String mnemonic) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("mnemonic", mnemonic);
+    final storage = FlutterSecureStorage();
+    await storage.write(key: "mnemonic", value: mnemonic);
+
     state = AsyncValue.data(mnemonic);
   }
 }
