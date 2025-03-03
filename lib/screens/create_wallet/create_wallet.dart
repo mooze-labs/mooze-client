@@ -1,77 +1,107 @@
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/screens/create_wallet/widgets/mnemonic_display.dart';
-import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
 class CreateWalletScreen extends StatefulWidget {
   @override
-  CreateWalletState createState() => CreateWalletState();
+  _CreateWalletScreenState createState() => _CreateWalletScreenState();
 }
 
-class CreateWalletState extends State<CreateWalletScreen> {
-  late Future<String> _mnemonicFuture;
+class _CreateWalletScreenState extends State<CreateWalletScreen> {
+  Language selectedLanguage = Language.english; // default to English
+  bool extendedPhrase = false; // default to 12 words
 
-  @override
-  void initState() {
-    super.initState();
-    final mnemonicHandler = MnemonicHandler();
-    final walletId = "mainWallet";
-    _mnemonicFuture = mnemonicHandler.createNewBip39Mnemonic(walletId, false);
+  final languageNames = {
+    Language.english: "English",
+    Language.portuguese: "Português",
+  };
+
+  String enumToString(Language lang) {
+    return lang.name[0].toUpperCase() + lang.name.substring(1);
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Build option to select 12 or 24 words
     return Scaffold(
-      appBar: MoozeAppBar(title: "Criar nova carteira"),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: FutureBuilder<String>(
-            future: _mnemonicFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return CircularProgressIndicator();
-              } else if (snapshot.hasError) {
-                return Text("Erro: ${snapshot.error}");
-              } else if (snapshot.hasData) {
-                final mnemonic = snapshot.data!;
-                final mnemonicGridDisplay = MnemonicGridDisplay(
-                  mnemonic: mnemonic,
-                );
+      appBar: MoozeAppBar(title: "Criar carteira"),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Selecione a linguagem da frase de recuperação",
+              style: TextStyle(
+                fontFamily: "roboto",
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            ...Language.values
+                .where(
+                  (lang) =>
+                      (lang == Language.portuguese) ||
+                      (lang == Language.english),
+                )
+                .map(
+                  (lang) => RadioListTile<Language>(
+                    title: Text(languageNames[lang] ?? enumToString(lang)),
+                    value: lang,
+                    groupValue: selectedLanguage,
+                    onChanged: (Language? newValue) {
+                      setState(() {
+                        selectedLanguage = newValue!;
+                      });
+                    },
+                  ),
+                ),
+            SizedBox(height: 20),
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Estas são suas palavras de recuperação. Guarde-as com segurança: ",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: "roboto",
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    mnemonicGridDisplay,
-                    PrimaryButton(
-                      text: "Confirmar",
-                      onPressed: () {
-                        Navigator.pushNamed(
-                          context,
-                          "/confirm_mnemonic",
-                          arguments: mnemonic,
-                        );
-                      },
-                    ),
-                  ],
-                );
-              }
+            Text(
+              "Selecione o tamanho da frase",
+              style: TextStyle(
+                fontFamily: "roboto",
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            RadioListTile<bool>(
+              title: Text("12 palavras"),
+              value: false,
+              groupValue: extendedPhrase,
+              onChanged: (bool? newValue) {
+                setState(() {
+                  extendedPhrase = newValue!;
+                });
+              },
+            ),
+            RadioListTile<bool>(
+              title: Text("24 palavras (recomendado)"),
+              value: true,
+              groupValue: extendedPhrase,
+              onChanged: (bool? newValue) {
+                setState(() {
+                  extendedPhrase = newValue!;
+                });
+              },
+            ),
+            SizedBox(height: 20),
 
-              return Container(); // fallback
-            },
-          ),
+            PrimaryButton(
+              text: "Gerar frase de recuperação",
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/generate_mnemonic',
+                  arguments: {
+                    'language': selectedLanguage,
+                    'extendedPhrase': extendedPhrase,
+                  },
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
