@@ -2,7 +2,7 @@ import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Class to interact with wallet mnemonics.
-class MnemonicSetup {
+class MnemonicHandler {
   final _storage = const FlutterSecureStorage();
 
   Future<String> createNewBip39Mnemonic(
