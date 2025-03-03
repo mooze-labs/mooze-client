@@ -15,7 +15,7 @@ class FirstAccessScreen extends StatelessWidget {
         PrimaryButton(
           text: "Negociar agora",
           onPressed: () {
-            Navigator.pushNamed(context, '/create-new-wallet');
+            Navigator.pushNamed(context, '/create_wallet');
           },
           icon: Icons.swap_horiz,
         ),
@@ -23,26 +23,27 @@ class FirstAccessScreen extends StatelessWidget {
         TertiaryButton(
           text: "Criar carteira",
           onPressed: () {
-            Navigator.pushNamed(context, '/create-new-wallet');
+            Navigator.pushNamed(context, '/create_wallet');
           },
           icon: Icons.wallet_rounded,
         ),
         SizedBox(height: 20),
-        RichText(
-          text: TextSpan(
-            style: defaultStyle,
-            children: <TextSpan>[
-              TextSpan(text: "Já tem uma carteira? "),
-              TextSpan(
-                text: "Importe-a.",
-                style: linkStyle,
-                recognizer:
-                    TapGestureRecognizer()
-                      ..onTap =
-                          () => Navigator.pushNamed(context, "/import-wallet"),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Já tem uma carteira? ", style: defaultStyle),
+            InkWell(
+              onTap: () => Navigator.pushNamed(context, "/import_wallet"),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Importe-a.", style: linkStyle),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward, size: 16, color: linkStyle.color),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
