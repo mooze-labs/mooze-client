@@ -6,7 +6,7 @@ part of 'wallet_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$blockchainHash() => r'ec14570d71e2bb0508db232dc5c6236e60fed378';
+String _$blockchainHash() => r'312449d80f8cbd2fc5a9b4074312c1a09e01c0cf';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -148,24 +148,22 @@ class _BlockchainProviderElement
 }
 
 String _$bitcoinWalletNotifierHash() =>
-    r'c492685785bb454e8ba3dbc46d614da2c3b6eba0';
+    r'88eb5886b2c7fa5ebde235ec3a2dc88918d89078';
 
 /// See also [BitcoinWalletNotifier].
 @ProviderFor(BitcoinWalletNotifier)
-final bitcoinWalletNotifierProvider = AutoDisposeNotifierProvider<
-  BitcoinWalletNotifier,
-  AsyncValue<Wallet>
->.internal(
-  BitcoinWalletNotifier.new,
-  name: r'bitcoinWalletNotifierProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$bitcoinWalletNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final bitcoinWalletNotifierProvider =
+    NotifierProvider<BitcoinWalletNotifier, AsyncValue<Wallet>>.internal(
+      BitcoinWalletNotifier.new,
+      name: r'bitcoinWalletNotifierProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$bitcoinWalletNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
-typedef _$BitcoinWalletNotifier = AutoDisposeNotifier<AsyncValue<Wallet>>;
+typedef _$BitcoinWalletNotifier = Notifier<AsyncValue<Wallet>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

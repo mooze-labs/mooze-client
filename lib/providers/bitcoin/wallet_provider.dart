@@ -8,6 +8,7 @@ const electrumUrl = "blockstream.info";
 
 @riverpod
 Future<Blockchain?> blockchain(Ref ref, Network network) async {
+  print("[*] Connecting to Bitcoin node.");
   final port = (network == Network.bitcoin) ? 700 : 993;
   final blockchain = await Blockchain.create(
     config: BlockchainConfig.electrum(
@@ -21,13 +22,18 @@ Future<Blockchain?> blockchain(Ref ref, Network network) async {
     ),
   );
 
+  print("[*] Connected to Bitcoin node.");
   return blockchain;
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
+  Wallet? _initializedWallet;
   @override
   AsyncValue<Wallet> build() {
+    if (_initializedWallet != null) {
+      return AsyncValue.data(_initializedWallet!);
+    }
     return const AsyncValue.loading();
   }
 
@@ -66,8 +72,13 @@ class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
         databaseConfig: const DatabaseConfig.memory(),
       );
 
+      print("[INFO] Initialized Bitcoin wallet.");
       final _ = await wallet.sync(blockchain: blockchain);
+      print("[INFO] Synchronized with Bitcoin network.");
+
+      _initializedWallet = wallet;
       state = AsyncValue.data(wallet);
+      print("[INFO] Bitcoin wallet state: $state");
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }

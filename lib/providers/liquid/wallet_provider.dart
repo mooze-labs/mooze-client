@@ -6,10 +6,15 @@ part 'wallet_provider.g.dart';
 
 const electrumUrl = "blockstream.info:995";
 
-@riverpod
+@Riverpod(keepAlive: true)
 class LiquidWalletNotifier extends _$LiquidWalletNotifier {
+  Wallet? _initializedWallet;
+
   @override
   AsyncValue<Wallet> build() {
+    if (_initializedWallet != null) {
+      return AsyncValue.data(_initializedWallet!);
+    }
     return const AsyncValue.loading();
   }
 
@@ -31,12 +36,17 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
         network: network,
         dbpath: dbPath,
       );
+      print("[INFO] Building Liquid wallet.");
 
       // Sync wallet
+      print("[INFO] Connecting to Liquid nodes.");
       await wallet.sync(electrumUrl: electrumUrl, validateDomain: true);
+      print("[INFO] Synchronized to Liquid network.");
 
       // Set wallet state
+      _initializedWallet = wallet;
       state = AsyncValue.data(wallet);
+      print("[INFO] Liquid wallet state: $state");
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
