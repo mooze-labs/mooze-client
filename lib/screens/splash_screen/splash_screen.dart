@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/bitcoin/wallet_provider.dart';
 import 'package:mooze_mobile/providers/liquid/wallet_provider.dart';
-import 'package:mooze_mobile/providers/mnemonic_provider.dart';
+import 'package:mooze_mobile/utils/mnemonic.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   @override
@@ -18,9 +18,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
-      final mnemonic = await ref.read(mnemonicNotifierProvider.future);
+      final mnemonicHandler = MnemonicHandler();
+      final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(
+        "mainWallet",
+      );
+
       if (mnemonic != null) {
-        Navigator.pushReplacementNamed(context, "/home");
+        await _initializeWallets(true, mnemonic);
+
+        Navigator.pushReplacementNamed(context, "/wallet");
       } else {
         Navigator.pushReplacementNamed(context, "/first_access");
       }
