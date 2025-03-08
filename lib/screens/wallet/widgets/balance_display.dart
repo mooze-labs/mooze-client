@@ -1,77 +1,88 @@
-import 'package:flutter/material.dart';
+import 'dart:math';
 
-class BalanceDisplay extends StatelessWidget {
-  final int totalSats; // amount in satoshi
-  final double btcPriceBrl;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
+import 'package:mooze_mobile/providers/multichain/multichain_asset_provider.dart';
+
+class BalanceDisplay extends ConsumerWidget {
   final bool isBalanceVisible;
 
-  const BalanceDisplay({
-    Key? key,
-    required this.totalSats,
-    required this.isBalanceVisible,
-    this.btcPriceBrl = 0.0,
-  }) : super(key: key);
+  const BalanceDisplay({Key? key, required this.isBalanceVisible});
+
+  double sumFiatAmount(
+    AsyncValue<List<Asset>> ownedAssets,
+    AsyncValue<Map<String, double>> assetPrices,
+  ) {
+    return assetPrices.when(
+      loading: () => 0.0,
+      error: (err, stack) {
+        print("[ERROR] Could not retrieve asset prices: $err");
+        return 0.0;
+      },
+      data: (prices) {
+        return ownedAssets.when(
+          loading: () => 0.0,
+          error: (err, stack) {
+            print("[ERROR] Could not retrieve owned assets: $err");
+            return 0.0;
+          },
+          data: (assets) {
+            return assets
+                .where(
+                  (asset) =>
+                      (asset.fiatPriceId != null) &&
+                      (prices.containsKey(asset.fiatPriceId)),
+                )
+                .map(
+                  (asset) =>
+                      prices[asset.fiatPriceId]! *
+                      (asset.amount / pow(10, asset.precision)),
+                )
+                .fold<double>(0, (value, element) => value + element);
+          },
+        );
+      },
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Computed total in BRL
-    final totalBtc = totalSats / 100000000.0;
-    final totalBrl = totalBtc * btcPriceBrl; // convert to BTC
+    final ownedAssets = ref.watch(multiChainAssetsProvider);
+    final fiatPrices = ref.watch(fiatPricesProvider);
 
     // Show/Hide logic
-    final displayBtc =
-        isBalanceVisible ? "${totalBtc.toStringAsFixed(8)} BTC" : "•••• BTC";
     final displayBrl =
-        isBalanceVisible ? "R\$ ${totalBrl.toStringAsFixed(2)}" : "R\$ ••••";
+        isBalanceVisible
+            ? "R\$ ${sumFiatAmount(ownedAssets, fiatPrices).toStringAsFixed(2)}"
+            : "R\$ ••••";
 
-    return SizedBox(
-      height: 200,
-
-      child: Stack(
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
         children: [
-          Positioned.fill(
-            child: ClipRect(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF1E1E1E), // dark
-                      Color(0xFFD973C1), // pink
-                    ],
-                  ),
-                ),
-              ),
+          Text(
+            "Saldo total",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: "roboto",
+              fontSize: 24.0,
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.0,
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
-
-          Positioned(
-            left: 16,
-            bottom: 16,
-            right: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Saldo",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  displayBtc,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  displayBrl,
-                  style: const TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-              ],
+          SizedBox(height: 10),
+          Text(
+            displayBrl,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 40.0,
+              fontFamily: "roboto",
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],

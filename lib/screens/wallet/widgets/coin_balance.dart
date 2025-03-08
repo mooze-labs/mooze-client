@@ -1,136 +1,113 @@
 import 'dart:math';
 import 'dart:ui';
 import "package:flutter/material.dart";
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 
-class CoinBalance extends StatelessWidget {
-  final String name;
-  final int amount; // in sats
-  final String unitName; // e.g. satoshi, btc, wei, eth, depix, etc.
-  final int precision; // number of decimal places for formatting
+class CoinBalance extends ConsumerWidget {
+  final Asset asset;
+  double? fiatPrice;
   final bool isBalanceVisible; // toggle to show/hide amount
-  final Widget logo;
 
-  CoinBalance({
-    required this.name,
-    required this.amount,
-    required this.unitName,
-    required this.precision,
-    required this.logo,
-    this.isBalanceVisible = true,
-  });
+  CoinBalance({super.key, required this.asset, this.isBalanceVisible = true});
+
+  void getAssetFiatPrice(AsyncValue<Map<String, double>> fiatPrices) {
+    if (asset.fiatPriceId == null) {
+      return;
+    }
+
+    return fiatPrices.when(
+      loading: () => {},
+      error: (err, stack) {
+        print("[ERROR] Could not load asset prices.");
+        return;
+      },
+      data: (prices) {
+        if (!prices.containsKey(asset.fiatPriceId!)) {
+          return;
+        }
+
+        fiatPrice = prices[asset.fiatPriceId];
+        return;
+      },
+    );
+  }
 
   String _formatBalance() {
     if (!isBalanceVisible) return "••••";
-    if (precision == 0) return "$amount $unitName".trim();
+    if (asset.precision == 0) return "$asset.amount".trim();
 
-    final double value = amount / (pow(10, precision));
-    return "$value $unitName".trim();
+    final double value = asset.amount / (pow(10, asset.precision));
+    return "${value.toStringAsFixed(asset.precision)}".trim();
+  }
+
+  String _formatFiatValue() {
+    if (fiatPrice == null) return "";
+    if (!isBalanceVisible) return "••••";
+
+    final double value = (asset.amount / pow(10, asset.precision)) * fiatPrice!;
+    return "R\$ ${value.toStringAsFixed(2)}"; // Format as BRL with 2 decimals
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(width: 40, height: 40, child: logo),
-        SizedBox.square(dimension: 20),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              name,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              _formatBalance(),
-              style: const TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fiatPrices = ref.watch(fiatPricesProvider);
+    getAssetFiatPrice(fiatPrices);
 
-class LoadingCoinBalance extends StatelessWidget {
-  final int amount;
-  final bool isBalanceVisible;
-
-  const LoadingCoinBalance({
-    required this.amount,
-    this.isBalanceVisible = true,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CoinBalance(
-      name: "Carregando...",
-      amount: 0,
-      unitName: "N/A",
-      precision: 0,
-      logo: const CircularProgressIndicator(),
-      isBalanceVisible: isBalanceVisible,
-    );
-  }
-}
-
-class ErrorCoinBalance extends StatelessWidget {
-  final String error;
-  final int amount;
-  final bool isBalanceVisible;
-
-  const ErrorCoinBalance({
-    required this.error,
-    required this.amount,
-    this.isBalanceVisible = true,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CoinBalance(
-      name: "Erro: $error",
-      amount: amount,
-      unitName: "N/A",
-      precision: 0,
-      logo: Image.asset("assets/default-coin-logo.png"),
-      isBalanceVisible: isBalanceVisible,
-    );
-  }
-}
-
-class CoinBalanceList extends StatelessWidget {
-  final List<Widget> coinBalances;
-
-  const CoinBalanceList({required this.coinBalances});
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        border: Border.all(color: Color(0xFFD973C1)),
+        color: Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            coinBalances
-                .map(
-                  (coin) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: coin,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(width: 40, height: 40, child: Image.asset(asset.logoPath)),
+          const SizedBox.square(dimension: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  asset.name,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    fontFamily: "roboto",
+                    fontWeight: FontWeight.bold,
                   ),
-                )
-                .toList(),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatBalance(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontFamily: "roboto",
+                      ),
+                    ),
+                    Text(
+                      _formatFiatValue(),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                        fontFamily: "roboto",
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
