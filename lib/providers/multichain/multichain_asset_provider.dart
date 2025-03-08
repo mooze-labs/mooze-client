@@ -9,8 +9,38 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'multichain_asset_provider.g.dart';
 
+const knownLiquidAssets = {
+  "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d": (
+    id: "liquid_bitcoin",
+    name: "Liquid Bitcoin",
+    ticker: "L-BTC",
+    logoPath: "assets/images/lbtc-logo.png",
+    fiatPriceId: "bitcoin",
+    precision: 8,
+    network: Network.liquid,
+  ),
+  "ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2": (
+    id: "tether",
+    name: "Tether USD",
+    ticker: "USDT",
+    logoPath: "assets/images/usdt-logo.png",
+    fiatPriceId: "tether",
+    precision: 8,
+    network: Network.liquid,
+  ),
+  "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189": (
+    id: "depix",
+    name: "Depix",
+    ticker: "DEPIX",
+    logoPath: "assets/images/depix-logo.png",
+    fiatPriceId: "depix",
+    precision: 8,
+    network: Network.liquid,
+  ),
+};
+
 @riverpod
-Future<List<Asset>> ownedMultiChainAssets(Ref ref) async {
+Future<List<Asset>> multiChainAssets(Ref ref) async {
   final liquidState = ref.watch(liquidWalletNotifierProvider);
   final bitcoinState = ref.watch(bitcoinWalletNotifierProvider);
 
@@ -34,56 +64,27 @@ Future<List<Asset>> ownedMultiChainAssets(Ref ref) async {
     precision: 8,
     network: Network.bitcoin,
     logoPath: "assets/images/bitcoin-logo.png",
-    coingeckoId: "bitcoin",
+    fiatPriceId: "bitcoin",
   );
 
   final liquidAssets = await Future.wait(
     liquidBalances.map((balance) async {
-      if (balance.assetId ==
-          "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d") {
+      final config = knownLiquidAssets[balance.assetId];
+      if (config != null) {
         return Asset(
-          id: "liquid_bitcoin",
-          name: "Liquid Bitcoin",
-          ticker: "L-BTC",
+          id: config.id,
+          name: config.name,
+          ticker: config.ticker,
           amount: balance.value,
-          precision: 8,
-          network: Network.liquid,
-          logoPath: "assets/images/lbtc-logo.png",
-          coingeckoId: "bitcoin",
+          precision: config.precision,
+          network: config.network,
+          logoPath: config.logoPath,
+          fiatPriceId: config.fiatPriceId,
         );
       }
-
-      if (balance.assetId ==
-          "ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2") {
-        return Asset(
-          id: "tether",
-          name: "Tether USD",
-          ticker: "USDT",
-          amount: balance.value,
-          precision: 8,
-          network: Network.liquid,
-          logoPath: "assets/images/usdt-logo.png",
-          coingeckoId: "tether",
-        );
-      }
-
-      if (balance.assetId ==
-          "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189") {
-        return Asset(
-          id: "depix",
-          name: "Depix",
-          ticker: "DEPIX",
-          amount: balance.value,
-          precision: 8,
-          network: Network.liquid,
-          logoPath: "assets/images/depix-logo.png",
-        );
-      }
-
       final assetDetails = await ref.read(
         liquidAssetProvider((balance.assetId, liquid.Network.mainnet)).future,
       );
-
       return Asset(
         id: assetDetails.assetId,
         name: assetDetails.name,
@@ -96,33 +97,35 @@ Future<List<Asset>> ownedMultiChainAssets(Ref ref) async {
     }),
   );
 
-  final defaultTether = Asset(
-    id: "tether",
-    name: "Tether USD",
-    ticker: "USDT",
-    amount: 0,
-    precision: 8,
-    network: Network.liquid,
-    logoPath: "assets/images/usdt-logo.png",
-    coingeckoId: "tether",
-  );
-
-  final defaultDepix = Asset(
-    id: "depix",
-    name: "Depix",
-    ticker: "DEPIX",
-    amount: 0,
-    precision: 8,
-    network: Network.liquid,
-    logoPath: "assets/images/depix-logo.png",
-  );
+  final defaultAssets = [
+    Asset(
+      id: "tether",
+      name: "Tether USD",
+      ticker: "USDT",
+      amount: 0,
+      precision: 8,
+      network: Network.liquid,
+      logoPath: "assets/images/usdt-logo.png",
+      fiatPriceId: "tether",
+    ),
+    Asset(
+      id: "depix",
+      name: "Depix",
+      ticker: "DEPIX",
+      amount: 0,
+      precision: 8,
+      network: Network.liquid,
+      logoPath: "assets/images/depix-logo.png",
+      fiatPriceId: "depix",
+    ),
+  ];
 
   final assetMap = {for (var asset in liquidAssets) asset.id: asset};
-
   final allLiquidAssets = [
     ...liquidAssets,
-    if (!assetMap.containsKey("tether")) defaultTether,
-    if (!assetMap.containsKey("depix")) defaultDepix,
+    ...defaultAssets.where(
+      (defaultAsset) => !assetMap.containsKey(defaultAsset.id),
+    ),
   ];
 
   return [bitcoinAsset, ...allLiquidAssets];
