@@ -8,8 +8,8 @@ class Asset {
   final int precision;
   final Network network;
   final String logoPath;
-  final String? coingeckoId;
-  final String? assetId; // for blockchains that require assetId
+  final String? fiatPriceId;
+  final String? liquidAssetId; // for liquid network
 
   Asset({
     required this.id,
@@ -19,7 +19,7 @@ class Asset {
     required this.precision,
     required this.network,
     required this.logoPath,
-    this.assetId = "",
-    this.coingeckoId = "",
+    this.liquidAssetId = "",
+    this.fiatPriceId = "",
   });
 }
