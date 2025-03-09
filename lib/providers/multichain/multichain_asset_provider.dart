@@ -80,18 +80,20 @@ Future<List<Asset>> multiChainAssets(Ref ref) async {
           network: config.network,
           logoPath: config.logoPath,
           fiatPriceId: config.fiatPriceId,
+          liquidAssetId: balance.assetId,
         );
       }
-      final assetDetails = await ref.read(
+      final liquidAssetDetails = await ref.read(
         liquidAssetProvider((balance.assetId, liquid.Network.mainnet)).future,
       );
       return Asset(
-        id: assetDetails.assetId,
-        name: assetDetails.name,
-        ticker: assetDetails.ticker,
+        id: liquidAssetDetails.name,
+        name: liquidAssetDetails.name,
+        ticker: liquidAssetDetails.ticker,
         amount: balance.value,
-        precision: assetDetails.precision,
+        precision: liquidAssetDetails.precision,
         network: Network.liquid,
+        liquidAssetId: liquidAssetDetails.assetId,
         logoPath: "assets/images/nav-default-liquid.png",
       );
     }),

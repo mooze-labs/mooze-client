@@ -6,7 +6,7 @@ part of 'multichain_asset_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$multiChainAssetsHash() => r'd2dfb2d67ba29daacbb9bc6b67a0d3508d32e974';
+String _$multiChainAssetsHash() => r'8d301e84d96d7539d23b3dd30439f363af39cb94';
 
 /// See also [multiChainAssets].
 @ProviderFor(multiChainAssets)
