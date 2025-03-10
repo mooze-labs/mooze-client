@@ -1,29 +1,28 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'multichain_asset_provider.dart';
+part of 'owned_assets_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$multiChainAssetsHash() => r'8d301e84d96d7539d23b3dd30439f363af39cb94';
+String _$ownedAssetsNotifierHash() =>
+    r'9b929fe7c844874fef8e0e527520b1ebf7818113';
 
-/// See also [multiChainAssets].
-@ProviderFor(multiChainAssets)
-final multiChainAssetsProvider =
-    AutoDisposeFutureProvider<List<Asset>>.internal(
-      multiChainAssets,
-      name: r'multiChainAssetsProvider',
+/// See also [OwnedAssetsNotifier].
+@ProviderFor(OwnedAssetsNotifier)
+final ownedAssetsNotifierProvider =
+    AsyncNotifierProvider<OwnedAssetsNotifier, List<OwnedAsset>>.internal(
+      OwnedAssetsNotifier.new,
+      name: r'ownedAssetsNotifierProvider',
       debugGetCreateSourceHash:
           const bool.fromEnvironment('dart.vm.product')
               ? null
-              : _$multiChainAssetsHash,
+              : _$ownedAssetsNotifierHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef MultiChainAssetsRef = AutoDisposeFutureProviderRef<List<Asset>>;
+typedef _$OwnedAssetsNotifier = AsyncNotifier<List<OwnedAsset>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
