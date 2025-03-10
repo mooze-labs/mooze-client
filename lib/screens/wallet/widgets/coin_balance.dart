@@ -6,14 +6,18 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 
 class CoinBalance extends ConsumerWidget {
-  final Asset asset;
+  final OwnedAsset ownedAsset;
   double? fiatPrice;
   final bool isBalanceVisible; // toggle to show/hide amount
 
-  CoinBalance({super.key, required this.asset, this.isBalanceVisible = true});
+  CoinBalance({
+    super.key,
+    required this.ownedAsset,
+    this.isBalanceVisible = true,
+  });
 
   void getAssetFiatPrice(AsyncValue<Map<String, double>> fiatPrices) {
-    if (asset.fiatPriceId == null) {
+    if (ownedAsset.asset.fiatPriceId == null) {
       return;
     }
 
@@ -24,11 +28,11 @@ class CoinBalance extends ConsumerWidget {
         return;
       },
       data: (prices) {
-        if (!prices.containsKey(asset.fiatPriceId!)) {
+        if (!prices.containsKey(ownedAsset.asset.fiatPriceId!)) {
           return;
         }
 
-        fiatPrice = prices[asset.fiatPriceId];
+        fiatPrice = prices[ownedAsset.asset.fiatPriceId];
         return;
       },
     );
@@ -36,17 +40,19 @@ class CoinBalance extends ConsumerWidget {
 
   String _formatBalance() {
     if (!isBalanceVisible) return "••••";
-    if (asset.precision == 0) return "$asset.amount".trim();
+    if (ownedAsset.asset.precision == 0) return "${ownedAsset.amount}".trim();
 
-    final double value = asset.amount / (pow(10, asset.precision));
-    return "${value.toStringAsFixed(asset.precision)}".trim();
+    final double value =
+        ownedAsset.amount / (pow(10, ownedAsset.asset.precision));
+    return "${value.toStringAsFixed(ownedAsset.asset.precision)}".trim();
   }
 
   String _formatFiatValue() {
     if (fiatPrice == null) return "";
     if (!isBalanceVisible) return "••••";
 
-    final double value = (asset.amount / pow(10, asset.precision)) * fiatPrice!;
+    final double value =
+        (ownedAsset.amount / pow(10, ownedAsset.asset.precision)) * fiatPrice!;
     return "R\$ ${value.toStringAsFixed(2)}"; // Format as BRL with 2 decimals
   }
 
@@ -68,14 +74,18 @@ class CoinBalance extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(width: 40, height: 40, child: Image.asset(asset.logoPath)),
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: Image.asset(ownedAsset.asset.logoPath),
+          ),
           const SizedBox.square(dimension: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  asset.name,
+                  ownedAsset.asset.name,
                   style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 14,

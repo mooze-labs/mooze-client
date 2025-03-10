@@ -2,7 +2,7 @@ import 'package:lwk/lwk.dart' as liquid;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
-import 'package:mooze_mobile/providers/multichain/multichain_asset_provider.dart';
+import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/screens/wallet/widgets/balance_display.dart';
 import 'package:mooze_mobile/screens/wallet/widgets/wallet_buttons.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
@@ -18,7 +18,6 @@ class WalletScreen extends ConsumerStatefulWidget {
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   bool _isBalanceVisible = true;
-  int _selectedNavIndex = 2;
 
   @override
   void initState() {
@@ -70,37 +69,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedNavIndex = index;
-    });
-    switch (index) {
-      case 0:
-        Navigator.pushNamed(context, "/send-funds");
-        break;
-      case 1:
-        Navigator.pushNamed(context, "/receive-funds");
-        break;
-      case 2:
-        break;
-      case 3:
-        Navigator.pushNamed(context, "/swap");
-        break;
-      case 4:
-        Navigator.pushNamed(context, "/receive-pix-payment");
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final multiChainAssetState = ref.watch(multiChainAssetsProvider.future);
+    final ownedAssetsState = ref.watch(ownedAssetsNotifierProvider.future);
 
     return Scaffold(
       appBar: _buildAppBar(context),
       drawer: MoozeDrawer(),
-      body: FutureBuilder<List<Asset>>(
-        future: multiChainAssetState,
+      body: FutureBuilder<List<OwnedAsset>>(
+        future: ownedAssetsState,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -110,7 +87,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             return Center(child: Text("Error: ${snapshot.error}"));
           }
 
-          final assets = snapshot.data!;
+          final ownedAssets = snapshot.data!;
           return Center(
             child: Column(
               children: [
@@ -148,10 +125,19 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
                 SizedBox(height: 5),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: assets.length,
-                    itemBuilder:
-                        (context, index) => CoinBalance(asset: assets[index]),
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      await ref
+                          .read(ownedAssetsNotifierProvider.notifier)
+                          .refresh();
+                      return ref.refresh(ownedAssetsNotifierProvider.future);
+                    },
+                    child: ListView.builder(
+                      itemCount: ownedAssets.length,
+                      itemBuilder:
+                          (context, index) =>
+                              CoinBalance(ownedAsset: ownedAssets[index]),
+                    ),
                   ),
                 ),
                 Padding(

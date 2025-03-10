@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
-import 'package:mooze_mobile/providers/multichain/multichain_asset_provider.dart';
+import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 
 class BalanceDisplay extends ConsumerWidget {
   final bool isBalanceVisible;
@@ -12,7 +12,7 @@ class BalanceDisplay extends ConsumerWidget {
   const BalanceDisplay({Key? key, required this.isBalanceVisible});
 
   double sumFiatAmount(
-    AsyncValue<List<Asset>> ownedAssets,
+    AsyncValue<List<OwnedAsset>> ownedAssets,
     AsyncValue<Map<String, double>> assetPrices,
   ) {
     return assetPrices.when(
@@ -31,14 +31,14 @@ class BalanceDisplay extends ConsumerWidget {
           data: (assets) {
             return assets
                 .where(
-                  (asset) =>
-                      (asset.fiatPriceId != null) &&
-                      (prices.containsKey(asset.fiatPriceId)),
+                  (ownedAsset) =>
+                      (ownedAsset.asset.fiatPriceId != null) &&
+                      (prices.containsKey(ownedAsset.asset.fiatPriceId)),
                 )
                 .map(
-                  (asset) =>
-                      prices[asset.fiatPriceId]! *
-                      (asset.amount / pow(10, asset.precision)),
+                  (ownedAsset) =>
+                      prices[ownedAsset.asset.fiatPriceId]! *
+                      (ownedAsset.amount / pow(10, ownedAsset.asset.precision)),
                 )
                 .fold<double>(0, (value, element) => value + element);
           },
@@ -50,7 +50,7 @@ class BalanceDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Computed total in BRL
-    final ownedAssets = ref.watch(multiChainAssetsProvider);
+    final ownedAssets = ref.watch(ownedAssetsNotifierProvider);
     final fiatPrices = ref.watch(fiatPricesProvider);
 
     // Show/Hide logic
