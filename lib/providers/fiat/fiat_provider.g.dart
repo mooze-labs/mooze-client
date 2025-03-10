@@ -22,7 +22,7 @@ final baseCurrencyProvider = AutoDisposeProvider<String>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef BaseCurrencyRef = AutoDisposeProviderRef<String>;
-String _$fiatPricesHash() => r'97b1b1679918841263a56e4272aef3e7d83410a5';
+String _$fiatPricesHash() => r'81619384888d243d593eb08eac4719e6df6f1897';
 
 /// See also [fiatPrices].
 @ProviderFor(fiatPrices)

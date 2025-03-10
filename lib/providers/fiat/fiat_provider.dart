@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/external/coingecko_price_provider.dart';
-import 'package:mooze_mobile/providers/multichain/multichain_asset_provider.dart';
+import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'fiat_provider.g.dart';
@@ -14,10 +15,10 @@ String baseCurrency(Ref ref) {
 @Riverpod()
 Future<Map<String, double>> fiatPrices(Ref ref) async {
   final baseCurrency = ref.watch(baseCurrencyProvider);
-  final ownedAssets = ref.watch(multiChainAssetsProvider).asData!.value;
+  final assets = AssetCatalog.all;
 
   final coingeckoAssets =
-      ownedAssets
+      assets
           .where((asset) => asset.fiatPriceId != null)
           .map((asset) => asset.fiatPriceId!)
           .toList();
