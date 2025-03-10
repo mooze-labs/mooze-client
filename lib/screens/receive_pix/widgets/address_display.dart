@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
-import 'package:mooze_mobile/providers/multichain/multichain_asset_provider.dart';
 import 'package:mooze_mobile/utils/fees.dart';
 
 class AddressDisplay extends ConsumerWidget {

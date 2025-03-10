@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwk/lwk.dart' as liquid;
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/providers/liquid/wallet_provider.dart';
-import 'package:mooze_mobile/providers/multichain/multichain_asset_provider.dart';
+import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/amount_input.dart';
@@ -20,18 +21,7 @@ class ReceivePixScreen extends ConsumerStatefulWidget {
 
 class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   // depix as default asset
-  Asset selectedAsset = Asset(
-    id: "depix",
-    name: "Depix",
-    ticker: "DEPIX",
-    amount: 0,
-    precision: 8,
-    network: Network.liquid,
-    logoPath: "assets/images/depix-logo.png",
-    fiatPriceId: "depix",
-    liquidAssetId:
-        "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
-  );
+  Asset selectedAsset = AssetCatalog.getById("depix")!;
 
   // Controller for the BRL amount input
   final TextEditingController amountController = TextEditingController();
@@ -92,15 +82,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   @override
   Widget build(BuildContext context) {
     final liquidAddress = ref.watch(liquidWalletNotifierProvider);
-
-    final liquidAssets =
-        ref
-            .watch(multiChainAssetsProvider)
-            .asData
-            ?.value
-            .where((asset) => asset.network == Network.liquid)
-            .toList() ??
-        [];
+    final liquidAssets = AssetCatalog.liquidAssets;
 
     return Scaffold(
       appBar: MoozeAppBar(title: "Receber por PIX"),
