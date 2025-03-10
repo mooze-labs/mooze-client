@@ -7,8 +7,13 @@ part 'wallet_provider.g.dart';
 const electrumUrl = "blockstream.info";
 
 @riverpod
+class BitcoinNetwork extends _$BitcoinNetwork {
+  @override
+  Network build() => Network.bitcoin;
+}
+
+@riverpod
 Future<Blockchain?> blockchain(Ref ref, Network network) async {
-  print("[*] Connecting to Bitcoin node.");
   final port = (network == Network.bitcoin) ? 700 : 993;
   final blockchain = await Blockchain.create(
     config: BlockchainConfig.electrum(
@@ -22,7 +27,6 @@ Future<Blockchain?> blockchain(Ref ref, Network network) async {
     ),
   );
 
-  print("[*] Connected to Bitcoin node.");
   return blockchain;
 }
 
@@ -39,7 +43,7 @@ class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
 
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
     state = const AsyncValue.loading();
-    final network = (mainnet == true) ? Network.bitcoin : Network.testnet;
+    final network = ref.watch(bitcoinNetworkProvider);
 
     try {
       final blockchain = await ref.read(blockchainProvider(network).future);
@@ -72,13 +76,10 @@ class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
         databaseConfig: const DatabaseConfig.memory(),
       );
 
-      print("[INFO] Initialized Bitcoin wallet.");
       final _ = await wallet.sync(blockchain: blockchain);
-      print("[INFO] Synchronized with Bitcoin network.");
 
       _initializedWallet = wallet;
       state = AsyncValue.data(wallet);
-      print("[INFO] Bitcoin wallet state: $state");
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }

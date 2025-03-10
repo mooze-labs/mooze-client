@@ -6,7 +6,7 @@ part of 'wallet_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$blockchainHash() => r'312449d80f8cbd2fc5a9b4074312c1a09e01c0cf';
+String _$blockchainHash() => r'ec14570d71e2bb0508db232dc5c6236e60fed378';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -147,8 +147,25 @@ class _BlockchainProviderElement
   Network get network => (origin as BlockchainProvider).network;
 }
 
+String _$bitcoinNetworkHash() => r'5b1770b2632dacea44d669d9540da05723773fcf';
+
+/// See also [BitcoinNetwork].
+@ProviderFor(BitcoinNetwork)
+final bitcoinNetworkProvider =
+    AutoDisposeNotifierProvider<BitcoinNetwork, Network>.internal(
+      BitcoinNetwork.new,
+      name: r'bitcoinNetworkProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$bitcoinNetworkHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$BitcoinNetwork = AutoDisposeNotifier<Network>;
 String _$bitcoinWalletNotifierHash() =>
-    r'88eb5886b2c7fa5ebde235ec3a2dc88918d89078';
+    r'0ecba3f7dec171137c08810c1c6c7ef06edc4bd3';
 
 /// See also [BitcoinWalletNotifier].
 @ProviderFor(BitcoinWalletNotifier)
