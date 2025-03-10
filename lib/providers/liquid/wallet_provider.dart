@@ -6,6 +6,12 @@ part 'wallet_provider.g.dart';
 
 const electrumUrl = "blockstream.info:995";
 
+@riverpod
+class LiquidNetwork extends _$LiquidNetwork {
+  @override
+  Network build() => Network.mainnet;
+}
+
 @Riverpod(keepAlive: true)
 class LiquidWalletNotifier extends _$LiquidWalletNotifier {
   Wallet? _initializedWallet;
@@ -20,7 +26,7 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
 
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
     state = const AsyncValue.loading();
-    final network = (mainnet == true) ? Network.mainnet : Network.testnet;
+    final network = ref.watch(liquidNetworkProvider);
 
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -36,17 +42,13 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
         network: network,
         dbpath: dbPath,
       );
-      print("[INFO] Building Liquid wallet.");
 
       // Sync wallet
-      print("[INFO] Connecting to Liquid nodes.");
       await wallet.sync(electrumUrl: electrumUrl, validateDomain: true);
-      print("[INFO] Synchronized to Liquid network.");
 
       // Set wallet state
       _initializedWallet = wallet;
       state = AsyncValue.data(wallet);
-      print("[INFO] Liquid wallet state: $state");
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }

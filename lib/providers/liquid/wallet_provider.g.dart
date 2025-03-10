@@ -6,8 +6,25 @@ part of 'wallet_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$liquidNetworkHash() => r'9f930b781b917f4e982535147925c3a4f3261126';
+
+/// See also [LiquidNetwork].
+@ProviderFor(LiquidNetwork)
+final liquidNetworkProvider =
+    AutoDisposeNotifierProvider<LiquidNetwork, Network>.internal(
+      LiquidNetwork.new,
+      name: r'liquidNetworkProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$liquidNetworkHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$LiquidNetwork = AutoDisposeNotifier<Network>;
 String _$liquidWalletNotifierHash() =>
-    r'28ae2add650d5bf5dcd95240eea6ac82f4e1bb36';
+    r'ac5bee654fe40fa768807ac5223e129587ab3608';
 
 /// See also [LiquidWalletNotifier].
 @ProviderFor(LiquidWalletNotifier)

@@ -9,19 +9,21 @@ final liquidAssetServiceProvider = Provider<LiquidAssetService>(
 );
 
 @riverpod
-final liquidAssetProvider =
-    FutureProvider.family<LiquidAsset, (String, Network)>((ref, params) async {
-      final assetId = params.$1;
-      final network = params.$2;
-      final service = ref.watch(liquidAssetServiceProvider);
+final liquidAssetProvider = FutureProvider.family<LiquidAsset, (String, bool)>((
+  ref,
+  params,
+) async {
+  final assetId = params.$1;
+  final mainnet = params.$2;
+  final service = ref.watch(liquidAssetServiceProvider);
 
-      final asset = await service.fetchAsset(assetId, network);
-      return asset ??
-          LiquidAsset(
-            assetId: assetId,
-            network: network,
-            name: 'Unknown',
-            precision: 8,
-            ticker: 'UNK',
-          );
-    });
+  final asset = await service.fetchAsset(assetId, mainnet);
+  return asset ??
+      LiquidAsset(
+        assetId: assetId,
+        network: Network.mainnet,
+        name: 'Unknown',
+        precision: 8,
+        ticker: 'UNK',
+      );
+});
