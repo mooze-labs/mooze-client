@@ -1,0 +1,224 @@
+import 'package:mooze_mobile/utils/mnemonic.dart';
+
+import 'repository.dart';
+
+import 'package:mooze_mobile/models/assets.dart' show OwnedAsset;
+import 'package:mooze_mobile/models/network.dart';
+import 'package:mooze_mobile/models/transaction.dart';
+
+import 'package:lwk/lwk.dart' as liquid;
+import 'package:path_provider/path_provider.dart';
+
+const electrumUrl = "blockstream.info:995";
+
+class LiquidWalletRepository implements WalletRepository {
+  liquid.Wallet? _wallet;
+  liquid.Network? _network;
+
+  @override
+  Future<void> initializeWallet(bool mainnet, String mnemonic) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final dbPath = "${dir.path}/lwk-db";
+
+    _network = (mainnet) ? liquid.Network.mainnet : liquid.Network.testnet;
+
+    final descriptor = await liquid.Descriptor.newConfidential(
+      network: _network!,
+      mnemonic: mnemonic,
+    );
+
+    _wallet = await liquid.Wallet.init(
+      descriptor: descriptor,
+      network: _network!,
+      dbpath: dbPath,
+    );
+
+    await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
+  }
+
+  @override
+  Future<void> sync() async {
+    if (_wallet == null) {
+      throw Exception("Liquid wallet has not been initialized.");
+    }
+
+    _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
+  }
+
+  @override
+  Future<String> generateAddress() async {
+    if (_wallet == null) {
+      throw Exception("Liquid wallet has not been initialized.");
+    }
+
+    final address = await _wallet!.addressLastUnused();
+    return address.confidential;
+  }
+
+  @override
+  Future<List<OwnedAsset>> getOwnedAssets() async {
+    if (_wallet == null) {
+      return [];
+    }
+    final balances = await _wallet!.balances();
+    List<OwnedAsset> ownedAssets = [];
+
+    for (final balance in balances) {
+      final ownedAsset = await OwnedAsset.liquid(
+        assetId: balance.assetId,
+        amount: balance.value,
+      );
+      ownedAssets.add(ownedAsset);
+    }
+
+    return ownedAssets;
+  }
+
+  @override
+  Future<PartiallySignedTransaction> buildPartiallySignedTransaction(
+    OwnedAsset asset,
+    String recipient,
+    int amount,
+    double feeRate,
+  ) async {
+    if (_wallet == null) {
+      throw Exception("Liquid wallet has not been initialized.");
+    }
+
+    if (asset.asset.network != Network.liquid) {
+      throw Exception("Asset is not a Liquid asset.");
+    }
+
+    if (asset.asset.liquidAssetId == null) {
+      throw Exception("Asset ID has not been provided.");
+    }
+
+    if (amount > asset.amount) {
+      throw Exception("Insufficient funds.");
+    }
+
+    if (asset.asset.liquidAssetId! == liquid.lBtcAssetId) {
+      return _buildLiquidBitcoinTransaction(asset, recipient, amount, feeRate);
+    }
+
+    return _buildLiquidAssetTransaction(asset, recipient, amount, feeRate);
+  }
+
+  Future<PartiallySignedTransaction> _buildLiquidAssetTransaction(
+    OwnedAsset asset,
+    String recipient,
+    int amount,
+    double feeRate,
+  ) async {
+    final pset = await _wallet!.buildAssetTx(
+      sats: BigInt.from(amount),
+      outAddress: recipient,
+      feeRate: feeRate,
+      asset: asset.asset.liquidAssetId!,
+    );
+
+    final psetAmounts = await _wallet!.decodeTx(pset: pset);
+    final pst = PartiallySignedTransaction(
+      pst: pset,
+      asset: asset.asset,
+      network: Network.liquid,
+      recipient: recipient,
+      feeAmount: psetAmounts.absoluteFees.toInt(),
+    );
+
+    return pst;
+  }
+
+  Future<PartiallySignedTransaction> _buildLiquidBitcoinTransaction(
+    OwnedAsset asset,
+    String recipient,
+    int amount,
+    double feeRate,
+  ) async {
+    final pset = await _wallet!.buildLbtcTx(
+      sats: BigInt.from(amount),
+      outAddress: recipient,
+      feeRate: feeRate,
+      drain: false,
+    );
+
+    final psetAmounts = await _wallet!.decodeTx(pset: pset);
+
+    final pst = PartiallySignedTransaction(
+      pst: pset,
+      asset: asset.asset,
+      network: Network.liquid,
+      recipient: recipient,
+      feeAmount: psetAmounts.absoluteFees.toInt(),
+    );
+
+    return pst;
+  }
+
+  @override
+  Future<Transaction> signTransaction(PartiallySignedTransaction pst) async {
+    if (_wallet == null) {
+      throw Exception("Liquid wallet is not initialized.");
+    }
+    if (pst.network != Network.liquid) {
+      throw Exception("Not a Liquid transaction.");
+    }
+
+    if (pst.asset.liquidAssetId == null) {
+      throw Exception("Asset is not a Liquid asset.");
+    }
+
+    return _signLiquidBitcoinTransaction(pst);
+  }
+
+  Future<Transaction> _signLiquidBitcoinTransaction(
+    PartiallySignedTransaction pst,
+  ) async {
+    final pset = pst.get<String>();
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(
+      "mainWallet",
+    );
+
+    final signedTxBytes = await _wallet!.signTx(
+      mnemonic: mnemonic!,
+      pset: pset,
+      network: _network!,
+    );
+
+    final tx = await liquid.Wallet.broadcastTx(
+      electrumUrl: electrumUrl,
+      txBytes: signedTxBytes,
+    );
+
+    return Transaction(txid: tx, network: Network.liquid, asset: pst.asset);
+  }
+
+  /*
+  Future<Transaction> _signLiquidAssetTransaction(
+    PartiallySignedTransaction pst,
+  ) async {
+    final pset = pst.get<String>();
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(
+      "mainWallet",
+    );
+
+    final signedAssetPset = await _wallet!.signedPsetWithExtraDetails(
+      pset: pset,
+      mnemonic: mnemonic!,
+      network: _network!,
+    );
+    final signedTxBytes = await _wallet!.signTx(
+      pset: signedAssetPset,
+      mnemonic: mnemonic,
+      network: _network!,
+    );
+
+    final tx = await liquid.Wallet.broadcastTx(
+      electrumUrl: electrumUrl,
+      txBytes: signedTxBytes,
+    );
+
+    return Transaction(txid: tx, network: Network.liquid, asset: pst.asset);
+  }
+  */
+}
