@@ -1,4 +1,5 @@
-import 'package:mooze_mobile/models/assets.dart';
+import 'assets.dart';
+import 'network.dart';
 
 class AssetCatalog {
   AssetCatalog._();

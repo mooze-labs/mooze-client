@@ -1,9 +1,7 @@
-import 'package:bdk_flutter/bdk_flutter.dart' as bitcoin;
-import 'package:lwk/lwk.dart' as liquid;
-import 'package:mooze_mobile/services/liquid.dart';
 import 'asset_catalog.dart';
+import 'network.dart';
 
-enum Network { bitcoin, liquid }
+import 'package:mooze_mobile/services/liquid.dart';
 
 class Asset {
   final String id;
@@ -24,7 +22,13 @@ class Asset {
     this.fiatPriceId = "",
   });
 
-  String get logoPath => "assets/images/logos/$id.png";
+  String get logoPath {
+    if (AssetCatalog.getById(id) != null) return "assets/images/logos/$id.png";
+    if (network == Network.liquid)
+      return "https://liquid.network/api/v1/asset/$liquidAssetId/icon";
+
+    return "assets/images/logos/nav-default-liquid.png";
+  }
 }
 
 class OwnedAsset {
