@@ -31,7 +31,7 @@ class PixQrDisplay extends StatelessWidget {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Código PIX copiado!"),
+                  content: Text("Endereço copiado!"),
                   duration: const Duration(seconds: 2),
                 ),
               );

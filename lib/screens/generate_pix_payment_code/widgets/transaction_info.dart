@@ -1,8 +1,6 @@
-import 'package:bdk_flutter/bdk_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/data/asset_data.dart';
-import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/utils/fees.dart';
 
