@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/repositories/mempool.dart';
 
 final mempoolRepositoryProvider = Provider.autoDispose
