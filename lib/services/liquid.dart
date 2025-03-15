@@ -5,7 +5,8 @@ import 'package:mooze_mobile/models/liquid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LiquidAssetService {
-  Future<LiquidAsset?> fetchAsset(String assetId, Network network) async {
+  Future<LiquidAsset?> fetchAsset(String assetId, bool mainnet) async {
+    final network = (mainnet) ? Network.mainnet : Network.testnet;
     final endpoint = (network == Network.mainnet) ? "liquid" : "liquidtestnet";
     final prefs = await SharedPreferences.getInstance();
     final cachedInfo = prefs.getString('asset_$assetId');
