@@ -110,7 +110,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     WalletButtonBox(
                       label: "Swap",
                       icon: Icons.swap_horiz,
-                      onTap: () => Navigator.pushNamed(context, "/swap"),
+                      onTap:
+                          () => ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text("Em breve!"))),
                     ),
                   ],
                 ),

@@ -1,24 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:mooze_mobile/screens/first_access/first_access.dart';
-import 'package:mooze_mobile/screens/splash_screen/splash_screen.dart';
-import 'package:mooze_mobile/themes/theme_base.dart' as mooze_theme;
-import 'package:mooze_mobile/widgets/buttons.dart';
-import 'package:mooze_mobile/screens/confirm-mnemonic.dart';
-import 'package:mooze_mobile/screens/create-new-wallet.dart';
-import 'package:mooze_mobile/screens/import_wallet/import_wallet.dart';
-import 'package:mooze_mobile/screens/receive-funds.dart';
-import 'package:mooze_mobile/screens/receive-pix-payment.dart';
-import 'package:mooze_mobile/screens/send-funds.dart';
-import 'package:mooze_mobile/screens/swap.dart';
-import 'package:mooze_mobile/screens/wallet/wallet.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:async';
 import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lwk/lwk.dart';
+import 'package:mooze_mobile/widgets/lifecycle_manager.dart';
+import 'routes.dart';
+import 'themes/theme_base.dart' as mooze_theme;
 
 void main() async {
   await LibLwk.init();
+  //await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   runApp(ProviderScope(child: MyApp()));
 }
@@ -26,45 +17,13 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Mooze',
-      theme: mooze_theme.themeData,
-      initialRoute: '/splash',
-      routes: {
-        // '/': (context) => StartScreen(),
-        '/first_access': (context) => FirstAccessScreen(),
-        '/splash': (context) => SplashScreen(),
-        '/create-new-wallet': (context) => CreateNewWalletScreen(),
-        '/confirm-mnemonic': (context) => ConfirmMnemonicScreen(),
-        '/import-wallet': (context) => ImportWalletScreen(),
-        '/wallet': (context) => WalletScreen(),
-      },
-      onGenerateRoute: (settings) {
-        if (settings.name == '/receive-funds') {
-          final wallet = settings.arguments as Wallet;
-          return MaterialPageRoute(builder: (context) => ReceiveFundsScreen());
-        }
-
-        if (settings.name == '/receive-pix-payment') {
-          final wallet = settings.arguments as Wallet;
-          return MaterialPageRoute(
-            builder: (context) => ReceivePixPaymentScreen(wallet: wallet),
-          );
-        }
-
-        if (settings.name == '/send-funds') {
-          final wallet = settings.arguments as Wallet;
-          return MaterialPageRoute(builder: (context) => SendFundsScreen());
-        }
-
-        if (settings.name == '/swap') {
-          final wallet = settings.arguments as Wallet;
-          return MaterialPageRoute(
-            builder: (context) => SwapScreen(wallet: wallet),
-          );
-        }
-        return null;
-      },
+    return LifecycleManager(
+      child: MaterialApp(
+        title: 'Mooze',
+        theme: mooze_theme.themeData,
+        initialRoute: '/splash',
+        routes: appRoutes,
+      ),
     );
   }
 }
