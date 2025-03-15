@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 
@@ -28,11 +31,26 @@ class LiquidWalletRepository implements WalletRepository {
       mnemonic: mnemonic,
     );
 
-    _wallet = await liquid.Wallet.init(
-      descriptor: descriptor,
-      network: _network!,
-      dbpath: dbPath,
-    );
+    try {
+      _wallet = await liquid.Wallet.init(
+        descriptor: descriptor,
+        network: _network!,
+        dbpath: dbPath,
+      );
+    } catch (e, stackTrace) {
+      debugPrint("Failed to initialize Liquid wallet: $e");
+      debugPrint("Stacktrace: $stackTrace");
+      debugPrint("Clearing wallet in storage and initializing again");
+      _clearWallet();
+      debugPrint("Wallet cleared!");
+
+      _wallet = await liquid.Wallet.init(
+        descriptor: descriptor,
+        network: _network!,
+        dbpath: dbPath,
+      );
+    }
+    debugPrint("Liquid wallet initialized");
 
     await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
   }
@@ -59,6 +77,7 @@ class LiquidWalletRepository implements WalletRepository {
   @override
   Future<List<OwnedAsset>> getOwnedAssets() async {
     if (_wallet == null) {
+      debugPrint("Liquid wallet not initialized!");
       return [];
     }
     final balances = await _wallet!.balances();
@@ -288,5 +307,14 @@ class LiquidWalletRepository implements WalletRepository {
 
     final utxos = await _wallet!.utxos();
     return utxos;
+  }
+
+  Future<void> _clearWallet() async {
+    final localDir = await getApplicationDocumentsDirectory();
+    final dbPath = "${localDir.path}/lwk-db";
+
+    final dir = Directory(dbPath);
+    dir.deleteSync(recursive: true);
+    Directory(dbPath).createSync();
   }
 }

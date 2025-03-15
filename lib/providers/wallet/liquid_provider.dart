@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/transaction.dart';
@@ -32,6 +33,7 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
       await _repository.initializeWallet(mainnet, mnemonic);
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
+      debugPrint("Failed to initialize Liquid wallet: $e");
       state = AsyncValue.error(e, stackTrace);
     }
   }
@@ -59,6 +61,7 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
     try {
       return await _repository.getOwnedAssets();
     } catch (e) {
+      debugPrint("Error fetching owned assets: $e");
       state = AsyncValue.error(e, StackTrace.current);
       return []; // Fallback
     }
