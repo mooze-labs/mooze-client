@@ -5,19 +5,21 @@ import 'package:mooze_mobile/widgets/account_balance_widget.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:mooze_mobile/themes/theme_base.dart' as mooze_theme;
+import 'package:mooze_mobile/utils/mnemonic.dart';
 
-class ImportWalletScreen extends ConsumerStatefulWidget {
+class ImportWalletScreen extends StatefulWidget {
   @override
   _ImportWalletScreenState createState() => _ImportWalletScreenState();
 }
 
-class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
+class _ImportWalletScreenState extends State<ImportWalletScreen> {
   final TextEditingController _mnemonicController = TextEditingController();
   String? _errorMessage;
 
   Future<void> _importMnemonic() async {
     String mnemonic = _mnemonicController.text.trim();
     List<String> words = mnemonic.split(RegExp(r'\s+'));
+    final mnemonicHandler = MnemonicHandler();
 
     if (words.length != 12 && words.length != 24) {
       setState(() {
@@ -27,9 +29,7 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
     }
 
     try {
-      await ref
-          .read(mnemonicNotifierProvider.notifier)
-          .importMnemonic(mnemonic);
+      await mnemonicHandler.saveMnemonic("mainWallet", mnemonic);
       Navigator.pushNamed(context, '/wallet');
     } catch (e) {
       setState(() {
@@ -63,16 +63,13 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade900,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade400),
                 ),
                 child: TextField(
                   controller: _mnemonicController,
                   maxLines: 4,
                   textAlign: TextAlign.left,
                   decoration: InputDecoration(
-                    border: currentTheme.border,
                     fillColor: currentTheme.fillColor,
                     filled: currentTheme.filled,
                     hintText: "palavra1 palavra2 palavra3 ... palavra12",
