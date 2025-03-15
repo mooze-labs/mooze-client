@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/repositories/wallet/repository.dart';
-import 'bitcoin_wallet_notifier.dart';
-import 'liquid_wallet_notifier.dart';
+import 'bitcoin_provider.dart';
+import 'liquid_provider.dart';
 
 part 'network_wallet_repository_provider.g.dart';
 

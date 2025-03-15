@@ -1,8 +1,9 @@
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 
 import 'repository.dart';
 
-import 'package:mooze_mobile/models/assets.dart' show OwnedAsset;
+import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/transaction.dart';
 
@@ -71,6 +72,14 @@ class LiquidWalletRepository implements WalletRepository {
       ownedAssets.add(ownedAsset);
     }
 
+    if (ownedAssets.where((a) => a.asset.id == "depix").isEmpty) {
+      ownedAssets.add(OwnedAsset.zero(AssetCatalog.getById("depix")!));
+    }
+
+    if (ownedAssets.where((a) => a.asset.id == "usdt").isEmpty) {
+      ownedAssets.add(OwnedAsset.zero(AssetCatalog.getById("usdt")!));
+    }
+
     return ownedAssets;
   }
 
@@ -98,10 +107,20 @@ class LiquidWalletRepository implements WalletRepository {
     }
 
     if (asset.asset.liquidAssetId! == liquid.lBtcAssetId) {
-      return _buildLiquidBitcoinTransaction(asset, recipient, amount, feeRate);
+      return _buildLiquidBitcoinTransaction(
+        asset,
+        recipient,
+        amount,
+        (feeRate * 100 < 26 ? 26 : feeRate * 100),
+      );
     }
 
-    return _buildLiquidAssetTransaction(asset, recipient, amount, feeRate);
+    return _buildLiquidAssetTransaction(
+      asset,
+      recipient,
+      amount,
+      (feeRate * 100 < 26 ? 26 : feeRate * 100),
+    );
   }
 
   Future<PartiallySignedTransaction> _buildLiquidAssetTransaction(
@@ -155,6 +174,23 @@ class LiquidWalletRepository implements WalletRepository {
     return pst;
   }
 
+  int _calculateFeeAmount(int recipients, int outputs) {
+    const feeRate = 0.1;
+    const fixedWeight = 44;
+    const singlesigVinWeight = 367;
+    const voutWeight = 4810;
+    const feeWeight = 178;
+
+    final int txSize =
+        fixedWeight +
+        singlesigVinWeight * recipients +
+        voutWeight * outputs +
+        feeWeight;
+
+    final vsize = (txSize + 3) / 4;
+    return (vsize * feeRate).ceil();
+  }
+
   @override
   Future<Transaction> signTransaction(PartiallySignedTransaction pst) async {
     if (_wallet == null) {
@@ -190,7 +226,30 @@ class LiquidWalletRepository implements WalletRepository {
       txBytes: signedTxBytes,
     );
 
-    return Transaction(txid: tx, network: Network.liquid, asset: pst.asset);
+    return Transaction(
+      txid: tx,
+      destinationAddress: pst.recipient,
+      network: Network.liquid,
+      asset: pst.asset,
+      feeAmount: pst.feeAmount ?? 0,
+    );
+  }
+
+  Future<String> signPsetWithExtraDetails(String pset) async {
+    if (_wallet == null) {
+      throw Exception("Liquid Wallet not initialized.");
+    }
+
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(
+      "mainWallet",
+    );
+
+    final signedPset = await _wallet!.signedPsetWithExtraDetails(
+      pset: pset,
+      mnemonic: mnemonic!,
+      network: _network!,
+    );
+    return signedPset;
   }
 
   /*
@@ -221,4 +280,13 @@ class LiquidWalletRepository implements WalletRepository {
     return Transaction(txid: tx, network: Network.liquid, asset: pst.asset);
   }
   */
+
+  Future<List<liquid.TxOut>> fetchUtxos() async {
+    if (_wallet == null) {
+      throw Exception("Liquid wallet is not initialized.");
+    }
+
+    final utxos = await _wallet!.utxos();
+    return utxos;
+  }
 }

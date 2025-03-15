@@ -102,4 +102,14 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
       return []; // Fallback
     }
   }
+
+  Future<String> signPsetWithExtraDetails(String pset) async {
+    try {
+      return await (_repository as LiquidWalletRepository)
+          .signPsetWithExtraDetails(pset);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
 }

@@ -129,6 +129,7 @@ class BitcoinWalletRepository implements WalletRepository {
     return pst;
   }
 
+  @override
   Future<Transaction> signTransaction(PartiallySignedTransaction pst) async {
     if (_wallet == null) {
       throw Exception("Bitcoin wallet is not initialized.");
@@ -149,6 +150,12 @@ class BitcoinWalletRepository implements WalletRepository {
     final res = await _blockchain!.broadcast(transaction: tx);
 
     final txid = await tx.txid();
-    return Transaction(txid: txid, asset: pst.asset, network: Network.bitcoin);
+    return Transaction(
+      txid: txid,
+      destinationAddress: pst.recipient,
+      asset: pst.asset,
+      network: Network.bitcoin,
+      feeAmount: pst.feeAmount ?? 0,
+    );
   }
 }
