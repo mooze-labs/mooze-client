@@ -4,8 +4,8 @@ final ColorScheme colorScheme = ColorScheme(
   brightness: Brightness.dark,
   primary: Colors.pink,
   onPrimary: Colors.white,
-  secondary: Colors.grey,
-  onSecondary: Colors.black,
+  secondary: Colors.grey.shade900,
+  onSecondary: Colors.white60,
   tertiary: Colors.white,
   onTertiary: Colors.black,
   surface: Color(0xFF14181B),
@@ -28,10 +28,10 @@ final AppBarTheme appBarTheme = AppBarTheme(
 final InputDecorationTheme inputDecorationTheme = InputDecorationTheme(
   border: OutlineInputBorder(
     borderRadius: BorderRadius.circular(10),
-    borderSide: BorderSide(color: Colors.pink),
+    borderSide: BorderSide(color: Colors.transparent, width: 0.0),
   ),
   filled: true,
-  fillColor: Color(0xFF1E1E1E),
+  fillColor: colorScheme.secondary,
   hintStyle: TextStyle(color: Colors.grey.shade500),
 );
 
@@ -44,10 +44,24 @@ final BottomNavigationBarThemeData bottomNavigationBarTheme =
       showUnselectedLabels: true,
     );
 
+final DropdownMenuThemeData dropdownMenuTheme = DropdownMenuThemeData(
+  menuStyle: MenuStyle(
+    backgroundColor: WidgetStateProperty.all(Colors.grey.shade900),
+    shape: WidgetStateProperty.all(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.transparent),
+      ),
+    ),
+  ),
+  inputDecorationTheme: inputDecorationTheme,
+);
+
 final ThemeData themeData = ThemeData(
   colorScheme: colorScheme,
   appBarTheme: appBarTheme,
   bottomNavigationBarTheme: bottomNavigationBarTheme,
   inputDecorationTheme: inputDecorationTheme,
+  dropdownMenuTheme: dropdownMenuTheme,
   fontFamily: "roboto",
 );
