@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/providers/bitcoin/wallet_provider.dart';
-import 'package:mooze_mobile/providers/liquid/wallet_provider.dart';
+import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
+import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
+import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
+import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -18,6 +20,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
+      _preloadPriceData();
+
       final mnemonicHandler = MnemonicHandler();
       final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(
         "mainWallet",
@@ -25,6 +29,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
       if (mnemonic != null) {
         await _initializeWallets(true, mnemonic);
+
+        // Start periodic wallet sync
+        ref.read(walletSyncServiceProvider.notifier).startPeriodicSync();
 
         Navigator.pushReplacementNamed(context, "/wallet");
       } else {
@@ -34,6 +41,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       print("Error retrieving mnemonic: $e");
       // fallback to first_access screen
       Navigator.pushReplacementNamed(context, "/first_access");
+    }
+  }
+
+  Future<void> _preloadPriceData() async {
+    try {
+      await ref.read(fiatPricesProvider.future);
+    } catch (e) {
+      print("Error preloading price data: $e");
     }
   }
 
