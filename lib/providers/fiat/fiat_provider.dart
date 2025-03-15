@@ -1,3 +1,5 @@
+// In fiat_provider.dart
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
@@ -28,6 +30,7 @@ Future<Map<String, double>> fiatPrices(Ref ref) async {
     baseCurrency: baseCurrency,
   );
 
+  // Use the cached provider that auto-refreshes
   final fiatPrices = await ref.read(
     coingeckoPriceProvider(coingeckoAssetPairs).future,
   );
@@ -39,13 +42,14 @@ Future<Map<String, double>> fiatPrices(Ref ref) async {
   final usdPrice = fiatPrices["tether"]!;
   final depixPrice = getDepixPrice(baseCurrency, usdPrice);
 
-  fiatPrices["depix"] = depixPrice;
+  // Create a new map to avoid modifying the original
+  final result = Map<String, double>.from(fiatPrices);
+  result["depix"] = depixPrice;
 
-  return fiatPrices;
+  return result;
 }
 
 double getDepixPrice(String baseCurrency, double usdPrice) {
   if (baseCurrency == "BRL") return 1.0;
-
   return 1.0 / usdPrice;
 }
