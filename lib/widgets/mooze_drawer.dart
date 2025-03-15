@@ -11,16 +11,10 @@ class MoozeDrawer extends StatelessWidget {
         child: ListView(
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E1E1E),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF1E1E1E)),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'assets/mooze-logo.png',
-                  ),
-                ],
+                children: [Image.asset('assets/images/mooze-logo.png')],
               ),
             ),
 
