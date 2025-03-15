@@ -6,7 +6,7 @@ part of 'coingecko_price_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$coingeckoPriceHash() => r'1a6104e175ce9e0ccc9b7f4708f069fe664f2950';
+String _$coingeckoPriceHash() => r'9c9296bffffb9f271199397cea5a1bc022eb71b3';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -151,5 +151,23 @@ class _CoingeckoPriceProviderElement
       (origin as CoingeckoPriceProvider).coingeckoAssetPairs;
 }
 
+String _$coinGeckoPriceCacheHash() =>
+    r'2c95371a061b9b0f1a53c814e93bd275eadb58da';
+
+/// See also [CoinGeckoPriceCache].
+@ProviderFor(CoinGeckoPriceCache)
+final coinGeckoPriceCacheProvider =
+    AsyncNotifierProvider<CoinGeckoPriceCache, CachedPrices>.internal(
+      CoinGeckoPriceCache.new,
+      name: r'coinGeckoPriceCacheProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$coinGeckoPriceCacheHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$CoinGeckoPriceCache = AsyncNotifier<CachedPrices>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
