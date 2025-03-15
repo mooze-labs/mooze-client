@@ -54,6 +54,17 @@ dependencies:
   google_fonts: ^6.2.1
   intl: ^0.20.2
   flutter_secure_storage: ^4.2.1
+  flutter_launcher_icons: ^0.14.3
+  rename_app: ^1.6.2
+  permission_handler: ^11.4.0
+  flutter_barcode_scanner: ^2.0.0
+  slider_button: ^2.1.0
+  action_slider: ^0.7.0
+  web_socket_client: ^0.1.5
+  json_rpc_2: ^3.0.3
+  hive: ^2.2.3
+  url_launcher: ^6.3.1
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -88,6 +99,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/images/
+    - assets/images/icons/
+    - assets/images/logos/
     - assets/default_coins.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
