@@ -38,7 +38,13 @@ class GeneratePixPaymentCodeState
     final paymentAsync = ref.watch(pixPaymentProvider(widget.pixTransaction));
 
     return Scaffold(
-      appBar: MoozeAppBar(title: "Gerar pagamento PIX"),
+      appBar: MoozeAppBar(
+        title: 'Gerar pagamento PIX',
+        action: IconButton(
+          icon: Icon(Icons.home),
+          onPressed: () => Navigator.pushNamed(context, "/wallet"),
+        ),
+      ),
       body: paymentAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) {
