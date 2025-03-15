@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:uuid/uuid.dart';
 
-const PIX_GATEWAY_URL = String.fromEnvironment("PIX_GATEWAY_URL");
-const PIX_GATEWAY_TOKEN = String.fromEnvironment("PIX_GATEWAY_TOKEN");
+String PIX_GATEWAY_URL = "";
+String PIX_GATEWAY_TOKEN = "";
 
 class PixGatewayRepository {
   Future<PixTransactionResponse?> newPixPayment(
