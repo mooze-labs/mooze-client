@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/payments.dart';
-import 'package:mooze_mobile/providers/wallet/liquid_wallet_notifier.dart';
+import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/amount_input.dart';
@@ -20,7 +20,7 @@ class ReceivePixScreen extends ConsumerStatefulWidget {
 class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   // depix as default asset
   Asset selectedAsset = AssetCatalog.getById("depix")!;
-
+  late Future<String?> _addressFuture;
   // Controller for the BRL amount input
   final TextEditingController amountController = TextEditingController();
   int _currentAmount = 0;
@@ -28,6 +28,8 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   @override
   void initState() {
     super.initState();
+    _addressFuture =
+        ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
   }
 
   @override
@@ -94,10 +96,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                 Center(child: Text("Erro ao instanciar carteira: $err")),
         data:
             (_) => FutureBuilder<String?>(
-              future:
-                  ref
-                      .read(liquidWalletNotifierProvider.notifier)
-                      .generateAddress(),
+              future: _addressFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -113,29 +112,23 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                   );
                 }
 
-                return Center(
+                return SingleChildScrollView(
                   child: Column(
                     children: [
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       if (liquidAssets.isNotEmpty &&
                           MediaQuery.of(context).viewInsets.bottom == 0)
                         _assetDropdown(context, liquidAssets),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            PixInputAmount(
-                              amountController: amountController,
-                              onChanged: _handleTextChanged,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: AddressDisplay(
-                                address: snapshot.data!,
-                                fiatAmount: _currentAmount,
-                                asset: selectedAsset,
-                              ),
-                            ),
-                          ],
+                      PixInputAmount(
+                        amountController: amountController,
+                        onChanged: _handleTextChanged,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: AddressDisplay(
+                          address: snapshot.data!,
+                          fiatAmount: _currentAmount,
+                          asset: selectedAsset,
                         ),
                       ),
                       if (MediaQuery.of(context).viewInsets.bottom == 0)
@@ -145,25 +138,26 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             onConfirm: () {
                               if (selectedAsset == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  const SnackBar(
                                     content: Text(
                                       "Por favor, selecione um ativo.",
                                     ),
                                   ),
                                 );
+                                return;
                               }
                               if (_currentAmount < 0 || _currentAmount > 5000) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  const SnackBar(
                                     content: Text(
                                       "Por favor, insira um valor válido.",
                                     ),
                                   ),
                                 );
+                                return;
                               }
 
-                              final PixTransaction
-                              pixTransaction = PixTransaction(
+                              final pixTransaction = PixTransaction(
                                 address: snapshot.data!,
                                 brlAmount: _currentAmount,
                                 asset:
