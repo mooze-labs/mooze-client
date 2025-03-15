@@ -27,8 +27,16 @@ class PartiallySignedTransaction {
 
 class Transaction {
   final String txid;
+  final String destinationAddress;
   final Network network;
   final Asset asset;
+  final int feeAmount;
 
-  Transaction({required this.txid, required this.asset, required this.network});
+  Transaction({
+    required this.txid,
+    required this.destinationAddress,
+    required this.asset,
+    required this.network,
+    required this.feeAmount,
+  });
 }
