@@ -36,6 +36,11 @@ class AuthenticationService {
   }
 
   Future<bool> authenticate(String pin) async {
+    final isSessionValid = await hasValidSession();
+    if (isSessionValid) {
+      return true;
+    }
+
     var hashedPin = await secureStorage.read(key: "hashedPin");
     if (hashedPin == null) {
       throw Exception('No pin set');
@@ -99,6 +104,7 @@ class AuthenticationService {
     }
 
     await prefs.setInt("pinAttempts", 0);
+    await prefs.setInt("lastAuthTime", DateTime.now().millisecondsSinceEpoch);
   }
 
   Future<void> _updateLastAuthTime() async {
