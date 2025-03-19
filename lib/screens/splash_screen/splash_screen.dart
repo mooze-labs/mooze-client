@@ -4,6 +4,7 @@ import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
+import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -27,13 +28,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         "mainWallet",
       );
 
+      debugPrint("Mnemonic: $mnemonic");
+
       if (mnemonic != null) {
         await _initializeWallets(true, mnemonic);
 
         // Start periodic wallet sync
         ref.read(walletSyncServiceProvider.notifier).startPeriodicSync();
-
-        Navigator.pushReplacementNamed(context, "/wallet");
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => VerifyPinScreen(
+                    onPinConfirmed:
+                        () =>
+                            Navigator.pushReplacementNamed(context, "/wallet"),
+                  ),
+            ),
+          );
+        }
       } else {
         Navigator.pushReplacementNamed(context, "/first_access");
       }
