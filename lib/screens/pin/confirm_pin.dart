@@ -37,7 +37,7 @@ class _ConfirmPinScreenState extends State<ConfirmPinScreen> {
           children: [
             Spacer(),
             Text(
-              "Digite seu PIN novamente:",
+              "Confirme seu PIN:",
               style: TextStyle(
                 fontSize: 20,
                 fontFamily: "roboto",

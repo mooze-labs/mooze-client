@@ -16,13 +16,6 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
   final AuthenticationService authenticationService = AuthenticationService();
   final TextEditingController pinController = TextEditingController();
 
-  void onPinConfirmed(BuildContext context) async {
-    await authenticationService.createPin(pinController.text);
-    if (context.mounted) {
-      Navigator.of(context).popAndPushNamed("/wallet");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +28,7 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
           children: [
             Spacer(),
             Text(
-              "Digite seu PIN:",
+              "Cadastre seu PIN:",
               style: TextStyle(
                 fontSize: 20,
                 fontFamily: "roboto",

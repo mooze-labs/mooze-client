@@ -27,7 +27,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: MoozeAppBar(title: "Confirmar PIN"),
+      appBar: MoozeAppBar(title: "Validar PIN"),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Flex(
@@ -36,7 +36,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
           children: [
             Spacer(),
             Text(
-              "Digite seu PIN novamente:",
+              "Digite seu PIN:",
               style: TextStyle(
                 fontSize: 20,
                 fontFamily: "roboto",
