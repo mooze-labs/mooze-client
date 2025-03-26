@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/screens/pin/confirm_pin.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:pinput/pinput.dart';
-
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 
@@ -10,7 +9,6 @@ import 'package:mooze_mobile/widgets/appbar.dart';
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
   VerifyPinScreen({required this.onPinConfirmed});
-
   @override
   State<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
@@ -18,14 +16,39 @@ class VerifyPinScreen extends StatefulWidget {
 class _VerifyPinScreenState extends State<VerifyPinScreen> {
   final TextEditingController pinController = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final hasValidSession = await _authService.hasValidSession();
+    if (hasValidSession) {
+      widget.onPinConfirmed();
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: MoozeAppBar(title: "Validar PIN"),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Regular PIN entry screen
     return Scaffold(
       appBar: MoozeAppBar(title: "Validar PIN"),
       body: Padding(
@@ -71,7 +94,6 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                 final auth = await _authService.authenticate(
                   pinController.text,
                 );
-
                 if (auth) {
                   widget.onPinConfirmed();
                 }
