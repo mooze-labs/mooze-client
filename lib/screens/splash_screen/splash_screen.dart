@@ -6,6 +6,7 @@ import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
+import 'package:mooze_mobile/utils/store_mode.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   @override
@@ -17,6 +18,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     _initializeApp();
+  }
+
+  Future<void> redirectToWallet(BuildContext context) async {
+    final isStoreMode = await StoreModeHandler().isStoreMode();
+
+    if (!context.mounted) return;
+
+    if (isStoreMode) {
+      Navigator.pushReplacementNamed(context, "/store_mode");
+    } else {
+      Navigator.pushReplacementNamed(context, "/wallet");
+    }
   }
 
   Future<void> _initializeApp() async {
@@ -41,20 +54,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             MaterialPageRoute(
               builder:
                   (context) => VerifyPinScreen(
-                    onPinConfirmed:
-                        () =>
-                            Navigator.pushReplacementNamed(context, "/wallet"),
+                    onPinConfirmed: () async => await redirectToWallet(context),
                   ),
             ),
           );
         }
       } else {
-        Navigator.pushReplacementNamed(context, "/first_access");
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/first_access");
+        }
       }
     } catch (e) {
       print("Error retrieving mnemonic: $e");
       // fallback to first_access screen
-      Navigator.pushReplacementNamed(context, "/first_access");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/first_access");
+      }
     }
   }
 
