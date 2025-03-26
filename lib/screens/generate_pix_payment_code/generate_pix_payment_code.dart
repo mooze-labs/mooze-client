@@ -71,6 +71,7 @@ class GeneratePixPaymentCodeState
                   ),
                 ),
                 SizedBox(height: 20),
+                Text("Escaneie o código QR acima para pagar.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontFamily: "roboto", fontSize: 16)),
                 Container(
                   padding: EdgeInsets.all(16.0),
                   child: TransactionInfo(
