@@ -1,3 +1,5 @@
+import 'package:mooze_mobile/models/asset_catalog.dart';
+
 import 'repository.dart';
 
 import 'package:mooze_mobile/models/assets.dart' show OwnedAsset;
