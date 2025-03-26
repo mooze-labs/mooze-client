@@ -26,7 +26,7 @@ final liquidWalletRepositoryProvider = Provider<WalletRepository>.internal(
 // ignore: unused_element
 typedef LiquidWalletRepositoryRef = ProviderRef<WalletRepository>;
 String _$liquidWalletNotifierHash() =>
-    r'87bb92f6a3ae2f78f5791283b56c28b34102b26a';
+    r'f26973819b8bdd5d39fea665ef583cf18fd4115b';
 
 /// See also [LiquidWalletNotifier].
 @ProviderFor(LiquidWalletNotifier)

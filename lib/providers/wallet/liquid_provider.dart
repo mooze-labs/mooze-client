@@ -106,6 +106,16 @@ class LiquidWalletNotifier extends _$LiquidWalletNotifier {
     }
   }
 
+  Future<List<TransactionRecord>> getTransactionHistory() async {
+    try {
+      return await (_repository as LiquidWalletRepository)
+          .getTransactionHistory();
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      return []; // fallback
+    }
+  }
+
   Future<String> signPsetWithExtraDetails(String pset) async {
     try {
       return await (_repository as LiquidWalletRepository)
