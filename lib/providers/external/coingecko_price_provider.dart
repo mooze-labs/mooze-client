@@ -102,7 +102,7 @@ class CoinGeckoPriceCache extends _$CoinGeckoPriceCache {
       state = AsyncValue.data(CachedPrices(newPrices, DateTime.now()));
     } catch (e, stackTrace) {
       // On error, don't update the state to preserve the previous data
-      print("Error refreshing prices: $e");
+      debugPrint("Error refreshing prices: $e - $stackTrace");
     }
   }
 }
