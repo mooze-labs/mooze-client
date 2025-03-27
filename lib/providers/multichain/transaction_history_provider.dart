@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/transaction.dart';
-import 'package:mooze_mobile/models/network.dart';
 
 part 'transaction_history_provider.g.dart';
 
