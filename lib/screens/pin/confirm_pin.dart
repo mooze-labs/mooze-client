@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/screens/pin/confirm_pin.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:pinput/pinput.dart';
 
