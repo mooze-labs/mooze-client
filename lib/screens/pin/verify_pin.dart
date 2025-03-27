@@ -42,65 +42,65 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: MoozeAppBar(title: "Validar PIN"),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Regular PIN entry screen
-    return Scaffold(
-      appBar: MoozeAppBar(title: "Validar PIN"),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Flex(
-          direction: Axis.vertical,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Spacer(),
-            Text(
-              "Digite seu PIN:",
-              style: TextStyle(
-                fontSize: 20,
-                fontFamily: "roboto",
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 10),
-            Pinput(
-              keyboardType: TextInputType.number,
-              length: 6,
-              controller: pinController,
-              defaultPinTheme: PinTheme(
-                width: 56,
-                height: 56,
-                textStyle: TextStyle(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        appBar: MoozeAppBar(title: "Validar PIN"),
+        body: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Flex(
+            direction: Axis.vertical,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Spacer(),
+              Text(
+                "Digite seu PIN:",
+                style: TextStyle(
                   fontSize: 20,
-                  color: Theme.of(context).colorScheme.onSecondary,
                   fontFamily: "roboto",
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            Spacer(),
-            PrimaryButton(
-              text: "Continuar",
-              onPressed: () async {
-                final auth = await _authService.authenticate(
-                  pinController.text,
-                );
-                if (auth) {
-                  widget.onPinConfirmed();
-                }
-              },
-            ),
-            SizedBox(height: 100),
-          ],
+              SizedBox(height: 10),
+              Pinput(
+                keyboardType: TextInputType.number,
+                length: 6,
+                controller: pinController,
+                defaultPinTheme: PinTheme(
+                  width: 56,
+                  height: 56,
+                  textStyle: TextStyle(
+                    fontSize: 20,
+                    color: Theme.of(context).colorScheme.onSecondary,
+                    fontFamily: "roboto",
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              Spacer(),
+              PrimaryButton(
+                text: "Continuar",
+                onPressed: () async {
+                  final auth = await _authService.authenticate(
+                    pinController.text,
+                  );
+                  if (auth) {
+                    widget.onPinConfirmed();
+                  }
+                },
+              ),
+              SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );
