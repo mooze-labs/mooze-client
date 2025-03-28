@@ -4,7 +4,9 @@ import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
+import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
+import 'package:mooze_mobile/utils/store_mode.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   @override
@@ -18,6 +20,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _initializeApp();
   }
 
+  Future<void> redirectToWallet(BuildContext context) async {
+    final isStoreMode = await StoreModeHandler().isStoreMode();
+
+    if (!context.mounted) return;
+
+    if (isStoreMode) {
+      Navigator.pushReplacementNamed(context, "/store_mode");
+    } else {
+      Navigator.pushReplacementNamed(context, "/wallet");
+    }
+  }
+
   Future<void> _initializeApp() async {
     try {
       _preloadPriceData();
@@ -27,20 +41,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         "mainWallet",
       );
 
+      debugPrint("Mnemonic: $mnemonic");
+
       if (mnemonic != null) {
         await _initializeWallets(true, mnemonic);
 
         // Start periodic wallet sync
         ref.read(walletSyncServiceProvider.notifier).startPeriodicSync();
-
-        Navigator.pushReplacementNamed(context, "/wallet");
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => VerifyPinScreen(
+                    onPinConfirmed: () async => await redirectToWallet(context),
+                  ),
+            ),
+          );
+        }
       } else {
-        Navigator.pushReplacementNamed(context, "/first_access");
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/first_access");
+        }
       }
     } catch (e) {
       print("Error retrieving mnemonic: $e");
       // fallback to first_access screen
-      Navigator.pushReplacementNamed(context, "/first_access");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/first_access");
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/screens/pin/create_pin.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
@@ -27,7 +28,7 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
     positions = [];
 
     while (positions.length < 3) {
-      int pos = random.nextInt(words.length + 1);
+      int pos = random.nextInt(words.length) + 1;
       if (!positions.contains(pos)) {
         positions.add(pos);
       }
@@ -78,7 +79,10 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
               text: "Confirmar",
               onPressed: () {
                 if (checkInputs()) {
-                  Navigator.pushNamed(context, '/wallet');
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => CreatePinScreen()),
+                  );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -107,7 +111,7 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
     return Row(
       children: [
         Text(
-          "Palavra #$position: ",
+          "Palavra #${position}: ",
           style: const TextStyle(fontFamily: "roboto"),
         ),
         SizedBox(

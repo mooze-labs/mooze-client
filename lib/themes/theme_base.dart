@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pinput/pinput.dart';
 
 final ColorScheme colorScheme = ColorScheme(
   brightness: Brightness.dark,
@@ -55,6 +56,20 @@ final DropdownMenuThemeData dropdownMenuTheme = DropdownMenuThemeData(
     ),
   ),
   inputDecorationTheme: inputDecorationTheme,
+);
+
+final PinTheme pinTheme = PinTheme(
+  width: 56,
+  height: 56,
+  textStyle: TextStyle(
+    fontSize: 20,
+    color: colorScheme.onSecondary,
+    fontFamily: "roboto",
+  ),
+  decoration: BoxDecoration(
+    border: Border.all(color: colorScheme.primary),
+    borderRadius: BorderRadius.circular(8),
+  ),
 );
 
 final ThemeData themeData = ThemeData(

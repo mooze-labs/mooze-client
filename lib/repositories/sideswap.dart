@@ -1,179 +1,408 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:mooze_mobile/utils/websocket.dart';
-import 'package:lwk/lwk.dart';
+import 'package:flutter/foundation.dart';
+import 'package:mooze_mobile/models/sideswap.dart';
+import 'package:mooze_mobile/services/sideswap.dart';
 
+const String apiKey =
+    "5c85504bf60e13e0d58614cb9ed86cb2c163cfa402fb3a9e63cf76c7a7af46a1";
+
+/// Repository that handles communication with the SideSwap API
+/// and transforms JSON data into model objects
 class SideswapRepository {
-  final WebSocketService _webSocketService;
-  final bool _isTestnet;
-
-  int _requestId = 1;
-  final Map<int, Completer<dynamic>> _completers = {};
-  final StreamController<Map<String, dynamic>> _notificationsController =
-      StreamController<Map<String, dynamic>>.broadcast();
-
+  final SideswapService _service;
   bool _isInitialized = false;
 
-  // Constructor with optional parameter for testnet
-  SideswapRepository({bool isTestnet = false})
-    : _isTestnet = isTestnet,
-      _webSocketService = WebSocketService(
-        Uri.parse(
-          isTestnet
-              ? "wss://api-testnet.sideswap.io/json-rpc"
-              : "wss://api.sideswap.io/json-rpc",
-        ),
-      );
+  // Transformed streams
+  late Stream<ServerStatus> serverStatusStream;
+  late Stream<List<SideswapAsset>> assetsStream;
+  late Stream<List<SideswapMarket>> marketsStream;
+  late Stream<QuoteResponse> quoteResponseStream;
+  late Stream<PegOrderResponse> pegResponseStream;
+  late Stream<PegOrderStatus> pegStatusStream;
+  late Stream<WalletBalance> walletBalanceStream;
+  late Stream<List<AssetPairMarketData>> marketDataStream;
 
-  // Initialize repository
-  Future<void> initialize() async {
+  // Controllers for transformed data
+  final _pegResponseController = StreamController<PegOrderResponse>.broadcast();
+  final _pegStatusController = StreamController<PegOrderStatus>.broadcast();
+  final _quoteResponseController = StreamController<QuoteResponse>.broadcast();
+
+  SideswapRepository({SideswapService? service})
+    : _service = service ?? SideswapService();
+
+  /// Initialize the repository by connecting to the service
+  /// and setting up stream transformations
+  void init() {
     if (_isInitialized) return;
 
-    // Subscribe to incoming messages
-    _webSocketService.stream.listen((message) {
-      final Map<String, dynamic> response = json.decode(message);
+    print("Starting Sideswap connection");
 
-      // Check if it's a response to a request
-      if (response.containsKey('id')) {
-        final int id = response['id'];
-        if (_completers.containsKey(id)) {
-          _completers[id]!.complete(response);
-          _completers.remove(id);
-        }
-      }
-      // Otherwise, it's a notification
-      else if (response.containsKey('method')) {
-        _notificationsController.add(response);
-      }
-    });
+    _service.connect();
+    _service.login(apiKey);
+
+    // Transform raw JSON streams into model objects
+    _setupStreamTransformations();
 
     _isInitialized = true;
   }
 
-  // Get stream of notifications
-  Stream<Map<String, dynamic>> get notifications =>
-      _notificationsController.stream;
+  /// Set up the transformations from JSON to model objects
+  void _setupStreamTransformations() {
+    // Server status
+    serverStatusStream = _service.serverStatusStream
+        .where((data) => data.containsKey('result'))
+        .map((data) => ServerStatus.fromJson(data['result']));
 
-  // Method to send a request and get a response
-  Future<Map<String, dynamic>> _sendRequest(
-    String method,
-    Map<String, dynamic> params,
+    // Assets
+    assetsStream = _service.assetsStream
+        .where(
+          (data) =>
+              data.containsKey('result') &&
+              data['result'].containsKey('assets'),
+        )
+        .map((data) {
+          final assetsJson = data['result']['assets'] as List;
+          return assetsJson
+              .map((asset) => SideswapAsset.fromJson(asset))
+              .toList();
+        });
+
+    // Markets
+    marketsStream = _service.marketStream
+        .where(
+          (data) =>
+              data.containsKey('result') &&
+              data['result'].containsKey('list_markets') &&
+              data['result']['list_markets'].containsKey('markets'),
+        )
+        .map((data) {
+          final marketsJson = data['result']['list_markets']['markets'] as List;
+          return marketsJson
+              .map((market) => SideswapMarket.fromJson(market))
+              .toList();
+        });
+
+    // Quote responses
+    _service.marketStream
+        .where(
+          (data) =>
+              data.containsKey('params') && data['params'].containsKey('quote'),
+        )
+        .listen((data) {
+          try {
+            final quoteData = data['params']['quote'];
+            final quoteResponse = QuoteResponse.fromJson(quoteData);
+            _quoteResponseController.add(quoteResponse);
+          } catch (e) {
+            debugPrint('Error parsing quote response: $e');
+          }
+        });
+    quoteResponseStream = _quoteResponseController.stream;
+
+    // Peg responses
+    _service.pegStream.where((data) => data.containsKey('result')).listen((
+      data,
+    ) {
+      try {
+        final pegData = data['result'];
+        final pegResponse = PegOrderResponse.fromJson(pegData);
+        _pegResponseController.add(pegResponse);
+      } catch (e) {
+        debugPrint('Error parsing peg response: $e');
+      }
+    });
+    pegResponseStream = _pegResponseController.stream;
+
+    // Peg status
+    _service.pegStatusStream.where((data) => data.containsKey('result')).listen(
+      (data) {
+        try {
+          final statusData = data['result'];
+          final pegStatus = PegOrderStatus.fromJson(statusData);
+          _pegStatusController.add(pegStatus);
+        } catch (e) {
+          debugPrint('Error parsing peg status: $e');
+        }
+      },
+    );
+    pegStatusStream = _pegStatusController.stream;
+
+    // Wallet balance (from subscribe_value)
+    walletBalanceStream = _service.subscribeStream
+        .where(
+          (data) =>
+              data.containsKey('params') &&
+              data['params'].containsKey('value') &&
+              data['params']['value'].containsKey('PegInWalletBalance'),
+        )
+        .map((data) {
+          return WalletBalance.fromJson(
+            data['params']['value']['PegInWalletBalance'],
+          );
+        });
+
+    // Market data
+    marketDataStream = _service.marketStream
+        .where(
+          (data) =>
+              data.containsKey('result') &&
+              data['result'].containsKey('chart_sub') &&
+              data['result']['chart_sub'].containsKey('data'),
+        )
+        .map((data) {
+          final marketData = data['result']['chart_sub']['data'] as List;
+          return marketData
+              .map((point) => AssetPairMarketData.fromJson(point))
+              .toList();
+        });
+  }
+
+  /// Get server status
+  Future<ServerStatus?> getServerStatus() async {
+    final completer = Completer<ServerStatus?>();
+
+    final subscription = serverStatusStream.listen((status) {
+      if (!completer.isCompleted) {
+        completer.complete(status);
+      }
+    });
+
+    // Request server status
+    _service.serverStatus();
+
+    // Add timeout to avoid hanging forever
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
+
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
+  }
+
+  /// Get list of available assets
+  Future<List<SideswapAsset>> getAssets({
+    bool allAssets = true,
+    bool embeddedIcons = false,
+  }) async {
+    final completer = Completer<List<SideswapAsset>>();
+
+    final subscription = assetsStream.listen((assets) {
+      if (!completer.isCompleted) {
+        completer.complete(assets);
+      }
+    });
+
+    // Request assets
+    _service.assets(allAssets, embeddedIcons);
+
+    // Add timeout
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete([]);
+      }
+    });
+
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
+  }
+
+  /// Get list of available markets
+  Future<List<SideswapMarket>> getMarkets() async {
+    final completer = Completer<List<SideswapMarket>>();
+
+    final subscription = marketsStream.listen((markets) {
+      if (!completer.isCompleted) {
+        completer.complete(markets);
+      }
+    });
+
+    // Request markets
+    _service.listMarkets();
+
+    // Add timeout
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete([]);
+      }
+    });
+
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
+  }
+
+  /// Start a peg-in/peg-out operation
+  Future<PegOrderResponse?> startPegOperation(
+    bool pegIn,
+    String receiveAddress,
   ) async {
-    await initialize();
+    final completer = Completer<PegOrderResponse?>();
 
-    final int id = _requestId++;
-    final completer = Completer<dynamic>();
-    _completers[id] = completer;
+    final subscription = pegResponseStream.listen((response) {
+      if (!completer.isCompleted) {
+        completer.complete(response);
+      }
+    });
 
-    final request = {'id': id, 'method': method, 'params': params};
+    // Request peg operation
+    _service.peg(pegIn, receiveAddress);
 
-    _webSocketService.send(json.encode(request));
+    // Add timeout
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
 
-    final response = await completer.future as Map<String, dynamic>;
-    return response;
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
   }
 
-  // Get list of available markets
-  Future<List<Map<String, dynamic>>> listMarkets() async {
-    final response = await _sendRequest('market', {'list_markets': {}});
+  /// Get status of a peg-in/peg-out operation
+  Future<PegOrderStatus?> getPegStatus(bool pegIn, String orderId) async {
+    final completer = Completer<PegOrderStatus?>();
 
-    if (response.containsKey('result') &&
-        response['result'].containsKey('list_markets') &&
-        response['result']['list_markets'].containsKey('markets')) {
-      return List<Map<String, dynamic>>.from(
-        response['result']['list_markets']['markets'],
-      );
-    }
+    final subscription = pegStatusStream.listen((status) {
+      if (!completer.isCompleted) {
+        completer.complete(status);
+      }
+    });
 
-    return [];
+    // Request peg status
+    _service.pegStatus(pegIn, orderId);
+
+    // Add timeout
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
+
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
   }
 
-  // Start receiving quotes
-  Future<Map<String, dynamic>> startQuotes({
-    required String baseAssetId,
-    required String quoteAssetId,
-    required String assetType, // "Base" or "Quote"
+  /// Start a quote for a swap
+  void startQuote({
+    required String baseAsset,
+    required String quoteAsset,
+    required String assetType,
     required int amount,
-    required String tradeDir, // "Buy" or "Sell"
-    required List<Map<String, dynamic>> utxos,
+    required SwapDirection direction,
+    required List<SwapUtxo> utxos,
     required String receiveAddress,
     required String changeAddress,
-  }) async {
-    final params = {
-      'start_quotes': {
-        'asset_pair': {'base': baseAssetId, 'quote': quoteAssetId},
-        'asset_type': assetType,
-        'amount': amount,
-        'trade_dir': tradeDir,
-        'utxos': utxos,
-        'receive_address': receiveAddress,
-        'change_address': changeAddress,
-      },
-    };
+  }) {
+    final tradeDir = direction == SwapDirection.sell ? "Sell" : "Buy";
 
-    final response = await _sendRequest('market', params);
+    final assetPair = {"base": baseAsset, "quote": quoteAsset};
 
-    if (response.containsKey('result') &&
-        response['result'].containsKey('start_quotes')) {
-      return response['result']['start_quotes'];
-    }
+    final utxosJson = utxos.map((utxo) => utxo.toJson()).toList();
 
-    throw Exception('Failed to start quotes');
+    _service.startQuotes(
+      assetPair: assetPair,
+      assetType: assetType,
+      amount: amount,
+      tradeDir: tradeDir,
+      utxos: utxosJson,
+      receiveAddress: receiveAddress,
+      changeAddress: changeAddress,
+    );
   }
 
-  // Get quote PSET
-  Future<Map<String, dynamic>> getQuote(int quoteId) async {
-    final params = {
-      'get_quote': {'quote_id': quoteId},
-    };
+  /// Get quote details
+  Future<String?> getQuoteDetails(int quoteId) async {
+    final completer = Completer<String?>();
 
-    final response = await _sendRequest('market', params);
-
-    if (response.containsKey('result') &&
-        response['result'].containsKey('get_quote')) {
-      return response['result']['get_quote'];
-    }
-
-    throw Exception('Failed to get quote');
-  }
-
-  // Sign and submit transaction
-  Future<String> takerSign(int quoteId, String signedPset) async {
-    final params = {
-      'taker_sign': {'quote_id': quoteId, 'pset': signedPset},
-    };
-
-    final response = await _sendRequest('market', params);
-
-    if (response.containsKey('result') &&
-        response['result'].containsKey('taker_sign') &&
-        response['result']['taker_sign'].containsKey('txid')) {
-      return response['result']['taker_sign']['txid'];
-    }
-
-    throw Exception('Failed to sign transaction');
-  }
-
-  // Helper method to format UTXOs for Sideswap
-  List<Map<String, dynamic>> formatUtxos(List<TxOut> utxos) {
-    return utxos
-        .map(
-          (utxo) => {
-            'txid': utxo.outpoint.txid,
-            'vout': utxo.outpoint.vout,
-            'asset': utxo.unblinded.asset,
-            'asset_bf': utxo.unblinded.assetBf,
-            'value': utxo.unblinded.value,
-            'value_bf': utxo.unblinded.valueBf,
-            'redeem_script': null, // for P2WPKH (Native SegWit)
-          },
+    final subscription = _service.marketStream
+        .where(
+          (data) =>
+              data.containsKey('result') &&
+              data['result'].containsKey('get_quote') &&
+              data['result']['get_quote'].containsKey('pset'),
         )
-        .toList();
+        .listen((data) {
+          if (!completer.isCompleted) {
+            completer.complete(data['result']['get_quote']['pset']);
+          }
+        });
+
+    // Request quote
+    _service.receiveQuote(quoteId);
+
+    // Add timeout
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
+
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
   }
 
-  // Clean up resources
+  /// Sign and submit a quote
+  Future<String?> signQuote(int quoteId, String pset) async {
+    final completer = Completer<String?>();
+
+    final subscription = _service.marketStream
+        .where(
+          (data) =>
+              data.containsKey('result') &&
+              data['result'].containsKey('taker_sign') &&
+              data['result']['taker_sign'].containsKey('txid'),
+        )
+        .listen((data) {
+          if (!completer.isCompleted) {
+            completer.complete(data['result']['taker_sign']['txid']);
+          }
+        });
+
+    // Send signed quote
+    _service.signQuote(quoteId, pset);
+
+    // Add timeout
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
+
+    final result = await completer.future;
+    subscription.cancel();
+    return result;
+  }
+
+  void stopQuotes() {
+    _service.stopQuotes();
+  }
+
+  /// Subscribe to wallet balance updates
+  void subscribeToWalletBalance() {
+    _service.subscribeValue("PegInWalletBalance");
+  }
+
+  /// Subscribe to asset price market data
+  void subscribeToAssetPriceStream(String baseAsset, String quoteAsset) {
+    _service.subscribeToPriceStream(baseAsset, quoteAsset);
+  }
+
+  /// Unsubscribe from price chart data
+  void unsubscribeFromAssetPriceStream(String baseAsset, String quoteAsset) {
+    _service.unsubscribeFromPriceStream(baseAsset, quoteAsset);
+  }
+
+  /// Clean up resources
   void dispose() {
-    _webSocketService.dispose();
-    _notificationsController.close();
+    _pegResponseController.close();
+    _pegStatusController.close();
+    _quoteResponseController.close();
   }
 }

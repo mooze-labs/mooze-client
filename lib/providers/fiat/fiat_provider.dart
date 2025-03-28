@@ -1,10 +1,6 @@
-// In fiat_provider.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
-import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/external/coingecko_price_provider.dart';
-import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'fiat_provider.g.dart';

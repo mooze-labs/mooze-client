@@ -50,6 +50,7 @@ class SideswapService {
 
   void _handleIncomingMessage(dynamic message) {
     var decodedMessage = json.decode(message);
+    print(decodedMessage);
     switch (decodedMessage["method"]) {
       case "login_client":
         _loginController.add(decodedMessage);
@@ -94,7 +95,7 @@ class SideswapService {
 
   void status() {
     _channel.sink.add(
-      json.encode({"id": 1, "method": "server_status", "params": null}),
+      json.encode({"id": 1, "method": "server_status", "params": {}}),
     );
   }
 
@@ -140,7 +141,7 @@ class SideswapService {
 
   void serverStatus() {
     _channel.sink.add(
-      json.encode({"id": 1, "method": "server_status", "params": null}),
+      json.encode({"id": 1, "method": "server_status", "params": {}}),
     );
   }
 
@@ -156,7 +157,11 @@ class SideswapService {
 
   void listMarkets() {
     _channel.sink.add(
-      json.encode({"id": 1, "method": "markets", "params": null}),
+      json.encode({
+        "id": 1,
+        "method": "market",
+        "params": {"list_markets": {}},
+      }),
     );
   }
 
@@ -165,30 +170,36 @@ class SideswapService {
     required String assetType,
     required int amount,
     required String tradeDir,
-    required List<Map<String, dynamic>> utxos,
+    required List<Map<String, dynamic>>? utxos,
     required String receiveAddress,
     required String changeAddress,
   }) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {
-          "start_quotes": {
-            "asset_pair": assetPair,
-            "asset_type": assetType,
-            "amount": amount,
-            "trade_dir": tradeDir,
-            "utxos": utxos,
-            "receive_address": receiveAddress,
-            "change_address": changeAddress,
+    String payload = json.encode({
+      "id": 1,
+      "method": "market",
+      "params": {
+        "start_quotes": {
+          // hardcoding to Depix for now, change this later
+          "asset_pair": {
+            "base": assetPair["base"],
+            "quote": assetPair["quote"],
           },
+          "asset_type": assetType,
+          "amount": amount,
+          "trade_dir": tradeDir,
+          "utxos": utxos,
+          "receive_address": receiveAddress,
+          "change_address": changeAddress,
         },
-      }),
-    );
+      },
+    });
+
+    print(payload);
+
+    _channel.sink.add(payload);
   }
 
-  void receiveQuote(String quoteId) {
+  void receiveQuote(int quoteId) {
     _channel.sink.add(
       json.encode({
         "id": 1,
@@ -208,6 +219,16 @@ class SideswapService {
         "params": {
           "taker_sign": {"quote_id": quoteId, "pset": pset},
         },
+      }),
+    );
+  }
+
+  void stopQuotes() {
+    _channel.sink.add(
+      json.encode({
+        "id": 1,
+        "method": "market",
+        "params": {"stop_quotes": {}},
       }),
     );
   }

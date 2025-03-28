@@ -12,6 +12,7 @@ import 'package:mooze_mobile/models/transaction.dart';
 
 import 'package:lwk/lwk.dart' as liquid;
 import 'package:path_provider/path_provider.dart';
+import 'package:restart_app/restart_app.dart';
 
 const electrumUrl = "blockstream.info:995";
 
@@ -53,6 +54,11 @@ class LiquidWalletRepository implements WalletRepository {
     debugPrint("Liquid wallet initialized");
 
     await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
+    final txs = await _wallet!.txs();
+
+    for (var tx in txs) {
+      print(tx);
+    }
   }
 
   @override
@@ -316,5 +322,44 @@ class LiquidWalletRepository implements WalletRepository {
     final dir = Directory(dbPath);
     dir.deleteSync(recursive: true);
     Directory(dbPath).createSync();
+
+    Restart.restartApp(
+      notificationTitle: "Reinicializando aplicativo",
+      notificationBody:
+          "Um erro foi detectado. O cache será resetado e o aplicativo reiniciará.",
+    );
+  }
+
+  Future<List<TransactionRecord>> getTransactionHistory() async {
+    if (_wallet == null) {
+      throw Exception("Liquid wallet is not initialized.");
+    }
+
+    var history = await _wallet!.txs();
+    history = history.where(
+      (tx) => AssetCatalog.getByLiquidAssetId(tx.balances[0].assetId) != null,
+    ).toList();
+
+    final transactions =
+        history
+            .map(
+              (tx) => TransactionRecord(
+                txid: tx.txid,
+                timestamp:
+                    tx.timestamp != null
+                        ? DateTime.fromMillisecondsSinceEpoch(tx.timestamp! * 1000)
+                        : null,
+                asset: AssetCatalog.getByLiquidAssetId(tx.balances[0].assetId)!,
+                amount: tx.balances[0].value,
+                direction:
+                    tx.kind == "incoming"
+                        ? TransactionDirection.incoming
+                        : TransactionDirection.outgoing,
+                network: Network.liquid,
+              ),
+            )
+            .toList();
+    return transactions;
+
   }
 }

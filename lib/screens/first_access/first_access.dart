@@ -12,6 +12,7 @@ class FirstAccessScreen extends StatelessWidget {
 
     final buttons = Column(
       children: [
+        /*
         PrimaryButton(
           text: "Negociar agora",
           onPressed: () {
@@ -20,8 +21,9 @@ class FirstAccessScreen extends StatelessWidget {
           icon: Icons.swap_horiz,
         ),
         SizedBox(height: 20),
-        TertiaryButton(
-          text: "Criar carteira",
+        */
+        PrimaryButton(
+          text: "Começar",
           onPressed: () {
             Navigator.pushNamed(context, '/create_wallet');
           },
