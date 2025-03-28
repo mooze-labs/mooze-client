@@ -360,5 +360,6 @@ class LiquidWalletRepository implements WalletRepository {
             )
             .toList();
     return transactions;
+
   }
 }
