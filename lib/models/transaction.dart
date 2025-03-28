@@ -1,6 +1,8 @@
 import 'assets.dart';
 import 'network.dart';
 
+enum TransactionDirection { incoming, outgoing }
+
 /// An abstracted partially signed transaction
 class PartiallySignedTransaction {
   // BDK returns a PartiallySignedTransaction for the TxBuilder operations,
@@ -38,5 +40,23 @@ class Transaction {
     required this.asset,
     required this.network,
     required this.feeAmount,
+  });
+}
+
+class TransactionRecord {
+  final String txid;
+  final DateTime? timestamp;
+  final Asset asset;
+  final int amount;
+  final Network network;
+  final TransactionDirection direction;
+
+  TransactionRecord({
+    required this.txid,
+    required this.asset,
+    required this.amount,
+    required this.network,
+    required this.direction,
+    this.timestamp,
   });
 }
