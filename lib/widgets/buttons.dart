@@ -48,6 +48,43 @@ class PrimaryButton extends StatelessWidget {
   }
 }
 
+class DeactivatedButton extends StatelessWidget {
+  final String text;
+  final IconData? icon;
+
+  const DeactivatedButton({super.key, required this.text, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final ButtonStyle style = ElevatedButton.styleFrom(
+      foregroundColor: Colors.black,
+      backgroundColor: Colors.white,
+      textStyle: GoogleFonts.roboto(
+        fontSize: 19.0,
+        fontStyle: FontStyle.normal,
+        fontWeight: FontWeight.w500,
+        color: Colors.black,
+        letterSpacing: 0.0,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      fixedSize: Size(345.0, 50.0),
+      iconAlignment: IconAlignment.start,
+      elevation: 3.0,
+    );
+
+    if (icon != null) {
+      return ElevatedButton.icon(
+        style: style,
+        onPressed: null,
+        icon: Icon(icon, color: Colors.black, size: 20.0),
+        label: Text(text),
+      );
+    }
+
+    return ElevatedButton(style: style, onPressed: null, child: Text(text));
+  }
+}
+
 class TertiaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;

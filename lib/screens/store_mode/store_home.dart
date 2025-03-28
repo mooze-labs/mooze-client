@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/store_mode/receive_pix_store_mode.dart';
@@ -59,7 +58,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
             Text("Quer acessar a carteira? ", style: defaultStyle),
             InkWell(
               onTap: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:

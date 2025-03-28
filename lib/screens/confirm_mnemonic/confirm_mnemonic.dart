@@ -75,25 +75,28 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
                 ],
               ),
             ),
-            PrimaryButton(
-              text: "Confirmar",
-              onPressed: () {
-                if (checkInputs()) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => CreatePinScreen()),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Uma ou mais palavras estão incorretas. Tente novamente.",
+            if (MediaQuery.of(context).viewInsets.bottom == 0)
+              PrimaryButton(
+                text: "Confirmar",
+                onPressed: () {
+                  if (checkInputs()) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreatePinScreen(),
                       ),
-                    ),
-                  );
-                }
-              },
-            ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Uma ou mais palavras estão incorretas. Tente novamente.",
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
           ],
         ),
       ),

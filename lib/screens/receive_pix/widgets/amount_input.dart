@@ -69,7 +69,7 @@ class _PixInputAmountState extends State<PixInputAmount> {
           ),
           SizedBox(height: 10),
           Text(
-            "Valor máximo diário: R\$ 5000",
+            "Limite diário restante: R\$ 5000",
             style: TextStyle(fontFamily: "roboto", fontSize: 16),
           ),
         ],

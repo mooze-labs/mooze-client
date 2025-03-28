@@ -8,19 +8,17 @@ class MnemonicHandler {
   Future<String> createNewBip39Mnemonic(
     String walletId,
     bool extendedPhrase,
+    Language language,
   ) async {
-    final int entropyLength = (extendedPhrase == true) ? 256 : 128;
+    final int entropyLength = (extendedPhrase) ? 256 : 128;
     final mnemonic =
-        Mnemonic.generate(
-          Language.portuguese,
-          entropyLength: entropyLength,
-        ).sentence;
+        Mnemonic.generate(language, entropyLength: entropyLength).sentence;
 
-    await _saveMnemonic(walletId, mnemonic);
+    await saveMnemonic(walletId, mnemonic);
     return mnemonic;
   }
 
-  Future<void> _saveMnemonic(String walletId, String mnemonic) async {
+  Future<void> saveMnemonic(String walletId, String mnemonic) async {
     await _storage.write(key: "mnemonic_$walletId", value: mnemonic);
   }
 

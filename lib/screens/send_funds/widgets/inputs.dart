@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/widgets/inputs/convertible_amount_input.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -28,6 +28,7 @@ class _AddressInputState extends State<AddressInput> {
     super.dispose();
   }
 
+  /*
   Future<bool> _hasCameraPermissionStatus() async {
     var permissionStatus = await Permission.camera.status;
     if (permissionStatus.isGranted) return true;
@@ -75,6 +76,7 @@ class _AddressInputState extends State<AddressInput> {
       );
     }
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +92,7 @@ class _AddressInputState extends State<AddressInput> {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
+        /*
         suffixIcon: IconButton(
           icon: Icon(
             Icons.qr_code,
@@ -97,6 +100,7 @@ class _AddressInputState extends State<AddressInput> {
           ),
           onPressed: _scanQrCode,
         ),
+        */
       ),
     );
   }
