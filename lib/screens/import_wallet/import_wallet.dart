@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/mnemonic_provider.dart';
+import 'package:mooze_mobile/screens/pin/create_pin.dart';
 import 'package:mooze_mobile/widgets/account_balance_widget.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
@@ -30,7 +31,12 @@ class _ImportWalletScreenState extends State<ImportWalletScreen> {
 
     try {
       await mnemonicHandler.saveMnemonic("mainWallet", mnemonic);
-      Navigator.pushNamed(context, '/wallet');
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => CreatePinScreen()),
+        );
+      }
     } catch (e) {
       setState(() {
         _errorMessage = "Erro ao importar: $e";
@@ -79,7 +85,7 @@ class _ImportWalletScreenState extends State<ImportWalletScreen> {
               SizedBox(height: 20),
               PrimaryButton(
                 text: "Importar carteira",
-                onPressed: () => Navigator.pushNamed(context, "/wallet"),
+                onPressed: () async => _importMnemonic(),
               ),
             ],
           ),
