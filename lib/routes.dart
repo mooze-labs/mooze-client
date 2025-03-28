@@ -4,14 +4,15 @@ import 'package:mooze_mobile/screens/confirm_mnemonic/confirm_mnemonic.dart';
 import 'package:mooze_mobile/screens/create_wallet/create_wallet.dart';
 import 'package:mooze_mobile/screens/first_access/first_access.dart';
 import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
-import 'package:mooze_mobile/screens/home/home.dart';
 import 'package:mooze_mobile/screens/import_wallet/import_wallet.dart';
 import 'package:mooze_mobile/screens/receive_funds/receive_funds.dart';
 import 'package:mooze_mobile/screens/receive_pix/receive_pix.dart';
 import 'package:mooze_mobile/screens/send_funds/send_funds.dart';
 import 'package:mooze_mobile/screens/splash_screen/splash_screen.dart';
 import 'package:mooze_mobile/screens/create_wallet/generate_mnemonic.dart';
+import 'package:mooze_mobile/screens/store_mode/store_home.dart';
 import 'package:mooze_mobile/screens/swap/swap.dart';
+import 'package:mooze_mobile/screens/transaction_history/transaction_history.dart';
 import 'package:mooze_mobile/screens/wallet/wallet.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
@@ -42,4 +43,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   },
   "/receive_funds": (context) => ReceiveFundsScreen(),
   "/swap": (context) => SwapScreen(),
+  "/transaction_history": (context) => TransactionHistoryScreen(),
+  "/store_mode": (context) => StoreHomeScreen(),
 };

@@ -1,7 +1,5 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/widgets/lifecycle_manager.dart';
 import 'routes.dart';

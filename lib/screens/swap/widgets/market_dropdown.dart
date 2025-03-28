@@ -12,8 +12,8 @@ class MarketDropdown extends StatefulWidget {
 }
 
 class _MarketDropdownState extends State<MarketDropdown> {
-  Asset sendAsset = AssetCatalog.getById("depix")!;
-  Asset recvAsset = AssetCatalog.getById("lbtc")!;
+  Asset? sendAsset;
+  Asset? recvAsset;
   List<Asset> possiblePairs = depixPairs;
 
   static List<Asset> depixPairs = [
@@ -55,7 +55,7 @@ class _MarketDropdownState extends State<MarketDropdown> {
       }
     });
 
-    widget.onMarketSelect(sendAsset.liquidAssetId!, recvAsset.liquidAssetId!);
+    widget.onMarketSelect(sendAsset!.liquidAssetId!, recvAsset!.liquidAssetId!);
   }
 
   void onRecvAssetChange(Asset? asset) {
@@ -64,7 +64,7 @@ class _MarketDropdownState extends State<MarketDropdown> {
       recvAsset = asset;
     });
 
-    widget.onMarketSelect(sendAsset.liquidAssetId!, recvAsset.liquidAssetId!);
+    widget.onMarketSelect(sendAsset!.liquidAssetId!, recvAsset!.liquidAssetId!);
   }
 
   @override
@@ -83,12 +83,18 @@ class _MarketDropdownState extends State<MarketDropdown> {
                   ),
                 ),
                 DropdownMenu(
-                  leadingIcon: Transform.scale(
-                    scale: 0.5,
-                    child: Image.asset(sendAsset.logoPath, width: 8, height: 8),
-                  ),
+                  leadingIcon:
+                      (sendAsset == null)
+                          ? null
+                          : Transform.scale(
+                            scale: 0.5,
+                            child: Image.asset(
+                              sendAsset!.logoPath,
+                              width: 8,
+                              height: 8,
+                            ),
+                          ),
                   textAlign: TextAlign.center,
-                  initialSelection: sendAsset,
                   dropdownMenuEntries:
                       AssetCatalog.liquidAssets
                           .map(
@@ -120,11 +126,19 @@ class _MarketDropdownState extends State<MarketDropdown> {
                   ),
                 ),
                 DropdownMenu(
-                  leadingIcon: Transform.scale(
-                    scale: 0.5,
-                    child: Image.asset(recvAsset.logoPath, width: 8, height: 8),
-                  ),
+                  leadingIcon:
+                      (recvAsset == null)
+                          ? null
+                          : Transform.scale(
+                            scale: 0.5,
+                            child: Image.asset(
+                              recvAsset!.logoPath,
+                              width: 8,
+                              height: 8,
+                            ),
+                          ),
                   textAlign: TextAlign.center,
+                  initialSelection: (recvAsset == null) ? null : recvAsset,
                   dropdownMenuEntries:
                       possiblePairs
                           .map(

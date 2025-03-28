@@ -335,7 +335,10 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  void onQuoteRequested() {}
+  void _setMaxAmount() {
+    _amountController.text =
+        "${ownedSendAsset!.amount / pow(10, ownedSendAsset!.asset.precision)}";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -356,25 +359,53 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
                           onNewMarketSelect(sendAsset, recvAsset),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.7,
-                  child: TextField(
-                    controller: _amountController,
-                    decoration: InputDecoration(
-                      labelText: "Quantidade a enviar",
+                if (ownedSendAsset != null)
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.95,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondary,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.transparent),
                     ),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontFamily: "roboto",
-                      fontWeight: FontWeight.bold,
+                    child: TextField(
+                      controller: _amountController,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: "Digite o valor a enviar",
+                        hintStyle: TextStyle(
+                          fontFamily: "roboto",
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                        suffixIcon:
+                            ownedSendAsset != null
+                                ? IconButton(
+                                  icon: Text(
+                                    "MAX",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontFamily: "roboto",
+                                    ),
+                                  ),
+                                  onPressed: () => _setMaxAmount(),
+                                )
+                                : null,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontFamily: "roboto",
+                        fontWeight: FontWeight.bold,
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: false,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: false,
-                    ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
                 AvailableFunds(asset: ownedSendAsset),
                 const SizedBox(height: 24),
                 buildQuoteDisplay(),
