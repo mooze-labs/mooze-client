@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/data/asset_data.dart';
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/utils/fees.dart';
 
@@ -43,7 +43,7 @@ class TransactionInfo extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fiatPrices = ref.watch(fiatPricesProvider);
-    final assetInfo = knownLiquidAssets[assetId];
+    final assetInfo = AssetCatalog.getByLiquidAssetId(assetId);
 
     return fiatPrices.when(
       loading: () => const CircularProgressIndicator(),
