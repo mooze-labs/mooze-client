@@ -110,10 +110,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     WalletButtonBox(
                       label: "Swap",
                       icon: Icons.swap_horiz,
-                      onTap:
-                          () => ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text("Em breve!"))),
+                      onTap: () => Navigator.pushNamed(context, "/swap"),
                     ),
                   ],
                 ),
@@ -139,14 +136,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       itemCount: ownedAssets.length,
                       itemBuilder:
                           (context, index) =>
-                              CoinBalance(ownedAsset: ownedAssets[index]),
+                              CoinBalance(ownedAsset: ownedAssets[index], isBalanceVisible: _isBalanceVisible),
                     ),
                   ),
                 ),
                 Padding(
                   padding: EdgeInsets.only(bottom: 40.0),
                   child: PrimaryButton(
-                    text: "Receber por PIX",
+                    text: "Comprar por PIX",
                     onPressed:
                         () => Navigator.pushNamed(context, "/receive_pix"),
                   ),
