@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/providers/backend/user_provider.dart';
+import 'package:mooze_mobile/models/user.dart';
 
-class PixInputAmount extends StatefulWidget {
+class PixInputAmount extends ConsumerStatefulWidget {
   final TextEditingController amountController;
   final Function(String)? onChanged;
 
@@ -12,12 +15,24 @@ class PixInputAmount extends StatefulWidget {
   });
 
   @override
-  State<PixInputAmount> createState() => _PixInputAmountState();
+  ConsumerState<PixInputAmount> createState() => _PixInputAmountState();
 }
 
-class _PixInputAmountState extends State<PixInputAmount> {
+class _PixInputAmountState extends ConsumerState<PixInputAmount> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final userService = ref.read(userServiceProvider);
+
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Column(
@@ -68,9 +83,37 @@ class _PixInputAmountState extends State<PixInputAmount> {
             ),
           ),
           SizedBox(height: 10),
-          Text(
-            "Limite diário restante: R\$ 5000",
-            style: TextStyle(fontFamily: "roboto", fontSize: 16),
+          FutureBuilder<User?>(
+            future: userService.getUserDetails(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Text("");
+              }
+
+              if (snapshot.hasError) {
+                print(snapshot.error);
+                return Text("Limite diário indisponível.");
+              }
+
+              if (snapshot.data == null) {
+                print("Problema de conexão.");
+                return Text("Limite diário indisponível.");
+              }
+
+              final user = snapshot.data!;
+
+              if (user.isFirstTransaction) {
+                return Text(
+                  "Limite de primeira transação: R\$ 250",
+                  style: TextStyle(fontFamily: "roboto", fontSize: 16),
+                );
+              }
+
+              return Text(
+                "Limite diário restante: R\$ ${5000 - user.dailySpending * 100}",
+                style: TextStyle(fontFamily: "roboto", fontSize: 16),
+              );
+            },
           ),
         ],
       ),
