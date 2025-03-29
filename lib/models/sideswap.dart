@@ -295,14 +295,25 @@ class PegOrderStatus {
   }
 }
 
-/// Wallet balances from the server status
-class WalletBalance {
+/// PegIn balances from the server status
+class PegInWalletBalance {
   final int available;
 
-  WalletBalance({required this.available});
+  PegInWalletBalance({required this.available});
 
-  factory WalletBalance.fromJson(Map<String, dynamic> json) {
-    return WalletBalance(available: json['available']);
+  factory PegInWalletBalance.fromJson(Map<String, dynamic> json) {
+    return PegInWalletBalance(available: json['available']);
+  }
+}
+
+/// PegIn balances from the server status
+class PegOutWalletBalance {
+  final int available;
+
+  PegOutWalletBalance({required this.available});
+
+  factory PegOutWalletBalance.fromJson(Map<String, dynamic> json) {
+    return PegOutWalletBalance(available: json['available']);
   }
 }
 
