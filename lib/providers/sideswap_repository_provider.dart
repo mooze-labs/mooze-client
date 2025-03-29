@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
+import 'package:mooze_mobile/screens/swap/widgets/peg_out_display.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/repositories/sideswap.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
@@ -288,13 +289,23 @@ class PegStatusNotifier extends _$PegStatusNotifier {
 
 /// Provider for wallet balance
 @riverpod
-Stream<WalletBalance> walletBalance(Ref ref) {
+Stream<int> pegInWalletBalance(Ref ref) {
   final repository = ref.watch(sideswapRepositoryProvider);
 
   // Subscribe to wallet balance updates
-  repository.subscribeToWalletBalance();
+  repository.subscribeToPegInWalletBalance();
 
-  return repository.walletBalanceStream;
+  return repository.pegInWalletBalanceStream;
+}
+
+@riverpod
+Stream<int> pegOutWalletBalance(Ref ref) {
+  final repository = ref.watch(sideswapRepositoryProvider);
+
+  // Subscribe to wallet balance updates
+  repository.subscribeToPegInWalletBalance();
+
+  return repository.pegOutWalletBalanceStream;
 }
 
 /// Provider for market data
