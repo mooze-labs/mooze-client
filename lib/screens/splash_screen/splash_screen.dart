@@ -5,8 +5,16 @@ import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
+import 'package:mooze_mobile/services/mooze/registration.dart';
+import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const BACKEND_URL = String.fromEnvironment(
+  "BACKEND_URL",
+  defaultValue: "api.mooze.app",
+);
 
 class SplashScreen extends ConsumerStatefulWidget {
   @override
@@ -34,6 +42,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
+      await _preloadUserData();
       _preloadPriceData();
 
       final mnemonicHandler = MnemonicHandler();
@@ -78,6 +87,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await ref.read(fiatPricesProvider.future);
     } catch (e) {
       print("Error preloading price data: $e");
+    }
+  }
+
+  Future<void> _preloadUserData() async {
+    final userService = UserService(backendUrl: BACKEND_URL);
+    final userId = await userService.getUserId();
+
+    if (userId == null) {
+      final registrationService = RegistrationService(backendUrl: BACKEND_URL);
+      final newUserId = await registrationService.registerUser(null);
+
+      if (newUserId == null) {
+        debugPrint("Failed to register user");
+        return;
+      }
+
+      await registrationService.saveUserId(newUserId);
     }
   }
 
