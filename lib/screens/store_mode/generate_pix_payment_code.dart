@@ -42,7 +42,7 @@ class GeneratePixPaymentCodeState
         title: 'Gerar pagamento PIX',
         action: IconButton(
           icon: Icon(Icons.home),
-          onPressed: () => Navigator.pushNamed(context, "/wallet"),
+          onPressed: () => Navigator.pushNamed(context, "/store_mode"),
         ),
       ),
       body: paymentAsync.when(
@@ -71,7 +71,14 @@ class GeneratePixPaymentCodeState
                   ),
                 ),
                 SizedBox(height: 20),
-                Text("Escaneie o código QR acima para pagar.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontFamily: "roboto", fontSize: 16)),
+                Text(
+                  "Escaneie o código QR acima para pagar.",
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontFamily: "roboto",
+                    fontSize: 16,
+                  ),
+                ),
                 Container(
                   padding: EdgeInsets.all(16.0),
                   child: TransactionInfo(
