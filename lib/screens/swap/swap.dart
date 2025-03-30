@@ -222,7 +222,9 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       return;
     }
 
-    final parsedAmount = double.tryParse(_amountController.text);
+    final parsedAmount = double.tryParse(
+      _amountController.text.replaceAll(",", "."),
+    );
     if (parsedAmount == null || parsedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Por favor, insira um valor válido.")),
@@ -383,7 +385,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
 
     // No input or invalid input
     final currentText = _amountController.text;
-    final parsedAmount = double.tryParse(currentText);
+    final parsedAmount = double.tryParse(currentText.replaceAll(",", "."));
     if (parsedAmount == null || parsedAmount <= 0) {
       // Stop any existing quotes when input is invalid
       final sideswapClient = ref.read(sideswapRepositoryProvider);
@@ -626,7 +628,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     );
   }
 
-  Future<bool> checkFunds(int minAmount, int maxAmount) async {
+  Future<bool> checkFunds(int minAmount) async {
     final ownedAssets = ref.watch(ownedAssetsNotifierProvider);
     return ownedAssets.when(
       loading: () => false,
@@ -639,7 +641,9 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           (ownedAsset) => ownedAsset.asset.id == "lbtc",
         );
 
-        final parsedBalance = double.tryParse(amountController.text);
+        final parsedBalance = double.tryParse(
+          amountController.text.replaceAll(",", "."),
+        );
         if (parsedBalance == null) {
           return false;
         }
@@ -662,6 +666,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           return false;
         }
 
+        /*
         if (balanceInSats > maxAmount) {
           showDialog(
             context: context,
@@ -684,6 +689,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
                 ),
           );
         }
+        */
         return true;
       },
     );
@@ -708,7 +714,8 @@ class _PegScreenState extends ConsumerState<PegScreen> {
         (pegIn.first)
             ? serverStatus!.minPegInAmount
             : serverStatus!.minPegOutAmount;
-    final fundsValidation = await checkFunds(minAmount, 10000000);
+    //final fundsValidation = await checkFunds(minAmount, 10000000);
+    final fundsValidation = await checkFunds(minAmount);
 
     if (!fundsValidation && !receiveFromExternalWallet) {
       if (mounted) {
@@ -731,14 +738,15 @@ class _PegScreenState extends ConsumerState<PegScreen> {
       MaterialPageRoute(
         builder:
             (context) => ConfirmPegScreen(
-              minAmount: 1000,
-              maxAmount: 124200000,
+              minAmount: minAmount,
               pegIn: pegIn.first,
               address:
                   (addressController.text.isEmpty)
                       ? null
-                      : addressController.text,
+                      : (addressController.text.replaceAll(",", ".")),
               sendAmount: parsedSendAmount,
+              ownedAsset: asset,
+              sendFromExternalWallet: receiveFromExternalWallet,
             ),
       ),
     );
@@ -888,7 +896,9 @@ class _PegScreenState extends ConsumerState<PegScreen> {
                                 "Receber valores de uma wallet externa",
                               ),
                               content: const Text(
-                                "Caso essa opção seja selecionada, você poderá converter seus ativos de uma wallet externa. Senão, os valores da própria carteira Mooze serão convertidos automaticamente. \nSelecione essa opção para receber de uma cold wallet.",
+                                """Caso essa opção seja selecionada, você poderá converter seus ativos de uma wallet externa. Senão, os valores da própria carteira Mooze serão convertidos automaticamente.
+                                \nAtenção: o campo de valor se torna opcional, mas você DEVE mandar um valor maior que o valor mínimo.
+                                \nSelecione essa opção para receber de uma cold wallet.""",
                               ),
                               actions: [
                                 TextButton(

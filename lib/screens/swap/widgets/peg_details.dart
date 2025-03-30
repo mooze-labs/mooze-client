@@ -7,7 +7,6 @@ class PegDetails extends StatelessWidget {
   final String orderId;
   final bool pegIn;
   final int minAmount;
-  final int hotWalletAmount;
   final String destinationAddress;
 
   const PegDetails({
@@ -15,7 +14,6 @@ class PegDetails extends StatelessWidget {
     required this.orderId,
     required this.pegIn,
     required this.minAmount,
-    required this.hotWalletAmount,
     required this.destinationAddress,
   });
 
@@ -73,11 +71,6 @@ class PegDetails extends StatelessWidget {
                       context,
                       "Valor mínimo",
                       "${(minAmount / pow(10, 8)).toStringAsFixed(8)} $sendAssetTicker",
-                    ),
-                    _buildDisplayRow(
-                      context,
-                      "Valor máximo",
-                      "${(hotWalletAmount / pow(10, 8)).toStringAsFixed(8)} $sendAssetTicker",
                     ),
                     _buildDisplayRow(
                       context,

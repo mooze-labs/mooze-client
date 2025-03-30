@@ -16,7 +16,7 @@ class WalletButtonBox extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 110.0,
+        width: 100.0,
         height: 100.0,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.secondary,
