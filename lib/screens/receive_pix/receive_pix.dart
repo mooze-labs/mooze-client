@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
@@ -9,8 +11,15 @@ import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/amount_input.dart';
+import 'package:mooze_mobile/services/mooze/registration.dart';
+import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
+
+const BACKEND_URL = String.fromEnvironment(
+  "BACKEND_URL",
+  defaultValue: "api.mooze.app",
+);
 
 class ReceivePixScreen extends ConsumerStatefulWidget {
   const ReceivePixScreen({Key? key}) : super(key: key);
@@ -37,7 +46,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     _addressFuture =
         ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
 
-    _userFuture = ref.read(userServiceProvider).getUserDetails();
+    _userFuture = _preloadUserData();
   }
 
   @override
@@ -106,12 +115,27 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     );
   }
 
+  Future<User?> _preloadUserData() async {
+    final userService = UserService(backendUrl: BACKEND_URL);
+    final userId = await userService.getUserId();
+
+    if (userId == null) {
+      final registrationService = RegistrationService(backendUrl: BACKEND_URL);
+      final newUserId = await registrationService.registerUser(null);
+
+      if (newUserId == null) {
+        debugPrint("Failed to register user");
+      }
+
+      await registrationService.saveUserId(newUserId!);
+    }
+
+    return await userService.getUserDetails();
+  }
+
   @override
   Widget build(BuildContext context) {
     final liquidWalletState = ref.watch(liquidWalletNotifierProvider);
-    final userService = ref.watch(userServiceProvider);
-    final user = userService.getUserDetails();
-
     final liquidAssets = AssetCatalog.liquidAssets;
 
     return Scaffold(
@@ -139,80 +163,110 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                   );
                 }
 
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 10),
-                      if (liquidAssets.isNotEmpty &&
-                          MediaQuery.of(context).viewInsets.bottom == 0)
-                        _assetDropdown(context, liquidAssets),
-                      PixInputAmount(
-                        amountController: amountController,
-                        onChanged: _handleTextChanged,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: AddressDisplay(
-                          address: snapshot.data!,
-                          fiatAmount: _currentAmount,
-                          asset: selectedAsset,
-                        ),
-                      ),
-                      if (MediaQuery.of(context).viewInsets.bottom == 0)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 70),
-                          child: SwipeToConfirm(
-                            onConfirm: () {
-                              if (selectedAsset == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Por favor, selecione um ativo.",
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                              if (_currentAmount < 0 || _currentAmount > 5000) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Por favor, insira um valor válido.",
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
+                final address = snapshot.data!;
 
-                              final pixTransaction = PixTransaction(
-                                address: snapshot.data!,
-                                brlAmount: _currentAmount,
-                                asset:
-                                    selectedAsset.liquidAssetId ??
-                                    "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => GeneratePixPaymentCodeScreen(
-                                        pixTransaction: pixTransaction,
-                                        assetId: selectedAsset.liquidAssetId!,
-                                      ),
-                                ),
-                              );
-                            },
-                            text: "Deslize para pagar",
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            progressColor:
-                                Theme.of(context).colorScheme.secondary,
-                            textColor: Theme.of(context).colorScheme.onPrimary,
-                            width: 300,
-                          ),
+                return FutureBuilder<User?>(
+                  future: _userFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      log("${snapshot.error!}");
+                      return Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              "Não foi possível conectar ao servidor. Tente novamente mais tarde",
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 10),
+                          if (liquidAssets.isNotEmpty &&
+                              MediaQuery.of(context).viewInsets.bottom == 0)
+                            _assetDropdown(context, liquidAssets),
+                          PixInputAmount(
+                            amountController: amountController,
+                            onChanged: _handleTextChanged,
+                          ),
+                          Text("Valor mínimo: R\$ 20,00"),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: AddressDisplay(
+                              address: address,
+                              fiatAmount: _currentAmount,
+                              asset: selectedAsset,
+                            ),
+                          ),
+                          if (MediaQuery.of(context).viewInsets.bottom == 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 70),
+                              child: SwipeToConfirm(
+                                onConfirm: () {
+                                  if (selectedAsset == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Por favor, selecione um ativo.",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (_currentAmount < 20 ||
+                                      _currentAmount > 5000) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Por favor, insira um valor válido.",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final pixTransaction = PixTransaction(
+                                    address: address,
+                                    brlAmount: _currentAmount,
+                                    asset:
+                                        selectedAsset.liquidAssetId ??
+                                        "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
+                                  );
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              GeneratePixPaymentCodeScreen(
+                                                pixTransaction: pixTransaction,
+                                                assetId:
+                                                    selectedAsset
+                                                        .liquidAssetId!,
+                                              ),
+                                    ),
+                                  );
+                                },
+                                text: "Deslize para pagar",
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                progressColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                textColor:
+                                    Theme.of(context).colorScheme.onPrimary,
+                                width: 300,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
             ),
