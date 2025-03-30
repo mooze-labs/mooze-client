@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/screens/swap/widgets/peg_out_display.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/repositories/sideswap.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
