@@ -41,30 +41,54 @@ class _MarketDropdownState extends State<MarketDropdown> {
 
   void onSendAssetChange(Asset? asset) {
     if (asset == null) return;
+
     setState(() {
       sendAsset = asset;
       if (asset.id == "depix") {
         possiblePairs = depixPairs;
-        recvAsset = depixPairs[0];
+        // Only change recvAsset if not previously set or not in valid pairs
+        if (recvAsset == null || !depixPairs.contains(recvAsset)) {
+          recvAsset = depixPairs[0];
+        }
       } else if (asset.id == "lbtc") {
         possiblePairs = lbtcPairs;
-        recvAsset = lbtcPairs[0];
+        if (recvAsset == null || !lbtcPairs.contains(recvAsset)) {
+          recvAsset = lbtcPairs[0];
+        }
       } else if (asset.id == "usdt") {
         possiblePairs = usdtPairs;
-        recvAsset = usdtPairs[0];
+        if (recvAsset == null || !usdtPairs.contains(recvAsset)) {
+          recvAsset = usdtPairs[0];
+        }
       }
     });
 
-    widget.onMarketSelect(sendAsset!.liquidAssetId!, recvAsset!.liquidAssetId!);
+    // Always notify parent of the change
+    if (sendAsset != null && recvAsset != null) {
+      widget.onMarketSelect(
+        sendAsset!.liquidAssetId!,
+        recvAsset!.liquidAssetId!,
+      );
+    }
   }
 
   void onRecvAssetChange(Asset? asset) {
     if (asset == null) return;
-    setState(() {
-      recvAsset = asset;
-    });
 
-    widget.onMarketSelect(sendAsset!.liquidAssetId!, recvAsset!.liquidAssetId!);
+    // Only update if actually changed
+    if (recvAsset != asset) {
+      setState(() {
+        recvAsset = asset;
+      });
+
+      // Always notify parent of the change
+      if (sendAsset != null && recvAsset != null) {
+        widget.onMarketSelect(
+          sendAsset!.liquidAssetId!,
+          recvAsset!.liquidAssetId!,
+        );
+      }
+    }
   }
 
   @override
@@ -138,7 +162,7 @@ class _MarketDropdownState extends State<MarketDropdown> {
                             ),
                           ),
                   textAlign: TextAlign.center,
-                  initialSelection: (recvAsset == null) ? null : recvAsset,
+                  initialSelection: recvAsset,
                   dropdownMenuEntries:
                       possiblePairs
                           .map(

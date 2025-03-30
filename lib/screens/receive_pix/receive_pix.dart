@@ -4,7 +4,7 @@ import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/models/user.dart';
-import 'package:mooze_mobile/providers/backend/user_provider.dart';
+import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
