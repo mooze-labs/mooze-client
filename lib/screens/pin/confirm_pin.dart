@@ -47,7 +47,7 @@ class _ConfirmPinScreenState extends State<ConfirmPinScreen> {
             Pinput(
               keyboardType: TextInputType.number,
               length: 6,
-              onCompleted: (pin) => print(pinController.text),
+              obscureText: true,
               validator: (pin) {
                 if (pin == widget.pin) {
                   return null;

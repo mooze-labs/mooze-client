@@ -38,7 +38,7 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
             Pinput(
               keyboardType: TextInputType.number,
               length: 6,
-              onCompleted: (pin) => print(pinController.text),
+              obscureText: true,
               controller: pinController,
               defaultPinTheme: PinTheme(
                 width: 56,

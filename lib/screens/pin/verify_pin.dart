@@ -68,6 +68,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
               Pinput(
                 keyboardType: TextInputType.number,
                 length: 6,
+                obscureText: true,
                 controller: pinController,
                 defaultPinTheme: PinTheme(
                   width: 56,
