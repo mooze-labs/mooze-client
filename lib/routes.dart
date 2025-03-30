@@ -42,7 +42,7 @@ final Map<String, WidgetBuilder> appRoutes = {
     return GeneratePixPaymentCodeScreen(pixTransaction: pixTransaction);
   },
   "/receive_funds": (context) => ReceiveFundsScreen(),
-  "/swap": (context) => SwapScreen(),
+  "/swap": (context) => SideswapScreen(),
   "/transaction_history": (context) => TransactionHistoryScreen(),
   "/store_mode": (context) => StoreHomeScreen(),
 };

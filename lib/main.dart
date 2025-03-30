@@ -18,6 +18,7 @@ class MyApp extends StatelessWidget {
     return LifecycleManager(
       child: MaterialApp(
         title: 'Mooze',
+        debugShowCheckedModeBanner: false,
         theme: mooze_theme.themeData,
         initialRoute: '/splash',
         routes: appRoutes,

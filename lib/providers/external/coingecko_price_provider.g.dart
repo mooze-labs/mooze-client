@@ -152,7 +152,7 @@ class _CoingeckoPriceProviderElement
 }
 
 String _$coinGeckoPriceCacheHash() =>
-    r'2c95371a061b9b0f1a53c814e93bd275eadb58da';
+    r'3e78897745b52bcec93384f449ac3b91a83949ae';
 
 /// See also [CoinGeckoPriceCache].
 @ProviderFor(CoinGeckoPriceCache)

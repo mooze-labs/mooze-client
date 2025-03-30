@@ -16,6 +16,8 @@ class SideswapService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _unsubscribeController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _subscribedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _serverStatusController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _assetsController = StreamController<Map<String, dynamic>>.broadcast();
@@ -29,6 +31,8 @@ class SideswapService {
       _subscribeController.stream;
   Stream<Map<String, dynamic>> get unsubscribeStream =>
       _unsubscribeController.stream;
+  Stream<Map<String, dynamic>> get subscribedStream =>
+      _subscribedController.stream;
   Stream<Map<String, dynamic>> get serverStatusStream =>
       _serverStatusController.stream;
   Stream<Map<String, dynamic>> get assetsStream => _assetsController.stream;
@@ -66,6 +70,9 @@ class SideswapService {
         break;
       case "unsubscribe_value":
         _unsubscribeController.add(decodedMessage);
+        break;
+      case "subscribed_value":
+        _subscribedController.add(decodedMessage);
         break;
       case "server_status":
         _serverStatusController.add(decodedMessage);
@@ -141,7 +148,7 @@ class SideswapService {
 
   void serverStatus() {
     _channel.sink.add(
-      json.encode({"id": 1, "method": "server_status", "params": {}}),
+      json.encode({"id": 1, "method": "server_status", "params": null}),
     );
   }
 
@@ -193,8 +200,6 @@ class SideswapService {
         },
       },
     });
-
-    print(payload);
 
     _channel.sink.add(payload);
   }

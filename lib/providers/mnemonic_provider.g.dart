@@ -6,7 +6,7 @@ part of 'mnemonic_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mnemonicNotifierHash() => r'5b2f210f50418ba7b715a33d4a39855e5bee8858';
+String _$mnemonicNotifierHash() => r'2826be376c12a87d385fe125588d6bca543db26a';
 
 /// See also [MnemonicNotifier].
 @ProviderFor(MnemonicNotifier)

@@ -288,13 +288,23 @@ class PegStatusNotifier extends _$PegStatusNotifier {
 
 /// Provider for wallet balance
 @riverpod
-Stream<WalletBalance> walletBalance(Ref ref) {
+Stream<int> pegInWalletBalance(Ref ref) {
   final repository = ref.watch(sideswapRepositoryProvider);
 
   // Subscribe to wallet balance updates
-  repository.subscribeToWalletBalance();
+  repository.subscribeToPegInWalletBalance();
 
-  return repository.walletBalanceStream;
+  return repository.pegInWalletBalanceStream;
+}
+
+@riverpod
+Stream<int> pegOutWalletBalance(Ref ref) {
+  final repository = ref.watch(sideswapRepositoryProvider);
+
+  // Subscribe to wallet balance updates
+  repository.subscribeToPegInWalletBalance();
+
+  return repository.pegOutWalletBalanceStream;
 }
 
 /// Provider for market data

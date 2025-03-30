@@ -19,7 +19,8 @@ class SideswapRepository {
   late Stream<QuoteResponse> quoteResponseStream;
   late Stream<PegOrderResponse> pegResponseStream;
   late Stream<PegOrderStatus> pegStatusStream;
-  late Stream<WalletBalance> walletBalanceStream;
+  late Stream<int> pegInWalletBalanceStream;
+  late Stream<int> pegOutWalletBalanceStream;
   late Stream<List<AssetPairMarketData>> marketDataStream;
 
   // Controllers for transformed data
@@ -128,17 +129,26 @@ class SideswapRepository {
     pegStatusStream = _pegStatusController.stream;
 
     // Wallet balance (from subscribe_value)
-    walletBalanceStream = _service.subscribeStream
+    pegInWalletBalanceStream = _service.subscribedStream
         .where(
           (data) =>
               data.containsKey('params') &&
               data['params'].containsKey('value') &&
               data['params']['value'].containsKey('PegInWalletBalance'),
         )
+        .map(
+          (data) => data['params']['value']['PegInWalletBalance']['available'],
+        );
+
+    pegOutWalletBalanceStream = _service.subscribedStream
+        .where(
+          (data) =>
+              data.containsKey('params') &&
+              data['params'].containsKey('value') &&
+              data['params']['value'].containsKey('PegOutWalletBalance'),
+        )
         .map((data) {
-          return WalletBalance.fromJson(
-            data['params']['value']['PegInWalletBalance'],
-          );
+          return data['params']['value']['PegOutWalletBalance']['available'];
         });
 
     // Market data
@@ -384,9 +394,24 @@ class SideswapRepository {
     _service.stopQuotes();
   }
 
-  /// Subscribe to wallet balance updates
-  void subscribeToWalletBalance() {
+  /// Subscribe to pegin wallet balance updates
+  void subscribeToPegInWalletBalance() {
     _service.subscribeValue("PegInWalletBalance");
+  }
+
+  /// Subscribe to pegout wallet balance updates
+  void subscribeToPegOutWalletBalance() {
+    _service.subscribeValue("PegOutWalletBalance");
+  }
+
+  /// Subscribe to pegin wallet balance updates
+  void unsubscribeToPegInWalletBalance() {
+    _service.unsubscribeValue("PegInWalletBalance");
+  }
+
+  /// Subscribe to pegout wallet balance updates
+  void unsubscribeToPegOutWalletBalance() {
+    _service.unsubscribeValue("PegOutWalletBalance");
   }
 
   /// Subscribe to asset price market data

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/payments.dart';
+import 'package:mooze_mobile/models/user.dart';
+import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
@@ -21,15 +23,21 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   // depix as default asset
   Asset selectedAsset = AssetCatalog.getById("depix")!;
   late Future<String?> _addressFuture;
+  late Future<User?> _userFuture;
   // Controller for the BRL amount input
   final TextEditingController amountController = TextEditingController();
   int _currentAmount = 0;
+  User? userDetails;
+
+  late Key dropdownKey = UniqueKey();
 
   @override
   void initState() {
     super.initState();
     _addressFuture =
         ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
+
+    _userFuture = ref.read(userServiceProvider).getUserDetails();
   }
 
   @override
@@ -50,18 +58,37 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   }
 
   void _onAssetChanged(Asset? asset) {
-    setState(() {
-      if (asset != null) {
+    if (asset == null) {
+      return;
+    }
+
+    if (asset.id != "depix") {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Em breve.")));
+
+      setState(() {
+        selectedAsset = AssetCatalog.getById("depix")!;
+        dropdownKey = UniqueKey();
+      });
+    } else {
+      setState(() {
         selectedAsset = asset;
-      }
-    });
+      });
+    }
   }
 
   Widget _assetDropdown(BuildContext context, List<Asset> assets) {
     return DropdownMenu<Asset>(
+      key: dropdownKey,
       initialSelection: assets.firstWhere(
         (asset) => asset.id == selectedAsset.id,
         orElse: () => assets[0],
+      ),
+      textAlign: TextAlign.center,
+      leadingIcon: Transform.scale(
+        scale: 0.5,
+        child: Image.asset(selectedAsset.logoPath, width: 8, height: 8),
       ),
       onSelected: _onAssetChanged,
       dropdownMenuEntries:
@@ -81,9 +108,9 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final liquidWalletState = ref.watch(
-      liquidWalletNotifierProvider,
-    ); // Back to ref.watch
+    final liquidWalletState = ref.watch(liquidWalletNotifierProvider);
+    final userService = ref.watch(userServiceProvider);
+    final user = userService.getUserDetails();
 
     final liquidAssets = AssetCatalog.liquidAssets;
 
