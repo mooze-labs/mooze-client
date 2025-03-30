@@ -11,11 +11,6 @@ import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const BACKEND_URL = String.fromEnvironment(
-  "BACKEND_URL",
-  defaultValue: "api.mooze.app",
-);
-
 class SplashScreen extends ConsumerStatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -42,7 +37,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
-      await _preloadUserData();
       _preloadPriceData();
 
       final mnemonicHandler = MnemonicHandler();
@@ -90,23 +84,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
-  Future<void> _preloadUserData() async {
-    final userService = UserService(backendUrl: BACKEND_URL);
-    final userId = await userService.getUserId();
-
-    if (userId == null) {
-      final registrationService = RegistrationService(backendUrl: BACKEND_URL);
-      final newUserId = await registrationService.registerUser(null);
-
-      if (newUserId == null) {
-        debugPrint("Failed to register user");
-        return;
-      }
-
-      await registrationService.saveUserId(newUserId);
-    }
-  }
-
   Future<void> _initializeWallets(bool isMainnet, String mnemonic) async {
     final liquidWalletNotifier = ref.read(
       liquidWalletNotifierProvider.notifier,
@@ -124,10 +101,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Image.asset(
-          'assets/images/mooze-logo.png',
-          width: 150,
-          height: 150,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Spacer(),
+            Image.asset(
+              'assets/images/mooze-logo.png',
+              width: 150,
+              height: 150,
+            ),
+            SizedBox(height: 20),
+            CircularProgressIndicator(),
+            Spacer(),
+          ],
         ),
       ),
     );
