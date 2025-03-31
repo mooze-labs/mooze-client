@@ -34,13 +34,13 @@ class BitcoinWalletRepository implements WalletRepository {
       mnemonic: await bitcoin.Mnemonic.fromString(mnemonic),
     );
 
-    final externalDescriptor = await bitcoin.Descriptor.newBip44(
+    final externalDescriptor = await bitcoin.Descriptor.newBip84(
       secretKey: descriptorKey,
       network: _network!,
       keychain: bitcoin.KeychainKind.externalChain,
     );
 
-    final internalDescriptor = await bitcoin.Descriptor.newBip44(
+    final internalDescriptor = await bitcoin.Descriptor.newBip84(
       secretKey: descriptorKey,
       network: _network!,
       keychain: bitcoin.KeychainKind.internalChain,
