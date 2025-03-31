@@ -110,7 +110,7 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
               }
 
               return Text(
-                "Limite diário restante: R\$ ${5000 - user.dailySpending * 100}",
+                "Limite diário restante: R\$ ${5000 - user.dailySpending / 100}",
                 style: TextStyle(fontFamily: "roboto", fontSize: 16),
               );
             },

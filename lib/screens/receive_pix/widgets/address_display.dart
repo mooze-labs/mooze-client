@@ -18,10 +18,11 @@ class AddressDisplay extends ConsumerWidget {
 
   String getAssetAmount(int fiatAmount, double fiatPrice) {
     if (fiatPrice == 0) return "";
+    if (fiatAmount == 0) return "0.00000000";
     double assetAmount = fiatAmount / fiatPrice;
     double feeRate =
         FeeCalculator(assetId: asset.id, fiatAmount: fiatAmount).getFees();
-    double amountAfterFees = assetAmount - (assetAmount * feeRate);
+    double amountAfterFees = assetAmount - (assetAmount * feeRate) - 1;
 
     return amountAfterFees.toStringAsFixed(asset.precision);
   }
@@ -145,7 +146,7 @@ class AddressDisplay extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Taxa",
+                    "Taxa Mooze",
                     style: TextStyle(
                       fontFamily: "roboto",
                       fontSize: 16,
@@ -155,6 +156,28 @@ class AddressDisplay extends ConsumerWidget {
                   ),
                   Text(
                     "${(FeeCalculator(assetId: asset.id, fiatAmount: fiatAmount).getFees() * 100).toStringAsFixed(2)}%",
+                    style: TextStyle(
+                      fontFamily: "roboto",
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Taxa de parceiros",
+                    style: TextStyle(
+                      fontFamily: "roboto",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSecondary,
+                    ),
+                  ),
+                  Text(
+                    "R\$ 1.00",
                     style: TextStyle(
                       fontFamily: "roboto",
                       fontSize: 16,
