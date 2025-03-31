@@ -50,6 +50,22 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     });
   }
 
+  int _calculateFeeAmount(double feeRate, int recipients, int outputs) {
+    const fixedWeight = 44;
+    const singlesigVinWeight = 367;
+    const voutWeight = 4810;
+    const feeWeight = 178;
+
+    final int txSize =
+        fixedWeight +
+        singlesigVinWeight * recipients +
+        voutWeight * outputs +
+        feeWeight;
+
+    final vsize = (txSize + 3) / 4;
+    return (vsize * feeRate).ceil();
+  }
+
   Future<void> _updateNetworkFees() async {
     if (selectedAsset == null) {
       setState(() {
@@ -124,12 +140,27 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
+      final totalFees =
+          (feeRate != null) ? _calculateFeeAmount(feeRate!, 1, 2) : 100;
+
       // Compare the amount in sats directly with the available balance in sats
       if (assetAmountInSats! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               "Saldo insuficiente. O valor inserido excede o saldo disponível.",
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+
+      if (assetAmountInSats! + totalFees > selectedAsset!.amount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "O valor inserido excede o saldo disponível + taxas de rede.",
             ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -150,7 +181,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         ),
       );
     } catch (e) {
-      print('Error processing transaction: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -282,6 +312,10 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                               ),
                             ),
                   ),
+                  if (feeRate != null)
+                    Text(
+                      "Taxas totais: ${_calculateFeeAmount(feeRate!, 1, 2)} sats",
+                    ),
                 ],
               ),
             ),
