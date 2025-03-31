@@ -11,6 +11,11 @@ import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+String BACKEND_URL = String.fromEnvironment(
+  "BACKEND_URL",
+  defaultValue: "https://api.mooze.app",
+);
+
 class SplashScreen extends ConsumerStatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -37,7 +42,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
-      _preloadPriceData();
+      await _preloadUserData();
+      await _preloadPriceData();
 
       final mnemonicHandler = MnemonicHandler();
       final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(
@@ -73,6 +79,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (mounted) {
         Navigator.pushReplacementNamed(context, "/first_access");
       }
+    }
+  }
+
+  Future<void> _preloadUserData() async {
+    try {
+      final userService = UserService(backendUrl: BACKEND_URL);
+      final user = userService.getUserId();
+
+      if (user == null) {
+        final registrationService = RegistrationService(
+          backendUrl: BACKEND_URL,
+        );
+        final id = await registrationService.registerUser(null);
+
+        if (id == null) {
+          return;
+        }
+
+        await registrationService.saveUserId(id);
+      }
+    } catch (e) {
+      print("Error preloading user data: $e");
     }
   }
 
