@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthenticationService {
   static const int maxPinAttemps = 5;
-  static const int sessionTimeoutMinutes = 5;
+  static const int sessionTimeoutMinutes = 0;
 
   final secureStorage = FlutterSecureStorage();
 
