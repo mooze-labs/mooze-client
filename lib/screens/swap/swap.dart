@@ -8,15 +8,12 @@ import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/repositories/sideswap.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
-import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/swap/confirm_peg.dart';
 import 'package:mooze_mobile/screens/swap/finish_swap.dart';
 import 'package:mooze_mobile/screens/swap/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/swap/widgets/market_dropdown.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_available_funds.dart';
-import 'package:mooze_mobile/screens/swap/widgets/peg_in_display.dart';
 import 'package:mooze_mobile/screens/swap/widgets/server_status.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_input_display.dart';
 import 'package:mooze_mobile/screens/swap/widgets/sideswap_quote_display.dart';
@@ -459,8 +456,13 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
   }
 
   void _setMaxAmount() {
-    _amountController.text =
-        "${ownedSendAsset!.amount / pow(10, ownedSendAsset!.asset.precision)}";
+    final maxAmount =
+        ownedSendAsset!.amount / pow(10, ownedSendAsset!.asset.precision);
+    _amountController.text = "$maxAmount";
+
+    setState(() {
+      inputAmount = maxAmount;
+    });
   }
 
   @override
@@ -816,110 +818,112 @@ class _PegScreenState extends ConsumerState<PegScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: sendToExternalWallet,
-                      onChanged: (value) {
-                        setState(() {
-                          sendToExternalWallet = value!;
-                        });
-                        addressController.clear();
-                      },
-                    ),
-                    Text(
-                      "Enviar valores para wallet externa",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onPrimary,
+                if (!pegIn.first)
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: sendToExternalWallet,
+                        onChanged: (value) {
+                          setState(() {
+                            sendToExternalWallet = value!;
+                          });
+                          addressController.clear();
+                        },
                       ),
-                    ),
-                    SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text(
-                                "Enviar para uma wallet externa",
-                              ),
-                              content: const Text(
-                                "Caso essa opção seja selecionada, um endereço será requisitado para enviar os seus ativos. Senão, um endereço da própria carteira Mooze será utilizado. \nSelecione essa opção para enviar para uma cold wallet.",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("OK"),
+                      Text(
+                        "Enviar peg-out para wallet externa",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text(
+                                  "Enviar para uma wallet externa",
                                 ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      child: Icon(
-                        Icons.question_mark,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                                content: const Text(
+                                  "Caso essa opção seja selecionada, um endereço será requisitado para enviar os seus ativos. Senão, um endereço da própria carteira Mooze será utilizado. \nSelecione essa opção para enviar para uma cold wallet.",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        child: Icon(
+                          Icons.question_mark,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: receiveFromExternalWallet,
-                      onChanged: (value) {
-                        setState(() {
-                          receiveFromExternalWallet = value!;
-                        });
-                        amountController.clear();
-                      },
-                    ),
-                    Text(
-                      "Receber valores de wallet externa",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onPrimary,
+                    ],
+                  ),
+                if (pegIn.first)
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: receiveFromExternalWallet,
+                        onChanged: (value) {
+                          setState(() {
+                            receiveFromExternalWallet = value!;
+                          });
+                          amountController.clear();
+                        },
                       ),
-                    ),
-                    SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text(
-                                "Receber valores de uma wallet externa",
-                              ),
-                              content: const Text(
-                                """Caso essa opção seja selecionada, você poderá converter seus ativos de uma wallet externa. Senão, os valores da própria carteira Mooze serão convertidos automaticamente.
+                      Text(
+                        "Receber peg-in de wallet externa",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text(
+                                  "Receber valores de uma wallet externa",
+                                ),
+                                content: const Text(
+                                  """Caso essa opção seja selecionada, você poderá converter seus ativos de uma wallet externa. Senão, os valores da própria carteira Mooze serão convertidos automaticamente.
                                 \nAtenção: o campo de valor se torna opcional, mas você DEVE mandar um valor maior que o valor mínimo.
                                 \nSelecione essa opção para receber de uma cold wallet.""",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("OK"),
                                 ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      child: Icon(
-                        Icons.question_mark,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        child: Icon(
+                          Icons.question_mark,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
             SizedBox(height: 24),
