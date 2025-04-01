@@ -19,7 +19,7 @@ class PegAddressQrCode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final asset = pegIn ? AssetCatalog.bitcoin! : AssetCatalog.getById("lbtc")!;
-    final paymentUri = pegIn ? "liquidnetwork:$address" : "bitcoin:$address";
+    final paymentUri = pegIn ? "bitcoin:$address" : "liquidnetwork:$address";
 
     return Column(
       children: [
