@@ -71,11 +71,16 @@ class ConfirmSendTransactionState
     final wallet = ref.read(
       walletRepositoryProvider(widget.ownedAsset.asset.network),
     );
+
+    final fee =
+        (widget.ownedAsset.asset.network == Network.liquid)
+            ? 1.0
+            : widget.feeRate;
     final pst = await wallet.buildPartiallySignedTransaction(
       widget.ownedAsset,
       widget.address,
       widget.amount,
-      (widget.feeRate * 100 < 26 ? 26 : widget.feeRate * 100),
+      fee,
     );
 
     return pst;
