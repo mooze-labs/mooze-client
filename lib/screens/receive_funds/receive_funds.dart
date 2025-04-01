@@ -68,7 +68,6 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
 
   Widget _assetDropdown(BuildContext context) {
     return DropdownMenu<Asset>(
-      initialSelection: AssetCatalog.all[0],
       onSelected: (Asset? asset) {
         if (asset != null && asset != selectedAsset) {
           setState(() {
@@ -93,6 +92,11 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
       inputDecorationTheme:
           Theme.of(context).dropdownMenuTheme.inputDecorationTheme,
       menuStyle: Theme.of(context).dropdownMenuTheme.menuStyle,
+      textAlign: TextAlign.center,
+      leadingIcon: Transform.scale(
+        scale: 0.5,
+        child: Image.asset(selectedAsset.logoPath, width: 24, height: 24),
+      ),
     );
   }
 
@@ -112,7 +116,7 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
     if (amount == null || amount <= 0) {
       return "liquidnetwork:$address?asset_id=${selectedAsset.liquidAssetId}";
     }
-    return "liquidnetwork:$address?asset_id=${selectedAsset.liquidAssetId}&amount=${amount.toStringAsFixed(selectedAsset.precision)}";
+    return "liquidnetwork:$address?amount=${amount.toStringAsFixed(selectedAsset.precision)}&asset_id=${selectedAsset.liquidAssetId}";
   }
 
   @override
@@ -141,7 +145,7 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
           children: [
             if (MediaQuery.of(context).viewInsets.bottom == 0)
               _assetDropdown(context),
-            const SizedBox(height: 10),
+            Spacer(),
             SizedBox(
               child: Center(
                 child:
@@ -158,9 +162,10 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
                         ),
               ),
             ),
-            const SizedBox(height: 10),
+            Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              width: MediaQuery.of(context).size.width * 0.95,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.secondary,
                 borderRadius: BorderRadius.circular(8),
@@ -178,17 +183,18 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
                   );
                 },
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Flexible(
                       child: SelectableText(
-                        currentAddress ?? "",
+                        (currentAddress != null)
+                            ? "${currentAddress!.substring(0, 4)} ${currentAddress!.substring(4, 8)} ${currentAddress!.substring(8, 12)} ... ${currentAddress!.substring(currentAddress!.length - 12, currentAddress!.length - 8)} ${currentAddress!.substring(currentAddress!.length - 8, currentAddress!.length - 4)} ${currentAddress!.substring(currentAddress!.length - 4)}"
+                            : "",
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSecondary,
                           fontFamily: "roboto",
                           fontSize: 16,
                         ),
-                        maxLines: 2,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -203,6 +209,7 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
               asset: selectedAsset,
               onAmountChanged: onAmountChanged,
             ),
+            SizedBox(height: 100),
           ],
         ),
       ),
