@@ -7,6 +7,7 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/models/transaction.dart';
 import 'package:mooze_mobile/providers/external/mempool_repository_provider.dart';
+import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
@@ -219,6 +220,11 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
   }
 
   Future<void> onTap(PegOrderResponse pegResponse) async {
+    // Save the peg operation to persistence
+    await ref
+        .read(activePegOperationProvider.notifier)
+        .startPegOperation(pegResponse.orderId, widget.pegIn);
+
     if (widget.sendFromExternalWallet) {
       Navigator.push(
         context,
@@ -300,6 +306,7 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
                     minAmount: widget.minAmount,
                     destinationAddress: address!,
                   ),
+
                   SizedBox(height: 24),
                   _isTransactionPreparing
                       ? DeactivatedButton(text: "Preparando...")

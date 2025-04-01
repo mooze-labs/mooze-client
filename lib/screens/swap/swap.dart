@@ -6,9 +6,11 @@ import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
+import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
+import 'package:mooze_mobile/screens/swap/check_peg_status.dart';
 import 'package:mooze_mobile/screens/swap/confirm_peg.dart';
 import 'package:mooze_mobile/screens/swap/finish_swap.dart';
 import 'package:mooze_mobile/screens/swap/widgets/available_funds.dart';
@@ -571,12 +573,53 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     super.initState();
     final sideswapClient = ref.read(sideswapRepositoryProvider);
 
-    // Ensure we're subscribed to balance updates
     sideswapClient.subscribeToPegInWalletBalance();
     sideswapClient.subscribeToPegOutWalletBalance();
 
-    // Initialize server status
     serverStatus = sideswapClient.getServerStatus();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkActivePegOperation();
+    });
+  }
+
+  Future<void> _checkActivePegOperation() async {
+    final activePegOp = await ref.read(activePegOperationProvider.future);
+
+    if (activePegOp != null && mounted) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text('Operação de Peg em Andamento'),
+              content: Text(
+                'Você tem uma operação de ${activePegOp.isPegIn ? 'peg-in' : 'peg-out'} em andamento. Deseja verificar o status?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Não'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => CheckPegStatusScreen(
+                              pegIn: activePegOp.isPegIn,
+                              orderId: activePegOp.orderId,
+                            ),
+                      ),
+                    );
+                  },
+                  child: Text('Sim'),
+                ),
+              ],
+            ),
+      );
+    }
   }
 
   @override

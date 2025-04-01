@@ -1,5 +1,4 @@
-import 'dart:nativewrappers/_internal/vm/lib/math_patch.dart';
-
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';

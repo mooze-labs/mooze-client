@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 
 /// A widget that manages app lifecycle events and handles
@@ -39,6 +40,10 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
         syncService.startPeriodicSync();
         // Trigger an immediate sync
         syncService.syncNow();
+
+        // Check if we have an active peg operation
+        ref.refresh(activePegOperationProvider);
+
         break;
 
       case AppLifecycleState.inactive:

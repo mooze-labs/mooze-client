@@ -1,22 +1,18 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
+import 'package:mooze_mobile/providers/peg_operation_provider.dart'; // Add this import
 import 'package:mooze_mobile/screens/swap/widgets/peg_status.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
 class CheckPegStatusScreen extends ConsumerStatefulWidget {
-  final String orderId;
-  final bool pegIn;
-  const CheckPegStatusScreen({
-    super.key,
-    required this.pegIn,
-    required this.orderId,
-  });
+  final String? orderId; // Make nullable
+  final bool? pegIn; // Make nullable
+
+  const CheckPegStatusScreen({super.key, this.pegIn, this.orderId});
 
   @override
   ConsumerState<CheckPegStatusScreen> createState() =>
@@ -25,26 +21,65 @@ class CheckPegStatusScreen extends ConsumerStatefulWidget {
 
 class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
   PegOrderStatus? pegOrderStatus;
+  String? _orderId;
+  bool? _isPegIn;
   late Future<PegOrderStatus?> _orderStatusFuture;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the future once
-    _orderStatusFuture = getPegOrderStatus();
+    _init();
+  }
+
+  Future<void> _init() async {
+    // Use provided values if available, otherwise try to load from persistence
+    if (widget.orderId != null && widget.pegIn != null) {
+      _orderId = widget.orderId;
+      _isPegIn = widget.pegIn;
+
+      // Save for future use
+      ref
+          .read(activePegOperationProvider.notifier)
+          .startPegOperation(_orderId!, _isPegIn!);
+    } else {
+      // Try to load from persistence
+      final activeOp = await ref.read(activePegOperationProvider.future);
+
+      if (activeOp != null) {
+        _orderId = activeOp.orderId;
+        _isPegIn = activeOp.isPegIn;
+      }
+    }
+
+    if (_orderId != null && _isPegIn != null) {
+      setState(() {
+        _orderStatusFuture = getPegOrderStatus();
+      });
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No active peg operation found')),
+        );
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   Future<PegOrderStatus?> getPegOrderStatus() async {
     final sideswapClient = ref.read(sideswapRepositoryProvider);
     final pegOrderStatus = await sideswapClient.getPegStatus(
-      widget.pegIn,
-      widget.orderId,
+      _isPegIn!,
+      _orderId!,
     );
 
     if (pegOrderStatus == null && mounted) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Ordem não encontrada')));
+
+      // Clear the stored operation since it's no longer valid
+      ref.read(activePegOperationProvider.notifier).completePegOperation();
+
       Navigator.of(context).pop();
     }
 
@@ -63,13 +98,25 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
     });
   }
 
+  // The rest of your widget remains the same
   @override
   Widget build(BuildContext context) {
+    if (_orderId == null || _isPegIn == null) {
+      return Scaffold(
+        appBar: MoozeAppBar(title: "Status de peg"),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Return your existing build method implementation
     return Scaffold(
       appBar: MoozeAppBar(title: "Status de peg"),
       body: FutureBuilder<PegOrderStatus?>(
         future: _orderStatusFuture,
         builder: (context, snapshot) {
+          // Your existing builder code
+          // Just update references from widget.orderId to _orderId and widget.pegIn to _isPegIn
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -118,7 +165,7 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
                                 ),
                               ),
                               Text(
-                                "${widget.orderId.substring(0, 8)}...${widget.orderId.substring(widget.orderId.length - 8)}",
+                                "${_orderId!.substring(0, 8)}...${_orderId!.substring(_orderId!.length - 8)}",
                                 style: TextStyle(
                                   fontFamily: "roboto",
                                   fontSize: 16,
@@ -143,7 +190,7 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
                                 ),
                               ),
                               Text(
-                                widget.pegIn ? "Peg-in" : "Peg-out",
+                                _isPegIn! ? "Peg-in" : "Peg-out",
                                 style: TextStyle(
                                   fontFamily: "roboto",
                                   fontSize: 16,
@@ -185,7 +232,7 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.orderId,
+                            _orderId!,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: "Poppins",
@@ -196,9 +243,7 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Clipboard.setData(
-                              ClipboardData(text: widget.orderId),
-                            );
+                            Clipboard.setData(ClipboardData(text: _orderId!));
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
