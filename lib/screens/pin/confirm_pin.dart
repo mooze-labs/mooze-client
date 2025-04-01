@@ -30,63 +30,68 @@ class _ConfirmPinScreenState extends State<ConfirmPinScreen> {
       appBar: MoozeAppBar(title: "Confirmar PIN"),
       body: Padding(
         padding: EdgeInsets.all(16.0),
-        child: Flex(
-          direction: Axis.vertical,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Spacer(),
-            Text(
-              "Confirme seu PIN:",
-              style: TextStyle(
-                fontSize: 20,
-                fontFamily: "roboto",
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 10),
-            Pinput(
-              keyboardType: TextInputType.number,
-              length: 6,
-              obscureText: true,
-              validator: (pin) {
-                if (pin == widget.pin) {
-                  return null;
-                } else {
-                  return "PINs não coincidem";
-                }
-              },
-              controller: pinController,
-              defaultPinTheme: PinTheme(
-                width: 56,
-                height: 56,
-                textStyle: TextStyle(
-                  fontSize: 20,
-                  color: Theme.of(context).colorScheme.onSecondary,
-                  fontFamily: "roboto",
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 400), // Limit max width
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center, // Center children
+              children: [
+                Spacer(),
+                Text(
+                  "Confirme seu PIN:",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontFamily: "roboto",
+                    fontWeight: FontWeight.bold,
                   ),
-                  borderRadius: BorderRadius.circular(8),
                 ),
-              ),
+                SizedBox(height: 10),
+                Pinput(
+                  keyboardType: TextInputType.number,
+                  length: 6,
+                  obscureText: true,
+                  validator: (pin) {
+                    if (pin == widget.pin) {
+                      return null;
+                    } else {
+                      return "PINs não coincidem";
+                    }
+                  },
+                  controller: pinController,
+                  defaultPinTheme: PinTheme(
+                    width: 56,
+                    height: 56,
+                    textStyle: TextStyle(
+                      fontSize: 20,
+                      color: Theme.of(context).colorScheme.onSecondary,
+                      fontFamily: "roboto",
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                Spacer(),
+                PrimaryButton(
+                  text: "Continuar",
+                  onPressed: () async {
+                    if (pinController.text != widget.pin) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("PINs não coincidem")),
+                      );
+                    } else {
+                      await savePin();
+                    }
+                  },
+                ),
+                SizedBox(height: 100),
+              ],
             ),
-            Spacer(),
-            PrimaryButton(
-              text: "Continuar",
-              onPressed: () async {
-                if (pinController.text != widget.pin) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text("PINs não coincidem")));
-                } else {
-                  await savePin();
-                }
-              },
-            ),
-            SizedBox(height: 100),
-          ],
+          ),
         ),
       ),
     );
