@@ -199,7 +199,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
 
   Widget _assetDropdown(BuildContext context, List<OwnedAsset> assets) {
     return DropdownMenu<OwnedAsset>(
-      initialSelection: assets[0],
       onSelected: (OwnedAsset? asset) {
         setState(() {
           selectedAsset = asset;
