@@ -100,14 +100,14 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
         MaterialPageRoute(
           fullscreenDialog: true,
           builder:
-              (context) => WillPopScope(
-                onWillPop:
-                    () async => false, // Prevent dismissal with back button
+              (context) => PopScope(
+                canPop: false,
                 child: VerifyPinScreen(
                   onPinConfirmed: () {
                     _needsVerification = false;
                     widget.navigatorKey.currentState?.pop();
                   },
+                  isAppResuming: true,
                 ),
               ),
         ),

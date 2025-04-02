@@ -7,7 +7,9 @@ import 'package:mooze_mobile/widgets/appbar.dart';
 /// Screen to verify PIN for sensitive operations.
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
-  VerifyPinScreen({required this.onPinConfirmed});
+  bool isAppResuming;
+
+  VerifyPinScreen({required this.onPinConfirmed, this.isAppResuming = false});
   @override
   State<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
@@ -48,7 +50,17 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     return PopScope(
       canPop: true,
       child: Scaffold(
-        appBar: MoozeAppBar(title: "Validar PIN"),
+        appBar: AppBar(
+          title: Text(
+            "Validar PIN",
+            style: TextStyle(
+              fontFamily: "roboto",
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          automaticallyImplyLeading: !widget.isAppResuming,
+        ),
         body: Padding(
           padding: EdgeInsets.all(16.0),
           child: Flex(
