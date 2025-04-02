@@ -11,6 +11,7 @@ import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 
 String BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
@@ -46,6 +47,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     try {
       await _preloadUserData();
       await _preloadPriceData();
+
+      final noScreenshot = NoScreenshot.instance;
+      await noScreenshot.screenshotOn();
 
       final mnemonicHandler = MnemonicHandler();
       final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(

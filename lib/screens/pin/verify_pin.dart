@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
@@ -29,6 +30,12 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   Future<void> _checkSession() async {
     final hasValidSession = await _authService.hasValidSession();
     final isPinSetup = await _authService.isPinSetup();
+
+    final noScreenshot =
+        NoScreenshot
+            .instance; // workaround to reactivate screenshots if user exited the app
+    await noScreenshot.screenshotOn();
+
     if (hasValidSession || !isPinSetup) {
       widget.onPinConfirmed();
     } else {
