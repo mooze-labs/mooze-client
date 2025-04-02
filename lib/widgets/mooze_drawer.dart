@@ -14,7 +14,9 @@ class MoozeDrawer extends StatelessWidget {
         child: ListView(
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [Image.asset('assets/images/mooze-logo.png')],
@@ -43,6 +45,13 @@ class MoozeDrawer extends StatelessWidget {
             ),
             _buildDrawerItem(
               context,
+              Icons.switch_access_shortcut,
+              "Pegs",
+              "/input_peg",
+              currentRoute == "/input_peg",
+            ),
+            _buildDrawerItem(
+              context,
               Icons.settings,
               "Configurações",
               "/settings",
@@ -62,7 +71,10 @@ class MoozeDrawer extends StatelessWidget {
     bool isActive,
   ) {
     // Define colors based on active state
-    final Color itemColor = isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSecondary;
+    final Color itemColor =
+        isActive
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSecondary;
 
     return Container(
       decoration: BoxDecoration(
@@ -74,7 +86,10 @@ class MoozeDrawer extends StatelessWidget {
         leading: Icon(icon, color: itemColor),
         title: Text(
           title,
-          style: TextStyle(color: itemColor, fontWeight: isActive ? FontWeight.bold : FontWeight.normal),
+          style: TextStyle(
+            color: itemColor,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
         onTap: () {
           Navigator.pop(context);
