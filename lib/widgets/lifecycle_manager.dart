@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
+import 'package:mooze_mobile/screens/pin/verify_pin.dart';
+import 'package:mooze_mobile/services/auth.dart';
+import 'package:mooze_mobile/utils/store_mode.dart';
 
-/// A widget that manages app lifecycle events and handles
-/// starting/stopping services appropriately
 class LifecycleManager extends ConsumerStatefulWidget {
   final Widget child;
+  final GlobalKey<NavigatorState> navigatorKey;
 
-  const LifecycleManager({Key? key, required this.child}) : super(key: key);
+  const LifecycleManager({
+    Key? key,
+    required this.child,
+    required this.navigatorKey,
+  }) : super(key: key);
 
   @override
   ConsumerState<LifecycleManager> createState() => _LifecycleManagerState();
@@ -16,6 +21,10 @@ class LifecycleManager extends ConsumerStatefulWidget {
 
 class _LifecycleManagerState extends ConsumerState<LifecycleManager>
     with WidgetsBindingObserver {
+  final AuthenticationService _authService = AuthenticationService();
+  final StoreModeHandler _storeModeHandler = StoreModeHandler();
+  bool _needsVerification = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,34 +45,74 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
 
     switch (state) {
       case AppLifecycleState.resumed:
-        // App is visible and running in foreground
         syncService.startPeriodicSync();
-        // Trigger an immediate sync
         syncService.syncNow();
 
-        // Check if we have an active peg operation
-        ref.refresh(activePegOperationProvider);
-
+        _checkAuthStatus();
         break;
 
       case AppLifecycleState.inactive:
-        // App is in an inactive state (e.g., when receiving a phone call)
-        // No action needed here
         break;
 
       case AppLifecycleState.paused:
-        // App is not visible but still running in background
-        // We continue the sync timer in background
+        _invalidateSessionIfNeeded();
         break;
 
       case AppLifecycleState.detached:
-        // App is detached from view hierarchy (e.g., when killed)
         syncService.stopPeriodicSync();
         break;
 
       default:
         break;
     }
+  }
+
+  Future<void> _invalidateSessionIfNeeded() async {
+    bool isStoreMode = await _storeModeHandler.isStoreMode();
+
+    if (isStoreMode) {
+      _needsVerification = false;
+      return;
+    }
+
+    await _authService.invalidateSession();
+    _needsVerification = true;
+  }
+
+  Future<void> _checkAuthStatus() async {
+    if (!_needsVerification) return;
+
+    bool isStoreMode = await _storeModeHandler.isStoreMode();
+    if (isStoreMode) {
+      _needsVerification = false;
+      return;
+    }
+
+    bool hasValidSession = await _authService.hasValidSession();
+
+    if (hasValidSession) {
+      _needsVerification = false;
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder:
+              (context) => WillPopScope(
+                onWillPop:
+                    () async => false, // Prevent dismissal with back button
+                child: VerifyPinScreen(
+                  onPinConfirmed: () {
+                    _needsVerification = false;
+                    widget.navigatorKey.currentState?.pop();
+                  },
+                ),
+              ),
+        ),
+      );
+    });
   }
 
   @override
