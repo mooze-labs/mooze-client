@@ -1,16 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
-import 'package:mooze_mobile/widgets/inputs/convertible_amount_input.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import 'package:mooze_mobile/models/assets.dart';
 
 class AddressInput extends StatefulWidget {
   final TextEditingController controller;
@@ -57,8 +49,6 @@ class _AddressInputState extends State<AddressInput> {
       return;
     }
 
-    // Use a simplified approach to show the scanner
-    // that avoids complex navigation issues
     final result = await showDialog<String>(
       context: context,
       builder: (BuildContext context) => QRScannerDialog(),
@@ -97,7 +87,6 @@ class _AddressInputState extends State<AddressInput> {
   }
 }
 
-// QR Scanner dialog that doesn't break navigation flow
 class QRScannerDialog extends StatefulWidget {
   const QRScannerDialog({super.key});
 
