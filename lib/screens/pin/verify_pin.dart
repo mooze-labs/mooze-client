@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/services/auth.dart';
@@ -27,7 +28,8 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
 
   Future<void> _checkSession() async {
     final hasValidSession = await _authService.hasValidSession();
-    if (hasValidSession) {
+    final isPinSetup = await _authService.isPinSetup();
+    if (hasValidSession || !isPinSetup) {
       widget.onPinConfirmed();
     } else {
       if (mounted) {

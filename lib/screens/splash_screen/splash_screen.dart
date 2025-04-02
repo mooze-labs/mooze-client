@@ -5,6 +5,7 @@ import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
+import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
@@ -22,6 +23,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  final _authService = AuthenticationService();
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +33,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> redirectToWallet(BuildContext context) async {
     final isStoreMode = await StoreModeHandler().isStoreMode();
-
     if (!context.mounted) return;
 
     if (isStoreMode) {
@@ -49,6 +51,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(
         "mainWallet",
       );
+
+      final isPinSetup = await _authService.isPinSetup();
+      if (!isPinSetup && mounted) {
+        Navigator.pushReplacementNamed(context, "/first_access");
+      }
 
       debugPrint("Mnemonic: $mnemonic");
 
