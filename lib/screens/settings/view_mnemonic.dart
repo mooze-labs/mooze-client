@@ -64,7 +64,8 @@ class ViewMnemonicScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 24),
-              Expanded(child: MnemonicGridDisplay(mnemonic: mnemonic)),
+              MnemonicGridDisplay(mnemonic: mnemonic),
+              Spacer(),
               PrimaryButton(
                 text: "Copiar seeds",
                 onPressed: () {
