@@ -12,9 +12,12 @@ class WebSocketService {
   Timer? _reconnectTimer;
   bool _isConnected = false;
   bool _isDisposed = false;
+  DateTime? _lastConnectAttempt;
+
+  // Track connection state
+  bool get isConnected => _isConnected && _channel != null;
 
   WebSocketService(this.url) {
-    // Connect when first listener is added
     _controller.onListen = () {
       if (!_isConnected && !_isDisposed) {
         _connect();
@@ -27,34 +30,40 @@ class WebSocketService {
   void _connect() {
     if (_isDisposed || _isConnected) return;
 
+    // Prevent connection attempts too close together
+    final now = DateTime.now();
+    if (_lastConnectAttempt != null &&
+        now.difference(_lastConnectAttempt!).inSeconds < 2) {
+      return;
+    }
+
+    _lastConnectAttempt = now;
+
     try {
-      print("Connecting to ${url.toString()}");
+      debugPrint("Connecting to ${url.toString()}");
 
-      // Use WebSocketChannel.connect with the proper URL
       _channel = WebSocketChannel.connect(url);
-      _isConnected = true;
-
-      print("WebSocket connected");
 
       _channel!.stream.listen(
         (message) {
+          _isConnected = true;
           if (!_isDisposed && !_controller.isClosed) {
             _controller.add(message);
           }
         },
         onError: (error) {
-          print("WebSocket error: $error");
+          debugPrint("WebSocket error: $error");
           _handleDisconnect();
         },
         onDone: () {
-          print("WebSocket connection closed");
+          debugPrint("WebSocket connection closed");
           _handleDisconnect();
         },
         cancelOnError: false,
       );
     } catch (e, stack) {
-      print("WebSocket connection error: $e");
-      print(stack);
+      debugPrint("WebSocket connection error: $e");
+      debugPrint(stack.toString());
       _handleDisconnect();
     }
   }
@@ -78,11 +87,20 @@ class WebSocketService {
     });
   }
 
+  // Add method to check and ensure connection
+  bool ensureConnected() {
+    if (_isDisposed) return false;
+    if (_isConnected && _channel != null) return true;
+
+    _connect();
+    return false;
+  }
+
   void send(dynamic data) {
     if (_isDisposed) return;
 
     if (!_isConnected) {
-      print("WebSocket not connected, cannot send data");
+      debugPrint("WebSocket not connected, cannot send data");
       _connect();
       return;
     }
@@ -90,7 +108,7 @@ class WebSocketService {
     try {
       _channel?.sink.add(data);
     } catch (e) {
-      print("Error sending WebSocket data: $e");
+      debugPrint("Error sending WebSocket data: $e");
       _handleDisconnect();
     }
   }
@@ -100,26 +118,23 @@ class WebSocketService {
 
     _isDisposed = true;
 
-    // Cancel reconnect timer
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
 
-    // Close the WebSocket channel
     try {
       if (_channel != null) {
         _channel!.sink.close(status.normalClosure);
       }
     } catch (e) {
-      print("Error closing WebSocket channel: $e");
+      debugPrint("Error closing WebSocket channel: $e");
     }
 
-    // Close the controller
     try {
       if (!_controller.isClosed) {
         _controller.close();
       }
     } catch (e) {
-      print("Error closing controller: $e");
+      debugPrint("Error closing controller: $e");
     }
   }
 }

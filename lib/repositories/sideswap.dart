@@ -11,6 +11,7 @@ const String apiKey =
 class SideswapRepository {
   final SideswapService _service;
   bool _isInitialized = false;
+  bool _isConnectionActive = false;
 
   // Transformed streams
   late Stream<ServerStatus> serverStatusStream;
@@ -35,6 +36,7 @@ class SideswapRepository {
   /// and setting up stream transformations
   void init() {
     if (_isInitialized) return;
+    if (_isConnectionActive) return;
 
     print("Starting Sideswap connection");
 
@@ -45,6 +47,20 @@ class SideswapRepository {
     _setupStreamTransformations();
 
     _isInitialized = true;
+    _isConnectionActive = true;
+  }
+
+  bool ensureConnection() {
+    if (_isConnectionActive) return true;
+
+    try {
+      debugPrint("[Sideswap] Connection check - reconnecting");
+      init();
+      return true;
+    } catch (e) {
+      debugPrint("[Sideswap] Connection check failed: $e");
+      return false;
+    }
   }
 
   /// Set up the transformations from JSON to model objects
@@ -429,5 +445,6 @@ class SideswapRepository {
     _pegResponseController.close();
     _pegStatusController.close();
     _quoteResponseController.close();
+    _isConnectionActive = false;
   }
 }
