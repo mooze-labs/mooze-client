@@ -35,7 +35,9 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   late Future<User?> _userFuture;
   // Controller for the BRL amount input
   final TextEditingController amountController = TextEditingController();
-  int _currentAmount = 0;
+
+  double _currentAmountFloat = 0.0;
+  int _currentAmountInCents = 0;
   User? userDetails;
 
   late Key dropdownKey = UniqueKey();
@@ -57,11 +59,16 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
 
   // Handle text changes directly
   void _handleTextChanged(String text) {
-    final newAmount = text.isEmpty ? 0 : int.tryParse(text) ?? 0;
+    // Replace comma with dot for proper parsing
+    final normalizedText = text.replaceAll(',', '.');
+    final newAmount =
+        normalizedText.isEmpty ? 0.0 : double.tryParse(normalizedText) ?? 0.0;
 
-    if (newAmount != _currentAmount) {
+    if (newAmount != _currentAmountFloat) {
       setState(() {
-        _currentAmount = newAmount;
+        _currentAmountFloat = newAmount;
+        // Convert to cents: multiply by 100 and round to integer
+        _currentAmountInCents = (newAmount * 100).round();
       });
     }
   }
@@ -196,12 +203,14 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             amountController: amountController,
                             onChanged: _handleTextChanged,
                           ),
-                          Text("Valor mínimo: R\$ 20,00"),
+                          Text(
+                            "Valor mínimo: R\$ 20,00 • Valor máximo: R\$ 5.000,00",
+                          ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: AddressDisplay(
                               address: address,
-                              fiatAmount: _currentAmount,
+                              fiatAmount: _currentAmountInCents,
                               asset: selectedAsset,
                             ),
                           ),
@@ -220,12 +229,15 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                                     );
                                     return;
                                   }
-                                  if (_currentAmount < 20 ||
-                                      _currentAmount > 5000) {
+
+                                  // Check minimum amount in reais (2000 cents = R$ 20.00)
+                                  if (_currentAmountInCents < 2000 ||
+                                      _currentAmountInCents > 500000) {
+                                    // 500000 cents = R$ 5000.00
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          "Por favor, insira um valor válido.",
+                                          "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
                                         ),
                                       ),
                                     );
@@ -234,7 +246,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
 
                                   final pixTransaction = PixTransaction(
                                     address: address,
-                                    brlAmount: _currentAmount,
+                                    brlAmount: _currentAmountInCents,
                                     asset:
                                         selectedAsset.liquidAssetId ??
                                         "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",

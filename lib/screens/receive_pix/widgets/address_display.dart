@@ -6,7 +6,7 @@ import 'package:mooze_mobile/utils/fees.dart';
 
 class AddressDisplay extends ConsumerWidget {
   final String address;
-  final int fiatAmount;
+  final int fiatAmount; // Amount in cents
   final Asset asset;
 
   const AddressDisplay({
@@ -16,12 +16,17 @@ class AddressDisplay extends ConsumerWidget {
     required this.fiatAmount,
   });
 
-  String getAssetAmount(int fiatAmount, double fiatPrice) {
+  String getAssetAmount(int fiatAmountInCents, double fiatPrice) {
     if (fiatPrice == 0) return "";
-    if (fiatAmount == 0) return "0.00000000";
+    if (fiatAmountInCents == 0) return "0.00000000";
+    // Convert cents to whole amount
+    double fiatAmount = fiatAmountInCents / 100.0;
     double assetAmount = fiatAmount / fiatPrice;
     double feeRate =
-        FeeCalculator(assetId: asset.id, fiatAmount: fiatAmount).getFees();
+        FeeCalculator(
+          assetId: asset.id,
+          fiatAmount: fiatAmountInCents,
+        ).getFees();
     double amountAfterFees = assetAmount - (assetAmount * feeRate) - 1;
 
     return amountAfterFees.toStringAsFixed(asset.precision);

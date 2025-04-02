@@ -7,7 +7,7 @@ import 'package:mooze_mobile/utils/fees.dart';
 class TransactionInfo extends ConsumerWidget {
   final String assetId;
   final String address;
-  final int amount;
+  final int amount; // Amount in cents
 
   TransactionInfo({
     super.key,
@@ -53,7 +53,9 @@ class TransactionInfo extends ConsumerWidget {
         final feeRate =
             FeeCalculator(assetId: assetId, fiatAmount: amount).getFees();
 
-        final assetAmount = amount / fiatPrice!;
+        // Convert amount from cents to reais for display
+        final amountInReais = amount / 100.0;
+        final assetAmount = amountInReais / fiatPrice!;
         final fees = (assetAmount * feeRate);
         final amountToReceive = assetAmount - fees;
 
@@ -67,7 +69,7 @@ class TransactionInfo extends ConsumerWidget {
             children: [
               _buildTransactionDetailRow(
                 "Valor",
-                "R\$ ${amount.toStringAsFixed(2)}",
+                "R\$ ${(amount / 100).toStringAsFixed(2)}",
               ),
               _buildTransactionDetailRow("Cotação", "$fiatPrice"),
               _buildTransactionDetailRow(
