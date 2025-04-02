@@ -127,7 +127,7 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
     if (amount == null || amount <= 0) {
       return "liquidnetwork:$address?asset_id=${selectedAsset!.liquidAssetId}";
     }
-    return "liquidnetwork:$address?amount=${amount.toStringAsFixed(selectedAsset!.precision)}&asset_id=${selectedAsset!.liquidAssetId}";
+    return "liquidnetwork:$address?amount=${amount.toStringAsFixed(selectedAsset!.precision)}&assetid=${selectedAsset!.liquidAssetId}";
   }
 
   @override
