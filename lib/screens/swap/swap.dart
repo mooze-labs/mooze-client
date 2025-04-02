@@ -732,14 +732,22 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           return false;
         }
 
-        final balanceInSats = (parsedBalance / pow(10, 8)).toInt();
+        final amountInSats = (parsedBalance * pow(10, 8)).toInt();
         final pegAsset = pegIn.first ? bitcoin : liquid;
 
-        if (balanceInSats < pegAsset.amount) {
+        if (kDebugMode) {
+          debugPrint("Written amount: $amountInSats");
+          debugPrint("Peg asset: ${pegAsset.asset.id}");
+          debugPrint("Amount in wallet: ${pegAsset.amount}");
+        }
+
+        if (pegAsset.amount < amountInSats) {
+          debugPrint("1");
           return false;
         }
 
-        if (balanceInSats < minAmount) {
+        if (amountInSats < minAmount && !receiveFromExternalWallet) {
+          debugPrint("2");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text("Valor menor que o mínimo permitido."),
@@ -774,6 +782,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           );
         }
         */
+        this.asset = pegAsset;
         return true;
       },
     );
@@ -829,6 +838,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     if (!mounted) return;
     final parsedSendAmount = double.tryParse(amountController.text);
 
+    debugPrint("Owned asset: $asset");
     Navigator.push(
       context,
       MaterialPageRoute(
