@@ -24,24 +24,31 @@ class SwipeToConfirm extends StatefulWidget {
 
 class _SwipeToConfirmState extends State<SwipeToConfirm> {
   double _progress = 0.0;
+  bool _hasConfirmed = false;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
+        if (_hasConfirmed) return;
+
         setState(() {
           _progress += details.delta.dx / 300;
           _progress = _progress.clamp(0.0, 1.0);
         });
 
-        if (_progress >= 0.8) {
+        if (_progress >= 0.8 && !_hasConfirmed) {
+          setState(() {
+            _hasConfirmed = true;
+          });
           widget.onConfirm();
         }
       },
       onHorizontalDragEnd: (_) {
-        if (_progress < 1.0) {
+        if (_progress < 1.0 || _hasConfirmed) {
           setState(() {
             _progress = 0.0;
+            _hasConfirmed = false;
           });
         }
       },
