@@ -13,6 +13,7 @@ import 'package:mooze_mobile/screens/settings/terms_and_conditions.dart';
 import 'package:mooze_mobile/screens/splash_screen/splash_screen.dart';
 import 'package:mooze_mobile/screens/create_wallet/generate_mnemonic.dart';
 import 'package:mooze_mobile/screens/store_mode/store_home.dart';
+import 'package:mooze_mobile/screens/swap/input_peg.dart';
 import 'package:mooze_mobile/screens/swap/swap.dart';
 import 'package:mooze_mobile/screens/transaction_history/transaction_history.dart';
 import 'package:mooze_mobile/screens/wallet/wallet.dart';
@@ -49,4 +50,5 @@ final Map<String, WidgetBuilder> appRoutes = {
   "/store_mode": (context) => StoreHomeScreen(),
   "/settings": (context) => SettingsScreen(),
   "/terms-and-conditions": (context) => TermsAndConditionsScreen(),
+  "/input_peg": (context) => InputPegScreen(),
 };

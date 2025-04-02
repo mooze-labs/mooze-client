@@ -5,9 +5,11 @@ import 'package:mooze_mobile/widgets/lifecycle_manager.dart';
 import 'routes.dart';
 import 'themes/theme_base.dart' as mooze_theme;
 
+// Create a global navigator key
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   await LibLwk.init();
-  //await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   runApp(ProviderScope(child: MyApp()));
 }
@@ -16,7 +18,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LifecycleManager(
+      navigatorKey: navigatorKey,
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'Mooze',
         debugShowCheckedModeBanner: false,
         theme: mooze_theme.themeData,
