@@ -34,7 +34,7 @@ class _SwipeToConfirmState extends State<SwipeToConfirm> {
           _progress = _progress.clamp(0.0, 1.0);
         });
 
-        if (_progress >= 1.0) {
+        if (_progress >= 0.8) {
           widget.onConfirm();
         }
       },

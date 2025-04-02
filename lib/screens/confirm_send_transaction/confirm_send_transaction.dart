@@ -12,6 +12,7 @@ import 'package:mooze_mobile/widgets/buttons.dart';
 
 import 'package:lwk/lwk.dart' as lwk;
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
 
 class ConfirmSendTransactionScreen extends ConsumerStatefulWidget {
   final OwnedAsset ownedAsset;
@@ -190,9 +191,9 @@ class ConfirmSendTransactionState
         SizedBox(height: 24),
         Padding(
           padding: EdgeInsets.only(bottom: 100),
-          child: PrimaryButton(
+          child: SwipeToConfirm(
             text: "Confirmar envio",
-            onPressed: () async => await signAndRedirect(),
+            onConfirm: () async => await signAndRedirect(),
           ),
         ),
       ],
