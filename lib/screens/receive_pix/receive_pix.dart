@@ -204,7 +204,12 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             onChanged: _handleTextChanged,
                           ),
                           Text(
-                            "Valor mínimo: R\$ 20,00 • Valor máximo: R\$ 5.000,00",
+                            "• Valor mínimo: R\$ 20,00 \n• Valor máximo: R\$ 5.000,00",
+                            style: TextStyle(
+                              fontFamily: "roboto",
+                              fontSize: 16,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),

@@ -79,7 +79,7 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
                 TextInputFormatter.withFunction((oldValue, newValue) {
-                  // Count how many decimal separators (comma or dot) are in the text
+                  // First check for multiple decimal separators
                   int commaCount = newValue.text.split(',').length - 1;
                   int dotCount = newValue.text.split('.').length - 1;
 
@@ -87,6 +87,14 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
                   if (commaCount + dotCount > 1) {
                     return oldValue;
                   }
+
+                  // Check for decimal places limit
+                  final parts = newValue.text.split(RegExp(r'[.,]'));
+                  if (parts.length > 1 && parts[1].length > 2) {
+                    // More than 2 decimal places, reject
+                    return oldValue;
+                  }
+
                   return newValue;
                 }),
               ],
