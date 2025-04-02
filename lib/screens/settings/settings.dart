@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/pin/create_pin.dart';
@@ -8,9 +7,12 @@ import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/mooze_drawer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  SettingsScreen({super.key});
+
+  final _noScreenshot = NoScreenshot.instance;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -90,11 +92,11 @@ class SettingsScreen extends ConsumerWidget {
         builder:
             (context) => VerifyPinScreen(
               onPinConfirmed: () async {
-                // Retrieve the mnemonic and show it
                 final mnemonicHandler = MnemonicHandler();
                 final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(
                   "mainWallet",
                 );
+                await _noScreenshot.screenshotOff();
 
                 if (mnemonic != null && context.mounted) {
                   Navigator.pushReplacement(
