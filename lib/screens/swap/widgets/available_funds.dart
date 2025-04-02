@@ -20,7 +20,7 @@ class AvailableFunds extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "Quantidade disponível: ${asset!.amount / pow(10, asset!.asset.precision)} ${asset!.asset.ticker}",
+            "Quantidade disponível: ${(asset!.amount / pow(10, asset!.asset.precision)).toStringAsFixed(asset!.asset.precision)} ${asset!.asset.ticker}",
           ),
         ],
       ),
