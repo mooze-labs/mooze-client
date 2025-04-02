@@ -94,18 +94,14 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
   @override
   void initState() {
     super.initState();
-    final sideswap = ref.read(sideswapRepositoryProvider);
-    sideswap.init();
+    _checkConnection();
+    final sideswapRepository = ref.read(sideswapRepositoryProvider);
+    sideswapRepository.init();
 
-    _quoteSubscription = sideswap.quoteResponseStream.listen((response) {
-      setState(() {
-        quoteResponse = response;
-        if (quoteResponse!.isSuccess) {
-          quote = response.quote;
-        }
-      });
-
-      debugPrint("New quote: ${quote?.quoteId}");
+    _quoteSubscription = sideswapRepository.quoteResponseStream.listen((
+      response,
+    ) {
+      if (mounted) updateQuoteState(response);
     });
   }
 
@@ -122,23 +118,60 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     });
   }
 
+  void _checkConnection() {
+    final sideswapClient = ref.read(sideswapRepositoryProvider);
+    final connected = sideswapClient.ensureConnection();
+
+    if (!connected && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Falha na conexão com Sideswap. Tentando reconectar...',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          sideswapClient.init();
+        }
+      });
+    }
+  }
+
+  void updateQuoteState(QuoteResponse response) {
+    setState(() {
+      quoteResponse = response;
+
+      if (response.isSuccess) {
+        quote = response.quote;
+        _isLoadingQuote = false;
+      } else if (response.isError) {
+        quote = null;
+        _isLoadingQuote = false;
+      } else if (response.isLowBalance) {
+        quote = null;
+        _isLoadingQuote = false;
+      }
+    });
+
+    debugPrint("Quote state updated: ${quote?.quoteId ?? 'No quote'}");
+  }
+
   void loginToSideswap() {
     final sideswapRepository = ref.read(sideswapRepositoryProvider);
     sideswapRepository.init();
   }
 
-  // Updates to the SwapScreen class
-
   void onNewMarketSelect(String sendAsset, String recvAsset) async {
-    // Log market selection for debugging
     debugPrint("Market selection changed: $sendAsset → $recvAsset");
 
     final sideswapRepository = ref.read(sideswapRepositoryProvider);
     sideswapRepository.stopQuotes();
 
-    // Explicitly reset all state related to quoting
     setState(() {
-      quote = null; // Fix: was using == instead of =
+      quote = null;
       quoteResponse = null;
       _amountController.text = "";
       inputAmount = null;
@@ -235,6 +268,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     setState(() {
       _isLoadingQuote = true;
       quote = null;
+      quoteResponse = null;
       inputAmount = parsedAmount;
     });
 
@@ -276,9 +310,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
         receiveAddress: receiveAddress,
         changeAddress: changeAddress,
       );
-      setState(() {
-        _isLoadingQuote = false;
-      });
     } catch (e) {
       setState(() {
         _isLoadingQuote = false;
@@ -308,92 +339,19 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  Widget buildQuoteDisplay() {
-    if (ownedSendAsset == null) {
-      return Container();
-    }
-
-    if (quote == null) {
-      return Container();
-    }
-
-    if (quote == null && _isLoadingQuote == true) {
-      return Container(
-        child: Center(
-          child: Column(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 8),
-              Text("Obtendo cotação..."),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final sideswap = ref.read(sideswapRepositoryProvider);
-    return StreamBuilder<QuoteResponse>(
-      stream: sideswap.quoteResponseStream,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Container();
-        }
-
-        final quoteResponse = snapshot.data!;
-
-        if (quoteResponse.isLowBalance) {
-          final quote = quoteResponse.lowBalance!;
-          final requestedBalance =
-              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
-                  ? quote.baseAmount
-                  : quote.quoteAmount;
-          return LowBalanceQuoteDisplay(
-            asset: ownedSendAsset!.asset,
-            availableBalance: quote.available,
-            requestedBalance: requestedBalance,
-          );
-        }
-
-        if (quoteResponse.isError) {
-          final quote = quoteResponse.error!;
-          return ErrorQuoteDisplay(errorMessage: quote.errorMessage);
-        }
-
-        if (quoteResponse.isSuccess) {
-          final receivedQuote = quoteResponse.quote!;
-          final requestedBalance =
-              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
-                  ? receivedQuote.quoteAmount
-                  : receivedQuote.baseAmount;
-
-          return SuccessfulQuoteAmountDisplay(
-            asset: receiveAsset!,
-            amount: requestedBalance,
-          );
-        }
-
-        return Container();
-      },
-    );
-  }
-
   Widget buildPrimaryButton() {
-    // No market selected yet or no assets set
     if (baseAsset == null || quoteAsset == null || ownedSendAsset == null) {
       return DeactivatedButton(text: "Obter cotação");
     }
 
-    // No input or invalid input
     final currentText = _amountController.text;
     final parsedAmount = double.tryParse(currentText.replaceAll(",", "."));
     if (parsedAmount == null || parsedAmount <= 0) {
-      // Stop any existing quotes when input is invalid
       final sideswapClient = ref.read(sideswapRepositoryProvider);
       sideswapClient.stopQuotes();
       return DeactivatedButton(text: "Obter cotação");
     }
 
-    // Loading state
     if (_isLoadingQuote) {
       return Center(
         child: Column(
@@ -406,7 +364,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    // Input has changed or no quote response
     if (quoteResponse == null ||
         inputAmount == null ||
         (parsedAmount - inputAmount!).abs() > 0.000001) {
@@ -416,7 +373,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    // Has valid quote
     if (quoteResponse!.isSuccess && quote != null) {
       return Column(
         children: [
@@ -451,10 +407,93 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    // Fallback - error state or other issues
     return PrimaryButton(
       text: "Obter cotação",
       onPressed: () => requestQuote(),
+    );
+  }
+
+  Widget buildQuoteDisplay() {
+    if (ownedSendAsset == null) {
+      return Container();
+    }
+
+    if (quote == null && !_isLoadingQuote) {
+      return Container();
+    }
+
+    if (_isLoadingQuote) {
+      return Container(
+        child: Center(
+          child: Column(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 8),
+              Text("Obtendo cotação..."),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final sideswap = ref.read(sideswapRepositoryProvider);
+    return StreamBuilder<QuoteResponse>(
+      stream: sideswap.quoteResponseStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Container();
+        }
+
+        final quoteResponse = snapshot.data!;
+
+        if (quoteResponse.isLowBalance) {
+          final quote = quoteResponse.lowBalance!;
+          final requestedBalance =
+              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                  ? quote.baseAmount
+                  : quote.quoteAmount;
+          return Container(
+            height: 150,
+            child: LowBalanceQuoteDisplay(
+              asset: ownedSendAsset!.asset,
+              availableBalance: quote.available,
+              requestedBalance: requestedBalance,
+            ),
+          );
+        }
+
+        if (quoteResponse.isError) {
+          final quote = quoteResponse.error!;
+          return Container(
+            height: 150,
+            child: ErrorQuoteDisplay(errorMessage: quote.errorMessage),
+          );
+        }
+
+        if (quoteResponse.isSuccess) {
+          final receivedQuote = quoteResponse.quote!;
+          final requestedBalance =
+              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                  ? receivedQuote.quoteAmount
+                  : receivedQuote.baseAmount;
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                child: SuccessfulQuoteAmountDisplay(
+                  asset: receiveAsset!,
+                  amount: requestedBalance,
+                ),
+              ),
+              if (MediaQuery.of(context).viewInsets.bottom == 0)
+                buildPrimaryButton(),
+            ],
+          );
+        }
+
+        return Container();
+      },
     );
   }
 
@@ -534,11 +573,8 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
                   ),
                 ),
               AvailableFunds(asset: ownedSendAsset),
-              const SizedBox(height: 24),
-              buildQuoteDisplay(),
-              Spacer(),
-              if (MediaQuery.of(context).viewInsets.bottom == 0)
-                buildPrimaryButton(),
+              Expanded(child: buildQuoteDisplay()),
+              if (quote == null) buildPrimaryButton(),
               SizedBox(height: 24),
             ],
           ),
@@ -556,7 +592,6 @@ class PegScreen extends ConsumerStatefulWidget {
 }
 
 class _PegScreenState extends ConsumerState<PegScreen> {
-  // Initialize with a value directly instead of using late
   Future<ServerStatus?>? serverStatus;
   Set<bool> pegIn = {true};
   OwnedAsset? asset;
@@ -644,7 +679,6 @@ class _PegScreenState extends ConsumerState<PegScreen> {
   void refreshAll() {
     final sideswapClient = ref.read(sideswapRepositoryProvider);
 
-    // Re-subscribe to trigger updates
     sideswapClient.subscribeToPegInWalletBalance();
     sideswapClient.subscribeToPegOutWalletBalance();
 
@@ -764,7 +798,6 @@ class _PegScreenState extends ConsumerState<PegScreen> {
         (pegIn.first)
             ? serverStatus!.minPegInAmount
             : serverStatus!.minPegOutAmount;
-    //final fundsValidation = await checkFunds(minAmount, 10000000);
     final fundsValidation = await checkFunds(minAmount);
 
     if (!fundsValidation) {
