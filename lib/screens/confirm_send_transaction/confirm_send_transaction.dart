@@ -10,18 +10,21 @@ import 'package:mooze_mobile/screens/confirm_send_transaction/widgets/transactio
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
+import 'package:lwk/lwk.dart' as lwk;
+import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+
 class ConfirmSendTransactionScreen extends ConsumerStatefulWidget {
   final OwnedAsset ownedAsset;
   final String address;
   final int amount;
-  final double feeRate;
+  final double? feeRate;
 
   ConfirmSendTransactionScreen({
     super.key,
     required this.ownedAsset,
     required this.address,
     required this.amount,
-    this.feeRate = 2.0,
+    this.feeRate,
   });
 
   @override
@@ -58,6 +61,17 @@ class ConfirmSendTransactionState
         _partiallySignedTransaction = pst;
         _isLoading = false;
       });
+    } on bdk.InsufficientFundsException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Fundos insuficientes para cobrir transação + taxas.",
+            ),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;

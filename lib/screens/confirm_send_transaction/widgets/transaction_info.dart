@@ -66,7 +66,7 @@ class TransactionInfo extends StatelessWidget {
           ),
           _buildTransactionDetailRow(
             "Taxa",
-            "${(feeRate / pow(10, 8)).toStringAsFixed(8)} L-BTC",
+            "${(feeRate / pow(10, 8)).toStringAsFixed(8)} ${asset.ticker}",
           ),
           _buildTransactionDetailRow("Rede", networkName),
         ],
