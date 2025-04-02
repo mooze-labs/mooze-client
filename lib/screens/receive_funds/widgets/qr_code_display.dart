@@ -23,6 +23,8 @@ class QRCodeWidget extends StatelessWidget {
       print(data);
     }
 
+    if (data.isEmpty) return Container();
+
     return Column(
       children: [
         Container(

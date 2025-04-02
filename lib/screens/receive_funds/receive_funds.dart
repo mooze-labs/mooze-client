@@ -18,7 +18,7 @@ class ReceiveFundsScreen extends ConsumerStatefulWidget {
 
 class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
   final TextEditingController amountController = TextEditingController();
-  Asset selectedAsset = AssetCatalog.bitcoin!;
+  Asset? selectedAsset;
   double? amount;
   String? currentAddress;
   bool isLoadingAddress = true;
@@ -37,13 +37,14 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
   }
 
   Future<void> generateNewAddress() async {
+    if (selectedAsset == null) return;
     setState(() {
       isLoadingAddress = true;
       currentAddress = null;
     });
 
     final walletRepository = ref.read(
-      walletRepositoryProvider(selectedAsset.network),
+      walletRepositoryProvider(selectedAsset!.network),
     );
 
     try {
@@ -67,35 +68,44 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
   }
 
   Widget _assetDropdown(BuildContext context) {
-    return DropdownMenu<Asset>(
-      onSelected: (Asset? asset) {
-        if (asset != null && asset != selectedAsset) {
-          setState(() {
-            selectedAsset = asset;
-            // Clear amount when asset changes
-            amountController.clear();
-            amount = null;
-          });
-          // Generate new address only when asset changes
-          generateNewAddress();
-        }
-      },
-      dropdownMenuEntries:
-          AssetCatalog.all.map((Asset asset) {
-            return DropdownMenuEntry<Asset>(
-              value: asset,
-              label: asset.name,
-              leadingIcon: Image.asset(asset.logoPath, width: 24, height: 24),
-            );
-          }).toList(),
-      label: const Text("Selecione um ativo"),
-      inputDecorationTheme:
-          Theme.of(context).dropdownMenuTheme.inputDecorationTheme,
-      menuStyle: Theme.of(context).dropdownMenuTheme.menuStyle,
-      textAlign: TextAlign.center,
-      leadingIcon: Transform.scale(
-        scale: 0.5,
-        child: Image.asset(selectedAsset.logoPath, width: 24, height: 24),
+    return Center(
+      child: DropdownMenu<Asset>(
+        onSelected: (Asset? asset) {
+          if (asset != null && asset != selectedAsset) {
+            setState(() {
+              selectedAsset = asset;
+              // Clear amount when asset changes
+              amountController.clear();
+              amount = null;
+            });
+            // Generate new address only when asset changes
+            generateNewAddress();
+          }
+        },
+        dropdownMenuEntries:
+            AssetCatalog.all.map((Asset asset) {
+              return DropdownMenuEntry<Asset>(
+                value: asset,
+                label: asset.name,
+                leadingIcon: Image.asset(asset.logoPath, width: 24, height: 24),
+              );
+            }).toList(),
+        label: const Text("Selecione um ativo"),
+        inputDecorationTheme:
+            Theme.of(context).dropdownMenuTheme.inputDecorationTheme,
+        menuStyle: Theme.of(context).dropdownMenuTheme.menuStyle,
+        textAlign: TextAlign.center,
+        leadingIcon:
+            (selectedAsset != null)
+                ? Transform.scale(
+                  scale: 0.5,
+                  child: Image.asset(
+                    selectedAsset!.logoPath,
+                    width: 24,
+                    height: 24,
+                  ),
+                )
+                : null,
       ),
     );
   }
@@ -106,17 +116,18 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
     });
   }
 
-  String generatePaymentUri(String address, double? amount) {
-    if (selectedAsset.network == Network.bitcoin) {
+  String? generatePaymentUri(String address, double? amount) {
+    if (selectedAsset == null) return null;
+    if (selectedAsset!.network == Network.bitcoin) {
       if (amount == null || amount <= 0) return "bitcoin:$address";
-      return "bitcoin:$address?amount=${amount.toStringAsFixed(selectedAsset.precision)}";
+      return "bitcoin:$address?amount=${amount.toStringAsFixed(selectedAsset!.precision)}";
     }
     // amount on liquid can only be defined if asset is defined
-    if (selectedAsset.liquidAssetId == null) return "liquidnetwork:$address";
+    if (selectedAsset!.liquidAssetId == null) return "liquidnetwork:$address";
     if (amount == null || amount <= 0) {
-      return "liquidnetwork:$address?asset_id=${selectedAsset.liquidAssetId}";
+      return "liquidnetwork:$address?asset_id=${selectedAsset!.liquidAssetId}";
     }
-    return "liquidnetwork:$address?amount=${amount.toStringAsFixed(selectedAsset.precision)}&asset_id=${selectedAsset.liquidAssetId}";
+    return "liquidnetwork:$address?amount=${amount.toStringAsFixed(selectedAsset!.precision)}&asset_id=${selectedAsset!.liquidAssetId}";
   }
 
   @override
@@ -146,69 +157,79 @@ class ReceiveFundsScreenState extends ConsumerState<ReceiveFundsScreen> {
             if (MediaQuery.of(context).viewInsets.bottom == 0)
               _assetDropdown(context),
             Spacer(),
-            SizedBox(
-              child: Center(
-                child:
-                    isLoadingAddress
-                        ? const Center(child: CircularProgressIndicator())
-                        : currentAddress == null
-                        ? const Center(
-                          child: Text("Não foi possível gerar um endereço"),
-                        )
-                        : QRCodeWidget(
-                          data: generatePaymentUri(currentAddress!, amount),
-                          asset: selectedAsset,
-                          qrSize: qrBoundedSize,
-                        ),
-              ),
-            ),
-            Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              width: MediaQuery.of(context).size.width * 0.95,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.transparent),
-              ),
-              child: GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: currentAddress ?? ""));
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Endereço copiado!"),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Flexible(
-                      child: SelectableText(
-                        (currentAddress != null)
-                            ? "${currentAddress!.substring(0, 4)} ${currentAddress!.substring(4, 8)} ${currentAddress!.substring(8, 12)} ... ${currentAddress!.substring(currentAddress!.length - 12, currentAddress!.length - 8)} ${currentAddress!.substring(currentAddress!.length - 8, currentAddress!.length - 4)} ${currentAddress!.substring(currentAddress!.length - 4)}"
-                            : "",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSecondary,
-                          fontFamily: "roboto",
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.copy, size: 16),
-                  ],
+            if (selectedAsset != null)
+              SizedBox(
+                child: Center(
+                  child:
+                      isLoadingAddress
+                          ? const Center(child: CircularProgressIndicator())
+                          : currentAddress == null
+                          ? const Center(
+                            child: Text("Não foi possível gerar um endereço"),
+                          )
+                          : QRCodeWidget(
+                            data:
+                                generatePaymentUri(currentAddress!, amount) ??
+                                "",
+                            asset: selectedAsset!,
+                            qrSize: qrBoundedSize,
+                          ),
                 ),
               ),
-            ),
+            Spacer(),
+            if (selectedAsset != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                width: MediaQuery.of(context).size.width * 0.95,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.transparent),
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(
+                      ClipboardData(text: currentAddress ?? ""),
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Endereço copiado!"),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Flexible(
+                        child: SelectableText(
+                          (currentAddress != null)
+                              ? "${currentAddress!.substring(0, 4)} ${currentAddress!.substring(4, 8)} ${currentAddress!.substring(8, 12)} ... ${currentAddress!.substring(currentAddress!.length - 12, currentAddress!.length - 8)} ${currentAddress!.substring(currentAddress!.length - 8, currentAddress!.length - 4)} ${currentAddress!.substring(currentAddress!.length - 4)}"
+                              : "",
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSecondary,
+                            fontFamily: "roboto",
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.copy, size: 16),
+                    ],
+                  ),
+                ),
+              ),
             const SizedBox(height: 10),
-            AmountInput(
-              controller: amountController,
-              asset: selectedAsset,
-              onAmountChanged: onAmountChanged,
-            ),
+            if (selectedAsset != null)
+              AmountInput(
+                controller: amountController,
+                asset: selectedAsset!,
+                onAmountChanged: onAmountChanged,
+              ),
             SizedBox(height: 100),
           ],
         ),
