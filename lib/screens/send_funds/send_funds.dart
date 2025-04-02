@@ -221,6 +221,17 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       inputDecorationTheme:
           Theme.of(context).dropdownMenuTheme.inputDecorationTheme,
       menuStyle: Theme.of(context).dropdownMenuTheme.menuStyle,
+      leadingIcon:
+          (selectedAsset != null)
+              ? Transform.scale(
+                scale: 0.5,
+                child: Image.asset(
+                  selectedAsset!.asset.logoPath,
+                  width: 24,
+                  height: 24,
+                ),
+              )
+              : null,
     );
   }
 
