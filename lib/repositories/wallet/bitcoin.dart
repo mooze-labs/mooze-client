@@ -121,7 +121,7 @@ class BitcoinWalletRepository implements WalletRepository {
     OwnedAsset asset,
     String recipient,
     int amount,
-    double feeRate,
+    double? feeRate,
   ) async {
     if (_wallet == null) {
       throw Exception("Bitcoin wallet has not been initialized.");
@@ -143,7 +143,6 @@ class BitcoinWalletRepository implements WalletRepository {
     final script = address.scriptPubkey();
     final (psbt, txDetails) = await bitcoin.TxBuilder()
         .addRecipient(script, BigInt.from(amount))
-        .feeRate(feeRate)
         .finish(_wallet!);
 
     final feeAmount =

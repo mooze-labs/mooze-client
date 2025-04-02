@@ -19,7 +19,7 @@ abstract class WalletRepository {
     OwnedAsset asset,
     String recipient,
     int amount,
-    double feeRate,
+    double? feeRate,
   );
 
   /// Signs and broadcasts transaction
