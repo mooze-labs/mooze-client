@@ -3,14 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
-import 'package:mooze_mobile/providers/peg_operation_provider.dart'; // Add this import
+import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_status.dart';
+import 'package:mooze_mobile/screens/swap/widgets/peg_address_qr_code.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
 class CheckPegStatusScreen extends ConsumerStatefulWidget {
-  final String? orderId; // Make nullable
-  final bool? pegIn; // Make nullable
+  final String? orderId;
+  final bool? pegIn;
 
   const CheckPegStatusScreen({super.key, this.pegIn, this.orderId});
 
@@ -58,7 +59,9 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No active peg operation found')),
+          const SnackBar(
+            content: Text('Nenhuma operação peg ativa encontrada'),
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -98,7 +101,48 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
     });
   }
 
-  // The rest of your widget remains the same
+  void _showQrCodeDialog() {
+    if (pegOrderStatus == null) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _isPegIn!
+                      ? "Endereço de Depósito Bitcoin"
+                      : "Endereço de Depósito Liquid",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: "roboto",
+                  ),
+                ),
+                SizedBox(height: 16),
+                PegAddressQrCode(
+                  address: pegOrderStatus!.address,
+                  pegIn: _isPegIn!,
+                  qrSize: 200,
+                ),
+                SizedBox(height: 16),
+                PrimaryButton(
+                  text: "Fechar",
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_orderId == null || _isPegIn == null) {
@@ -108,15 +152,11 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
       );
     }
 
-    // Return your existing build method implementation
     return Scaffold(
       appBar: MoozeAppBar(title: "Status de peg"),
       body: FutureBuilder<PegOrderStatus?>(
         future: _orderStatusFuture,
         builder: (context, snapshot) {
-          // Your existing builder code
-          // Just update references from widget.orderId to _orderId and widget.pegIn to _isPegIn
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -131,142 +171,156 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
           }
 
           final PegOrderStatus pegOrder = snapshot.data!;
+          pegOrderStatus = pegOrder;
 
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 4,
-                      horizontal: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "ID da operação",
-                                style: TextStyle(
-                                  fontFamily: "roboto",
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "ID da operação",
+                              style: TextStyle(
+                                fontFamily: "roboto",
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Text(
-                                "${_orderId!.substring(0, 8)}...${_orderId!.substring(_orderId!.length - 8)}",
-                                style: TextStyle(
-                                  fontFamily: "roboto",
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              "${_orderId!.substring(0, 8)}...${_orderId!.substring(_orderId!.length - 8)}",
+                              style: TextStyle(
+                                fontFamily: "roboto",
+                                fontSize: 16,
+                                fontWeight: FontWeight.normal,
                               ),
-                            ],
-                          ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Tipo de operação",
-                                style: TextStyle(
-                                  fontFamily: "roboto",
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                      ),
+                      // Operation type row
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Tipo de operação",
+                              style: TextStyle(
+                                fontFamily: "roboto",
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Text(
-                                _isPegIn! ? "Peg-in" : "Peg-out",
-                                style: TextStyle(
-                                  fontFamily: "roboto",
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              _isPegIn! ? "Peg-in" : "Peg-out",
+                              style: TextStyle(
+                                fontFamily: "roboto",
+                                fontSize: 16,
+                                fontWeight: FontWeight.normal,
                               ),
-                            ],
-                          ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (pegOrder.transactions.isNotEmpty)
+                  Expanded(
+                    child: ListView.builder(
+                      itemBuilder: (context, index) {
+                        return PegStatus(
+                          pegTransaction: pegOrder.transactions[index],
+                        );
+                      },
+                      itemCount: pegOrder.transactions.length,
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        "Nenhuma transação encontrada ainda",
+                        style: TextStyle(fontFamily: "roboto", fontSize: 16),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  if (pegOrder.transactions.isNotEmpty)
-                    Expanded(
-                      child: ListView.builder(
-                        itemBuilder: (context, index) {
-                          return PegStatus(
-                            pegTransaction: pegOrder.transactions[index],
+
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  margin: const EdgeInsets.only(top: 16, bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.onSecondary,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _orderId!,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: "Poppins",
+                            fontSize: 14.5,
+                            color: Theme.of(context).colorScheme.onSecondary,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: _orderId!));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "ID copiado para a área de transferência",
+                              ),
+                              duration: Duration(seconds: 2),
+                            ),
                           );
                         },
-                        itemCount: pegOrder.transactions.length,
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary,
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.onSecondary,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _orderId!,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: "Poppins",
-                              fontSize: 14.5,
-                              color: Theme.of(context).colorScheme.onSecondary,
-                            ),
-                          ),
+                        child: Icon(
+                          Icons.content_copy_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24.0,
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: _orderId!));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "ID copiado para a área de transferência",
-                                ),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          child: Icon(
-                            Icons.content_copy_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 24.0,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 24),
-                  PrimaryButton(text: "Atualizar", onPressed: refreshStatus),
-                  SizedBox(height: 70),
-                ],
-              ),
+                ),
+
+                PrimaryButton(text: "Atualizar", onPressed: refreshStatus),
+                SizedBox(height: 16),
+                TertiaryButton(
+                  text: "Mostrar QR Code",
+                  onPressed: _showQrCodeDialog,
+                ),
+                SizedBox(height: 50),
+              ],
             ),
           );
         },

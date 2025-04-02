@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
@@ -586,6 +587,10 @@ class _PegScreenState extends ConsumerState<PegScreen> {
   Future<void> _checkActivePegOperation() async {
     final activePegOp = await ref.read(activePegOperationProvider.future);
 
+    if (kDebugMode) {
+      debugPrint("Active peg operation: $activePegOp");
+    }
+
     if (activePegOp != null && mounted) {
       showDialog(
         context: context,
@@ -762,16 +767,29 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     //final fundsValidation = await checkFunds(minAmount, 10000000);
     final fundsValidation = await checkFunds(minAmount);
 
-    if (!fundsValidation && !receiveFromExternalWallet) {
+    if (!fundsValidation) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Fundos insuficientes."),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (!receiveFromExternalWallet && pegIn.first == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("BTC insuficientes."),
+              duration: Duration(seconds: 2),
+            ),
+          );
 
-        return;
+          return;
+        }
+
+        if (pegIn.first == false) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("L-BTC insuficientes."),
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          return;
+        }
       }
     }
 

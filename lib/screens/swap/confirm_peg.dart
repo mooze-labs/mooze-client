@@ -136,6 +136,10 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
       return null;
     }
 
+    await ref
+        .read(activePegOperationProvider.notifier)
+        .startPegOperation(pegResponse.orderId, widget.pegIn);
+
     return pegResponse;
   }
 
@@ -221,9 +225,6 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
 
   Future<void> onTap(PegOrderResponse pegResponse) async {
     // Save the peg operation to persistence
-    await ref
-        .read(activePegOperationProvider.notifier)
-        .startPegOperation(pegResponse.orderId, widget.pegIn);
 
     if (widget.sendFromExternalWallet) {
       Navigator.push(
@@ -296,8 +297,9 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
                   SizedBox(height: 10),
                   if (widget.sendAmount != null)
                     Text(
-                      "Envie ${widget.sendAmount} ${(widget.pegIn) ? "BTC" : "L-BTC"} para o endereço acima.",
+                      "Envie no mínimo ${widget.minAmount / pow(10, 8)} ${(widget.pegIn) ? "BTC" : "L-BTC"} para o endereço acima.",
                       style: TextStyle(fontSize: 16, fontFamily: "roboto"),
+                      textAlign: TextAlign.center,
                     ),
                   SizedBox(height: 24),
                   PegDetails(
