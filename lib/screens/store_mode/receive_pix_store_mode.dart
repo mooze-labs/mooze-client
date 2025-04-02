@@ -23,7 +23,10 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
   late Future<String?> _addressFuture;
   // Controller for the BRL amount input
   final TextEditingController amountController = TextEditingController();
-  int _currentAmount = 0;
+
+  // Track both the float value and the cents value
+  double _currentAmountFloat = 0.0;
+  int _currentAmountInCents = 0;
 
   @override
   void initState() {
@@ -40,11 +43,14 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
 
   // Handle text changes directly
   void _handleTextChanged(String text) {
-    final newAmount = text.isEmpty ? 0 : int.tryParse(text) ?? 0;
+    final normalizedText = text.replaceAll(',', '.');
+    final newAmount =
+        normalizedText.isEmpty ? 0.0 : double.tryParse(normalizedText) ?? 0.0;
 
-    if (newAmount != _currentAmount) {
+    if (newAmount != _currentAmountFloat) {
       setState(() {
-        _currentAmount = newAmount;
+        _currentAmountFloat = newAmount;
+        _currentAmountInCents = (newAmount * 100).round();
       });
     }
   }
@@ -59,11 +65,7 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final liquidWalletState = ref.watch(
-      liquidWalletNotifierProvider,
-    ); // Back to ref.watch
-
-    final liquidAssets = AssetCatalog.liquidAssets;
+    final liquidWalletState = ref.watch(liquidWalletNotifierProvider);
 
     return Scaffold(
       appBar: MoozeAppBar(title: "Receber por PIX"),
@@ -102,7 +104,7 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: AddressDisplay(
                           address: snapshot.data!,
-                          fiatAmount: _currentAmount,
+                          fiatAmount: _currentAmountInCents,
                           asset: selectedAsset,
                         ),
                       ),
@@ -121,11 +123,13 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
                                 );
                                 return;
                               }
-                              if (_currentAmount < 0 || _currentAmount > 5000) {
+
+                              if (_currentAmountInCents < 2000 ||
+                                  _currentAmountInCents > 500000) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      "Por favor, insira um valor válido.",
+                                      "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
                                     ),
                                   ),
                                 );
@@ -134,7 +138,7 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
 
                               final pixTransaction = PixTransaction(
                                 address: snapshot.data!,
-                                brlAmount: _currentAmount,
+                                brlAmount: _currentAmountInCents,
                                 asset:
                                     selectedAsset.liquidAssetId ??
                                     "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
