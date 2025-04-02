@@ -332,6 +332,7 @@ class LiquidWalletRepository implements WalletRepository {
     );
   }
 
+  @override
   Future<List<TransactionRecord>> getTransactionHistory() async {
     if (_wallet == null) {
       throw Exception("Liquid wallet is not initialized.");

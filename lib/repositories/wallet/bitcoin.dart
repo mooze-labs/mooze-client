@@ -188,4 +188,39 @@ class BitcoinWalletRepository implements WalletRepository {
       feeAmount: pst.feeAmount ?? 0,
     );
   }
+
+  @override
+  Future<List<TransactionRecord>> getTransactionHistory() async {
+    if (_wallet == null) {
+      throw Exception("Bitcoin wallet is not initialized.");
+    }
+
+    final txHistory = _wallet!.listTransactions(includeRaw: true);
+    final transactions =
+        txHistory
+            .map(
+              (tx) => TransactionRecord(
+                txid: tx.txid,
+                timestamp:
+                    (tx.confirmationTime != null)
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                          tx.confirmationTime!.timestamp.toInt() * 1000,
+                        )
+                        : null,
+                asset: AssetCatalog.bitcoin!,
+                amount:
+                    (tx.sent.toInt() == 0)
+                        ? tx.received.toInt()
+                        : tx.sent.toInt(),
+                direction:
+                    (tx.sent.toInt() == 0)
+                        ? TransactionDirection.incoming
+                        : TransactionDirection.outgoing,
+                network: Network.bitcoin,
+              ),
+            )
+            .toList();
+
+    return transactions;
+  }
 }

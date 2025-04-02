@@ -26,5 +26,5 @@ abstract class WalletRepository {
   Future<Transaction> signTransaction(PartiallySignedTransaction pst);
 
   /// Retrieves transaction history
-  // Future<List<TransactionRecord>> getTransactionHistory();
+  Future<List<TransactionRecord>> getTransactionHistory();
 }
