@@ -7,7 +7,7 @@ part of 'owned_assets_provider.dart';
 // **************************************************************************
 
 String _$ownedAssetsNotifierHash() =>
-    r'7d0bc702ec4e4dbe54007a4477636ac9134a297f';
+    r'64d338059aaca3f3bdc882a1d112c234152b5249';
 
 /// See also [OwnedAssetsNotifier].
 @ProviderFor(OwnedAssetsNotifier)

@@ -6,7 +6,7 @@ import 'package:mooze_mobile/utils/fees.dart';
 
 class AddressDisplay extends ConsumerWidget {
   final String address;
-  final int fiatAmount;
+  final int fiatAmount; // Amount in cents
   final Asset asset;
 
   const AddressDisplay({
@@ -16,11 +16,16 @@ class AddressDisplay extends ConsumerWidget {
     required this.fiatAmount,
   });
 
-  String getAssetAmount(int fiatAmount, double fiatPrice) {
+  String getAssetAmount(int fiatAmountInCents, double fiatPrice) {
     if (fiatPrice == 0) return "";
+    // Convert cents to whole amount
+    double fiatAmount = fiatAmountInCents / 100.0;
     double assetAmount = fiatAmount / fiatPrice;
     double feeRate =
-        FeeCalculator(assetId: asset.id, fiatAmount: fiatAmount).getFees();
+        FeeCalculator(
+          assetId: asset.id,
+          fiatAmount: fiatAmountInCents,
+        ).getFees();
     double amountAfterFees = assetAmount - (assetAmount * feeRate);
 
     return amountAfterFees.toStringAsFixed(asset.precision);
@@ -56,7 +61,8 @@ class AddressDisplay extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Dados da transação:",
@@ -97,7 +103,7 @@ class AddressDisplay extends ConsumerWidget {
               ),
               SizedBox(height: 10),
               Text(
-                address,
+                "${address.substring(0, 4)} ${address.substring(4, 8)} ${address.substring(8, 12)} ... ${address.substring(address.length - 8, address.length - 4)} ${address.substring(address.length - 4)}",
                 style: TextStyle(
                   fontFamily: "roboto",
                   fontSize: 14,
@@ -105,6 +111,7 @@ class AddressDisplay extends ConsumerWidget {
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -123,7 +130,7 @@ class AddressDisplay extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Taxa",
+                    "Taxa Mooze",
                     style: TextStyle(
                       fontFamily: "roboto",
                       fontSize: 16,

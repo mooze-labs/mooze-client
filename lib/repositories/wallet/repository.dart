@@ -19,12 +19,12 @@ abstract class WalletRepository {
     OwnedAsset asset,
     String recipient,
     int amount,
-    double feeRate,
+    double? feeRate,
   );
 
   /// Signs and broadcasts transaction
   Future<Transaction> signTransaction(PartiallySignedTransaction pst);
 
   /// Retrieves transaction history
-  // Future<List<TransactionRecord>> getTransactionHistory();
+  Future<List<TransactionRecord>> getTransactionHistory();
 }

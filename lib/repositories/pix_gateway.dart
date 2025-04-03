@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:mooze_mobile/models/payments.dart';
@@ -19,10 +20,12 @@ class PixGatewayRepository {
     final userId = await userService.getUserId();
 
     final response = await http.post(
-      Uri.https(BACKEND_URL, "/deposit"),
+      (kDebugMode)
+          ? Uri.http(BACKEND_URL, "/deposit")
+          : Uri.https(BACKEND_URL, "/deposit"),
       headers: <String, String>{"Content-Type": "application/json"},
       body: jsonEncode({
-        "amount_in_cents": pixTransaction.brlAmount * 100,
+        "amount_in_cents": pixTransaction.brlAmount,
         "address": pixTransaction.address,
         "user_id": userId!,
         "asset": pixTransaction.asset,
@@ -32,6 +35,9 @@ class PixGatewayRepository {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       Map<String, dynamic> jsonResponse = json.decode(response.body);
+      if (kDebugMode) {
+        print("[DEBUG] PixTransactionResponse: $jsonResponse");
+      }
       return PixTransactionResponse(
         qrImageUrl: jsonResponse["qr_image_url"],
         qrCopyPaste: jsonResponse["qr_copy_paste"],
@@ -42,6 +48,12 @@ class PixGatewayRepository {
     print(
       "[ERROR] Não foi possível criar a transação: ${response.statusCode} - ${response.reasonPhrase}",
     );
+
+    if (kDebugMode) {
+      Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+      print(jsonResponse["details"]);
+    }
     return null;
   }
 }

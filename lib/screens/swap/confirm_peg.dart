@@ -1,12 +1,15 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/models/transaction.dart';
 import 'package:mooze_mobile/providers/external/mempool_repository_provider.dart';
+import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
@@ -65,12 +68,9 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
     });
 
     try {
-      // Wait for the peg response to complete
       final pegResponse = await _pegResponseFuture;
 
-      // Check if we have a valid response and the widget is still mounted
       if (pegResponse != null && mounted) {
-        // Build the transaction
         final pst = await buildPartiallySignedTransaction(pegResponse);
 
         if (mounted) {
@@ -121,6 +121,13 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
       address,
     );
 
+    if (kDebugMode && pegResponse != null) {
+      debugPrint("Received Peg response.");
+      debugPrint("Generated wallet address: $address");
+      debugPrint("Order id: ${pegResponse.orderId}");
+      debugPrint("Sideswap payment address: ${pegResponse.pegAddress}");
+    }
+
     if (pegResponse == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -134,6 +141,10 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
 
       return null;
     }
+
+    await ref
+        .read(activePegOperationProvider.notifier)
+        .startPegOperation(pegResponse.orderId, widget.pegIn);
 
     return pegResponse;
   }
@@ -173,11 +184,13 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
     final feeRate = recommendedFees.halfHourFee.toDouble();
 
     final satoshiAmount = (widget.sendAmount! * pow(10, 8)).toInt();
+    final fee =
+        (widget.ownedAsset!.asset.network == Network.liquid) ? 1.0 : feeRate;
     final pst = await wallet.buildPartiallySignedTransaction(
       widget.ownedAsset!,
       pegResponse.pegAddress,
       satoshiAmount,
-      feeRate,
+      fee,
     );
 
     return pst;
@@ -219,6 +232,8 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
   }
 
   Future<void> onTap(PegOrderResponse pegResponse) async {
+    // Save the peg operation to persistence
+
     if (widget.sendFromExternalWallet) {
       Navigator.push(
         context,
@@ -238,7 +253,6 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
           builder:
               (context) => VerifyPinScreen(
                 onPinConfirmed: () async {
-                  // Use the pre-prepared transaction if available
                   final pst =
                       _preparedTransaction ??
                       await buildPartiallySignedTransaction(pegResponse);
@@ -290,8 +304,9 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
                   SizedBox(height: 10),
                   if (widget.sendAmount != null)
                     Text(
-                      "Envie ${widget.sendAmount} ${(widget.pegIn) ? "BTC" : "L-BTC"} para o endereço acima.",
+                      "Envie no mínimo ${widget.minAmount / pow(10, 8)} ${(widget.pegIn) ? "BTC" : "L-BTC"} para o endereço acima.",
                       style: TextStyle(fontSize: 16, fontFamily: "roboto"),
+                      textAlign: TextAlign.center,
                     ),
                   SizedBox(height: 24),
                   PegDetails(
@@ -300,6 +315,7 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
                     minAmount: widget.minAmount,
                     destinationAddress: address!,
                   ),
+
                   SizedBox(height: 24),
                   _isTransactionPreparing
                       ? DeactivatedButton(text: "Preparando...")

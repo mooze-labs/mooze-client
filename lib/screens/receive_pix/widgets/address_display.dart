@@ -6,7 +6,7 @@ import 'package:mooze_mobile/utils/fees.dart';
 
 class AddressDisplay extends ConsumerWidget {
   final String address;
-  final int fiatAmount;
+  final int fiatAmount; // Amount in cents
   final Asset asset;
 
   const AddressDisplay({
@@ -16,12 +16,17 @@ class AddressDisplay extends ConsumerWidget {
     required this.fiatAmount,
   });
 
-  String getAssetAmount(int fiatAmount, double fiatPrice) {
+  String getAssetAmount(int fiatAmountInCents, double fiatPrice) {
     if (fiatPrice == 0) return "";
-    if (fiatAmount == 0) return "0.00000000";
+    if (fiatAmountInCents == 0) return "0.00000000";
+    // Convert cents to whole amount
+    double fiatAmount = fiatAmountInCents / 100.0;
     double assetAmount = fiatAmount / fiatPrice;
     double feeRate =
-        FeeCalculator(assetId: asset.id, fiatAmount: fiatAmount).getFees();
+        FeeCalculator(
+          assetId: asset.id,
+          fiatAmount: fiatAmountInCents,
+        ).getFees();
     double amountAfterFees = assetAmount - (assetAmount * feeRate) - 1;
 
     return amountAfterFees.toStringAsFixed(asset.precision);
@@ -57,7 +62,8 @@ class AddressDisplay extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Dados da transação:",
@@ -98,7 +104,7 @@ class AddressDisplay extends ConsumerWidget {
               ),
               SizedBox(height: 10),
               Text(
-                address,
+                "${address.substring(0, 4)} ${address.substring(4, 8)} ${address.substring(8, 12)} ... ${address.substring(address.length - 8, address.length - 4)} ${address.substring(address.length - 4)}",
                 style: TextStyle(
                   fontFamily: "roboto",
                   fontSize: 14,
@@ -106,6 +112,7 @@ class AddressDisplay extends ConsumerWidget {
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -124,28 +131,6 @@ class AddressDisplay extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Cotação do ${asset.ticker}",
-                    style: TextStyle(
-                      fontFamily: "roboto",
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSecondary,
-                    ),
-                  ),
-                  Text(
-                    "R\$ ${fiatPrice.toStringAsFixed(2)}",
-                    style: TextStyle(
-                      fontFamily: "roboto",
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
                     "Taxa Mooze",
                     style: TextStyle(
                       fontFamily: "roboto",
@@ -156,28 +141,6 @@ class AddressDisplay extends ConsumerWidget {
                   ),
                   Text(
                     "${(FeeCalculator(assetId: asset.id, fiatAmount: fiatAmount).getFees() * 100).toStringAsFixed(2)}%",
-                    style: TextStyle(
-                      fontFamily: "roboto",
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Taxa de parceiros",
-                    style: TextStyle(
-                      fontFamily: "roboto",
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSecondary,
-                    ),
-                  ),
-                  Text(
-                    "R\$ 1.00",
                     style: TextStyle(
                       fontFamily: "roboto",
                       fontSize: 16,

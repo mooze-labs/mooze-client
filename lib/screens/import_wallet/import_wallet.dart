@@ -80,6 +80,7 @@ class _ImportWalletScreenState extends State<ImportWalletScreen> {
                     filled: currentTheme.filled,
                     hintText: "palavra1 palavra2 palavra3 ... palavra12",
                   ),
+                  keyboardType: TextInputType.visiblePassword,
                 ),
               ),
               SizedBox(height: 20),

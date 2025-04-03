@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 
 import 'repository.dart';
@@ -23,8 +24,8 @@ class BitcoinWalletRepository implements WalletRepository {
           stopGap: BigInt.from(10),
           timeout: 5,
           retry: 5,
-          url: "ssl://electrum.blockstream.info:60002",
-          validateDomain: true,
+          url: "blockstream.info:110",
+          validateDomain: false,
         ),
       ),
     );
@@ -34,26 +35,54 @@ class BitcoinWalletRepository implements WalletRepository {
       mnemonic: await bitcoin.Mnemonic.fromString(mnemonic),
     );
 
-    final externalDescriptor = await bitcoin.Descriptor.newBip84(
-      secretKey: descriptorKey,
+    print("Descriptor: ${descriptorKey.toString()}");
+    final derivationPath = await bitcoin.DerivationPath.create(
+      path: "m/84h/0h/0h/0",
+    );
+    final descriptorPrivateKey = await descriptorKey.derive(derivationPath);
+
+    final bitcoin.Descriptor descriptorPrivate = await bitcoin
+        .Descriptor.create(
+      descriptor: "wpkh(${descriptorPrivateKey.toString()})",
       network: _network!,
-      keychain: bitcoin.KeychainKind.externalChain,
     );
 
-    final internalDescriptor = await bitcoin.Descriptor.newBip84(
-      secretKey: descriptorKey,
+    final derivationPathInt = await bitcoin.DerivationPath.create(
+      path: "m/84h/1h/1h/0",
+    );
+    final descriptorPrivateKeyInt = await descriptorKey.derive(
+      derivationPathInt,
+    );
+
+    final bitcoin.Descriptor descriptorPrivateInt = await bitcoin
+        .Descriptor.create(
+      descriptor: "wpkh(${descriptorPrivateKeyInt.toString()})",
       network: _network!,
-      keychain: bitcoin.KeychainKind.internalChain,
     );
 
     _wallet = await bitcoin.Wallet.create(
-      descriptor: externalDescriptor,
-      changeDescriptor: internalDescriptor,
+      descriptor: descriptorPrivate,
+      changeDescriptor: descriptorPrivateInt,
       network: _network!,
       databaseConfig: const bitcoin.DatabaseConfig.memory(),
     );
 
     await _wallet!.sync(blockchain: _blockchain!);
+
+    if (kDebugMode) {
+      print("Total balance: ${_wallet!.getBalance().total}");
+      print("Spendable balance: ${_wallet!.getBalance().spendable}");
+      print("Confirmed balance: ${_wallet!.getBalance().confirmed}");
+      print("Unconfirmed balance: ${_wallet!.getBalance().untrustedPending}");
+      final transactions = _wallet!.listTransactions(includeRaw: true);
+
+      print("Transaction count: ${transactions.length}");
+      for (var transaction in transactions) {
+        print("Transaction details:");
+        print("ID: ${transaction.txid}");
+        print("Received: ${transaction.received}");
+      }
+    }
   }
 
   @override
@@ -92,7 +121,7 @@ class BitcoinWalletRepository implements WalletRepository {
     OwnedAsset asset,
     String recipient,
     int amount,
-    double feeRate,
+    double? feeRate,
   ) async {
     if (_wallet == null) {
       throw Exception("Bitcoin wallet has not been initialized.");
@@ -114,7 +143,6 @@ class BitcoinWalletRepository implements WalletRepository {
     final script = address.scriptPubkey();
     final (psbt, txDetails) = await bitcoin.TxBuilder()
         .addRecipient(script, BigInt.from(amount))
-        .feeRate(feeRate)
         .finish(_wallet!);
 
     final feeAmount =
@@ -159,5 +187,40 @@ class BitcoinWalletRepository implements WalletRepository {
       network: Network.bitcoin,
       feeAmount: pst.feeAmount ?? 0,
     );
+  }
+
+  @override
+  Future<List<TransactionRecord>> getTransactionHistory() async {
+    if (_wallet == null) {
+      throw Exception("Bitcoin wallet is not initialized.");
+    }
+
+    final txHistory = _wallet!.listTransactions(includeRaw: true);
+    final transactions =
+        txHistory
+            .map(
+              (tx) => TransactionRecord(
+                txid: tx.txid,
+                timestamp:
+                    (tx.confirmationTime != null)
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                          tx.confirmationTime!.timestamp.toInt() * 1000,
+                        )
+                        : null,
+                asset: AssetCatalog.bitcoin!,
+                amount:
+                    (tx.sent.toInt() == 0)
+                        ? tx.received.toInt()
+                        : tx.sent.toInt(),
+                direction:
+                    (tx.sent.toInt() == 0)
+                        ? TransactionDirection.incoming
+                        : TransactionDirection.outgoing,
+                network: Network.bitcoin,
+              ),
+            )
+            .toList();
+
+    return transactions;
   }
 }

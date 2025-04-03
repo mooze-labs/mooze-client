@@ -113,7 +113,7 @@ class LiquidWalletRepository implements WalletRepository {
     OwnedAsset asset,
     String recipient,
     int amount,
-    double feeRate,
+    double? feeRate,
   ) async {
     if (_wallet == null) {
       throw Exception("Liquid wallet has not been initialized.");
@@ -130,6 +130,8 @@ class LiquidWalletRepository implements WalletRepository {
     if (amount > asset.amount) {
       throw Exception("Insufficient funds.");
     }
+
+    feeRate = feeRate ?? 1.0;
 
     if (asset.asset.liquidAssetId! == liquid.lBtcAssetId) {
       return _buildLiquidBitcoinTransaction(
@@ -330,15 +332,21 @@ class LiquidWalletRepository implements WalletRepository {
     );
   }
 
+  @override
   Future<List<TransactionRecord>> getTransactionHistory() async {
     if (_wallet == null) {
       throw Exception("Liquid wallet is not initialized.");
     }
 
     var history = await _wallet!.txs();
-    history = history.where(
-      (tx) => AssetCatalog.getByLiquidAssetId(tx.balances[0].assetId) != null,
-    ).toList();
+    history =
+        history
+            .where(
+              (tx) =>
+                  AssetCatalog.getByLiquidAssetId(tx.balances[0].assetId) !=
+                  null,
+            )
+            .toList();
 
     final transactions =
         history
@@ -347,7 +355,9 @@ class LiquidWalletRepository implements WalletRepository {
                 txid: tx.txid,
                 timestamp:
                     tx.timestamp != null
-                        ? DateTime.fromMillisecondsSinceEpoch(tx.timestamp! * 1000)
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                          tx.timestamp! * 1000,
+                        )
                         : null,
                 asset: AssetCatalog.getByLiquidAssetId(tx.balances[0].assetId)!,
                 amount: tx.balances[0].value,
@@ -360,6 +370,5 @@ class LiquidWalletRepository implements WalletRepository {
             )
             .toList();
     return transactions;
-
   }
 }

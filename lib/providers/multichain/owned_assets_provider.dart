@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -19,15 +20,32 @@ class OwnedAssetsNotifier extends _$OwnedAssetsNotifier {
   }
 
   Future<bool> refresh() async {
-    state = const AsyncValue.loading();
+    final currentState = state;
+
     try {
       await ref.read(bitcoinWalletNotifierProvider.notifier).sync();
       await ref.read(liquidWalletNotifierProvider.notifier).sync();
-      final assets = await build(); // Re-fetches assets after sync
-      state = AsyncValue.data(assets);
+
+      final bitcoinAssets =
+          await ref
+              .read(bitcoinWalletNotifierProvider.notifier)
+              .getOwnedAssets();
+      final liquidAssets =
+          await ref
+              .read(liquidWalletNotifierProvider.notifier)
+              .getOwnedAssets();
+      final newAssets = [...bitcoinAssets, ...liquidAssets];
+
+      state = AsyncValue.data(newAssets);
       return true;
     } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
+      if (!currentState.hasValue) {
+        state = AsyncValue.error(e, stackTrace);
+      } else {
+        if (kDebugMode) {
+          debugPrint("Error refreshing assets: $e");
+        }
+      }
       return false;
     }
   }

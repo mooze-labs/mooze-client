@@ -1,22 +1,22 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
+import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/repositories/sideswap.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
-import 'package:mooze_mobile/screens/pin/verify_pin.dart';
+import 'package:mooze_mobile/screens/swap/check_peg_status.dart';
 import 'package:mooze_mobile/screens/swap/confirm_peg.dart';
 import 'package:mooze_mobile/screens/swap/finish_swap.dart';
 import 'package:mooze_mobile/screens/swap/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/swap/widgets/market_dropdown.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_available_funds.dart';
-import 'package:mooze_mobile/screens/swap/widgets/peg_in_display.dart';
 import 'package:mooze_mobile/screens/swap/widgets/server_status.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_input_display.dart';
 import 'package:mooze_mobile/screens/swap/widgets/sideswap_quote_display.dart';
@@ -94,18 +94,14 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
   @override
   void initState() {
     super.initState();
-    final sideswap = ref.read(sideswapRepositoryProvider);
-    sideswap.init();
+    _checkConnection();
+    final sideswapRepository = ref.read(sideswapRepositoryProvider);
+    sideswapRepository.init();
 
-    _quoteSubscription = sideswap.quoteResponseStream.listen((response) {
-      setState(() {
-        quoteResponse = response;
-        if (quoteResponse!.isSuccess) {
-          quote = response.quote;
-        }
-      });
-
-      debugPrint("New quote: ${quote?.quoteId}");
+    _quoteSubscription = sideswapRepository.quoteResponseStream.listen((
+      response,
+    ) {
+      if (mounted) updateQuoteState(response);
     });
   }
 
@@ -122,23 +118,60 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     });
   }
 
+  void _checkConnection() {
+    final sideswapClient = ref.read(sideswapRepositoryProvider);
+    final connected = sideswapClient.ensureConnection();
+
+    if (!connected && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Falha na conexão com Sideswap. Tentando reconectar...',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          sideswapClient.init();
+        }
+      });
+    }
+  }
+
+  void updateQuoteState(QuoteResponse response) {
+    setState(() {
+      quoteResponse = response;
+
+      if (response.isSuccess) {
+        quote = response.quote;
+        _isLoadingQuote = false;
+      } else if (response.isError) {
+        quote = null;
+        _isLoadingQuote = false;
+      } else if (response.isLowBalance) {
+        quote = null;
+        _isLoadingQuote = false;
+      }
+    });
+
+    debugPrint("Quote state updated: ${quote?.quoteId ?? 'No quote'}");
+  }
+
   void loginToSideswap() {
     final sideswapRepository = ref.read(sideswapRepositoryProvider);
     sideswapRepository.init();
   }
 
-  // Updates to the SwapScreen class
-
   void onNewMarketSelect(String sendAsset, String recvAsset) async {
-    // Log market selection for debugging
     debugPrint("Market selection changed: $sendAsset → $recvAsset");
 
     final sideswapRepository = ref.read(sideswapRepositoryProvider);
     sideswapRepository.stopQuotes();
 
-    // Explicitly reset all state related to quoting
     setState(() {
-      quote = null; // Fix: was using == instead of =
+      quote = null;
       quoteResponse = null;
       _amountController.text = "";
       inputAmount = null;
@@ -235,6 +268,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     setState(() {
       _isLoadingQuote = true;
       quote = null;
+      quoteResponse = null;
       inputAmount = parsedAmount;
     });
 
@@ -276,9 +310,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
         receiveAddress: receiveAddress,
         changeAddress: changeAddress,
       );
-      setState(() {
-        _isLoadingQuote = false;
-      });
     } catch (e) {
       setState(() {
         _isLoadingQuote = false;
@@ -308,92 +339,19 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  Widget buildQuoteDisplay() {
-    if (ownedSendAsset == null) {
-      return Container();
-    }
-
-    if (quote == null) {
-      return Container();
-    }
-
-    if (quote == null && _isLoadingQuote == true) {
-      return Container(
-        child: Center(
-          child: Column(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 8),
-              Text("Obtendo cotação..."),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final sideswap = ref.read(sideswapRepositoryProvider);
-    return StreamBuilder<QuoteResponse>(
-      stream: sideswap.quoteResponseStream,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Container();
-        }
-
-        final quoteResponse = snapshot.data!;
-
-        if (quoteResponse.isLowBalance) {
-          final quote = quoteResponse.lowBalance!;
-          final requestedBalance =
-              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
-                  ? quote.baseAmount
-                  : quote.quoteAmount;
-          return LowBalanceQuoteDisplay(
-            asset: ownedSendAsset!.asset,
-            availableBalance: quote.available,
-            requestedBalance: requestedBalance,
-          );
-        }
-
-        if (quoteResponse.isError) {
-          final quote = quoteResponse.error!;
-          return ErrorQuoteDisplay(errorMessage: quote.errorMessage);
-        }
-
-        if (quoteResponse.isSuccess) {
-          final receivedQuote = quoteResponse.quote!;
-          final requestedBalance =
-              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
-                  ? receivedQuote.quoteAmount
-                  : receivedQuote.baseAmount;
-
-          return SuccessfulQuoteAmountDisplay(
-            asset: receiveAsset!,
-            amount: requestedBalance,
-          );
-        }
-
-        return Container();
-      },
-    );
-  }
-
   Widget buildPrimaryButton() {
-    // No market selected yet or no assets set
     if (baseAsset == null || quoteAsset == null || ownedSendAsset == null) {
       return DeactivatedButton(text: "Obter cotação");
     }
 
-    // No input or invalid input
     final currentText = _amountController.text;
     final parsedAmount = double.tryParse(currentText.replaceAll(",", "."));
     if (parsedAmount == null || parsedAmount <= 0) {
-      // Stop any existing quotes when input is invalid
       final sideswapClient = ref.read(sideswapRepositoryProvider);
       sideswapClient.stopQuotes();
       return DeactivatedButton(text: "Obter cotação");
     }
 
-    // Loading state
     if (_isLoadingQuote) {
       return Center(
         child: Column(
@@ -406,7 +364,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    // Input has changed or no quote response
     if (quoteResponse == null ||
         inputAmount == null ||
         (parsedAmount - inputAmount!).abs() > 0.000001) {
@@ -416,7 +373,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    // Has valid quote
     if (quoteResponse!.isSuccess && quote != null) {
       return Column(
         children: [
@@ -451,16 +407,104 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    // Fallback - error state or other issues
     return PrimaryButton(
       text: "Obter cotação",
       onPressed: () => requestQuote(),
     );
   }
 
+  Widget buildQuoteDisplay() {
+    if (ownedSendAsset == null) {
+      return Container();
+    }
+
+    if (quote == null && !_isLoadingQuote) {
+      return Container();
+    }
+
+    if (_isLoadingQuote) {
+      return Container(
+        child: Center(
+          child: Column(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 8),
+              Text("Obtendo cotação..."),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final sideswap = ref.read(sideswapRepositoryProvider);
+    return StreamBuilder<QuoteResponse>(
+      stream: sideswap.quoteResponseStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Container();
+        }
+
+        final quoteResponse = snapshot.data!;
+
+        if (quoteResponse.isLowBalance) {
+          final quote = quoteResponse.lowBalance!;
+          final requestedBalance =
+              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                  ? quote.baseAmount
+                  : quote.quoteAmount;
+          return Container(
+            height: 150,
+            child: LowBalanceQuoteDisplay(
+              asset: ownedSendAsset!.asset,
+              availableBalance: quote.available,
+              requestedBalance: requestedBalance,
+            ),
+          );
+        }
+
+        if (quoteResponse.isError) {
+          final quote = quoteResponse.error!;
+          return Container(
+            height: 150,
+            child: ErrorQuoteDisplay(errorMessage: quote.errorMessage),
+          );
+        }
+
+        if (quoteResponse.isSuccess) {
+          final receivedQuote = quoteResponse.quote!;
+          final requestedBalance =
+              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                  ? receivedQuote.quoteAmount
+                  : receivedQuote.baseAmount;
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                child: SuccessfulQuoteAmountDisplay(
+                  asset: receiveAsset!,
+                  amount: requestedBalance,
+                ),
+              ),
+              if (MediaQuery.of(context).viewInsets.bottom == 0)
+                buildPrimaryButton(),
+            ],
+          );
+        }
+
+        return Container();
+      },
+    );
+  }
+
   void _setMaxAmount() {
-    _amountController.text =
-        "${ownedSendAsset!.amount / pow(10, ownedSendAsset!.asset.precision)}";
+    final maxAmount =
+        ownedSendAsset!.amount / pow(10, ownedSendAsset!.asset.precision);
+    _amountController.text = "$maxAmount";
+
+    setState(() {
+      inputAmount = maxAmount;
+    });
   }
 
   @override
@@ -529,11 +573,8 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
                   ),
                 ),
               AvailableFunds(asset: ownedSendAsset),
-              const SizedBox(height: 24),
-              buildQuoteDisplay(),
-              Spacer(),
-              if (MediaQuery.of(context).viewInsets.bottom == 0)
-                buildPrimaryButton(),
+              Expanded(child: buildQuoteDisplay()),
+              if (quote == null) buildPrimaryButton(),
               SizedBox(height: 24),
             ],
           ),
@@ -551,7 +592,6 @@ class PegScreen extends ConsumerStatefulWidget {
 }
 
 class _PegScreenState extends ConsumerState<PegScreen> {
-  // Initialize with a value directly instead of using late
   Future<ServerStatus?>? serverStatus;
   Set<bool> pegIn = {true};
   OwnedAsset? asset;
@@ -569,12 +609,57 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     super.initState();
     final sideswapClient = ref.read(sideswapRepositoryProvider);
 
-    // Ensure we're subscribed to balance updates
     sideswapClient.subscribeToPegInWalletBalance();
     sideswapClient.subscribeToPegOutWalletBalance();
 
-    // Initialize server status
     serverStatus = sideswapClient.getServerStatus();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkActivePegOperation();
+    });
+  }
+
+  Future<void> _checkActivePegOperation() async {
+    final activePegOp = await ref.read(activePegOperationProvider.future);
+
+    if (kDebugMode) {
+      debugPrint("Active peg operation: $activePegOp");
+    }
+
+    if (activePegOp != null && mounted) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text("Operação em andamento"),
+              content: Text(
+                'Você tem uma operação de ${activePegOp.isPegIn ? 'peg-in' : 'peg-out'} em andamento. Deseja verificar o status?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Não'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => CheckPegStatusScreen(
+                              pegIn: activePegOp.isPegIn,
+                              orderId: activePegOp.orderId,
+                            ),
+                      ),
+                    );
+                  },
+                  child: Text('Sim'),
+                ),
+              ],
+            ),
+      );
+    }
   }
 
   @override
@@ -594,7 +679,6 @@ class _PegScreenState extends ConsumerState<PegScreen> {
   void refreshAll() {
     final sideswapClient = ref.read(sideswapRepositoryProvider);
 
-    // Re-subscribe to trigger updates
     sideswapClient.subscribeToPegInWalletBalance();
     sideswapClient.subscribeToPegOutWalletBalance();
 
@@ -648,14 +732,22 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           return false;
         }
 
-        final balanceInSats = (parsedBalance / pow(10, 8)).toInt();
+        final amountInSats = (parsedBalance * pow(10, 8)).toInt();
         final pegAsset = pegIn.first ? bitcoin : liquid;
 
-        if (balanceInSats < pegAsset.amount) {
+        if (kDebugMode) {
+          debugPrint("Written amount: $amountInSats");
+          debugPrint("Peg asset: ${pegAsset.asset.id}");
+          debugPrint("Amount in wallet: ${pegAsset.amount}");
+        }
+
+        if (pegAsset.amount < amountInSats) {
+          debugPrint("1");
           return false;
         }
 
-        if (balanceInSats < minAmount) {
+        if (amountInSats < minAmount && !receiveFromExternalWallet) {
+          debugPrint("2");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text("Valor menor que o mínimo permitido."),
@@ -690,6 +782,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           );
         }
         */
+        this.asset = pegAsset;
         return true;
       },
     );
@@ -714,25 +807,38 @@ class _PegScreenState extends ConsumerState<PegScreen> {
         (pegIn.first)
             ? serverStatus!.minPegInAmount
             : serverStatus!.minPegOutAmount;
-    //final fundsValidation = await checkFunds(minAmount, 10000000);
     final fundsValidation = await checkFunds(minAmount);
 
-    if (!fundsValidation && !receiveFromExternalWallet) {
+    if (!fundsValidation) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Fundos insuficientes."),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (!receiveFromExternalWallet && pegIn.first == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("BTC insuficientes."),
+              duration: Duration(seconds: 2),
+            ),
+          );
 
-        return;
+          return;
+        }
+
+        if (pegIn.first == false) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("L-BTC insuficientes."),
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          return;
+        }
       }
     }
 
     if (!mounted) return;
     final parsedSendAmount = double.tryParse(amountController.text);
 
+    debugPrint("Owned asset: $asset");
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -816,110 +922,112 @@ class _PegScreenState extends ConsumerState<PegScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: sendToExternalWallet,
-                      onChanged: (value) {
-                        setState(() {
-                          sendToExternalWallet = value!;
-                        });
-                        addressController.clear();
-                      },
-                    ),
-                    Text(
-                      "Enviar valores para wallet externa",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onPrimary,
+                if (!pegIn.first)
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: sendToExternalWallet,
+                        onChanged: (value) {
+                          setState(() {
+                            sendToExternalWallet = value!;
+                          });
+                          addressController.clear();
+                        },
                       ),
-                    ),
-                    SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text(
-                                "Enviar para uma wallet externa",
-                              ),
-                              content: const Text(
-                                "Caso essa opção seja selecionada, um endereço será requisitado para enviar os seus ativos. Senão, um endereço da própria carteira Mooze será utilizado. \nSelecione essa opção para enviar para uma cold wallet.",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("OK"),
+                      Text(
+                        "Enviar peg-out para wallet externa",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text(
+                                  "Enviar para uma wallet externa",
                                 ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      child: Icon(
-                        Icons.question_mark,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                                content: const Text(
+                                  "Caso essa opção seja selecionada, um endereço será requisitado para enviar os seus ativos. Senão, um endereço da própria carteira Mooze será utilizado. \nSelecione essa opção para enviar para uma cold wallet.",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        child: Icon(
+                          Icons.question_mark,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: receiveFromExternalWallet,
-                      onChanged: (value) {
-                        setState(() {
-                          receiveFromExternalWallet = value!;
-                        });
-                        amountController.clear();
-                      },
-                    ),
-                    Text(
-                      "Receber valores de wallet externa",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onPrimary,
+                    ],
+                  ),
+                if (pegIn.first)
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: receiveFromExternalWallet,
+                        onChanged: (value) {
+                          setState(() {
+                            receiveFromExternalWallet = value!;
+                          });
+                          amountController.clear();
+                        },
                       ),
-                    ),
-                    SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text(
-                                "Receber valores de uma wallet externa",
-                              ),
-                              content: const Text(
-                                """Caso essa opção seja selecionada, você poderá converter seus ativos de uma wallet externa. Senão, os valores da própria carteira Mooze serão convertidos automaticamente.
+                      Text(
+                        "Receber peg-in de wallet externa",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text(
+                                  "Receber valores de uma wallet externa",
+                                ),
+                                content: const Text(
+                                  """Caso essa opção seja selecionada, você poderá converter seus ativos de uma wallet externa. Senão, os valores da própria carteira Mooze serão convertidos automaticamente.
                                 \nAtenção: o campo de valor se torna opcional, mas você DEVE mandar um valor maior que o valor mínimo.
                                 \nSelecione essa opção para receber de uma cold wallet.""",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("OK"),
                                 ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      child: Icon(
-                        Icons.question_mark,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        child: Icon(
+                          Icons.question_mark,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
             SizedBox(height: 24),

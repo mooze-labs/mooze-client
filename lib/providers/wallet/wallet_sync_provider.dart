@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
@@ -33,7 +34,7 @@ class WalletSyncService extends _$WalletSyncService {
 
     // Then set up the periodic timer
     _syncTimer = Timer.periodic(
-      const Duration(minutes: 1),
+      const Duration(minutes: 2),
       (_) => _syncWallets(),
     );
   }
@@ -66,6 +67,8 @@ class WalletSyncService extends _$WalletSyncService {
       // Sync Liquid wallet
       await ref.read(liquidWalletNotifierProvider.notifier).sync();
       debugPrint("✓ Liquid wallet synchronized");
+
+      await ref.read(ownedAssetsNotifierProvider.notifier).refresh();
 
       // Update the last sync time
       _lastSyncTime = DateTime.now();

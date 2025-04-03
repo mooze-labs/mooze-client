@@ -93,4 +93,13 @@ class BitcoinWalletNotifier extends _$BitcoinWalletNotifier {
       rethrow;
     }
   }
+
+  Future<List<TransactionRecord>> getTransactionHistory() async {
+    try {
+      return await _repository.getTransactionHistory();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
@@ -24,7 +24,9 @@ class CoinBalance extends ConsumerWidget {
     return fiatPrices.when(
       loading: () => {},
       error: (err, stack) {
-        print("[ERROR] Could not load asset prices.");
+        if (kDebugMode) {
+          print("[ERROR] Could not load asset prices.");
+        }
         return;
       },
       data: (prices) {

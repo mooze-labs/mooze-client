@@ -1,7 +1,7 @@
 class PixTransaction {
   final String address;
   final String asset;
-  final int brlAmount;
+  final int brlAmount; // amount in cents
 
   PixTransaction({
     required this.address,

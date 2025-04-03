@@ -49,60 +49,69 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
     super.dispose();
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: MoozeAppBar(title: "Confirme sua frase"),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Por favor escreva as palavras a seguir de sua frase de recuperação para confirmar: ",
-              style: TextStyle(fontSize: 16, fontFamily: "roboto"),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 600),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.center, // Center align content
+              children: [
+                const Text(
+                  "Por favor escreva as palavras a seguir de sua frase de recuperação para confirmar: ",
+                  style: TextStyle(fontSize: 16, fontFamily: "roboto"),
+                  textAlign: TextAlign.center, // Center text
+                ),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      buildWordInput(context, positions[0], controller1),
+                      const SizedBox(height: 20),
+                      buildWordInput(context, positions[1], controller2),
+                      const SizedBox(height: 20),
+                      buildWordInput(context, positions[2], controller3),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+                if (MediaQuery.of(context).viewInsets.bottom == 0)
+                  PrimaryButton(
+                    text: "Confirmar",
+                    onPressed: () {
+                      if (checkInputs()) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreatePinScreen(),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Uma ou mais palavras estão incorretas. Tente novamente.",
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+              ],
             ),
-            Container(
-              padding: EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  buildWordInput(context, positions[0], controller1),
-                  const SizedBox(height: 20),
-                  buildWordInput(context, positions[1], controller2),
-                  const SizedBox(height: 20),
-                  buildWordInput(context, positions[2], controller3),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-            if (MediaQuery.of(context).viewInsets.bottom == 0)
-              PrimaryButton(
-                text: "Confirmar",
-                onPressed: () {
-                  if (checkInputs()) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreatePinScreen(),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Uma ou mais palavras estão incorretas. Tente novamente.",
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-          ],
+          ),
         ),
       ),
     );
   }
 
+  // Also modify the buildWordInput method to ensure it handles width properly:
   Widget buildWordInput(
     BuildContext context,
     int position,
@@ -111,26 +120,29 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
     InputDecorationTheme currentTextFieldTheme =
         Theme.of(context).inputDecorationTheme;
 
-    return Row(
-      children: [
-        Text(
-          "Palavra #${position}: ",
-          style: const TextStyle(fontFamily: "roboto"),
-        ),
-        SizedBox(
-          width: (position >= 10) ? 8 : 14,
-        ), // change padding due to digit width offset
-        Expanded(
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              border: currentTextFieldTheme.border,
-              fillColor: currentTextFieldTheme.fillColor,
-              filled: currentTextFieldTheme.filled,
+    return Container(
+      width: double.infinity, // Make the container take full width
+      child: Row(
+        children: [
+          Text(
+            "Palavra #${position}: ",
+            style: const TextStyle(fontFamily: "roboto"),
+          ),
+          SizedBox(
+            width: (position >= 10) ? 8 : 14,
+          ), // change padding due to digit width offset
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                border: currentTextFieldTheme.border,
+                fillColor: currentTextFieldTheme.fillColor,
+                filled: currentTextFieldTheme.filled,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

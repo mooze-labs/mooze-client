@@ -26,7 +26,7 @@ final bitcoinWalletRepositoryProvider = Provider<WalletRepository>.internal(
 // ignore: unused_element
 typedef BitcoinWalletRepositoryRef = ProviderRef<WalletRepository>;
 String _$bitcoinWalletNotifierHash() =>
-    r'6e93ddc1fc6ccf8db321c838e7801498b39f691b';
+    r'eee8f2bf29291554e2bdafd873fc2375fafeec0c';
 
 /// See also [BitcoinWalletNotifier].
 @ProviderFor(BitcoinWalletNotifier)

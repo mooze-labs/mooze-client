@@ -75,9 +75,28 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
                 color: Theme.of(context).colorScheme.primary,
                 fontFamily: "roboto",
               ),
-              keyboardType: TextInputType.numberWithOptions(decimal: false),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  // First check for multiple decimal separators
+                  int commaCount = newValue.text.split(',').length - 1;
+                  int dotCount = newValue.text.split('.').length - 1;
+
+                  // If there's more than one total decimal separator, reject the edit
+                  if (commaCount + dotCount > 1) {
+                    return oldValue;
+                  }
+
+                  // Check for decimal places limit
+                  final parts = newValue.text.split(RegExp(r'[.,]'));
+                  if (parts.length > 1 && parts[1].length > 2) {
+                    // More than 2 decimal places, reject
+                    return oldValue;
+                  }
+
+                  return newValue;
+                }),
               ],
               maxLines: 1,
             ),

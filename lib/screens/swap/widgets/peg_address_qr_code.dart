@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -8,18 +9,24 @@ class PegAddressQrCode extends StatelessWidget {
   final String address;
   final bool pegIn;
   final double qrSize;
+  final int? amount;
 
   const PegAddressQrCode({
     super.key,
     required this.address,
     required this.pegIn,
     required this.qrSize,
+    this.amount,
   });
 
   @override
   Widget build(BuildContext context) {
     final asset = pegIn ? AssetCatalog.bitcoin! : AssetCatalog.getById("lbtc")!;
-    final paymentUri = pegIn ? "liquidnetwork:$address" : "bitcoin:$address";
+    String paymentUri = pegIn ? "bitcoin:$address" : "liquidnetwork:$address";
+
+    if (amount != null) {
+      paymentUri += "?amount=${(amount! / pow(10, 8)).toStringAsFixed(8)}";
+    }
 
     return Column(
       children: [

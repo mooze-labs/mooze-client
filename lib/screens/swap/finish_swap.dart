@@ -3,15 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
-import 'package:mooze_mobile/models/sideswap.dart';
-import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/repositories/sideswap.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
-import 'package:mooze_mobile/repositories/wallet/repository.dart';
 import 'package:mooze_mobile/screens/swap/widgets/finished_swap_info.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
@@ -108,6 +103,7 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
               padding: EdgeInsets.all(16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     child: Column(

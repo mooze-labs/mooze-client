@@ -1,12 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lwk/lwk.dart';
+import 'package:lwk/lwk.dart' as lwk;
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/providers/external/mempool_repository_provider.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'dart:math';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
+import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
 import 'package:mooze_mobile/screens/confirm_send_transaction/confirm_send_transaction.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/inputs.dart';
@@ -81,6 +84,9 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       final recommendedFees = await mempoolRepository.getRecommendedFees();
       setState(() {
         feeRate = recommendedFees.halfHourFee.toDouble();
+        if (kDebugMode) {
+          debugPrint("Fee rate updated to ${feeRate}");
+        }
       });
     } catch (e) {
       print(
@@ -156,7 +162,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
-      if (assetAmountInSats! + totalFees > selectedAsset!.amount) {
+      if (assetAmountInSats! + 26 > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -176,7 +182,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                 ownedAsset: selectedAsset!,
                 address: addressController.text,
                 amount: assetAmountInSats!,
-                feeRate: feeRate ?? 2.0,
               ),
         ),
       );
@@ -194,7 +199,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
 
   Widget _assetDropdown(BuildContext context, List<OwnedAsset> assets) {
     return DropdownMenu<OwnedAsset>(
-      initialSelection: assets[0],
       onSelected: (OwnedAsset? asset) {
         setState(() {
           selectedAsset = asset;
@@ -217,6 +221,17 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       inputDecorationTheme:
           Theme.of(context).dropdownMenuTheme.inputDecorationTheme,
       menuStyle: Theme.of(context).dropdownMenuTheme.menuStyle,
+      leadingIcon:
+          (selectedAsset != null)
+              ? Transform.scale(
+                scale: 0.5,
+                child: Image.asset(
+                  selectedAsset!.asset.logoPath,
+                  width: 24,
+                  height: 24,
+                ),
+              )
+              : null,
     );
   }
 
@@ -312,10 +327,12 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                               ),
                             ),
                   ),
+                  /*
                   if (feeRate != null)
                     Text(
                       "Taxas totais: ${_calculateFeeAmount(feeRate!, 1, 2)} sats",
                     ),
+                  */
                 ],
               ),
             ),

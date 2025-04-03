@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
@@ -7,7 +9,9 @@ import 'package:mooze_mobile/widgets/appbar.dart';
 /// Screen to verify PIN for sensitive operations.
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
-  VerifyPinScreen({required this.onPinConfirmed});
+  bool isAppResuming;
+
+  VerifyPinScreen({required this.onPinConfirmed, this.isAppResuming = false});
   @override
   State<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
@@ -25,7 +29,14 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
 
   Future<void> _checkSession() async {
     final hasValidSession = await _authService.hasValidSession();
-    if (hasValidSession) {
+    final isPinSetup = await _authService.isPinSetup();
+
+    final noScreenshot =
+        NoScreenshot
+            .instance; // workaround to reactivate screenshots if user exited the app
+    await noScreenshot.screenshotOn();
+
+    if (hasValidSession || !isPinSetup) {
       widget.onPinConfirmed();
     } else {
       if (mounted) {
@@ -48,7 +59,17 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     return PopScope(
       canPop: true,
       child: Scaffold(
-        appBar: MoozeAppBar(title: "Validar PIN"),
+        appBar: AppBar(
+          title: Text(
+            "Validar PIN",
+            style: TextStyle(
+              fontFamily: "roboto",
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          automaticallyImplyLeading: !widget.isAppResuming,
+        ),
         body: Padding(
           padding: EdgeInsets.all(16.0),
           child: Flex(

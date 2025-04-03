@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "224194517648",
+    "project_id": "mooze-6a547",
+    "storage_bucket": "mooze-6a547.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:224194517648:android:703684bb5e9fa3cfe65615",
+        "android_client_info": {
+          "package_name": "com.example.mooze_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBigMgIan0_P3GlGiCC5DwEF_vbMFMS0iA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

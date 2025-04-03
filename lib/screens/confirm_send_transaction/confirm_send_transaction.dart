@@ -10,18 +10,22 @@ import 'package:mooze_mobile/screens/confirm_send_transaction/widgets/transactio
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
+import 'package:lwk/lwk.dart' as lwk;
+import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
+
 class ConfirmSendTransactionScreen extends ConsumerStatefulWidget {
   final OwnedAsset ownedAsset;
   final String address;
   final int amount;
-  final double feeRate;
+  final double? feeRate;
 
   ConfirmSendTransactionScreen({
     super.key,
     required this.ownedAsset,
     required this.address,
     required this.amount,
-    this.feeRate = 2.0,
+    this.feeRate,
   });
 
   @override
@@ -58,6 +62,17 @@ class ConfirmSendTransactionState
         _partiallySignedTransaction = pst;
         _isLoading = false;
       });
+    } on bdk.InsufficientFundsException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Fundos insuficientes para cobrir transação + taxas.",
+            ),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -71,11 +86,16 @@ class ConfirmSendTransactionState
     final wallet = ref.read(
       walletRepositoryProvider(widget.ownedAsset.asset.network),
     );
+
+    final fee =
+        (widget.ownedAsset.asset.network == Network.liquid)
+            ? 1.0
+            : widget.feeRate;
     final pst = await wallet.buildPartiallySignedTransaction(
       widget.ownedAsset,
       widget.address,
       widget.amount,
-      (widget.feeRate * 100 < 26 ? 26 : widget.feeRate * 100),
+      fee,
     );
 
     return pst;
@@ -171,9 +191,9 @@ class ConfirmSendTransactionState
         SizedBox(height: 24),
         Padding(
           padding: EdgeInsets.only(bottom: 100),
-          child: PrimaryButton(
+          child: SwipeToConfirm(
             text: "Confirmar envio",
-            onPressed: () async => await signAndRedirect(),
+            onConfirm: () async => await signAndRedirect(),
           ),
         ),
       ],

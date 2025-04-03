@@ -25,83 +25,90 @@ class _CreateWalletScreenState extends State<CreateWalletScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: MoozeAppBar(title: "Criar carteira"),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Selecione a linguagem da frase de recuperação",
-              style: TextStyle(
-                fontFamily: "roboto",
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            ...Language.values
-                .where(
-                  (lang) =>
-                      (lang == Language.portuguese) ||
-                      (lang == Language.english),
-                )
-                .map(
-                  (lang) => RadioListTile<Language>(
-                    title: Text(languageNames[lang] ?? enumToString(lang)),
-                    value: lang,
-                    groupValue: selectedLanguage,
-                    onChanged: (Language? newValue) {
-                      setState(() {
-                        selectedLanguage = newValue!;
-                      });
-                    },
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 600),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "Selecione a linguagem da frase de recuperação",
+                  style: TextStyle(
+                    fontFamily: "roboto",
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-            SizedBox(height: 20),
+                ...Language.values
+                    .where(
+                      (lang) =>
+                          (lang == Language.portuguese) ||
+                          (lang == Language.english),
+                    )
+                    .map(
+                      (lang) => RadioListTile<Language>(
+                        title: Text(languageNames[lang] ?? enumToString(lang)),
+                        value: lang,
+                        groupValue: selectedLanguage,
+                        onChanged: (Language? newValue) {
+                          setState(() {
+                            selectedLanguage = newValue!;
+                          });
+                        },
+                      ),
+                    ),
+                SizedBox(height: 20),
 
-            Text(
-              "Selecione o tamanho da frase",
-              style: TextStyle(
-                fontFamily: "roboto",
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            RadioListTile<bool>(
-              title: Text("12 palavras"),
-              value: false,
-              groupValue: extendedPhrase,
-              onChanged: (bool? newValue) {
-                setState(() {
-                  extendedPhrase = newValue!;
-                });
-              },
-            ),
-            RadioListTile<bool>(
-              title: Text("24 palavras (recomendado)"),
-              value: true,
-              groupValue: extendedPhrase,
-              onChanged: (bool? newValue) {
-                setState(() {
-                  extendedPhrase = newValue!;
-                });
-              },
-            ),
-            SizedBox(height: 20),
-
-            PrimaryButton(
-              text: "Gerar frase de recuperação",
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/generate_mnemonic',
-                  arguments: {
-                    'language': selectedLanguage,
-                    'extendedPhrase': extendedPhrase,
+                Text(
+                  "Selecione o tamanho da frase",
+                  style: TextStyle(
+                    fontFamily: "roboto",
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center, // Center text
+                ),
+                RadioListTile<bool>(
+                  title: Text("12 palavras"),
+                  value: false,
+                  groupValue: extendedPhrase,
+                  onChanged: (bool? newValue) {
+                    setState(() {
+                      extendedPhrase = newValue!;
+                    });
                   },
-                );
-              },
+                ),
+                RadioListTile<bool>(
+                  title: Text("24 palavras (recomendado)"),
+                  value: true,
+                  groupValue: extendedPhrase,
+                  onChanged: (bool? newValue) {
+                    setState(() {
+                      extendedPhrase = newValue!;
+                    });
+                  },
+                ),
+                SizedBox(height: 20),
+
+                PrimaryButton(
+                  text: "Gerar frase de recuperação",
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/generate_mnemonic',
+                      arguments: {
+                        'language': selectedLanguage,
+                        'extendedPhrase': extendedPhrase,
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
