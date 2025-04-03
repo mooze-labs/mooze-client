@@ -24,6 +24,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
   final AuthenticationService _authService = AuthenticationService();
   final StoreModeHandler _storeModeHandler = StoreModeHandler();
   bool _needsVerification = false;
+  bool _isLocked = false;
 
   @override
   void initState() {
@@ -55,7 +56,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
         break;
 
       case AppLifecycleState.paused:
-        _invalidateSessionIfNeeded();
+        // _invalidateSessionIfNeeded();
         break;
 
       case AppLifecycleState.detached:
@@ -80,7 +81,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
   }
 
   Future<void> _checkAuthStatus() async {
-    if (!_needsVerification) return;
+    if (!_needsVerification || _isLocked) return;
 
     bool isStoreMode = await _storeModeHandler.isStoreMode();
     if (isStoreMode) {
@@ -89,11 +90,14 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
     }
 
     bool hasValidSession = await _authService.hasValidSession();
+    print("Has valid session: $hasValidSession");
 
     if (hasValidSession) {
       _needsVerification = false;
       return;
     }
+
+    setState(() => _isLocked = true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.navigatorKey.currentState?.push(
@@ -104,7 +108,10 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
                 canPop: false,
                 child: VerifyPinScreen(
                   onPinConfirmed: () {
-                    _needsVerification = false;
+                    setState(() {
+                      _needsVerification = false;
+                      _isLocked = false;
+                    });
                     widget.navigatorKey.currentState?.pop();
                   },
                   isAppResuming: true,
