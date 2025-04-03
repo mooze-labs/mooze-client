@@ -423,17 +423,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     }
 
     if (_isLoadingQuote) {
-      return Container(
-        child: Center(
-          child: Column(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 8),
-              Text("Obtendo cotação..."),
-            ],
-          ),
-        ),
-      );
+      return Container();
     }
 
     final sideswap = ref.read(sideswapRepositoryProvider);
@@ -636,6 +626,14 @@ class _PegScreenState extends ConsumerState<PegScreen> {
                 'Você tem uma operação de ${activePegOp.isPegIn ? 'peg-in' : 'peg-out'} em andamento. Deseja verificar o status?',
               ),
               actions: [
+                TextButton(
+                  onPressed:
+                      () async =>
+                          await ref
+                              .read(activePegOperationProvider.notifier)
+                              .completePegOperation(),
+                  child: Text("Descartar operação"),
+                ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text('Não'),
