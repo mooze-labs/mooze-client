@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/store_mode/receive_pix_store_mode.dart';
 import 'package:mooze_mobile/screens/wallet/wallet.dart';
+import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
@@ -16,7 +17,9 @@ class StoreHomeState extends State<StoreHomeScreen> {
   late final StoreModeHandler _storeModeHandler = StoreModeHandler();
 
   Future<void> _initStoreMode() async {
+    final authService = AuthenticationService();
     await _storeModeHandler.setStoreMode(true);
+    await authService.invalidateSession();
   }
 
   @override

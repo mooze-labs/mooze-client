@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthenticationService {
   static const int maxPinAttemps = 5;
-  static const int sessionTimeoutMinutes = 0;
+  static const int sessionTimeoutMinutes = 1;
 
   final secureStorage = FlutterSecureStorage();
 
@@ -31,6 +31,7 @@ class AuthenticationService {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("pinAttempts", 0);
+    await _updateLastAuthTime();
 
     return true;
   }
@@ -56,6 +57,7 @@ class AuthenticationService {
 
     bool success = digest.toString() == hashedPin;
 
+    await _updateLastAuthTime();
     await _updateAttempts(success);
     return success;
   }
@@ -68,6 +70,8 @@ class AuthenticationService {
   Future<bool> hasValidSession() async {
     final prefs = await SharedPreferences.getInstance();
     final lastAuthTime = prefs.getInt("lastAuthTime");
+
+    print("Last auth time: $lastAuthTime");
 
     if (lastAuthTime == null) {
       return false;
@@ -115,6 +119,7 @@ class AuthenticationService {
   Future<void> _updateLastAuthTime() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("lastAuthTime", DateTime.now().millisecondsSinceEpoch);
+    print("Updated auth time.");
   }
 
   String _generateSalt() {
