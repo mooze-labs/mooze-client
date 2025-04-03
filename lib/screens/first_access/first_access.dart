@@ -25,8 +25,16 @@ crie uma nova carteira no nosso app e transfira os seus fundos para cá.
           """),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/import_wallet"),
-                child: Text("OK"),
+                onPressed: () => Navigator.pop(context),
+                child: Text("Voltar"),
+              ),
+              TextButton(
+                onPressed:
+                    () => Navigator.pushReplacementNamed(
+                      context,
+                      "/import_wallet",
+                    ),
+                child: Text("Importar"),
               ),
             ],
           ),
