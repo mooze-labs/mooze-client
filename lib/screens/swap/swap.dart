@@ -627,11 +627,14 @@ class _PegScreenState extends ConsumerState<PegScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed:
-                      () async =>
-                          await ref
-                              .read(activePegOperationProvider.notifier)
-                              .completePegOperation(),
+                  onPressed: () async {
+                    await ref
+                        .read(activePegOperationProvider.notifier)
+                        .completePegOperation();
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
                   child: Text("Descartar operação"),
                 ),
                 TextButton(
