@@ -9,9 +9,14 @@ import 'package:mooze_mobile/widgets/appbar.dart';
 /// Screen to verify PIN for sensitive operations.
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
+  bool forceAuth;
   bool isAppResuming;
 
-  VerifyPinScreen({required this.onPinConfirmed, this.isAppResuming = false});
+  VerifyPinScreen({
+    required this.onPinConfirmed,
+    this.forceAuth = false,
+    this.isAppResuming = false,
+  });
   @override
   State<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
@@ -35,8 +40,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
         NoScreenshot
             .instance; // workaround to reactivate screenshots if user exited the app
     await noScreenshot.screenshotOn();
-
-    if (hasValidSession || !isPinSetup) {
+    if (hasValidSession || !isPinSetup && !widget.forceAuth) {
       widget.onPinConfirmed();
     } else {
       if (mounted) {
