@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -95,6 +96,41 @@ class _PegInputDisplayState extends State<PegInputDisplay> {
                 signed: false,
               ),
               textAlign: TextAlign.center,
+              // Add these input formatters to fix the scientific notation issue
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.isEmpty) {
+                    return newValue;
+                  }
+
+                  if (newValue.text.split('.').length > 2) {
+                    return oldValue;
+                  }
+
+                  try {
+                    final number = double.parse(newValue.text);
+                    final formatted = number
+                        .toStringAsFixed(8)
+                        .replaceAll(RegExp(r'0+$'), '')
+                        .replaceAll(RegExp(r'\.$'), '');
+
+                    // Only replace if it would change to scientific notation
+                    if (number.toString() != formatted && number < 0.000001) {
+                      return TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(
+                          offset: formatted.length,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    // If parsing fails, just return the new value
+                  }
+
+                  return newValue;
+                }),
+              ],
             ),
           ),
           SizedBox(height: 16),

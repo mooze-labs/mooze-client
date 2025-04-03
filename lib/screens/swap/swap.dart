@@ -631,7 +631,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
         context: context,
         builder:
             (context) => AlertDialog(
-              title: Text('Operação de Peg em Andamento'),
+              title: Text("Operação em andamento"),
               content: Text(
                 'Você tem uma operação de ${activePegOp.isPegIn ? 'peg-in' : 'peg-out'} em andamento. Deseja verificar o status?',
               ),
