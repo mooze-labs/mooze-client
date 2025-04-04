@@ -65,6 +65,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
       if (mnemonic != null) {
         await _initializeWallets(true, mnemonic);
+        ref.read(walletSyncServiceProvider.notifier).syncNow();
 
         // Start periodic wallet sync
         ref.read(walletSyncServiceProvider.notifier).startPeriodicSync();
