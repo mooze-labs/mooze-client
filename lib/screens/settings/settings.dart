@@ -108,6 +108,7 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 }
               },
+              forceAuth: true,
             ),
       ),
     );
