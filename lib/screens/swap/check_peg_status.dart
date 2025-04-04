@@ -70,6 +70,8 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
 
   Future<PegOrderStatus?> getPegOrderStatus() async {
     final sideswapClient = ref.read(sideswapRepositoryProvider);
+    sideswapClient.ensureConnection();
+
     final pegOrderStatus = await sideswapClient.getPegStatus(
       _isPegIn!,
       _orderId!,

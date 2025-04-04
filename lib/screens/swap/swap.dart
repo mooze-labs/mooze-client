@@ -11,6 +11,7 @@ import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
+import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/swap/check_peg_status.dart';
 import 'package:mooze_mobile/screens/swap/confirm_peg.dart';
 import 'package:mooze_mobile/screens/swap/finish_swap.dart';
