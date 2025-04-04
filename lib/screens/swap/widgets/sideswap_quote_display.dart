@@ -9,11 +9,13 @@ import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 class SuccessfulQuoteAmountDisplay extends StatelessWidget {
   final Asset asset;
   final int amount;
+  final String labelText;
 
   const SuccessfulQuoteAmountDisplay({
     super.key,
     required this.asset,
     required this.amount,
+    this.labelText = "Você receberá aproximadamente:",
   });
 
   @override
@@ -29,7 +31,7 @@ class SuccessfulQuoteAmountDisplay extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Você receberá aproximadamente:",
+              labelText,
               style: TextStyle(
                 fontFamily: "roboto",
                 fontSize: 18,

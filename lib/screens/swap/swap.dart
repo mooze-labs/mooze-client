@@ -89,6 +89,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
   SideswapQuote? quote;
   QuoteResponse? quoteResponse;
   bool _isLoadingQuote = false;
+  bool _isBuyModeQuoteFinalization = false;
 
   int _selectedIndex = 0;
 
@@ -139,25 +140,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
         }
       });
     }
-  }
-
-  void updateQuoteState(QuoteResponse response) {
-    setState(() {
-      quoteResponse = response;
-
-      if (response.isSuccess) {
-        quote = response.quote;
-        _isLoadingQuote = false;
-      } else if (response.isError) {
-        quote = null;
-        _isLoadingQuote = false;
-      } else if (response.isLowBalance) {
-        quote = null;
-        _isLoadingQuote = false;
-      }
-    });
-
-    debugPrint("Quote state updated: ${quote?.quoteId ?? 'No quote'}");
   }
 
   void loginToSideswap() {
@@ -215,7 +197,91 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     });
   }
 
+  void updateQuoteState(QuoteResponse response) {
+    setState(() {
+      quoteResponse = response;
+
+      if (response.isSuccess) {
+        quote = response.quote;
+        _isLoadingQuote = false;
+
+        if (_isBuyModeQuoteFinalization) {
+          print(response.quote!);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => FinishSwapScreen(
+                    quoteId: quote!.quoteId,
+                    ttl: quote!.ttl,
+                    sentAsset: ownedSendAsset!.asset,
+                    receivedAsset: receiveAsset!,
+                    receivedAmount:
+                        (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                            ? quote!.quoteAmount
+                            : quote!.baseAmount,
+                    sentAmount:
+                        (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                            ? quote!.baseAmount
+                            : quote!.quoteAmount,
+                    fees: (quote!.fixedFee + quote!.serverFee),
+                  ),
+            ),
+          );
+        }
+      } else if (response.isError) {
+        quote = null;
+        _isLoadingQuote = false;
+      } else if (response.isLowBalance) {
+        if (swapDirection == SwapDirection.buy) {
+          // We can process the quote from the LowBalance response
+          // The LowBalance response contains the needed information about
+          // how much we need to send to receive the requested amount
+          _handleBuyModeLowBalance(response.lowBalance!);
+        } else {
+          // In sell mode, LowBalance is still an error
+          quote = null;
+          _isLoadingQuote = false;
+        }
+      }
+    });
+
+    debugPrint("Quote state updated: ${quote?.quoteId ?? 'No quote'}");
+  }
+
+  void _handleBuyModeLowBalance(QuoteLowBalance lowBalance) {
+    // In buy mode, when we get a LowBalance response, it's telling us how much
+    // we need to send to receive the requested amount. We can use this information
+    // to check if we have enough funds and display it to the user.
+
+    final sendAssetId = ownedSendAsset!.asset.liquidAssetId!;
+    final sendAmount =
+        (sendAssetId == baseAsset)
+            ? lowBalance.baseAmount
+            : lowBalance.quoteAmount;
+
+    if (sendAmount > ownedSendAsset!.amount) {
+      // We don't have enough funds
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Fundos insuficientes para receber essa quantidade."),
+          ),
+        );
+      }
+      _isLoadingQuote = false;
+    } else {
+      // We have enough funds, show the quote
+      // Create a synthetic quote from the LowBalance response
+      _createSyntheticQuoteFromLowBalance(lowBalance);
+    }
+  }
+
   Future<List<SwapUtxo>?> fetchUtxos(String assetId, int amount) async {
+    if (swapDirection == SwapDirection.buy) {
+      return [];
+    }
+
     int sumAmount = 0;
     final List<SwapUtxo> selectedUtxos = [];
 
@@ -251,6 +317,57 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     return selectedUtxos;
   }
 
+  void _toggleSwapDirection() {
+    setState(() {
+      // Clear the input and quote when changing direction
+      _amountController.clear();
+      inputAmount = null;
+      quote = null;
+      quoteResponse = null;
+
+      // Toggle between buy and sell modes
+      swapDirection =
+          swapDirection == SwapDirection.sell
+              ? SwapDirection.buy
+              : SwapDirection.sell;
+
+      // Update asset type based on the new direction
+      _updateAssetType();
+    });
+  }
+
+  void _updateAssetType() {
+    if (baseAsset == null ||
+        quoteAsset == null ||
+        ownedSendAsset == null ||
+        receiveAsset == null)
+      return;
+
+    if (swapDirection == SwapDirection.sell) {
+      // When selling, assetType depends on which asset we're sending
+      assetType =
+          ownedSendAsset!.asset.liquidAssetId == baseAsset ? "Base" : "Quote";
+    } else {
+      // When buying, assetType depends on which asset we're receiving
+      assetType = receiveAsset!.liquidAssetId == baseAsset ? "Base" : "Quote";
+    }
+  }
+
+  void _createSyntheticQuoteFromLowBalance(QuoteLowBalance lowBalance) {
+    // Convert the LowBalance response into a usable quote
+    // This is a workaround since we don't get a proper quote in buy mode
+    quote = SideswapQuote(
+      quoteId: -1, // Using -1 as a special marker for synthetic quotes
+      baseAmount: lowBalance.baseAmount,
+      quoteAmount: lowBalance.quoteAmount,
+      serverFee: lowBalance.serverFee,
+      fixedFee: lowBalance.fixedFee,
+      ttl: 30, // Default TTL
+    );
+
+    _isLoadingQuote = false;
+  }
+
   Future<void> requestQuote() async {
     if (baseAsset == null || quoteAsset == null) {
       return;
@@ -277,13 +394,90 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       final sideswapRepository = ref.read(sideswapRepositoryProvider);
       final liquidWallet =
           ref.read(liquidWalletRepositoryProvider) as LiquidWalletRepository;
-      final sendAsset = assetType! == "Quote" ? quoteAsset! : baseAsset!;
+
+      // Update asset type before requesting a quote
+      _updateAssetType();
 
       final receiveAddress = await liquidWallet.generateAddress();
       final changeAddress = await liquidWallet.generateAddress();
 
       final amount = (parsedAmount * pow(10, 8)).toInt();
-      final utxos = await fetchUtxos(sendAsset, amount);
+
+      // For sell direction, we need to check UTXOs
+      List<SwapUtxo>? utxos;
+      if (swapDirection == SwapDirection.sell) {
+        // Determine which asset we're sending
+        final String sendAssetId = ownedSendAsset!.asset.liquidAssetId!;
+        utxos = await fetchUtxos(sendAssetId, amount);
+
+        if (utxos == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Fundos insuficientes para realizar o swap."),
+              ),
+            );
+          }
+          setState(() {
+            _isLoadingQuote = false;
+            quote = null;
+          });
+          return;
+        }
+      }
+
+      sideswapRepository.startQuote(
+        baseAsset: baseAsset!,
+        quoteAsset: quoteAsset!,
+        assetType: assetType!,
+        amount: amount,
+        direction: swapDirection,
+        utxos: swapDirection == SwapDirection.sell ? utxos! : [],
+        receiveAddress: receiveAddress,
+        changeAddress: changeAddress,
+      );
+    } catch (e) {
+      setState(() {
+        _isLoadingQuote = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Não foi possível obter uma cotação: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _requestRealQuoteForBuyMode() async {
+    // We now know how much we need to send, so we can make a real quote request
+    // using the sell direction with the amount from our synthetic quote
+    setState(() {
+      _isLoadingQuote = true;
+    });
+
+    try {
+      final sideswapRepository = ref.read(sideswapRepositoryProvider);
+      final liquidWallet =
+          ref.read(liquidWalletRepositoryProvider) as LiquidWalletRepository;
+
+      // Temporarily switch to sell mode
+      final originalDirection = swapDirection;
+      swapDirection = SwapDirection.sell;
+      _updateAssetType();
+
+      final receiveAddress = await liquidWallet.generateAddress();
+      final changeAddress = await liquidWallet.generateAddress();
+
+      // Use the amount from our synthetic quote
+      final sendAmount =
+          (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+              ? quote!.baseAmount
+              : quote!.quoteAmount;
+
+      // Fetch UTXOs for this amount
+      final String sendAssetId = ownedSendAsset!.asset.liquidAssetId!;
+      final utxos = await fetchUtxos(sendAssetId, sendAmount);
 
       if (utxos == null) {
         if (mounted) {
@@ -295,22 +489,27 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
         }
         setState(() {
           _isLoadingQuote = false;
-          quote = null;
+          swapDirection = originalDirection;
+          _updateAssetType();
         });
-
         return;
       }
 
+      // Request a real quote
       sideswapRepository.startQuote(
         baseAsset: baseAsset!,
         quoteAsset: quoteAsset!,
         assetType: assetType!,
-        amount: amount,
-        direction: swapDirection,
+        amount: sendAmount,
+        direction: SwapDirection.sell,
         utxos: utxos,
         receiveAddress: receiveAddress,
         changeAddress: changeAddress,
       );
+
+      // After the quote comes back, we'll stay in sell mode but keep the same amount
+      // The UI will then show the right information for executing the swap
+      _isBuyModeQuoteFinalization = true;
     } catch (e) {
       setState(() {
         _isLoadingQuote = false;
@@ -318,7 +517,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Não foi possível obter uma cotação.")),
+          SnackBar(content: Text("Não foi possível obter uma cotação: $e")),
         );
       }
     }
@@ -340,17 +539,13 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  Widget buildPrimaryButton() {
-    if (baseAsset == null || quoteAsset == null || ownedSendAsset == null) {
-      return DeactivatedButton(text: "Obter cotação");
+  Widget buildQuoteDisplay() {
+    if (ownedSendAsset == null || receiveAsset == null) {
+      return Container();
     }
 
-    final currentText = _amountController.text;
-    final parsedAmount = double.tryParse(currentText.replaceAll(",", "."));
-    if (parsedAmount == null || parsedAmount <= 0) {
-      final sideswapClient = ref.read(sideswapRepositoryProvider);
-      sideswapClient.stopQuotes();
-      return DeactivatedButton(text: "Obter cotação");
+    if (quote == null && !_isLoadingQuote) {
+      return Container();
     }
 
     if (_isLoadingQuote) {
@@ -365,6 +560,164 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
+    // If we have a synthetic quote (from LowBalance in buy mode)
+    if (quote != null && quote!.quoteId == -1) {
+      // Display the synthetic quote
+      return _buildSyntheticQuoteDisplay();
+    }
+
+    final sideswap = ref.read(sideswapRepositoryProvider);
+    return StreamBuilder<QuoteResponse>(
+      stream: sideswap.quoteResponseStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Container();
+        }
+
+        final quoteResponse = snapshot.data!;
+
+        if (quoteResponse.isLowBalance && swapDirection == SwapDirection.sell) {
+          // Only handle as error in sell mode
+          final quote = quoteResponse.lowBalance!;
+          final requestedBalance =
+              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                  ? quote.baseAmount
+                  : quote.quoteAmount;
+
+          return Container(
+            height: 150,
+            child: LowBalanceQuoteDisplay(
+              asset: ownedSendAsset!.asset,
+              availableBalance: quote.available,
+              requestedBalance: requestedBalance,
+            ),
+          );
+        }
+
+        if (quoteResponse.isError) {
+          final quote = quoteResponse.error!;
+          return Container(
+            height: 150,
+            child: ErrorQuoteDisplay(errorMessage: quote.errorMessage),
+          );
+        }
+
+        if (quoteResponse.isSuccess) {
+          final receivedQuote = quoteResponse.quote!;
+
+          // Display different amounts based on swap direction
+          if (swapDirection == SwapDirection.sell) {
+            // In sell mode, show how much will be received
+            final receiveAmount =
+                (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                    ? receivedQuote.quoteAmount
+                    : receivedQuote.baseAmount;
+
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  child: SuccessfulQuoteAmountDisplay(
+                    asset: receiveAsset!,
+                    amount: receiveAmount,
+                    labelText: "Você receberá aproximadamente:",
+                  ),
+                ),
+                if (MediaQuery.of(context).viewInsets.bottom == 0)
+                  buildPrimaryButton(),
+              ],
+            );
+          } else {
+            // In buy mode, show how much will be sent
+            final sendAmount =
+                (receiveAsset!.liquidAssetId! == baseAsset!)
+                    ? receivedQuote.quoteAmount
+                    : receivedQuote.baseAmount;
+
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  child: SuccessfulQuoteAmountDisplay(
+                    asset: ownedSendAsset!.asset,
+                    amount: sendAmount,
+                    labelText: "Você enviará aproximadamente:",
+                  ),
+                ),
+                if (MediaQuery.of(context).viewInsets.bottom == 0)
+                  buildPrimaryButton(),
+              ],
+            );
+          }
+        }
+
+        return Container();
+      },
+    );
+  }
+
+  Widget _buildSyntheticQuoteDisplay() {
+    if (swapDirection == SwapDirection.sell) {
+      final receiveAmount =
+          (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+              ? quote!.quoteAmount
+              : quote!.baseAmount;
+
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            child: SuccessfulQuoteAmountDisplay(
+              asset: receiveAsset!,
+              amount: receiveAmount,
+              labelText: "Você receberá aproximadamente:",
+            ),
+          ),
+          if (MediaQuery.of(context).viewInsets.bottom == 0)
+            buildPrimaryButton(),
+        ],
+      );
+    } else {
+      // In buy mode, show how much will be sent
+      final sendAmount =
+          (receiveAsset!.liquidAssetId! == baseAsset!)
+              ? quote!.quoteAmount
+              : quote!.baseAmount;
+
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            child: SuccessfulQuoteAmountDisplay(
+              asset: ownedSendAsset!.asset,
+              amount: sendAmount,
+              labelText: "Você enviará aproximadamente:",
+            ),
+          ),
+          if (MediaQuery.of(context).viewInsets.bottom == 0)
+            buildPrimaryButton(),
+        ],
+      );
+    }
+  }
+
+  Widget buildPrimaryButton() {
+    if (baseAsset == null || quoteAsset == null || ownedSendAsset == null) {
+      return DeactivatedButton(text: "Obter cotação");
+    }
+
+    final currentText = _amountController.text;
+    final parsedAmount = double.tryParse(currentText.replaceAll(",", "."));
+    if (parsedAmount == null || parsedAmount <= 0) {
+      final sideswapClient = ref.read(sideswapRepositoryProvider);
+      sideswapClient.stopQuotes();
+      return DeactivatedButton(text: "Obter cotação");
+    }
+
+    if (_isLoadingQuote) {
+      return Container();
+    }
+
     if (quoteResponse == null ||
         inputAmount == null ||
         (parsedAmount - inputAmount!).abs() > 0.000001) {
@@ -374,13 +727,19 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
       );
     }
 
-    if (quoteResponse!.isSuccess && quote != null) {
+    // Handle both regular and synthetic quotes
+    if ((quoteResponse?.isSuccess == true && quote != null) ||
+        (quote != null && quote!.quoteId == -1)) {
       return Column(
         children: [
           SwipeToConfirm(
             text: "Realizar swap",
-            onConfirm:
-                () => Navigator.push(
+            onConfirm: () {
+              if (quote!.quoteId == -1) {
+                // For synthetic quotes, we need to request a real quote first
+                _requestRealQuoteForBuyMode();
+              } else {
+                Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
@@ -402,7 +761,9 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
                           fees: (quote!.fixedFee + quote!.serverFee),
                         ),
                   ),
-                ),
+                );
+              }
+            },
           ),
         ],
       );
@@ -414,77 +775,29 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  Widget buildQuoteDisplay() {
-    if (ownedSendAsset == null) {
-      return Container();
-    }
+  void _executeSwap() {
+    _isBuyModeQuoteFinalization = false; // Reset the flag
 
-    if (quote == null && !_isLoadingQuote) {
-      return Container();
-    }
-
-    if (_isLoadingQuote) {
-      return Container();
-    }
-
-    final sideswap = ref.read(sideswapRepositoryProvider);
-    return StreamBuilder<QuoteResponse>(
-      stream: sideswap.quoteResponseStream,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Container();
-        }
-
-        final quoteResponse = snapshot.data!;
-
-        if (quoteResponse.isLowBalance) {
-          final quote = quoteResponse.lowBalance!;
-          final requestedBalance =
-              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
-                  ? quote.baseAmount
-                  : quote.quoteAmount;
-          return Container(
-            height: 150,
-            child: LowBalanceQuoteDisplay(
-              asset: ownedSendAsset!.asset,
-              availableBalance: quote.available,
-              requestedBalance: requestedBalance,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => FinishSwapScreen(
+              quoteId: quote!.quoteId,
+              ttl: quote!.ttl,
+              sentAsset: ownedSendAsset!.asset,
+              receivedAsset: receiveAsset!,
+              receivedAmount:
+                  (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                      ? quote!.quoteAmount
+                      : quote!.baseAmount,
+              sentAmount:
+                  (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
+                      ? quote!.baseAmount
+                      : quote!.quoteAmount,
+              fees: (quote!.fixedFee + quote!.serverFee),
             ),
-          );
-        }
-
-        if (quoteResponse.isError) {
-          final quote = quoteResponse.error!;
-          return Container(
-            height: 150,
-            child: ErrorQuoteDisplay(errorMessage: quote.errorMessage),
-          );
-        }
-
-        if (quoteResponse.isSuccess) {
-          final receivedQuote = quoteResponse.quote!;
-          final requestedBalance =
-              (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
-                  ? receivedQuote.quoteAmount
-                  : receivedQuote.baseAmount;
-
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                child: SuccessfulQuoteAmountDisplay(
-                  asset: receiveAsset!,
-                  amount: requestedBalance,
-                ),
-              ),
-              if (MediaQuery.of(context).viewInsets.bottom == 0)
-                buildPrimaryButton(),
-            ],
-          );
-        }
-
-        return Container();
-      },
+      ),
     );
   }
 
@@ -528,15 +841,50 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
                     controller: _amountController,
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: "Digite o valor a enviar",
+                      hintText:
+                          swapDirection == SwapDirection.sell
+                              ? "Digite o valor a enviar"
+                              : "Digite o valor a receber",
                       hintStyle: TextStyle(
                         fontFamily: "roboto",
                         fontSize: 16,
                         fontWeight: FontWeight.normal,
                         color: Theme.of(context).colorScheme.onSecondary,
                       ),
+                      prefixIcon:
+                          ownedSendAsset != null && receiveAsset != null
+                              ? TextButton(
+                                onPressed: _toggleSwapDirection,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      swapDirection == SwapDirection.sell
+                                          ? ownedSendAsset!.asset.ticker
+                                          : receiveAsset!.ticker,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                        fontFamily: "roboto",
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(
+                                      Icons.swap_horiz,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      size: 16,
+                                    ),
+                                  ],
+                                ),
+                              )
+                              : null,
                       suffixIcon:
-                          ownedSendAsset != null
+                          ownedSendAsset != null &&
+                                  swapDirection == SwapDirection.sell
                               ? IconButton(
                                 icon: Text(
                                   "MAX",
