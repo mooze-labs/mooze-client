@@ -94,6 +94,40 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     }
   }
 
+  Future<bool> validateUserInput(int amount) async {
+    final userService = ref.read(userServiceProvider);
+    final user = await userService.getUserDetails();
+
+    if (!mounted) return false;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Não foi possível conectar ao servidor.")),
+      );
+      return false;
+    }
+
+    if (user!.isFirstTransaction && amount > 250 * 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Limite de primeira transação excedido.")),
+      );
+      return false;
+    }
+
+    if (amount < 20 * 100 && amount > 5000 * 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
+          ),
+        ),
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   Widget _assetDropdown(BuildContext context, List<Asset> assets) {
     return DropdownMenu<Asset>(
       key: dropdownKey,
@@ -146,7 +180,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     final liquidAssets = AssetCatalog.liquidAssets;
 
     return Scaffold(
-      appBar: MoozeAppBar(title: "Receber por PIX"),
+      appBar: MoozeAppBar(title: "Comprar com PIX"),
       body: liquidWalletState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error:
@@ -223,31 +257,12 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 70),
                               child: SwipeToConfirm(
-                                onConfirm: () {
-                                  if (selectedAsset == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Por favor, selecione um ativo.",
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                onConfirm: () async {
+                                  final result = await validateUserInput(
+                                    _currentAmountInCents,
+                                  );
 
-                                  // Check minimum amount in reais (2000 cents = R$ 20.00)
-                                  if (_currentAmountInCents < 2000 ||
-                                      _currentAmountInCents > 500000) {
-                                    // 500000 cents = R$ 5000.00
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                  if (!result) return;
 
                                   final pixTransaction = PixTransaction(
                                     address: address,
@@ -256,19 +271,22 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                                         selectedAsset.liquidAssetId ??
                                         "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
                                   );
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              GeneratePixPaymentCodeScreen(
-                                                pixTransaction: pixTransaction,
-                                                assetId:
-                                                    selectedAsset
-                                                        .liquidAssetId!,
-                                              ),
-                                    ),
-                                  );
+
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (
+                                              context,
+                                            ) => GeneratePixPaymentCodeScreen(
+                                              pixTransaction: pixTransaction,
+                                              assetId:
+                                                  selectedAsset.liquidAssetId!,
+                                            ),
+                                      ),
+                                    );
+                                  }
                                 },
                                 text: "Deslize para pagar",
                                 backgroundColor:
