@@ -127,6 +127,7 @@ class SettingsScreen extends ConsumerWidget {
                   MaterialPageRoute(builder: (context) => CreatePinScreen()),
                 );
               },
+              forceAuth: true,
             ),
       ),
     );
