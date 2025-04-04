@@ -51,6 +51,8 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
         syncService.startPeriodicSync();
         syncService.syncNow();
 
+        sideswap.ensureConnection();
+
         _checkAuthStatus();
         break;
 
