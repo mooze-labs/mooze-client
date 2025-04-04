@@ -154,7 +154,7 @@ class ReceivePixStoreState extends ConsumerState<ReceivePixStoreScreen> {
                                 ),
                               );
                             },
-                            text: "Deslize para pagar",
+                            text: "Deslize para gerar PIX",
                             backgroundColor:
                                 Theme.of(context).colorScheme.primary,
                             progressColor:
