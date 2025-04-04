@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/services/auth.dart';
@@ -43,6 +44,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
     debugPrint("App lifecycle state changed to: $state");
 
     final syncService = ref.read(walletSyncServiceProvider.notifier);
+    final sideswap = ref.read(sideswapRepositoryProvider);
 
     switch (state) {
       case AppLifecycleState.resumed:
@@ -57,10 +59,12 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
 
       case AppLifecycleState.paused:
         // _invalidateSessionIfNeeded();
+        sideswap.dispose();
         break;
 
       case AppLifecycleState.detached:
         syncService.stopPeriodicSync();
+        sideswap.dispose();
         break;
 
       default:
@@ -81,19 +85,21 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
   }
 
   Future<void> _checkAuthStatus() async {
-    if (!_needsVerification || _isLocked) return;
+    if (_isLocked) return;
 
     bool isStoreMode = await _storeModeHandler.isStoreMode();
     if (isStoreMode) {
-      _needsVerification = false;
       return;
     }
 
     bool hasValidSession = await _authService.hasValidSession();
-    print("Has valid session: $hasValidSession");
-
     if (hasValidSession) {
-      _needsVerification = false;
+      return;
+    }
+
+    if (!mounted) return;
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == '/verify_pin') {
       return;
     }
 
