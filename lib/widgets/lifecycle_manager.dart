@@ -26,6 +26,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
   final StoreModeHandler _storeModeHandler = StoreModeHandler();
   bool _needsVerification = false;
   bool _isLocked = false;
+  bool _isRunning = true;
 
   @override
   void initState() {
@@ -50,6 +51,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
       case AppLifecycleState.resumed:
         syncService.startPeriodicSync();
         syncService.syncNow();
+        _isRunning = true;
 
         sideswap.ensureConnection();
 
@@ -61,12 +63,14 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
 
       case AppLifecycleState.paused:
         // _invalidateSessionIfNeeded();
+        _isRunning = false;
         sideswap.dispose();
         break;
 
       case AppLifecycleState.detached:
         syncService.stopPeriodicSync();
         sideswap.dispose();
+        _isRunning = false;
         break;
 
       default:
@@ -88,6 +92,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
 
   Future<void> _checkAuthStatus() async {
     if (_isLocked) return;
+    if (_isRunning) return;
 
     bool isStoreMode = await _storeModeHandler.isStoreMode();
     if (isStoreMode) {
