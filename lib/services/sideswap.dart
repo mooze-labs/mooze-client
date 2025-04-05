@@ -2,12 +2,13 @@
 // GPL license: https://github.com/Satsails/Satsails?tab=GPL-2.0-1-ov-file
 import 'dart:async';
 import 'dart:convert';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:flutter/foundation.dart';
+import 'package:mooze_mobile/utils/websocket.dart';
 
 const String sideswapApiUrl = 'wss://api.sideswap.io/json-rpc-ws';
 
 class SideswapService {
-  late WebSocketChannel _channel;
+  late WebSocketService _wsService;
   final _loginController = StreamController<Map<String, dynamic>>.broadcast();
   final _pegController = StreamController<Map<String, dynamic>>.broadcast();
   final _pegStatusController =
@@ -22,6 +23,8 @@ class SideswapService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _assetsController = StreamController<Map<String, dynamic>>.broadcast();
   final _marketController = StreamController<Map<String, dynamic>>.broadcast();
+
+  bool _isInitialized = false;
 
   Stream<Map<String, dynamic>> get loginStream => _loginController.stream;
   Stream<Map<String, dynamic>> get pegStream => _pegController.stream;
@@ -38,138 +41,139 @@ class SideswapService {
   Stream<Map<String, dynamic>> get assetsStream => _assetsController.stream;
   Stream<Map<String, dynamic>> get marketStream => _marketController.stream;
 
-  void connect() {
-    try {
-      _channel = WebSocketChannel.connect(Uri.parse(sideswapApiUrl));
-      _channel.stream.listen(
-        _handleIncomingMessage,
-        onError:
-            (error) => throw Exception("Error connecting to WebSocket: $error"),
-        cancelOnError: true,
-      );
-    } catch (e) {
-      throw Exception("Error connecting to WebSocket: $e");
+  SideswapService() {
+    _wsService = WebSocketService(Uri.parse(sideswapApiUrl));
+    _setupStreamListeners();
+  }
+
+  void _setupStreamListeners() {
+    _wsService.stream.listen((message) {
+      try {
+        final data = json.decode(message);
+        _handleMessage(data);
+      } catch (e) {
+        debugPrint('Error decoding message: $e');
+      }
+    }, onError: (error) {
+      debugPrint('WebSocket stream error: $error');
+    });
+  }
+
+  void _handleMessage(Map<String, dynamic> data) {
+    if (data.containsKey('method')) {
+      final method = data['method'];
+      switch (method) {
+        case "login_client":
+          _loginController.add(data);
+          break;
+        case "peg":
+          _pegController.add(data);
+          break;
+        case "peg_status":
+          _pegStatusController.add(data);
+          break;
+        case "subscribe_value":
+          _subscribeController.add(data);
+          break;
+        case "unsubscribe_value":
+          _unsubscribeController.add(data);
+          break;
+        case "subscribed_value":
+          _subscribedController.add(data);
+          break;
+        case "server_status":
+          _serverStatusController.add(data);
+          break;
+        case "assets":
+          _assetsController.add(data);
+          break;
+        case "market":
+          _marketController.add(data);
+          break;
+      }
     }
   }
 
-  void _handleIncomingMessage(dynamic message) {
-    var decodedMessage = json.decode(message);
-    print(decodedMessage);
-    switch (decodedMessage["method"]) {
-      case "login_client":
-        _loginController.add(decodedMessage);
-        break;
-      case "peg":
-        _pegController.add(decodedMessage);
-        break;
-      case "peg_status":
-        _pegStatusController.add(decodedMessage);
-        break;
-      case "subscribe_value":
-        _subscribeController.add(decodedMessage);
-        break;
-      case "unsubscribe_value":
-        _unsubscribeController.add(decodedMessage);
-        break;
-      case "subscribed_value":
-        _subscribedController.add(decodedMessage);
-        break;
-      case "server_status":
-        _serverStatusController.add(decodedMessage);
-        break;
-      case "assets":
-        _assetsController.add(decodedMessage);
-        break;
-      case "market":
-        _marketController.add(decodedMessage);
-        break;
-    }
+  void connect() {
+    if (_isInitialized) return;
+    _isInitialized = true;
+    _wsService.ensureConnected();
   }
 
   void login(String apiKey) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "login_client",
-        "params": {
-          "api_key": apiKey,
-          "user_agent": "MoozeClient",
-          "version": "1.0.0",
-        },
-      }),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "login_client",
+      "params": {
+        "api_key": apiKey,
+        "user_agent": "MoozeClient",
+        "version": "1.0.0",
+      },
+    });
   }
 
-  void status() {
-    _channel.sink.add(
-      json.encode({"id": 1, "method": "server_status", "params": {}}),
-    );
-  }
-
-  void peg(bool pegIn, String recvAddr) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "peg",
-        "params": {"peg_in": pegIn, "recv_addr": recvAddr},
-      }),
-    );
-  }
-
-  void pegStatus(bool pegIn, String orderId) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "peg_status",
-        "params": {"peg_in": pegIn, "order_id": orderId},
-      }),
-    );
-  }
-
-  void subscribeValue(String value) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "subscribe_value",
-        "params": {"value": value},
-      }),
-    );
-  }
-
-  void unsubscribeValue(String value) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "unsubscribe_value",
-        "params": {"value": value},
-      }),
-    );
+  void _sendMessage(Map<String, dynamic> message) {
+    if (!_wsService.isConnected) {
+      debugPrint('WebSocket not connected, attempting to connect...');
+      _wsService.ensureConnected();
+    }
+    _wsService.send(json.encode(message));
   }
 
   void serverStatus() {
-    _channel.sink.add(
-      json.encode({"id": 1, "method": "server_status", "params": null}),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "server_status",
+      "params": {},
+    });
+  }
+
+  void peg(bool pegIn, String recvAddr) {
+    _sendMessage({
+      "id": 1,
+      "method": "peg",
+      "params": {"peg_in": pegIn, "recv_addr": recvAddr},
+    });
+  }
+
+  void pegStatus(bool pegIn, String orderId) {
+    _sendMessage({
+      "id": 1,
+      "method": "peg_status",
+      "params": {"peg_in": pegIn, "order_id": orderId},
+    });
+  }
+
+  void subscribeValue(String value) {
+    _sendMessage({
+      "id": 1,
+      "method": "subscribe_value",
+      "params": {"value": value},
+    });
+  }
+
+  void unsubscribeValue(String value) {
+    _sendMessage({
+      "id": 1,
+      "method": "unsubscribe_value",
+      "params": {"value": value},
+    });
   }
 
   void assets(bool allAssets, bool embeddedIcons) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "assets",
-        "params": {"all_assets": allAssets, "embedded_icons": embeddedIcons},
-      }),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "assets",
+      "params": {"all_assets": allAssets, "embedded_icons": embeddedIcons},
+    });
   }
 
   void listMarkets() {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {"list_markets": {}},
-      }),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "market",
+      "params": {"list_markets": {}},
+    });
   }
 
   void startQuotes({
@@ -181,12 +185,11 @@ class SideswapService {
     required String receiveAddress,
     required String changeAddress,
   }) {
-    String payload = json.encode({
+    _sendMessage({
       "id": 1,
       "method": "market",
       "params": {
         "start_quotes": {
-          // hardcoding to Depix for now, change this later
           "asset_pair": {
             "base": assetPair["base"],
             "quote": assetPair["quote"],
@@ -200,73 +203,76 @@ class SideswapService {
         },
       },
     });
-
-    _channel.sink.add(payload);
   }
 
   void receiveQuote(int quoteId) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {
-          "get_quote": {"quote_id": quoteId},
-        },
-      }),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "market",
+      "params": {
+        "get_quote": {"quote_id": quoteId},
+      },
+    });
   }
 
   void signQuote(int quoteId, String pset) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {
-          "taker_sign": {"quote_id": quoteId, "pset": pset},
-        },
-      }),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "market",
+      "params": {
+        "taker_sign": {"quote_id": quoteId, "pset": pset},
+      },
+    });
   }
 
   void stopQuotes() {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {"stop_quotes": {}},
-      }),
-    );
+    _sendMessage({
+      "id": 1,
+      "method": "market",
+      "params": {"stop_quotes": {}},
+    });
   }
 
   void subscribeToPriceStream(String baseAsset, String quoteAsset) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {
-          "chart_sub": {
-            "asset_pair": {
-              {"base": baseAsset, "quote": quoteAsset},
-            },
+    _sendMessage({
+      "id": 1,
+      "method": "market",
+      "params": {
+        "chart_sub": {
+          "asset_pair": {
+            "base": baseAsset,
+            "quote": quoteAsset,
           },
         },
-      }),
-    );
+      },
+    });
   }
 
   void unsubscribeFromPriceStream(String baseAsset, String quoteAsset) {
-    _channel.sink.add(
-      json.encode({
-        "id": 1,
-        "method": "market",
-        "params": {
-          "chart_unsub": {
-            "asset_pair": {
-              {"base": baseAsset, "quote": quoteAsset},
-            },
+    _sendMessage({
+      "id": 1,
+      "method": "market",
+      "params": {
+        "chart_unsub": {
+          "asset_pair": {
+            "base": baseAsset,
+            "quote": quoteAsset,
           },
         },
-      }),
-    );
+      },
+    });
+  }
+
+  void dispose() {
+    _loginController.close();
+    _pegController.close();
+    _pegStatusController.close();
+    _subscribeController.close();
+    _unsubscribeController.close();
+    _subscribedController.close();
+    _serverStatusController.close();
+    _assetsController.close();
+    _marketController.close();
+    _wsService.dispose();
   }
 }
