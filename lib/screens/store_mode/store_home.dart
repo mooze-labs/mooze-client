@@ -69,6 +69,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
                           onPinConfirmed: () async {
                             _onReturnWalletTap(context);
                           },
+                          forceAuth: true,
                         ),
                   ),
                 );
