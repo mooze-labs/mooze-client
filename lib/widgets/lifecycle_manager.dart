@@ -64,12 +64,12 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
       case AppLifecycleState.paused:
         // _invalidateSessionIfNeeded();
         _isRunning = false;
-        sideswap.dispose();
+        sideswap.stopQuotes();
         break;
 
       case AppLifecycleState.detached:
         syncService.stopPeriodicSync();
-        sideswap.dispose();
+        sideswap.stopQuotes();
         _isRunning = false;
         break;
 
