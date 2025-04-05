@@ -4,7 +4,7 @@ description: "Wallet with on-chain Bitcoin and Liquid Network support."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.1.0+1
 
 environment:
   sdk: ^3.7.0
@@ -53,6 +53,8 @@ dependencies:
   mobile_scanner: ^6.0.7
   no_screenshot: ^0.3.1
   firebase_core: ^3.4.0
+  firebase_messaging: ^15.1.0
+  flutter_local_notifications: ^19.0.0
 
 dependency_overrides:
   flutter_secure_storage: 9.2.4
