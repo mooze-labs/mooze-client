@@ -107,9 +107,9 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
       return false;
     }
 
-    if (user!.isFirstTransaction && amount > 250 * 100) {
+    if (amount > user.allowedSpending) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Limite de primeira transação excedido.")),
+        const SnackBar(content: Text("Limite de transação excedido.")),
       );
       return false;
     }

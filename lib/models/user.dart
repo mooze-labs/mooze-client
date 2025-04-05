@@ -1,13 +1,13 @@
 class User {
   String id;
   int dailySpending;
-  bool isFirstTransaction;
+  int allowedSpending;
   bool verified;
 
   User({
     required this.id,
     required this.dailySpending,
-    required this.isFirstTransaction,
+    required this.allowedSpending,
     required this.verified,
   });
 
@@ -15,7 +15,7 @@ class User {
     return User(
       id: json['user_id'],
       dailySpending: json['daily_spending'],
-      isFirstTransaction: json['is_first_transaction'],
+      allowedSpending: json['allowed_spending'],
       verified: json['verified'],
     );
   }

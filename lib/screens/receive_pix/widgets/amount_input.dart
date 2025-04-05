@@ -121,15 +121,8 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
 
               final user = snapshot.data!;
 
-              if (user.isFirstTransaction) {
-                return Text(
-                  "Limite de primeira transação: R\$ 250",
-                  style: TextStyle(fontFamily: "roboto", fontSize: 16),
-                );
-              }
-
               return Text(
-                "Limite diário restante: R\$ ${5000 - user.dailySpending / 100}",
+                "Limite diário restante: R\$ ${(user.allowedSpending.toDouble() / 100).toStringAsFixed(2)}",
                 style: TextStyle(fontFamily: "roboto", fontSize: 16),
               );
             },

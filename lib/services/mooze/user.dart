@@ -41,7 +41,7 @@ class UserService {
       return User(
         id: userId,
         dailySpending: 0,
-        isFirstTransaction: true,
+        allowedSpending: 250,
         verified: false,
       );
     }

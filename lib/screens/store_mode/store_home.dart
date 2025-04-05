@@ -49,7 +49,8 @@ class StoreHomeState extends State<StoreHomeScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ReceivePixStoreScreen()),
+              MaterialPageRoute(
+                  builder: (context) => ReceivePixStoreModeScreen()),
             );
           },
           icon: Icons.payment,
