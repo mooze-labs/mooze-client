@@ -149,6 +149,28 @@ class AddressDisplay extends ConsumerWidget {
                   ),
                 ],
               ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Taxa de parceiros",
+                    style: TextStyle(
+                      fontFamily: "roboto",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSecondary,
+                    ),
+                  ),
+                  Text(
+                    "R\$ 1.00",
+                    style: TextStyle(
+                      fontFamily: "roboto",
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

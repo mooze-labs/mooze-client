@@ -55,7 +55,7 @@ class TransactionInfo extends ConsumerWidget {
 
         final amountInReais = amount / 100.0;
         final assetAmount = amountInReais / fiatPrice!;
-        final fees = (assetAmount * feeRate);
+        final fees = (assetAmount * feeRate) + 1;
         final amountToReceive = assetAmount - fees;
 
         return Container(
