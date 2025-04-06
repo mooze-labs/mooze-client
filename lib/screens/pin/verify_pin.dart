@@ -14,6 +14,7 @@ class VerifyPinScreen extends StatefulWidget {
   bool isAppResuming;
 
   VerifyPinScreen({
+    super.key,
     required this.onPinConfirmed,
     this.forceAuth = false,
     this.isAppResuming = false,
@@ -45,9 +46,9 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     // 1. We're in store mode, or
     // 2. User authenticated less than a minute ago (and we're not forcing auth), or
     // 3. No PIN has been set up
-    if ((isStoreMode ||
+    if ((isStoreMode && !widget.forceAuth) ||
         (hasValidSession && !widget.forceAuth) ||
-        !isPinSetup)) {
+        !isPinSetup) {
       widget.onPinConfirmed();
     } else {
       if (mounted) {
