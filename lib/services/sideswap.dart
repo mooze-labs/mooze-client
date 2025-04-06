@@ -47,21 +47,27 @@ class SideswapService {
   }
 
   void _setupStreamListeners() {
-    _wsService.stream.listen((message) {
-      try {
-        final data = json.decode(message);
-        _handleMessage(data);
-      } catch (e) {
-        debugPrint('Error decoding message: $e');
-      }
-    }, onError: (error) {
-      debugPrint('WebSocket stream error: $error');
-    });
+    _wsService.stream.listen(
+      (message) {
+        try {
+          final data = json.decode(message);
+          _handleMessage(data);
+        } catch (e) {
+          debugPrint('Error decoding message: $e');
+        }
+      },
+      onError: (error) {
+        debugPrint('WebSocket stream error: $error');
+      },
+    );
   }
 
   void _handleMessage(Map<String, dynamic> data) {
     if (data.containsKey('method')) {
       final method = data['method'];
+      if (kDebugMode) {
+        debugPrint('Sideswap message: $data');
+      }
       switch (method) {
         case "login_client":
           _loginController.add(data);
@@ -118,14 +124,13 @@ class SideswapService {
       _wsService.ensureConnected();
     }
     _wsService.send(json.encode(message));
+    if (kDebugMode) {
+      debugPrint('Sideswap message sent: $message');
+    }
   }
 
   void serverStatus() {
-    _sendMessage({
-      "id": 1,
-      "method": "server_status",
-      "params": {},
-    });
+    _sendMessage({"id": 1, "method": "server_status", "params": null});
   }
 
   void peg(bool pegIn, String recvAddr) {
@@ -239,10 +244,7 @@ class SideswapService {
       "method": "market",
       "params": {
         "chart_sub": {
-          "asset_pair": {
-            "base": baseAsset,
-            "quote": quoteAsset,
-          },
+          "asset_pair": {"base": baseAsset, "quote": quoteAsset},
         },
       },
     });
@@ -254,10 +256,7 @@ class SideswapService {
       "method": "market",
       "params": {
         "chart_unsub": {
-          "asset_pair": {
-            "base": baseAsset,
-            "quote": quoteAsset,
-          },
+          "asset_pair": {"base": baseAsset, "quote": quoteAsset},
         },
       },
     });
