@@ -22,7 +22,7 @@ class ConfirmSendTransactionScreen extends ConsumerStatefulWidget {
   final int amount;
   final double? feeRate;
 
-  ConfirmSendTransactionScreen({
+  const ConfirmSendTransactionScreen({
     super.key,
     required this.ownedAsset,
     required this.address,
@@ -115,37 +115,45 @@ class ConfirmSendTransactionState
   }
 
   Future<void> signAndRedirect() async {
-    try {
-      final transaction = await signTransaction();
-      if (kDebugMode) {
-        debugPrint(transaction.txid);
-      }
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => VerifyPinScreen(
-                  onPinConfirmed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => TransactionSentScreen(
-                              transaction: transaction,
-                              amount: widget.amount,
-                            ),
-                      ),
-                    );
-                  },
-                  forceAuth: true,
-                ),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Não foi possível assinar a transação: $e")),
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => VerifyPinScreen(
+                onPinConfirmed: () async {
+                  try {
+                    final transaction = await signTransaction();
+                    if (kDebugMode) {
+                      debugPrint(transaction.txid);
+                    }
+                    if (mounted) {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => TransactionSentScreen(
+                                transaction: transaction,
+                                amount: widget.amount,
+                              ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Não foi possível assinar a transação: $e",
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                forceAuth: true,
+              ),
+        ),
       );
     }
   }
