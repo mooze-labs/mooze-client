@@ -22,13 +22,14 @@ const BACKEND_URL = String.fromEnvironment(
 );
 
 class ReceivePixStoreModeScreen extends ConsumerStatefulWidget {
-  const ReceivePixStoreModeScreen({Key? key}) : super(key: key);
+  const ReceivePixStoreModeScreen({super.key});
 
   @override
   ReceivePixStoreModeState createState() => ReceivePixStoreModeState();
 }
 
-class ReceivePixStoreModeState extends ConsumerState<ReceivePixStoreModeScreen> {
+class ReceivePixStoreModeState
+    extends ConsumerState<ReceivePixStoreModeScreen> {
   // depix as default asset
   Asset selectedAsset = AssetCatalog.getById("depix")!;
   late Future<String?> _addressFuture;
@@ -114,7 +115,7 @@ class ReceivePixStoreModeState extends ConsumerState<ReceivePixStoreModeScreen> 
       return false;
     }
 
-    if (amount < 20 * 100 && amount > 5000 * 100) {
+    if (amount < 20 * 100 || amount > 5000 * 100) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

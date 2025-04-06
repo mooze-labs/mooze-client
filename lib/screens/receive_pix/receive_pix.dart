@@ -62,7 +62,9 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     // Replace comma with dot for proper parsing
     final normalizedText = text.replaceAll(',', '.');
     final newAmount =
-        normalizedText.isEmpty ? 0.0 : double.tryParse(normalizedText) ?? 0.0;
+        normalizedText.isNotEmpty
+            ? double.tryParse(normalizedText) ?? 0.0
+            : 0.0;
 
     if (newAmount != _currentAmountFloat) {
       setState(() {
@@ -114,7 +116,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
       return false;
     }
 
-    if (amount < 20 * 100 && amount > 5000 * 100) {
+    if (amount < 20 * 100 || amount > 5000 * 100) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
