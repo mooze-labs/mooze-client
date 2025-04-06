@@ -50,7 +50,8 @@ class StoreHomeState extends State<StoreHomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => ReceivePixStoreModeScreen()),
+                builder: (context) => ReceivePixStoreModeScreen(),
+              ),
             );
           },
           icon: Icons.payment,
@@ -103,9 +104,12 @@ class StoreHomeState extends State<StoreHomeScreen> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Padding(padding: const EdgeInsets.all(16.0), child: body),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Padding(padding: const EdgeInsets.all(16.0), child: body),
+      ),
     );
   }
 }
