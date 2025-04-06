@@ -19,7 +19,7 @@ import 'package:mooze_mobile/widgets/inputs/amount_input.dart';
 import 'package:mooze_mobile/widgets/inputs/convertible_amount_input.dart';
 
 class SendFundsScreen extends ConsumerStatefulWidget {
-  const SendFundsScreen({Key? key}) : super(key: key);
+  const SendFundsScreen({super.key});
 
   @override
   SendFundsScreenState createState() => SendFundsScreenState();
@@ -28,6 +28,7 @@ class SendFundsScreen extends ConsumerStatefulWidget {
 class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
   OwnedAsset? selectedAsset;
   double? feeRate;
+  int? fees;
   int? assetAmountInSats;
   bool isFiatMode = false;
   final TextEditingController addressController = TextEditingController();
@@ -45,28 +46,43 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     super.dispose();
   }
 
-  void _handleAmountChanged(double amount) {
+  Future<void> _handleAmountChanged(double amount) async {
+    assetAmountInSats =
+        (amount * pow(10, selectedAsset!.asset.precision)).toInt();
+
     setState(() {
       if (selectedAsset == null) return;
-      assetAmountInSats =
-          (amount * pow(10, selectedAsset!.asset.precision)).toInt();
+      this.assetAmountInSats = assetAmountInSats;
     });
   }
 
-  int _calculateFeeAmount(double feeRate, int recipients, int outputs) {
-    const fixedWeight = 44;
-    const singlesigVinWeight = 367;
-    const voutWeight = 4810;
-    const feeWeight = 178;
+  Future<int?> _calculateFeeAmount(String address) async {
+    if (selectedAsset == null) {
+      return null;
+    }
 
-    final int txSize =
-        fixedWeight +
-        singlesigVinWeight * recipients +
-        voutWeight * outputs +
-        feeWeight;
+    if (address.isEmpty) {
+      return null;
+    }
 
-    final vsize = (txSize + 3) / 4;
-    return (vsize * feeRate).ceil();
+    final wallet = ref.watch(
+      walletRepositoryProvider(selectedAsset!.asset.network),
+    );
+    final feeRate =
+        (selectedAsset!.asset.network == Network.liquid) ? 1.0 : null;
+
+    final psbt = await wallet.buildPartiallySignedTransaction(
+      selectedAsset!,
+      address,
+      1,
+      feeRate,
+    );
+
+    setState(() {
+      fees = psbt.feeAmount;
+    });
+
+    return psbt.feeAmount;
   }
 
   Future<void> _updateNetworkFees() async {
@@ -85,13 +101,15 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       setState(() {
         feeRate = recommendedFees.halfHourFee.toDouble();
         if (kDebugMode) {
-          debugPrint("Fee rate updated to ${feeRate}");
+          debugPrint("Fee rate updated to $feeRate");
         }
       });
     } catch (e) {
-      print(
-        "[WARN] Failed to fetch network fees. Fallbacking to default. Error: $e",
-      );
+      if (kDebugMode) {
+        print(
+          "[WARN] Failed to fetch network fees. Fallbacking to default. Error: $e",
+        );
+      }
       setState(() {
         feeRate = 2.0;
       });
@@ -104,8 +122,11 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     _updateNetworkFees();
   }
 
-  void _handleContinue() {
-    print("Parsed amount in sats: $assetAmountInSats");
+  void _handleContinue() async {
+    if (kDebugMode) {
+      print("Parsed amount in sats: $assetAmountInSats");
+    }
+
     if (selectedAsset == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -115,6 +136,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       );
       return;
     }
+
     if (amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -124,12 +146,20 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       );
       return;
     }
+
     if (addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Digite um endereço."),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
+      );
+      return;
+    }
+
+    if (fees == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao calcular taxas de rede.")),
       );
       return;
     }
@@ -146,9 +176,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
-      final totalFees =
-          (feeRate != null) ? _calculateFeeAmount(feeRate!, 1, 2) : 100;
-
       // Compare the amount in sats directly with the available balance in sats
       if (assetAmountInSats! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,7 +189,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
-      if (assetAmountInSats! + 26 > selectedAsset!.amount) {
+      if (assetAmountInSats! + fees! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -253,6 +280,8 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
           fiatCurrency: baseCurrency,
           fiatPrice: 0.0,
           controller: amountController,
+          fees: fees,
+          maxAmount: selectedAsset!.amount,
         );
       },
       data: (prices) {
@@ -265,6 +294,8 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
           fiatPrice: price ?? 0.0,
           controller: amountController,
           onAmountChanged: _handleAmountChanged,
+          fees: fees,
+          maxAmount: selectedAsset!.amount,
         );
       },
     );
@@ -280,7 +311,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Padding(
               padding: EdgeInsets.only(top: 5),
@@ -293,12 +324,16 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
             SizedBox(height: 20),
             if (selectedAsset != null)
               AvailableFunds(ownedAsset: selectedAsset),
-            // Expanded widget to center the TextFields
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AddressInput(controller: addressController),
+                  AddressInput(
+                    controller: addressController,
+                    onAddressChanged: (address) {
+                      _calculateFeeAmount(address);
+                    },
+                  ),
                   SizedBox(height: 10),
                   AmountInput(
                     controller: amountController,
@@ -306,7 +341,11 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                         (selectedAsset != null)
                             ? selectedAsset!.asset
                             : AssetCatalog.bitcoin!,
-                    onAmountChanged: _handleAmountChanged,
+                    onAmountChanged: (amount) async {
+                      await _handleAmountChanged(amount);
+                    },
+                    fees: fees,
+                    maxAmount: selectedAsset?.amount,
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 8.0),
@@ -327,16 +366,11 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                               ),
                             ),
                   ),
-                  /*
-                  if (feeRate != null)
-                    Text(
-                      "Taxas totais: ${_calculateFeeAmount(feeRate!, 1, 2)} sats",
-                    ),
-                  */
+                  if (fees != null) Text("Taxas totais: ${fees} sats"),
                 ],
               ),
             ),
-            if (MediaQuery.of(context).viewInsets.bottom == 0) // check keyboard
+            if (!isKeyboardOpen)
               Padding(
                 padding: EdgeInsets.only(bottom: 100),
                 child: PrimaryButton(

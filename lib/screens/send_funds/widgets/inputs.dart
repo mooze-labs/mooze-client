@@ -6,7 +6,12 @@ import 'package:permission_handler/permission_handler.dart';
 
 class AddressInput extends StatefulWidget {
   final TextEditingController controller;
-  const AddressInput({super.key, required this.controller});
+  final Function(String) onAddressChanged;
+  const AddressInput({
+    super.key,
+    required this.controller,
+    required this.onAddressChanged,
+  });
   @override
   State<AddressInput> createState() => _AddressInputState();
 }
@@ -57,6 +62,7 @@ class _AddressInputState extends State<AddressInput> {
     if (result != null && mounted) {
       setState(() {
         widget.controller.text = result;
+        widget.onAddressChanged(result);
       });
     }
   }
@@ -67,6 +73,7 @@ class _AddressInputState extends State<AddressInput> {
       controller: widget.controller,
       maxLines: 1,
       textAlign: TextAlign.left,
+      onChanged: (value) => widget.onAddressChanged(value),
       decoration: InputDecoration(
         fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         filled: Theme.of(context).inputDecorationTheme.filled,

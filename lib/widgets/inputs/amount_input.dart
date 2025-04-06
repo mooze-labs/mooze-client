@@ -8,11 +8,15 @@ class AmountInput extends ConsumerWidget {
   final Asset asset;
   final TextEditingController controller;
   final Function(double amount) onAmountChanged;
+  final int? fees;
+  final int? maxAmount;
 
   AmountInput({
     required this.asset,
     required this.controller,
     required this.onAmountChanged,
+    this.fees,
+    this.maxAmount,
   });
 
   @override
@@ -34,6 +38,8 @@ class AmountInput extends ConsumerWidget {
       fiatPrice: fiatPrice,
       controller: controller,
       onAmountChanged: onAmountChanged,
+      fees: fees,
+      maxAmount: maxAmount,
     );
   }
 }
