@@ -27,6 +27,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   final TextEditingController pinController = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
   bool _isLoading = true;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -122,14 +123,31 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
               Spacer(),
               PrimaryButton(
                 text: "Continuar",
-                onPressed: () async {
-                  final auth = await _authService.authenticate(
-                    pinController.text,
-                  );
-                  if (auth) {
-                    widget.onPinConfirmed();
-                  }
-                },
+                onPressed:
+                    _isVerifying
+                        ? () {}
+                        : () {
+                          if (pinController.text.length != 6) return;
+
+                          setState(() {
+                            _isVerifying = true;
+                          });
+
+                          _authService
+                              .authenticate(pinController.text)
+                              .then((auth) {
+                                if (auth && mounted) {
+                                  widget.onPinConfirmed();
+                                }
+                              })
+                              .whenComplete(() {
+                                if (mounted) {
+                                  setState(() {
+                                    _isVerifying = false;
+                                  });
+                                }
+                              });
+                        },
               ),
               SizedBox(height: 100),
             ],
