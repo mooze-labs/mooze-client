@@ -209,9 +209,15 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
     final tx = await wallet.signTransaction(pst);
 
     if (mounted) {
+      // Clear any existing snackbars
+      ScaffoldMessenger.of(context).clearSnackBars();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Fundos enviados para peg-out.\nID: ${tx.txid}'),
+          content: Text(
+            'Fundos enviados para ${pegIn ? "peg-in" : "peg-out"}.\nId da transação: ${tx.txid}',
+          ),
+          duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: "Copiar ID",
             onPressed: () {

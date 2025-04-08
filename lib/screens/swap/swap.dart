@@ -75,7 +75,7 @@ class SwapScreen extends ConsumerStatefulWidget {
 class SwapScreenState extends ConsumerState<SwapScreen> {
   final TextEditingController _amountController = TextEditingController();
   double? inputAmount;
-  List<SwapUtxo> _swapUtxos = [];
+  final List<SwapUtxo> _swapUtxos = [];
 
   OwnedAsset? ownedSendAsset;
   Asset? receiveAsset;
@@ -190,15 +190,6 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
               market.quoteAssetId == recvAsset) ||
           (market.baseAssetId == recvAsset && market.quoteAssetId == sendAsset),
     );
-
-    if (market == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Mercado não disponível")));
-      }
-      return;
-    }
 
     debugPrint("Market retrieved: ");
     debugPrint("Base: ${market.baseAssetId}");
@@ -443,7 +434,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
               (ownedSendAsset!.asset.liquidAssetId! == baseAsset!)
                   ? quote.baseAmount
                   : quote.quoteAmount;
-          return Container(
+          return SizedBox(
             height: 150,
             child: LowBalanceQuoteDisplay(
               asset: ownedSendAsset!.asset,
@@ -455,7 +446,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
 
         if (quoteResponse.isError) {
           final quote = quoteResponse.error!;
-          return Container(
+          return SizedBox(
             height: 150,
             child: ErrorQuoteDisplay(errorMessage: quote.errorMessage),
           );
@@ -576,7 +567,7 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
 }
 
 class PegScreen extends ConsumerStatefulWidget {
-  const PegScreen({Key? key}) : super(key: key);
+  const PegScreen({super.key});
 
   @override
   ConsumerState<PegScreen> createState() => _PegScreenState();
@@ -600,14 +591,40 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     super.initState();
     final sideswapClient = ref.read(sideswapRepositoryProvider);
 
+    _checkConnection();
     sideswapClient.subscribeToPegInWalletBalance();
     sideswapClient.subscribeToPegOutWalletBalance();
 
     serverStatus = sideswapClient.getServerStatus();
+    if (kDebugMode) {
+      print("Server status: $serverStatus");
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkActivePegOperation();
     });
+  }
+
+  void _checkConnection() {
+    final sideswapClient = ref.read(sideswapRepositoryProvider);
+    final connected = sideswapClient.ensureConnection();
+
+    if (!connected && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Falha na conexão com Sideswap. Tentando reconectar...',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          sideswapClient.init();
+        }
+      });
+    }
   }
 
   Future<void> _checkActivePegOperation() async {
@@ -734,7 +751,9 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           return false;
         }
 
-        final amountInSats = (parsedBalance * pow(10, 8)).toInt();
+        final fees = 250;
+
+        final amountInSats = (parsedBalance * pow(10, 8)).toInt() + fees;
         final pegAsset = pegIn.first ? bitcoin : liquid;
 
         if (kDebugMode) {
@@ -743,7 +762,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           debugPrint("Amount in wallet: ${pegAsset.amount}");
         }
 
-        if (pegAsset.amount < amountInSats) {
+        if (pegAsset.amount <= amountInSats) {
           debugPrint("1");
           return false;
         }
@@ -784,7 +803,7 @@ class _PegScreenState extends ConsumerState<PegScreen> {
           );
         }
         */
-        this.asset = pegAsset;
+        asset = pegAsset;
         return true;
       },
     );
@@ -812,6 +831,9 @@ class _PegScreenState extends ConsumerState<PegScreen> {
     final fundsValidation = await checkFunds(minAmount);
 
     if (!fundsValidation) {
+      if (kDebugMode) {
+        debugPrint("Funds validation failed");
+      }
       if (mounted) {
         if (!receiveFromExternalWallet && pegIn.first == true) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -906,6 +928,8 @@ class _PegScreenState extends ConsumerState<PegScreen> {
               onSelectionChanged: (Set<bool> newSelection) {
                 setState(() {
                   pegIn = newSelection;
+                  sendToExternalWallet = false;
+                  receiveFromExternalWallet = false;
                 });
               },
             ),

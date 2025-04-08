@@ -88,7 +88,7 @@ class FinishedSwapInfo extends StatelessWidget {
             "Recebido",
             "${(receivedAmount / pow(10, receivedAsset.precision)).toStringAsFixed(receivedAsset.precision)} ${receivedAsset.ticker}",
           ),
-          _buildSwapDetailRow("Taxas", "$fees sats"),
+          // _buildSwapDetailRow("Taxas", "$fees sats"),
         ],
       ),
     );
