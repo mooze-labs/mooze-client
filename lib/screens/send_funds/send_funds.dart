@@ -65,22 +65,46 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       return null;
     }
 
+    if (this.feeRate == null) {
+      return null;
+    }
+
     final wallet = ref.watch(
       walletRepositoryProvider(selectedAsset!.asset.network),
     );
     final feeRate =
-        (selectedAsset!.asset.network == Network.liquid) ? 1.0 : null;
+        (selectedAsset!.asset.network == Network.liquid) ? 1.0 : this.feeRate;
+
+    if (selectedAsset!.asset.network == Network.bitcoin) {
+      final psbt = await wallet.buildPartiallySignedTransaction(
+        selectedAsset!,
+        address,
+        1,
+        null,
+      );
+
+      setState(() {
+        fees = 200;
+      });
+
+      return 200;
+    }
 
     final psbt = await wallet.buildPartiallySignedTransaction(
       selectedAsset!,
       address,
       1,
-      feeRate,
+      (selectedAsset!.asset.network == Network.liquid) ? feeRate : null,
     );
 
     setState(() {
       fees = psbt.feeAmount;
     });
+
+    if (kDebugMode) {
+      print("Recipient: ${psbt.recipient}");
+      print("Fee amount: $fees");
+    }
 
     return psbt.feeAmount;
   }
@@ -157,7 +181,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       return;
     }
 
-    if (fees == null) {
+    if (fees == null && selectedAsset!.asset.network == Network.liquid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Erro ao calcular taxas de rede.")),
       );
@@ -189,6 +213,8 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
+      final fees =
+          (selectedAsset!.asset.network == Network.bitcoin) ? 200 : this.fees;
       if (assetAmountInSats! + fees! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -262,45 +288,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     );
   }
 
-  Widget _amountInput() {
-    final fiatPrices = ref.watch(fiatPricesProvider);
-    final baseCurrency = ref.watch(baseCurrencyProvider);
-
-    if (selectedAsset == null) {
-      return Container();
-    }
-
-    return fiatPrices.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (err, stack) {
-        return ConvertibleAmountInput(
-          assetId: selectedAsset!.asset.id,
-          assetTicker: selectedAsset!.asset.ticker,
-          assetPrecision: selectedAsset!.asset.precision,
-          fiatCurrency: baseCurrency,
-          fiatPrice: 0.0,
-          controller: amountController,
-          fees: fees,
-          maxAmount: selectedAsset!.amount,
-        );
-      },
-      data: (prices) {
-        final price = prices[selectedAsset!.asset.fiatPriceId];
-        return ConvertibleAmountInput(
-          assetId: selectedAsset!.asset.id,
-          assetTicker: selectedAsset!.asset.ticker,
-          assetPrecision: selectedAsset!.asset.precision,
-          fiatCurrency: baseCurrency,
-          fiatPrice: price ?? 0.0,
-          controller: amountController,
-          onAmountChanged: _handleAmountChanged,
-          fees: fees,
-          maxAmount: selectedAsset!.amount,
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final ownedAssetsState = ref.watch(ownedAssetsNotifierProvider);
@@ -344,7 +331,12 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                     onAmountChanged: (amount) async {
                       await _handleAmountChanged(amount);
                     },
-                    fees: fees,
+                    fees:
+                        (selectedAsset != null &&
+                                (selectedAsset!.asset.network ==
+                                    Network.bitcoin))
+                            ? 200
+                            : fees,
                     maxAmount: selectedAsset?.amount,
                   ),
                   Padding(
@@ -366,7 +358,13 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                               ),
                             ),
                   ),
-                  if (fees != null) Text("Taxas totais: ${fees} sats"),
+                  (fees != null &&
+                          selectedAsset!.asset.network == Network.liquid)
+                      ? Text("Taxas totais: ${fees} sats")
+                      : (selectedAsset != null &&
+                          selectedAsset!.asset.network == Network.bitcoin)
+                      ? Text("Taxas totais: 200 sats")
+                      : Text(""),
                 ],
               ),
             ),
