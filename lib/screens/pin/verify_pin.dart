@@ -28,6 +28,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   final AuthenticationService _authService = AuthenticationService();
   bool _isLoading = true;
   bool _isVerifying = false;
+  bool _isLocked = true;
 
   @override
   void initState() {
@@ -50,6 +51,9 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     if ((isStoreMode && !widget.forceAuth) ||
         (hasValidSession && !widget.forceAuth) ||
         !isPinSetup) {
+      setState(() {
+        _isLocked = false;
+      });
       widget.onPinConfirmed();
     } else {
       if (mounted) {
@@ -127,7 +131,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                     _isVerifying
                         ? () {}
                         : () {
-                          if (pinController.text.length != 6) return;
+                          if (pinController.text.length < 6) return;
 
                           setState(() {
                             _isVerifying = true;
@@ -137,7 +141,34 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                               .authenticate(pinController.text)
                               .then((auth) {
                                 if (auth && mounted) {
+                                  print("Auth successful");
+                                  setState(() {
+                                    _isLocked = false;
+                                  });
                                   widget.onPinConfirmed();
+                                } else if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'PIN incorreto. Tente novamente.',
+                                      ),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                  pinController.clear();
+                                }
+                              })
+                              .catchError((error) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Erro: ${error.toString()}',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                  pinController.clear();
                                 }
                               })
                               .whenComplete(() {

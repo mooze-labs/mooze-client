@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +39,7 @@ class AuthenticationService {
 
   Future<bool> authenticate(String pin) async {
     final isSessionValid = await hasValidSession();
+    debugPrint("Session is considered valid: $isSessionValid");
     if (isSessionValid) {
       return true;
     }
@@ -55,9 +57,15 @@ class AuthenticationService {
     var bytes = utf8.encode("$pin$salt");
     var digest = sha256.convert(bytes);
 
-    bool success = digest.toString() == hashedPin;
+    print("Digest: $digest");
+    print("Hashed pin: $hashedPin");
 
-    await _updateLastAuthTime();
+    bool success = digest.toString() == hashedPin;
+    print("Success: $success");
+
+    if (success) {
+      await _updateLastAuthTime();
+    }
     await _updateAttempts(success);
     return success;
   }
@@ -104,16 +112,18 @@ class AuthenticationService {
     var attempts = prefs.getInt("pinAttempts") ?? 0;
 
     if (!success) {
-      prefs.setInt("pinAttemps", attempts++);
+      prefs.setInt("pinAttempts", attempts++);
     }
 
-    final exceededAttempts = await _tooManyAttempts();
-    if (exceededAttempts) {
-      await secureStorage.deleteAll(); // deletes EVERYTHING
-    }
+    //final exceededAttempts = await _tooManyAttempts();
+    //if (exceededAttempts) {
+    //  await secureStorage.deleteAll(); // deletes EVERYTHING
+    //}
 
     await prefs.setInt("pinAttempts", 0);
-    await prefs.setInt("lastAuthTime", DateTime.now().millisecondsSinceEpoch);
+    if (success) {
+      await prefs.setInt("lastAuthTime", DateTime.now().millisecondsSinceEpoch);
+    }
   }
 
   Future<void> _updateLastAuthTime() async {
