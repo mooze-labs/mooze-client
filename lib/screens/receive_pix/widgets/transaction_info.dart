@@ -54,9 +54,9 @@ class TransactionInfo extends ConsumerWidget {
             FeeCalculator(assetId: assetId, fiatAmount: amount).getFees();
 
         // Convert amount from cents to reais for display
-        final amountInReais = amount / 100.0;
+        final amountInReais = (amount - 100) / 100.0;
         final assetAmount = amountInReais / fiatPrice!;
-        final fees = (assetAmount * feeRate) + 1;
+        final fees = assetAmount * feeRate;
         final amountToReceive = assetAmount - fees;
 
         return Container(

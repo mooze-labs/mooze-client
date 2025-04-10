@@ -84,10 +84,10 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       );
 
       setState(() {
-        fees = 200;
+        fees = 250;
       });
 
-      return 200;
+      return 250;
     }
 
     final psbt = await wallet.buildPartiallySignedTransaction(
@@ -214,7 +214,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       }
 
       final fees =
-          (selectedAsset!.asset.network == Network.bitcoin) ? 200 : this.fees;
+          (selectedAsset!.asset.network == Network.bitcoin) ? 250 : this.fees;
       if (assetAmountInSats! + fees! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -335,7 +335,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                         (selectedAsset != null &&
                                 (selectedAsset!.asset.network ==
                                     Network.bitcoin))
-                            ? 200
+                            ? 250
                             : fees,
                     maxAmount: selectedAsset?.amount,
                   ),
@@ -363,7 +363,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                       ? Text("Taxas totais: ${fees} sats")
                       : (selectedAsset != null &&
                           selectedAsset!.asset.network == Network.bitcoin)
-                      ? Text("Taxas totais: 200 sats")
+                      ? Text("Taxas totais: 250 sats")
                       : Text(""),
                 ],
               ),

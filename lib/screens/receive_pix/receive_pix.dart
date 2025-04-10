@@ -80,7 +80,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
       return;
     }
 
-    if (asset.id != "depix") {
+    if (asset.id != "depix" && asset.id != "lbtc") {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Em breve.")));
@@ -239,13 +239,38 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             amountController: amountController,
                             onChanged: _handleTextChanged,
                           ),
-                          Text(
-                            "• Valor mínimo: R\$ 20,00 \n• Valor máximo: R\$ 5.000,00",
-                            style: TextStyle(
-                              fontFamily: "roboto",
-                              fontSize: 16,
-                            ),
-                            textAlign: TextAlign.center,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Text(
+                                "• Valor mínimo: R\$ 20,00 \n• Limite diário por CPF/CNPJ: R\$ 5.000,00",
+                                style: TextStyle(
+                                  fontFamily: "roboto",
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) => AlertDialog(
+                                          title: Text("Limite diário"),
+                                          scrollable: true,
+                                          content: Text("""
+O limite de pagamento via PIX na Mooze é compartilhado com outras plataformas que utilizam o sistema DEPIX, incluindo compras P2P ou concorrentes. Esse limite é monitorado pelas processadoras de pagamento por meio do sistema PIX do BACEN, com base no CPF ou CNPJ vinculado ao DEPIX. Assim, ao atingir o teto diário de R\$5.000 em transações realizadas fora da Mooze, novas tentativas de pagamento via nossos QR Codes serão automaticamente bloqueadas e estornadas à conta de origem.
+Essa limitação protege o usuário contra a obrigatoriedade de reporte automático de transações. Nem a Mooze nem as processadoras realizam comunicação compulsória dessas operações, preservando a sua privacidade.
+                                        """),
+                                        ),
+                                  );
+                                },
+                                child: Icon(
+                                  Icons.question_mark,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),

@@ -20,14 +20,14 @@ class AddressDisplay extends ConsumerWidget {
     if (fiatPrice == 0) return "";
     if (fiatAmountInCents == 0) return "0.00000000";
     // Convert cents to whole amount
-    double fiatAmount = fiatAmountInCents / 100.0;
+    double fiatAmount = (fiatAmountInCents - 100) / 100.0;
     double assetAmount = fiatAmount / fiatPrice;
     double feeRate =
         FeeCalculator(
           assetId: asset.id,
           fiatAmount: fiatAmountInCents,
         ).getFees();
-    double amountAfterFees = assetAmount - (assetAmount * feeRate) - 1;
+    double amountAfterFees = assetAmount - (assetAmount * feeRate);
 
     return amountAfterFees.toStringAsFixed(asset.precision);
   }

@@ -53,9 +53,9 @@ class TransactionInfo extends ConsumerWidget {
         final feeRate =
             FeeCalculator(assetId: assetId, fiatAmount: amount).getFees();
 
-        final amountInReais = amount / 100.0;
+        final amountInReais = (amount - 100) / 100.0;
         final assetAmount = amountInReais / fiatPrice!;
-        final fees = (assetAmount * feeRate) + 1;
+        final fees = assetAmount * feeRate;
         final amountToReceive = assetAmount - fees;
 
         return Container(

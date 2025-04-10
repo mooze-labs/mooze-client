@@ -1,5 +1,6 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/screens/create_wallet/generate_mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:no_screenshot/no_screenshot.dart';
@@ -102,13 +103,15 @@ class _CreateWalletScreenState extends State<CreateWalletScreen> {
                     await noScreenshot.screenshotOff();
 
                     if (context.mounted) {
-                      Navigator.pushNamed(
+                      Navigator.push(
                         context,
-                        '/generate_mnemonic',
-                        arguments: {
-                          'language': selectedLanguage,
-                          'extendedPhrase': extendedPhrase,
-                        },
+                        MaterialPageRoute(
+                          builder:
+                              (context) => GenerateMnemonicScreen(
+                                language: selectedLanguage,
+                                extendedPhrase: extendedPhrase,
+                              ),
+                        ),
                       );
                     }
                   },

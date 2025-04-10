@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
+import 'package:mooze_mobile/screens/receive_pix/receive_pix.dart';
 import 'package:mooze_mobile/screens/store_mode/receive_pix_store_mode.dart';
 import 'package:mooze_mobile/screens/wallet/wallet.dart';
 import 'package:mooze_mobile/services/auth.dart';
@@ -49,9 +50,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => ReceivePixStoreModeScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => ReceivePixScreen()),
             );
           },
           icon: Icons.payment,

@@ -110,20 +110,46 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
               }
 
               if (snapshot.hasError) {
-                print(snapshot.error);
-                return Text("Limite diário indisponível.");
+                return Text("Limite de transação indisponível.");
               }
 
               if (snapshot.data == null) {
-                print("Problema de conexão.");
-                return Text("Limite diário indisponível.");
+                return Text("Limite de transação indisponível.");
               }
 
               final user = snapshot.data!;
 
-              return Text(
-                "Limite diário restante: R\$ ${(user.allowedSpending.toDouble() / 100).toStringAsFixed(2)}",
-                style: TextStyle(fontFamily: "roboto", fontSize: 16),
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Text(
+                    "Limite por transação atual: R\$ ${(user.allowedSpending.toDouble() / 100).toStringAsFixed(2)}",
+                    style: TextStyle(fontFamily: "roboto", fontSize: 16),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: Text("Limite por transação"),
+                              scrollable: true,
+                              content: Text("""
+Novas carteiras passam por um filtro da Mooze, as primeiras transações possuem um sistema de segurança onde existem limites de valores por transações:
+1ª degrau - até R\$250 por transação. Ao atingir compras de R\$250, o usuário libera o próximo degrau;
+2ª degrau - até R\$750 por transação. Ao atingir compras de R\$750, o usuário libera o próximo degrau;
+3ª degrau - até R\$1500 por transação. Ao atingir compras de R\$1500, usuário finaliza o sistema TRUST e tem compras liberadas de R\$20 a R\$5000 com seu restante de saldo diário.
+A rota completa de degraus do sistema TRUST é necessária apenas uma vez.
+""", style: TextStyle(fontFamily: "roboto", fontSize: 16)),
+                            ),
+                      );
+                    },
+                    child: Icon(
+                      Icons.question_mark,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
               );
             },
           ),

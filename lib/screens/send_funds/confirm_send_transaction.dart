@@ -128,7 +128,7 @@ class ConfirmSendTransactionState
                       debugPrint(transaction.txid);
                     }
                     if (mounted) {
-                      await Navigator.push(
+                      await Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder:
