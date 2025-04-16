@@ -13,6 +13,7 @@ class BitcoinWalletRepository implements WalletRepository {
   bitcoin.Wallet? _wallet;
   bitcoin.Network? _network;
   bitcoin.Blockchain? _blockchain;
+  String? publicDescriptor;
 
   @override
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
@@ -66,6 +67,17 @@ class BitcoinWalletRepository implements WalletRepository {
       network: _network!,
       databaseConfig: const bitcoin.DatabaseConfig.memory(),
     );
+
+    final externalPublicDescriptor = await bitcoin.Descriptor.create(
+      descriptor: descriptorPrivate.toString(),
+      network: _network!,
+    );
+
+    publicDescriptor = externalPublicDescriptor.toString();
+
+    if (kDebugMode) {
+      print("Public descriptor: $publicDescriptor");
+    }
 
     await _wallet!.sync(blockchain: _blockchain!);
 
@@ -143,17 +155,15 @@ class BitcoinWalletRepository implements WalletRepository {
     final script = address.scriptPubkey();
     final (psbt, txDetails) = await bitcoin.TxBuilder()
         .addRecipient(script, BigInt.from(amount))
+        .feeAbsolute(BigInt.from(250))
         .finish(_wallet!);
-
-    final feeAmount =
-        (psbt.feeAmount() != null) ? psbt.feeAmount()!.toInt() : null;
 
     final pst = PartiallySignedTransaction(
       pst: psbt,
       asset: asset.asset,
       network: Network.bitcoin,
       recipient: recipient,
-      feeAmount: feeAmount,
+      feeAmount: 250,
     );
 
     return pst;

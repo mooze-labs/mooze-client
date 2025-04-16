@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/pin/create_pin.dart';
 import 'package:mooze_mobile/screens/settings/view_mnemonic.dart';
+import 'package:mooze_mobile/screens/referral_input/referral_input_screen.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/mooze_drawer.dart';
@@ -32,6 +33,12 @@ class SettingsScreen extends ConsumerWidget {
             "Mudar PIN",
             Icons.lock,
             () => _changePin(context),
+          ),
+          _buildSettingsItem(
+            context,
+            "Cupom de Indicação",
+            Icons.card_giftcard,
+            () => _showReferralInput(context),
           ),
           _buildSettingsItem(
             context,
@@ -108,6 +115,7 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 }
               },
+              forceAuth: true,
             ),
       ),
     );
@@ -126,8 +134,16 @@ class SettingsScreen extends ConsumerWidget {
                   MaterialPageRoute(builder: (context) => CreatePinScreen()),
                 );
               },
+              forceAuth: true,
             ),
       ),
+    );
+  }
+
+  void _showReferralInput(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ReferralInputScreen()),
     );
   }
 

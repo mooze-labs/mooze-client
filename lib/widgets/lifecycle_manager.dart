@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/services/auth.dart';
@@ -24,6 +25,8 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
   final AuthenticationService _authService = AuthenticationService();
   final StoreModeHandler _storeModeHandler = StoreModeHandler();
   bool _needsVerification = false;
+  bool _isLocked = false;
+  bool _isRunning = true;
 
   @override
   void initState() {
@@ -42,11 +45,15 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
     debugPrint("App lifecycle state changed to: $state");
 
     final syncService = ref.read(walletSyncServiceProvider.notifier);
+    final sideswap = ref.read(sideswapRepositoryProvider);
 
     switch (state) {
       case AppLifecycleState.resumed:
         syncService.startPeriodicSync();
         syncService.syncNow();
+        _isRunning = true;
+
+        sideswap.ensureConnection();
 
         _checkAuthStatus();
         break;
@@ -55,11 +62,15 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
         break;
 
       case AppLifecycleState.paused:
-        _invalidateSessionIfNeeded();
+        // _invalidateSessionIfNeeded();
+        _isRunning = false;
+        sideswap.stopQuotes();
         break;
 
       case AppLifecycleState.detached:
         syncService.stopPeriodicSync();
+        sideswap.stopQuotes();
+        _isRunning = false;
         break;
 
       default:
@@ -80,20 +91,26 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
   }
 
   Future<void> _checkAuthStatus() async {
-    if (!_needsVerification) return;
+    if (_isLocked) return;
+    if (_isRunning) return;
 
     bool isStoreMode = await _storeModeHandler.isStoreMode();
     if (isStoreMode) {
-      _needsVerification = false;
       return;
     }
 
     bool hasValidSession = await _authService.hasValidSession();
-
     if (hasValidSession) {
-      _needsVerification = false;
       return;
     }
+
+    if (!mounted) return;
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == '/verify_pin') {
+      return;
+    }
+
+    setState(() => _isLocked = true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.navigatorKey.currentState?.push(
@@ -104,7 +121,10 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
                 canPop: false,
                 child: VerifyPinScreen(
                   onPinConfirmed: () {
-                    _needsVerification = false;
+                    setState(() {
+                      _needsVerification = false;
+                      _isLocked = false;
+                    });
                     widget.navigatorKey.currentState?.pop();
                   },
                   isAppResuming: true,

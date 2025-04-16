@@ -13,6 +13,7 @@ class WebSocketService {
   bool _isConnected = false;
   bool _isDisposed = false;
   DateTime? _lastConnectAttempt;
+  Completer<void>? _connectionCompleter;
 
   // Track connection state
   bool get isConnected => _isConnected && _channel != null;
@@ -27,7 +28,7 @@ class WebSocketService {
 
   Stream<dynamic> get stream => _controller.stream;
 
-  void _connect() {
+  Future<void> _connect() async {
     if (_isDisposed || _isConnected) return;
 
     // Prevent connection attempts too close together
@@ -38,6 +39,7 @@ class WebSocketService {
     }
 
     _lastConnectAttempt = now;
+    _connectionCompleter = Completer<void>();
 
     try {
       debugPrint("Connecting to ${url.toString()}");
@@ -50,10 +52,18 @@ class WebSocketService {
           if (!_isDisposed && !_controller.isClosed) {
             _controller.add(message);
           }
+          final completer = _connectionCompleter;
+          if (completer != null && !completer.isCompleted) {
+            completer.complete();
+          }
         },
         onError: (error) {
           debugPrint("WebSocket error: $error");
           _handleDisconnect();
+          final completer = _connectionCompleter;
+          if (completer != null && !completer.isCompleted) {
+            completer.completeError(error);
+          }
         },
         onDone: () {
           debugPrint("WebSocket connection closed");
@@ -61,15 +71,27 @@ class WebSocketService {
         },
         cancelOnError: false,
       );
+
+      // Wait for the first message to confirm connection
+      await _connectionCompleter?.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Connection timeout');
+        },
+      );
     } catch (e, stack) {
       debugPrint("WebSocket connection error: $e");
       debugPrint(stack.toString());
       _handleDisconnect();
+      rethrow;
+    } finally {
+      _connectionCompleter = null;
     }
   }
 
   void _handleDisconnect() {
     _isConnected = false;
+    _channel = null;
 
     if (!_isDisposed) {
       _attemptReconnect();
@@ -88,23 +110,37 @@ class WebSocketService {
   }
 
   // Add method to check and ensure connection
-  bool ensureConnected() {
+  Future<bool> ensureConnected() async {
     if (_isDisposed) return false;
     if (_isConnected && _channel != null) return true;
 
-    _connect();
-    return false;
+    try {
+      await _connect();
+      return true;
+    } catch (e) {
+      debugPrint("Failed to ensure connection: $e");
+      return false;
+    }
   }
 
   void send(dynamic data) {
     if (_isDisposed) return;
 
     if (!_isConnected) {
-      debugPrint("WebSocket not connected, cannot send data");
-      _connect();
-      return;
+      debugPrint("WebSocket not connected, attempting to connect...");
+      ensureConnected().then((connected) {
+        if (connected) {
+          _sendData(data);
+        } else {
+          debugPrint("Failed to connect, message not sent");
+        }
+      });
+    } else {
+      _sendData(data);
     }
+  }
 
+  void _sendData(dynamic data) {
     try {
       _channel?.sink.add(data);
     } catch (e) {

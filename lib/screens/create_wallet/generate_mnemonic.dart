@@ -1,5 +1,6 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/screens/create_wallet/confirm_mnemonic.dart';
 import 'package:mooze_mobile/screens/create_wallet/widgets/mnemonic_display.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
@@ -70,10 +71,13 @@ class GenerateMnemonicState extends State<GenerateMnemonicScreen> {
                     PrimaryButton(
                       text: "Confirmar",
                       onPressed: () {
-                        Navigator.pushNamed(
+                        Navigator.push(
                           context,
-                          "/confirm_mnemonic",
-                          arguments: mnemonic,
+                          MaterialPageRoute(
+                            builder:
+                                (context) =>
+                                    ConfirmMnemonicScreen(mnemonic: mnemonic),
+                          ),
                         );
                       },
                     ),

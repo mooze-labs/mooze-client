@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/providers/external/pix_gateway_provider.dart';
-import 'package:mooze_mobile/screens/generate_pix_payment_code/widgets/pix_qr_display.dart';
-import 'package:mooze_mobile/screens/generate_pix_payment_code/widgets/transaction_info.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/pix_qr_display.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/transaction_info.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 
 class GeneratePixPaymentCodeScreen extends ConsumerStatefulWidget {
@@ -42,7 +42,7 @@ class GeneratePixPaymentCodeState
         title: 'Gerar pagamento PIX',
         action: IconButton(
           icon: Icon(Icons.home),
-          onPressed: () => Navigator.pushNamed(context, "/store_mode"),
+          onPressed: () => Navigator.pushNamed(context, "/wallet"),
         ),
       ),
       body: paymentAsync.when(

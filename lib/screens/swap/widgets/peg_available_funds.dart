@@ -22,7 +22,7 @@ class PegAvailableFunds extends ConsumerWidget {
                 : ownedAssets.firstWhere((asset) => asset.asset.id == "lbtc");
 
         return Text(
-          "Valor disponível: ${(ownedAsset.amount / pow(10, ownedAsset.asset.precision)).toStringAsFixed(ownedAsset.asset.precision)} ${ownedAsset.asset.ticker}",
+          "Valor disponível (menos taxas): ${((ownedAsset.amount - 250) / pow(10, ownedAsset.asset.precision)).toStringAsFixed(ownedAsset.asset.precision)} ${ownedAsset.asset.ticker}",
         );
       },
     );

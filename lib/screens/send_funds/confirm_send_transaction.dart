@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
@@ -5,8 +6,9 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/transaction.dart';
 import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
-import 'package:mooze_mobile/screens/confirm_send_transaction/transaction_sent.dart';
-import 'package:mooze_mobile/screens/confirm_send_transaction/widgets/transaction_info.dart';
+import 'package:mooze_mobile/screens/send_funds/transaction_sent.dart';
+import 'package:mooze_mobile/screens/send_funds/widgets/transaction_info.dart';
+import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
@@ -20,7 +22,7 @@ class ConfirmSendTransactionScreen extends ConsumerStatefulWidget {
   final int amount;
   final double? feeRate;
 
-  ConfirmSendTransactionScreen({
+  const ConfirmSendTransactionScreen({
     super.key,
     required this.ownedAsset,
     required this.address,
@@ -113,22 +115,45 @@ class ConfirmSendTransactionState
   }
 
   Future<void> signAndRedirect() async {
-    try {
-      final transaction = await signTransaction();
-      debugPrint(transaction.txid);
+    if (mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder:
-              (context) => TransactionSentScreen(
-                transaction: transaction,
-                amount: widget.amount,
+              (context) => VerifyPinScreen(
+                onPinConfirmed: () async {
+                  try {
+                    final transaction = await signTransaction();
+                    if (kDebugMode) {
+                      debugPrint(transaction.txid);
+                    }
+                    if (mounted) {
+                      await Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => TransactionSentScreen(
+                                transaction: transaction,
+                                amount: widget.amount,
+                              ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Não foi possível assinar a transação: $e",
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                forceAuth: true,
               ),
         ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Não foi possível assinar a transação: $e")),
       );
     }
   }

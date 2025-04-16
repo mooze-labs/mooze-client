@@ -54,11 +54,6 @@ class LiquidWalletRepository implements WalletRepository {
     debugPrint("Liquid wallet initialized");
 
     await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
-    final txs = await _wallet!.txs();
-
-    for (var tx in txs) {
-      print(tx);
-    }
   }
 
   @override

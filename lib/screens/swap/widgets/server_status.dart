@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
@@ -80,6 +81,10 @@ class ServerStatusDisplay extends ConsumerWidget {
 
                 final pegOutWalletBalance =
                     pegOutSnapshot.hasData ? pegOutSnapshot.data! : 0;
+
+                if (kDebugMode) {
+                  print(serverSnapshot.data);
+                }
 
                 // Get server status values with fallbacks
                 final minPegInAmount =

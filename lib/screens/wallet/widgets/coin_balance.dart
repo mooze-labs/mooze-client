@@ -6,9 +6,9 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 
 class CoinBalance extends ConsumerWidget {
-  final OwnedAsset ownedAsset;
+  OwnedAsset ownedAsset;
   double? fiatPrice;
-  final bool isBalanceVisible; // toggle to show/hide amount
+  bool isBalanceVisible; // toggle to show/hide amount
 
   CoinBalance({
     super.key,

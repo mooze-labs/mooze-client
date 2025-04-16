@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MoozeDrawer extends StatelessWidget {
   const MoozeDrawer({Key? key}) : super(key: key);
@@ -57,8 +58,71 @@ class MoozeDrawer extends StatelessWidget {
               "/settings",
               currentRoute == "/settings",
             ),
+            _buildDrawerDivider(context),
+            _buildDrawerUrlItem(
+              context,
+              Icons.monetization_on,
+              "Saque de Depix",
+              "https://tally.so/r/w5EMVb",
+            ),
+            _buildDrawerUrlItem(
+              context,
+              Icons.data_usage,
+              "Central de dados",
+              "https://keepo.io/mooze.app/",
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerDivider(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Divider(
+        color: Theme.of(context).colorScheme.onSecondary.withOpacity(0.3),
+        thickness: 1,
+      ),
+    );
+  }
+
+  Widget _buildDrawerUrlItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String url,
+  ) {
+    final Color itemColor = Theme.of(context).colorScheme.onSecondary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        leading: Icon(icon, color: itemColor),
+        title: Text(
+          title,
+          style: TextStyle(color: itemColor, fontWeight: FontWeight.normal),
+        ),
+        trailing: Icon(Icons.open_in_new, size: 16, color: itemColor),
+        onTap: () async {
+          Navigator.pop(context);
+          try {
+            await launchUrl(
+              Uri.parse(url),
+              mode: LaunchMode.externalApplication,
+            );
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Não foi possível abrir o link")),
+              );
+            }
+          }
+        },
       ),
     );
   }

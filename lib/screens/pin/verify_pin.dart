@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
+import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
@@ -9,9 +10,15 @@ import 'package:mooze_mobile/widgets/appbar.dart';
 /// Screen to verify PIN for sensitive operations.
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
+  bool forceAuth;
   bool isAppResuming;
 
-  VerifyPinScreen({required this.onPinConfirmed, this.isAppResuming = false});
+  VerifyPinScreen({
+    super.key,
+    required this.onPinConfirmed,
+    this.forceAuth = false,
+    this.isAppResuming = false,
+  });
   @override
   State<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
@@ -20,6 +27,8 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   final TextEditingController pinController = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
   bool _isLoading = true;
+  bool _isVerifying = false;
+  bool _isLocked = true;
 
   @override
   void initState() {
@@ -30,13 +39,21 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   Future<void> _checkSession() async {
     final hasValidSession = await _authService.hasValidSession();
     final isPinSetup = await _authService.isPinSetup();
+    final isStoreMode = await StoreModeHandler().isStoreMode();
 
-    final noScreenshot =
-        NoScreenshot
-            .instance; // workaround to reactivate screenshots if user exited the app
+    final noScreenshot = NoScreenshot.instance;
     await noScreenshot.screenshotOn();
 
-    if (hasValidSession || !isPinSetup) {
+    // Skip verification if:
+    // 1. We're in store mode, or
+    // 2. User authenticated less than a minute ago (and we're not forcing auth), or
+    // 3. No PIN has been set up
+    if ((isStoreMode && !widget.forceAuth) ||
+        (hasValidSession && !widget.forceAuth) ||
+        !isPinSetup) {
+      setState(() {
+        _isLocked = false;
+      });
       widget.onPinConfirmed();
     } else {
       if (mounted) {
@@ -110,14 +127,58 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
               Spacer(),
               PrimaryButton(
                 text: "Continuar",
-                onPressed: () async {
-                  final auth = await _authService.authenticate(
-                    pinController.text,
-                  );
-                  if (auth) {
-                    widget.onPinConfirmed();
-                  }
-                },
+                onPressed:
+                    _isVerifying
+                        ? () {}
+                        : () {
+                          if (pinController.text.length < 6) return;
+
+                          setState(() {
+                            _isVerifying = true;
+                          });
+
+                          _authService
+                              .authenticate(pinController.text)
+                              .then((auth) {
+                                if (auth && mounted) {
+                                  print("Auth successful");
+                                  setState(() {
+                                    _isLocked = false;
+                                  });
+                                  widget.onPinConfirmed();
+                                } else if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'PIN incorreto. Tente novamente.',
+                                      ),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                  pinController.clear();
+                                }
+                              })
+                              .catchError((error) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Erro: ${error.toString()}',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                  pinController.clear();
+                                }
+                              })
+                              .whenComplete(() {
+                                if (mounted) {
+                                  setState(() {
+                                    _isVerifying = false;
+                                  });
+                                }
+                              });
+                        },
               ),
               SizedBox(height: 100),
             ],

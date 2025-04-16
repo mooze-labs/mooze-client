@@ -1,7 +1,9 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/screens/create_wallet/generate_mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 
 class CreateWalletScreen extends StatefulWidget {
   @override
@@ -33,6 +35,7 @@ class _CreateWalletScreenState extends State<CreateWalletScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                /*
                 Text(
                   "Selecione a linguagem da frase de recuperação",
                   style: TextStyle(
@@ -61,7 +64,7 @@ class _CreateWalletScreenState extends State<CreateWalletScreen> {
                       ),
                     ),
                 SizedBox(height: 20),
-
+                */
                 Text(
                   "Selecione o tamanho da frase",
                   style: TextStyle(
@@ -95,15 +98,22 @@ class _CreateWalletScreenState extends State<CreateWalletScreen> {
 
                 PrimaryButton(
                   text: "Gerar frase de recuperação",
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/generate_mnemonic',
-                      arguments: {
-                        'language': selectedLanguage,
-                        'extendedPhrase': extendedPhrase,
-                      },
-                    );
+                  onPressed: () async {
+                    final noScreenshot = NoScreenshot.instance;
+                    await noScreenshot.screenshotOff();
+
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => GenerateMnemonicScreen(
+                                language: selectedLanguage,
+                                extendedPhrase: extendedPhrase,
+                              ),
+                        ),
+                      );
+                    }
                   },
                 ),
               ],

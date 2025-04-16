@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 
 class AvailableFunds extends ConsumerWidget {

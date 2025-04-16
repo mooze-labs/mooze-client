@@ -38,11 +38,15 @@ class PixGatewayRepository {
       if (kDebugMode) {
         print("[DEBUG] PixTransactionResponse: $jsonResponse");
       }
-      return PixTransactionResponse(
-        qrImageUrl: jsonResponse["qr_image_url"],
-        qrCopyPaste: jsonResponse["qr_copy_paste"],
-        id: jsonResponse["id"],
-      );
+      if (jsonResponse["error"] == null) {
+        return PixTransactionResponse(
+          qrImageUrl: jsonResponse["data"]["qr_image_url"],
+          qrCopyPaste: jsonResponse["data"]["qr_copy_paste"],
+          id: jsonResponse["data"]["transaction_id"],
+        );
+      } else {
+        return null;
+      }
     }
 
     print(

@@ -8,7 +8,7 @@ import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/models/user.dart';
 import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
+import 'package:mooze_mobile/screens/receive_pix/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/amount_input.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
@@ -38,7 +38,8 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
 
   double _currentAmountFloat = 0.0;
   int _currentAmountInCents = 0;
-  User? userDetails;
+  User? _cachedUserDetails;
+  bool _isValidating = false;
 
   late Key dropdownKey = UniqueKey();
 
@@ -47,7 +48,6 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     super.initState();
     _addressFuture =
         ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
-
     _userFuture = _preloadUserData();
   }
 
@@ -62,7 +62,9 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     // Replace comma with dot for proper parsing
     final normalizedText = text.replaceAll(',', '.');
     final newAmount =
-        normalizedText.isEmpty ? 0.0 : double.tryParse(normalizedText) ?? 0.0;
+        normalizedText.isNotEmpty
+            ? double.tryParse(normalizedText) ?? 0.0
+            : 0.0;
 
     if (newAmount != _currentAmountFloat) {
       setState(() {
@@ -78,7 +80,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
       return;
     }
 
-    if (asset.id != "depix") {
+    if (asset.id != "depix" && asset.id != "lbtc") {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Em breve.")));
@@ -91,6 +93,57 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
       setState(() {
         selectedAsset = asset;
       });
+    }
+  }
+
+  Future<User?> _preloadUserData() async {
+    final userService = UserService(backendUrl: BACKEND_URL);
+    _cachedUserDetails = await userService.getUserDetails();
+    return _cachedUserDetails;
+  }
+
+  Future<bool> validateUserInput(int amount) async {
+    if (_isValidating) return false;
+    _isValidating = true;
+
+    try {
+      if (_cachedUserDetails == null) {
+        final userService = ref.read(userServiceProvider);
+        _cachedUserDetails = await userService.getUserDetails();
+      }
+
+      if (!mounted) return false;
+
+      if (_cachedUserDetails == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Não foi possível conectar ao servidor."),
+          ),
+        );
+        return false;
+      }
+
+      if (amount > _cachedUserDetails!.allowedSpending) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Limite de transação excedido.")),
+        );
+        return false;
+      }
+
+      if (amount < 20 * 100 || amount > 5000 * 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
+            ),
+          ),
+        );
+        return false;
+      }
+
+      return true;
+    } finally {
+      _isValidating = false;
     }
   }
 
@@ -122,31 +175,13 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     );
   }
 
-  Future<User?> _preloadUserData() async {
-    final userService = UserService(backendUrl: BACKEND_URL);
-    final userId = await userService.getUserId();
-
-    if (userId == null) {
-      final registrationService = RegistrationService(backendUrl: BACKEND_URL);
-      final newUserId = await registrationService.registerUser(null);
-
-      if (newUserId == null) {
-        debugPrint("Failed to register user");
-      }
-
-      await registrationService.saveUserId(newUserId!);
-    }
-
-    return await userService.getUserDetails();
-  }
-
   @override
   Widget build(BuildContext context) {
     final liquidWalletState = ref.watch(liquidWalletNotifierProvider);
     final liquidAssets = AssetCatalog.liquidAssets;
 
     return Scaffold(
-      appBar: MoozeAppBar(title: "Receber por PIX"),
+      appBar: MoozeAppBar(title: "Comprar com PIX"),
       body: liquidWalletState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error:
@@ -203,13 +238,38 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             amountController: amountController,
                             onChanged: _handleTextChanged,
                           ),
-                          Text(
-                            "• Valor mínimo: R\$ 20,00 \n• Valor máximo: R\$ 5.000,00",
-                            style: TextStyle(
-                              fontFamily: "roboto",
-                              fontSize: 16,
-                            ),
-                            textAlign: TextAlign.center,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Text(
+                                "• Valor mínimo: R\$ 20,00 \n• Limite diário por CPF/CNPJ: R\$ 5.000,00",
+                                style: TextStyle(
+                                  fontFamily: "roboto",
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) => AlertDialog(
+                                          title: Text("Limite diário"),
+                                          scrollable: true,
+                                          content: Text("""
+O limite de pagamento via PIX na Mooze é compartilhado com outras plataformas que utilizam o sistema DEPIX, incluindo compras P2P ou concorrentes. Esse limite é monitorado pelas processadoras de pagamento por meio do sistema PIX do BACEN, com base no CPF ou CNPJ vinculado ao DEPIX. Assim, ao atingir o teto diário de R\$5.000 em transações realizadas fora da Mooze, novas tentativas de pagamento via nossos QR Codes serão automaticamente bloqueadas e estornadas à conta de origem.
+Essa limitação protege o usuário contra a obrigatoriedade de reporte automático de transações. Nem a Mooze nem as processadoras realizam comunicação compulsória dessas operações, preservando a sua privacidade.
+                                        """),
+                                        ),
+                                  );
+                                },
+                                child: Icon(
+                                  Icons.question_mark,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -223,31 +283,12 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 70),
                               child: SwipeToConfirm(
-                                onConfirm: () {
-                                  if (selectedAsset == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Por favor, selecione um ativo.",
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                onConfirm: () async {
+                                  final result = await validateUserInput(
+                                    _currentAmountInCents,
+                                  );
 
-                                  // Check minimum amount in reais (2000 cents = R$ 20.00)
-                                  if (_currentAmountInCents < 2000 ||
-                                      _currentAmountInCents > 500000) {
-                                    // 500000 cents = R$ 5000.00
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                  if (!result) return;
 
                                   final pixTransaction = PixTransaction(
                                     address: address,
@@ -256,19 +297,22 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                                         selectedAsset.liquidAssetId ??
                                         "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
                                   );
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              GeneratePixPaymentCodeScreen(
-                                                pixTransaction: pixTransaction,
-                                                assetId:
-                                                    selectedAsset
-                                                        .liquidAssetId!,
-                                              ),
-                                    ),
-                                  );
+
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (
+                                              context,
+                                            ) => GeneratePixPaymentCodeScreen(
+                                              pixTransaction: pixTransaction,
+                                              assetId:
+                                                  selectedAsset.liquidAssetId!,
+                                            ),
+                                      ),
+                                    );
+                                  }
                                 },
                                 text: "Deslize para pagar",
                                 backgroundColor:

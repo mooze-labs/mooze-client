@@ -5,7 +5,7 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/transaction.dart';
 import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
-import 'package:mooze_mobile/screens/confirm_send_transaction/widgets/sent_transaction_info.dart';
+import 'package:mooze_mobile/screens/send_funds/widgets/sent_transaction_info.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:url_launcher/url_launcher.dart';

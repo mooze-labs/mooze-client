@@ -10,7 +10,7 @@ import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'dart:math';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
-import 'package:mooze_mobile/screens/confirm_send_transaction/confirm_send_transaction.dart';
+import 'package:mooze_mobile/screens/send_funds/confirm_send_transaction.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/inputs.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
@@ -19,7 +19,7 @@ import 'package:mooze_mobile/widgets/inputs/amount_input.dart';
 import 'package:mooze_mobile/widgets/inputs/convertible_amount_input.dart';
 
 class SendFundsScreen extends ConsumerStatefulWidget {
-  const SendFundsScreen({Key? key}) : super(key: key);
+  const SendFundsScreen({super.key});
 
   @override
   SendFundsScreenState createState() => SendFundsScreenState();
@@ -28,6 +28,7 @@ class SendFundsScreen extends ConsumerStatefulWidget {
 class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
   OwnedAsset? selectedAsset;
   double? feeRate;
+  int? fees;
   int? assetAmountInSats;
   bool isFiatMode = false;
   final TextEditingController addressController = TextEditingController();
@@ -45,28 +46,67 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     super.dispose();
   }
 
-  void _handleAmountChanged(double amount) {
+  Future<void> _handleAmountChanged(double amount) async {
+    assetAmountInSats =
+        (amount * pow(10, selectedAsset!.asset.precision)).toInt();
+
     setState(() {
       if (selectedAsset == null) return;
-      assetAmountInSats =
-          (amount * pow(10, selectedAsset!.asset.precision)).toInt();
+      this.assetAmountInSats = assetAmountInSats;
     });
   }
 
-  int _calculateFeeAmount(double feeRate, int recipients, int outputs) {
-    const fixedWeight = 44;
-    const singlesigVinWeight = 367;
-    const voutWeight = 4810;
-    const feeWeight = 178;
+  Future<int?> _calculateFeeAmount(String address) async {
+    if (selectedAsset == null) {
+      return null;
+    }
 
-    final int txSize =
-        fixedWeight +
-        singlesigVinWeight * recipients +
-        voutWeight * outputs +
-        feeWeight;
+    if (address.isEmpty) {
+      return null;
+    }
 
-    final vsize = (txSize + 3) / 4;
-    return (vsize * feeRate).ceil();
+    if (this.feeRate == null) {
+      return null;
+    }
+
+    final wallet = ref.watch(
+      walletRepositoryProvider(selectedAsset!.asset.network),
+    );
+    final feeRate =
+        (selectedAsset!.asset.network == Network.liquid) ? 1.0 : this.feeRate;
+
+    if (selectedAsset!.asset.network == Network.bitcoin) {
+      final psbt = await wallet.buildPartiallySignedTransaction(
+        selectedAsset!,
+        address,
+        1,
+        null,
+      );
+
+      setState(() {
+        fees = 250;
+      });
+
+      return 250;
+    }
+
+    final psbt = await wallet.buildPartiallySignedTransaction(
+      selectedAsset!,
+      address,
+      1,
+      (selectedAsset!.asset.network == Network.liquid) ? feeRate : null,
+    );
+
+    setState(() {
+      fees = psbt.feeAmount;
+    });
+
+    if (kDebugMode) {
+      print("Recipient: ${psbt.recipient}");
+      print("Fee amount: $fees");
+    }
+
+    return psbt.feeAmount;
   }
 
   Future<void> _updateNetworkFees() async {
@@ -85,13 +125,15 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       setState(() {
         feeRate = recommendedFees.halfHourFee.toDouble();
         if (kDebugMode) {
-          debugPrint("Fee rate updated to ${feeRate}");
+          debugPrint("Fee rate updated to $feeRate");
         }
       });
     } catch (e) {
-      print(
-        "[WARN] Failed to fetch network fees. Fallbacking to default. Error: $e",
-      );
+      if (kDebugMode) {
+        print(
+          "[WARN] Failed to fetch network fees. Fallbacking to default. Error: $e",
+        );
+      }
       setState(() {
         feeRate = 2.0;
       });
@@ -104,8 +146,11 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     _updateNetworkFees();
   }
 
-  void _handleContinue() {
-    print("Parsed amount in sats: $assetAmountInSats");
+  void _handleContinue() async {
+    if (kDebugMode) {
+      print("Parsed amount in sats: $assetAmountInSats");
+    }
+
     if (selectedAsset == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -115,6 +160,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       );
       return;
     }
+
     if (amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -124,12 +170,20 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       );
       return;
     }
+
     if (addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Digite um endereço."),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
+      );
+      return;
+    }
+
+    if (fees == null && selectedAsset!.asset.network == Network.liquid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao calcular taxas de rede.")),
       );
       return;
     }
@@ -146,9 +200,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
-      final totalFees =
-          (feeRate != null) ? _calculateFeeAmount(feeRate!, 1, 2) : 100;
-
       // Compare the amount in sats directly with the available balance in sats
       if (assetAmountInSats! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,7 +213,9 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
-      if (assetAmountInSats! + 26 > selectedAsset!.amount) {
+      final fees =
+          (selectedAsset!.asset.network == Network.bitcoin) ? 250 : this.fees;
+      if (assetAmountInSats! + fees! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -205,6 +258,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
           _updateNetworkFees();
         });
       },
+      initialSelection: selectedAsset,
       dropdownMenuEntries:
           assets.map((OwnedAsset asset) {
             return DropdownMenuEntry<OwnedAsset>(
@@ -235,41 +289,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     );
   }
 
-  Widget _amountInput() {
-    final fiatPrices = ref.watch(fiatPricesProvider);
-    final baseCurrency = ref.watch(baseCurrencyProvider);
-
-    if (selectedAsset == null) {
-      return Container();
-    }
-
-    return fiatPrices.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (err, stack) {
-        return ConvertibleAmountInput(
-          assetId: selectedAsset!.asset.id,
-          assetTicker: selectedAsset!.asset.ticker,
-          assetPrecision: selectedAsset!.asset.precision,
-          fiatCurrency: baseCurrency,
-          fiatPrice: 0.0,
-          controller: amountController,
-        );
-      },
-      data: (prices) {
-        final price = prices[selectedAsset!.asset.fiatPriceId];
-        return ConvertibleAmountInput(
-          assetId: selectedAsset!.asset.id,
-          assetTicker: selectedAsset!.asset.ticker,
-          assetPrecision: selectedAsset!.asset.precision,
-          fiatCurrency: baseCurrency,
-          fiatPrice: price ?? 0.0,
-          controller: amountController,
-          onAmountChanged: _handleAmountChanged,
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final ownedAssetsState = ref.watch(ownedAssetsNotifierProvider);
@@ -280,7 +299,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Padding(
               padding: EdgeInsets.only(top: 5),
@@ -293,12 +312,30 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
             SizedBox(height: 20),
             if (selectedAsset != null)
               AvailableFunds(ownedAsset: selectedAsset),
-            // Expanded widget to center the TextFields
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AddressInput(controller: addressController),
+                  AddressInput(
+                    controller: addressController,
+                    onAddressChanged: (address) {
+                      _calculateFeeAmount(address);
+                    },
+                    onAssetSelected: (Asset asset) {
+                      final ownedAssets =
+                          ref.read(ownedAssetsNotifierProvider).value;
+                      if (ownedAssets != null) {
+                        final ownedAsset = ownedAssets.firstWhere(
+                          (oa) => oa.asset.id == asset.id,
+                          orElse: () => OwnedAsset.zero(asset),
+                        );
+                        setState(() {
+                          selectedAsset = ownedAsset;
+                          _updateNetworkFees();
+                        });
+                      }
+                    },
+                  ),
                   SizedBox(height: 10),
                   AmountInput(
                     controller: amountController,
@@ -306,7 +343,16 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                         (selectedAsset != null)
                             ? selectedAsset!.asset
                             : AssetCatalog.bitcoin!,
-                    onAmountChanged: _handleAmountChanged,
+                    onAmountChanged: (amount) async {
+                      await _handleAmountChanged(amount);
+                    },
+                    fees:
+                        (selectedAsset != null &&
+                                (selectedAsset!.asset.network ==
+                                    Network.bitcoin))
+                            ? 250
+                            : fees,
+                    maxAmount: selectedAsset?.amount,
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 8.0),
@@ -327,16 +373,17 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                               ),
                             ),
                   ),
-                  /*
-                  if (feeRate != null)
-                    Text(
-                      "Taxas totais: ${_calculateFeeAmount(feeRate!, 1, 2)} sats",
-                    ),
-                  */
+                  (fees != null &&
+                          selectedAsset!.asset.network == Network.liquid)
+                      ? Text("Taxas totais: ${fees} sats")
+                      : (selectedAsset != null &&
+                          selectedAsset!.asset.network == Network.bitcoin)
+                      ? Text("Taxas totais: 250 sats")
+                      : Text(""),
                 ],
               ),
             ),
-            if (MediaQuery.of(context).viewInsets.bottom == 0) // check keyboard
+            if (!isKeyboardOpen)
               Padding(
                 padding: EdgeInsets.only(bottom: 100),
                 child: PrimaryButton(

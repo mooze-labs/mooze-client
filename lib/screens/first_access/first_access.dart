@@ -20,8 +20,8 @@ class FirstAccessScreen extends StatelessWidget {
             ),
             content: Text("""
 A carteira Mooze utiliza versões mais atualizadas da rede Liquid, com suporte para native segwit. As carteiras Sideswap e Aqua Wallet
-não possuem suporte para native segwit, portanto, não é possível importar seeds dessas carteiras para a Mooze. É recomendado que você
-crie uma nova carteira no nosso app e transfira os seus fundos para cá.
+não possuem suporte para native segwit, portanto, não é possível importar seeds dessas carteiras para a Mooze.
+É recomendado que você crie uma nova carteira no nosso app e transfira os seus fundos para cá.
           """),
             actions: [
               TextButton(

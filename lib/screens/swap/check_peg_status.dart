@@ -58,9 +58,13 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
       });
     } else {
       if (mounted) {
+        // Clear any existing snackbars
+        ScaffoldMessenger.of(context).clearSnackBars();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Nenhuma operação peg ativa encontrada'),
+            duration: Duration(seconds: 3),
           ),
         );
         Navigator.of(context).pop();
@@ -70,15 +74,23 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
 
   Future<PegOrderStatus?> getPegOrderStatus() async {
     final sideswapClient = ref.read(sideswapRepositoryProvider);
+    sideswapClient.ensureConnection();
+
     final pegOrderStatus = await sideswapClient.getPegStatus(
       _isPegIn!,
       _orderId!,
     );
 
     if (pegOrderStatus == null && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Ordem não encontrada')));
+      // Clear any existing snackbars
+      ScaffoldMessenger.of(context).clearSnackBars();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ordem não encontrada'),
+          duration: Duration(seconds: 3),
+        ),
+      );
 
       // Clear the stored operation since it's no longer valid
       ref.read(activePegOperationProvider.notifier).completePegOperation();

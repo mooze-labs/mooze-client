@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
+import 'package:mooze_mobile/screens/receive_pix/receive_pix.dart';
 import 'package:mooze_mobile/screens/store_mode/receive_pix_store_mode.dart';
 import 'package:mooze_mobile/screens/wallet/wallet.dart';
+import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
@@ -16,7 +18,9 @@ class StoreHomeState extends State<StoreHomeScreen> {
   late final StoreModeHandler _storeModeHandler = StoreModeHandler();
 
   Future<void> _initStoreMode() async {
+    final authService = AuthenticationService();
     await _storeModeHandler.setStoreMode(true);
+    await authService.invalidateSession();
   }
 
   @override
@@ -46,7 +50,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ReceivePixStoreScreen()),
+              MaterialPageRoute(builder: (context) => ReceivePixScreen()),
             );
           },
           icon: Icons.payment,
@@ -66,6 +70,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
                           onPinConfirmed: () async {
                             _onReturnWalletTap(context);
                           },
+                          forceAuth: true,
                         ),
                   ),
                 );
@@ -98,9 +103,12 @@ class StoreHomeState extends State<StoreHomeScreen> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Padding(padding: const EdgeInsets.all(16.0), child: body),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Padding(padding: const EdgeInsets.all(16.0), child: body),
+      ),
     );
   }
 }

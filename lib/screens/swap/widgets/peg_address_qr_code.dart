@@ -69,13 +69,13 @@ class PegAddressQrCode extends StatelessWidget {
               children: [
                 Flexible(
                   child: SelectableText(
-                    address,
+                    "${address!.substring(0, 4)} ${address!.substring(4, 8)} ${address!.substring(8, 12)} ... ${address!.substring(address!.length - 12, address!.length - 8)} ${address!.substring(address!.length - 8, address!.length - 4)} ${address!.substring(address!.length - 4)}",
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSecondary,
                       fontFamily: "roboto",
                       fontSize: 16,
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                   ),
                 ),
                 const SizedBox(width: 8),

@@ -13,9 +13,11 @@ class ConvertibleAmountInput extends StatefulWidget {
   final double fiatPrice;
   final TextEditingController? controller;
   final Function(double)? onAmountChanged;
+  final int? fees;
+  final int? maxAmount;
 
   const ConvertibleAmountInput({
-    Key? key,
+    super.key,
     required this.assetId,
     required this.assetTicker,
     required this.fiatPrice,
@@ -23,7 +25,9 @@ class ConvertibleAmountInput extends StatefulWidget {
     this.assetPrecision = 8,
     this.controller,
     this.onAmountChanged,
-  }) : super(key: key);
+    this.fees,
+    this.maxAmount,
+  });
 
   @override
   State<ConvertibleAmountInput> createState() => _ConvertibleAmountInputState();
@@ -144,8 +148,8 @@ class _ConvertibleAmountInputState extends State<ConvertibleAmountInput> {
                 fontWeight: FontWeight.normal,
                 color: Theme.of(context).colorScheme.onSecondary,
               ),
-              prefixText: _isFiatMode ? widget.fiatCurrency + ' ' : "",
-              suffixIcon: IconButton(
+              prefixText: _isFiatMode ? '${widget.fiatCurrency} ' : "",
+              prefixIcon: IconButton(
                 icon: Text(
                   _isFiatMode ? widget.fiatCurrency : widget.assetTicker,
                   style: TextStyle(
@@ -156,6 +160,42 @@ class _ConvertibleAmountInputState extends State<ConvertibleAmountInput> {
                 ),
                 onPressed: _toggleInputMode,
               ),
+              suffixIcon:
+                  widget.maxAmount != null
+                      ? IconButton(
+                        icon: Text(
+                          "MAX",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontFamily: "roboto",
+                          ),
+                        ),
+                        onPressed: () {
+                          if (widget.maxAmount != null && widget.fees != null) {
+                            final maxAmount =
+                                widget.maxAmount! - widget.fees! - 1;
+                            if (_isFiatMode) {
+                              // Convert to BRL using fiat price
+                              final amountInBRL =
+                                  (maxAmount / pow(10, widget.assetPrecision)) *
+                                      widget.fiatPrice -
+                                  1;
+                              _controller.text = amountInBRL.toStringAsFixed(2);
+                            } else {
+                              // Keep in crypto units
+                              final amount =
+                                  maxAmount / pow(10, widget.assetPrecision);
+                              _controller.text = amount.toStringAsFixed(
+                                widget.assetPrecision,
+                              );
+                            }
+                            _notifyAmountChanged();
+                            setState(() {});
+                          }
+                        },
+                      )
+                      : null,
             ),
             style: const TextStyle(
               fontSize: 18,

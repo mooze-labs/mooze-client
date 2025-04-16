@@ -1,22 +1,25 @@
 class User {
   String id;
   int dailySpending;
-  bool isFirstTransaction;
-  bool verified;
+  int allowedSpending;
+  int verificationLevel;
+  String? referredBy;
 
   User({
     required this.id,
     required this.dailySpending,
-    required this.isFirstTransaction,
-    required this.verified,
+    required this.allowedSpending,
+    required this.verificationLevel,
+    this.referredBy,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['user_id'],
       dailySpending: json['daily_spending'],
-      isFirstTransaction: json['is_first_transaction'],
-      verified: json['verified'],
+      allowedSpending: json['allowed_spending'],
+      verificationLevel: json['verification_level'],
+      referredBy: json['referred_by'],
     );
   }
 }

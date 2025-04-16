@@ -40,6 +40,26 @@ class TransactionInfo extends ConsumerWidget {
     );
   }
 
+  Future<Map<String, double>> calculateAmounts(
+    String assetId,
+    int amount,
+    double fiatPrice,
+  ) async {
+    final feeCalculator = FeeCalculator(assetId: assetId, fiatAmount: amount);
+    final feeRate = await feeCalculator.getFees();
+
+    final amountInReais = (amount - 100) / 100.0;
+    final assetAmount = amountInReais / fiatPrice;
+    final fees = assetAmount * feeRate;
+    final amountToReceive = assetAmount - fees;
+
+    return {
+      'amountToReceive': amountToReceive,
+      'fees': fees,
+      'feeRate': feeRate,
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fiatPrices = ref.watch(fiatPricesProvider);
@@ -50,41 +70,55 @@ class TransactionInfo extends ConsumerWidget {
       error: (err, stack) => Text("Erro ao gerar pagamento, tente novamente."),
       data: (data) {
         final fiatPrice = data[assetInfo!.fiatPriceId];
-        final feeRate =
-            FeeCalculator(assetId: assetId, fiatAmount: amount).getFees();
+        if (fiatPrice == null) {
+          return Text("Erro ao obter cotação do ativo.");
+        }
 
-        final amountInReais = amount / 100.0;
-        final assetAmount = amountInReais / fiatPrice!;
-        final fees = (assetAmount * feeRate);
-        final amountToReceive = assetAmount - fees;
+        return FutureBuilder<Map<String, double>>(
+          future: calculateAmounts(assetId, amount, fiatPrice),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
 
-        return Container(
-          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              _buildTransactionDetailRow(
-                "Valor",
-                "R\$ ${(amount / 100).toStringAsFixed(2)}",
+            if (snapshot.hasError) {
+              return Text("Erro ao calcular taxas: ${snapshot.error}");
+            }
+
+            final amounts = snapshot.data!;
+            final amountToReceive = amounts['amountToReceive']!;
+            final fees = amounts['fees']!;
+            final feeRate = amounts['feeRate']!;
+
+            return Container(
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondary,
+                borderRadius: BorderRadius.circular(12),
               ),
-              _buildTransactionDetailRow("Cotação", "$fiatPrice"),
-              _buildTransactionDetailRow(
-                "Quantidade",
-                "${amountToReceive.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker}",
+              child: Column(
+                children: [
+                  _buildTransactionDetailRow(
+                    "Valor",
+                    "R\$ ${(amount / 100).toStringAsFixed(2)}",
+                  ),
+                  _buildTransactionDetailRow("Cotação", "$fiatPrice"),
+                  _buildTransactionDetailRow(
+                    "Quantidade",
+                    "${amountToReceive.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker}",
+                  ),
+                  _buildTransactionDetailRow(
+                    "Taxa",
+                    "${fees.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker} (${(feeRate * 100).toStringAsFixed(2)}%)",
+                  ),
+                  _buildTransactionDetailRow(
+                    "Endereço",
+                    "${address.substring(0, 5)}...${address.substring(address.length - 5)}",
+                  ),
+                ],
               ),
-              _buildTransactionDetailRow(
-                "Taxa",
-                "${fees.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker}",
-              ),
-              _buildTransactionDetailRow(
-                "Endereço",
-                "${address.substring(0, 5)}...${address.substring(address.length - 5)}",
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
