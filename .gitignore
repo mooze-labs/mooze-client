@@ -12,6 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 .env
+._*
 
 # Firebase files
 firebase_options.dart

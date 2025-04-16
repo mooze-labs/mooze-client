@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/providers/external/pix_gateway_provider.dart';
-import 'package:mooze_mobile/screens/generate_pix_payment_code/widgets/pix_qr_display.dart';
-import 'package:mooze_mobile/screens/generate_pix_payment_code/widgets/transaction_info.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/pix_qr_display.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/transaction_info.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 
 class GeneratePixPaymentCodeScreen extends ConsumerStatefulWidget {
@@ -71,7 +71,14 @@ class GeneratePixPaymentCodeState
                   ),
                 ),
                 SizedBox(height: 20),
-                Text("Escaneie o código QR acima para pagar.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontFamily: "roboto", fontSize: 16)),
+                Text(
+                  "Escaneie o código QR acima para pagar.",
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontFamily: "roboto",
+                    fontSize: 16,
+                  ),
+                ),
                 Container(
                   padding: EdgeInsets.all(16.0),
                   child: TransactionInfo(

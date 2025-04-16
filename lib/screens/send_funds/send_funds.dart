@@ -10,7 +10,7 @@ import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'dart:math';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
-import 'package:mooze_mobile/screens/confirm_send_transaction/confirm_send_transaction.dart';
+import 'package:mooze_mobile/screens/send_funds/confirm_send_transaction.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/inputs.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
@@ -258,6 +258,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
           _updateNetworkFees();
         });
       },
+      initialSelection: selectedAsset,
       dropdownMenuEntries:
           assets.map((OwnedAsset asset) {
             return DropdownMenuEntry<OwnedAsset>(
@@ -319,6 +320,20 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                     controller: addressController,
                     onAddressChanged: (address) {
                       _calculateFeeAmount(address);
+                    },
+                    onAssetSelected: (Asset asset) {
+                      final ownedAssets =
+                          ref.read(ownedAssetsNotifierProvider).value;
+                      if (ownedAssets != null) {
+                        final ownedAsset = ownedAssets.firstWhere(
+                          (oa) => oa.asset.id == asset.id,
+                          orElse: () => OwnedAsset.zero(asset),
+                        );
+                        setState(() {
+                          selectedAsset = ownedAsset;
+                          _updateNetworkFees();
+                        });
+                      }
                     },
                   ),
                   SizedBox(height: 10),

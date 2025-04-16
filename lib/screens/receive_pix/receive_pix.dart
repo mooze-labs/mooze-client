@@ -8,7 +8,7 @@ import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/models/user.dart';
 import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/screens/generate_pix_payment_code/generate_pix_payment_code.dart';
+import 'package:mooze_mobile/screens/receive_pix/generate_pix_payment_code.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/amount_input.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
@@ -38,7 +38,8 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
 
   double _currentAmountFloat = 0.0;
   int _currentAmountInCents = 0;
-  User? userDetails;
+  User? _cachedUserDetails;
+  bool _isValidating = false;
 
   late Key dropdownKey = UniqueKey();
 
@@ -47,7 +48,6 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     super.initState();
     _addressFuture =
         ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
-
     _userFuture = _preloadUserData();
   }
 
@@ -96,38 +96,55 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     }
   }
 
+  Future<User?> _preloadUserData() async {
+    final userService = UserService(backendUrl: BACKEND_URL);
+    _cachedUserDetails = await userService.getUserDetails();
+    return _cachedUserDetails;
+  }
+
   Future<bool> validateUserInput(int amount) async {
-    final userService = ref.read(userServiceProvider);
-    final user = await userService.getUserDetails();
+    if (_isValidating) return false;
+    _isValidating = true;
 
-    if (!mounted) return false;
+    try {
+      if (_cachedUserDetails == null) {
+        final userService = ref.read(userServiceProvider);
+        _cachedUserDetails = await userService.getUserDetails();
+      }
 
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Não foi possível conectar ao servidor.")),
-      );
-      return false;
-    }
+      if (!mounted) return false;
 
-    if (amount > user.allowedSpending) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Limite de transação excedido.")),
-      );
-      return false;
-    }
-
-    if (amount < 20 * 100 || amount > 5000 * 100) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
+      if (_cachedUserDetails == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Não foi possível conectar ao servidor."),
           ),
-        ),
-      );
-      return false;
-    }
+        );
+        return false;
+      }
 
-    return true;
+      if (amount > _cachedUserDetails!.allowedSpending) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Limite de transação excedido.")),
+        );
+        return false;
+      }
+
+      if (amount < 20 * 100 || amount > 5000 * 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Por favor, insira um valor entre R\$ 20,00 e R\$ 5.000,00.",
+            ),
+          ),
+        );
+        return false;
+      }
+
+      return true;
+    } finally {
+      _isValidating = false;
+    }
   }
 
   Widget _assetDropdown(BuildContext context, List<Asset> assets) {
@@ -156,24 +173,6 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
           Theme.of(context).dropdownMenuTheme.inputDecorationTheme,
       menuStyle: Theme.of(context).dropdownMenuTheme.menuStyle,
     );
-  }
-
-  Future<User?> _preloadUserData() async {
-    final userService = UserService(backendUrl: BACKEND_URL);
-    final userId = await userService.getUserId();
-
-    if (userId == null) {
-      final registrationService = RegistrationService(backendUrl: BACKEND_URL);
-      final newUserId = await registrationService.registerUser(null);
-
-      if (newUserId == null) {
-        debugPrint("Failed to register user");
-      }
-
-      await registrationService.saveUserId(newUserId!);
-    }
-
-    return await userService.getUserDetails();
   }
 
   @override

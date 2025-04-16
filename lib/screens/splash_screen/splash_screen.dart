@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
+import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
@@ -12,10 +14,12 @@ import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:no_screenshot/no_screenshot.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
 
 String BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
-  defaultValue: "https://api.mooze.app",
+  defaultValue: "10.0.2.2:8080",
 );
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -45,7 +49,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
-      await _preloadUserData();
       await _preloadPriceData();
 
       final noScreenshot = NoScreenshot.instance;
@@ -94,22 +97,47 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
-  Future<void> _preloadUserData() async {
+  Future<bool> _checkServerHealth() async {
     try {
-      final userService = UserService(backendUrl: BACKEND_URL);
-      final user = userService.getUserId();
+      final response = await http
+          .get(
+            (kDebugMode)
+                ? Uri.parse('http://$BACKEND_URL/health')
+                : Uri.parse('https://$BACKEND_URL/health'),
+          )
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              if (kDebugMode) {
+                print("Server health check timed out after 5 seconds");
+              }
+              throw TimeoutException('Server health check timed out');
+            },
+          );
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Server health check failed: $e");
+      }
+      return false;
+    }
+  }
 
-      if (user == null) {
-        final registrationService = RegistrationService(
-          backendUrl: BACKEND_URL,
-        );
-        final id = await registrationService.registerUser(null);
-
-        if (id == null) {
-          return;
+  Future<void> _preloadUserData(String descriptor) async {
+    try {
+      final isServerHealthy = await _checkServerHealth();
+      if (!isServerHealthy) {
+        if (kDebugMode) {
+          print("Server is not healthy, skipping user data preload");
         }
+        return;
+      }
 
-        await registrationService.saveUserId(id);
+      final userService = UserService(backendUrl: BACKEND_URL);
+      final user = await userService.getUserDetails();
+
+      if (kDebugMode) {
+        print("User: $user");
       }
     } catch (e) {
       print("Error preloading user data: $e");
@@ -136,6 +164,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       liquidWalletNotifier.initializeWallet(isMainnet, mnemonic),
       bitcoinWalletNotifier.initializeWallet(isMainnet, mnemonic),
     ]);
+
+    final repository =
+        ref.read(bitcoinWalletRepositoryProvider) as BitcoinWalletRepository;
+    final descriptor = repository.publicDescriptor;
+    if (descriptor != null) {
+      await _preloadUserData(descriptor);
+    }
   }
 
   Widget build(BuildContext context) {

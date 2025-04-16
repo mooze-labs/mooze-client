@@ -13,6 +13,7 @@ class BitcoinWalletRepository implements WalletRepository {
   bitcoin.Wallet? _wallet;
   bitcoin.Network? _network;
   bitcoin.Blockchain? _blockchain;
+  String? publicDescriptor;
 
   @override
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
@@ -66,6 +67,17 @@ class BitcoinWalletRepository implements WalletRepository {
       network: _network!,
       databaseConfig: const bitcoin.DatabaseConfig.memory(),
     );
+
+    final externalPublicDescriptor = await bitcoin.Descriptor.create(
+      descriptor: descriptorPrivate.toString(),
+      network: _network!,
+    );
+
+    publicDescriptor = externalPublicDescriptor.toString();
+
+    if (kDebugMode) {
+      print("Public descriptor: $publicDescriptor");
+    }
 
     await _wallet!.sync(blockchain: _blockchain!);
 

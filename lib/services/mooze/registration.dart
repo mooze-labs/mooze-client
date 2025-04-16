@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,28 +10,47 @@ class RegistrationService {
 
   RegistrationService({required this.backendUrl});
 
-  Future<String?> registerUser(String? referralCode) async {
+  Future<bool?> registerUser(String pubDescriptor, String? referralCode) async {
     final url =
         (kDebugMode)
-            ? Uri.http(backendUrl, "/register")
-            : Uri.https(backendUrl, "/register");
+            ? Uri.http(backendUrl, "/users")
+            : Uri.https(backendUrl, "/users");
+
+    final hashedPubDescriptor =
+        sha256.convert(utf8.encode(pubDescriptor)).toString();
+    await saveHashedDescriptor(hashedPubDescriptor);
+
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+
+    if (kDebugMode) {
+      print("Hashed descriptor: $hashedPubDescriptor");
+      print("FCM token: $fcmToken");
+    }
+
+    debugPrint("URL: $url");
+
     final response = await http.post(
       url,
       headers: <String, String>{"Content-Type": "application/json"},
-      body: jsonEncode({"referral_code": referralCode}),
+      body: jsonEncode({
+        "descriptor_hash": hashedPubDescriptor,
+        "fcm_token": fcmToken,
+        "referral_code": null,
+      }),
     );
 
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      debugPrint(data["user_id"]);
-      return data['user_id'];
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return true;
     } else {
-      return null;
+      if (kDebugMode) {
+        print("Error registering user: ${response.body}");
+      }
+      return false;
     }
   }
 
-  Future<void> saveUserId(String userId) async {
+  Future<void> saveHashedDescriptor(String hashedDescriptor) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userId', userId);
+    await prefs.setString('hashed_descriptor', hashedDescriptor);
   }
 }
