@@ -4,6 +4,7 @@ import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/providers/external/pix_gateway_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/pix_qr_display.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/transaction_info.dart';
+import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 
 class GeneratePixPaymentCodeScreen extends ConsumerStatefulWidget {
@@ -42,7 +43,14 @@ class GeneratePixPaymentCodeState
         title: 'Gerar pagamento PIX',
         action: IconButton(
           icon: Icon(Icons.home),
-          onPressed: () => Navigator.pushNamed(context, "/wallet"),
+          onPressed: () async {
+            final isStoreMode = await StoreModeHandler().isStoreMode();
+            if (isStoreMode) {
+              Navigator.pushNamed(context, "/store_mode");
+            } else {
+              Navigator.pushNamed(context, "/wallet");
+            }
+          },
         ),
       ),
       body: paymentAsync.when(

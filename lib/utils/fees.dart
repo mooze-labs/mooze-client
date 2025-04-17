@@ -3,18 +3,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 class FeeCalculator {
   final String assetId;
   final int fiatAmount; // Amount in cents
-  bool _hasReferralDiscount = false;
+  final bool hasReferral;
 
-  FeeCalculator({required this.assetId, required this.fiatAmount});
+  const FeeCalculator({
+    required this.assetId,
+    required this.fiatAmount,
+    required this.hasReferral,
+  });
 
-  Future<void> _checkReferralDiscount() async {
-    final prefs = await SharedPreferences.getInstance();
-    _hasReferralDiscount = prefs.getString('referralCode') != null;
-  }
-
-  Future<double> getFees() async {
-    await _checkReferralDiscount();
-
+  double getFees() {
     final amountInReais = fiatAmount / 100.0;
     double baseFee;
 
@@ -27,7 +24,7 @@ class FeeCalculator {
     }
 
     // Apply referral discount if available
-    if (_hasReferralDiscount) {
+    if (hasReferral) {
       baseFee -= 0.5;
     }
 

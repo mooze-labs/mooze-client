@@ -6,6 +6,7 @@ import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/models/user.dart';
+import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/generate_pix_payment_code.dart';
@@ -15,6 +16,7 @@ import 'package:mooze_mobile/services/mooze/registration.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
@@ -31,14 +33,18 @@ class ReceivePixScreen extends ConsumerStatefulWidget {
 class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   // depix as default asset
   Asset selectedAsset = AssetCatalog.getById("depix")!;
-  late Future<String?> _addressFuture;
-  late Future<User?> _userFuture;
+  String? _address;
+  User? _userDetails;
+  DateTime? _userDetailsFetchedAt;
+  bool _isLoading = true;
+  String? _error;
+  bool _hasReferral = false;
+
   // Controller for the BRL amount input
   final TextEditingController amountController = TextEditingController();
 
   double _currentAmountFloat = 0.0;
   int _currentAmountInCents = 0;
-  User? _cachedUserDetails;
   bool _isValidating = false;
 
   late Key dropdownKey = UniqueKey();
@@ -46,33 +52,60 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   @override
   void initState() {
     super.initState();
-    _addressFuture =
-        ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
-    _userFuture = _preloadUserData();
+    _loadInitialData();
+
+    // Add listener to handle text changes
+    amountController.addListener(() {
+      final text = amountController.text;
+      final normalizedText = text.replaceAll(',', '.');
+      final newAmount =
+          normalizedText.isNotEmpty
+              ? double.tryParse(normalizedText) ?? 0.0
+              : 0.0;
+
+      if (newAmount != _currentAmountFloat) {
+        setState(() {
+          _currentAmountFloat = newAmount;
+          _currentAmountInCents = (newAmount * 100).round();
+        });
+      }
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final address =
+          await ref
+              .read(liquidWalletNotifierProvider.notifier)
+              .generateAddress();
+      final userService = UserService(backendUrl: BACKEND_URL);
+      final userDetails = await userService.getUserDetails();
+      final sharedPreferences = await SharedPreferences.getInstance();
+      final hasReferral = sharedPreferences.getString('referralCode') != null;
+
+      if (mounted) {
+        setState(() {
+          _address = address;
+          _userDetails = userDetails;
+          _userDetailsFetchedAt = DateTime.now();
+          _hasReferral = hasReferral;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     amountController.dispose();
     super.dispose();
-  }
-
-  // Handle text changes directly
-  void _handleTextChanged(String text) {
-    // Replace comma with dot for proper parsing
-    final normalizedText = text.replaceAll(',', '.');
-    final newAmount =
-        normalizedText.isNotEmpty
-            ? double.tryParse(normalizedText) ?? 0.0
-            : 0.0;
-
-    if (newAmount != _currentAmountFloat) {
-      setState(() {
-        _currentAmountFloat = newAmount;
-        // Convert to cents: multiply by 100 and round to integer
-        _currentAmountInCents = (newAmount * 100).round();
-      });
-    }
   }
 
   void _onAssetChanged(Asset? asset) {
@@ -96,25 +129,22 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     }
   }
 
-  Future<User?> _preloadUserData() async {
-    final userService = UserService(backendUrl: BACKEND_URL);
-    _cachedUserDetails = await userService.getUserDetails();
-    return _cachedUserDetails;
-  }
-
   Future<bool> validateUserInput(int amount) async {
     if (_isValidating) return false;
     _isValidating = true;
 
     try {
-      if (_cachedUserDetails == null) {
+      // Only fetch user details if they're missing or we need to refresh them
+      if (_userDetails == null || _shouldRefreshUserDetails()) {
         final userService = ref.read(userServiceProvider);
-        _cachedUserDetails = await userService.getUserDetails();
+        _userDetails = await userService.getUserDetails();
+        // Update the timestamp when we fetch fresh data
+        _userDetailsFetchedAt = DateTime.now();
       }
 
       if (!mounted) return false;
 
-      if (_cachedUserDetails == null) {
+      if (_userDetails == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Não foi possível conectar ao servidor."),
@@ -123,7 +153,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
         return false;
       }
 
-      if (amount > _cachedUserDetails!.allowedSpending) {
+      if (amount > _userDetails!.allowedSpending) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Limite de transação excedido.")),
         );
@@ -145,6 +175,17 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     } finally {
       _isValidating = false;
     }
+  }
+
+  // Helper to determine when user details should be refreshed
+  bool _shouldRefreshUserDetails() {
+    // Refresh if details are older than 5 minutes
+    if (_userDetailsFetchedAt == null) {
+      return true;
+    }
+
+    final difference = DateTime.now().difference(_userDetailsFetchedAt!);
+    return difference.inMinutes > 5;
   }
 
   Widget _assetDropdown(BuildContext context, List<Asset> assets) {
@@ -175,162 +216,150 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
     );
   }
 
+  Widget _buildAmountDependentWidgets() {
+    final fiatPrice = ref
+        .watch(fiatPricesProvider)
+        .when(
+          loading: () => 0.0,
+          error: (err, stack) {
+            print("[ERROR] Error fetching price: $err");
+            return 0.0;
+          },
+          data: (fiatPrices) {
+            if (selectedAsset.fiatPriceId == null) return 0.0;
+            if (!fiatPrices.containsKey(selectedAsset.fiatPriceId)) return 0.0;
+            return fiatPrices[selectedAsset.fiatPriceId!]!;
+          },
+        );
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: AddressDisplay(
+            address: _address!,
+            fiatAmount: _currentAmountInCents,
+            asset: selectedAsset,
+            hasReferral: _hasReferral,
+            fiatPrice: fiatPrice,
+          ),
+        ),
+        if (MediaQuery.of(context).viewInsets.bottom == 0)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 70),
+            child: SwipeToConfirm(
+              onConfirm: () async {
+                final result = await validateUserInput(_currentAmountInCents);
+
+                if (!result) return;
+
+                final pixTransaction = PixTransaction(
+                  address: _address!,
+                  brlAmount: _currentAmountInCents,
+                  asset:
+                      selectedAsset.liquidAssetId ??
+                      "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
+                );
+
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => GeneratePixPaymentCodeScreen(
+                            pixTransaction: pixTransaction,
+                            assetId: selectedAsset.liquidAssetId!,
+                          ),
+                    ),
+                  );
+                }
+              },
+              text: "Deslize para pagar",
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              progressColor: Theme.of(context).colorScheme.secondary,
+              textColor: Theme.of(context).colorScheme.onPrimary,
+              width: 300,
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final liquidWalletState = ref.watch(liquidWalletNotifierProvider);
     final liquidAssets = AssetCatalog.liquidAssets;
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: MoozeAppBar(title: "Comprar com PIX"),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: MoozeAppBar(title: "Comprar com PIX"),
+        body: Center(child: Text("Erro: $_error")),
+      );
+    }
+
+    if (_address == null || _userDetails == null) {
+      return Scaffold(
+        appBar: MoozeAppBar(title: "Comprar com PIX"),
+        body: const Center(child: Text("Nenhum endereço disponível")),
+      );
+    }
 
     return Scaffold(
       appBar: MoozeAppBar(title: "Comprar com PIX"),
-      body: liquidWalletState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (err, stack) =>
-                Center(child: Text("Erro ao instanciar carteira: $err")),
-        data:
-            (_) => FutureBuilder<String?>(
-              future: _addressFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text("Erro ao gerar endereço: ${snapshot.error}"),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data == null) {
-                  return const Center(
-                    child: Text("Nenhum endereço disponível"),
-                  );
-                }
-
-                final address = snapshot.data!;
-
-                return FutureBuilder<User?>(
-                  future: _userFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (snapshot.hasError) {
-                      log("${snapshot.error!}");
-                      return Center(
-                        child: Column(
-                          children: [
-                            Text(
-                              "Não foi possível conectar ao servidor. Tente novamente mais tarde",
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 10),
-                          if (liquidAssets.isNotEmpty &&
-                              MediaQuery.of(context).viewInsets.bottom == 0)
-                            _assetDropdown(context, liquidAssets),
-                          PixInputAmount(
-                            amountController: amountController,
-                            onChanged: _handleTextChanged,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Text(
-                                "• Valor mínimo: R\$ 20,00 \n• Limite diário por CPF/CNPJ: R\$ 5.000,00",
-                                style: TextStyle(
-                                  fontFamily: "roboto",
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder:
-                                        (context) => AlertDialog(
-                                          title: Text("Limite diário"),
-                                          scrollable: true,
-                                          content: Text("""
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            if (liquidAssets.isNotEmpty &&
+                MediaQuery.of(context).viewInsets.bottom == 0)
+              _assetDropdown(context, liquidAssets),
+            PixInputAmount(
+              amountController: amountController,
+              userDetails: _userDetails,
+              onChanged:
+                  (
+                    text,
+                  ) {}, // Empty callback since we're using the controller's listener
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Text(
+                  "• Valor mínimo: R\$ 20,00 \n• Limite diário por CPF/CNPJ: R\$ 5.000,00",
+                  style: TextStyle(fontFamily: "roboto", fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text("Limite diário"),
+                            scrollable: true,
+                            content: Text("""
 O limite de pagamento via PIX na Mooze é compartilhado com outras plataformas que utilizam o sistema DEPIX, incluindo compras P2P ou concorrentes. Esse limite é monitorado pelas processadoras de pagamento por meio do sistema PIX do BACEN, com base no CPF ou CNPJ vinculado ao DEPIX. Assim, ao atingir o teto diário de R\$5.000 em transações realizadas fora da Mooze, novas tentativas de pagamento via nossos QR Codes serão automaticamente bloqueadas e estornadas à conta de origem.
 Essa limitação protege o usuário contra a obrigatoriedade de reporte automático de transações. Nem a Mooze nem as processadoras realizam comunicação compulsória dessas operações, preservando a sua privacidade.
-                                        """),
-                                        ),
-                                  );
-                                },
-                                child: Icon(
-                                  Icons.question_mark,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
+                        """),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: AddressDisplay(
-                              address: address,
-                              fiatAmount: _currentAmountInCents,
-                              asset: selectedAsset,
-                            ),
-                          ),
-                          if (MediaQuery.of(context).viewInsets.bottom == 0)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 70),
-                              child: SwipeToConfirm(
-                                onConfirm: () async {
-                                  final result = await validateUserInput(
-                                    _currentAmountInCents,
-                                  );
-
-                                  if (!result) return;
-
-                                  final pixTransaction = PixTransaction(
-                                    address: address,
-                                    brlAmount: _currentAmountInCents,
-                                    asset:
-                                        selectedAsset.liquidAssetId ??
-                                        "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
-                                  );
-
-                                  if (context.mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (
-                                              context,
-                                            ) => GeneratePixPaymentCodeScreen(
-                                              pixTransaction: pixTransaction,
-                                              assetId:
-                                                  selectedAsset.liquidAssetId!,
-                                            ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                text: "Deslize para pagar",
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                                progressColor:
-                                    Theme.of(context).colorScheme.secondary,
-                                textColor:
-                                    Theme.of(context).colorScheme.onPrimary,
-                                width: 300,
-                              ),
-                            ),
-                        ],
-                      ),
                     );
                   },
-                );
-              },
+                  child: Icon(
+                    Icons.question_mark,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
+            _buildAmountDependentWidgets(),
+          ],
+        ),
       ),
     );
   }

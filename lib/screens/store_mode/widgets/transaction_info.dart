@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/utils/fees.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TransactionInfo extends ConsumerWidget {
   final String assetId;
@@ -40,13 +41,23 @@ class TransactionInfo extends ConsumerWidget {
     );
   }
 
+  Future<bool> _hasReferral() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    return sharedPreferences.getString('referralCode') != null;
+  }
+
   Future<Map<String, double>> calculateAmounts(
     String assetId,
     int amount,
     double fiatPrice,
+    bool hasReferral,
   ) async {
-    final feeCalculator = FeeCalculator(assetId: assetId, fiatAmount: amount);
-    final feeRate = await feeCalculator.getFees();
+    final feeCalculator = FeeCalculator(
+      assetId: assetId,
+      fiatAmount: amount,
+      hasReferral: hasReferral,
+    );
+    final feeRate = feeCalculator.getFees();
 
     final amountInReais = (amount - 100) / 100.0;
     final assetAmount = amountInReais / fiatPrice;
@@ -74,49 +85,60 @@ class TransactionInfo extends ConsumerWidget {
           return Text("Erro ao obter cotação do ativo.");
         }
 
-        return FutureBuilder<Map<String, double>>(
-          future: calculateAmounts(assetId, amount, fiatPrice),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        return FutureBuilder<bool>(
+          future: _hasReferral(),
+          builder: (context, referralSnapshot) {
+            if (referralSnapshot.connectionState == ConnectionState.waiting) {
               return const CircularProgressIndicator();
             }
 
-            if (snapshot.hasError) {
-              return Text("Erro ao calcular taxas: ${snapshot.error}");
-            }
+            final hasReferral = referralSnapshot.data ?? false;
 
-            final amounts = snapshot.data!;
-            final amountToReceive = amounts['amountToReceive']!;
-            final fees = amounts['fees']!;
-            final feeRate = amounts['feeRate']!;
+            return FutureBuilder<Map<String, double>>(
+              future: calculateAmounts(assetId, amount, fiatPrice, hasReferral),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
 
-            return Container(
-              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildTransactionDetailRow(
-                    "Valor",
-                    "R\$ ${(amount / 100).toStringAsFixed(2)}",
+                if (snapshot.hasError) {
+                  return Text("Erro ao calcular taxas: ${snapshot.error}");
+                }
+
+                final amounts = snapshot.data!;
+                final amountToReceive = amounts['amountToReceive']!;
+                final fees = amounts['fees']!;
+                final feeRate = amounts['feeRate']!;
+
+                return Container(
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  _buildTransactionDetailRow("Cotação", "$fiatPrice"),
-                  _buildTransactionDetailRow(
-                    "Quantidade",
-                    "${amountToReceive.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker}",
+                  child: Column(
+                    children: [
+                      _buildTransactionDetailRow(
+                        "Valor",
+                        "R\$ ${(amount / 100).toStringAsFixed(2)}",
+                      ),
+                      _buildTransactionDetailRow("Cotação", "$fiatPrice"),
+                      _buildTransactionDetailRow(
+                        "Quantidade",
+                        "${amountToReceive.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker}",
+                      ),
+                      _buildTransactionDetailRow(
+                        "Taxa",
+                        "${fees.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker} (${(feeRate * 100).toStringAsFixed(2)}%)",
+                      ),
+                      _buildTransactionDetailRow(
+                        "Endereço",
+                        "${address.substring(0, 5)}...${address.substring(address.length - 5)}",
+                      ),
+                    ],
                   ),
-                  _buildTransactionDetailRow(
-                    "Taxa",
-                    "${fees.toStringAsFixed(assetInfo.precision)} ${assetInfo.ticker} (${(feeRate * 100).toStringAsFixed(2)}%)",
-                  ),
-                  _buildTransactionDetailRow(
-                    "Endereço",
-                    "${address.substring(0, 5)}...${address.substring(address.length - 5)}",
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         );

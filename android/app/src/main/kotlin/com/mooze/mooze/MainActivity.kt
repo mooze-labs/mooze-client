@@ -1,4 +1,4 @@
-package com.example.mooze_mobile
+package com.mooze.mooze
 
 import io.flutter.embedding.android.FlutterActivity
 

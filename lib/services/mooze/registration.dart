@@ -11,10 +11,12 @@ class RegistrationService {
   RegistrationService({required this.backendUrl});
 
   Future<bool?> registerUser(String pubDescriptor, String? referralCode) async {
-    final url =
-        (kDebugMode)
-            ? Uri.http(backendUrl, "/users")
-            : Uri.https(backendUrl, "/users");
+    if (kDebugMode) {
+      print("=== REGISTRATION STARTED ===");
+      print("Method registerUser called with descriptor: $pubDescriptor");
+    }
+
+    final url = Uri.https(backendUrl, "/users");
 
     final hashedPubDescriptor =
         sha256.convert(utf8.encode(pubDescriptor)).toString();
@@ -23,27 +25,45 @@ class RegistrationService {
     final fcmToken = await FirebaseMessaging.instance.getToken();
 
     if (kDebugMode) {
+      print("Registration request details:");
+      print("URL: $url");
       print("Hashed descriptor: $hashedPubDescriptor");
       print("FCM token: $fcmToken");
     }
 
-    debugPrint("URL: $url");
+    try {
+      final response = await http.post(
+        url,
+        headers: <String, String>{"Content-Type": "application/json"},
+        body: jsonEncode({
+          "descriptor_hash": hashedPubDescriptor,
+          "fcm_token": fcmToken,
+          "referral_code": null,
+        }),
+      );
 
-    final response = await http.post(
-      url,
-      headers: <String, String>{"Content-Type": "application/json"},
-      body: jsonEncode({
-        "descriptor_hash": hashedPubDescriptor,
-        "fcm_token": fcmToken,
-        "referral_code": null,
-      }),
-    );
-
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      return true;
-    } else {
       if (kDebugMode) {
-        print("Error registering user: ${response.body}");
+        print("Registration API response:");
+        print("Status code: ${response.statusCode}");
+        print("Response body: ${response.body}");
+      }
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        if (kDebugMode) {
+          print("=== REGISTRATION SUCCESSFUL ===");
+        }
+        return true;
+      } else {
+        if (kDebugMode) {
+          print("=== REGISTRATION FAILED ===");
+          print("Error registering user: ${response.body}");
+        }
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("=== REGISTRATION ERROR ===");
+        print("Exception during registration: $e");
       }
       return false;
     }

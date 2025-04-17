@@ -20,9 +20,7 @@ class PixGatewayRepository {
     final userId = await userService.getUserId();
 
     final response = await http.post(
-      (kDebugMode)
-          ? Uri.http(BACKEND_URL, "/deposit")
-          : Uri.https(BACKEND_URL, "/deposit"),
+      Uri.https(BACKEND_URL, "/deposit"),
       headers: <String, String>{"Content-Type": "application/json"},
       body: jsonEncode({
         "amount_in_cents": pixTransaction.brlAmount,

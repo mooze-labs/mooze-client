@@ -19,37 +19,70 @@ class UserService {
   }
 
   Future<User?> getUserDetails() async {
+    if (kDebugMode) {
+      print("=== GET USER DETAILS STARTED ===");
+    }
+
     final userId = await getUserId();
 
     if (kDebugMode) {
+      print("Fetching user details:");
       print("User ID: $userId");
     }
 
     if (userId == null) {
+      if (kDebugMode) {
+        print("No user ID found, returning null");
+      }
       return null;
     }
 
-    final url =
-        (kDebugMode)
-            ? Uri.http(backendUrl, "/users/$userId")
-            : Uri.https(backendUrl, "/users/$userId");
+    final url = Uri.https(backendUrl, "/users/$userId");
+    if (kDebugMode) {
+      print("Making request to: $url");
+    }
+
     final response = await http.get(url);
 
     if (kDebugMode) {
-      print("Response: ${response.body}");
+      print("User details API response:");
+      print("Status code: ${response.statusCode}");
+      print("Response body: ${response.body}");
     }
 
     if (response.statusCode == 200) {
+      if (kDebugMode) {
+        print("User found, returning user details");
+      }
       final data = jsonDecode(response.body);
       return User.fromJson(data["data"]);
     } else if (response.statusCode == 404) {
-      final registrationService = RegistrationService(backendUrl: backendUrl);
-      await registrationService.registerUser(userId, null);
+      if (kDebugMode) {
+        print("=== USER NOT FOUND, ATTEMPTING REGISTRATION ===");
+      }
+      final sharedPrefs = await SharedPreferences.getInstance();
+      final hashedDescriptor = sharedPrefs.getString('hashed_descriptor');
+      if (hashedDescriptor == null) {
+        if (kDebugMode) {
+          print("No hashed descriptor found, returning null");
+        }
+        return null;
+      }
 
+      final registrationService = RegistrationService(backendUrl: backendUrl);
+      final registrationResult = await registrationService.registerUser(
+        hashedDescriptor,
+        null,
+      );
+
+      if (kDebugMode) {
+        print("Registration result: $registrationResult");
+        print("Retrying user details fetch after registration...");
+      }
       return await getUserDetails();
     } else {
       if (kDebugMode) {
-        print('Failed to fetch user details.');
+        print('=== FAILED TO FETCH USER DETAILS ===');
         print('Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
       }

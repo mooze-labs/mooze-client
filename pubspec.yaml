@@ -70,6 +70,7 @@ dev_dependencies:
   riverpod_lint: ^2.6.4
   freezed: ^2.5.8
   json_serializable: ^6.9.4
+  change_app_package_name: ^1.5.0
 
 flutter:
   uses-material-design: true
