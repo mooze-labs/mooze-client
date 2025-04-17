@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,14 +14,16 @@ import 'package:mooze_mobile/services/mooze/registration.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 String BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
-  defaultValue: "10.0.2.2:8080",
+  defaultValue: "api.mooze.app",
 );
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -63,8 +67,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (!isPinSetup && mounted) {
         Navigator.pushReplacementNamed(context, "/first_access");
       }
-
-      debugPrint("Mnemonic: $mnemonic");
 
       if (mnemonic != null) {
         await _initializeWallets(true, mnemonic);
@@ -124,23 +126,94 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _preloadUserData(String descriptor) async {
+    if (kDebugMode) {
+      print("=== PRELOAD USER DATA STARTED ===");
+      print("Descriptor: $descriptor");
+    }
+
     try {
-      final isServerHealthy = await _checkServerHealth();
-      if (!isServerHealthy) {
-        if (kDebugMode) {
-          print("Server is not healthy, skipping user data preload");
-        }
-        return;
+      // Generate hash of descriptor
+      final hashedDescriptor =
+          sha256.convert(utf8.encode(descriptor)).toString();
+      if (kDebugMode) {
+        print("Hashed descriptor: $hashedDescriptor");
       }
 
-      final userService = UserService(backendUrl: BACKEND_URL);
-      final user = await userService.getUserDetails();
+      // Store hashed descriptor
+      final sharedPrefs = await SharedPreferences.getInstance();
+      await sharedPrefs.setString('hashed_descriptor', hashedDescriptor);
 
+      // Get FCM token
+      final fcmToken = await FirebaseMessaging.instance.getToken();
       if (kDebugMode) {
-        print("User: $user");
+        print("FCM token: $fcmToken");
+      }
+
+      // Check if user exists
+      final checkUserUrl = Uri.https(BACKEND_URL, "/users/$hashedDescriptor");
+      if (kDebugMode) {
+        print("Checking user existence at: $checkUserUrl");
+      }
+
+      final checkResponse = await http.get(checkUserUrl);
+      if (kDebugMode) {
+        print("User check response:");
+        print("Status code: ${checkResponse.statusCode}");
+        print("Response body: ${checkResponse.body}");
+      }
+
+      if (checkResponse.statusCode == 404 || checkResponse.statusCode == 500) {
+        // User doesn't exist or server error, try to register them
+        if (kDebugMode) {
+          print(
+            "=== USER NOT FOUND OR SERVER ERROR, ATTEMPTING REGISTRATION ===",
+          );
+        }
+
+        final registerUrl = Uri.https(BACKEND_URL, "/users");
+        final registerResponse = await http.post(
+          registerUrl,
+          headers: <String, String>{"Content-Type": "application/json"},
+          body: jsonEncode({
+            "descriptor_hash": hashedDescriptor,
+            "fcm_token": fcmToken,
+            "referral_code": null,
+          }),
+        );
+
+        if (kDebugMode) {
+          print("Registration response:");
+          print("Status code: ${registerResponse.statusCode}");
+          print("Response body: ${registerResponse.body}");
+        }
+
+        if (registerResponse.statusCode != 201 &&
+            registerResponse.statusCode != 200) {
+          if (kDebugMode) {
+            print("=== REGISTRATION FAILED, BUT PROCEEDING ANYWAY ===");
+            print("Error: ${registerResponse.body}");
+          }
+        } else {
+          if (kDebugMode) {
+            print("=== USER REGISTERED SUCCESSFULLY ===");
+          }
+        }
+      } else if (checkResponse.statusCode == 200) {
+        if (kDebugMode) {
+          print("=== USER ALREADY EXISTS ===");
+        }
+      } else {
+        if (kDebugMode) {
+          print("=== UNEXPECTED RESPONSE, BUT PROCEEDING ANYWAY ===");
+          print("Status code: ${checkResponse.statusCode}");
+          print("Response body: ${checkResponse.body}");
+        }
       }
     } catch (e) {
-      print("Error preloading user data: $e");
+      if (kDebugMode) {
+        print("=== ERROR IN PRELOAD USER DATA, BUT PROCEEDING ANYWAY ===");
+        print("Error: $e");
+      }
     }
   }
 
@@ -153,6 +226,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initializeWallets(bool isMainnet, String mnemonic) async {
+    if (kDebugMode) {
+      print("=== INITIALIZE WALLETS STARTED ===");
+      print("isMainnet: $isMainnet");
+    }
+
     final liquidWalletNotifier = ref.read(
       liquidWalletNotifierProvider.notifier,
     );
@@ -169,7 +247,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         ref.read(bitcoinWalletRepositoryProvider) as BitcoinWalletRepository;
     final descriptor = repository.publicDescriptor;
     if (descriptor != null) {
+      if (kDebugMode) {
+        print("Descriptor obtained: $descriptor");
+        print("Calling preloadUserData...");
+      }
       await _preloadUserData(descriptor);
+    } else {
+      if (kDebugMode) {
+        print("No descriptor available, skipping preloadUserData");
+      }
     }
   }
 
