@@ -31,6 +31,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
   int? fees;
   int? assetAmountInSats;
   bool isFiatMode = false;
+  int? lbtcAmountInSats; // used for fees
   final TextEditingController addressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
 
@@ -181,9 +182,25 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       return;
     }
 
+    if ((lbtcAmountInSats == null || lbtcAmountInSats! == 0) &&
+        selectedAsset!.asset.network == Network.liquid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Você precisa ter L-BTC em sua carteira para enviar ativos Liquid.",
+          ),
+        ),
+      );
+      return;
+    }
+
     if (fees == null && selectedAsset!.asset.network == Network.liquid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erro ao calcular taxas de rede.")),
+        SnackBar(
+          content: Text(
+            "Erro ao calcular taxas de rede. Tente novamente mais tarde.",
+          ),
+        ),
       );
       return;
     }
@@ -304,7 +321,25 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
             Padding(
               padding: EdgeInsets.only(top: 5),
               child: ownedAssetsState.when(
-                data: (ownedAssets) => _assetDropdown(context, ownedAssets),
+                data: (ownedAssets) {
+                  final ownedLbtc =
+                      ownedAssets
+                          .firstWhere(
+                            (asset) =>
+                                asset.asset.id ==
+                                AssetCatalog.getById("lbtc")!.id,
+                            orElse:
+                                () => OwnedAsset.zero(
+                                  AssetCatalog.getById("lbtc")!,
+                                ),
+                          )
+                          .amount;
+                  setState(() {
+                    lbtcAmountInSats = ownedLbtc;
+                  });
+
+                  return _assetDropdown(context, ownedAssets);
+                },
                 loading: () => const CircularProgressIndicator(),
                 error: (err, stack) => Text("Erro: $err"),
               ),
