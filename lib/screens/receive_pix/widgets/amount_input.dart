@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/models/user.dart';
 
 class PixInputAmount extends ConsumerStatefulWidget {
   final TextEditingController amountController;
   final Function(String)? onChanged;
+  final User? userDetails;
 
   const PixInputAmount({
     super.key,
     required this.amountController,
     this.onChanged,
+    this.userDetails,
   });
 
   @override
@@ -31,8 +32,6 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
 
   @override
   Widget build(BuildContext context) {
-    final userService = ref.read(userServiceProvider);
-
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Column(
@@ -102,57 +101,44 @@ class _PixInputAmountState extends ConsumerState<PixInputAmount> {
             ),
           ),
           SizedBox(height: 10),
-          FutureBuilder<User?>(
-            future: userService.getUserDetails(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Text("");
-              }
-
-              if (snapshot.hasError) {
-                return Text("Limite de transação indisponível.");
-              }
-
-              if (snapshot.data == null) {
-                return Text("Limite de transação indisponível.");
-              }
-
-              final user = snapshot.data!;
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Text(
-                    "Limite por transação atual: R\$ ${(user.allowedSpending.toDouble() / 100).toStringAsFixed(2)}",
-                    style: TextStyle(fontFamily: "roboto", fontSize: 16),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder:
-                            (context) => AlertDialog(
-                              title: Text("Limite por transação"),
-                              scrollable: true,
-                              content: Text("""
+          if (widget.userDetails != null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Text(
+                  "Limite por transação atual: R\$ ${(widget.userDetails!.allowedSpending.toDouble() / 100).toStringAsFixed(2)}",
+                  style: TextStyle(fontFamily: "roboto", fontSize: 16),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text("Limite por transação"),
+                            scrollable: true,
+                            content: Text("""
 Novas carteiras passam por um filtro da Mooze, as primeiras transações possuem um sistema de segurança onde existem limites de valores por transações:
 1ª degrau - até R\$250 por transação. Ao atingir compras de R\$250, o usuário libera o próximo degrau;
 2ª degrau - até R\$750 por transação. Ao atingir compras de R\$750, o usuário libera o próximo degrau;
 3ª degrau - até R\$1500 por transação. Ao atingir compras de R\$1500, usuário finaliza o sistema TRUST e tem compras liberadas de R\$20 a R\$5000 com seu restante de saldo diário.
 A rota completa de degraus do sistema TRUST é necessária apenas uma vez.
 """, style: TextStyle(fontFamily: "roboto", fontSize: 16)),
-                            ),
-                      );
-                    },
-                    child: Icon(
-                      Icons.question_mark,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                          ),
+                    );
+                  },
+                  child: Icon(
+                    Icons.question_mark,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ],
+            )
+          else
+            Text(
+              "Limite de transação indisponível.",
+              style: TextStyle(fontFamily: "roboto", fontSize: 16),
+            ),
         ],
       ),
     );

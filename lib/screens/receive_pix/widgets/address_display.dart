@@ -3,35 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/utils/fees.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddressDisplay extends ConsumerWidget {
   final String address;
   final int fiatAmount; // Amount in cents
   final Asset asset;
+  final bool hasReferral;
 
   const AddressDisplay({
     super.key,
     required this.address,
     required this.asset,
     required this.fiatAmount,
+    required this.hasReferral,
   });
+
+  Future<bool> _hasReferral() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    return sharedPreferences.getString('referralCode') != null;
+  }
 
   Future<Map<String, double>> calculateAmounts(
     int fiatAmountInCents,
     double fiatPrice,
   ) async {
     if (fiatPrice == 0) return {'amount': 0.0, 'feeRate': 0.0};
-    if (fiatAmountInCents == 0) return {'amount': 0.0, 'feeRate': 0.0};
-
     // Convert cents to whole amount
-    double fiatAmount = (fiatAmountInCents - 100) / 100.0;
+    double fiatAmount = fiatAmountInCents / 100.0;
     double assetAmount = fiatAmount / fiatPrice;
 
     final feeCalculator = FeeCalculator(
       assetId: asset.id,
       fiatAmount: fiatAmountInCents,
+      hasReferral: hasReferral,
     );
-    double feeRate = await feeCalculator.getFees();
+    double feeRate = feeCalculator.getFees();
     double amountAfterFees = assetAmount - (assetAmount * feeRate);
 
     return {'amount': amountAfterFees, 'feeRate': feeRate};
