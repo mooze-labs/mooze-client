@@ -9,17 +9,16 @@ class ReferralService {
   ReferralService({required this.backendUrl});
 
   Future<bool> validateReferralCode(String referralCode) async {
-    final url =
-        (kDebugMode)
-            ? Uri.http(backendUrl, "/referrals/$referralCode")
-            : Uri.https(backendUrl, "/referrals/$referralCode");
+    final upperReferralCode = referralCode.toUpperCase();
+    final url = Uri.https(backendUrl, "/referrals/$upperReferralCode");
 
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['data'] == true) {
-        await saveReferralCode(referralCode);
+        await saveReferralCode(upperReferralCode);
+        await registerReferral(upperReferralCode);
       }
       return data['data'] ?? false;
     } else {
@@ -33,5 +32,33 @@ class ReferralService {
   Future<void> saveReferralCode(String referralCode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('referralCode', referralCode);
+  }
+
+  Future<void> registerReferral(String referralCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    final hashedDescriptor = prefs.getString('hashed_descriptor');
+
+    if (hashedDescriptor == null) {
+      if (kDebugMode) {
+        print("Error: hashed_descriptor not found in SharedPreferences");
+      }
+      return;
+    }
+
+    final url = Uri.parse('https://api.mooze.app/users/referrals');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': hashedDescriptor,
+        'referral_code': referralCode.toUpperCase(),
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      if (kDebugMode) {
+        print("Error registering referral: ${response.body}");
+      }
+    }
   }
 }
