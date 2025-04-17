@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/buttons.dart';
 import '../../services/mooze/referral.dart';
+import '../../services/mooze/user.dart';
 
 const BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
@@ -20,6 +21,7 @@ class _ReferralInputScreenState extends State<ReferralInputScreen> {
   final ReferralService _referralService = ReferralService(
     backendUrl: BACKEND_URL,
   );
+  final UserService _userService = UserService(backendUrl: BACKEND_URL);
   String? _existingReferralCode;
   bool _isLoading = false;
 
@@ -32,6 +34,17 @@ class _ReferralInputScreenState extends State<ReferralInputScreen> {
   Future<void> _checkExistingReferralCode() async {
     final prefs = await SharedPreferences.getInstance();
     final existingCode = prefs.getString('referralCode');
+
+    // Check if user already has a referral in their user details
+    final userDetails = await _userService.getUserDetails();
+    if (userDetails?.referredBy != null) {
+      setState(() {
+        _existingReferralCode = userDetails!.referredBy;
+      });
+      return;
+    }
+
+    // Fallback to checking SharedPreferences
     if (existingCode != null) {
       setState(() {
         _existingReferralCode = existingCode;
@@ -46,7 +59,7 @@ class _ReferralInputScreenState extends State<ReferralInputScreen> {
   }
 
   Future<void> _validateReferralCode() async {
-    final referralCode = _referralCodeController.text.trim();
+    final referralCode = _referralCodeController.text.trim().toUpperCase();
     if (referralCode.isEmpty) return;
 
     setState(() {
