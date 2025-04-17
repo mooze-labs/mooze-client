@@ -6,6 +6,7 @@ import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/models/user.dart';
+import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/generate_pix_payment_code.dart';
@@ -216,6 +217,21 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
   }
 
   Widget _buildAmountDependentWidgets() {
+    final fiatPrice = ref
+        .watch(fiatPricesProvider)
+        .when(
+          loading: () => 0.0,
+          error: (err, stack) {
+            print("[ERROR] Error fetching price: $err");
+            return 0.0;
+          },
+          data: (fiatPrices) {
+            if (selectedAsset.fiatPriceId == null) return 0.0;
+            if (!fiatPrices.containsKey(selectedAsset.fiatPriceId)) return 0.0;
+            return fiatPrices[selectedAsset.fiatPriceId!]!;
+          },
+        );
+
     return Column(
       children: [
         Padding(
@@ -225,6 +241,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
             fiatAmount: _currentAmountInCents,
             asset: selectedAsset,
             hasReferral: _hasReferral,
+            fiatPrice: fiatPrice,
           ),
         ),
         if (MediaQuery.of(context).viewInsets.bottom == 0)
