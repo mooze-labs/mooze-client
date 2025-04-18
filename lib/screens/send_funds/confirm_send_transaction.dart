@@ -110,7 +110,9 @@ class ConfirmSendTransactionState
     final transaction = await wallet.signTransaction(
       _partiallySignedTransaction!,
     );
-    debugPrint(transaction.txid);
+    if (kDebugMode) {
+      debugPrint(transaction.txid);
+    }
     return transaction;
   }
 

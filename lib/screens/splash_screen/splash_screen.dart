@@ -91,7 +91,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         }
       }
     } catch (e) {
-      print("Error retrieving mnemonic: $e");
+      if (kDebugMode) {
+        print("Error retrieving mnemonic: $e");
+      }
       // fallback to first_access screen
       if (mounted) {
         Navigator.pushReplacementNamed(context, "/first_access");

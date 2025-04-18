@@ -39,11 +39,15 @@ class LiquidWalletRepository implements WalletRepository {
         dbpath: dbPath,
       );
     } catch (e, stackTrace) {
-      debugPrint("Failed to initialize Liquid wallet: $e");
-      debugPrint("Stacktrace: $stackTrace");
-      debugPrint("Clearing wallet in storage and initializing again");
+      if (kDebugMode) {
+        debugPrint("Failed to initialize Liquid wallet: $e");
+        debugPrint("Stacktrace: $stackTrace");
+        debugPrint("Clearing wallet in storage and initializing again");
+      }
       _clearWallet();
-      debugPrint("Wallet cleared!");
+      if (kDebugMode) {
+        debugPrint("Wallet cleared!");
+      }
 
       _wallet = await liquid.Wallet.init(
         descriptor: descriptor,
@@ -51,7 +55,9 @@ class LiquidWalletRepository implements WalletRepository {
         dbpath: dbPath,
       );
     }
-    debugPrint("Liquid wallet initialized");
+    if (kDebugMode) {
+      debugPrint("Liquid wallet initialized");
+    }
 
     await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
   }
@@ -78,7 +84,9 @@ class LiquidWalletRepository implements WalletRepository {
   @override
   Future<List<OwnedAsset>> getOwnedAssets() async {
     if (_wallet == null) {
-      debugPrint("Liquid wallet not initialized!");
+      if (kDebugMode) {
+        debugPrint("Liquid wallet not initialized!");
+      }
       return [];
     }
     final balances = await _wallet!.balances();
