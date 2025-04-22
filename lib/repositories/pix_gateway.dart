@@ -52,14 +52,8 @@ class PixGatewayRepository {
     }
 
     if (response.statusCode == 403) {
-      throw Exception(
-        "Não foi possível criar a transação: ${response.statusCode} - ${response.reasonPhrase}",
-      );
+      return null;
     }
-
-    print(
-      "[ERROR] Não foi possível criar a transação: ${response.statusCode} - ${response.reasonPhrase}",
-    );
 
     if (kDebugMode) {
       Map<String, dynamic> jsonResponse = json.decode(response.body);

@@ -65,9 +65,6 @@ class GeneratePixPaymentCodeState
             );
           }
 
-          print(response.id);
-          print(widget.assetId);
-
           return Center(
             child: Column(
               children: [
