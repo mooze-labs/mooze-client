@@ -212,6 +212,7 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
       // Clear any existing snackbars
       ScaffoldMessenger.of(context).clearSnackBars();
 
+      /*
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -226,6 +227,7 @@ class _ConfirmPegScreenState extends ConsumerState<ConfirmPegScreen> {
           ),
         ),
       );
+      */
 
       Navigator.pushReplacement(
         context,

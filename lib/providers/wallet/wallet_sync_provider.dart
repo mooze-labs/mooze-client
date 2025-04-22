@@ -58,24 +58,34 @@ class WalletSyncService extends _$WalletSyncService {
     state = const AsyncValue.loading();
 
     try {
-      debugPrint("🔄 Starting wallet synchronization");
+      if (kDebugMode) {
+        debugPrint("🔄 Starting wallet synchronization");
+      }
 
       // Sync Bitcoin wallet
       await ref.read(bitcoinWalletNotifierProvider.notifier).sync();
-      debugPrint("✓ Bitcoin wallet synchronized");
+      if (kDebugMode) {
+        debugPrint("✓ Bitcoin wallet synchronized");
+      }
 
       // Sync Liquid wallet
       await ref.read(liquidWalletNotifierProvider.notifier).sync();
-      debugPrint("✓ Liquid wallet synchronized");
+      if (kDebugMode) {
+        debugPrint("✓ Liquid wallet synchronized");
+      }
 
       await ref.read(ownedAssetsNotifierProvider.notifier).refresh();
 
       // Update the last sync time
       _lastSyncTime = DateTime.now();
       state = AsyncValue.data(_lastSyncTime);
-      debugPrint("✅ Wallet sync completed at ${_lastSyncTime.toString()}");
+      if (kDebugMode) {
+        debugPrint("✅ Wallet sync completed at ${_lastSyncTime.toString()}");
+      }
     } catch (e, stackTrace) {
-      debugPrint("❌ Wallet sync error: $e");
+      if (kDebugMode) {
+        debugPrint("❌ Wallet sync error: $e");
+      }
       state = AsyncValue.error(e, stackTrace);
     } finally {
       _syncInProgress = false;

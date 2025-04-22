@@ -36,7 +36,9 @@ class BitcoinWalletRepository implements WalletRepository {
       mnemonic: await bitcoin.Mnemonic.fromString(mnemonic),
     );
 
-    print("Descriptor: ${descriptorKey.toString()}");
+    if (kDebugMode) {
+      print("Descriptor: ${descriptorKey.toString()}");
+    }
     final derivationPath = await bitcoin.DerivationPath.create(
       path: "m/84h/0h/0h/0",
     );

@@ -27,7 +27,7 @@ class AddressDisplay extends StatelessWidget {
     if (fiatPrice == 0) return {'amount': 0.0, 'feeRate': 0.0};
     // Convert cents to whole amount
     double fiatAmount = fiatAmountInCents / 100.0;
-    double assetAmount = fiatAmount / fiatPrice;
+    double assetAmount = (fiatAmount - 1.0) / fiatPrice;
 
     final feeCalculator = FeeCalculator(
       assetId: asset.id,
