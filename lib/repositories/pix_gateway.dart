@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
-import 'package:uuid/uuid.dart';
+import 'package:unique_identifier/unique_identifier.dart';
+import 'package:crypto/crypto.dart';
 
 const BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
@@ -15,9 +17,10 @@ class PixGatewayRepository {
   Future<PixTransactionResponse?> newPixPayment(
     PixTransaction pixTransaction,
   ) async {
-    var uuid = Uuid();
     final userService = UserService(backendUrl: BACKEND_URL);
     final userId = await userService.getUserId();
+    final identifier = await UniqueIdentifier.serial ?? "unknown";
+    final hashedIdentifier = sha256.convert(utf8.encode(identifier)).toString();
 
     final response = await http.post(
       Uri.https(BACKEND_URL, "/deposit"),
@@ -28,6 +31,7 @@ class PixGatewayRepository {
         "user_id": userId!,
         "asset": pixTransaction.asset,
         "network": "liquid",
+        "device_id": hashedIdentifier,
       }),
     );
 
@@ -45,6 +49,12 @@ class PixGatewayRepository {
       } else {
         return null;
       }
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception(
+        "Não foi possível criar a transação: ${response.statusCode} - ${response.reasonPhrase}",
+      );
     }
 
     print(
