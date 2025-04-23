@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -24,7 +26,10 @@ class CurrencyForm extends StatelessWidget {
 
     return TextFormField(
       decoration: decoration,
-      keyboardType: TextInputType.number,
+      keyboardType:
+          (Platform.isIOS)
+              ? null
+              : TextInputType.numberWithOptions(decimal: true),
     );
   }
 }

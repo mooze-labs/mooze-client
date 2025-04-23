@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
@@ -547,11 +549,36 @@ class SwapScreenState extends ConsumerState<SwapScreen> {
                       fontFamily: "roboto",
                       fontWeight: FontWeight.bold,
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: false,
-                    ),
+                    keyboardType:
+                        (Platform.isIOS)
+                            ? null
+                            : TextInputType.numberWithOptions(
+                              decimal: true,
+                              signed: false,
+                            ),
                     textAlign: TextAlign.center,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                      TextInputFormatter.withFunction((oldValue, newValue) {
+                        // First check for multiple decimal separators
+                        int commaCount = newValue.text.split(',').length - 1;
+                        int dotCount = newValue.text.split('.').length - 1;
+
+                        // If there's more than one total decimal separator, reject the edit
+                        if (commaCount + dotCount > 1) {
+                          return oldValue;
+                        }
+
+                        // Check for decimal places limit
+                        final parts = newValue.text.split(RegExp(r'[.,]'));
+                        if (parts.length > 1 && parts[1].length > 2) {
+                          // More than 2 decimal places, reject
+                          return oldValue;
+                        }
+
+                        return newValue;
+                      }),
+                    ],
                   ),
                 ),
               AvailableFunds(asset: ownedSendAsset),

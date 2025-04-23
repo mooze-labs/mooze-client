@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -91,10 +92,13 @@ class _PegInputDisplayState extends State<PegInputDisplay> {
                 fontWeight: FontWeight.bold,
                 fontFamily: "roboto",
               ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: false,
-              ),
+              keyboardType:
+                  (Platform.isIOS)
+                      ? null
+                      : TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: false,
+                      ),
               textAlign: TextAlign.center,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),

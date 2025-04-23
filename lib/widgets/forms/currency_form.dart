@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
@@ -39,7 +41,10 @@ class CurrencyForm extends StatelessWidget {
     return TextFormField(
       controller: controller,
       decoration: decoration,
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      keyboardType:
+          (Platform.isIOS)
+              ? null
+              : TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [CurrencyInputFormatter()],
     );
   }

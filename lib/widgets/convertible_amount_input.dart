@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -143,10 +145,13 @@ class _ConvertibleAmountInputState extends State<ConvertibleAmountInput> {
               fontWeight: FontWeight.bold,
               fontFamily: "roboto",
             ),
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: false,
-            ),
+            keyboardType:
+                (Platform.isIOS)
+                    ? null
+                    : TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: false,
+                    ),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
             ],
