@@ -22,7 +22,10 @@ class RegistrationService {
         sha256.convert(utf8.encode(pubDescriptor)).toString();
     await saveHashedDescriptor(hashedPubDescriptor);
 
-    final fcmToken = await FirebaseMessaging.instance.getToken();
+    final fcmToken =
+        (kDebugMode)
+            ? "mockFcmToken"
+            : await FirebaseMessaging.instance.getToken();
 
     if (kDebugMode) {
       print("Registration request details:");
