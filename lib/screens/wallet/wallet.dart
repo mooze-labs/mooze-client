@@ -73,85 +73,92 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Widget build(BuildContext context) {
     final ownedAssetsState = ref.watch(ownedAssetsNotifierProvider.future);
 
-    return Scaffold(
-      appBar: _buildAppBar(context),
-      drawer: MoozeDrawer(),
-      body: FutureBuilder<List<OwnedAsset>>(
-        future: ownedAssetsState,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: _buildAppBar(context),
+        drawer: MoozeDrawer(),
+        body: FutureBuilder<List<OwnedAsset>>(
+          future: ownedAssetsState,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            }
 
-          final ownedAssets = snapshot.data!;
-          return Center(
-            child: Column(
-              children: [
-                BalanceDisplay(isBalanceVisible: _isBalanceVisible),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    WalletButtonBox(
-                      label: "Enviar",
-                      icon: Icons.arrow_outward,
-                      onTap: () => Navigator.pushNamed(context, "/send_funds"),
-                    ),
-                    WalletButtonBox(
-                      label: "Receber",
-                      icon: Icons.call_received,
-                      onTap:
-                          () => Navigator.pushNamed(context, "/receive_funds"),
-                    ),
-                    WalletButtonBox(
-                      label: "Swap",
-                      icon: Icons.swap_horiz,
-                      onTap: () => Navigator.pushNamed(context, "/swap"),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Text(
-                  "Ativos",
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w400,
-                    color: Theme.of(context).colorScheme.onSurface,
+            final ownedAssets = snapshot.data!;
+            return Center(
+              child: Column(
+                children: [
+                  BalanceDisplay(isBalanceVisible: _isBalanceVisible),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      WalletButtonBox(
+                        label: "Enviar",
+                        icon: Icons.arrow_outward,
+                        onTap:
+                            () => Navigator.pushNamed(context, "/send_funds"),
+                      ),
+                      WalletButtonBox(
+                        label: "Receber",
+                        icon: Icons.call_received,
+                        onTap:
+                            () =>
+                                Navigator.pushNamed(context, "/receive_funds"),
+                      ),
+                      WalletButtonBox(
+                        label: "Swap",
+                        icon: Icons.swap_horiz,
+                        onTap: () => Navigator.pushNamed(context, "/swap"),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 5),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      await ref
-                          .read(ownedAssetsNotifierProvider.notifier)
-                          .refresh();
-                      return ref.refresh(ownedAssetsNotifierProvider.future);
-                    },
-                    child: ListView.builder(
-                      itemCount: ownedAssets.length,
-                      itemBuilder:
-                          (context, index) =>
-                              CoinBalance(ownedAsset: ownedAssets[index], isBalanceVisible: _isBalanceVisible),
+                  SizedBox(height: 20),
+                  Text(
+                    "Ativos",
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w400,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(bottom: 40.0),
-                  child: PrimaryButton(
-                    text: "Comprar por PIX",
-                    onPressed:
-                        () => Navigator.pushNamed(context, "/receive_pix"),
+                  SizedBox(height: 5),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        await ref
+                            .read(ownedAssetsNotifierProvider.notifier)
+                            .refresh();
+                        return ref.refresh(ownedAssetsNotifierProvider.future);
+                      },
+                      child: ListView.builder(
+                        itemCount: ownedAssets.length,
+                        itemBuilder:
+                            (context, index) => CoinBalance(
+                              ownedAsset: ownedAssets[index],
+                              isBalanceVisible: _isBalanceVisible,
+                            ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 40.0),
+                    child: PrimaryButton(
+                      text: "Comprar por PIX",
+                      onPressed:
+                          () => Navigator.pushNamed(context, "/receive_pix"),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
