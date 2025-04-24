@@ -60,13 +60,6 @@ class PegInDisplay extends StatelessWidget {
                     return oldValue;
                   }
 
-                  // Check for decimal places limit
-                  final parts = newValue.text.split(RegExp(r'[.,]'));
-                  if (parts.length > 1 && parts[1].length > 2) {
-                    // More than 2 decimal places, reject
-                    return oldValue;
-                  }
-
                   return newValue;
                 }),
               ],

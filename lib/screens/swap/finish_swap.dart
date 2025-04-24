@@ -102,7 +102,7 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
             body: Padding(
               padding: EdgeInsets.all(16.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
