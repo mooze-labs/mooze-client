@@ -40,10 +40,18 @@ class StoreHomeState extends State<StoreHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    TextStyle defaultStyle = TextStyle(color: Colors.white, fontSize: 16.0);
-    TextStyle linkStyle = TextStyle(color: Colors.pinkAccent, fontSize: 16.0);
+    final size = MediaQuery.of(context).size;
+    final TextStyle defaultStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 16.0,
+    );
+    final TextStyle linkStyle = TextStyle(
+      color: Colors.pinkAccent,
+      fontSize: 16.0,
+    );
 
     final buttons = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         PrimaryButton(
           text: "Receber novo pagamento",
@@ -55,7 +63,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
           },
           icon: Icons.payment,
         ),
-        SizedBox(height: 20),
+        SizedBox(height: size.height * 0.02), // Responsive spacing
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -89,17 +97,28 @@ class StoreHomeState extends State<StoreHomeScreen> {
       ],
     );
 
-    final body = Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset('assets/images/mooze-logo.png', width: 200, height: 200),
-          SizedBox(height: 50),
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            child: Column(children: [buttons]),
+    final body = SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.05,
+            vertical: size.height * 0.03,
           ),
-        ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(height: size.height * 0.1), // Top spacing
+              Image.asset(
+                'assets/images/mooze-logo.png',
+                width: size.width * 0.5, // Responsive width
+                height: size.width * 0.5, // Keep aspect ratio square
+                fit: BoxFit.contain,
+              ),
+              SizedBox(height: size.height * 0.05),
+              SizedBox(width: size.width * 0.9, child: buttons),
+            ],
+          ),
+        ),
       ),
     );
 
@@ -107,7 +126,7 @@ class StoreHomeState extends State<StoreHomeScreen> {
       canPop: false,
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: Padding(padding: const EdgeInsets.all(16.0), child: body),
+        body: body,
       ),
     );
   }
