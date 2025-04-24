@@ -102,12 +102,12 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
             body: Padding(
               padding: EdgeInsets.all(16.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         FinishedSwapInfo(
                           sentAsset: widget.sentAsset,
