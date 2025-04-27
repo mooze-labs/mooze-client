@@ -12,14 +12,14 @@ import 'package:bdk_flutter/bdk_flutter.dart' as bitcoin;
 class BitcoinWalletRepository implements WalletRepository {
   bitcoin.Wallet? _wallet;
   bitcoin.Network? _network;
-  bitcoin.Blockchain? _blockchain;
+  bitcoin.Blockchain? blockchain;
   String? publicDescriptor;
 
   @override
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
     _network = (mainnet) ? bitcoin.Network.bitcoin : bitcoin.Network.testnet;
 
-    _blockchain = await bitcoin.Blockchain.create(
+    blockchain = await bitcoin.Blockchain.create(
       config: bitcoin.BlockchainConfig.electrum(
         config: bitcoin.ElectrumConfig(
           stopGap: BigInt.from(10),
@@ -81,7 +81,7 @@ class BitcoinWalletRepository implements WalletRepository {
       print("Public descriptor: $publicDescriptor");
     }
 
-    await _wallet!.sync(blockchain: _blockchain!);
+    await _wallet!.sync(blockchain: blockchain!);
 
     if (kDebugMode) {
       print("Total balance: ${_wallet!.getBalance().total}");
@@ -101,11 +101,11 @@ class BitcoinWalletRepository implements WalletRepository {
 
   @override
   Future<void> sync() async {
-    if (_wallet == null || _blockchain == null) {
+    if (_wallet == null || blockchain == null) {
       throw Exception("Bitcoin wallet has not been initialized.");
     }
 
-    await _wallet!.sync(blockchain: _blockchain!);
+    await _wallet!.sync(blockchain: blockchain!);
   }
 
   @override
@@ -154,18 +154,24 @@ class BitcoinWalletRepository implements WalletRepository {
       throw Exception("Invalid address.");
     }
 
+    final estimateFeeEconomy = await blockchain!.estimateFee(
+      target: BigInt.from(6),
+    );
+
     final script = address.scriptPubkey();
     final (psbt, txDetails) = await bitcoin.TxBuilder()
         .addRecipient(script, BigInt.from(amount))
-        .feeAbsolute(BigInt.from(250))
+        .feeRate(feeRate ?? estimateFeeEconomy.satPerVb)
         .finish(_wallet!);
+
+    final feeAmount = psbt.feeAmount();
 
     final pst = PartiallySignedTransaction(
       pst: psbt,
       asset: asset.asset,
       network: Network.bitcoin,
       recipient: recipient,
-      feeAmount: 250,
+      feeAmount: feeAmount?.toInt() ?? 0,
     );
 
     return pst;
@@ -177,7 +183,7 @@ class BitcoinWalletRepository implements WalletRepository {
       throw Exception("Bitcoin wallet is not initialized.");
     }
 
-    if (_blockchain == null) {
+    if (blockchain == null) {
       throw Exception("Not connected to Bitcoin nodes.");
     }
 
@@ -189,7 +195,7 @@ class BitcoinWalletRepository implements WalletRepository {
     }
 
     final tx = psbt.extractTx();
-    final res = await _blockchain!.broadcast(transaction: tx);
+    final res = await blockchain!.broadcast(transaction: tx);
 
     final txid = await tx.txid();
     return Transaction(

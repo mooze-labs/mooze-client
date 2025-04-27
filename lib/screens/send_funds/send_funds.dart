@@ -10,6 +10,7 @@ import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'dart:math';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
+import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/send_funds/confirm_send_transaction.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/inputs.dart';
@@ -32,6 +33,7 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
   int? assetAmountInSats;
   bool isFiatMode = false;
   int? lbtcAmountInSats; // used for fees
+  int estimatedBlocks = 6;
   final TextEditingController addressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
 
@@ -70,6 +72,10 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       return null;
     }
 
+    if (kDebugMode) {
+      print("Fee rate: ${this.feeRate}");
+    }
+
     final wallet = ref.watch(
       walletRepositoryProvider(selectedAsset!.asset.network),
     );
@@ -80,15 +86,19 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
       final psbt = await wallet.buildPartiallySignedTransaction(
         selectedAsset!,
         address,
-        1,
-        null,
+        546,
+        feeRate,
       );
 
       setState(() {
-        fees = 250;
+        fees = psbt.feeAmount;
       });
 
-      return 250;
+      if (kDebugMode) {
+        print("Fee amount: ${psbt.feeAmount}");
+      }
+
+      return psbt.feeAmount;
     }
 
     final psbt = await wallet.buildPartiallySignedTransaction(
@@ -119,16 +129,26 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
     }
 
     try {
-      final mempoolRepository = ref.watch(
-        mempoolRepositoryProvider(selectedAsset!.asset.network),
-      );
-      final recommendedFees = await mempoolRepository.getRecommendedFees();
-      setState(() {
-        feeRate = recommendedFees.halfHourFee.toDouble();
+      if (selectedAsset!.asset.network == Network.bitcoin) {
+        final BitcoinWalletRepository wallet =
+            ref.watch(walletRepositoryProvider(selectedAsset!.asset.network))
+                as BitcoinWalletRepository;
+
+        final blockchain = wallet.blockchain;
+        final estimatedFee = await blockchain?.estimateFee(
+          target: BigInt.from(estimatedBlocks),
+        );
+
         if (kDebugMode) {
-          debugPrint("Fee rate updated to $feeRate");
+          print("Estimated fee: ${estimatedFee?.satPerVb}");
         }
-      });
+
+        setState(() {
+          feeRate = estimatedFee?.satPerVb;
+        });
+        _calculateFeeAmount(addressController.text);
+        return;
+      }
     } catch (e) {
       if (kDebugMode) {
         print(
@@ -230,8 +250,6 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
         return;
       }
 
-      final fees =
-          (selectedAsset!.asset.network == Network.bitcoin) ? 250 : this.fees;
       if (assetAmountInSats! + fees! > selectedAsset!.amount) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -381,14 +399,26 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                     onAmountChanged: (amount) async {
                       await _handleAmountChanged(amount);
                     },
-                    fees:
-                        (selectedAsset != null &&
-                                (selectedAsset!.asset.network ==
-                                    Network.bitcoin))
-                            ? 250
-                            : fees,
+                    fees: fees,
                     maxAmount: selectedAsset?.amount,
                   ),
+                  SizedBox(height: 10),
+                  if (selectedAsset != null &&
+                      selectedAsset!.asset.network == Network.bitcoin)
+                    SegmentedButton(
+                      segments: [
+                        ButtonSegment(value: 3, label: Text("Rápido")),
+                        ButtonSegment(value: 6, label: Text("Médio")),
+                        ButtonSegment(value: 12, label: Text("Lento")),
+                      ],
+                      selected: <int>{estimatedBlocks},
+                      onSelectionChanged: (value) {
+                        setState(() {
+                          estimatedBlocks = value.first;
+                        });
+                        _updateNetworkFees();
+                      },
+                    ),
                   Padding(
                     padding: EdgeInsets.only(top: 8.0),
                     child:
@@ -401,19 +431,15 @@ class SendFundsScreenState extends ConsumerState<SendFundsScreen> {
                               ),
                             )
                             : Text(
-                              "Taxas de rede: $feeRate sats/vB",
+                              "Taxas de rede: ${feeRate?.toStringAsFixed(2)} sats/vB",
                               style: TextStyle(
                                 fontFamily: "roboto",
                                 fontSize: 14,
                               ),
                             ),
                   ),
-                  (fees != null &&
-                          selectedAsset!.asset.network == Network.liquid)
+                  (fees != null)
                       ? Text("Taxas totais: ${fees} sats")
-                      : (selectedAsset != null &&
-                          selectedAsset!.asset.network == Network.bitcoin)
-                      ? Text("Taxas totais: 250 sats")
                       : Text(""),
                 ],
               ),
