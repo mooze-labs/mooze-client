@@ -59,7 +59,7 @@ class LiquidWalletRepository implements WalletRepository {
       debugPrint("Liquid wallet initialized");
     }
 
-    await _wallet!.sync_(electrumUrl: electrumUrl, validateDomain: true);
+    await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
   }
 
   @override
@@ -68,7 +68,7 @@ class LiquidWalletRepository implements WalletRepository {
       throw Exception("Liquid wallet has not been initialized.");
     }
 
-    _wallet!.sync_(electrumUrl: electrumUrl, validateDomain: true);
+    await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
   }
 
   @override
@@ -252,9 +252,9 @@ class LiquidWalletRepository implements WalletRepository {
       network: _network!,
     );
 
-    final tx = await liquid.Blockchain.broadcastSignedPset(
+    final tx = await liquid.Wallet.broadcastTx(
       electrumUrl: electrumUrl,
-      signedPset: signedTxBytes,
+      txBytes: signedTxBytes,
     );
 
     return Transaction(

@@ -4,7 +4,7 @@ description: "Wallet with on-chain Bitcoin and Liquid Network support."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.1.0+4
+version: 1.2.0+1
 
 environment:
   sdk: ^3.7.0
@@ -15,9 +15,8 @@ dependencies:
 
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8
-  lwk: ^0.1.6
+  lwk: ^0.1.7
   ffi: ^2.1.4
-  flutter_rust_bridge: ^2.0.0
   shared_preferences: ^2.5.2
   path_provider: ^2.1.5
   qr_flutter: ^4.1.0
@@ -26,9 +25,10 @@ dependencies:
   flutter_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
   flutter_svg: ^2.0.17
-  share_plus: ^10.0.0
-  bdk_flutter: ^0.31.2
-  freezed_annotation: ^2.4.4
+  flutter_rust_bridge: ^2.9.0
+  bdk_flutter: 
+    git:
+      url: https://github.com/LtbLightning/bdk-flutter.git
   json_annotation: ^4.9.0
   cached_network_image: ^3.4.0
   google_fonts: ^6.2.1
@@ -36,29 +36,35 @@ dependencies:
   flutter_secure_storage: ^4.2.1
   flutter_launcher_icons: ^0.14.3
   rename_app: ^1.6.2
-  permission_handler: ^11.4.0
+  permission_handler: ^12.0.0+1
   action_slider: ^0.7.0
   web_socket_client: ^0.2.0
-  json_rpc_2: ^3.0.3
+  json_rpc_2: ^4.0.0
   url_launcher: ^6.3.1
   flutter_dotenv: ^5.2.1
   local_auth: ^2.3.0
-  bitcoin_base: ^6.0.0
   crypto: ^3.0.6
   encrypt: ^5.0.3
   pinput: ^5.0.1
-  blockchain_utils: ^4.2.0
   ffigen: ^18.0.0
   restart_app: ^1.3.1
-  mobile_scanner: ^6.0.7
+  mobile_scanner: ^7.0.0
   no_screenshot: ^0.3.1
   firebase_core: ^3.4.0
   firebase_messaging: ^15.1.0
   flutter_local_notifications: ^19.0.0
   unique_identifier: ^0.4.0
+  lottie: ^3.3.1
+  skeletonizer: ^1.4.3
+  stream_transform: ^2.1.1
+  rxdart: ^0.28.0
+  bitcoin_base: ^6.4.0
+  blockchain_utils: ^5.0.0
+  shimmer: ^3.0.0
 
 dependency_overrides:
   flutter_secure_storage: 9.2.4
+  freezed_annotation: ^3.0.0
 
 dev_dependencies:
   flutter_test:
@@ -69,7 +75,6 @@ dev_dependencies:
   build_runner: ^2.4.14
   custom_lint: ^0.7.3
   riverpod_lint: ^2.6.4
-  freezed: ^2.5.8
   json_serializable: ^6.9.4
   change_app_package_name: ^1.5.0
 
