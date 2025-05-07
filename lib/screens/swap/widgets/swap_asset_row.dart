@@ -15,6 +15,7 @@ import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 import '../providers/swap_input_provider.dart';
 
 import 'package:stream_transform/stream_transform.dart';
+import 'package:mooze_mobile/screens/swap/widgets/swap_max_amount_button.dart';
 
 class SwapAssetRow extends StatelessWidget {
   final List<Asset> assets;
@@ -22,7 +23,7 @@ class SwapAssetRow extends StatelessWidget {
   final TextEditingController amountController;
   final Function(Asset asset) onAssetChange;
   final Function(String amount)? onAmountChange;
-  final VoidCallback? onEditingComplete; // New parameter
+  final VoidCallback? onEditingComplete;
   final bool readOnly;
 
   const SwapAssetRow({
@@ -54,7 +55,7 @@ class SwapAssetRow extends StatelessWidget {
               controller: amountController,
               onChanged: onAmountChange,
               onEditingComplete:
-                  onEditingComplete ?? // Use new callback
+                  onEditingComplete ??
                   (onAmountChange != null
                       ? () => onAmountChange!(amountController.text)
                       : null),
@@ -70,7 +71,10 @@ class SwapAssetRow extends StatelessWidget {
               ),
               readOnly: readOnly,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textInputAction: TextInputAction.done, // Ensure "Done" action
+              textInputAction: TextInputAction.done,
+              onTapOutside: (PointerDownEvent event) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
             ),
           ),
           Container(
@@ -119,33 +123,37 @@ class SwapAssetRow extends StatelessWidget {
 }
 
 class SendAssetRow extends ConsumerStatefulWidget {
-  const SendAssetRow({super.key});
+  final TextEditingController? amountController;
+
+  const SendAssetRow({super.key, this.amountController});
 
   @override
   ConsumerState<SendAssetRow> createState() => _SendAssetRowState();
 }
 
 class _SendAssetRowState extends ConsumerState<SendAssetRow> {
-  late final TextEditingController amountController;
+  late final TextEditingController _internalController;
   StreamController<int> amountStreamController =
       StreamController<int>.broadcast();
 
   @override
   void initState() {
     super.initState();
-    amountController = TextEditingController();
+    _internalController = widget.amountController ?? TextEditingController();
   }
 
   @override
   void dispose() {
-    amountController.dispose();
+    if (widget.amountController == null) {
+      _internalController.dispose();
+    }
     amountStreamController.close();
     super.dispose();
   }
 
   void _onEditingComplete() {
     if (!mounted) return;
-    final value = amountController.text;
+    final value = _internalController.text;
     final amount = double.tryParse(value.replaceAll(",", ".")) ?? 0;
     final parsedAmount = (amount * pow(10, 8)).toInt();
     if (kDebugMode) {
@@ -155,6 +163,10 @@ class _SendAssetRowState extends ConsumerState<SendAssetRow> {
     ref
         .read(swapInputNotifierProvider.notifier)
         .changeSendAssetSatoshiAmount(parsedAmount);
+
+    if (parsedAmount == 0) {
+      ref.read(swapQuoteNotifierProvider.notifier).stopQuote();
+    }
   }
 
   @override
@@ -167,13 +179,13 @@ class _SendAssetRowState extends ConsumerState<SendAssetRow> {
             .toList();
 
     if (swapInput.sendAssetSatoshiAmount == 0) {
-      amountController.clear();
+      _internalController.clear();
     }
 
     return SwapAssetRow(
       assets: assets,
       selectedAsset: sendAsset,
-      amountController: amountController,
+      amountController: _internalController,
       onAssetChange: (asset) {
         ref.read(swapInputNotifierProvider.notifier).changeSendAsset(asset);
         if (asset == AssetCatalog.bitcoin) {
@@ -238,13 +250,25 @@ class _ReceiveAssetRowState extends ConsumerState<ReceiveAssetRow> {
     final swapInput = ref.watch(swapInputNotifierProvider);
     final recvAsset = swapInput.recvAsset;
     final assets =
-        AssetCatalog.all
-            .where((asset) => asset.id != swapInput.sendAsset.id)
-            .toList();
+        (swapInput.sendAsset != AssetCatalog.bitcoin)
+            ? AssetCatalog.all
+                .where((asset) => asset.id != swapInput.sendAsset.id)
+                .toList()
+            : [AssetCatalog.getById("lbtc")!];
 
-    final formattedAmount = (swapInput.recvAssetSatoshiAmount / pow(10, 8))
+    final formattedAmount = (swapInput.sendAssetSatoshiAmount == 0
+            ? swapInput.recvAssetSatoshiAmount / pow(10, 8)
+            : 0)
         .toStringAsFixed(8);
-    amountController.text = formattedAmount;
+
+    if (swapInput.sendAsset == AssetCatalog.bitcoin ||
+        swapInput.recvAsset == AssetCatalog.bitcoin) {
+      amountController.text = ((swapInput.sendAssetSatoshiAmount * 0.99) /
+              pow(10, 8))
+          .toStringAsFixed(8);
+    } else {
+      amountController.text = formattedAmount;
+    }
 
     return SwapAssetRow(
       assets: assets,
@@ -259,6 +283,7 @@ class _ReceiveAssetRowState extends ConsumerState<ReceiveAssetRow> {
         }
       },
       onAmountChange: (_) {}, // no-op since it's readOnly
+      onEditingComplete: null,
       readOnly: true,
     );
   }

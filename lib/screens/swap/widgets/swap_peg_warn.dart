@@ -6,7 +6,7 @@ import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
 const pegInWarnText =
     """Atenção: essa é uma operação entre redes realizada pela Sideswap. Transações de peg-in só podem ser realizadas com no mínimo 0,00010000 BTC e demoram no mínimo 2 confirmações (~20 min) e podem demorar até 102 confirmações (~17 horas) em casos de baixa liquidez. Ao prosseguir, você confirma que está ciente dos tempos de confirmação e que os fundos podem demorar a ser transferidos.""";
 const pegOutWarnText =
-    """Atenção: essa é uma operação entre redes realizada pela Sideswap. Transações de peg-out só podem ser realizadas com no mínimo 0,00025000 BTC e podem demorar até 17 horas em casos de baixa liquidez. Ao prosseguir, você confirma que está ciente dos tempos de confirmação e que os fundos podem demorar a ser transferidos.""";
+    """Atenção: essa é uma operação entre redes realizada pela Sideswap. Transações de peg-out só podem ser realizadas com no mínimo 0,00025000 BTC e demoram no mínimo 2 confirmações (~2 min) até 1 hora em casos de baixa liquidez. Ao prosseguir, você confirma que está ciente dos tempos de confirmação e que os fundos podem demorar a ser transferidos.""";
 
 class SwapPegWarn extends ConsumerWidget {
   const SwapPegWarn({super.key});

@@ -29,6 +29,12 @@ class SwapQuoteState {
 }
 
 @riverpod
+Stream<QuoteResponse> quoteStream(Ref ref) {
+  final sideswap = ref.read(sideswapRepositoryProvider);
+  return sideswap.quoteResponseStream;
+}
+
+@riverpod
 class SwapQuoteNotifier extends _$SwapQuoteNotifier {
   StreamSubscription<QuoteResponse>? _quoteSubscription;
   SideswapQuote? quote;

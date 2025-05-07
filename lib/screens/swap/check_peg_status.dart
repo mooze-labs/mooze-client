@@ -165,7 +165,15 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
     }
 
     return Scaffold(
-      appBar: MoozeAppBar(title: "Status de peg"),
+      appBar: MoozeAppBar(
+        title: "Status de peg",
+        action: IconButton(
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, "/wallet");
+          },
+          icon: Icon(Icons.home),
+        ),
+      ),
       body: FutureBuilder<PegOrderStatus?>(
         future: _orderStatusFuture,
         builder: (context, snapshot) {
@@ -263,6 +271,7 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
                       itemBuilder: (context, index) {
                         return PegStatus(
                           pegTransaction: pegOrder.transactions[index],
+                          pegIn: _isPegIn!,
                         );
                       },
                       itemCount: pegOrder.transactions.length,
@@ -272,7 +281,7 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
                   Expanded(
                     child: Center(
                       child: Text(
-                        "Nenhuma transação encontrada ainda",
+                        "Aguardando confirmação da transação",
                         style: TextStyle(fontFamily: "roboto", fontSize: 16),
                       ),
                     ),
