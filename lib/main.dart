@@ -15,9 +15,7 @@ void main() async {
   await LibLwk.init();
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final notificationService = NotificationService();
   await notificationService.initialize();
