@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
+import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MoozeDrawer extends ConsumerWidget {
@@ -92,13 +93,6 @@ class MoozeDrawer extends ConsumerWidget {
             ),
             _buildDrawerItem(
               context,
-              Icons.switch_access_shortcut,
-              "Pegs",
-              "/input_peg",
-              currentRoute == "/input_peg",
-            ),
-            _buildDrawerItem(
-              context,
               Icons.settings,
               "Configurações",
               "/settings",
@@ -116,6 +110,12 @@ class MoozeDrawer extends ConsumerWidget {
               Icons.data_usage,
               "Central de dados",
               "https://keepo.io/mooze.app/",
+            ),
+            _buildDrawerUrlItem(
+              context,
+              SimpleIcons.github,
+              "Github",
+              "https://github.com/mooze-labs",
             ),
           ],
         ),
