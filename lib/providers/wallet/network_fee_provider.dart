@@ -10,11 +10,18 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'network_fee_provider.g.dart';
 
+class NetworkFee {
+  final int absoluteFees;
+  final double? feeRate;
+
+  NetworkFee({required this.absoluteFees, this.feeRate});
+}
+
 class NetworkFees {
-  final int bitcoinFast;
-  final int bitcoinNormal;
-  final int bitcoinSlow;
-  final int liquid; // due to CT discounts fees keep the same value always
+  final NetworkFee bitcoinFast;
+  final NetworkFee bitcoinNormal;
+  final NetworkFee bitcoinSlow;
+  final NetworkFee liquid;
 
   NetworkFees({
     required this.bitcoinFast,
@@ -50,20 +57,20 @@ class NetworkFeeProvider extends _$NetworkFeeProvider {
 
     final bitcoinBlockchain = bitcoinWallet.blockchain;
     final fastBitcoinFees = await bitcoinBlockchain?.estimateFee(
-      target: BigInt.from(2),
+      target: BigInt.from(3), // 30 minutes
     );
     final normalBitcoinFees = await bitcoinBlockchain?.estimateFee(
-      target: BigInt.from(6),
+      target: BigInt.from(12), // 2 hours
     );
     final slowBitcoinFees = await bitcoinBlockchain?.estimateFee(
-      target: BigInt.from(12),
+      target: BigInt.from(24), // 4 hours
     );
     final liquidFees = await liquidWallet
         .buildPartiallySignedTransaction(
           liquidBitcoinOwnedAsset,
           liquidAddress,
           1,
-          1.0,
+          null,
         )
         .then((psbt) => psbt.feeAmount);
 
@@ -89,10 +96,19 @@ class NetworkFeeProvider extends _$NetworkFeeProvider {
     );
 
     return NetworkFees(
-      bitcoinFast: fastBtcPsbt.feeAmount ?? 0,
-      bitcoinNormal: normalBtcPsbt.feeAmount ?? 0,
-      bitcoinSlow: slowBtcPsbt.feeAmount ?? 0,
-      liquid: liquidFees ?? 0,
+      bitcoinFast: NetworkFee(
+        absoluteFees: fastBtcPsbt.feeAmount ?? 0,
+        feeRate: fastBitcoinFees?.satPerVb ?? 0,
+      ),
+      bitcoinNormal: NetworkFee(
+        absoluteFees: normalBtcPsbt.feeAmount ?? 0,
+        feeRate: normalBitcoinFees?.satPerVb ?? 0,
+      ),
+      bitcoinSlow: NetworkFee(
+        absoluteFees: slowBtcPsbt.feeAmount ?? 0,
+        feeRate: slowBitcoinFees?.satPerVb ?? 0,
+      ),
+      liquid: NetworkFee(absoluteFees: liquidFees ?? 0, feeRate: null),
     );
   }
 }
