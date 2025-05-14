@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -38,6 +40,9 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Listen for token refreshes
+    _messaging.onTokenRefresh.listen(_handleTokenRefresh);
 
     // Check for initial message (app opened from terminated state)
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
@@ -212,6 +217,56 @@ class NotificationService {
 
   void dispose() {
     _messageStreamController.close();
+  }
+
+  void _handleTokenRefresh(String token) async {
+    debugPrint('FCM Token refreshed: $token');
+
+    // Store the refreshed token
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('fcm_token', token);
+
+    // Update the token on your backend
+    await _updateTokenOnServer(token);
+  }
+
+  Future<void> _updateTokenOnServer(String token) async {
+    // Get the stored hashed descriptor (user_id)
+    final prefs = await SharedPreferences.getInstance();
+    final hashedDescriptor = prefs.getString('hashed_descriptor');
+
+    if (hashedDescriptor != null) {
+      try {
+        // Get platform information
+        final platform = Platform.isAndroid ? "android" : "ios";
+
+        // Update token on server using the API endpoint
+        final response = await http.post(
+          Uri.parse('https://api.mooze.app/users/fcm'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'user_id': hashedDescriptor,
+            'fcm_token': token,
+            'platform': platform,
+          }),
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          debugPrint('FCM token successfully updated on server');
+        } else {
+          debugPrint(
+            'Failed to update FCM token on server: ${response.statusCode}',
+          );
+          if (kDebugMode) {
+            debugPrint('Response: ${response.body}');
+          }
+        }
+      } catch (e) {
+        debugPrint('Error updating FCM token on server: $e');
+      }
+    } else {
+      debugPrint('Could not update FCM token: user ID not found');
+    }
   }
 }
 
