@@ -104,6 +104,11 @@ class _SideswapScreenState extends ConsumerState<SideswapScreen> {
                   ReceiveAssetRow(),
                   SizedBox(height: 4),
                   ReceiveAssetBalance(),
+                  SizedBox(height: 4),
+                  Text(
+                    "Powered by sideswap.io",
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
               Spacer(),
@@ -111,6 +116,20 @@ class _SideswapScreenState extends ConsumerState<SideswapScreen> {
                 PrimaryButton(
                   text: "Continuar",
                   onPressed: () {
+                    if (sendAmountController.text.isEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Por favor, insira um valor válido",
+                              ),
+                            ),
+                          );
+                        }
+                      });
+                      return;
+                    }
                     // Check minimum amounts
                     if (swapInput.recvAsset == AssetCatalog.bitcoin &&
                         swapInput.sendAssetSatoshiAmount < 25000) {

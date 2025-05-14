@@ -2,9 +2,10 @@
 
 import 'dart:async';
 import 'dart:math';
-
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
@@ -75,6 +76,29 @@ class SwapAssetRow extends StatelessWidget {
               onTapOutside: (PointerDownEvent event) {
                 FocusManager.instance.primaryFocus?.unfocus();
               },
+              keyboardType:
+                  (Platform.isIOS)
+                      ? null
+                      : TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: false,
+                      ),
+              inputFormatters: [
+                // Allow numbers, a single comma or dot for the decimal
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[,.]?\d*')),
+                // Custom formatter to ensure only one decimal separator exists
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  // Count how many decimal separators (comma or dot) are in the text
+                  int commaCount = newValue.text.split(',').length - 1;
+                  int dotCount = newValue.text.split('.').length - 1;
+
+                  // If there's more than one total decimal separator, reject the edit
+                  if (commaCount + dotCount > 1) {
+                    return oldValue;
+                  }
+                  return newValue;
+                }),
+              ],
             ),
           ),
           Container(
@@ -178,7 +202,9 @@ class _SendAssetRowState extends ConsumerState<SendAssetRow> {
             .where((asset) => asset.id != swapInput.recvAsset.id)
             .toList();
 
-    if (swapInput.sendAssetSatoshiAmount == 0) {
+    // Clear the controller when amount is 0
+    if (swapInput.sendAssetSatoshiAmount == 0 &&
+        _internalController.text.isNotEmpty) {
       _internalController.clear();
     }
 
@@ -223,6 +249,7 @@ class _ReceiveAssetRowState extends ConsumerState<ReceiveAssetRow> {
     _quoteSubscription = sideswapClient.quoteResponseStream.listen((
       quoteResponse,
     ) {
+      if (!mounted) return;
       final swapInput = ref.read(swapInputNotifierProvider);
       if (quoteResponse.isSuccess && quoteResponse.quote != null) {
         final isSendAssetQuoteAmount =
@@ -249,12 +276,31 @@ class _ReceiveAssetRowState extends ConsumerState<ReceiveAssetRow> {
   Widget build(BuildContext context) {
     final swapInput = ref.watch(swapInputNotifierProvider);
     final recvAsset = swapInput.recvAsset;
-    final assets =
-        (swapInput.sendAsset != AssetCatalog.bitcoin)
-            ? AssetCatalog.all
-                .where((asset) => asset.id != swapInput.sendAsset.id)
-                .toList()
-            : [AssetCatalog.getById("lbtc")!];
+    List<Asset> assets;
+    if (swapInput.sendAsset == AssetCatalog.bitcoin) {
+      assets = [AssetCatalog.getById("lbtc")!];
+    } else if (swapInput.sendAsset == AssetCatalog.getById("lbtc")) {
+      assets = [
+        AssetCatalog.bitcoin!,
+        AssetCatalog.getById("usdt")!,
+        AssetCatalog.getById("depix")!,
+      ];
+    } else {
+      assets =
+          AssetCatalog.all
+              .where(
+                (asset) =>
+                    asset.id != swapInput.sendAsset.id &&
+                    asset != AssetCatalog.bitcoin,
+              )
+              .toList();
+    }
+
+    // Clear the controller when amount is 0
+    if (swapInput.sendAssetSatoshiAmount == 0 &&
+        amountController.text.isNotEmpty) {
+      amountController.clear();
+    }
 
     final formattedAmount = (swapInput.sendAssetSatoshiAmount == 0
             ? swapInput.recvAssetSatoshiAmount / pow(10, 8)

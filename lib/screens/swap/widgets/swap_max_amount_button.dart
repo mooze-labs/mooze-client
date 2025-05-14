@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
+import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 
@@ -17,6 +19,7 @@ class MaxAmountButton extends ConsumerWidget {
       onPressed: () {
         final swapInput = ref.read(swapInputNotifierProvider);
         final ownedAssets = ref.read(ownedAssetsNotifierProvider);
+        final networkFees = ref.read(networkFeeProviderProvider);
 
         ownedAssets.when(
           loading: () => null,
@@ -27,7 +30,24 @@ class MaxAmountButton extends ConsumerWidget {
               orElse: () => OwnedAsset.zero(swapInput.sendAsset),
             );
 
-            final maxAmount = selectedAsset.amount;
+            int maxAmount = selectedAsset.amount;
+
+            // Subtract network fee if the asset is BTC or LBTC
+            networkFees.whenOrNull(
+              data: (fees) {
+                if (selectedAsset.asset.id == AssetCatalog.getById("btc")?.id) {
+                  // Subtract Bitcoin network fee
+                  maxAmount = max(
+                    0,
+                    maxAmount - fees.bitcoinFast.absoluteFees - 1,
+                  );
+                } else if (selectedAsset.asset.id ==
+                    AssetCatalog.getById("lbtc")?.id) {
+                  // Subtract Liquid network fee
+                  maxAmount = max(0, maxAmount - fees.liquid.absoluteFees - 1);
+                }
+              },
+            );
 
             // Update the amount in the provider
             ref

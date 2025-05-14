@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/database.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
+import 'package:mooze_mobile/providers/multichain/swaps_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_status.dart';
@@ -98,13 +100,59 @@ class _CheckPegStatusScreenState extends ConsumerState<CheckPegStatusScreen> {
       Navigator.of(context).pop();
     }
 
-    if (mounted) {
+    if (mounted && pegOrderStatus != null) {
       setState(() {
         this.pegOrderStatus = pegOrderStatus;
       });
+
+      // Save peg to database as soon as we get the status, regardless of transaction state
+      _savePegToDatabase(pegOrderStatus);
     }
 
     return pegOrderStatus;
+  }
+
+  void _savePegToDatabase(PegOrderStatus status) async {
+    try {
+      // Check if we already saved this peg by looking at existing records
+      final database = ref.read(databaseProvider);
+      final existingPegs = await database.getAllPegs();
+
+      // Check if this order is already saved
+      final alreadySaved = existingPegs.any((peg) => peg.orderId == _orderId);
+      if (alreadySaved) {
+        debugPrint('Peg already saved in database with order id: $_orderId');
+        return;
+      }
+
+      // Calculate total amount from transactions (if any) or use 0
+      int totalAmount = 0;
+      if (status.transactions.isNotEmpty) {
+        for (var tx in status.transactions) {
+          if (tx.txState == TxState.done) {
+            totalAmount += tx.amount;
+          }
+        }
+      }
+
+      // Create a PegsCompanion object to insert
+      final pegToInsert = PegsCompanion.insert(
+        orderId: _orderId!,
+        pegIn: _isPegIn!,
+        sideswapAddress: status.address,
+        payoutAddress: status.receiveAddress,
+        amount:
+            totalAmount, // This could be 0 if no transactions are confirmed yet
+        // createdAt will use the default value (currentDateAndTime)
+      );
+
+      // Insert the peg into the database
+      final insertedId = await database.into(database.pegs).insert(pegToInsert);
+
+      debugPrint('Peg inserted into database with id: $insertedId');
+    } catch (e) {
+      debugPrint('Error inserting peg into database: $e');
+    }
   }
 
   void refreshStatus() {

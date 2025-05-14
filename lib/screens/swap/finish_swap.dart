@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/database.dart';
 import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/providers/multichain/swaps_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
@@ -66,7 +68,37 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
     debugPrint("TXID: $txid");
     sideswapClient.stopQuotes();
 
+    // Insert the swap into the database
+    if (txid != null) {
+      _saveSwapToDatabase(txid);
+    }
+
     return txid;
+  }
+
+  void _saveSwapToDatabase(String txid) async {
+    try {
+      final database = ref.read(databaseProvider);
+
+      // Create a SwapsCompanion object to insert
+      final swapToInsert = SwapsCompanion.insert(
+        sendAsset: widget.sentAsset.liquidAssetId ?? widget.sentAsset.id,
+        receiveAsset:
+            widget.receivedAsset.liquidAssetId ?? widget.receivedAsset.id,
+        sendAmount: widget.sentAmount,
+        receiveAmount: widget.receivedAmount,
+        // createdAt will use the default value (currentDateAndTime)
+      );
+
+      // Insert the swap into the database
+      final insertedId = await database
+          .into(database.swaps)
+          .insert(swapToInsert);
+
+      debugPrint('Swap inserted into database with id: $insertedId');
+    } catch (e) {
+      debugPrint('Error inserting swap into database: $e');
+    }
   }
 
   @override

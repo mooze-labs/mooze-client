@@ -11,6 +11,7 @@ import 'package:mooze_mobile/screens/swap/providers/swap_asset_type_provider.dar
 import 'package:mooze_mobile/screens/swap/providers/swap_base_asset_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_quote_asset_provider.dart';
+import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/swap_details_display.dart';
 import 'package:mooze_mobile/screens/swap/finish_swap.dart';
 import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
@@ -35,6 +36,7 @@ class _SwapConfirmState extends ConsumerState<SwapConfirm> {
     _quoteSubscription = sideswapClient.quoteResponseStream.listen((
       quoteResponse,
     ) {
+      if (!mounted) return;
       if (quoteResponse.isSuccess && quoteResponse.quote != null) {
         setState(() {
           _currentQuote = quoteResponse.quote;
@@ -46,6 +48,7 @@ class _SwapConfirmState extends ConsumerState<SwapConfirm> {
   @override
   void dispose() {
     _quoteSubscription?.cancel();
+    _currentQuote = null;
     super.dispose();
   }
 
@@ -78,58 +81,85 @@ class _SwapConfirmState extends ConsumerState<SwapConfirm> {
       print("Recv asset satoshi amount: ${receivedAmount}");
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Confirmar swap')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondary,
-                  borderRadius: BorderRadius.circular(8),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          // Cancel subscription first
+          await _quoteSubscription?.cancel();
+          _quoteSubscription = null;
+          _currentQuote = null;
+
+          // Then stop quotes and reset state
+          ref.read(sideswapRepositoryProvider).stopQuotes();
+          ref.read(swapQuoteNotifierProvider.notifier).stopQuote();
+
+          ref
+              .read(swapInputNotifierProvider.notifier)
+              .changeSendAssetSatoshiAmount(0);
+          ref
+              .read(swapInputNotifierProvider.notifier)
+              .changeRecvAssetSatoshiAmount(0);
+          ref
+              .read(swapInputNotifierProvider.notifier)
+              .changeSendAsset(AssetCatalog.getById("lbtc")!);
+          ref
+              .read(swapInputNotifierProvider.notifier)
+              .changeRecvAsset(AssetCatalog.getById("depix")!);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Confirmar swap')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const FittedBox(child: SwapDetailsDisplay()),
+                      const SizedBox(height: 16),
+                      const FittedBox(child: SwapFeesDisplay()),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const FittedBox(child: SwapDetailsDisplay()),
-                    const SizedBox(height: 16),
-                    const FittedBox(child: SwapFeesDisplay()),
-                  ],
+                const Spacer(),
+                SwipeToConfirm(
+                  text: "Realizar swap",
+                  onConfirm: () {
+                    if (swapInput.sendAsset != AssetCatalog.bitcoin &&
+                        swapInput.recvAsset != AssetCatalog.bitcoin) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => FinishSwapScreen(
+                                quoteId: quote.quoteId,
+                                ttl: quote.ttl,
+                                sentAsset: swapInput.sendAsset,
+                                receivedAsset: swapInput.recvAsset,
+                                receivedAmount: receivedAmount,
+                                sentAmount: sentAmount,
+                                fees: totalFees,
+                              ),
+                        ),
+                      );
+                    }
+                  },
                 ),
-              ),
-              const Spacer(),
-              SwipeToConfirm(
-                text: "Realizar swap",
-                onConfirm: () {
-                  if (swapInput.sendAsset != AssetCatalog.bitcoin &&
-                      swapInput.recvAsset != AssetCatalog.bitcoin) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => FinishSwapScreen(
-                              quoteId: quote.quoteId,
-                              ttl: quote.ttl,
-                              sentAsset: swapInput.sendAsset,
-                              receivedAsset: swapInput.recvAsset,
-                              receivedAmount: receivedAmount,
-                              sentAmount: sentAmount,
-                              fees: totalFees,
-                            ),
-                      ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 50),
-            ],
+                const SizedBox(height: 50),
+              ],
+            ),
           ),
         ),
       ),

@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
-import 'package:mooze_mobile/repositories/breez/pay_onchain.dart';
 import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -39,8 +38,8 @@ class PegSendAssetDetailsDisplay extends ConsumerWidget {
             final totalAmount =
                 sendAmount +
                 (sendAsset == AssetCatalog.bitcoin
-                    ? fees.bitcoinFast
-                    : fees.liquid);
+                    ? fees.bitcoinFast.absoluteFees
+                    : fees.liquid.absoluteFees);
             return Text(
               "${(totalAmount / pow(10, 8)).toStringAsFixed((totalAmount > 1000000000) ? 2 : 8)}",
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -48,13 +47,13 @@ class PegSendAssetDetailsDisplay extends ConsumerWidget {
           },
           loading:
               () => Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
+                baseColor: const Color.fromARGB(255, 77, 72, 72)!,
+                highlightColor: const Color.fromARGB(255, 100, 95, 95)!,
                 child: Container(
                   width: 120,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color.fromARGB(255, 116, 115, 115),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -194,20 +193,20 @@ class PegFeesDisplay extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "${(swapInput.sendAsset == AssetCatalog.bitcoin ? fees.bitcoinFast : fees.liquid)} sats",
+                        "${(swapInput.sendAsset == AssetCatalog.bitcoin ? fees.bitcoinFast.absoluteFees : fees.liquid.absoluteFees)} sats",
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
                   ),
               loading:
                   () => Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
+                    baseColor: const Color.fromARGB(255, 77, 72, 72)!,
+                    highlightColor: const Color.fromARGB(255, 100, 95, 95)!,
                     child: Container(
                       width: 100,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color.fromARGB(255, 116, 115, 115),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

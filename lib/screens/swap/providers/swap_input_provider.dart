@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/models/assets.dart';
@@ -28,6 +29,8 @@ class SwapInputNotifier extends _$SwapInputNotifier {
 
     if (state.sendAssetSatoshiAmount > 0 &&
         !isPegOp(state.sendAsset, state.recvAsset)) {
+      ref.read(swapQuoteNotifierProvider.notifier).stopQuote();
+      ref.read(sideswapRepositoryProvider).stopQuotes();
       ref
           .read(swapQuoteNotifierProvider.notifier)
           .requestNewQuote(
@@ -54,6 +57,9 @@ class SwapInputNotifier extends _$SwapInputNotifier {
 
   void changeRecvAsset(Asset asset) {
     state = state.copyWith(recvAsset: asset);
+
+    ref.read(swapQuoteNotifierProvider.notifier).stopQuote();
+    ref.read(sideswapRepositoryProvider).stopQuotes();
 
     if (state.sendAssetSatoshiAmount > 0 &&
         !isPegOp(state.sendAsset, state.recvAsset)) {

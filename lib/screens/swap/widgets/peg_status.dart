@@ -75,16 +75,16 @@ class PegStatus extends StatelessWidget {
           const SizedBox(height: 10),
           ElevatedButton.icon(
             onPressed: () {
-              if (pegIn) {
+              if (!pegIn) {
                 launchUrl(
                   Uri.parse(
-                    "https://liquid.network/pt/tx/${pegTransaction.payoutTxid}",
+                    "https://liquid.network/pt/tx/${pegTransaction.txHash}",
                   ),
                 );
               } else {
                 launchUrl(
                   Uri.parse(
-                    "https://mempool.space/tx/${pegTransaction.payoutTxid}",
+                    "https://mempool.space/tx/${pegTransaction.txHash}",
                   ),
                 );
               }
