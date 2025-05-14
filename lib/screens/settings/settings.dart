@@ -4,6 +4,7 @@ import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/pin/create_pin.dart';
 import 'package:mooze_mobile/screens/settings/view_mnemonic.dart';
 import 'package:mooze_mobile/screens/settings/delete_wallet_screen.dart';
+import 'package:mooze_mobile/screens/settings/license.dart';
 import 'package:mooze_mobile/screens/referral_input/referral_input_screen.dart';
 import 'package:mooze_mobile/screens/support/support_screen.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
@@ -47,6 +48,12 @@ class SettingsScreen extends ConsumerWidget {
             "Termos de uso",
             Icons.description,
             () => Navigator.pushNamed(context, "/terms-and-conditions"),
+          ),
+          _buildSettingsItem(
+            context,
+            "Licença GPL",
+            Icons.gavel,
+            () => _showLicense(context),
           ),
           _buildSettingsItem(
             context,
@@ -166,6 +173,13 @@ class SettingsScreen extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const DeleteWalletScreen()),
+    );
+  }
+
+  void _showLicense(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LicenseScreen()),
     );
   }
 }
