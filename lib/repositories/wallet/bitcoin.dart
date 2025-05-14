@@ -177,6 +177,46 @@ class BitcoinWalletRepository implements WalletRepository {
     return pst;
   }
 
+  Future<PartiallySignedTransaction>
+  buildPartiallySignedTransactionWithAbsoluteFees(
+    OwnedAsset asset,
+    String recipient,
+    int amount,
+    int absoluteFees,
+  ) async {
+    if (_wallet == null) {
+      throw Exception("Bitcoin wallet has not been initialized.");
+    }
+
+    final balance = _wallet!.getBalance().total.toInt();
+    if (balance < amount) {
+      throw Exception("Insufficient funds.");
+    }
+
+    final address = await bitcoin.Address.fromString(
+      s: recipient,
+      network: _network!,
+    );
+
+    final script = address.scriptPubkey();
+    final (psbt, txDetails) = await bitcoin.TxBuilder()
+        .addRecipient(script, BigInt.from(amount))
+        .feeAbsolute(BigInt.from(absoluteFees))
+        .finish(_wallet!);
+
+    final feeAmount = psbt.feeAmount();
+
+    final pst = PartiallySignedTransaction(
+      pst: psbt,
+      asset: asset.asset,
+      network: Network.bitcoin,
+      recipient: recipient,
+      feeAmount: feeAmount?.toInt() ?? 0,
+    );
+
+    return pst;
+  }
+
   @override
   Future<Transaction> signTransaction(PartiallySignedTransaction pst) async {
     if (_wallet == null) {
