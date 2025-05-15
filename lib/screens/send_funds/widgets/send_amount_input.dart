@@ -178,17 +178,13 @@ class _SendAmountInputState extends ConsumerState<SendAmountInput> {
             controller: _controller,
             decoration: InputDecoration(
               border: InputBorder.none,
-              hintText:
-                  _isFiatMode
-                      ? "Digite o valor em ${baseCurrency}"
-                      : "Digite o valor em ${sendInput.asset?.ticker}",
+              hintText: "Digite a quantidade aqui",
               hintStyle: TextStyle(
                 fontFamily: "roboto",
                 fontSize: 16,
                 fontWeight: FontWeight.normal,
                 color: Theme.of(context).colorScheme.onSecondary,
               ),
-              prefixText: _isFiatMode ? '${baseCurrency} ' : "",
               prefixIcon: IconButton(
                 icon: Text(
                   _isFiatMode ? baseCurrency : sendInput.asset?.ticker ?? "",
