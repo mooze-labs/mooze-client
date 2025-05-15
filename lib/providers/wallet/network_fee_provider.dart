@@ -35,6 +35,11 @@ class NetworkFees {
 class NetworkFeeProvider extends _$NetworkFeeProvider {
   @override
   Future<NetworkFees> build() async {
+    NetworkFee? bitcoinFast;
+    NetworkFee? bitcoinNormal;
+    NetworkFee? bitcoinSlow;
+    NetworkFee? liquid;
+
     final liquidWallet =
         ref.watch(liquidWalletRepositoryProvider) as LiquidWalletRepository;
     final bitcoinWallet =
@@ -65,50 +70,63 @@ class NetworkFeeProvider extends _$NetworkFeeProvider {
     final slowBitcoinFees = await bitcoinBlockchain?.estimateFee(
       target: BigInt.from(24), // 4 hours
     );
-    final liquidFees = await liquidWallet
-        .buildPartiallySignedTransaction(
-          liquidBitcoinOwnedAsset,
-          liquidAddress,
-          1,
-          null,
-        )
-        .then((psbt) => psbt.feeAmount);
 
-    final fastBtcPsbt = await bitcoinWallet.buildPartiallySignedTransaction(
-      bitcoinOwnedAsset,
-      bitcoinAddress,
-      546,
-      fastBitcoinFees?.satPerVb,
-    );
+    if (liquidBitcoinOwnedAsset.amount != 0) {
+      final liquidFeeAmount = await liquidWallet
+          .buildPartiallySignedTransaction(
+            liquidBitcoinOwnedAsset,
+            liquidAddress,
+            1,
+            null,
+          )
+          .then((psbt) => psbt.feeAmount);
+      liquid = NetworkFee(absoluteFees: liquidFeeAmount ?? 0, feeRate: 1);
+    }
 
-    final normalBtcPsbt = await bitcoinWallet.buildPartiallySignedTransaction(
-      bitcoinOwnedAsset,
-      bitcoinAddress,
-      546,
-      normalBitcoinFees?.satPerVb,
-    );
-
-    final slowBtcPsbt = await bitcoinWallet.buildPartiallySignedTransaction(
-      bitcoinOwnedAsset,
-      bitcoinAddress,
-      546,
-      slowBitcoinFees?.satPerVb,
-    );
-
-    return NetworkFees(
-      bitcoinFast: NetworkFee(
+    if (bitcoinOwnedAsset.amount != 0) {
+      final fastBtcPsbt = await bitcoinWallet.buildPartiallySignedTransaction(
+        bitcoinOwnedAsset,
+        bitcoinAddress,
+        546,
+        fastBitcoinFees?.satPerVb,
+      );
+      bitcoinFast = NetworkFee(
         absoluteFees: fastBtcPsbt.feeAmount ?? 0,
         feeRate: fastBitcoinFees?.satPerVb ?? 0,
-      ),
-      bitcoinNormal: NetworkFee(
+      );
+    }
+
+    if (bitcoinOwnedAsset.amount != 0) {
+      final normalBtcPsbt = await bitcoinWallet.buildPartiallySignedTransaction(
+        bitcoinOwnedAsset,
+        bitcoinAddress,
+        546,
+        normalBitcoinFees?.satPerVb,
+      );
+      bitcoinNormal = NetworkFee(
         absoluteFees: normalBtcPsbt.feeAmount ?? 0,
         feeRate: normalBitcoinFees?.satPerVb ?? 0,
-      ),
-      bitcoinSlow: NetworkFee(
+      );
+    }
+
+    if (bitcoinOwnedAsset.amount != 0) {
+      final slowBtcPsbt = await bitcoinWallet.buildPartiallySignedTransaction(
+        bitcoinOwnedAsset,
+        bitcoinAddress,
+        546,
+        slowBitcoinFees?.satPerVb,
+      );
+      bitcoinSlow = NetworkFee(
         absoluteFees: slowBtcPsbt.feeAmount ?? 0,
         feeRate: slowBitcoinFees?.satPerVb ?? 0,
-      ),
-      liquid: NetworkFee(absoluteFees: liquidFees ?? 0, feeRate: null),
+      );
+    }
+
+    return NetworkFees(
+      bitcoinFast: bitcoinFast ?? NetworkFee(absoluteFees: 0, feeRate: 0),
+      bitcoinNormal: bitcoinNormal ?? NetworkFee(absoluteFees: 0, feeRate: 0),
+      bitcoinSlow: bitcoinSlow ?? NetworkFee(absoluteFees: 0, feeRate: 0),
+      liquid: liquid ?? NetworkFee(absoluteFees: 40, feeRate: 1),
     );
   }
 }
