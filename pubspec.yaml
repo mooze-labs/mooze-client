@@ -61,6 +61,7 @@ dependencies:
   bdk_flutter: ^0.31.2
   drift: ^2.26.1
   drift_flutter: ^0.2.4
+  simple_icons: ^14.6.1
 
 dependency_overrides:
   flutter_secure_storage: 9.2.4
