@@ -20,7 +20,7 @@ class CurrentLimitsDisplay extends ConsumerWidget {
             ),
             Text("Valor mínimo: R\$ 20,00"),
             Text(
-              "Continue fazendo mais PIX para aumentar seu limite.",
+              "Limite diário por CPF/CNPJ: R\$ 5.000,00",
               textAlign: TextAlign.center,
             ),
           ],
