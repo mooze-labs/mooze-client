@@ -9,7 +9,8 @@ class SentTransactionInfo extends StatelessWidget {
   final int amount;
   final int feeRate;
 
-  SentTransactionInfo({
+  const SentTransactionInfo({
+    super.key,
     required this.asset,
     required this.address,
     required this.amount,

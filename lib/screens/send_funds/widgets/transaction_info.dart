@@ -47,6 +47,8 @@ class TransactionInfo extends StatelessWidget {
     final networkName =
         (asset.network == Network.liquid) ? "Liquid Network" : "Bitcoin";
 
+    final feeAsset = (asset.network == Network.liquid) ? "L-BTC" : "BTC";
+
     return Container(
       padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       decoration: BoxDecoration(
@@ -66,7 +68,7 @@ class TransactionInfo extends StatelessWidget {
           ),
           _buildTransactionDetailRow(
             "Taxa",
-            "${(feeRate / pow(10, 8)).toStringAsFixed(8)} ${asset.ticker}",
+            "${(feeRate / pow(10, 8)).toStringAsFixed(8)} ${feeAsset}",
           ),
           _buildTransactionDetailRow("Rede", networkName),
         ],
