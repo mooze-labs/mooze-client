@@ -41,6 +41,9 @@ class _ReferralInputScreenState extends State<ReferralInputScreen> {
       setState(() {
         _existingReferralCode = userDetails!.referredBy;
       });
+      if (existingCode == null) {
+        await prefs.setString('referralCode', userDetails!.referredBy!);
+      }
       return;
     }
 
