@@ -149,7 +149,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   Padding(
                     padding: EdgeInsets.only(bottom: 40.0),
                     child: PrimaryButton(
-                      text: "Comprar por PIX",
+                      text: "Receber PIX",
                       onPressed:
                           () => Navigator.pushNamed(context, "/receive_pix"),
                     ),

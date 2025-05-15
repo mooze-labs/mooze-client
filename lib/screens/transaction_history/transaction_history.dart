@@ -7,28 +7,105 @@ import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/mooze_drawer.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
+import 'package:mooze_mobile/screens/transaction_history/swaps_screen.dart';
+import 'package:mooze_mobile/screens/transaction_history/pegs_screen.dart';
 
-class TransactionHistoryScreen extends ConsumerWidget {
+class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
+
+  @override
+  ConsumerState<TransactionHistoryScreen> createState() =>
+      _TransactionHistoryScreenState();
+}
+
+class _TransactionHistoryScreenState
+    extends ConsumerState<TransactionHistoryScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = const [
+    _TransactionsTab(),
+    SwapsScreen(),
+    PegsScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: MoozeAppBar(title: _getScreenTitle()),
+      drawer: MoozeDrawer(),
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Transações',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: 'Swaps'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.compare_arrows),
+            label: 'Pegs',
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getScreenTitle() {
+    switch (_currentIndex) {
+      case 0:
+        return "Histórico de transações";
+      case 1:
+        return "Histórico de swaps";
+      case 2:
+        return "Histórico de pegs";
+      default:
+        return "Histórico de transações";
+    }
+  }
+}
+
+class _TransactionsTab extends ConsumerWidget {
+  const _TransactionsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filteredTransactions = ref.watch(filteredTransactionsProvider);
     final filters = ref.watch(transactionFiltersProvider);
 
-    return Scaffold(
-      appBar: MoozeAppBar(title: "Histórico de transações"),
-      drawer: MoozeDrawer(),
-      body: Column(
-        children: [
-          _buildFilterControls(context, ref, filters),
-          Expanded(
+    return Column(
+      children: [
+        _buildFilterControls(context, ref, filters),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await ref.read(transactionHistoryProvider.notifier).refresh();
+            },
             child: filteredTransactions.when(
               loading: () => Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(child: Text("Erro: $error")),
+              error:
+                  (error, stack) => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [Center(child: Text("Erro: $error"))],
+                  ),
               data: (transactions) {
                 if (transactions.isEmpty) {
-                  return Center(child: Text("Nenhuma transação encontrada"));
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 100),
+                          child: Text("Nenhuma transação encontrada"),
+                        ),
+                      ),
+                    ],
+                  );
                 }
 
                 return ListView.builder(
@@ -40,8 +117,8 @@ class TransactionHistoryScreen extends ConsumerWidget {
               },
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
