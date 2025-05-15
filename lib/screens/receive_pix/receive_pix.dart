@@ -10,19 +10,26 @@ import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/mooze/user_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/generate_pix_payment_code.dart';
+import 'package:mooze_mobile/screens/receive_pix/providers/pix_input_provider.dart';
+import 'package:mooze_mobile/screens/receive_pix/providers/user_info_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/address_display.dart';
-import 'package:mooze_mobile/screens/receive_pix/widgets/amount_input.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/current_limits_display.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/selectable_asset_dropdown.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/transaction_info_display.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import './widgets/pix_input_amount.dart';
+import './widgets/fee_rate_display.dart';
 
 const BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
   defaultValue: "api.mooze.app",
 );
 
+/*
 class ReceivePixScreen extends ConsumerStatefulWidget {
   const ReceivePixScreen({Key? key}) : super(key: key);
 
@@ -274,7 +281,7 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
                   );
                 }
               },
-              text: "Deslize para pagar",
+              text: "Gerar QR code",
               backgroundColor: Theme.of(context).colorScheme.primary,
               progressColor: Theme.of(context).colorScheme.secondary,
               textColor: Theme.of(context).colorScheme.onPrimary,
@@ -291,27 +298,27 @@ class ReceivePixState extends ConsumerState<ReceivePixScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: MoozeAppBar(title: "Comprar com PIX"),
+        appBar: MoozeAppBar(title: "Receber PIX"),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        appBar: MoozeAppBar(title: "Comprar com PIX"),
+        appBar: MoozeAppBar(title: "Receber PIX"),
         body: Center(child: Text("Erro: $_error")),
       );
     }
 
     if (_address == null || _userDetails == null) {
       return Scaffold(
-        appBar: MoozeAppBar(title: "Comprar com PIX"),
+        appBar: MoozeAppBar(title: "Receber PIX"),
         body: const Center(child: Text("Nenhum endereço disponível")),
       );
     }
 
     return Scaffold(
-      appBar: MoozeAppBar(title: "Comprar com PIX"),
+      appBar: MoozeAppBar(title: "Receber PIX"),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -359,6 +366,115 @@ Essa limitação protege o usuário contra a obrigatoriedade de reporte automát
             ),
             _buildAmountDependentWidgets(),
           ],
+        ),
+      ),
+    );
+  }
+}
+*/
+
+class ReceivePixScreen extends ConsumerStatefulWidget {
+  const ReceivePixScreen({Key? key}) : super(key: key);
+
+  @override
+  ReceivePixState createState() => ReceivePixState();
+}
+
+class ReceivePixState extends ConsumerState<ReceivePixScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<bool> validateUserInput(int amount) async {
+    final user = await ref.read(userInfoProvider.future);
+    final allowedSpending = user?.allowedSpending;
+
+    if (!mounted) return false;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Não foi possível conectar ao servidor.")),
+      );
+    }
+
+    if (amount < 20 * 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Por favor, insira um valor maior que R\$ 20,00."),
+        ),
+      );
+      return false;
+    }
+
+    if (amount > allowedSpending!) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Por favor, insira um valor menor que seu limite de transação.",
+          ),
+        ),
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pixInput = ref.watch(pixInputProvider);
+
+    return Scaffold(
+      appBar: MoozeAppBar(title: "Receber PIX"),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: Column(
+            children: [
+              SelectableAssetsDropdown(),
+              SizedBox(height: 10),
+              PixInputAmount(),
+              CurrentLimitsDisplay(),
+              Spacer(),
+              TransactionInfoDisplay(),
+              SizedBox(height: 20),
+              FeeRateDisplay(),
+              Spacer(),
+              SwipeToConfirm(
+                onConfirm: () async {
+                  final result = await validateUserInput(
+                    pixInput.amountInCents,
+                  );
+
+                  if (!result) return;
+                  if (!context.mounted) return;
+
+                  final pixTransaction = PixTransaction(
+                    address: pixInput.address,
+                    asset: pixInput.asset.liquidAssetId!,
+                    brlAmount: pixInput.amountInCents,
+                  );
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => GeneratePixPaymentCodeScreen(
+                            pixTransaction: pixTransaction,
+                            assetId: pixInput.asset.liquidAssetId!,
+                          ),
+                    ),
+                  );
+                },
+                text: "Gerar QR code",
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                progressColor: Theme.of(context).colorScheme.secondary,
+                textColor: Theme.of(context).colorScheme.onPrimary,
+              ),
+              Spacer(),
+            ],
+          ),
         ),
       ),
     );

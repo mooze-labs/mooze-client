@@ -29,12 +29,18 @@ class PixQrDisplay extends StatelessWidget {
             data: qrCopyPaste,
             size: 250.0,
             backgroundColor: Colors.white,
-            embeddedImage: AssetImage('assets/images/2.png'),
-            embeddedImageStyle: QrEmbeddedImageStyle(size: Size(60, 60)),
             eyeStyle: QrEyeStyle(
               color: Colors.black,
               eyeShape: QrEyeShape.circle,
             ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          "Powered by Depix.info",
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontFamily: "roboto",
           ),
         ),
         const SizedBox(height: 10),
