@@ -35,13 +35,8 @@ class PegSendAssetDetailsDisplay extends ConsumerWidget {
         ),
         networkFees.when(
           data: (fees) {
-            final totalAmount =
-                sendAmount +
-                (sendAsset == AssetCatalog.bitcoin
-                    ? fees.bitcoinFast.absoluteFees
-                    : fees.liquid.absoluteFees);
             return Text(
-              "${(totalAmount / pow(10, 8)).toStringAsFixed((totalAmount > 1000000000) ? 2 : 8)}",
+              "${(sendAmount / pow(10, 8)).toStringAsFixed((sendAmount > 1000000000) ? 2 : 8)}",
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             );
           },

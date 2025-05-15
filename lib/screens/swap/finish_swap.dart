@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/database.dart';
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/multichain/swaps_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
+import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
+import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/finished_swap_info.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
@@ -72,6 +75,20 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
     if (txid != null) {
       _saveSwapToDatabase(txid);
     }
+
+    ref.read(swapQuoteNotifierProvider.notifier).stopQuote();
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeSendAssetSatoshiAmount(0);
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeRecvAssetSatoshiAmount(0);
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeSendAsset(AssetCatalog.getById("lbtc")!);
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeRecvAsset(AssetCatalog.getById("depix")!);
 
     return txid;
   }

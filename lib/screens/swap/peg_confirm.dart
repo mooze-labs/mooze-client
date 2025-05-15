@@ -74,7 +74,7 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
               ? networkFees.bitcoinFast
               : networkFees.liquid;
 
-      final sendAmount = widget.sendAmount - fees.absoluteFees;
+      final sendAmount = widget.sendAmount - fees.absoluteFees - 1;
 
       if (kDebugMode) {
         debugPrint("Widget send amount: ${widget.sendAmount}");
@@ -129,6 +129,12 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
 
       PartiallySignedTransaction pst;
 
+      if (kDebugMode) {
+        print("Send asset ID: ${swapInput.sendAsset.id}");
+        print("Send amount: $sendAmount");
+        print("Fees: ${fees.absoluteFees}");
+      }
+
       if (swapInput.sendAsset == AssetCatalog.bitcoin) {
         final bitcoinWallet = sendWallet as BitcoinWalletRepository;
         pst = await bitcoinWallet
@@ -167,50 +173,191 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
   }
 
   Future<void> _onConfirmPressed() async {
-    if (_pegResponse == null || _pst == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Dados de transação não disponíveis. Tente novamente."),
-        ),
-      );
-      return;
-    }
+    setState(() {
+      _isLoading = true;
+    });
 
-    final swapInput = ref.read(swapInputNotifierProvider);
-    final sendWallet =
-        (swapInput.sendAsset == AssetCatalog.bitcoin)
-            ? ref.read(bitcoinWalletRepositoryProvider)
-            : ref.read(liquidWalletRepositoryProvider);
-    final pegIn = swapInput.sendAsset == AssetCatalog.bitcoin;
+    try {
+      final swapInput = ref.read(swapInputNotifierProvider);
+      final pegIn = swapInput.sendAsset == AssetCatalog.bitcoin;
+      final sideswapClient = ref.read(sideswapRepositoryProvider);
+      final ownedAssets = await ref.read(ownedAssetsNotifierProvider.future);
+      final networkFees = await ref.read(networkFeeProviderProvider.future);
 
-    await ref
-        .read(activePegOperationProvider.notifier)
-        .startPegOperation(_pegResponse.orderId, pegIn);
+      final sendWallet =
+          (swapInput.sendAsset == AssetCatalog.bitcoin)
+              ? ref.read(bitcoinWalletRepositoryProvider)
+              : ref.read(liquidWalletRepositoryProvider);
 
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => VerifyPinScreen(
-                onPinConfirmed: () async {
-                  final tx = await sendWallet.signTransaction(_pst);
-                  if (context.mounted) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => CheckPegStatusScreen(
-                              pegIn: pegIn,
-                              orderId: _pegResponse.orderId,
-                            ),
-                      ),
-                    );
-                  }
-                },
+      dynamic pegResponseForConfirmation;
+      dynamic pstForConfirmation;
+
+      final fees =
+          (swapInput.sendAsset == AssetCatalog.bitcoin)
+              ? networkFees.bitcoinFast
+              : networkFees.liquid;
+      final int sendAmountInTx = widget.sendAmount - fees.absoluteFees - 1;
+
+      if (kDebugMode) {
+        debugPrint("Confirming peg operation.");
+        debugPrint(
+          "Widget send amount (total from user): ${widget.sendAmount}",
+        );
+        debugPrint(
+          "Calculated fees (for network/service): ${fees.absoluteFees}",
+        );
+        debugPrint("Amount to send in Sideswap tx: $sendAmountInTx");
+      }
+
+      if (sendAmountInTx <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Valor de envio inválido após taxas.")),
+          );
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (_withdrawToExternalWallet) {
+        final String externalAddress = _addressController.text.trim();
+        if (externalAddress.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Endereço externo não pode estar vazio.")),
+            );
+          }
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+
+        sideswapClient.ensureConnection();
+        final newPegResponse = await sideswapClient.startPegOperation(
+          pegIn,
+          externalAddress,
+        );
+
+        if (newPegResponse == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Erro ao contatar servidor para peg externo."),
               ),
-        ),
-      );
+            );
+          }
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+        pegResponseForConfirmation = newPegResponse;
+
+        if (kDebugMode) {
+          debugPrint("External Peg initiated:");
+          debugPrint("Order id: ${pegResponseForConfirmation?.orderId}");
+          debugPrint(
+            "Sideswap payment address: ${pegResponseForConfirmation?.pegAddress}",
+          );
+          debugPrint("Address to receive (external): $externalAddress");
+        }
+
+        final feeRate = await _getFeeRate();
+        if (swapInput.sendAsset == AssetCatalog.bitcoin) {
+          final bitcoinWallet = sendWallet as BitcoinWalletRepository;
+          pstForConfirmation = await bitcoinWallet
+              .buildPartiallySignedTransactionWithAbsoluteFees(
+                ownedAssets.firstWhere(
+                  (asset) => asset.asset == swapInput.sendAsset,
+                ),
+                pegResponseForConfirmation.pegAddress,
+                sendAmountInTx,
+                fees.absoluteFees,
+              );
+        } else {
+          pstForConfirmation = await sendWallet.buildPartiallySignedTransaction(
+            ownedAssets.firstWhere(
+              (asset) => asset.asset == swapInput.sendAsset,
+            ),
+            pegResponseForConfirmation.pegAddress,
+            sendAmountInTx,
+            feeRate,
+          );
+        }
+      } else {
+        pegResponseForConfirmation = _pegResponse;
+        pstForConfirmation = _pst;
+
+        if (pegResponseForConfirmation == null || pstForConfirmation == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  "Dados de transação não disponíveis (interno). Tente novamente.",
+                ),
+              ),
+            );
+          }
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+        if (kDebugMode) {
+          debugPrint("Internal Peg (using pre-initialized data):");
+          debugPrint("Order id: ${pegResponseForConfirmation?.orderId}");
+          debugPrint(
+            "Sideswap payment address: ${pegResponseForConfirmation?.pegAddress}",
+          );
+        }
+      }
+
+      await ref
+          .read(activePegOperationProvider.notifier)
+          .startPegOperation(pegResponseForConfirmation.orderId, pegIn);
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => VerifyPinScreen(
+                  onPinConfirmed: () async {
+                    final tx = await sendWallet.signTransaction(
+                      pstForConfirmation,
+                    );
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => CheckPegStatusScreen(
+                                pegIn: pegIn,
+                                orderId: pegResponseForConfirmation.orderId,
+                              ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Erro ao confirmar peg: $e")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
