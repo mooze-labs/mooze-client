@@ -142,6 +142,10 @@ class BitcoinWalletRepository implements WalletRepository {
     }
 
     final balance = _wallet!.getBalance().total.toInt();
+    if (kDebugMode) {
+      print("Balance: $balance");
+      print("Amount: $amount");
+    }
     if (balance < amount) {
       throw Exception("Insufficient funds.");
     }
