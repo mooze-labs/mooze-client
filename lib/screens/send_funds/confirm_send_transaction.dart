@@ -6,6 +6,7 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/transaction.dart';
 import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
+import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/send_funds/transaction_sent.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/transaction_info.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
@@ -20,14 +21,14 @@ class ConfirmSendTransactionScreen extends ConsumerStatefulWidget {
   final OwnedAsset ownedAsset;
   final String address;
   final int amount;
-  final double? feeRate;
+  final int fees;
 
   const ConfirmSendTransactionScreen({
     super.key,
     required this.ownedAsset,
     required this.address,
     required this.amount,
-    this.feeRate,
+    required this.fees,
   });
 
   @override
@@ -89,16 +90,24 @@ class ConfirmSendTransactionState
       walletRepositoryProvider(widget.ownedAsset.asset.network),
     );
 
-    final fee =
-        (widget.ownedAsset.asset.network == Network.liquid)
-            ? 1.0
-            : widget.feeRate;
-    final pst = await wallet.buildPartiallySignedTransaction(
-      widget.ownedAsset,
-      widget.address,
-      widget.amount,
-      fee,
-    );
+    PartiallySignedTransaction pst;
+
+    if (widget.ownedAsset.asset.network == Network.bitcoin) {
+      final bitcoinWallet = wallet as BitcoinWalletRepository;
+      pst = await bitcoinWallet.buildPartiallySignedTransactionWithAbsoluteFees(
+        widget.ownedAsset,
+        widget.address,
+        widget.amount - 1,
+        widget.fees,
+      );
+    } else {
+      pst = await wallet.buildPartiallySignedTransaction(
+        widget.ownedAsset,
+        widget.address,
+        widget.amount - 1,
+        1.0,
+      );
+    }
 
     return pst;
   }

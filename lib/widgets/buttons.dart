@@ -15,6 +15,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     final ButtonStyle style = ElevatedButton.styleFrom(
       foregroundColor: Theme.of(context).colorScheme.onPrimary,
       backgroundColor: Theme.of(context).colorScheme.primary,
@@ -26,7 +27,8 @@ class PrimaryButton extends StatelessWidget {
         letterSpacing: 0.0,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      fixedSize: Size(345.0, 50.0),
+      minimumSize: Size(size.width * 0.8, 50.0),
+      maximumSize: Size(size.width * 0.9, 50.0),
       iconAlignment: IconAlignment.start,
       elevation: 3.0,
     );
@@ -56,6 +58,7 @@ class DeactivatedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     final ButtonStyle style = ElevatedButton.styleFrom(
       foregroundColor: Colors.black,
       backgroundColor: Colors.white,
@@ -67,7 +70,8 @@ class DeactivatedButton extends StatelessWidget {
         letterSpacing: 0.0,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      fixedSize: Size(345.0, 50.0),
+      minimumSize: Size(size.width * 0.8, 50.0),
+      maximumSize: Size(size.width * 0.9, 50.0),
       iconAlignment: IconAlignment.start,
       elevation: 3.0,
     );
@@ -99,6 +103,7 @@ class TertiaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     final ButtonStyle style = ElevatedButton.styleFrom(
       foregroundColor: Colors.black,
       backgroundColor: Colors.white,
@@ -110,7 +115,8 @@ class TertiaryButton extends StatelessWidget {
         letterSpacing: 0.0,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      fixedSize: Size(345.0, 50.0),
+      minimumSize: Size(size.width * 0.8, 50.0),
+      maximumSize: Size(size.width * 0.9, 50.0),
       iconAlignment: IconAlignment.start,
       elevation: 3.0,
     );
@@ -140,6 +146,7 @@ class DisabledButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     final ButtonStyle style = ElevatedButton.styleFrom(
       foregroundColor: Colors.black,
       backgroundColor: Colors.white,
@@ -151,7 +158,8 @@ class DisabledButton extends StatelessWidget {
         letterSpacing: 0.0,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      fixedSize: Size(345.0, 50.0),
+      minimumSize: Size(size.width * 0.8, 50.0),
+      maximumSize: Size(size.width * 0.9, 50.0),
       iconAlignment: IconAlignment.start,
       elevation: 3.0,
     );

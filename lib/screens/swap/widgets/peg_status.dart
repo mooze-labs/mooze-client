@@ -1,11 +1,17 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PegStatus extends StatelessWidget {
   final PegTransaction pegTransaction;
+  final bool pegIn;
 
-  const PegStatus({super.key, required this.pegTransaction});
+  const PegStatus({
+    super.key,
+    required this.pegTransaction,
+    required this.pegIn,
+  });
 
   String _getStatusInPortuguese(TxState txState) {
     switch (txState) {
@@ -65,6 +71,30 @@ class PegStatus extends StatelessWidget {
         children: [
           ...pegDetails.entries.map(
             (entry) => _buildDetailRow(entry.key, entry.value.toString()),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: () {
+              if (!pegIn) {
+                launchUrl(
+                  Uri.parse(
+                    "https://liquid.network/pt/tx/${pegTransaction.txHash}",
+                  ),
+                );
+              } else {
+                launchUrl(
+                  Uri.parse(
+                    "https://mempool.space/tx/${pegTransaction.txHash}",
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.travel_explore),
+            label: const Text("Abrir no navegador"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),

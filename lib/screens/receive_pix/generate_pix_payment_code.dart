@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/payments.dart';
 import 'package:mooze_mobile/providers/external/pix_gateway_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/pix_qr_display.dart';
+import 'package:mooze_mobile/screens/receive_pix/widgets/pix_transaction_info.dart';
 import 'package:mooze_mobile/screens/receive_pix/widgets/transaction_info.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
@@ -45,6 +46,7 @@ class GeneratePixPaymentCodeState
           icon: Icon(Icons.home),
           onPressed: () async {
             final isStoreMode = await StoreModeHandler().isStoreMode();
+            if (!context.mounted) return;
             if (isStoreMode) {
               Navigator.pushNamed(context, "/store_mode");
             } else {
@@ -64,9 +66,6 @@ class GeneratePixPaymentCodeState
               child: Text("Falha ao criar transação. Tente novamente."),
             );
           }
-
-          print(response.id);
-          print(widget.assetId);
 
           return Center(
             child: Column(
@@ -89,11 +88,7 @@ class GeneratePixPaymentCodeState
                 ),
                 Container(
                   padding: EdgeInsets.all(16.0),
-                  child: TransactionInfo(
-                    amount: widget.pixTransaction.brlAmount,
-                    assetId: widget.assetId,
-                    address: widget.pixTransaction.address,
-                  ),
+                  child: PixTransactionInfoDisplay(),
                 ),
               ],
             ),

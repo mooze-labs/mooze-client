@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -152,6 +153,9 @@ Future<Map<String, double>> _fetchCoingeckoPrices(
 
   debugPrint("Fetched prices from Coingecko");
   final json = jsonDecode(response.body) as Map<String, dynamic>;
+  if (kDebugMode) {
+    debugPrint(json.toString());
+  }
   return json.map(
     (id, data) => MapEntry(
       id,

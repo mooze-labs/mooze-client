@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -60,7 +62,10 @@ class _PixInputAmountState extends State<PixInputAmount> {
                 color: Theme.of(context).colorScheme.primary,
                 fontFamily: "roboto",
               ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  (Platform.isIOS)
+                      ? null
+                      : TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
                 TextInputFormatter.withFunction((oldValue, newValue) {

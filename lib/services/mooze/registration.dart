@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -22,13 +23,19 @@ class RegistrationService {
         sha256.convert(utf8.encode(pubDescriptor)).toString();
     await saveHashedDescriptor(hashedPubDescriptor);
 
-    final fcmToken = await FirebaseMessaging.instance.getToken();
+    final fcmToken =
+        (kDebugMode)
+            ? "mockFcmToken"
+            : await FirebaseMessaging.instance.getToken();
+
+    final platform = Platform.isAndroid ? "android" : "ios";
 
     if (kDebugMode) {
       print("Registration request details:");
       print("URL: $url");
       print("Hashed descriptor: $hashedPubDescriptor");
       print("FCM token: $fcmToken");
+      print("Platform: $platform");
     }
 
     try {
@@ -39,6 +46,7 @@ class RegistrationService {
           "descriptor_hash": hashedPubDescriptor,
           "fcm_token": fcmToken,
           "referral_code": null,
+          "platform": platform,
         }),
       );
 

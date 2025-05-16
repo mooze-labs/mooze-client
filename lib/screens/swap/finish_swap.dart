@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/database.dart';
+import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
+import 'package:mooze_mobile/providers/multichain/swaps_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/repositories/wallet/liquid.dart';
+import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
+import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/finished_swap_info.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
@@ -66,7 +71,51 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
     debugPrint("TXID: $txid");
     sideswapClient.stopQuotes();
 
+    // Insert the swap into the database
+    if (txid != null) {
+      _saveSwapToDatabase(txid);
+    }
+
+    ref.read(swapQuoteNotifierProvider.notifier).stopQuote();
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeSendAssetSatoshiAmount(0);
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeRecvAssetSatoshiAmount(0);
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeSendAsset(AssetCatalog.getById("lbtc")!);
+    ref
+        .read(swapInputNotifierProvider.notifier)
+        .changeRecvAsset(AssetCatalog.getById("depix")!);
+
     return txid;
+  }
+
+  void _saveSwapToDatabase(String txid) async {
+    try {
+      final database = ref.read(databaseProvider);
+
+      // Create a SwapsCompanion object to insert
+      final swapToInsert = SwapsCompanion.insert(
+        sendAsset: widget.sentAsset.liquidAssetId ?? widget.sentAsset.id,
+        receiveAsset:
+            widget.receivedAsset.liquidAssetId ?? widget.receivedAsset.id,
+        sendAmount: widget.sentAmount,
+        receiveAmount: widget.receivedAmount,
+        // createdAt will use the default value (currentDateAndTime)
+      );
+
+      // Insert the swap into the database
+      final insertedId = await database
+          .into(database.swaps)
+          .insert(swapToInsert);
+
+      debugPrint('Swap inserted into database with id: $insertedId');
+    } catch (e) {
+      debugPrint('Error inserting swap into database: $e');
+    }
   }
 
   @override
@@ -107,7 +156,7 @@ class _FinishSwapScreenState extends ConsumerState<FinishSwapScreen> {
                 children: [
                   Container(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         FinishedSwapInfo(
                           sentAsset: widget.sentAsset,

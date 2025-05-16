@@ -72,7 +72,21 @@ class AuthenticationService {
 
   Future<void> invalidateSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove("lastAuthTime");
+    final lastAuthTime = prefs.getInt("lastAuthTime");
+
+    if (lastAuthTime == null) {
+      return;
+    }
+
+    final lastAuth = DateTime.fromMillisecondsSinceEpoch(lastAuthTime);
+    final diff = DateTime.now().difference(lastAuth);
+
+    if (diff.inMinutes > sessionTimeoutMinutes) {
+      await prefs.remove("lastAuthTime");
+      return;
+    }
+
+    return;
   }
 
   Future<bool> hasValidSession() async {

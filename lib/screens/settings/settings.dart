@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/pin/create_pin.dart';
 import 'package:mooze_mobile/screens/settings/view_mnemonic.dart';
+import 'package:mooze_mobile/screens/settings/delete_wallet_screen.dart';
+import 'package:mooze_mobile/screens/settings/license.dart';
 import 'package:mooze_mobile/screens/referral_input/referral_input_screen.dart';
+import 'package:mooze_mobile/screens/support/support_screen.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/mooze_drawer.dart';
@@ -48,9 +51,21 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _buildSettingsItem(
             context,
+            "Licença GPL",
+            Icons.gavel,
+            () => _showLicense(context),
+          ),
+          _buildSettingsItem(
+            context,
             "Contatar suporte",
             Icons.support_agent,
             () => _contactSupport(context),
+          ),
+          _buildSettingsItem(
+            context,
+            "Deletar carteira",
+            Icons.delete_forever,
+            () => _showDeleteWallet(context),
           ),
         ],
       ),
@@ -147,16 +162,24 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _contactSupport(BuildContext context) async {
-    final Uri url = Uri.parse("https://t.me/Moozep2pbot");
-    try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Não foi possível abrir o Telegram")),
-        );
-      }
-    }
+  void _contactSupport(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SupportScreen()),
+    );
+  }
+
+  void _showDeleteWallet(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DeleteWalletScreen()),
+    );
+  }
+
+  void _showLicense(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LicenseScreen()),
+    );
   }
 }

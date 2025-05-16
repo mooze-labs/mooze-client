@@ -22,7 +22,7 @@ class LiquidWalletRepository implements WalletRepository {
 
   @override
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getApplicationSupportDirectory();
     final dbPath = "${dir.path}/lwk-db";
 
     _network = (mainnet) ? liquid.Network.mainnet : liquid.Network.testnet;
@@ -68,7 +68,7 @@ class LiquidWalletRepository implements WalletRepository {
       throw Exception("Liquid wallet has not been initialized.");
     }
 
-    _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
+    await _wallet!.sync(electrumUrl: electrumUrl, validateDomain: true);
   }
 
   @override
@@ -240,6 +240,7 @@ class LiquidWalletRepository implements WalletRepository {
   Future<Transaction> _signLiquidBitcoinTransaction(
     PartiallySignedTransaction pst,
   ) async {
+    final blockchain = liquid.Blockchain();
     final pset = pst.get<String>();
     final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(
       "mainWallet",

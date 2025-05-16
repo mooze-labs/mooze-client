@@ -1,19 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
-  final StreamController<RemoteMessage> _messageStreamController = StreamController<RemoteMessage>.broadcast();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+  final StreamController<RemoteMessage> _messageStreamController =
+      StreamController<RemoteMessage>.broadcast();
 
   // Stream that can be listened to for notification events
-  Stream<RemoteMessage> get onNotificationReceived => _messageStreamController.stream;
+  Stream<RemoteMessage> get onNotificationReceived =>
+      _messageStreamController.stream;
 
   factory NotificationService() {
     return _instance;
@@ -24,24 +29,27 @@ class NotificationService {
   Future<void> initialize() async {
     // Initialize Firebase if not already initialized
     await Firebase.initializeApp();
-    
+
     // Request permission
     await _requestPermissions();
-    
+
     // Initialize local notifications
     await _initializeLocalNotifications();
-    
+
     // Configure FCM callbacks
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    
+
+    // Listen for token refreshes
+    _messaging.onTokenRefresh.listen(_handleTokenRefresh);
+
     // Check for initial message (app opened from terminated state)
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       _handleInitialMessage(initialMessage);
     }
-    
+
     // Get FCM token and store it
     await getToken();
   }
@@ -53,26 +61,27 @@ class NotificationService {
       sound: true,
       provisional: false,
     );
-    
+
     debugPrint('User granted permission: ${settings.authorizationStatus}');
   }
 
   Future<void> _initializeLocalNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid = 
+    const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/launcher_icon');
-    
-    final DarwinInitializationSettings initializationSettingsIOS = 
+
+    final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    
-    final InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        );
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
+
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -85,7 +94,7 @@ class NotificationService {
         }
       },
     );
-    
+
     // Create notification channel for Android
     await _createNotificationChannel();
   }
@@ -98,9 +107,12 @@ class NotificationService {
       importance: Importance.high,
     );
 
-    final AndroidFlutterLocalNotificationsPlugin? androidPlugin = 
-        _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-        
+    final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+        _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
     }
@@ -112,12 +124,13 @@ class NotificationService {
 
     if (message.notification != null) {
       debugPrint(
-          'Message also contained a notification: ${message.notification!.title}');
-      
+        'Message also contained a notification: ${message.notification!.title}',
+      );
+
       // Display local notification
       _showLocalNotification(message);
     }
-    
+
     // Add to stream
     _messageStreamController.add(message);
   }
@@ -125,20 +138,22 @@ class NotificationService {
   void _handleMessageOpenedApp(RemoteMessage message) {
     debugPrint('A new onMessageOpenedApp event was published!');
     debugPrint('Message data: ${message.data}');
-    
+
     // Add to stream
     _messageStreamController.add(message);
-    
+
     // Handle navigation or other logic when app is opened from notification
     _handleNotificationTap(message.data);
   }
 
   void _handleInitialMessage(RemoteMessage message) {
-    debugPrint('App opened from terminated state with message: ${message.data}');
-    
+    debugPrint(
+      'App opened from terminated state with message: ${message.data}',
+    );
+
     // Add to stream
     _messageStreamController.add(message);
-    
+
     // Handle navigation or other logic
     _handleNotificationTap(message.data);
   }
@@ -177,16 +192,16 @@ class NotificationService {
   }
 
   Future<String?> getToken() async {
-    String? token = await _messaging.getToken();
-    
+    String? token = (kDebugMode) ? "mockFcmToken" : await _messaging.getToken();
+
     if (token != null) {
       debugPrint('FCM Token: $token');
-      
+
       // Store the token in SharedPreferences for later use
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('fcm_token', token);
     }
-    
+
     return token;
   }
 
@@ -203,6 +218,56 @@ class NotificationService {
   void dispose() {
     _messageStreamController.close();
   }
+
+  void _handleTokenRefresh(String token) async {
+    debugPrint('FCM Token refreshed: $token');
+
+    // Store the refreshed token
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('fcm_token', token);
+
+    // Update the token on your backend
+    await _updateTokenOnServer(token);
+  }
+
+  Future<void> _updateTokenOnServer(String token) async {
+    // Get the stored hashed descriptor (user_id)
+    final prefs = await SharedPreferences.getInstance();
+    final hashedDescriptor = prefs.getString('hashed_descriptor');
+
+    if (hashedDescriptor != null) {
+      try {
+        // Get platform information
+        final platform = Platform.isAndroid ? "android" : "ios";
+
+        // Update token on server using the API endpoint
+        final response = await http.post(
+          Uri.parse('https://api.mooze.app/users/fcm'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'user_id': hashedDescriptor,
+            'fcm_token': token,
+            'platform': platform,
+          }),
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          debugPrint('FCM token successfully updated on server');
+        } else {
+          debugPrint(
+            'Failed to update FCM token on server: ${response.statusCode}',
+          );
+          if (kDebugMode) {
+            debugPrint('Response: ${response.body}');
+          }
+        }
+      } catch (e) {
+        debugPrint('Error updating FCM token on server: $e');
+      }
+    } else {
+      debugPrint('Could not update FCM token: user ID not found');
+    }
+  }
 }
 
 // Must be a top-level function
@@ -210,8 +275,8 @@ class NotificationService {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase if needed (might be necessary for background handling)
   await Firebase.initializeApp();
-  
+
   debugPrint("Handling a background message: ${message.messageId}");
-  // We can't access the instance methods here, so we need to handle 
+  // We can't access the instance methods here, so we need to handle
   // background notifications differently
 }

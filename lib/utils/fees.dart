@@ -12,7 +12,10 @@ class FeeCalculator {
   });
 
   double getFees() {
-    final amountInReais = fiatAmount / 100.0;
+    double amountInReais = fiatAmount / 100.0;
+    if (assetId == "lbtc") {
+      amountInReais = amountInReais / 1.02;
+    }
     double baseFee;
 
     if (amountInReais >= 5000) {

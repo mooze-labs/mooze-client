@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/providers/mnemonic_provider.dart';
 import 'package:mooze_mobile/screens/pin/create_pin.dart';
-import 'package:mooze_mobile/widgets/account_balance_widget.dart';
-import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
-import 'package:mooze_mobile/themes/theme_base.dart' as mooze_theme;
 import 'package:mooze_mobile/utils/mnemonic.dart';
+import 'package:bdk_flutter/bdk_flutter.dart';
 
 class ImportWalletScreen extends StatefulWidget {
   @override
@@ -26,6 +22,20 @@ class _ImportWalletScreenState extends State<ImportWalletScreen> {
       setState(() {
         _errorMessage = "A frase de recuperação deve ter 12 ou 24 palavras.";
       });
+      return;
+    }
+
+    try {
+      await Mnemonic.fromString(mnemonic);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Frase de recuperação inválida. Confira se está usando palavras válidas.",
+          ),
+        ),
+      );
       return;
     }
 

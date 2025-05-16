@@ -41,6 +41,9 @@ class _ReferralInputScreenState extends State<ReferralInputScreen> {
       setState(() {
         _existingReferralCode = userDetails!.referredBy;
       });
+      if (existingCode == null) {
+        await prefs.setString('referralCode', userDetails!.referredBy!);
+      }
       return;
     }
 
@@ -75,6 +78,10 @@ class _ReferralInputScreenState extends State<ReferralInputScreen> {
     });
 
     if (isValid) {
+      // Save the valid referral code to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('referralCode', referralCode);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Código de indicação válido! Desconto aplicado.'),

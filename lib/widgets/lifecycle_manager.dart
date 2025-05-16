@@ -62,7 +62,7 @@ class _LifecycleManagerState extends ConsumerState<LifecycleManager>
         break;
 
       case AppLifecycleState.paused:
-        // _invalidateSessionIfNeeded();
+        _invalidateSessionIfNeeded();
         _isRunning = false;
         sideswap.stopQuotes();
         break;
