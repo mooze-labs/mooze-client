@@ -17,7 +17,6 @@ import 'package:mooze_mobile/screens/swap/widgets/peg_details_display.dart';
 import 'package:mooze_mobile/screens/swap/widgets/swap_peg_warn.dart';
 import 'package:mooze_mobile/screens/swap/check_peg_status.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
-import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
 
 class FinishPegScreen extends ConsumerStatefulWidget {
@@ -66,8 +65,12 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
     try {
       final sideswapClient = ref.read(sideswapRepositoryProvider);
       final swapInput = ref.read(swapInputNotifierProvider);
-      final ownedAssets = await ref.read(ownedAssetsNotifierProvider.future);
-      final networkFees = await ref.read(networkFeeProviderProvider.future);
+
+      final ownedAssetsFuture = ref.read(ownedAssetsNotifierProvider.future);
+      final networkFeesFuture = ref.read(networkFeeProviderProvider.future);
+
+      final (ownedAssets, networkFees) =
+          await (ownedAssetsFuture, networkFeesFuture).wait;
 
       final fees =
           (swapInput.sendAsset == AssetCatalog.bitcoin)
@@ -112,22 +115,7 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
         debugPrint("Address to receive: $receiveAddress");
       }
 
-      if (pegResponse == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Erro ao contatar servidor. Tente novamente mais tarde.",
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
       final feeRate = await _getFeeRate();
-
-      PartiallySignedTransaction pst;
 
       if (kDebugMode) {
         print("Send asset ID: ${swapInput.sendAsset.id}");
@@ -135,6 +123,20 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
         print("Fees: ${fees.absoluteFees}");
       }
 
+      if (pegResponse == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Erro ao contatar Sideswap. Tente novamente mais tarde.",
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      PartiallySignedTransaction pst;
       if (swapInput.sendAsset == AssetCatalog.bitcoin) {
         final bitcoinWallet = sendWallet as BitcoinWalletRepository;
         pst = await bitcoinWallet
@@ -150,7 +152,7 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
         pst = await sendWallet.buildPartiallySignedTransaction(
           ownedAssets.firstWhere((asset) => asset.asset == swapInput.sendAsset),
           pegResponse.pegAddress,
-          sendAmount,
+          sendAmount - 1,
           feeRate,
         );
       }
@@ -241,19 +243,6 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
           externalAddress,
         );
 
-        if (newPegResponse == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Erro ao contatar servidor para peg externo."),
-              ),
-            );
-          }
-          setState(() {
-            _isLoading = false;
-          });
-          return;
-        }
         pegResponseForConfirmation = newPegResponse;
 
         if (kDebugMode) {
@@ -449,10 +438,11 @@ class _FinishPegScreenState extends ConsumerState<FinishPegScreen> {
                       Spacer(),
                       SwapPegWarn(),
                       const SizedBox(height: 16),
-                      SwipeToConfirm(
-                        onConfirm: _onConfirmPressed,
-                        text: "Confirmar",
-                      ),
+                      if (_pegResponse != null)
+                        SwipeToConfirm(
+                          onConfirm: _onConfirmPressed,
+                          text: "Confirmar",
+                        ),
                       Spacer(),
                     ],
                   ),

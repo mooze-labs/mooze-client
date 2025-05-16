@@ -144,7 +144,6 @@ class BitcoinWalletRepository implements WalletRepository {
     final balance = _wallet!.getBalance().total.toInt();
     if (kDebugMode) {
       print("Balance: $balance");
-      print("Amount: $amount");
     }
     if (balance < amount) {
       throw Exception("Insufficient funds.");
@@ -159,13 +158,14 @@ class BitcoinWalletRepository implements WalletRepository {
     }
 
     final estimateFeeEconomy = await blockchain!.estimateFee(
-      target: BigInt.from(6),
+      target: BigInt.from(3),
     );
 
     final script = address.scriptPubkey();
     final (psbt, txDetails) = await bitcoin.TxBuilder()
         .addRecipient(script, BigInt.from(amount))
         .feeRate(feeRate ?? estimateFeeEconomy.satPerVb)
+        .enableRbf()
         .finish(_wallet!);
 
     final feeAmount = psbt.feeAmount();
@@ -206,6 +206,7 @@ class BitcoinWalletRepository implements WalletRepository {
     final (psbt, txDetails) = await bitcoin.TxBuilder()
         .addRecipient(script, BigInt.from(amount))
         .feeAbsolute(BigInt.from(absoluteFees))
+        .enableRbf()
         .finish(_wallet!);
 
     final feeAmount = psbt.feeAmount();

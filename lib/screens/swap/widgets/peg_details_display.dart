@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
+import 'package:mooze_mobile/providers/wallet/bitcoin_fee_provider.dart';
+import 'package:mooze_mobile/providers/wallet/liquid_fee_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
 import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -129,7 +132,10 @@ class PegFeesDisplay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sideswap = ref.watch(sideswapRepositoryProvider);
     final swapInput = ref.watch(swapInputNotifierProvider);
-    final networkFees = ref.watch(networkFeeProviderProvider);
+    final networkFees =
+        (swapInput.sendAsset.network == Network.bitcoin)
+            ? ref.watch(bitcoinFeeProvider(3))
+            : ref.watch(liquidFeeProvider);
 
     return FutureBuilder(
       future: sideswap.getServerStatus(),
@@ -188,7 +194,7 @@ class PegFeesDisplay extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "${(swapInput.sendAsset == AssetCatalog.bitcoin ? fees.bitcoinFast.absoluteFees : fees.liquid.absoluteFees)} sats",
+                        "${fees?.absoluteFees}",
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],

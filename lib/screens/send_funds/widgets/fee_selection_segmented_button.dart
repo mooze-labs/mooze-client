@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:mooze_mobile/screens/send_funds/providers/send_user_input_provider.dart';
 
@@ -11,7 +12,7 @@ class FeeSelectionSegmentedButton extends ConsumerWidget {
     final sendUserInput = ref.watch(sendUserInputProvider);
     final networkFee = ref.watch(networkFeeProviderProvider);
 
-    if (sendUserInput.asset?.id != "btc") {
+    if (sendUserInput.asset?.network != Network.bitcoin) {
       return const SizedBox.shrink();
     }
 

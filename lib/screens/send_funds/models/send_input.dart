@@ -1,5 +1,5 @@
 import 'package:mooze_mobile/models/assets.dart';
-import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
+import 'package:mooze_mobile/models/network.dart';
 
 class SendInput {
   final Asset? asset;

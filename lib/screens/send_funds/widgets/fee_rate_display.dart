@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
+import 'package:mooze_mobile/models/network.dart';
+import 'package:mooze_mobile/providers/wallet/bitcoin_fee_provider.dart';
+import 'package:mooze_mobile/providers/wallet/liquid_fee_provider.dart';
 import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:mooze_mobile/screens/send_funds/providers/send_user_input_provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -11,13 +14,13 @@ class FeeRateDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sendUserInput = ref.watch(sendUserInputProvider);
-    final networkFees = ref.watch(networkFeeProviderProvider);
+    final networkFeeProvider = ref.watch(networkFeeProviderProvider);
 
     if (sendUserInput.asset == null) {
       return const SizedBox.shrink();
     }
 
-    return networkFees.when(
+    return networkFeeProvider.when(
       data:
           (fees) => Row(
             children: [

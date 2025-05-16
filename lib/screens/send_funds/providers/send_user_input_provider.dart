@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
-import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/send_input.dart';
 
@@ -28,5 +28,17 @@ class SendUserInput extends _$SendUserInput {
 
   void setAsset(Asset? asset) {
     state = state.copyWith(asset: asset);
+  }
+}
+
+@riverpod
+class EstimatedBlocksNotifier extends _$EstimatedBlocksNotifier {
+  @override
+  int build() {
+    return 3;
+  }
+
+  void setEstimatedBlocks(int estimatedBlocks) {
+    state = estimatedBlocks;
   }
 }

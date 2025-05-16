@@ -22,7 +22,7 @@ class LiquidWalletRepository implements WalletRepository {
 
   @override
   Future<void> initializeWallet(bool mainnet, String mnemonic) async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getApplicationSupportDirectory();
     final dbPath = "${dir.path}/lwk-db";
 
     _network = (mainnet) ? liquid.Network.mainnet : liquid.Network.testnet;

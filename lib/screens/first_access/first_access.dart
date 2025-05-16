@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/screens/settings/terms_and_conditions.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 
-class FirstAccessScreen extends StatelessWidget {
+class FirstAccessScreen extends StatefulWidget {
   const FirstAccessScreen({super.key});
+
+  @override
+  State<FirstAccessScreen> createState() => _FirstAccessScreenState();
+}
+
+class _FirstAccessScreenState extends State<FirstAccessScreen> {
+  bool _termsAccepted = false;
 
   void _importWallet(BuildContext context) async {
     showDialog(
@@ -30,10 +37,12 @@ não possuem suporte para native segwit, portanto, não é possível importar se
               ),
               TextButton(
                 onPressed:
-                    () => Navigator.pushReplacementNamed(
-                      context,
-                      "/import_wallet",
-                    ),
+                    _termsAccepted
+                        ? () => Navigator.pushReplacementNamed(
+                          context,
+                          "/import_wallet",
+                        )
+                        : null,
                 child: Text("Importar"),
               ),
             ],
@@ -45,15 +54,84 @@ não possuem suporte para native segwit, portanto, não é possível importar se
   Widget build(BuildContext context) {
     TextStyle defaultStyle = TextStyle(color: Colors.white, fontSize: 16.0);
     TextStyle linkStyle = TextStyle(color: Colors.pinkAccent, fontSize: 16.0);
+    TextStyle termsStyle = TextStyle(
+      color: Theme.of(context).colorScheme.onPrimary,
+      fontSize: 14.0,
+    );
+    TextStyle termsLinkStyle = TextStyle(
+      color: Theme.of(context).colorScheme.primary,
+      fontSize: 14.0,
+      decoration: TextDecoration.underline,
+    );
+
+    final termsAndConditionsCheckbox = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Checkbox(
+          value: _termsAccepted,
+          onChanged: (bool? value) {
+            setState(() {
+              _termsAccepted = value ?? false;
+            });
+          },
+          checkColor: Theme.of(context).colorScheme.onPrimary,
+          activeColor: Theme.of(context).colorScheme.primary,
+          side: BorderSide(color: Theme.of(context).colorScheme.onPrimary),
+        ),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(text: "Eu li e concordo com os ", style: termsStyle),
+                TextSpan(
+                  text: "Termos e Condições",
+                  style: termsLinkStyle,
+                  recognizer:
+                      TapGestureRecognizer()
+                        ..onTap = () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TermsAndConditionsScreen(),
+                            ),
+                          );
+                        },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
 
     final buttons = Column(
       children: [
-        PrimaryButton(
-          text: "Começar",
-          onPressed: () {
-            Navigator.pushNamed(context, '/create_wallet');
-          },
-          icon: Icons.wallet_rounded,
+        ElevatedButton.icon(
+          icon: Icon(Icons.wallet_rounded, color: Colors.white, size: 20.0),
+          label: Text("Começar"),
+          onPressed:
+              _termsAccepted
+                  ? () {
+                    Navigator.pushNamed(context, '/create_wallet');
+                  }
+                  : null,
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            textStyle: TextStyle(
+              fontSize: 19.0,
+              fontStyle: FontStyle.normal,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onPrimary,
+              letterSpacing: 0.0,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            minimumSize: Size(MediaQuery.of(context).size.width * 0.8, 50.0),
+            maximumSize: Size(MediaQuery.of(context).size.width * 0.9, 50.0),
+            elevation: 3.0,
+          ),
         ),
         SizedBox(height: 20),
         Row(
@@ -61,13 +139,28 @@ não possuem suporte para native segwit, portanto, não é possível importar se
           children: [
             Text("Já tem uma carteira? ", style: defaultStyle),
             InkWell(
-              onTap: () => _importWallet(context),
+              onTap: _termsAccepted ? () => _importWallet(context) : null,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Importe-a.", style: linkStyle),
+                  Text(
+                    "Importe-a.",
+                    style:
+                        _termsAccepted
+                            ? linkStyle
+                            : linkStyle.copyWith(
+                              color: linkStyle.color?.withOpacity(0.5),
+                            ),
+                  ),
                   SizedBox(width: 4),
-                  Icon(Icons.arrow_forward, size: 16, color: linkStyle.color),
+                  Icon(
+                    Icons.arrow_forward,
+                    size: 16,
+                    color:
+                        _termsAccepted
+                            ? linkStyle.color
+                            : linkStyle.color?.withOpacity(0.5),
+                  ),
                 ],
               ),
             ),
@@ -85,51 +178,15 @@ não possuem suporte para native segwit, portanto, não é possível importar se
           SizedBox(height: 50),
           SizedBox(
             width: MediaQuery.of(context).size.width * 0.8,
-            child: Column(children: [buttons]),
+            child: Column(
+              children: [
+                termsAndConditionsCheckbox,
+                SizedBox(height: 20),
+                buttons,
+              ],
+            ),
           ),
           Spacer(),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Ao prosseguir, você concorda",
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 14,
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "com nossos",
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(width: 5),
-                  InkWell(
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TermsAndConditionsScreen(),
-                          ),
-                        ),
-                    child: Text(
-                      "Termos e Condições",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
           SizedBox(height: 80),
         ],
       ),
