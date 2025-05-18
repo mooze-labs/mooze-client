@@ -322,7 +322,7 @@ class LiquidWalletRepository implements WalletRepository {
   }
 
   Future<void> _clearWallet() async {
-    final localDir = await getApplicationDocumentsDirectory();
+    final localDir = await getApplicationSupportDirectory();
     final dbPath = "${localDir.path}/lwk-db";
 
     final dir = Directory(dbPath);
