@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
+import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/repositories/sideswap.dart';
@@ -198,7 +199,7 @@ class _SendAssetRowState extends ConsumerState<SendAssetRow> {
     final swapInput = ref.watch(swapInputNotifierProvider);
     final sendAsset = swapInput.sendAsset;
     List<Asset> assets;
-    if (swapInput.recvAsset == AssetCatalog.getById("btc")) {
+    if (swapInput.recvAsset.network == Network.bitcoin) {
       assets = [AssetCatalog.getById("lbtc")!];
     } else {
       assets =
