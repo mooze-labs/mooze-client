@@ -197,10 +197,15 @@ class _SendAssetRowState extends ConsumerState<SendAssetRow> {
   Widget build(BuildContext context) {
     final swapInput = ref.watch(swapInputNotifierProvider);
     final sendAsset = swapInput.sendAsset;
-    final assets =
-        AssetCatalog.all
-            .where((asset) => asset.id != swapInput.recvAsset.id)
-            .toList();
+    List<Asset> assets;
+    if (swapInput.recvAsset == AssetCatalog.getById("btc")) {
+      assets = [AssetCatalog.getById("lbtc")!];
+    } else {
+      assets =
+          AssetCatalog.all
+              .where((asset) => asset.id != swapInput.recvAsset.id)
+              .toList();
+    }
 
     // Clear the controller when amount is 0
     if (swapInput.sendAssetSatoshiAmount == 0 &&
