@@ -53,3 +53,4 @@ app.*.map.json
 
 ios/GoogleService-Info.plist
 android/app/google-services.json
+android/app/google-services.json
