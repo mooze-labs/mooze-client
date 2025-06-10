@@ -1,3 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 const String defaultBitcoinNode = "blockstream.info:110";
 const String defaultLiquidNode = "blockstream.info:995";
 
@@ -32,4 +35,13 @@ class NodeConfigRepository {
   void setNetwork(Network network) {
     _network = network;
   }
+}
+
+@riverpod
+NodeConfigRepository nodeConfigRepository(Ref ref) {
+  return NodeConfigRepository(
+    bitcoinNode: defaultBitcoinNode,
+    liquidNode: defaultLiquidNode,
+    network: Network.mainnet,
+  );
 }
