@@ -3,25 +3,29 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 const String defaultBitcoinNode = "blockstream.info:110";
 const String defaultLiquidNode = "blockstream.info:995";
+const String defaultBreezApiKey = "breez-api-key";
 
 enum Network { mainnet, testnet, regtest }
 
 class NodeConfigRepository {
   String _bitcoinNode;
   String _liquidNode;
+  String _breezApiKey;
   Network _network;
 
   NodeConfigRepository({
     required String bitcoinNode,
     required String liquidNode,
+    required String breezApiKey,
     required Network network,
   }) : _bitcoinNode = bitcoinNode,
        _liquidNode = liquidNode,
+       _breezApiKey = breezApiKey,
        _network = network;
 
   String get bitcoinNode => _bitcoinNode;
   String get liquidNode => _liquidNode;
-
+  String get breezApiKey => _breezApiKey;
   Network get network => _network;
 
   void setBitcoinNode(String bitcoinNode) {
@@ -42,6 +46,7 @@ NodeConfigRepository nodeConfigRepository(Ref ref) {
   return NodeConfigRepository(
     bitcoinNode: defaultBitcoinNode,
     liquidNode: defaultLiquidNode,
+    breezApiKey: defaultBreezApiKey,
     network: Network.mainnet,
   );
 }
