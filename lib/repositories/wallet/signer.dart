@@ -2,36 +2,47 @@ import 'package:bdk_flutter/bdk_flutter.dart' as bitcoin;
 import 'package:lwk/lwk.dart' as liquid;
 import 'package:mooze_mobile/models/transaction.dart';
 import 'package:mooze_mobile/repositories/wallet/node_config.dart';
+import 'package:mooze_mobile/utils/mnemonic.dart';
 import './wollet.dart';
-import './mnemonic.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/network.dart' as network;
 
 abstract class SignerRepository {
   Future<PartiallySignedTransaction> buildPartiallySignedTransaction(
     String recipient,
-    int amount,
+    int amount, {
     double? feeRate,
-  );
+    String? assetId,
+  });
   Future<Transaction> signTransaction(PartiallySignedTransaction pst);
+
+  String get id;
 }
 
 class BitcoinSignerRepository implements SignerRepository {
   final BitcoinWolletRepository _walletRepository;
-  final MnemonicRepository _mnemonicRepository;
 
-  BitcoinSignerRepository(this._walletRepository, this._mnemonicRepository);
+  BitcoinSignerRepository(this._walletRepository);
+
+  @override
+  String get id => _walletRepository.id;
 
   @override
   Future<PartiallySignedTransaction> buildPartiallySignedTransaction(
     String recipient,
-    int amount,
+    int amount, {
     double? feeRate,
-  ) async {
+    String? assetId,
+  }) async {
     final wallet = _walletRepository.wallet;
     final blockchain = _walletRepository.blockchain;
+
     if (wallet == null || blockchain == null) {
       throw Exception("Bitcoin wallet is not initialized.");
+    }
+
+    if (assetId != null) {
+      throw Exception("Asset ID is not supported for Bitcoin.");
     }
 
     final balance = wallet.getBalance().total.toInt();
@@ -77,7 +88,11 @@ class BitcoinSignerRepository implements SignerRepository {
       throw Exception("Bitcoin wallet is not initialized.");
     }
 
-    final mnemonic = _mnemonicRepository.mnemonic;
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(id);
+    if (mnemonic == null) {
+      throw Exception("Mnemonic not found.");
+    }
+
     final psbt = pst.get<bitcoin.PartiallySignedTransaction>();
 
     // Create a descriptor key from the mnemonic
@@ -103,7 +118,8 @@ class BitcoinSignerRepository implements SignerRepository {
     }
 
     final tx = psbt.extractTx();
-    final res = await blockchain.broadcast(transaction: tx);
+    await blockchain.broadcast(transaction: tx);
+
     final txid = tx.txid();
 
     return Transaction(
@@ -118,56 +134,99 @@ class BitcoinSignerRepository implements SignerRepository {
 
 class LiquidSignerRepository implements SignerRepository {
   final LiquidWolletRepository _walletRepository;
-  final MnemonicRepository _mnemonicRepository;
   final NodeConfigRepository _nodeConfigRepository;
 
-  LiquidSignerRepository(
-    this._walletRepository,
-    this._mnemonicRepository,
-    this._nodeConfigRepository,
-  );
+  LiquidSignerRepository(this._walletRepository, this._nodeConfigRepository);
+
+  @override
+  String get id => _walletRepository.id;
 
   @override
   Future<PartiallySignedTransaction> buildPartiallySignedTransaction(
     String recipient,
-    int amount,
+    int amount, {
     double? feeRate,
-  ) async {
+    String? assetId,
+  }) async {
     final wallet = _walletRepository.wallet;
     if (wallet == null) {
       throw Exception("Liquid wallet is not initialized.");
     }
 
-    // For simplicity, use LBTC as asset
     final balances = await wallet.balances();
-    final lbtc = balances.firstWhere(
-      (b) => b.assetId == liquid.lBtcAssetId,
-      orElse: () => throw Exception("No LBTC balance"),
+    final assetBalance = balances.firstWhere(
+      (b) => b.assetId == (assetId ?? liquid.lBtcAssetId),
+      orElse: () => throw Exception("No balance for asset $assetId"),
     );
 
-    if (lbtc.value < amount) {
+    if (assetBalance.value < amount) {
       throw Exception("Insufficient funds.");
     }
 
-    feeRate = feeRate ?? 1.0;
-    final adjustedFeeRate = (feeRate * 100 < 26 ? 26.0 : feeRate * 100);
+    if (assetId == null) {
+      return await _buildLbtcTransaction(recipient, amount, feeRate ?? 1.0);
+    }
 
-    final pset = await wallet.buildLbtcTx(
+    return await _buildLiquidAssetTransaction(
+      recipient,
+      amount,
+      feeRate ?? 1.0,
+      assetId,
+    );
+  }
+
+  Future<PartiallySignedTransaction> _buildLbtcTransaction(
+    String recipient,
+    int amount,
+    double feeRate,
+  ) async {
+    final pset = _walletRepository.wallet!.buildAssetTx(
       sats: BigInt.from(amount),
       outAddress: recipient,
-      feeRate: adjustedFeeRate,
-      drain: false,
+      feeRate: feeRate,
+      asset: liquid.lBtcAssetId,
     );
 
-    final psetAmounts = await wallet.decodeTx(pset: pset);
-
-    return PartiallySignedTransaction(
+    final psetAmounts = await _walletRepository.wallet!.decodeTx(
+      pset: (await pset),
+    );
+    final pst = PartiallySignedTransaction(
       pst: pset,
       asset: AssetCatalog.getByLiquidAssetId(liquid.lBtcAssetId)!,
-      network: network.Network.liquid!,
+      network: network.Network.liquid,
       recipient: recipient,
       feeAmount: psetAmounts.absoluteFees.toInt(),
     );
+
+    return pst;
+  }
+
+  Future<PartiallySignedTransaction> _buildLiquidAssetTransaction(
+    String recipient,
+    int amount,
+    double feeRate,
+    String assetId,
+  ) async {
+    final pset = _walletRepository.wallet!.buildAssetTx(
+      sats: BigInt.from(amount),
+      outAddress: recipient,
+      feeRate: feeRate,
+      asset: assetId,
+    );
+
+    final psetAmounts = await _walletRepository.wallet!.decodeTx(
+      pset: (await pset),
+    );
+
+    final pst = PartiallySignedTransaction(
+      pst: pset,
+      asset: AssetCatalog.getByLiquidAssetId(assetId)!,
+      network: network.Network.liquid,
+      recipient: recipient,
+      feeAmount: psetAmounts.absoluteFees.toInt(),
+    );
+
+    return pst;
   }
 
   @override
@@ -177,7 +236,11 @@ class LiquidSignerRepository implements SignerRepository {
       throw Exception("Liquid wallet is not initialized.");
     }
 
-    final mnemonic = _mnemonicRepository.mnemonic;
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(id);
+    if (mnemonic == null) {
+      throw Exception("Mnemonic not found.");
+    }
+
     final pset = pst.get<String>();
 
     final signedTxBytes = await wallet.signTx(

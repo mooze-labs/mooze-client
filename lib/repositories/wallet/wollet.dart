@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bdk_flutter/bdk_flutter.dart' as bitcoin;
 import 'package:lwk/lwk.dart' as liquid;
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +17,8 @@ abstract class WolletRepository {
   Future<String> generateAddress();
   Future<Map<String, int>> getBalance();
   Future<List<TransactionRecord>> getTransactionHistory();
+
+  String get id;
 }
 
 class BitcoinWolletRepository implements WolletRepository {
@@ -25,12 +26,16 @@ class BitcoinWolletRepository implements WolletRepository {
   bitcoin.Network? _network;
   bitcoin.Blockchain? _blockchain;
   final node_config.NodeConfigRepository _nodeConfig;
+  final String _id;
 
-  BitcoinWolletRepository(this._nodeConfig);
+  BitcoinWolletRepository(this._nodeConfig, this._id);
 
   bitcoin.Wallet? get wallet => _wallet;
   bitcoin.Network? get network => _network;
   bitcoin.Blockchain? get blockchain => _blockchain;
+
+  @override
+  String get id => _id;
 
   @override
   Future<void> initialize(String descriptor) async {
@@ -147,13 +152,17 @@ class BitcoinWolletRepository implements WolletRepository {
 class LiquidWolletRepository implements WolletRepository {
   liquid.Wallet? _wallet;
   liquid.Network? _network;
+  final String _id;
 
   final node_config.NodeConfigRepository _nodeConfig;
 
-  LiquidWolletRepository(this._nodeConfig);
+  LiquidWolletRepository(this._nodeConfig, this._id);
 
   liquid.Wallet? get wallet => _wallet;
   liquid.Network? get network => _network;
+
+  @override
+  String get id => _id;
 
   @override
   Future<void> initialize(String descriptor) async {
