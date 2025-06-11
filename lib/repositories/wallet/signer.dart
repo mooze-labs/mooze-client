@@ -262,4 +262,24 @@ class LiquidSignerRepository implements SignerRepository {
       feeAmount: pst.feeAmount ?? 0,
     );
   }
+
+  Future<String> signPsetWithExtraDetails(String pset) async {
+    final wallet = _walletRepository.wallet;
+    if (wallet == null) {
+      throw Exception("Liquid wallet is not initialized.");
+    }
+
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(id);
+    if (mnemonic == null) {
+      throw Exception("Mnemonic not found.");
+    }
+
+    final signedPset = await wallet.signTx(
+      mnemonic: mnemonic,
+      pset: pset,
+      network: _walletRepository.network!,
+    );
+
+    return signedPset;
+  }
 }
