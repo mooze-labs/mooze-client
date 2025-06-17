@@ -5,22 +5,19 @@ import 'package:lwk/lwk.dart' show lBtcAssetId, lTestAssetId;
 import 'package:mooze_mobile/repositories/wallet/mnemonic.dart';
 import 'package:mooze_mobile/repositories/wallet/node_config.dart'
     as node_config;
+import 'package:mooze_mobile/utils/mnemonic.dart';
 
 const String breezApiKey = "breez-api-key";
 
 class BreezRepository {
   final node_config.NodeConfigRepository _nodeConfigRepository;
-  final MnemonicRepository _mnemonicRepository;
+  final String _walletId;
 
   BindingLiquidSdk? _client;
   StreamSubscription<SdkEvent>? _breezEventSubscription;
   Stream<SdkEvent>? _breezEventStream;
 
-  BreezRepository(
-    this._client,
-    this._nodeConfigRepository,
-    this._mnemonicRepository,
-  );
+  BreezRepository(this._nodeConfigRepository, this._walletId);
 
   BindingLiquidSdk? get client => _client;
   Stream<SdkEvent>? get eventStream => _breezEventStream;
@@ -36,8 +33,10 @@ class BreezRepository {
       breezApiKey: _nodeConfigRepository.breezApiKey,
     );
 
+    final mnemonic = await MnemonicHandler().retrieveWalletMnemonic(_walletId);
+
     ConnectRequest connectRequest = ConnectRequest(
-      mnemonic: _mnemonicRepository.mnemonic,
+      mnemonic: mnemonic,
       config: config,
     );
 
