@@ -18,6 +18,17 @@ class UserService {
     return userId;
   }
 
+  Future<User?> getUser(String userId) async {
+    final url = Uri.https(backendUrl, "/users/$userId");
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return User.fromJson(data["data"]);
+    } else {
+      return null;
+    }
+  }
+
   Future<User?> getUserDetails() async {
     if (kDebugMode) {
       print("=== GET USER DETAILS STARTED ===");

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:lwk/lwk.dart' show lBtcAssetId, lTestAssetId;
-import 'package:mooze_mobile/repositories/wallet/mnemonic.dart';
 import 'package:mooze_mobile/repositories/wallet/node_config.dart'
     as node_config;
 import 'package:mooze_mobile/utils/mnemonic.dart';

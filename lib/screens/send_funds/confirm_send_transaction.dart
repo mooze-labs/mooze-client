@@ -1,19 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/models/transaction.dart';
-import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
+import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
+import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/screens/send_funds/transaction_sent.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/transaction_info.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
-import 'package:mooze_mobile/widgets/buttons.dart';
 
-import 'package:lwk/lwk.dart' as lwk;
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
 import 'package:mooze_mobile/widgets/swipe_to_confirm.dart';
 
@@ -86,37 +83,27 @@ class ConfirmSendTransactionState
 
   Future<PartiallySignedTransaction>
   generatePartiallySignedTransaction() async {
-    final wallet = ref.read(
-      walletRepositoryProvider(widget.ownedAsset.asset.network),
+    final signer =
+        (widget.ownedAsset.asset.network == Network.bitcoin)
+            ? ref.read(bitcoinSignerRepositoryProvider)
+            : ref.read(liquidSignerRepositoryProvider);
+
+    final pst = await signer.buildPartiallySignedTransaction(
+      widget.address,
+      widget.amount - 1,
+      feeRate: widget.fees.toDouble(),
     );
-
-    PartiallySignedTransaction pst;
-
-    if (widget.ownedAsset.asset.network == Network.bitcoin) {
-      final bitcoinWallet = wallet as BitcoinWalletRepository;
-      pst = await bitcoinWallet.buildPartiallySignedTransactionWithAbsoluteFees(
-        widget.ownedAsset,
-        widget.address,
-        widget.amount - 1,
-        widget.fees,
-      );
-    } else {
-      pst = await wallet.buildPartiallySignedTransaction(
-        widget.ownedAsset,
-        widget.address,
-        widget.amount - 1,
-        1.0,
-      );
-    }
 
     return pst;
   }
 
   Future<Transaction> signTransaction() async {
-    final wallet = ref.read(
-      walletRepositoryProvider(widget.ownedAsset.asset.network),
-    );
-    final transaction = await wallet.signTransaction(
+    final signer =
+        (widget.ownedAsset.asset.network == Network.bitcoin)
+            ? ref.read(bitcoinSignerRepositoryProvider)
+            : ref.read(liquidSignerRepositoryProvider);
+
+    final transaction = await signer.signTransaction(
       _partiallySignedTransaction!,
     );
     if (kDebugMode) {

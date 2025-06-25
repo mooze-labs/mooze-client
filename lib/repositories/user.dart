@@ -1,32 +1,30 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_mobile/models/user.dart';
+import 'package:mooze_mobile/services/mooze/referral.dart';
+import 'package:mooze_mobile/services/mooze/user.dart';
 
 class UserRepository {
-  String _id;
-  String _publicKey;
-  String _referralCode;
+  final UserService _userService;
+  final ReferralService _referralService;
+  final String _nostrPubKey;
 
   UserRepository({
-    required String id,
-    required String publicKey,
-    required String referralCode,
-  }) : _id = id,
-       _publicKey = publicKey,
-       _referralCode = referralCode;
+    required UserService userService,
+    required ReferralService referralService,
+    required String nostrPubKey,
+  }) : _userService = userService,
+       _referralService = referralService,
+       _nostrPubKey = nostrPubKey;
 
-  String get id => _id;
-  String get publicKey => _publicKey;
-  String get referralCode => _referralCode;
-
-  void setReferralCode(String referralCode) => _referralCode = referralCode;
-
-  Future<String> getAllowedSpendingAmount() async {
-    // TODO: Implement this
-    return "0";
+  Future<void> updateReferral(String referralCode) async {
+    try {
+      await _referralService.saveReferralCode(referralCode);
+      await _referralService.registerReferral(_nostrPubKey, referralCode);
+    } catch (e) {
+      throw Exception('Failed to set referral code: $e');
+    }
   }
 
-  factory UserRepository.fromJson(Map<String, dynamic> json) => UserRepository(
-    id: json['id'],
-    publicKey: json['publicKey'],
-    referralCode: json['referralCode'],
-  );
+  Future<User?> getUserInfo() async {
+    return await _userService.getUser(_nostrPubKey);
+  }
 }

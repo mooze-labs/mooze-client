@@ -4,12 +4,9 @@ import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/liquid.dart';
-import 'package:mooze_mobile/screens/swap/models/swap_input_model.dart';
+import 'package:mooze_mobile/repositories/wallet/wollet.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_asset_type_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_base_asset_provider.dart';
-import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
-import 'package:mooze_mobile/screens/swap/providers/swap_market_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_quote_asset_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'dart:async';
@@ -53,8 +50,8 @@ class SwapQuoteNotifier extends _$SwapQuoteNotifier {
     final List<SwapUtxo> selectedUtxos = [];
 
     final liquidWallet =
-        ref.read(liquidWalletRepositoryProvider) as LiquidWalletRepository;
-    final utxos = await liquidWallet.fetchUtxos();
+        ref.read(liquidWolletRepositoryProvider) as LiquidWolletRepository;
+    final utxos = await liquidWallet.wallet!.utxos();
     final assetUtxos =
         utxos
             .where((utxo) => utxo.unblinded.asset == assetId)
@@ -131,7 +128,7 @@ class SwapQuoteNotifier extends _$SwapQuoteNotifier {
       return;
     }
 
-    final liquidWallet = ref.read(liquidWalletRepositoryProvider);
+    final liquidWallet = ref.read(liquidWolletRepositoryProvider);
     final receiveAddress = await liquidWallet.generateAddress();
     final changeAddress = await liquidWallet.generateAddress();
 

@@ -1,31 +1,17 @@
-import 'package:bdk_flutter/bdk_flutter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lwk/lwk.dart' as lwk;
-import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
-import 'package:mooze_mobile/models/network.dart';
-import 'package:mooze_mobile/providers/external/mempool_repository_provider.dart';
-import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
-import 'dart:math';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
-import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/send_funds/confirm_send_transaction.dart';
 import 'package:mooze_mobile/screens/send_funds/providers/send_user_input_provider.dart';
-import 'package:mooze_mobile/screens/send_funds/widgets/available_funds.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/current_selected_asset_display.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/fee_rate_display.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/fee_selection_segmented_button.dart';
-import 'package:mooze_mobile/screens/send_funds/widgets/inputs.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/selectable_assets_dropdown.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/send_address_input.dart';
 import 'package:mooze_mobile/screens/send_funds/widgets/send_amount_input.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
-import 'package:mooze_mobile/widgets/inputs/amount_input.dart';
-import 'package:mooze_mobile/widgets/inputs/convertible_amount_input.dart';
 
 class SendFundsScreen extends ConsumerStatefulWidget {
   const SendFundsScreen({super.key});

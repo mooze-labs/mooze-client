@@ -15,13 +15,8 @@ class AssetAmount extends _$AssetAmount {
     final fiatPrices = await ref.watch(fiatPricesProvider.future);
     final feeRate = await ref.watch(feeRateProvider.future);
 
-    if (pixInput.asset == null ||
-        fiatPrices[pixInput.asset!.fiatPriceId] == null) {
-      return 0.0;
-    }
-
-    double fiatPrice = fiatPrices[pixInput.asset!.fiatPriceId]!;
-    if (pixInput.asset!.id == "lbtc") {
+    double fiatPrice = fiatPrices[pixInput.asset.fiatPriceId]!;
+    if (pixInput.asset.id == "lbtc") {
       fiatPrice = fiatPrice * 1.02;
     }
 
@@ -30,14 +25,14 @@ class AssetAmount extends _$AssetAmount {
     }
 
     if (pixInput.amountInCents < 55 * 100) {
-      final fiatPrice = fiatPrices[pixInput.asset!.fiatPriceId]!;
-      final assetAmount = (pixInput.amountInCents! - 200) / 100 / fiatPrice;
+      final fiatPrice = fiatPrices[pixInput.asset.fiatPriceId]!;
+      final assetAmount = (pixInput.amountInCents - 200) / 100 / fiatPrice;
       return assetAmount;
     }
 
-    final assetAmount = (pixInput.amountInCents! - 100) / 100 / fiatPrice;
+    final assetAmount = (pixInput.amountInCents - 100) / 100 / fiatPrice;
     final feeCollected =
-        ((pixInput.amountInCents! - 100) / 100) * feeRate / 100 / fiatPrice;
+        ((pixInput.amountInCents - 100) / 100) * feeRate / 100 / fiatPrice;
     final assetAmountAfterFees = assetAmount - feeCollected;
 
     if (kDebugMode) {

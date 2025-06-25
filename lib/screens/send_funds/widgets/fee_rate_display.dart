@@ -4,7 +4,6 @@ import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/network.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_fee_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_fee_provider.dart';
-import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:mooze_mobile/screens/send_funds/providers/send_user_input_provider.dart';
 import 'package:shimmer/shimmer.dart';
 
