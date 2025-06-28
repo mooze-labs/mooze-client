@@ -4,6 +4,7 @@ import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_tr
 import 'package:mooze_mobile/features/wallet/domain/enums/asset.dart';
 
 class BreezPartiallySignedTransactionDto {
+  final String id;
   final String destination;
   final PaymentMethod paymentMethod;
   final BigInt amount;
@@ -11,6 +12,7 @@ class BreezPartiallySignedTransactionDto {
   final String? asset;
 
   BreezPartiallySignedTransactionDto({
+    required this.id,
     required this.destination,
     required this.paymentMethod,
     required this.amount,
@@ -19,6 +21,7 @@ class BreezPartiallySignedTransactionDto {
   });
 
   factory BreezPartiallySignedTransactionDto.fromL2({
+    required String id,
     required PrepareSendResponse prepareSendResponse,
     required PaymentMethod paymentMethod,
   }) {
@@ -53,6 +56,7 @@ class BreezPartiallySignedTransactionDto {
     };
 
     return BreezPartiallySignedTransactionDto(
+      id: id,
       destination: destination,
       paymentMethod: paymentMethod,
       amount: amount,
@@ -62,6 +66,7 @@ class BreezPartiallySignedTransactionDto {
   }
 
   factory BreezPartiallySignedTransactionDto.fromOnchain({
+    required String id,
     required PreparePayOnchainResponse preparePayOnchainResponse,
     required PayOnchainRequest request,
   }) {
@@ -69,6 +74,7 @@ class BreezPartiallySignedTransactionDto {
     final amount = request.prepareResponse.receiverAmountSat;
 
     return BreezPartiallySignedTransactionDto(
+      id: id,
       destination: destination,
       paymentMethod: PaymentMethod.bitcoinAddress,
       amount: amount,
@@ -78,6 +84,7 @@ class BreezPartiallySignedTransactionDto {
 
   PartiallySignedTransaction toDomain() {
     return PartiallySignedTransaction(
+      id: id,
       recipient: destination,
       asset: (asset != null) ? Asset.fromId(asset!) : Asset.btc,
       networkFees: fees,

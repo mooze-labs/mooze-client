@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/data/breez/dto/payment_request_dto.dart';
+import 'package:mooze_mobile/features/wallet/data/breez/models/prepared_transaction.dart';
+import 'package:mooze_mobile/features/wallet/data/breez/models/psbt_session.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/asset.dart';
@@ -10,12 +12,12 @@ import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 
-import './datasources/breez_wallet_data_source.dart';
 import './dto/psbt_dto.dart';
 
 class BreezWalletRepositoryImpl extends WalletRepository {
   final BindingLiquidSdk _breez;
-  PrepareSendResponse? _cachedSendResponse;
+  Map<String, PartiallySignedTransactionSession> _psbtSessions =
+      {}; // cache of current send payment requests
 
   BreezWalletRepositoryImpl(this._breez);
 
@@ -47,6 +49,46 @@ class BreezWalletRepositoryImpl extends WalletRepository {
     }
 
     return await _createLiquidBitcoinPaymentRequest(amount, description);
+  }
+
+  @override
+  Future<PartiallySignedTransaction> buildTransaction(
+    String destination,
+    Asset asset,
+    BigInt? amount,
+    Blockchain blockchain,
+  ) async {
+    if (asset != Asset.btc) {
+      if (amount == null) {
+        throw ArgumentError('Amount is required for asset transactions');
+      }
+
+      return await _buildAssetTransaction(destination, asset, amount);
+    }
+
+    return await _buildBitcoinTransaction(destination, amount, blockchain);
+  }
+
+  @override
+  Future<void> signTransaction(PartiallySignedTransaction psbt) async {
+    final session = _psbtSessions[psbt.id];
+
+    if (session == null) {
+      throw ArgumentError('Transaction not found');
+    }
+
+    final preparedTransaction = session.psbt;
+
+    final response = switch (preparedTransaction) {
+      L2Psbt(res: final res) => await _breez.sendPayment(
+        req: SendPaymentRequest(prepareResponse: res),
+      ),
+      OnchainPsbt(res: final res) => await _breez.payOnchain(
+        req: PayOnchainRequest(address: psbt.recipient, prepareResponse: res),
+      ),
+    };
+
+    _psbtSessions.remove(psbt.id);
   }
 
   Future<PaymentRequest> _createLiquidBitcoinPaymentRequest(
@@ -175,30 +217,133 @@ class BreezWalletRepositoryImpl extends WalletRepository {
     ).toDomain();
   }
 
-  @override
-  Future<PartiallySignedTransaction> buildTransaction(
-    String destination,
-    Asset asset,
-    BigInt amount,
-  ) async {
-    if (asset != Asset.btc) {
-      return await _buildAssetTransaction(destination, asset, amount);
-    }
-
-    return await _buildBitcoinTransaction(destination, amount);
-  }
-
   Future<PartiallySignedTransaction> _buildAssetTransaction(
     String destination,
     Asset asset,
     BigInt amount,
   ) async {
+    final PayAmount_Asset optAmount = PayAmount_Asset(
+      assetId: Asset.toId(asset),
+      receiverAmount: (amount.toInt() / pow(10, 8)).toDouble(),
+      estimateAssetFees: false,
+    );
+
+    final PrepareSendRequest prepareSendRequest = PrepareSendRequest(
+      destination: destination,
+      amount: optAmount,
+    );
+
+    final PrepareSendResponse prepareSendResponse = await _breez
+        .prepareSendPayment(req: prepareSendRequest);
+
+    final id = "l2-${asset.name}-${DateTime.now().millisecondsSinceEpoch}";
+
+    _psbtSessions[id] = PartiallySignedTransactionSession(
+      psbt: L2Psbt(prepareSendResponse),
+      expireAt:
+          DateTime.now()
+              .add(const Duration(seconds: 300))
+              .millisecondsSinceEpoch,
+    );
+
+    return BreezPartiallySignedTransactionDto.fromL2(
+      id: id,
+      prepareSendResponse: prepareSendResponse,
+      paymentMethod: PaymentMethod.liquidAddress,
+    ).toDomain();
   }
 
   Future<PartiallySignedTransaction> _buildBitcoinTransaction(
     String destination,
+    BigInt? amount,
+    Blockchain blockchain,
+  ) async {
+    if (blockchain != Blockchain.lightning && amount == null) {
+      throw ArgumentError('Amount is required for non-lightning transactions');
+    }
+
+    if (blockchain == Blockchain.bitcoin) {
+      return await _buildOnchainBitcoinTransaction(destination, amount!);
+    }
+
+    final id = "l2-${blockchain.name}-${DateTime.now().millisecondsSinceEpoch}";
+    final optAmount =
+        (amount != null) ? PayAmount_Bitcoin(receiverAmountSat: amount) : null;
+
+    final PrepareSendResponse prepareSendResponse = await _breez
+        .prepareSendPayment(
+          req: PrepareSendRequest(destination: destination, amount: optAmount),
+        );
+
+    _psbtSessions[id] = PartiallySignedTransactionSession(
+      psbt: L2Psbt(prepareSendResponse),
+      expireAt:
+          DateTime.now()
+              .add(const Duration(seconds: 300))
+              .millisecondsSinceEpoch,
+    );
+
+    return BreezPartiallySignedTransactionDto.fromL2(
+      id: id,
+      prepareSendResponse: prepareSendResponse,
+      paymentMethod: _getL2PaymentMethod(destination),
+    ).toDomain();
+  }
+
+  Future<PartiallySignedTransaction> _buildOnchainBitcoinTransaction(
+    String destination,
     BigInt amount,
   ) async {
-    throw UnimplementedError();
+    OnchainPaymentLimitsResponse currentLimits =
+        await _breez.fetchOnchainLimits();
+
+    if (amount < currentLimits.send.minSat) {
+      throw ArgumentError('Amount is too small');
+    }
+
+    if (amount > currentLimits.send.maxSat) {
+      throw ArgumentError('Amount is too large');
+    }
+
+    final PreparePayOnchainResponse res = await _breez.preparePayOnchain(
+      req: PreparePayOnchainRequest(
+        amount: PayAmount_Bitcoin(receiverAmountSat: amount),
+      ),
+    );
+
+    final PayOnchainRequest req = PayOnchainRequest(
+      address: destination,
+      prepareResponse: res,
+    );
+
+    final id = "onchain-${DateTime.now().millisecondsSinceEpoch}";
+    _psbtSessions[id] = PartiallySignedTransactionSession(
+      psbt: OnchainPsbt(res),
+      expireAt:
+          DateTime.now()
+              .add(const Duration(seconds: 300))
+              .millisecondsSinceEpoch,
+    );
+
+    return BreezPartiallySignedTransactionDto.fromOnchain(
+      id: id,
+      preparePayOnchainResponse: res,
+      request: req,
+    ).toDomain();
+  }
+
+  PaymentMethod _getL2PaymentMethod(String destination) {
+    final bolt11Regex = RegExp(r'^ln(bc|tb|bcrt)[0-9a-z]+$');
+    final bolt12Regex = RegExp(r'^ln(o1|i1|r1)[0-9a-z]+$');
+
+    if (bolt11Regex.hasMatch(destination)) {
+      return PaymentMethod.bolt11Invoice;
+    }
+
+    if (bolt12Regex.hasMatch(destination)) {
+      return PaymentMethod.bolt12Offer;
+    }
+
+    return PaymentMethod.liquidAddress;
   }
 }
