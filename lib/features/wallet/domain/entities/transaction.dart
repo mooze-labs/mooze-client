@@ -3,11 +3,11 @@ import '../enums/blockchain.dart';
 
 enum TransactionType { send, receive, swap }
 
-enum TransactionStatus { pending, confirmed, failed }
+enum TransactionStatus { pending, confirmed, failed, refundable }
 
 class Transaction {
   final String id;
-  final int amount;
+  final BigInt amount;
   final Blockchain blockchain;
   final Asset asset;
   final TransactionType type;
