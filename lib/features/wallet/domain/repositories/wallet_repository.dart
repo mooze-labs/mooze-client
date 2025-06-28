@@ -26,6 +26,7 @@ abstract class WalletRepository {
     String destination,
     Asset asset,
     BigInt amount,
+    Blockchain blockchain,
   );
   Future<Transaction> sendPayment(PartiallySignedTransaction psbt);
   Future<int> getTransactionLimits(Blockchain blockchain);
