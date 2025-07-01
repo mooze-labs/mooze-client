@@ -2,6 +2,7 @@ import '../entities/transaction.dart';
 import '../entities/payment_request.dart';
 import '../entities/partially_signed_transaction.dart';
 import '../entities/refundable_swap.dart';
+import '../entities/limit.dart';
 
 import '../enums/asset.dart';
 import '../enums/blockchain.dart';
@@ -10,6 +11,7 @@ import '../typedefs.dart';
 abstract class WalletRepository {
   Future<List<Transaction>> getTransactions({
     TransactionType? type,
+    TransactionStatus? status,
     Asset? asset,
     Blockchain? blockchain,
     DateTime? startDate,
@@ -29,6 +31,4 @@ abstract class WalletRepository {
     Blockchain blockchain,
   );
   Future<Transaction> sendPayment(PartiallySignedTransaction psbt);
-  Future<int> getTransactionLimits(Blockchain blockchain);
-  Future<RefundableSwap> listRefundableTransactions();
 }

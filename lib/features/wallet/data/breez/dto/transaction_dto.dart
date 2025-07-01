@@ -28,8 +28,7 @@ class BreezTransactionDto {
     required this.status,
   });
 
-  factory BreezTransactionDto.fromSdk({required SendPaymentResponse response}) {
-    final payment = response.payment;
+  factory BreezTransactionDto.fromSdk({required Payment payment}) {
     final asset = switch (payment.details) {
       PaymentDetails_Lightning() => Asset.btc,
       PaymentDetails_Bitcoin() => Asset.btc,

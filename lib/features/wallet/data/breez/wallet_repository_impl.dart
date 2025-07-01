@@ -2,15 +2,19 @@ import 'dart:math';
 
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/data/breez/dto/payment_request_dto.dart';
+import 'package:mooze_mobile/features/wallet/data/breez/dto/transaction_dto.dart';
 import 'package:mooze_mobile/features/wallet/data/breez/models/prepared_transaction.dart';
 import 'package:mooze_mobile/features/wallet/data/breez/models/psbt_session.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/limit.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/asset.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
+import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 
 import './dto/psbt_dto.dart';
 
@@ -70,7 +74,7 @@ class BreezWalletRepositoryImpl extends WalletRepository {
   }
 
   @override
-  Future<void> signTransaction(PartiallySignedTransaction psbt) async {
+  Future<Transaction> sendPayment(PartiallySignedTransaction psbt) async {
     final session = _psbtSessions[psbt.id];
 
     if (session == null) {
@@ -89,6 +93,66 @@ class BreezWalletRepositoryImpl extends WalletRepository {
     };
 
     _psbtSessions.remove(psbt.id);
+
+    return BreezTransactionDto.fromSdk(payment: response.payment).toDomain();
+  }
+
+  @override
+  Future<List<Transaction>> getTransactions({
+    TransactionType? type,
+    TransactionStatus? status,
+    Asset? asset,
+    Blockchain? blockchain,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final paymentType = switch (type) {
+      TransactionType.send => [PaymentType.send],
+      TransactionType.receive => [PaymentType.receive],
+      _ => null,
+    };
+
+    final states = switch (status) {
+      TransactionStatus.pending => [PaymentState.pending],
+      TransactionStatus.confirmed => [PaymentState.complete],
+      TransactionStatus.refundable => [
+        PaymentState.refundPending,
+        PaymentState.refundable,
+      ],
+      TransactionStatus.failed => [PaymentState.failed],
+      _ => null,
+    };
+
+    final transactions = await _breez.listPayments(
+      req: ListPaymentsRequest(
+        fromTimestamp: startDate?.millisecondsSinceEpoch,
+        toTimestamp: endDate?.millisecondsSinceEpoch,
+        offset: 0,
+        limit: 20,
+        filters: paymentType,
+        states: states,
+      ),
+    );
+
+    return transactions
+        .map((e) => BreezTransactionDto.fromSdk(payment: e).toDomain())
+        .toList();
+  }
+
+  @override
+  Future<Balance> getBalance() async {
+    final info = await _breez.getInfo();
+    final bitcoinBalance = info.walletInfo.balanceSat;
+    final assetBalances = info.walletInfo.assetBalances;
+    Balance balances = {};
+
+    for (final assetBalance in assetBalances) {
+      balances[Asset.fromId(assetBalance.assetId)] = assetBalance.balanceSat;
+    }
+
+    balances[Asset.btc] = bitcoinBalance;
+
+    return balances;
   }
 
   Future<PaymentRequest> _createLiquidBitcoinPaymentRequest(
