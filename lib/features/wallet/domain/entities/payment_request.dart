@@ -1,5 +1,5 @@
 import '../typedefs.dart';
-import '../enums/asset.dart';
+import '../../../../core/entities/asset.dart';
 import '../enums/blockchain.dart';
 
 class PaymentRequest {

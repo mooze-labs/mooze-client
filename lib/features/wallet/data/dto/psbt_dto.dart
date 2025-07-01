@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
-import 'package:mooze_mobile/features/wallet/domain/enums/asset.dart';
+import 'package:mooze_mobile/core/entities/asset.dart';
 
 class BreezPartiallySignedTransactionDto {
   final String id;

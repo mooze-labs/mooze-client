@@ -1,4 +1,4 @@
-import '../enums/asset.dart';
+import '../../../../core/entities/asset.dart';
 import '../enums/blockchain.dart';
 
 enum TransactionType { send, receive, swap }

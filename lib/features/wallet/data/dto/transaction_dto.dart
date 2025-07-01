@@ -2,7 +2,7 @@ import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
-import '../../../domain/enums/asset.dart';
+import '../../../../../core/entities/asset.dart';
 
 const lBtcAssetId =
     "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d";

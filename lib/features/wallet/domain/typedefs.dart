@@ -1,4 +1,4 @@
-import 'enums/asset.dart';
+import '../../../core/entities/asset.dart';
 
 typedef Address = String;
 typedef PublicKey = List<int>;
