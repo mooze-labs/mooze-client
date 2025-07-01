@@ -186,7 +186,7 @@ class SideswapApi {
   void startQuotes({
     required Map<String, String> assetPair,
     required String assetType,
-    required int amount,
+    required BigInt amount,
     required String tradeDir,
     required List<Map<String, dynamic>>? utxos,
     required String receiveAddress,
@@ -589,7 +589,7 @@ class SideswapService {
     required String baseAsset,
     required String quoteAsset,
     required String assetType,
-    required int amount,
+    required BigInt amount,
     required SwapDirection direction,
     required List<SwapUtxo> utxos,
     required String receiveAddress,
@@ -633,7 +633,7 @@ class SideswapService {
     _api.receiveQuote(quoteId);
 
     // Add timeout
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 30), () {
       if (!completer.isCompleted) {
         completer.complete(null);
       }
