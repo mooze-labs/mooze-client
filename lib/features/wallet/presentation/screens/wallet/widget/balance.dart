@@ -4,7 +4,7 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/provide
 import 'package:shimmer/shimmer.dart';
 
 import '../providers/asset_provider.dart';
-import '../providers/balance_provider.dart';
+import '../../../providers/balance_provider.dart';
 
 class BalanceDisplay extends ConsumerWidget {
   const BalanceDisplay({super.key});
@@ -34,21 +34,26 @@ class BalanceDisplay extends ConsumerWidget {
     return balance.when(
       data:
           (data) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "${_formatWithThousandsSeparator(data)} sats",
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              Text(
-                "R\$ ${data / BigInt.from(price)}",
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Theme.of(context).colorScheme.tertiary,
-                ),
+              Column(
+                children: [
+                  Text(
+                    "${_formatWithThousandsSeparator(data)} sats",
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontFamily: 'Inter',
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                  Text(
+                    "R\$ ${(data / BigInt.from(price)).toStringAsFixed(2)}",
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

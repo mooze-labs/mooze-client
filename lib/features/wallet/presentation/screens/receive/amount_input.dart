@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/core/entities/asset.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/transact/widgets/input_amount_display.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/bottom_nav_bar.dart';
-import 'widgets/numpad_keyboard.dart';
-import 'widgets/action_buttons_row.dart';
 
+import 'widgets.dart';
 import 'providers.dart';
 
-class TransactScreen extends ConsumerWidget {
-  const TransactScreen({super.key});
+class ReceiveAmountInputScreen extends ConsumerWidget {
+  const ReceiveAmountInputScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,7 +62,7 @@ class TransactScreen extends ConsumerWidget {
                   horizontal: 16.0,
                   vertical: 8.0,
                 ),
-                child: ActionButtonsRow(),
+                child: const ReceiveButton(),
               ),
             ],
           ),

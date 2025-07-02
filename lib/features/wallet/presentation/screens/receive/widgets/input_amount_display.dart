@@ -4,53 +4,8 @@ import 'package:mooze_mobile/core/entities/asset.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/assets_provider.dart';
 
 import '../providers.dart';
-
-class SelectAssetDisplay extends ConsumerWidget {
-  const SelectAssetDisplay({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final assets = ref.watch(assetsProvider);
-
-    return assets.when(
-      data:
-          (data) => PopupMenuButton<Asset>(
-            itemBuilder:
-                (context) =>
-                    data
-                        .map(
-                          (asset) => PopupMenuItem(
-                            value: asset,
-                            child: ListTile(
-                              title: Text(
-                                switch (asset) {
-                                  Asset.btc => 'BTC',
-                                  Asset.depix => 'DePix',
-                                  Asset.usdt => 'USDt',
-                                },
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineSmall?.copyWith(
-                                  fontSize: 24,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-            onSelected: (asset) {
-              ref.read(selectedAssetProvider.notifier).state = asset;
-            },
-          ),
-      error: (error, stack) => const SizedBox.shrink(),
-      loading: () => const SizedBox.shrink(),
-    );
-  }
-}
 
 class SatoshiAmountDisplay extends ConsumerWidget {
   const SatoshiAmountDisplay({super.key});
