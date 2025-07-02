@@ -2,7 +2,6 @@ import 'package:mooze_mobile/core/entities/asset.dart';
 
 import '../../domain/entities.dart';
 import '../../domain/repositories/wallet_repository.dart';
-import '../models.dart';
 
 class FakeWalletRepositoryImpl extends WalletRepository {
   // Mock data for testing
