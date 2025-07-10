@@ -1,8 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 
 import '../providers/stablecoins_provider.dart';
 
@@ -49,6 +47,7 @@ class StablecoinsDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stablecoins = ref.watch(stablecoinsProvider);
+
     return stablecoins.when(
       data:
           (data) => Padding(
@@ -71,7 +70,13 @@ class StablecoinsDisplay extends ConsumerWidget {
                           height: 24,
                         ),
                         subtitle: key.ticker.toUpperCase(),
-                        value: "50.00",
+                        value: ref
+                            .watch(balanceProvider(key))
+                            .when(
+                              data: (data) => data.toString(),
+                              error: (error, stack) => 'N/A',
+                              loading: () => '...',
+                            ),
                       ),
                     )
                     .toList(),

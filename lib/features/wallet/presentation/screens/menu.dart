@@ -6,9 +6,6 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/activit
 import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/wallet.dart';
 
 import '../providers/index_navigation_bar.dart';
-import 'transact/transact.dart';
-
-import 'package:go_router/go_router.dart';
 
 class MenuScreen extends ConsumerWidget {
   const MenuScreen({super.key});

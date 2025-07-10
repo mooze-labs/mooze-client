@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/providers/price_provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../providers/asset_provider.dart';
