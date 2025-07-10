@@ -46,7 +46,7 @@ class BalanceDisplay extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    "R\$ ${(data / BigInt.from(price)).toStringAsFixed(2)}",
+                    "R\$ ${(data.toDouble() / 100000000 * price).toStringAsFixed(2)}",
                     style: TextStyle(
                       fontSize: 24,
                       color: Theme.of(context).colorScheme.onSurface,
