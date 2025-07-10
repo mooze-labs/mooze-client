@@ -36,18 +36,21 @@ class LiquidWallet {
 
     for (final utxo in utxos) {
       if (utxo.unblinded.asset == Asset.toId(asset)) {
-        if (utxo.unblinded.value >= remainingAmount) {
-          selectedUtxos.add(
-            SwapUtxo(
-              txid: utxo.outpoint.txid,
-              vout: utxo.outpoint.vout,
-              asset: utxo.unblinded.asset,
-              assetBf: utxo.unblinded.assetBf,
-              value: utxo.unblinded.value,
-              valueBf: utxo.unblinded.valueBf,
-            ),
-          );
-          remainingAmount -= utxo.unblinded.value;
+        selectedUtxos.add(
+          SwapUtxo(
+            txid: utxo.outpoint.txid,
+            vout: utxo.outpoint.vout,
+            asset: utxo.unblinded.asset,
+            assetBf: utxo.unblinded.assetBf,
+            value: utxo.unblinded.value,
+            valueBf: utxo.unblinded.valueBf,
+          ),
+        );
+        remainingAmount -= utxo.unblinded.value;
+
+        // Early termination when we have enough funds
+        if (remainingAmount <= BigInt.zero) {
+          break;
         }
       }
     }
