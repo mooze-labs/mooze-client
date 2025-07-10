@@ -8,8 +8,6 @@ class MnemonicInputField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mnemonicInput = ref.watch(mnemonicInputProvider);
-
     return TextField(
       onChanged:
           (value) => ref.read(mnemonicInputProvider.notifier).state = value,
