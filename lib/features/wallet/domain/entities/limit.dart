@@ -1,4 +1,4 @@
-import 'package:mooze_mobile/features/wallet/domain/enums/asset.dart';
+import 'package:mooze_mobile/core/entities/asset.dart';
 
 class PaymentLimit {
   final Asset asset;

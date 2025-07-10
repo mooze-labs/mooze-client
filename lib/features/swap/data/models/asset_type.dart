@@ -1,0 +1,1 @@
+enum AssetType { base, quote }

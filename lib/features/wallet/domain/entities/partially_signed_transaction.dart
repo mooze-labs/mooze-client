@@ -1,4 +1,4 @@
-import '../enums/asset.dart';
+import '../../../../core/entities/asset.dart';
 
 class PartiallySignedTransaction {
   final String id;

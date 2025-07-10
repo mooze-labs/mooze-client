@@ -1,10 +1,8 @@
 import '../entities/transaction.dart';
 import '../entities/payment_request.dart';
 import '../entities/partially_signed_transaction.dart';
-import '../entities/refundable_swap.dart';
-import '../entities/limit.dart';
 
-import '../enums/asset.dart';
+import '../../../../core/entities/asset.dart';
 import '../enums/blockchain.dart';
 import '../typedefs.dart';
 
