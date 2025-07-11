@@ -1,4 +1,5 @@
 import 'package:fpdart/fpdart.dart';
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 
 import 'key_store.dart';
 import 'mnemonic_store.dart';
@@ -31,5 +32,17 @@ class MnemonicStoreImpl implements MnemonicStore {
   @override
   TaskEither<String, Option<String>> getMnemonic() {
     return keyStore.getKey(mnemonicKey);
+  }
+
+  @override
+  String generateMnemonic({bool extendedPhrase = true}) {
+    final int entropyLength = (extendedPhrase) ? 256 : 128;
+    final mnemonic =
+        Mnemonic.generate(
+          Language.english,
+          entropyLength: entropyLength,
+        ).sentence;
+
+    return mnemonic;
   }
 }
