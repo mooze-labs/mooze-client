@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../screens/transact/providers/selected_tab_provider.dart';
 
 final StateProvider<Asset> selectedAssetProvider = StateProvider<Asset>((ref) {

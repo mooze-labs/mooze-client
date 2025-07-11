@@ -1,5 +1,5 @@
 import '../typedefs.dart';
-import '../../../../core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../enums/blockchain.dart';
 
 class PaymentRequest {

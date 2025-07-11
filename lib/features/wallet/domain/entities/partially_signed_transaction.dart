@@ -1,4 +1,4 @@
-import '../../../../core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class PartiallySignedTransaction {
   final String id;

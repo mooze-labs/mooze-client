@@ -1,4 +1,4 @@
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../domain/entities.dart';
 import '../../domain/repositories/wallet_repository.dart';

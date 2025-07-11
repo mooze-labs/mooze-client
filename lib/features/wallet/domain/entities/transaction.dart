@@ -1,4 +1,4 @@
-import '../../../../core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../enums/blockchain.dart';
 
 enum TransactionType { send, receive, swap }
