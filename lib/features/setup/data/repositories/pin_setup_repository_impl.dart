@@ -10,7 +10,7 @@ class PinSetupRepositoryImpl implements PinSetupRepository {
   PinSetupRepositoryImpl({required PinStore pinStore}) : _pinStore = pinStore;
 
   @override
-  TaskEither<String, Unit> savePin(String pin) {
+  TaskEither<String, Unit> createPin(String pin) {
     return _pinStore.save(pin);
   }
 
