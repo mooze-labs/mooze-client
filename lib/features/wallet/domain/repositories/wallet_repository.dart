@@ -2,7 +2,7 @@ import '../entities/transaction.dart';
 import '../entities/payment_request.dart';
 import '../entities/partially_signed_transaction.dart';
 
-import '../../../../shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../enums/blockchain.dart';
 import '../typedefs.dart';
 

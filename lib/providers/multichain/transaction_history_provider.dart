@@ -8,6 +8,8 @@ import 'package:mooze_mobile/models/network.dart';
 
 part 'transaction_history_provider.g.dart';
 
+/*
+
 class TransactionFilters {
   final Asset? selectedAsset;
   final DateTime? startDate;
@@ -98,3 +100,5 @@ class TransactionHistory extends _$TransactionHistory {
     }
   }
 }
+
+*/
