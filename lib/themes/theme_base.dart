@@ -72,11 +72,20 @@ final PinTheme pinTheme = PinTheme(
   ),
 );
 
+final ElevatedButtonThemeData elevatedButtonTheme = ElevatedButtonThemeData(
+  style: ElevatedButton.styleFrom(
+    backgroundColor: colorScheme.primary,
+    foregroundColor: colorScheme.onPrimary,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  ),
+);
+
 final ThemeData themeData = ThemeData(
   colorScheme: colorScheme,
   appBarTheme: appBarTheme,
   bottomNavigationBarTheme: bottomNavigationBarTheme,
   inputDecorationTheme: inputDecorationTheme,
   dropdownMenuTheme: dropdownMenuTheme,
+  elevatedButtonTheme: elevatedButtonTheme,
   fontFamily: "roboto",
 );
