@@ -58,7 +58,13 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Confirme sua frase")),
+      appBar: AppBar(
+        title: Text("Confirme sua frase"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
+        ),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 600),

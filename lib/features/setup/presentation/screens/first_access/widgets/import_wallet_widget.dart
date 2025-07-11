@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/setup/presentation/first_access/providers.dart';
+import '../providers/terms_acceptance_provider.dart';
 import 'package:go_router/go_router.dart';
 
 const double fontSize = 16.0;
@@ -21,7 +21,8 @@ class ImportWalletWidget extends ConsumerWidget {
           style: TextStyle(color: Colors.white, fontSize: fontSize),
         ),
         InkWell(
-          onTap: termsAccepted ? () => context.go("/import_wallet") : null,
+          onTap:
+              termsAccepted ? () => context.go("/setup/import-wallet") : null,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

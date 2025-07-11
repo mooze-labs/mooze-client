@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/setup/presentation/providers/mnemonic_controller_provider.dart';
 
 import 'package:no_screenshot/no_screenshot.dart';
+import '../providers/extended_phrase_provider.dart';
 
 class GenerateSeedsButton extends ConsumerWidget {
   const GenerateSeedsButton({super.key});
@@ -16,7 +18,12 @@ class GenerateSeedsButton extends ConsumerWidget {
         await deactivateScreenshot().run();
 
         if (context.mounted) {
-          context.go("/create-wallet/display-seeds");
+          final extendedPhrase = ref.read(extendedPhraseProvider);
+          final mnemonic = ref
+              .read(mnemonicControllerProvider)
+              .generateMnemonic(extendedPhrase);
+
+          context.go("/setup/create-wallet/display-seeds", extra: mnemonic);
         }
       },
     );

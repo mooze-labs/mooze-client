@@ -12,9 +12,13 @@ class MnemonicInputField extends ConsumerWidget {
       onChanged:
           (value) => ref.read(mnemonicInputProvider.notifier).state = value,
       decoration: InputDecoration(
-        labelText: 'Digite sua frase de recuperação',
+        hintText: 'Digite sua frase de recuperação',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
+      minLines: 3,
+      maxLines: 5,
+      textAlign: TextAlign.left,
+      keyboardType: TextInputType.visiblePassword,
     );
   }
 }

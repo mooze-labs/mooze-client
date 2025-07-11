@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/setup/presentation/first_access/providers.dart';
+import '../providers/terms_acceptance_provider.dart';
 import 'package:go_router/go_router.dart';
 
 const double iconSize = 20.0;
@@ -21,7 +21,7 @@ class BeginWidget extends ConsumerWidget {
           onPressed:
               termsAccepted
                   ? () {
-                    context.go("/create_wallet");
+                    context.go("/setup/create-wallet/configure-seeds");
                   }
                   : null,
           style: ElevatedButton.styleFrom(

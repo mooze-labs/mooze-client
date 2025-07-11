@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/mnemonic_input_provider.dart';
-import '../../common/providers/mnemonic_controller_provider.dart';
+import '../../../providers/mnemonic_controller_provider.dart';
 
 class ImportButton extends ConsumerWidget {
   const ImportButton({super.key});
@@ -14,7 +14,6 @@ class ImportButton extends ConsumerWidget {
     final mnemonicController = ref.watch(mnemonicControllerProvider);
 
     return ElevatedButton(
-      child: Text("Importar"),
       onPressed: () async {
         final result =
             await mnemonicController.saveMnemonic(mnemonicInput).run();
@@ -23,9 +22,14 @@ class ImportButton extends ConsumerWidget {
           (failure) => ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(failure))),
-          (success) => context.go("/home"),
+          (success) => context.go("/setup/pin/new"),
         );
       },
+      style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 48)),
+      child: Text(
+        "Importar",
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }

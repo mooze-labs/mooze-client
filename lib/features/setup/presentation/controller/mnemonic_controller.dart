@@ -1,5 +1,5 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../domain/repositories/mnemonic_repository.dart';
+import '../../domain/repositories/mnemonic_repository.dart';
 
 class MnemonicController {
   final MnemonicRepository _repository;

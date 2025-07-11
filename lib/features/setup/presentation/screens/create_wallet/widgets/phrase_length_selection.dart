@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/setup/presentation/create_wallet/providers/extended_phrase_provider.dart';
+import '../providers/extended_phrase_provider.dart';
 
 class PhraseLengthSelection extends ConsumerWidget {
   const PhraseLengthSelection({super.key});

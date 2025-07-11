@@ -10,22 +10,42 @@ class DisplaySeedsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mnemonic = GoRouterState.of(context).extra as String;
+    final mnemonic = GoRouterState.of(context).extra as String?;
+
+    // If no mnemonic is provided, redirect to configure seeds
+    if (mnemonic == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.go("/setup/create-wallet/configure-seeds");
+      });
+      return Scaffold(
+        appBar: AppBar(title: Text("Sua frase de recuperação")),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return PopScope(
+      canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         await noScreenshot.screenshotOn();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text("Sua frase de recuperação")),
+        appBar: AppBar(
+          title: Text("Sua frase de recuperação"),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
+          ),
+        ),
         body: Center(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 padding: EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       "ATENÇÃO",
@@ -64,7 +84,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
                 child: Text("Confirmar frase"),
                 onPressed: () {
                   context.go(
-                    "/create-wallet/confirm-mnemonic",
+                    "/setup/create-wallet/confirm-seeds",
                     extra: mnemonic,
                   );
                 },
