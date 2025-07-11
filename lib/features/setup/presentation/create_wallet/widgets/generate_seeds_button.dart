@@ -16,7 +16,7 @@ class GenerateSeedsButton extends ConsumerWidget {
         await deactivateScreenshot().run();
 
         if (context.mounted) {
-          context.go("/setup/create_wallet/confirm_seeds");
+          context.go("/create-wallet/display-seeds");
         }
       },
     );
