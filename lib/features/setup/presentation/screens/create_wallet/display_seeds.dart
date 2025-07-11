@@ -3,19 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 
-import 'providers.dart';
 import 'widgets.dart';
 
 class DisplaySeedsScreen extends ConsumerWidget {
   final NoScreenshot noScreenshot = NoScreenshot.instance;
 
-  DisplaySeedsScreen({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mnemonic = ref.watch(
-      generatedMnemonicProvider(ref.watch(extendedPhraseProvider)),
-    );
+    final mnemonic = GoRouterState.of(context).extra as String;
 
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) async {

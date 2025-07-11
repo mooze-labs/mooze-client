@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
 
 import '../controller/mnemonic_controller.dart';
+import '../../domain/providers/mnemonic_repository_provider.dart';
 
 final mnemonicControllerProvider = Provider<MnemonicController>((ref) {
-  final repository = ref.read(mnemonicStoreProvider);
+  final repository = ref.read(mnemonicRepositoryProvider);
   return MnemonicController(repository: repository);
 });

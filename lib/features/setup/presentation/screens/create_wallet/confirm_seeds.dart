@@ -5,16 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
 
-import 'providers.dart';
-
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
   const ConfirmMnemonicScreen({super.key});
 
   @override
-  ConfirmMnemonicScreenState createState() => ConfirmMnemonicScreenState();
+  ConsumerState<ConfirmMnemonicScreen> createState() =>
+      _ConfirmMnemonicScreenState();
 }
 
-class ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
+class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   late List<int> positions;
   late List<String> words;
   final Random random = Random();
@@ -33,9 +32,7 @@ class ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Get the mnemonic from the provider
-    final extendedPhrase = ref.read(extendedPhraseProvider);
-    final mnemonic = ref.read(generatedMnemonicProvider(extendedPhrase));
+    final mnemonic = GoRouterState.of(context).extra as String;
     words = mnemonic.split(" ");
 
     // Generate random positions for confirmation

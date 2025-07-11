@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/setup/presentation/shared/providers/mnemonic_controller_provider.dart';
 import 'package:go_router/go_router.dart';
 
-import '../providers.dart';
+import '../providers/mnemonic_input_provider.dart';
+import '../../common/providers/mnemonic_controller_provider.dart';
 
 class ImportButton extends ConsumerWidget {
   const ImportButton({super.key});
