@@ -1,4 +1,4 @@
-import '../../../core/entities/asset.dart';
+import '../../../shared/entities/asset.dart';
 
 typedef Address = String;
 typedef PublicKey = List<int>;
