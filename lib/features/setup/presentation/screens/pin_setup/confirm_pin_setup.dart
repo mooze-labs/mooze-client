@@ -60,23 +60,33 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
             Spacer(),
             ElevatedButton(
               onPressed: () async {
+                if (pinController.text.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("PIN deve ter pelo menos 6 caracteres"),
+                    ),
+                  );
+                  return;
+                }
+
                 if (pinController.text != widget.pin) {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(SnackBar(content: Text("PINs não coincidem")));
-                } else {
-                  final result =
-                      await pinSetupRepository
-                          .createPin(pinController.text)
-                          .run();
-
-                  result.match(
-                    (failure) => ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(failure.toString()))),
-                    (_) => context.go("/splash"),
-                  );
+                  return;
                 }
+
+                final result =
+                    await pinSetupRepository
+                        .createPin(pinController.text)
+                        .run();
+
+                result.match(
+                  (failure) => ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(failure.toString()))),
+                  (_) => context.go("/splash"),
+                );
               },
               child: Text(
                 "Confirmar",

@@ -62,11 +62,17 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
             ),
             Spacer(),
             ElevatedButton(
-              onPressed:
-                  () => context.go(
-                    '/setup/pin/confirm',
-                    extra: pinController.text,
-                  ),
+              onPressed: () {
+                if (pinController.text.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("PIN deve ter pelo menos 6 caracteres"),
+                    ),
+                  );
+                  return;
+                }
+                context.go('/setup/pin/confirm', extra: pinController.text);
+              },
               child: Text(
                 "Continuar",
                 style: TextStyle(
