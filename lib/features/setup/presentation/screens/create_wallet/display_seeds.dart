@@ -6,14 +6,14 @@ import 'package:no_screenshot/no_screenshot.dart';
 import 'widgets.dart';
 
 class DisplaySeedsScreen extends ConsumerWidget {
+  DisplaySeedsScreen({super.key, required this.mnemonic});
+  final String mnemonic;
   final NoScreenshot noScreenshot = NoScreenshot.instance;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mnemonic = GoRouterState.of(context).extra as String?;
-
     // If no mnemonic is provided, redirect to configure seeds
-    if (mnemonic == null) {
+    if (mnemonic.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.go("/setup/create-wallet/configure-seeds");
       });

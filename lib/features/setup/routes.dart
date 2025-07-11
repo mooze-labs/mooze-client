@@ -8,11 +8,17 @@ final setupRoutes = [
   ),
   GoRoute(
     path: "/setup/create-wallet/confirm-seeds",
-    builder: (context, state) => const ConfirmMnemonicScreen(),
+    builder: (context, state) {
+      final mnemonic = state.extra as String;
+      return ConfirmMnemonicScreen(mnemonic: mnemonic);
+    },
   ),
   GoRoute(
     path: "/setup/create-wallet/display-seeds",
-    builder: (context, state) => DisplaySeedsScreen(),
+    builder: (context, state) {
+      final mnemonic = state.extra as String;
+      return DisplaySeedsScreen(mnemonic: mnemonic);
+    },
   ),
   GoRoute(
     path: "/setup/import-wallet",
@@ -28,7 +34,9 @@ final setupRoutes = [
   ),
   GoRoute(
     path: "/setup/pin/confirm",
-    builder:
-        (context, state) => ConfirmPinSetupScreen(pin: state.extra as String),
+    builder: (context, state) {
+      final pin = state.extra as String;
+      return ConfirmPinSetupScreen(pin: pin);
+    },
   ),
 ];
