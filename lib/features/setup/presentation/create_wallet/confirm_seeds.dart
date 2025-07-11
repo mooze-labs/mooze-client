@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
-import 'package:mooze_mobile/widgets/buttons.dart';
 
 import 'providers.dart';
 
