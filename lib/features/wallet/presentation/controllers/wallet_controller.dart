@@ -4,7 +4,7 @@ import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_reposito
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/features/wallet/data/providers/wallet_repository_provider.dart';
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 
 part 'wallet_controller.g.dart';
 

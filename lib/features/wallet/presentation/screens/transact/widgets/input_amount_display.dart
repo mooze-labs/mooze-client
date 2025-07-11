@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
@@ -110,7 +110,7 @@ class SatoshiAmountDisplay extends ConsumerWidget {
               children: [
                 Flexible(
                   child: Text(
-                    '${currentValue.toString()} sats',
+                    '${currentValue.toString()} ${assetName}',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontSize: fontSize,
                       fontFamily: 'Inter',

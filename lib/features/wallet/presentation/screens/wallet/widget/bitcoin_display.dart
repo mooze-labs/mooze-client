@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 
