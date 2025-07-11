@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/widgets/buttons.dart';
+import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
 
 import 'providers.dart';
 
@@ -91,10 +91,13 @@ class ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
                   ),
                 ),
                 if (MediaQuery.of(context).viewInsets.bottom == 0)
-                  PrimaryButton(
-                    text: "Confirmar",
+                  ElevatedButton(
+                    child: Text("Confirmar"),
                     onPressed: () {
                       if (checkInputs()) {
+                        ref
+                            .read(mnemonicStoreProvider)
+                            .saveMnemonic(words.join(" "));
                         context.go("/create-wallet/create-pin");
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
