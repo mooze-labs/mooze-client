@@ -14,8 +14,8 @@ class PinStoreImpl implements PinStore {
 
   @override
   TaskEither<String, Unit> save(String pin) {
-    if (pin.length < 4) {
-      return TaskEither.left("PIN deve ter pelo menos 4 caracteres");
+    if (pin.length < 6) {
+      return TaskEither.left("PIN deve ter pelo menos 6 caracteres");
     }
 
     final salt = _generateSalt();

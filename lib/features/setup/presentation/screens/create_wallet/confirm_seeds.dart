@@ -6,7 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
 
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
-  const ConfirmMnemonicScreen({super.key});
+  const ConfirmMnemonicScreen({super.key, required this.mnemonic});
+  final String mnemonic;
 
   @override
   ConsumerState<ConfirmMnemonicScreen> createState() =>
@@ -32,8 +33,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final mnemonic = GoRouterState.of(context).extra as String;
-    words = mnemonic.split(" ");
+    words = widget.mnemonic.split(" ");
 
     // Generate random positions for confirmation
     positions = [];

@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lwk/lwk.dart';
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/swap/data/models/swap_utxo.dart';
 
 const String mnemonicKey = 'mnemonic';

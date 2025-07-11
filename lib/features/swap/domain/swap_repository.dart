@@ -1,4 +1,4 @@
-import 'package:mooze_mobile/core/entities/asset.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/swap/domain/entities/swap_operation.dart';
 
 abstract class SwapRepository {

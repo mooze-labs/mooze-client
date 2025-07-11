@@ -1,8 +1,8 @@
 class SwapOperation {
   final String sendAsset;
   final String receiveAsset;
-  final int sendAmount;
-  final int receiveAmount;
+  final BigInt sendAmount;
+  final BigInt receiveAmount;
 
   SwapOperation({
     required this.sendAsset,

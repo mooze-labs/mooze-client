@@ -1,20 +1,21 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/screens/create_wallet/create_wallet.dart';
-import 'package:mooze_mobile/screens/first_access/first_access.dart';
-import 'package:mooze_mobile/screens/import_wallet/import_wallet.dart';
-import 'package:mooze_mobile/screens/receive_funds/receive_funds.dart';
-import 'package:mooze_mobile/screens/receive_pix/receive_pix.dart';
-import 'package:mooze_mobile/screens/send_funds/send_funds.dart';
-import 'package:mooze_mobile/screens/settings/settings.dart';
-import 'package:mooze_mobile/screens/settings/terms_and_conditions.dart';
-import 'package:mooze_mobile/screens/splash_screen/splash_screen.dart';
-import 'package:mooze_mobile/screens/store_mode/store_home.dart';
-import 'package:mooze_mobile/screens/swap/input_peg.dart';
-import 'package:mooze_mobile/screens/swap/swap.dart';
-import 'package:mooze_mobile/screens/transaction_history/transaction_history.dart';
-import 'package:mooze_mobile/screens/wallet/wallet.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/receive/receive.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/menu.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/wallet.dart';
 
+import './features/setup/routes.dart';
+
+final router = GoRouter(
+  initialLocation: '/setup/first-access',
+  routes: [
+    GoRoute(path: '/menu', builder: (context, state) => MenuScreen()),
+    GoRoute(path: '/receive', builder: (context, state) => ReceiveScreen()),
+    GoRoute(path: '/wallet', builder: (context, state) => WalletScreen()),
+    ...setupRoutes,
+  ],
+);
+
+/*
 final router = GoRouter(
   initialLocation: '/splash',
   routes: [
@@ -61,3 +62,4 @@ final router = GoRouter(
     GoRoute(path: '/input_peg', builder: (context, state) => InputPegScreen()),
   ],
 );
+*/
