@@ -68,10 +68,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
               ElevatedButton(
                 child: Text("Confirmar frase"),
                 onPressed: () {
-                  context.go(
-                    "/create-wallet/confirm-mnemonic",
-                    extra: mnemonic,
-                  );
+                  context.go("/create-wallet/confirm-mnemonic");
                 },
               ),
               Spacer(),
