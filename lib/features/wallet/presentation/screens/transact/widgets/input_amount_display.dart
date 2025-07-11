@@ -110,7 +110,7 @@ class SatoshiAmountDisplay extends ConsumerWidget {
               children: [
                 Flexible(
                   child: Text(
-                    '${currentValue.toString()} sats',
+                    '${currentValue.toString()} ${assetName}',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontSize: fontSize,
                       fontFamily: 'Inter',
