@@ -1,9 +1,13 @@
 import 'package:fpdart/fpdart.dart';
 
-abstract class PriceSettingsRepository {
-  TaskEither<String, Unit> setPriceSource(String source);
-  TaskEither<String, Unit> setPriceCurrency(String currency);
+enum Currency { brl, usd }
 
-  TaskEither<String, String> getPriceSource();
-  TaskEither<String, String> getPriceCurrency();
+enum PriceSource { coingecko, mock }
+
+abstract class PriceSettingsRepository {
+  TaskEither<String, Unit> setPriceSource(PriceSource source);
+  TaskEither<String, Unit> setPriceCurrency(Currency currency);
+
+  TaskEither<String, PriceSource> getPriceSource();
+  TaskEither<String, Currency> getPriceCurrency();
 }
