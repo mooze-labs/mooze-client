@@ -1,5 +1,3 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final priceProvider = FutureProvider.autoDispose<double>((ref) async {
-  return 106028.0;
-});
+import 'package:mooze_mobile/features/wallet/domain/providers/price_repository_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';

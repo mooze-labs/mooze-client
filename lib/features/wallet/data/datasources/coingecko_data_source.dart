@@ -6,31 +6,31 @@ import 'package:http/http.dart' as http;
 const coingeckoBaseUrl = 'https://api.coingecko.com/api/v3';
 
 class CoingeckoDataSource {
-  final http.Client client;
+  final http.Client client = http.Client();
 
-  CoingeckoDataSource({required this.client});
+  CoingeckoDataSource();
 
-  TaskEither<String, Option<Map<String, Map<String, num>>>> getCoinPrice(
+  TaskEither<String, Option<Map<String, Map<String, double>>>> getCoinPrice(
     List<String> coins,
-    List<String> currencies,
+    String currency,
   ) {
     return TaskEither.tryCatch(() async {
       final response = await client.get(
         Uri.parse(
-          '$coingeckoBaseUrl/simple/price?ids=${coins.join(',')}&vs_currencies=${currencies.join(',')}',
+          '$coingeckoBaseUrl/simple/price?ids=${coins.join(',')}&vs_currencies=$currency',
         ),
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> rawData = jsonDecode(response.body);
-        final Map<String, Map<String, num>> data = {};
+        final Map<String, Map<String, double>> data = {};
 
         // Convert the raw response to the expected format
         rawData.forEach((coinId, currencyData) {
           if (currencyData is Map<String, dynamic>) {
-            final Map<String, num> currencyMap = {};
+            final Map<String, double> currencyMap = {};
             currencyData.forEach((currency, value) {
               if (value is num) {
-                currencyMap[currency] = value;
+                currencyMap[currency] = value.toDouble();
               }
             });
             data[coinId] = currencyMap;

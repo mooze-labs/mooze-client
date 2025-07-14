@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
 
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
-  const ConfirmMnemonicScreen({super.key, required this.mnemonic});
-  final String mnemonic;
+  const ConfirmMnemonicScreen({super.key});
 
   @override
   ConsumerState<ConfirmMnemonicScreen> createState() =>
@@ -21,6 +20,8 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   late TextEditingController controller1;
   late TextEditingController controller2;
   late TextEditingController controller3;
+  bool _isLoading = true;
+  bool _hasValidData = false;
 
   @override
   void initState() {
@@ -33,7 +34,17 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    words = widget.mnemonic.split(" ");
+    final mnemonic = GoRouterState.of(context).extra as String?;
+
+    // If no mnemonic is provided, redirect to configure seeds
+    if (mnemonic == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.go("/setup/create-wallet/configure-seeds");
+      });
+      return;
+    }
+
+    words = mnemonic.split(" ");
 
     // Generate random positions for confirmation
     positions = [];
@@ -44,6 +55,11 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
       }
     }
     positions.sort();
+
+    setState(() {
+      _isLoading = false;
+      _hasValidData = true;
+    });
   }
 
   @override
@@ -57,6 +73,20 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator if data is not yet valid
+    if (_isLoading || !_hasValidData) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Confirme sua frase"),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
+          ),
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Confirme sua frase"),
