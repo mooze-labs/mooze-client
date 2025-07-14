@@ -35,7 +35,7 @@ class SatoshiAmountDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentValue = ref.watch(satoshiInputProvider);
-    final price = ref.watch(priceProvider);
+    final price = ref.watch(fiatPriceProvider);
     final selectedAsset = ref.watch(selectedAssetProvider);
 
     final assetName = switch (selectedAsset) {
