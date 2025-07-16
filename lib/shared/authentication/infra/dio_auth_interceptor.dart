@@ -5,8 +5,9 @@ import '../services.dart';
 /// Dio interceptor that automatically handles JWT authentication and token refresh
 class AuthInterceptor extends Interceptor {
   final SessionManagerService _sessionManager;
+  final Dio _dio;
 
-  AuthInterceptor(this._sessionManager);
+  AuthInterceptor(this._sessionManager, this._dio);
 
   @override
   void onRequest(
@@ -58,7 +59,7 @@ class AuthInterceptor extends Interceptor {
             options.headers['Authorization'] = 'Bearer ${session.jwt}';
 
             try {
-              final response = await Dio().fetch(options);
+              final response = await _dio.fetch(options);
               handler.resolve(response);
             } catch (e) {
               handler.next(err);

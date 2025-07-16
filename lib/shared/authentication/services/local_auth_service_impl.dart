@@ -51,7 +51,8 @@ class LocalAuthServiceImpl implements LocalAuthenticationService {
         return false;
       }
 
-      return lastAuthenticationTimestamp + _authenticationTimeout.inSeconds >
+      return lastAuthenticationTimestamp +
+              _authenticationTimeout.inMilliseconds >
           DateTime.now().millisecondsSinceEpoch;
     });
   }
