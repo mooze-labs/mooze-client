@@ -83,6 +83,7 @@ dependencies:
   fpdart: ^1.1.1
   dio: ^5.8.0+1
   eventflux: ^2.2.1
+  dart_jsonwebtoken: ^2.15.0
 
 dev_dependencies:
   flutter_test:
