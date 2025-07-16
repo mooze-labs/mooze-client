@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 
-import '../../../domain/providers/pin_setup_repository_provider.dart';
+import '../../../di/providers/pin_setup_repository_provider.dart';
 
 class ConfirmPinSetupScreen extends ConsumerStatefulWidget {
   const ConfirmPinSetupScreen({super.key, required this.pin});

@@ -111,33 +111,3 @@ class PhoneVerificationRepositoryImpl implements PhoneVerificationRepository {
     );
   }
 }
-
-class MockPhoneVerificationRepositoryImpl
-    implements PhoneVerificationRepository {
-  @override
-  TaskEither<String, String> beginPhoneVerification(
-    String phoneNumber,
-    PhoneVerificationMethod method,
-  ) {
-    return TaskEither.right('mock-verification-id');
-  }
-
-  @override
-  TaskEither<String, bool> verifyCode(String verificationId, String code) {
-    return TaskEither.right(true);
-  }
-
-  @override
-  Stream<Either<String, VerificationStatus>> watchStatus(
-    String verificationId,
-  ) {
-    return Stream.value(
-      Right(
-        VerificationStatus(
-          status: 'success',
-          message: 'Verification successful',
-        ),
-      ),
-    );
-  }
-}
