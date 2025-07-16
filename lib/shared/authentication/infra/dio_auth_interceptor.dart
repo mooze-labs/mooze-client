@@ -41,30 +41,39 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // Handle 401 Unauthorized responses
     if (err.response?.statusCode == 401) {
-      // Try to refresh the session
-      final sessionResult = await _sessionManager.getSession().run();
+      // Get the current session to attempt a forced refresh
+      final currentSessionResult = await _sessionManager.getSession().run();
 
-      sessionResult.fold(
+      currentSessionResult.fold(
         (error) {
-          // Refresh failed, pass through the original error
+          // No valid session available, pass through the original error
           handler.next(err);
         },
-        (_) async {
-          // Refresh successful, retry the original request
-          final sessionResult = await _sessionManager.getSession().run();
+        (currentSession) async {
+          // Force refresh the session regardless of local expiration status
+          final refreshResult =
+              await _sessionManager.refreshSession(currentSession).run();
 
-          sessionResult.fold((error) => handler.next(err), (session) async {
-            // Update the authorization header and retry
-            final options = err.requestOptions;
-            options.headers['Authorization'] = 'Bearer ${session.jwt}';
-
-            try {
-              final response = await _dio.fetch(options);
-              handler.resolve(response);
-            } catch (e) {
+          refreshResult.fold(
+            (error) {
+              // Refresh failed, pass through the original error
               handler.next(err);
-            }
-          });
+            },
+            (refreshedSession) async {
+              // Refresh successful, retry the original request with new token
+              final options = err.requestOptions;
+              options.headers['Authorization'] =
+                  'Bearer ${refreshedSession.jwt}';
+
+              try {
+                final response = await _dio.fetch(options);
+                handler.resolve(response);
+              } catch (e) {
+                // If retry also fails, pass through the original error
+                handler.next(err);
+              }
+            },
+          );
         },
       );
     } else {
