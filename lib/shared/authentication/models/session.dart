@@ -13,15 +13,25 @@ class Session {
   }
 
   Either<String, bool> isExpired() {
-    final payload = _parseJwt(jwt);
-    if (payload['exp'] == null) {
-      return left('Token does not contain expiry date');
-    }
+    try {
+      final payload = _parseJwt(jwt);
+      if (payload['exp'] == null) {
+        return left('Token does not contain expiry date');
+      }
 
-    final expiresAt = DateTime.fromMillisecondsSinceEpoch(
-      payload['exp'] * 1000,
-    );
-    return right(expiresAt.isBefore(DateTime.now()));
+      // Check if exp is a valid number
+      final exp = payload['exp'];
+      if (exp is! num) {
+        return left('Token expiry date is not a valid number');
+      }
+
+      final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+        (exp * 1000).round(),
+      );
+      return right(expiresAt.isBefore(DateTime.now()));
+    } catch (e) {
+      return left('Failed to parse token: ${e.toString()}');
+    }
   }
 
   Map<String, dynamic> _parseJwt(String jwt) {
