@@ -21,7 +21,7 @@ class AuthInterceptor extends Interceptor {
     }
 
     // Get a valid session (automatically refreshes if needed)
-    final sessionResult = await _sessionManager.getValidSession().run();
+    final sessionResult = await _sessionManager.getSession().run();
 
     sessionResult.fold(
       (error) {

@@ -42,7 +42,16 @@ class SessionManagerServiceImpl implements SessionManagerService {
         throw Exception('No session found');
       }
 
-      return Session(jwt: jwt, refreshToken: refreshToken);
+      final session = Session(jwt: jwt, refreshToken: refreshToken);
+      if (session.isExpired().getOrElse((l) => true)) {
+        final newSessionResult = await refreshSession().run();
+        return newSessionResult.fold(
+          (error) => throw Exception(error),
+          (session) => session,
+        );
+      }
+
+      return session;
     }, (error, stackTrace) => error.toString());
   }
 
@@ -56,7 +65,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
   }
 
   @override
-  TaskEither<String, Unit> refreshSession() {
+  TaskEither<String, Session> refreshSession() {
     return getSession().flatMap((session) {
       return _requestNewJwtToken(session.refreshToken).flatMap((newJwt) {
         final updatedSession = Session(
@@ -64,30 +73,10 @@ class SessionManagerServiceImpl implements SessionManagerService {
           refreshToken: session.refreshToken,
         );
 
-        return saveSession(updatedSession).map((_) => unit);
+        saveSession(updatedSession).map((_) => unit);
+        return TaskEither.right(updatedSession);
       });
     });
-  }
-
-  @override
-  TaskEither<String, Session> getValidSession({
-    Duration buffer = const Duration(minutes: 5),
-  }) {
-    return getSession().flatMap((session) {
-      final isExpired = session.isExpired();
-      if (isExpired.isLeft()) {
-        return refreshSession().flatMap((_) => getSession());
-      } else {
-        return TaskEither.right(session);
-      }
-    });
-  }
-
-  @override
-  TaskEither<String, bool> isSessionExpiredOrNearExpiry({
-    Duration buffer = const Duration(minutes: 5),
-  }) {
-    return getSession().map((session) => session.isExpired().isRight());
   }
 
   TaskEither<String, String> _requestNewJwtToken(String refreshToken) {
