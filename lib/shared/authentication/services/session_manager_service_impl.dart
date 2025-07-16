@@ -42,8 +42,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
         throw Exception('No session found');
       }
 
-      // Create session with expiry information extracted from JWT
-      return Session.withExpiry(jwt: jwt, refreshToken: refreshToken);
+      return Session(jwt: jwt, refreshToken: refreshToken);
     }, (error, stackTrace) => error.toString());
   }
 
@@ -60,11 +59,11 @@ class SessionManagerServiceImpl implements SessionManagerService {
   TaskEither<String, Unit> refreshSession() {
     return getSession().flatMap((session) {
       return _requestNewJwtToken(session.refreshToken).flatMap((newJwt) {
-        // Create new session with expiry information
-        final updatedSession = Session.withExpiry(
+        final updatedSession = Session(
           jwt: newJwt,
           refreshToken: session.refreshToken,
         );
+
         return saveSession(updatedSession).map((_) => unit);
       });
     });
@@ -75,12 +74,10 @@ class SessionManagerServiceImpl implements SessionManagerService {
     Duration buffer = const Duration(minutes: 5),
   }) {
     return getSession().flatMap((session) {
-      // Check if the session is expired or near expiry
-      if (session.isExpiredOrNearExpiry(buffer: buffer)) {
-        // Refresh the session and return the new one
+      final isExpired = session.isExpired();
+      if (isExpired.isLeft()) {
         return refreshSession().flatMap((_) => getSession());
       } else {
-        // Session is still valid, return as-is
         return TaskEither.right(session);
       }
     });
@@ -90,9 +87,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
   TaskEither<String, bool> isSessionExpiredOrNearExpiry({
     Duration buffer = const Duration(minutes: 5),
   }) {
-    return getSession().map(
-      (session) => session.isExpiredOrNearExpiry(buffer: buffer),
-    );
+    return getSession().map((session) => session.isExpired().isRight());
   }
 
   TaskEither<String, String> _requestNewJwtToken(String refreshToken) {
