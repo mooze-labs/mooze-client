@@ -42,9 +42,13 @@ class AuthInterceptor extends Interceptor {
     // Handle 401 Unauthorized responses
     if (err.response?.statusCode == 401) {
       // Try to refresh the session
-      final refreshResult = await _sessionManager.refreshSession().run();
+      final sessionResult =
+          await _sessionManager
+              .getSession()
+              .flatMap((session) => _sessionManager.refreshSession(session))
+              .run();
 
-      refreshResult.fold(
+      sessionResult.fold(
         (error) {
           // Refresh failed, pass through the original error
           handler.next(err);

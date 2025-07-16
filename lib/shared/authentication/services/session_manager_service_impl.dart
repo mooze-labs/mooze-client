@@ -44,7 +44,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
 
       final session = Session(jwt: jwt, refreshToken: refreshToken);
       if (session.isExpired().getOrElse((l) => true)) {
-        final newSessionResult = await refreshSession().run();
+        final newSessionResult = await refreshSession(session).run();
         return newSessionResult.fold(
           (error) => throw Exception(error),
           (session) => session,
@@ -65,17 +65,14 @@ class SessionManagerServiceImpl implements SessionManagerService {
   }
 
   @override
-  TaskEither<String, Session> refreshSession() {
-    return getSession().flatMap((session) {
-      return _requestNewJwtToken(session.refreshToken).flatMap((newJwt) {
-        final updatedSession = Session(
-          jwt: newJwt,
-          refreshToken: session.refreshToken,
-        );
+  TaskEither<String, Session> refreshSession(Session session) {
+    return _requestNewJwtToken(session.refreshToken).flatMap((newJwt) {
+      final updatedSession = Session(
+        jwt: newJwt,
+        refreshToken: session.refreshToken,
+      );
 
-        saveSession(updatedSession).map((_) => unit);
-        return TaskEither.right(updatedSession);
-      });
+      return saveSession(updatedSession).map((_) => updatedSession);
     });
   }
 
