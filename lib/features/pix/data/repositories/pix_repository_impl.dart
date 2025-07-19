@@ -34,7 +34,7 @@ class PixRepositoryImpl implements PixRepository {
       );
 
       if (response.statusCode != 200) {
-        TaskEither.left("Failed to create deposit: ${response.statusMessage}");
+        throw Exception("${response.statusCode} ${response.statusMessage}");
       }
 
       return PixDeposit.fromJson(response.data);
