@@ -22,24 +22,28 @@ class MockPixRepositoryImpl implements PixRepository {
   }
 
   @override
-  Stream<PixStatusUpdate> subscribeToStatusUpdates(String pixId) async* {
+  Stream<Either<String, PixStatusUpdate>> subscribeToStatusUpdates(
+    String pixId,
+  ) async* {
     // First status: pending
-    yield PixStatusUpdate(id: pixId, status: 'pending');
+    yield Either.right(PixStatusUpdate(id: pixId, status: 'pending'));
 
     // Wait a bit before next status
     await Future.delayed(Duration(seconds: 2));
 
     // Second status: processing
-    yield PixStatusUpdate(id: pixId, status: 'processing');
+    yield Either.right(PixStatusUpdate(id: pixId, status: 'processing'));
 
     // Wait a bit before final status
     await Future.delayed(Duration(seconds: 3));
 
     // Final status: finished with blockchain transaction ID
-    yield PixStatusUpdate(
-      id: pixId,
-      status: 'finished',
-      blockchainTxid: 'mock-blockchain-txid-123456789',
+    yield Either.right(
+      PixStatusUpdate(
+        id: pixId,
+        status: 'finished',
+        blockchainTxid: 'mock-blockchain-txid-123456789',
+      ),
     );
   }
 }

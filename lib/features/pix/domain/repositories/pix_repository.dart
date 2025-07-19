@@ -11,5 +11,7 @@ abstract class PixRepository {
     String network = "liquid",
   });
 
-  Stream<PixStatusUpdate> subscribeToStatusUpdates(String pixId);
+  Stream<Either<String, PixStatusUpdate>> subscribeToStatusUpdates(
+    String pixId,
+  );
 }

@@ -42,7 +42,9 @@ class PixRepositoryImpl implements PixRepository {
   }
 
   @override
-  Stream<PixStatusUpdate> subscribeToStatusUpdates(String pixId) {
+  Stream<Either<String, PixStatusUpdate>> subscribeToStatusUpdates(
+    String pixId,
+  ) {
     final controller = StreamController<Either<String, PixStatusUpdate>>();
     final baseUrl = String.fromEnvironment(
       'BACKEND_API_URL',
@@ -77,8 +79,10 @@ class PixRepositoryImpl implements PixRepository {
     );
 
     return controller.stream.map(
-      (either) =>
-          either.fold((error) => throw Exception(error), (update) => update),
+      (either) => either.fold(
+        (error) => Either.left(error.toString()),
+        (update) => Either.right(update),
+      ),
     );
   }
 }
