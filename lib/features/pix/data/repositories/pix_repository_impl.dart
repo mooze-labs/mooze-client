@@ -13,9 +13,7 @@ import '../../domain/repository.dart';
 class PixRepositoryImpl implements PixRepository {
   final Dio dio;
 
-  PixRepositoryImpl(this.dio) {
-    PixRepositoryImpl(dio);
-  }
+  PixRepositoryImpl({required this.dio});
 
   @override
   TaskEither<String, PixDeposit> newDeposit(
@@ -36,7 +34,7 @@ class PixRepositoryImpl implements PixRepository {
       );
 
       if (response.statusCode != 200) {
-        throw Exception("Failed to create deposit: ${response.statusMessage}");
+        left("Failed to create deposit: ${response.statusMessage}");
       }
 
       return PixDeposit.fromJson(response.data);
