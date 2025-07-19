@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../services.dart';
+import '../../authentication/services.dart';
 
 /// Dio interceptor that automatically handles JWT authentication and token refresh
 class AuthInterceptor extends Interceptor {

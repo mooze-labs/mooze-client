@@ -15,7 +15,7 @@ class VerificationStatusDatasource {
     final eventChannel = EventFlux.spawn();
     eventChannel.connect(
       EventFluxConnectionType.get,
-      "$_baseUrl/events/phone_verification/$phoneNumber",
+      "$_baseUrl/subscribe?event_type=phone_verification&event_id=$phoneNumber",
       tag: 'phone-verification-status-stream',
       onSuccessCallback: (EventFluxResponse? response) {
         response?.stream?.listen(

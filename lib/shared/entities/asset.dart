@@ -43,4 +43,12 @@ enum Asset {
       Asset.btc => "Bitcoin",
     };
   }
+
+  String get id {
+    return switch (this) {
+      Asset.usdt => usdtAssetId,
+      Asset.depix => depixAssetId,
+      Asset.btc => lbtcAssetId,
+    };
+  }
 }
