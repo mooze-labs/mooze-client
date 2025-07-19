@@ -34,11 +34,11 @@ class PixRepositoryImpl implements PixRepository {
       );
 
       if (response.statusCode != 200) {
-        left("Failed to create deposit: ${response.statusMessage}");
+        TaskEither.left("Failed to create deposit: ${response.statusMessage}");
       }
 
       return PixDeposit.fromJson(response.data);
-    }, (error, stackTrace) => throw Exception(error.toString()));
+    }, (error, stackTrace) => "Erro ao gerar QR code: $error");
   }
 
   @override
