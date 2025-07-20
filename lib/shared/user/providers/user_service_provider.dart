@@ -16,10 +16,11 @@ final userServiceProvider = FutureProvider<Either<String, UserService>>((
   final authHttpClient = ref.watch(authenticatedClientProvider(baseUrl));
   final signatureClient = await ref.watch(signatureClientProvider.future);
 
-  return await signatureClient.fold((error) => Left(error), (client) async {
-    return await client
+  return signatureClient.fold(
+    (error) => Left(error),
+    (client) => client
         .getPublicKey()
         .map((pubKey) => UserServiceImpl(authHttpClient, pubKey))
-        .run();
-  });
+        .run(),
+  );
 });
