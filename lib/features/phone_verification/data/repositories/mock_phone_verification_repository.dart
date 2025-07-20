@@ -21,13 +21,15 @@ class MockPhoneVerificationRepositoryImpl
   @override
   Stream<Either<String, VerificationStatus>> watchStatus(
     String verificationId,
-  ) {
-    return Stream.value(
-      Right(
-        VerificationStatus(
-          status: 'success',
-          message: 'Verification successful',
-        ),
+  ) async* {
+    yield Either.right(VerificationStatus(status: 'processing'));
+
+    await Future.delayed(Duration(seconds: 2));
+
+    yield Either.right(
+      VerificationStatus(
+        status: 'finished',
+        message: 'Verification successful',
       ),
     );
   }
