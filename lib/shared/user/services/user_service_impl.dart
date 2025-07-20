@@ -7,15 +7,17 @@ import 'user_service.dart';
 
 class UserServiceImpl implements UserService {
   final Dio _dio;
-  final String _id;
+  final String _publicKey;
 
-  UserServiceImpl(Dio dio, String id) : _dio = dio, _id = id;
+  UserServiceImpl(Dio dio, String publicKey)
+    : _dio = dio,
+      _publicKey = publicKey;
 
   @override
   TaskEither<String, User> getUser() {
     return TaskEither(() async {
       try {
-        final response = await _dio.get('/user/$_id');
+        final response = await _dio.get('/user/$_publicKey');
         return Right(User.fromJson(response.data));
       } catch (e) {
         return Left(e.toString());
@@ -27,7 +29,10 @@ class UserServiceImpl implements UserService {
   TaskEither<String, Unit> addReferral(String referralCode) {
     return TaskEither(() async {
       try {
-        await _dio.post('/user/$_id/referral', data: {'code': referralCode});
+        await _dio.post(
+          '/user/$_publicKey/referral',
+          data: {'code': referralCode},
+        );
         return const Right(unit);
       } catch (e) {
         return Left(e.toString());
