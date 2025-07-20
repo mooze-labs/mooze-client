@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mooze_mobile/shared/key_management/pin_store.dart';
+import 'package:mooze_mobile/shared/key_management/store.dart';
 
 import 'local_auth_service.dart';
 
