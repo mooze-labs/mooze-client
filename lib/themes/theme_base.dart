@@ -26,6 +26,25 @@ final AppBarTheme appBarTheme = AppBarTheme(
   iconTheme: IconThemeData(color: Colors.white),
 );
 
+class AppTextStyles {
+  static const TextStyle title = TextStyle(
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+  );
+  
+  static const TextStyle subtitle = TextStyle(
+    color: Colors.white60,
+    fontSize: 14,
+  );
+  
+  static const TextStyle value = TextStyle(
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+  );
+}
+
 final InputDecorationTheme inputDecorationTheme = InputDecorationTheme(
   border: OutlineInputBorder(
     borderRadius: BorderRadius.circular(8),
