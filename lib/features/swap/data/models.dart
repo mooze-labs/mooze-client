@@ -12,7 +12,7 @@ export 'models/quote_response.dart';
 export 'models/quote_request.dart';
 
 // UTXO Models
-export 'models/swap_utxo.dart';
+// export 'models/swap_utxo.dart';
 
 // Peg Models
 export 'models/peg_transaction.dart';

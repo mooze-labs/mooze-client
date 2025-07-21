@@ -1,7 +1,8 @@
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/features/swap/domain/entities/swap_operation.dart';
+
+import '../entities.dart';
 
 abstract class SwapRepository {
   TaskEither<String, double> getSwapRate(Asset sendAsset, Asset receiveAsset);
