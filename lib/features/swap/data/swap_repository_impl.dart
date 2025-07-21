@@ -1,3 +1,4 @@
+import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/swap/data/datasources/sideswap.dart';
 import 'package:mooze_mobile/features/swap/data/datasources/wallet.dart';
@@ -17,128 +18,185 @@ class SwapRepositoryImpl extends SwapRepository {
        _liquidWallet = liquidWallet;
 
   @override
-  Future<double> getSwapRate(Asset sendAsset, Asset receiveAsset) async {
-    final futures = <Future<String>>[
-      _liquidWallet.getAddress(),
-      _liquidWallet.getAddress(),
-    ];
-    final (recvAddress, changeAddress) =
-        await Future.wait<String>(futures) as (String, String);
-
-    final market = await _getMarket(sendAsset, receiveAsset);
-
-    _sideswapService.startQuote(
-      baseAsset: market.baseAssetId,
-      quoteAsset: market.quoteAssetId,
-      assetType:
-          (Asset.toId(sendAsset) == market.baseAssetId) ? 'Base' : 'Quote',
-      amount: BigInt.zero,
-      direction: SwapDirection.sell,
-      utxos: [],
-      receiveAddress: recvAddress,
-      changeAddress: changeAddress,
+  TaskEither<String, double> getSwapRate(Asset sendAsset, Asset receiveAsset) {
+    return _getMarket(sendAsset, receiveAsset).flatMap(
+      (market) => TaskEither<String, (String, String)>.fromTask(
+        _getAddresses(),
+      ).flatMap(
+        (addresses) =>
+            _processRateQuote(sendAsset, receiveAsset, market, addresses),
+      ),
     );
+  }
 
-    final quote = await _sideswapService.quoteResponseStream.single;
-    if (quote.isError) {
-      throw Exception(quote.error!.errorMessage);
-    }
+  TaskEither<String, double> _processRateQuote(
+    Asset sendAsset,
+    Asset receiveAsset,
+    SideswapMarket market,
+    (String, String) addresses,
+  ) {
+    return TaskEither.tryCatch(() async {
+      final (recvAddress, changeAddress) = addresses;
 
-    if (quote.isLowBalance) {
-      final rate = quote.lowBalance!.baseAmount / quote.lowBalance!.quoteAmount;
+      _sideswapService.startQuote(
+        baseAsset: market.baseAssetId,
+        quoteAsset: market.quoteAssetId,
+        assetType:
+            (Asset.toId(sendAsset) == market.baseAssetId) ? 'Base' : 'Quote',
+        amount: BigInt.zero,
+        direction: SwapDirection.sell,
+        utxos: [],
+        receiveAddress: recvAddress,
+        changeAddress: changeAddress,
+      );
+
+      final quote = await _sideswapService.quoteResponseStream.single;
+
+      if (quote.isError) {
+        _sideswapService.stopQuotes();
+        throw Exception(quote.error!.errorMessage);
+      }
+
+      if (quote.isLowBalance) {
+        final rate =
+            quote.lowBalance!.baseAmount / quote.lowBalance!.quoteAmount;
+        _sideswapService.stopQuotes();
+        return rate;
+      }
+
+      final rate = quote.quote!.baseAmount / quote.quote!.quoteAmount;
       _sideswapService.stopQuotes();
       return rate;
-    }
-
-    final rate = quote.quote!.baseAmount / quote.quote!.quoteAmount;
-    _sideswapService.stopQuotes();
-    return rate;
+    }, (error, stackTrace) => error.toString());
   }
 
   @override
-  Future<SwapOperation> startNewSwapOperation(
+  TaskEither<String, SwapOperation> startNewSwapOperation(
     Asset sendAsset,
     Asset receiveAsset,
     BigInt sendAmount,
-  ) async {
-    final market = await _getMarket(sendAsset, receiveAsset);
-    final utxos = await _liquidWallet.getUtxos(sendAsset, sendAmount);
-
-    final (recvAddress, changeAddress) = await _getAddresses();
-
-    _sideswapService.startQuote(
-      baseAsset: market.baseAssetId,
-      quoteAsset: market.quoteAssetId,
-      assetType:
-          (Asset.toId(sendAsset) == market.baseAssetId) ? 'Base' : 'Quote',
-      amount: sendAmount,
-      direction: SwapDirection.sell,
-      utxos: utxos,
-      receiveAddress: recvAddress,
-      changeAddress: changeAddress,
+  ) {
+    return _getMarket(sendAsset, receiveAsset).flatMap(
+      (market) => _getUtxos(sendAsset, sendAmount).flatMap(
+        (utxos) => TaskEither<String, (String, String)>.fromTask(
+          _getAddresses(),
+        ).flatMap(
+          (addresses) => _processQuote(
+            sendAsset,
+            receiveAsset,
+            sendAmount,
+            market,
+            utxos,
+            addresses,
+          ),
+        ),
+      ),
     );
+  }
 
-    final quote = await _sideswapService.quoteResponseStream.single;
-    if (quote.isError) {
-      throw Exception(quote.error!.errorMessage);
-    }
+  TaskEither<String, SwapOperation> _processQuote(
+    Asset sendAsset,
+    Asset receiveAsset,
+    BigInt sendAmount,
+    SideswapMarket market,
+    List<SwapUtxo> utxos,
+    (String, String) addresses,
+  ) {
+    return TaskEither.tryCatch(() async {
+      final (recvAddress, changeAddress) = addresses;
 
-    if (quote.isLowBalance) {
+      _sideswapService.startQuote(
+        baseAsset: market.baseAssetId,
+        quoteAsset: market.quoteAssetId,
+        assetType:
+            (Asset.toId(sendAsset) == market.baseAssetId) ? 'Base' : 'Quote',
+        amount: sendAmount,
+        direction: SwapDirection.sell,
+        utxos: utxos,
+        receiveAddress: recvAddress,
+        changeAddress: changeAddress,
+      );
+
+      final quote = await _sideswapService.quoteResponseStream.single;
+
+      if (quote.isError) {
+        _sideswapService.stopQuotes();
+        throw Exception(quote.error!.errorMessage);
+      }
+
+      if (quote.isLowBalance) {
+        _sideswapService.stopQuotes();
+        throw Exception("Insufficient balance.");
+      }
+
       _sideswapService.stopQuotes();
-      throw Exception("Insufficient balance.");
-    }
+      return SwapOperation(
+        id: quote.quote!.quoteId,
+        sendAsset: Asset.toId(sendAsset),
+        receiveAsset: Asset.toId(receiveAsset),
+        sendAmount: sendAmount,
+        receiveAmount:
+            (Asset.toId(receiveAsset) == market.quoteAssetId)
+                ? BigInt.from(quote.quote!.quoteAmount)
+                : BigInt.from(quote.quote!.baseAmount),
+        ttl: quote.quote!.ttl,
+      );
+    }, (error, stackTrace) => error.toString());
+  }
 
-    _sideswapService.stopQuotes();
-    return SwapOperation(
-      id: quote.quote!.quoteId,
-      sendAsset: Asset.toId(sendAsset),
-      receiveAsset: Asset.toId(receiveAsset),
-      sendAmount: sendAmount,
-      receiveAmount:
-          (Asset.toId(receiveAsset) == market.quoteAssetId)
-              ? BigInt.from(quote.quote!.quoteAmount)
-              : BigInt.from(quote.quote!.baseAmount),
-      ttl: quote.quote!.ttl,
+  @override
+  TaskEither<String, String> confirmSwap(SwapOperation operation) {
+    return TaskEither.tryCatch(() async {
+      final swapPset = await _sideswapService.getQuoteDetails(operation.id);
+      if (swapPset == null) {
+        throw Exception("Provedor indisponível. Tente novamente mais tarde.");
+      }
+
+      final signedPset = await _liquidWallet.signPset(swapPset);
+
+      final txid = await _sideswapService.signQuote(operation.id, signedPset);
+      if (txid == null) {
+        throw Exception("Falha no dealer. Tente novament mais tarde.");
+      }
+
+      return txid;
+    }, (error, stackTrace) => "Erro ao finalizar swap: $error");
+  }
+
+  TaskEither<String, List<SwapUtxo>> _getUtxos(Asset asset, BigInt sendAmount) {
+    return TaskEither.tryCatch(
+      () async => _liquidWallet.getUtxos(asset, sendAmount),
+      (error, stackTrace) => "Failed to get UTXOs: ${error.toString()}",
     );
   }
 
-  Future<String> confirmSwapOperation(SwapOperation operation) async {
-    final swapPset = await _sideswapService.getQuoteDetails(operation.id);
-    if (swapPset == null) {
-      throw Exception("Failed to get swap pset.");
-    }
+  Task<(String, String)> _getAddresses() {
+    return Task(() async {
+      final futures = <Future<String>>[
+        _liquidWallet.getAddress(),
+        _liquidWallet.getAddress(),
+      ];
+      final (recvAddress, changeAddress) =
+          await Future.wait<String>(futures) as (String, String);
 
-    final signedPset = await _liquidWallet.signPset(swapPset);
-
-    final txid = await _sideswapService.signQuote(operation.id, signedPset);
-    if (txid == null) {
-      throw Exception("Failed to submit swap.");
-    }
-
-    return txid;
+      return (recvAddress, changeAddress);
+    });
   }
 
-  Future<(String, String)> _getAddresses() async {
-    final futures = <Future<String>>[
-      _liquidWallet.getAddress(),
-      _liquidWallet.getAddress(),
-    ];
-    final (recvAddress, changeAddress) =
-        await Future.wait<String>(futures) as (String, String);
-
-    return (recvAddress, changeAddress);
-  }
-
-  Future<SideswapMarket> _getMarket(Asset sendAsset, Asset receiveAsset) async {
-    final markets = await _sideswapService.getMarkets();
-    final market = markets.firstWhere(
-      (m) =>
-          m.baseAssetId == Asset.toId(sendAsset) &&
-              m.quoteAssetId == Asset.toId(receiveAsset) ||
-          m.baseAssetId == Asset.toId(receiveAsset) &&
-              m.quoteAssetId == Asset.toId(sendAsset),
-    );
-
-    return market;
+  TaskEither<String, SideswapMarket> _getMarket(
+    Asset sendAsset,
+    Asset receiveAsset,
+  ) {
+    return TaskEither.tryCatch(() async {
+      final markets = await _sideswapService.getMarkets();
+      final market = markets.firstWhere(
+        (m) =>
+            m.baseAssetId == Asset.toId(sendAsset) &&
+                m.quoteAssetId == Asset.toId(receiveAsset) ||
+            m.baseAssetId == Asset.toId(receiveAsset) &&
+                m.quoteAssetId == Asset.toId(sendAsset),
+      );
+      return market;
+    }, (error, stackTrace) => error.toString());
   }
 }
