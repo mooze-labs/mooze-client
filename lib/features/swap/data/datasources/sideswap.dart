@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mooze_mobile/utils/websocket.dart';
 
 import '../models.dart';
+import '../../domain/entities.dart';
 
 const String sideswapApiUrl = 'wss://api.sideswap.io/json-rpc-ws';
 

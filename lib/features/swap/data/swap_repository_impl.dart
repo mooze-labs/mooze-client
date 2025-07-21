@@ -1,19 +1,18 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/swap/data/datasources/sideswap.dart';
-import 'package:mooze_mobile/features/swap/data/datasources/wallet.dart';
-import 'package:mooze_mobile/features/swap/domain/swap_repository.dart';
+import 'package:mooze_mobile/features/swap/domain/repositories.dart';
 
 import '../data/models.dart';
-import '../domain/entities/swap_operation.dart';
+import '../domain/entities.dart';
 
 class SwapRepositoryImpl extends SwapRepository {
   final SideswapService _sideswapService;
-  final LiquidWallet _liquidWallet;
+  final SwapWallet _liquidWallet;
 
   SwapRepositoryImpl({
     required SideswapService sideswapService,
-    required LiquidWallet liquidWallet,
+    required SwapWallet liquidWallet,
   }) : _sideswapService = sideswapService,
        _liquidWallet = liquidWallet;
 
@@ -147,38 +146,38 @@ class SwapRepositoryImpl extends SwapRepository {
   @override
   TaskEither<String, String> confirmSwap(SwapOperation operation) {
     return TaskEither.tryCatch(() async {
-      final swapPset = await _sideswapService.getQuoteDetails(operation.id);
-      if (swapPset == null) {
-        throw Exception("Provedor indisponível. Tente novamente mais tarde.");
-      }
+          final swapPset = await _sideswapService.getQuoteDetails(operation.id);
+          if (swapPset == null) {
+            throw Exception(
+              "Provedor indisponível. Tente novamente mais tarde.",
+            );
+          }
 
-      final signedPset = await _liquidWallet.signPset(swapPset);
-
-      final txid = await _sideswapService.signQuote(operation.id, signedPset);
-      if (txid == null) {
-        throw Exception("Falha no dealer. Tente novament mais tarde.");
-      }
-
-      return txid;
-    }, (error, stackTrace) => "Erro ao finalizar swap: $error");
+          return swapPset;
+        }, (error, stackTrace) => "Erro ao obter detalhes da cotação: $error")
+        .flatMap((swapPset) => _liquidWallet.signSwapOperation(swapPset))
+        .flatMap(
+          (signedPset) => TaskEither.tryCatch(() async {
+            final txid = await _sideswapService.signQuote(
+              operation.id,
+              signedPset,
+            );
+            if (txid == null) {
+              throw Exception("Falha no dealer. Tente novament mais tarde.");
+            }
+            return txid;
+          }, (error, stackTrace) => "Erro ao finalizar swap: $error"),
+        );
   }
 
   TaskEither<String, List<SwapUtxo>> _getUtxos(Asset asset, BigInt sendAmount) {
-    return TaskEither.tryCatch(
-      () async => _liquidWallet.getUtxos(asset, sendAmount),
-      (error, stackTrace) => "Failed to get UTXOs: ${error.toString()}",
-    );
+    return _liquidWallet.getUtxos(asset, sendAmount);
   }
 
   Task<(String, String)> _getAddresses() {
     return Task(() async {
-      final futures = <Future<String>>[
-        _liquidWallet.getAddress(),
-        _liquidWallet.getAddress(),
-      ];
-      final (recvAddress, changeAddress) =
-          await Future.wait<String>(futures) as (String, String);
-
+      final recvAddress = await _liquidWallet.getAddress().run();
+      final changeAddress = await _liquidWallet.getAddress().run();
       return (recvAddress, changeAddress);
     });
   }

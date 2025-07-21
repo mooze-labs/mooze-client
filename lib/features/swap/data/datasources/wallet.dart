@@ -5,31 +5,28 @@ import 'package:mooze_mobile/features/swap/data/models/swap_utxo.dart';
 
 const String mnemonicKey = 'mnemonic';
 
-class LiquidWallet {
-  final Wallet _wallet;
-  final Network _network;
-  final String _electrumUrl;
-  final bool _validateDomain;
+class LiquidDataSource {
+  final Wallet wallet;
+  final Network network;
+  final String electrumUrl;
+  final bool validateDomain;
 
-  LiquidWallet({
-    required Wallet wallet,
-    required Network network,
-    required String electrumUrl,
-    required bool validateDomain,
-  }) : _wallet = wallet,
-       _network = network,
-       _electrumUrl = electrumUrl,
-       _validateDomain = validateDomain;
+  LiquidDataSource({
+    required this.wallet,
+    required this.network,
+    required this.electrumUrl,
+    required this.validateDomain,
+  });
 
   Future<void> sync() async {
-    await _wallet.sync_(
-      electrumUrl: _electrumUrl,
-      validateDomain: _validateDomain,
+    await wallet.sync_(
+      electrumUrl: electrumUrl,
+      validateDomain: validateDomain,
     );
   }
 
   Future<List<SwapUtxo>> getUtxos(Asset asset, BigInt amount) async {
-    final utxos = await _wallet.utxos();
+    final utxos = await wallet.utxos();
     final selectedUtxos = <SwapUtxo>[];
 
     BigInt remainingAmount = amount;
@@ -59,7 +56,7 @@ class LiquidWallet {
   }
 
   Future<String> getAddress() async {
-    final address = await _wallet.addressLastUnused();
+    final address = await wallet.addressLastUnused();
     return address.confidential;
   }
 
@@ -70,8 +67,8 @@ class LiquidWallet {
       throw Exception('Mnemonic not found');
     }
 
-    final signedPset = await _wallet.signedPsetWithExtraDetails(
-      network: _network,
+    final signedPset = await wallet.signedPsetWithExtraDetails(
+      network: network,
       pset: pset,
       mnemonic: mnemonic,
     );
