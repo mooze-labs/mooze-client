@@ -17,13 +17,11 @@ dependencies:
     git:
       url: https://github.com/mooze-labs/slip-21-dart.git
       ref: main 
-  bdk_flutter:
-    git: 
-      url: https://github.com/LtbLightning/bdk-flutter.git
-      ref: main
+
   flutter_breez_liquid:
     git:
       url: https://github.com/breez/breez-sdk-liquid-flutter
+
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8
   lwk: ^0.2.0
@@ -84,6 +82,8 @@ dependencies:
   dio: ^5.8.0+1
   eventflux: ^2.2.1
   dart_jsonwebtoken: ^2.15.0
+
+dependency_overrides:
 
 dev_dependencies:
   flutter_test:
