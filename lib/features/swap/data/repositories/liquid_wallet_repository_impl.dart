@@ -1,5 +1,4 @@
 import 'package:fpdart/fpdart.dart';
-import 'package:lwk/lwk.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
