@@ -1,10 +1,11 @@
+import 'dart:math';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/swap/data/datasources/sideswap.dart';
 import 'package:mooze_mobile/features/swap/domain/repositories.dart';
 
-import '../data/models.dart';
-import '../domain/entities.dart';
+import '../models.dart';
+import '../../domain/entities.dart';
 
 class SwapRepositoryImpl extends SwapRepository {
   final SideswapService _sideswapService;
@@ -42,14 +43,14 @@ class SwapRepositoryImpl extends SwapRepository {
         quoteAsset: market.quoteAssetId,
         assetType:
             (Asset.toId(sendAsset) == market.baseAssetId) ? 'Base' : 'Quote',
-        amount: BigInt.zero,
+        amount: BigInt.from(10000000),
         direction: SwapDirection.sell,
         utxos: [],
         receiveAddress: recvAddress,
         changeAddress: changeAddress,
       );
 
-      final quote = await _sideswapService.quoteResponseStream.single;
+      final quote = await _sideswapService.quoteResponseStream.first;
 
       if (quote.isError) {
         _sideswapService.stopQuotes();
@@ -57,13 +58,16 @@ class SwapRepositoryImpl extends SwapRepository {
       }
 
       if (quote.isLowBalance) {
-        final rate =
-            quote.lowBalance!.baseAmount / quote.lowBalance!.quoteAmount;
+        final baseAmount = quote.lowBalance!.baseAmount / pow(10, 8);
+        final quoteAmount = quote.lowBalance!.quoteAmount / pow(10, 8);
+        final rate = quoteAmount / baseAmount;
         _sideswapService.stopQuotes();
         return rate;
       }
 
-      final rate = quote.quote!.baseAmount / quote.quote!.quoteAmount;
+      final baseAmount = quote.quote!.baseAmount / pow(10, 8);
+      final quoteAmount = quote.quote!.quoteAmount / pow(10, 8);
+      final rate = quoteAmount / baseAmount;
       _sideswapService.stopQuotes();
       return rate;
     }, (error, stackTrace) => error.toString());
@@ -116,7 +120,7 @@ class SwapRepositoryImpl extends SwapRepository {
         changeAddress: changeAddress,
       );
 
-      final quote = await _sideswapService.quoteResponseStream.single;
+      final quote = await _sideswapService.quoteResponseStream.first;
 
       if (quote.isError) {
         _sideswapService.stopQuotes();
