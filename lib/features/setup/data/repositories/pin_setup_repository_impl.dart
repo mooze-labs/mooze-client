@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
-import 'package:mooze_mobile/shared/key_management/pin_store.dart';
+import 'package:mooze_mobile/shared/key_management/store.dart';
 
 import '../../domain/repositories/pin_setup_repository.dart';
 

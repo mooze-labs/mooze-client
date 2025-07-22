@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:mooze_mobile/shared/providers/mnemonic_store_provider.dart';
+import 'package:mooze_mobile/shared/key_management/providers.dart';
 
 import '../../domain/repositories/mnemonic_repository.dart';
 import '../../data/repositories/mnemonic_repository_impl.dart';

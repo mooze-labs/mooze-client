@@ -1,5 +1,5 @@
 import 'package:fpdart/fpdart.dart';
-import 'package:mooze_mobile/shared/key_management/mnemonic_store.dart';
+import 'package:mooze_mobile/shared/key_management/store.dart';
 import '../../domain/repositories/mnemonic_repository.dart';
 
 class MnemonicRepositoryImpl implements MnemonicRepository {
