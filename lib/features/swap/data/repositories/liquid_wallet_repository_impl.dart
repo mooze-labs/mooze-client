@@ -21,26 +21,29 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
   TaskEither<String, List<SwapUtxo>> getUtxos(Asset asset, BigInt amount) {
     return TaskEither<String, List<SwapUtxo>>(() async {
       final utxos = await wallet.wallet.utxos();
-      final filteredUtxos = utxos.where((u) => u.unblinded.asset == Asset.toId(asset)).toList();
-      
+      final filteredUtxos =
+          utxos.where((u) => u.unblinded.asset == Asset.toId(asset)).toList();
+
       final selectedUtxos = <SwapUtxo>[];
       var remaining = amount;
-      
+
       for (final utxo in filteredUtxos) {
         if (remaining <= BigInt.zero) break;
-        
-        selectedUtxos.add(SwapUtxo(
-          txid: utxo.outpoint.txid,
-          vout: utxo.outpoint.vout,
-          asset: utxo.unblinded.asset,
-          assetBf: utxo.unblinded.assetBf,
-          value: utxo.unblinded.value,
-          valueBf: utxo.unblinded.valueBf,
-        ));
-        
+
+        selectedUtxos.add(
+          SwapUtxo(
+            txid: utxo.outpoint.txid,
+            vout: utxo.outpoint.vout,
+            asset: utxo.unblinded.asset,
+            assetBf: utxo.unblinded.assetBf,
+            value: utxo.unblinded.value,
+            valueBf: utxo.unblinded.valueBf,
+          ),
+        );
+
         remaining -= utxo.unblinded.value;
       }
-      
+
       final result = (utxos: selectedUtxos, remaining: remaining);
 
       if (result.remaining > BigInt.zero) {

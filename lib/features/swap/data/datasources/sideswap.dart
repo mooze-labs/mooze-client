@@ -44,7 +44,7 @@ class SideswapApi {
   Stream<Map<String, dynamic>> get assetsStream => _assetsController.stream;
   Stream<Map<String, dynamic>> get marketStream => _marketController.stream;
 
-  SideswapService() {
+  SideswapApi() {
     _wsService = WebSocketService(Uri.parse(sideswapApiUrl));
     _setupStreamListeners();
   }
@@ -203,7 +203,7 @@ class SideswapApi {
             "quote": assetPair["quote"],
           },
           "asset_type": assetType,
-          "amount": amount,
+          "amount": amount.toInt(),
           "trade_dir": tradeDir,
           "utxos": utxos,
           "receive_address": receiveAddress,

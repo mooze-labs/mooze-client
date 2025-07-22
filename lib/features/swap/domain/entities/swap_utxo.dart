@@ -24,7 +24,7 @@ class SwapUtxo {
       'vout': vout,
       'asset': asset,
       'asset_bf': assetBf,
-      'value': value,
+      'value': value.toInt(),
       'value_bf': valueBf,
       'redeem_script': redeemScript,
     };
