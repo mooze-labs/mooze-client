@@ -25,14 +25,11 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
   RemoteAuthServiceImpl({required this.signatureClient});
 
   @override
-  TaskEither<String, AuthChallenge> requestLoginChallenge(
-    String userId,
-    String pubKey,
-  ) {
+  TaskEither<String, AuthChallenge> requestLoginChallenge(String pubKey) {
     return TaskEither.tryCatch(() async {
       final response = await dio.post(
         '/auth/login',
-        data: {'user_id': userId, 'pub_key': pubKey, 'mode': 'login'},
+        data: {'public_key': pubKey},
       );
       return AuthChallenge.fromJson(response.data);
     }, (error, stackTrace) => error.toString());

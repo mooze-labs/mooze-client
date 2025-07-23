@@ -24,13 +24,11 @@ class MockUserRegistrationService implements UserRegistrationService {
       if (_shouldFail) {
         return left('Failed to create new user');
       }
-      
-      final user = _mockUser ?? User(
-        pubKey: publicKey,
-        verificationLevel: 0,
-        referredBy: referralCode,
-      );
-      
+
+      final user =
+          _mockUser ??
+          User(id: publicKey, verificationLevel: 0, referredBy: referralCode);
+
       return right(user);
     });
   }
