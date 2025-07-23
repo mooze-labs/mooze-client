@@ -119,21 +119,14 @@ class _PixPaymentScreenState extends State<PixPaymentScreen> {
   }
 
   Widget _buildQRCodeSection(BoxConstraints constraints) {
-    // Calcula o tamanho do QR code baseado no espaço disponível
     final screenWidth = constraints.maxWidth - (_contentPadding * 2);
     final screenHeight = constraints.maxHeight;
 
-    // Reserva espaço para outros elementos (estimativa)
-    final reservedHeight = 400.0; // Timer, botões, detalhes, etc.
+    final reservedHeight = 400.0;
     final availableHeight = screenHeight - reservedHeight;
 
-    // Define o tamanho máximo baseado na menor dimensão disponível
-    final maxSize = math.min(
-      screenWidth * 0.8, // 80% da largura da tela
-      availableHeight * 0.8, // 80% da altura disponível
-    );
+    final maxSize = math.min(screenWidth * 0.8, availableHeight * 0.8);
 
-    // Define tamanhos mínimo e máximo
     final qrSize = math.max(180.0, math.min(maxSize, 314.0));
 
     return Container(
@@ -201,15 +194,16 @@ class _PixPaymentScreenState extends State<PixPaymentScreen> {
         boxShadow: const [BoxShadow(color: Color(0x4DEA1E63), blurRadius: 8)],
       ),
       child: Column(
-        children: _paymentDetails
-            .map(
-              (detail) => InfoRow(
-                label: detail.label,
-                value: detail.value,
-                fontSize: context.responsiveFont(14),
-              ),
-            )
-            .toList(),
+        children:
+            _paymentDetails
+                .map(
+                  (detail) => InfoRow(
+                    label: detail.label,
+                    value: detail.value,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                )
+                .toList(),
       ),
     );
   }
@@ -221,9 +215,6 @@ class _PixPaymentScreenState extends State<PixPaymentScreen> {
     );
   }
 
-  // Action Handlers
-
-  /// Manipula a ação de copiar endereço
   void _handleCopyAddress() {
     Clipboard.setData(const ClipboardData(text: _pixCode));
 
@@ -237,40 +228,18 @@ class _PixPaymentScreenState extends State<PixPaymentScreen> {
     }
   }
 
-  /// Manipula a ação de verificar pagamento
   void _handleVerifyPayment() {
-    // TODO: Implementar verificação do pagamento
-    // Aqui você pode adicionar a lógica para:
-    // - Verificar status do pagamento
-    // - Navegar para próxima tela
-    // - Mostrar loading/resultado
+    // TODO: Implement payment verification
   }
 
-  // Timer Management (para implementação futura)
-
-  /// Inicia o timer de contagem regressiva
   void _startTimer() {
-    // TODO: Implementar timer real com countdown
-    // Timer.periodic(Duration(seconds: 1), (timer) {
-    //   if (_seconds > 0) {
-    //     setState(() => _seconds--);
-    //   } else if (_minutes > 0) {
-    //     setState(() {
-    //       _minutes--;
-    //       _seconds = 59;
-    //     });
-    //   } else {
-    //     timer.cancel();
-    //     _handleTimerExpired();
-    //   }
-    // });
+    // TODO: Implement actual countdown timer
   }
 
-  /// Manipula quando o timer expira
   void _handleTimerExpired() {
-    // TODO: Implementar ação quando timer expira
-    // - Mostrar dialog de expiração
-    // - Navegar de volta
-    // - Renovar pagamento
+    // TODO: Implement action when timer expires
+    // - Show expiration dialog
+    // - Navigate back
+    // - Renew payment
   }
 }
