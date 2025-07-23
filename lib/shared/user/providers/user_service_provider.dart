@@ -1,7 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fpdart/fpdart.dart';
-
-import 'package:mooze_mobile/shared/authentication/providers/signature_client_provider.dart';
 import 'package:mooze_mobile/shared/network/providers.dart';
 import '../services.dart';
 
@@ -10,17 +7,7 @@ const String baseUrl = String.fromEnvironment(
   defaultValue: 'https://api.mooze.app/v1',
 );
 
-final userServiceProvider = FutureProvider<Either<String, UserService>>((
-  ref,
-) async {
+final userServiceProvider = Provider<UserService>((ref) {
   final authHttpClient = ref.watch(authenticatedClientProvider(baseUrl));
-  final signatureClient = await ref.watch(signatureClientProvider.future);
-
-  return signatureClient.fold(
-    (error) => Left(error),
-    (client) => client
-        .getPublicKey()
-        .map((pubKey) => UserServiceImpl(authHttpClient, pubKey))
-        .run(),
-  );
+  return UserServiceImpl(authHttpClient);
 });
