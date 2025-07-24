@@ -137,7 +137,7 @@ class ComponentThemes {
       borderRadius: BorderRadius.circular(8),
     ),
     tileColor: Colors.transparent,
-    selectedTileColor: AppColors.primaryColor.withOpacity(0.1),
+    selectedTileColor: AppColors.primaryColor.withValues(alpha: 0.1),
     textColor: AppColors.textPrimary,
     iconColor: AppColors.textSecondary,
   );
