@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'database.steps.dart';
+
 part 'database.g.dart';
 
 class Swaps extends Table {
@@ -23,18 +25,47 @@ class Pegs extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Swaps, Pegs])
+class Deposits extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get depositId => text()();
+  TextColumn get assetId => text()();
+  IntColumn get amountInCents => integer()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get status => text()();
+  late final assetAmount = int64().nullable()();
+  TextColumn get blockchainTxid => text().nullable()();
+}
+
+@DriftDatabase(tables: [Swaps, Pegs, Deposits])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 4;
 
   // Get all swaps
   Future<List<Swap>> getAllSwaps() => select(swaps).get();
 
   // Get all pegs
   Future<List<Peg>> getAllPegs() => select(pegs).get();
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (m) => m.createAll(),
+      onUpgrade: stepByStep(
+        from1To2: (m, schema) async {
+          await m.createTable(schema.deposits);
+        },
+        from2To3: (m, schema) async {
+          await m.addColumn(deposits, deposits.blockchainTxid);
+        },
+        from3To4: (m, schema) async {
+          await m.addColumn(deposits, deposits.status);
+        },
+      ),
+    );
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(
