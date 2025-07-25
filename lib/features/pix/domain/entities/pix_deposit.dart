@@ -1,19 +1,23 @@
+import 'package:mooze_mobile/shared/entities/asset.dart';
+
+enum DepositStatus { pending, processing, finished, expired }
+
 class PixDeposit {
-  final String id;
-  final String qrCopyPaste;
-  final String qrImageUrl;
+  final String depositId;
+  final Asset asset;
+  final int amountInCents;
+  final String network;
+  final DepositStatus status;
+  final String? blockchainTxid;
+  final BigInt? assetAmount;
 
   PixDeposit({
-    required this.id,
-    required this.qrCopyPaste,
-    required this.qrImageUrl,
+    required this.depositId,
+    required this.asset,
+    required this.amountInCents,
+    required this.network,
+    required this.status,
+    this.blockchainTxid,
+    this.assetAmount,
   });
-
-  factory PixDeposit.fromJson(Map<String, dynamic> json) {
-    return PixDeposit(
-      id: json['transaction_id'] as String,
-      qrCopyPaste: json['qr_copy_paste'] as String,
-      qrImageUrl: json['qr_image_url'] as String,
-    );
-  }
 }
