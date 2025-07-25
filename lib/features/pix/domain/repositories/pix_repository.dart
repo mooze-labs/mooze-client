@@ -10,8 +10,6 @@ abstract class PixRepository {
     Asset asset = Asset.depix,
     String network = "liquid",
   });
-
-  Stream<Either<String, PixStatusUpdate>> subscribeToStatusUpdates(
-    String pixId,
-  );
+  TaskEither<String, Option<PixDeposit>> getDeposit(String depositId);
+  TaskEither<String, List<PixDeposit>> getAllDeposits();
 }

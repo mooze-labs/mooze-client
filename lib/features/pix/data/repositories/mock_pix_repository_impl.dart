@@ -5,6 +5,8 @@ import '../../domain/entities.dart';
 import '../../domain/repositories/pix_repository.dart';
 
 class MockPixRepositoryImpl implements PixRepository {
+  final List<PixDeposit> _mockDeposits = [];
+
   @override
   TaskEither<String, PixDeposit> newDeposit(
     int amountInCents,
@@ -12,38 +14,30 @@ class MockPixRepositoryImpl implements PixRepository {
     Asset asset = Asset.depix,
     String network = "liquid",
   }) {
-    return TaskEither.of(
-      PixDeposit(
-        id: 'mock-pix-id',
-        qrCopyPaste: "mock-qr-copy-paste",
-        qrImageUrl: "https://example.com/mock-qr-image.png",
-      ),
+    final deposit = PixDeposit(
+      depositId: 'mock-deposit-${DateTime.now().millisecondsSinceEpoch}',
+      asset: asset,
+      amountInCents: amountInCents,
+      network: network,
+      status: DepositStatus.pending,
     );
+    
+    _mockDeposits.add(deposit);
+    
+    return TaskEither.of(deposit);
   }
 
   @override
-  Stream<Either<String, PixStatusUpdate>> subscribeToStatusUpdates(
-    String pixId,
-  ) async* {
-    // First status: pending
-    yield Either.right(PixStatusUpdate(id: pixId, status: 'pending'));
+  TaskEither<String, Option<PixDeposit>> getDeposit(String depositId) {
+    final deposit = _mockDeposits
+        .where((d) => d.depositId == depositId)
+        .firstOrNull;
+    
+    return TaskEither.of(Option.fromNullable(deposit));
+  }
 
-    // Wait a bit before next status
-    await Future.delayed(Duration(seconds: 2));
-
-    // Second status: processing
-    yield Either.right(PixStatusUpdate(id: pixId, status: 'processing'));
-
-    // Wait a bit before final status
-    await Future.delayed(Duration(seconds: 3));
-
-    // Final status: finished with blockchain transaction ID
-    yield Either.right(
-      PixStatusUpdate(
-        id: pixId,
-        status: 'finished',
-        blockchainTxid: 'mock-blockchain-txid-123456789',
-      ),
-    );
+  @override
+  TaskEither<String, List<PixDeposit>> getAllDeposits() {
+    return TaskEither.of(List.from(_mockDeposits));
   }
 }

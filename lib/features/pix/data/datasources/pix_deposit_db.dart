@@ -59,4 +59,20 @@ class PixDepositDatabase {
       return unit;
     }, (error, stackTrace) => error.toString());
   }
+
+  TaskEither<String, Option<Deposit>> getDeposit(String depositId) {
+    return TaskEither.tryCatch(
+      () async {
+        return await (_database.select(_database.deposits)
+          ..where((tbl) => tbl.depositId.equals(depositId))).getSingleOrNull();
+      },
+      (error, stackTrace) => error.toString(),
+    ).map((d) => Option.fromNullable(d));
+  }
+
+  TaskEither<String, List<Deposit>> getAllDeposits() {
+    return TaskEither.tryCatch(() async {
+      return await (_database.select(_database.deposits).get());
+    }, (error, stackTrace) => error.toString());
+  }
 }
