@@ -42,6 +42,25 @@ class PixDepositDatabase {
     }, (error, stackTrace) => error.toString());
   }
 
+  TaskEither<String, Unit> updateDeposit(
+    String depositId,
+    String status, {
+    BigInt? assetAmount,
+    String? blockchainTxid,
+  }) {
+    return TaskEither.tryCatch(() async {
+      await (_database.update(_database.deposits)..where(
+        (tbl) => tbl.depositId.equals(depositId),
+      )).write(DepositsCompanion(
+        status: Value(status),
+        assetAmount: assetAmount != null ? Value(assetAmount) : Value.absent(),
+        blockchainTxid: blockchainTxid != null ? Value(blockchainTxid) : Value.absent(),
+      ));
+
+      return unit;
+    }, (error, stackTrace) => error.toString());
+  }
+
   TaskEither<String, Unit> markDepositAsCompleted(
     String depositId,
     BigInt assetAmount,
