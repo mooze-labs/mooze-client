@@ -98,24 +98,32 @@ class PixRepositoryImpl implements PixRepository {
   TaskEither<String, List<PixDeposit>> getAllDeposits() {
     return _database
         .getAllDeposits()
-        .map(
-          (deposits) => deposits
-              .map(
-                (deposit) => parseDepositStatus(deposit.status).map(
-                  (status) => PixDeposit(
-                    depositId: deposit.depositId,
-                    amountInCents: deposit.amountInCents,
-                    asset: Asset.fromId(deposit.assetId),
-                    network: "liquid",
-                    status: status,
-                    blockchainTxid: deposit.blockchainTxid,
-                    assetAmount: deposit.assetAmount,
+        .flatMap(
+          (deposits) => TaskEither.fromEither(
+            deposits
+                .map((deposit) => 
+                  parseDepositStatus(deposit.status)
+                    .flatMap((status) => Either.tryCatch(
+                      () => PixDeposit(
+                        depositId: deposit.depositId,
+                        amountInCents: deposit.amountInCents,
+                        asset: Asset.fromId(deposit.assetId),
+                        network: "liquid",
+                        status: status,
+                        blockchainTxid: deposit.blockchainTxid,
+                        assetAmount: deposit.assetAmount,
+                      ),
+                      (error, _) => "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
+                    ))
+                    .mapLeft((error) => "Invalid deposit status '${deposit.status}' for deposit ${deposit.depositId}: $error")
+                )
+                .fold<Either<String, List<PixDeposit>>>(
+                  right(<PixDeposit>[]),
+                  (acc, depositEither) => acc.flatMap(
+                    (deposits) => depositEither.map((deposit) => [...deposits, deposit])
                   ),
                 ),
-              )
-              .where((either) => either.isRight())
-              .map((either) => either.fold((l) => throw Exception(l), (r) => r))
-              .toList(),
+          ),
         );
   }
 
@@ -189,7 +197,12 @@ class PixRepositoryImpl implements PixRepository {
   }
 
   TaskEither<String, Unit> _updateTransactionStatus(PixStatusEvent pixStatus) {
-    return _database.updateDepositStatus(pixStatus.depositId, pixStatus.status);
+    return _database.updateDeposit(
+      pixStatus.depositId,
+      pixStatus.status,
+      assetAmount: pixStatus.assetAmount != null ? BigInt.from(pixStatus.assetAmount!) : null,
+      blockchainTxid: pixStatus.blockchainTxid,
+    );
   }
 }
 
