@@ -7,8 +7,7 @@ abstract class PriceSettingsRepository {
   TaskEither<String, Unit> setPriceSource(PriceSource source);
   TaskEither<String, Unit> setPriceCurrency(Currency currency);
 
-  TaskEither<String, PriceSource> getPriceSource();
-  TaskEither<String, Currency> getPriceCurrency();
+  TaskEither<String, PriceServiceConfig> getPriceServiceConfig();
 }
 
 class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
@@ -30,8 +29,7 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
     }, (error, stackTrace) => 'Erro ao atualizar a moeda de preço: $error');
   }
 
-  @override
-  TaskEither<String, PriceSource> getPriceSource() {
+  TaskEither<String, PriceSource> _getPriceSource() {
     return TaskEither.tryCatch(() async {
       final sharedPreferences = await SharedPreferences.getInstance();
       final priceSource = sharedPreferences.getString('price_source');
@@ -47,8 +45,7 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
     }, (error, stackTrace) => 'Erro ao obter a fonte de preço: $error');
   }
 
-  @override
-  TaskEither<String, Currency> getPriceCurrency() {
+  TaskEither<String, Currency> _getPriceCurrency() {
     return TaskEither.tryCatch(() async {
       final sharedPreferences = await SharedPreferences.getInstance();
       final priceCurrency = sharedPreferences.getString('price_currency');
@@ -62,5 +59,12 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
           return Currency.brl;
       }
     }, (error, stackTrace) => 'Erro ao obter a moeda de preço: $error');
+  }
+
+  @override
+  TaskEither<String, PriceServiceConfig> getPriceServiceConfig() {
+    return _getPriceSource().flatMap((priceSource) =>
+        _getPriceCurrency().map((currency) =>
+            PriceServiceConfig(currency: currency, priceSource: priceSource)));
   }
 }
