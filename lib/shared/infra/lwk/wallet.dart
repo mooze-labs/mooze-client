@@ -1,5 +1,7 @@
+import 'package:fpdart/fpdart.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lwk/lwk.dart';
+import 'package:path_provider/path_provider.dart';
 
 const String mnemonicKey = 'mnemonic';
 
@@ -44,3 +46,44 @@ class LiquidDataSource {
     return signedPset;
   }
 }
+
+TaskEither<String, Descriptor> deriveNewDescriptorFromMnemonic(
+  String mnemonic,
+  Network network,
+) {
+  return TaskEither.tryCatch(
+    () async =>
+        Descriptor.newConfidential(network: network, mnemonic: mnemonic),
+    (error, stacktrace) => error.toString(),
+  );
+}
+
+TaskEither<String, Wallet> initializeNewWallet(
+  String descriptor,
+  Network network,
+) {
+  final supportDir = TaskEither.tryCatch(
+    () async => getApplicationSupportDirectory(),
+    (error, stackTrace) => error.toString(),
+  ).flatMap((dir) => TaskEither.right("${dir.path}/lwk-db"));
+
+  final liquidDescriptor = TaskEither.fromEither(
+    Either.tryCatch(
+      () => Descriptor(ctDescriptor: descriptor),
+      (error, stackTrace) => error.toString(),
+    ),
+  );
+
+  return liquidDescriptor.flatMap(
+    (desc) => supportDir.flatMap(
+      (dbpath) => TaskEither.tryCatch(() async {
+        return await Wallet.init(
+          network: network,
+          dbpath: dbpath,
+          descriptor: desc,
+        );
+      }, (error, stackTrace) => error.toString()),
+    ),
+  );
+}
+
