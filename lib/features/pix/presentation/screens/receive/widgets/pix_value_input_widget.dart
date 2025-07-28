@@ -92,7 +92,10 @@ class PixDepositAmountInput extends ConsumerWidget {
           FilteringTextInputFormatter.digitsOnly,
           CurrencyInputFormatter()
         ],
-        onChanged: (val) => depositAmountInput.state = double.tryParse(controller.text) ?? 0.0
+        onChanged: (val) {
+          String cleanValue = val.replaceAll('R\$ ', '').replaceAll(',', '.');
+          depositAmountInput.state = double.tryParse(cleanValue) ?? 0.0;
+        }
     );
   }
 }

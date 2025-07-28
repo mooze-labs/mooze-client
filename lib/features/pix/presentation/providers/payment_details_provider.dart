@@ -11,50 +11,58 @@ import 'asset_quote_provider.dart';
 import 'fee_rate_provider.dart';
 
 final paymentDetailsProvider = FutureProvider<Either<String, PaymentDetails>>((ref) async {
-  try {
-    // Get synchronous values
-    final depositAmount = ref.read(depositAmountProvider);
-    final selectedAsset = ref.read(selectedAssetProvider);
-    
-    // Wait for all async providers
-    final quoteResult = await ref.read(assetQuoteProvider.future);
-    final feeAmount = await ref.read(feeAmountProvider.future);
-    final addressGenResult = await ref.read(addressGeneratorRepositoryProvider.future);
-    
-    // Handle quote result
-    final quote = quoteResult.fold(
-      (error) => throw Exception('Failed to get asset quote: $error'),
-      (quoteOption) => quoteOption.getOrElse(() => throw Exception('No quote available')),
-    );
-    
-    // Generate address
-    final address = await addressGenResult.fold(
-      (error) => throw Exception('Failed to get address repository: $error'),
-      (repository) async {
-        final result = await repository.generateNewAddress().run();
-        return result.fold(
-          (error) => error,
-          (addr) => addr,
-        );
-      },
-    );
-    
-    // Calculate asset amount based on deposit amount and quote
-    final assetAmount = _calculateAssetAmount(depositAmount, quote, selectedAsset);
-    
-    final paymentDetails = PaymentDetails(
-      depositAmount: depositAmount,
-      quote: quote,
-      assetAmount: assetAmount,
-      fee: feeAmount,
-      address: address,
-    );
-    
-    return right(paymentDetails);
-    
-  } catch (e) {
-    return left('Failed to create payment details: ${e.toString()}');
+  // Get synchronous values
+  final depositAmount = ref.read(depositAmountProvider);
+  final selectedAsset = ref.read(selectedAssetProvider);
+  
+  // Wait for all async providers
+  final quoteResult = await ref.read(assetQuoteProvider.future);
+  final feeAmount = await ref.read(feeAmountProvider.future);
+  final addressGenResult = await ref.read(addressGeneratorRepositoryProvider.future);
+  
+  // Handle quote result
+  final quoteEither = quoteResult.fold(
+    (error) => left('Failed to get asset quote: $error'),
+    (quoteOption) => quoteOption.fold(
+      () => left('No quote available'),
+      (quote) => right(quote),
+    ),
+  );
+  
+  if (quoteEither.isLeft()) {
+    return left(quoteEither.getLeft().getOrElse(() => ''));
   }
+  final quote = quoteEither.getRight().getOrElse(() => 0.0);
+  
+  // Generate address
+  final addressEither = await addressGenResult.fold(
+    (error) => Future.value(left('Failed to get address repository: $error')),
+    (repository) async {
+      final result = await repository.generateNewAddress().run();
+      return result.fold(
+        (error) => left('Failed to generate address: $error'),
+        (addr) => right(addr),
+      );
+    },
+  );
+  
+  if (addressEither.isLeft()) {
+    return left(addressEither.getLeft().getOrElse(() => ''));
+  }
+  final address = addressEither.getRight().getOrElse(() => '');
+  
+  // Calculate asset amount based on deposit amount and quote
+  final assetAmount = _calculateAssetAmount(depositAmount, quote, selectedAsset);
+  
+  final paymentDetails = PaymentDetails(
+    depositAmount: depositAmount,
+    quote: quote,
+    assetAmount: assetAmount,
+    fee: feeAmount,
+    address: address,
+  );
+  
+  return right(paymentDetails);
 });
 
 BigInt _calculateAssetAmount(double depositAmount, double quote, Asset asset) {
