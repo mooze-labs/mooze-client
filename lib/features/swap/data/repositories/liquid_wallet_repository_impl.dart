@@ -2,11 +2,10 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
+import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
 
 import '../../domain/entities.dart';
 import '../../domain/repositories.dart';
-
-import '../datasources/wallet.dart';
 
 class LiquidWalletRepositoryImpl implements SwapWallet {
   final LiquidDataSource wallet;

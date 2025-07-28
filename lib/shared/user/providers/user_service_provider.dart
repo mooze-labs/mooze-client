@@ -8,6 +8,6 @@ const String baseUrl = String.fromEnvironment(
 );
 
 final userServiceProvider = Provider<UserService>((ref) {
-  final authHttpClient = ref.watch(authenticatedClientProvider(baseUrl));
+  final authHttpClient = ref.watch(authenticatedClientProvider);
   return UserServiceImpl(authHttpClient);
 });

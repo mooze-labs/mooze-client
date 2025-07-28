@@ -8,7 +8,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../domain/entities.dart';
-import '../../domain/repository.dart';
+import '../../domain/repositories.dart';
 
 import '../datasources/pix_deposit_db.dart';
 import '../models.dart';
@@ -96,14 +96,13 @@ class PixRepositoryImpl implements PixRepository {
 
   @override
   TaskEither<String, List<PixDeposit>> getAllDeposits() {
-    return _database
-        .getAllDeposits()
-        .flatMap(
-          (deposits) => TaskEither.fromEither(
-            deposits
-                .map((deposit) => 
-                  parseDepositStatus(deposit.status)
-                    .flatMap((status) => Either.tryCatch(
+    return _database.getAllDeposits().flatMap(
+      (deposits) => TaskEither.fromEither(
+        deposits
+            .map(
+              (deposit) => parseDepositStatus(deposit.status)
+                  .flatMap(
+                    (status) => Either.tryCatch(
                       () => PixDeposit(
                         depositId: deposit.depositId,
                         amountInCents: deposit.amountInCents,
@@ -113,18 +112,24 @@ class PixRepositoryImpl implements PixRepository {
                         blockchainTxid: deposit.blockchainTxid,
                         assetAmount: deposit.assetAmount,
                       ),
-                      (error, _) => "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
-                    ))
-                    .mapLeft((error) => "Invalid deposit status '${deposit.status}' for deposit ${deposit.depositId}: $error")
-                )
-                .fold<Either<String, List<PixDeposit>>>(
-                  right(<PixDeposit>[]),
-                  (acc, depositEither) => acc.flatMap(
-                    (deposits) => depositEither.map((deposit) => [...deposits, deposit])
+                      (error, _) =>
+                          "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
+                    ),
+                  )
+                  .mapLeft(
+                    (error) =>
+                        "Invalid deposit status '${deposit.status}' for deposit ${deposit.depositId}: $error",
                   ),
-                ),
-          ),
-        );
+            )
+            .fold<Either<String, List<PixDeposit>>>(
+              right(<PixDeposit>[]),
+              (acc, depositEither) => acc.flatMap(
+                (deposits) =>
+                    depositEither.map((deposit) => [...deposits, deposit]),
+              ),
+            ),
+      ),
+    );
   }
 
   Stream<Either<String, PixStatusEvent>> _subscribeToStatusUpdates(
@@ -193,14 +198,17 @@ class PixRepositoryImpl implements PixRepository {
       }
 
       return PixDepositResponse.fromJson(response.data);
-    }, (error, stackTrace) => "Erro ao gerar QR code: $error");
+    }, (error, stackTrace) => "Falha ao conectar com o servidor $error");
   }
 
   TaskEither<String, Unit> _updateTransactionStatus(PixStatusEvent pixStatus) {
     return _database.updateDeposit(
       pixStatus.depositId,
       pixStatus.status,
-      assetAmount: pixStatus.assetAmount != null ? BigInt.from(pixStatus.assetAmount!) : null,
+      assetAmount:
+          pixStatus.assetAmount != null
+              ? BigInt.from(pixStatus.assetAmount!)
+              : null,
       blockchainTxid: pixStatus.blockchainTxid,
     );
   }
