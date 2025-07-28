@@ -66,6 +66,11 @@ class PixDepositAmountInput extends ConsumerWidget {
   PixDepositAmountInput({super.key});
 
   @override
+  void dispose() {
+    controller.dispose();
+  }
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final depositAmountInput = ref.read(depositAmountProvider.notifier);
     return TextField(
