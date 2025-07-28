@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/dropdownburron.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import '../providers/selected_asset_provider.dart';
+import '../../../providers.dart';
 
 const _possibleAssets = [Asset.btc, Asset.depix];
 
