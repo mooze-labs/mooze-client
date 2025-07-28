@@ -5,7 +5,7 @@ import 'package:mooze_mobile/shared/prices/providers.dart';
 
 import 'selected_asset_provider.dart';
 
-final assetQuoteProvider = FutureProvider<Either<String, Option<double>>>((
+final assetQuoteProvider = FutureProvider.autoDispose<Either<String, Option<double>>>((
   ref,
 ) async {
   final selectedAsset = ref.read(selectedAssetProvider);
