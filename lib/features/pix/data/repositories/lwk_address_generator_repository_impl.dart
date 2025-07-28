@@ -12,7 +12,7 @@ class LwkAddressGeneratorRepositoryImpl implements AddressGeneratorRepository {
   TaskEither<String, String> generateNewAddress() {
     return TaskEither.tryCatch(
       () async => _wallet.getAddress(),
-      (error, stackTrace) => error.toString(),
+      (error, stackTrace) => "Erro ao gerar endereço: $error",
     );
   }
 }

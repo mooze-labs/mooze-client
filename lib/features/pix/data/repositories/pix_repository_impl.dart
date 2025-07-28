@@ -198,7 +198,7 @@ class PixRepositoryImpl implements PixRepository {
       }
 
       return PixDepositResponse.fromJson(response.data);
-    }, (error, stackTrace) => "Erro ao gerar QR code: $error");
+    }, (error, stackTrace) => "Falha ao conectar com o servidor: $error");
   }
 
   TaskEither<String, Unit> _updateTransactionStatus(PixStatusEvent pixStatus) {
