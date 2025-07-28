@@ -79,7 +79,11 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
                   );
                 }
               },
-              (deposit) => context.go("/pix/payment")
+              (deposit) {
+                // Store the deposit in the provider for use by payment screen
+                ref.read(currentDepositProvider.notifier).state = deposit;
+                context.go("/pix/payment");
+              }
             );
           }
         );
