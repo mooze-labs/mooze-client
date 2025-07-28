@@ -4,4 +4,5 @@ export 'providers/asset_quote_provider.dart';
 export 'providers/fee_rate_provider.dart';
 export 'providers/referral_provider.dart';
 export 'providers/payment_details_provider.dart';
+export 'providers/current_deposit_provider.dart';
 export 'providers/pix_deposit_controller_provider.dart';
