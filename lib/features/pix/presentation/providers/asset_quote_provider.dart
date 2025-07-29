@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/shared/prices/models.dart';
 
 import 'package:mooze_mobile/shared/prices/providers.dart';
 
@@ -12,6 +13,6 @@ final assetQuoteProvider = FutureProvider.autoDispose<Either<String, Option<doub
   final priceService = ref.read(priceServiceProvider);
 
   return await priceService
-      .flatMap((service) => service.getCoinPrice(selectedAsset))
+      .flatMap((service) => service.getCoinPrice(selectedAsset, optionalCurrency: Currency.brl))
       .run();
 });

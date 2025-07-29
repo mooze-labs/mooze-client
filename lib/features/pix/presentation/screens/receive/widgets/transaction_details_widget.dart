@@ -51,7 +51,7 @@ class AssetAmountDisplay extends ConsumerWidget {
                   data: (depositAmount) {
                     final amount = depositAmount / quote;
                     return Text(
-                      '=${amount.toStringAsFixed(2)}',
+                      '=${amount.toStringAsFixed(8)}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,

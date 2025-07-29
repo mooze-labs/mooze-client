@@ -32,7 +32,7 @@ class AssetSelectorWidget extends ConsumerWidget {
       itemIconBuilder: (asset) => _buildAssetIcon(asset),
       itemLabelBuilder: (asset) => asset.name,
       borderColor: Theme.of(context).colorScheme.primary,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.secondary,
     );
   }
 }

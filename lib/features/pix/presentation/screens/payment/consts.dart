@@ -7,6 +7,7 @@ const double containerVerticalPadding = 12.0;
 const double borderRadius = 8.0;
 const double iconSize = 20.0;
 const double copyIconSize = 16.0;
+const double loadingAnimationWidgetSize = 40.0;
 
 const Color backgroundColor = Color(0xFF0A0A0A);
 const Color cardBackground = Color(0xFF2A2A2A);
