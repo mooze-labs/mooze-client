@@ -16,10 +16,12 @@ class MockPixRepositoryImpl implements PixRepository {
   }) {
     final deposit = PixDeposit(
       depositId: 'mock-deposit-${DateTime.now().millisecondsSinceEpoch}',
+      pixKey: "chave-pix-aqui",
       asset: asset,
       amountInCents: amountInCents,
       network: network,
       status: DepositStatus.pending,
+      createdAt: DateTime.now()
     );
     
     _mockDeposits.add(deposit);

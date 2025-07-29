@@ -10,6 +10,7 @@ class PixDepositDatabase {
 
   TaskEither<String, Unit> addNewDeposit(
     String depositId,
+    String pixKey,
     String assetId,
     int amountInCents,
   ) {
@@ -19,6 +20,7 @@ class PixDepositDatabase {
           .insert(
             DepositsCompanion.insert(
               depositId: depositId,
+              pixKey: pixKey,
               assetId: assetId,
               amountInCents: amountInCents,
               status: "pending",
