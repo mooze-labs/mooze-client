@@ -28,8 +28,10 @@ class AssetAmountDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final assetQuote = ref.watch(assetQuoteProvider);
-    final discountedDepositAmount = ref.watch(discountedFeesDepositProvider);
+    final selectedAsset = ref.read(selectedAssetProvider);
+    final depositAmount = ref.read(depositAmountProvider);
+    final assetQuote = ref.watch(assetQuoteProvider(selectedAsset));
+    final discountedDepositAmount = ref.watch(discountedFeesDepositProvider(depositAmount));
 
     return assetQuote.when(
         error: (error, stackTrace) {
@@ -51,7 +53,7 @@ class AssetAmountDisplay extends ConsumerWidget {
                   data: (depositAmount) {
                     final amount = depositAmount / quote;
                     return Text(
-                      '=${amount.toStringAsFixed(2)}',
+                      '=${amount.toStringAsFixed(8)}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -103,9 +105,9 @@ class FeeDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final depositAmount = ref.read(depositAmountProvider);
-    final feeRate = ref.read(feeRateProvider);
-    final feeAmount = ref.read(feeAmountProvider);
-    final discountedDeposit = ref.read(discountedFeesDepositProvider);
+    final feeRate = ref.read(feeRateProvider(depositAmount));
+    final feeAmount = ref.read(feeAmountProvider(depositAmount));
+    final discountedDeposit = ref.read(discountedFeesDepositProvider(depositAmount));
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),

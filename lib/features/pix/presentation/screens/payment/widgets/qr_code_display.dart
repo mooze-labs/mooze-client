@@ -8,13 +8,14 @@ import '../providers/pix_copypaste_provider.dart';
 
 import '../consts.dart';
 
-class PixQrCodeDisplay extends ConsumerWidget {
+class PixQrCodeDisplay extends StatelessWidget {
   final BoxConstraints boxConstraints;
+  final String pixQrData;
 
-  const PixQrCodeDisplay({super.key, required this.boxConstraints});
+  const PixQrCodeDisplay({super.key, required this.pixQrData, required this.boxConstraints});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final screenWidth = boxConstraints.maxWidth - (contentPadding * 2);
     final screenHeight = boxConstraints.maxHeight;
 
@@ -22,10 +23,9 @@ class PixQrCodeDisplay extends ConsumerWidget {
     final availableHeight = screenHeight - reservedHeight;
     final maxSize = math.min(screenWidth * 0.8, availableHeight * 0.8);
     final qrSize = math.max(180.0, math.min(maxSize, 314.0));
-    final pixData = ref.read(pixCopypasteProvider);
 
     return QrImageView(
-      data: pixData,
+      data: pixQrData,
       size: qrSize,
       backgroundColor: Colors.white,
     );

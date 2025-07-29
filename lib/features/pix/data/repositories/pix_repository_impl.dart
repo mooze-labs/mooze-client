@@ -35,7 +35,7 @@ class PixRepositoryImpl implements PixRepository {
       network,
     ).flatMap(
       (response) => _database
-          .addNewDeposit(response.depositId, asset.id, amountInCents)
+          .addNewDeposit(response.depositId, response.qrCopyPaste, asset.id, amountInCents)
           .map((_) {
             // Start background subscription to status updates
             _subscribeToStatusUpdates(response.depositId)
@@ -59,8 +59,10 @@ class PixRepositoryImpl implements PixRepository {
 
             return PixDeposit(
               depositId: response.depositId,
+              pixKey: response.qrCopyPaste,
               asset: asset,
               amountInCents: amountInCents,
+              createdAt: DateTime.now(),
               network: network,
               status: DepositStatus.pending,
             );
@@ -80,10 +82,12 @@ class PixRepositoryImpl implements PixRepository {
                 Option.of(
                   PixDeposit(
                     depositId: f.depositId,
+                    pixKey: f.pixKey,
                     amountInCents: f.amountInCents,
                     asset: Asset.fromId(f.assetId),
                     network: "liquid",
                     status: s,
+                    createdAt: f.createdAt,
                     blockchainTxid: f.blockchainTxid,
                     assetAmount: f.assetAmount,
                   ),
@@ -105,10 +109,12 @@ class PixRepositoryImpl implements PixRepository {
                     (status) => Either.tryCatch(
                       () => PixDeposit(
                         depositId: deposit.depositId,
+                        pixKey: deposit.pixKey,
                         amountInCents: deposit.amountInCents,
                         asset: Asset.fromId(deposit.assetId),
                         network: "liquid",
                         status: status,
+                        createdAt: deposit.createdAt,
                         blockchainTxid: deposit.blockchainTxid,
                         assetAmount: deposit.assetAmount,
                       ),

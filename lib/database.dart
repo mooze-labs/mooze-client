@@ -34,6 +34,7 @@ class Deposits extends Table {
   TextColumn get status => text()();
   late final assetAmount = int64().nullable()();
   TextColumn get blockchainTxid => text().nullable()();
+  TextColumn get pixKey => text()();
 }
 
 @DriftDatabase(tables: [Swaps, Pegs, Deposits])
@@ -41,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   // Get all swaps
   Future<List<Swap>> getAllSwaps() => select(swaps).get();
@@ -63,6 +64,7 @@ class AppDatabase extends _$AppDatabase {
         from3To4: (m, schema) async {
           await m.addColumn(deposits, deposits.status);
         },
+        from4To5: (m, schema) async { await m.addColumn(deposits, deposits.pixKey); }
       ),
     );
   }

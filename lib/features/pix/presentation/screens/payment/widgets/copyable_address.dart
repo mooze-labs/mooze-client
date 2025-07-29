@@ -6,13 +6,12 @@ import '../providers/pix_copypaste_provider.dart';
 
 import '../consts.dart';
 
-class CopyableAddress extends ConsumerWidget {
-  const CopyableAddress({super.key});
+class CopyableAddress extends StatelessWidget {
+  final String pixCopyPaste;
+  const CopyableAddress({super.key, required this.pixCopyPaste});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pixCopypaste = ref.read(pixCopypasteProvider);
-
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => (),
       child: Container(
@@ -30,7 +29,7 @@ class CopyableAddress extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                pixCopypaste,
+                pixCopyPaste,
                 style: AppTextStyles.value,
                 overflow: TextOverflow.ellipsis,
               ),

@@ -17,4 +17,12 @@ class PixDepositController {
           (address) => _pixRepository.newDeposit(amountInCents, address, asset: asset)
     );
   }
+
+  TaskEither<String, PixDeposit> getDeposit(String depositId) {
+    return _pixRepository.getDeposit(depositId).flatMap(
+        (optionDeposit) => optionDeposit.fold(
+            () => TaskEither<String, PixDeposit>.left("Depósito não encontrado"),
+            (deposit) => TaskEither.right(deposit))
+    );
+  }
 }

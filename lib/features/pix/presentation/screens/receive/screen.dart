@@ -45,49 +45,20 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
     });
     _circleController.forward();
 
-    // Wait for payment details to be ready
-    final paymentDetailsResult = await ref.read(paymentDetailsProvider.future);
-    
-    await paymentDetailsResult.fold(
-      (error) async {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Falha ao gerar dados de pagamento: $error"))
-          );
-        }
-      },
-      (paymentDetails) async {
-        final controller = await ref.read(pixDepositControllerProvider.future);
-        final amountInCents = (paymentDetails.depositAmount * 100.0).toInt();
-        final asset = ref.read(selectedAssetProvider);
+    final controller = await ref.read(pixDepositControllerProvider.future);
+    final depositAmount = ref.read(depositAmountProvider);
+    final selectedAsset = ref.read(selectedAssetProvider);
 
-        return await controller.fold(
-          (err) async {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Falha ao gerar QR code: conexão falhou."))
-              );
-            }
-          },
-          (controller) async {
-            final deposit = await controller.newDeposit(amountInCents, asset).run();
-            return deposit.fold(
-              (err) async {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Falha ao gerar QR code: $err."))
-                  );
-                }
-              },
-              (deposit) {
-                // Store the deposit in the provider for use by payment screen
-                ref.read(currentDepositProvider.notifier).state = deposit;
-                context.go("/pix/payment");
-              }
-            );
-          }
-        );
-      }
+    final amountInCents = (depositAmount * 100).toInt();
+
+    controller.fold(
+        (err) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err))); },
+        (controller) async => await controller.newDeposit(amountInCents, selectedAsset).run().then(
+            (maybeDeposit) => maybeDeposit.fold(
+                (err) => { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err))) },
+                (deposit) => context.go("/payment/${deposit.depositId}")
+            )
+        )
     );
   }
 
