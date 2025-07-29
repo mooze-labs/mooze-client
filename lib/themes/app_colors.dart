@@ -4,7 +4,7 @@ class AppColors {
   AppColors._();
 
   // Primary Colors
-  static const Color backgroundColor = Color(0xFF0A0A0A);
+  static const Color backgroundColor = Color(0xFF000000); 
   static const Color backgroundCard = Color(0xFF0A0A0A);
   static const Color primaryColor = Color(0xFFEA1E63);
   static const Color pinkAccent = Colors.pinkAccent;
@@ -12,7 +12,7 @@ class AppColors {
 
   // Text Colors
   static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFF9194A6);
+  static const Color textSecondary = Color(0xFF757575); //FF9194A6
   static const Color textTertiary = Color(0xFF7C7C7C);
   static const Color textQuartiary = Color(0xFFC2C2C2);
   static const Color textQuintary = Color(0xFFA6A0BB);
