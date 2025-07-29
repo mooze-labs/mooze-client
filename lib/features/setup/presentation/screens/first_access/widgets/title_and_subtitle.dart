@@ -13,7 +13,7 @@ class TitleAndSubtitle extends StatelessWidget {
         children: [
           Text(
             'Como você quer começar?',
-            style: textTheme.displaySmall,
+            style: textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
