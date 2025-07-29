@@ -10,6 +10,8 @@ import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.da
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
+const minimumAmountForVariableFee = 55 * 100;
+
 class PaymentDetailsDisplay extends ConsumerWidget {
   final PixDeposit deposit;
 
@@ -17,11 +19,12 @@ class PaymentDetailsDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final assetQuote = ref.read(assetQuoteProvider.future);
-    final feeRate = ref.read(feeRateProvider.future);
-    final selectedAsset = ref.read(selectedAssetProvider);
-    final assetQuantity = ref.read(discountedFeesDepositProvider.future)
-        .then((amount) => _getAssetQuantity(assetQuote, amount, selectedAsset));
+    final depositAmountInReais = deposit.amountInCents.toDouble() / 100;
+    final assetQuote = ref.read(assetQuoteProvider(deposit.asset).future);
+    final feeRate = ref.read(feeRateProvider(depositAmountInReais).future);
+    final discountedAmount = ref.read(discountedFeesDepositProvider(depositAmountInReais).future);
+    final assetQuantity = discountedAmount
+        .then((amount) => _getAssetQuantity(assetQuote, amount, deposit.asset));
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -45,7 +48,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
   }
 
   Widget _buildFeeRateDisplay(Future<double> rate, int amountInCents) {
-    if (amountInCents < 55 * 100) return InfoRow(label: "Taxa", value: "R\$ 2.00 + rede");
+    if (amountInCents < minimumAmountForVariableFee) return InfoRow(label: "Taxa", value: "R\$ 2.00 + rede");
 
     return FutureBuilder(future: rate, builder: (context, snapshot) {
       if (snapshot.hasData) return InfoRow(label: "Taxa", value: snapshot.data!.toStringAsFixed(2));
@@ -93,11 +96,14 @@ Future<String> _getAssetQuote(Future<Either<String, Option<double>>> futureEithe
 }
 
 Future<String> _getAssetQuantity(Future<Either<String, Option<double>>> futureEitherOptionQuote, double amountAfterFees, Asset asset) {
-  return futureEitherOptionQuote.then((x) => x.fold(
-      (err) => "N/A",
-      (optionQuote) => optionQuote.fold(
-          () => "N/A",
-          (quote) => "${(amountAfterFees / quote)} ${asset.ticker.toUpperCase()}"
-      )
-  ));
+  return futureEitherOptionQuote.then((x) =>
+      x.fold(
+              (err) => "N/A",
+              (optionQuote) =>
+              optionQuote.fold(
+                      () => "N/A",
+                      (quote) => "${(amountAfterFees / quote)} ${asset.ticker
+                      .toUpperCase()}"
+              )
+      ));
 }
