@@ -1,47 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/generate_seeds_button.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/phrase_length_selection.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 
-import 'widgets.dart';
-
-class ConfigureSeedsScreen extends ConsumerWidget {
+class ConfigureSeedsScreen extends StatelessWidget {
   const ConfigureSeedsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text("Gerar frase de recuperação"),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           onPressed: () => context.go("/setup/first-access"),
         ),
+        title: Text('Criar carteira'),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 600),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Spacer(),
-                Text(
-                  "Selecione o tamanho da frase de recuperação",
-                  style: TextStyle(
-                    fontFamily: "Inter",
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                PhraseLengthSelection(),
-                Spacer(),
-                GenerateSeedsButton(),
-                Spacer(),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título principal
+            TitleAndSubtitleCreateWallet(
+              title: 'Selecione o tamanho da ',
+              highlighted: 'frase-semente',
+              subtitle:
+                  'Você pode criar sua carteira com 12 ou 24 palavras. Ambas são seguras, mas cada opção tem seu nível de praticidade e proteção.',
             ),
-          ),
+
+            SizedBox(height: 32),
+
+            SeedPhraseSelector(),
+
+            Spacer(),
+
+            GenerateSeedsButton(),
+
+            SizedBox(height: 30),
+          ],
         ),
       ),
     );
