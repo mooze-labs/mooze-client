@@ -11,7 +11,7 @@ class ComponentThemes {
     BuildContext context,
     ColorScheme colorScheme,
   ) => AppBarTheme(
-    backgroundColor: AppColors.surfaceColor,
+    backgroundColor: AppColors.backgroundColor,
     foregroundColor: colorScheme.onSurface,
     elevation: 0,
     centerTitle: true,
@@ -21,7 +21,7 @@ class ComponentThemes {
       statusBarBrightness: Brightness.dark,
     ),
     titleTextStyle: AppTextStyles.appBarTitle(context),
-    iconTheme: const IconThemeData(color: AppColors.textPrimary),
+    iconTheme: const IconThemeData(color: AppColors.primaryColor),
   );
 
   /// Card Theme
