@@ -10,53 +10,59 @@ class TermsDefinitionWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final termsAccepted = ref.watch(termsAcceptanceProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Checkbox(
-          value: termsAccepted,
-          onChanged: (value) {
-            ref.read(termsAcceptanceProvider.notifier).state = !termsAccepted;
-          },
-          checkColor: Theme.of(context).colorScheme.onPrimary,
-          activeColor: Theme.of(context).colorScheme.primary,
-          side: BorderSide(color: Theme.of(context).colorScheme.onPrimary),
-        ),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: "Eu li e concordo com os ",
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: 14.0,
-                  ),
-                ),
-                TextSpan(
-                  text: "Termos e Condições",
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontSize: 14.0,
-                    decoration: TextDecoration.underline,
-                  ),
-                  recognizer:
-                      TapGestureRecognizer()
-                        ..onTap = () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TermsAndConditionsScreen(),
-                            ),
-                          );
-                        },
-                ),
-              ],
-            ),
-          ),
-        ),
+        _buildCheckbox(ref, termsAccepted, colorScheme),
+        Expanded(child: _buildRichText(context, colorScheme, bodyStyle)),
       ],
+    );
+  }
+
+  Widget _buildCheckbox(
+    WidgetRef ref,
+    bool termsAccepted,
+    ColorScheme colorScheme,
+  ) {
+    return Checkbox(
+      value: termsAccepted,
+      onChanged: (_) {
+        ref.read(termsAcceptanceProvider.notifier).state = !termsAccepted;
+      },
+    );
+  }
+
+  Widget _buildRichText(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextStyle? bodyStyle,
+  ) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: "Eu li e concordo com os ",
+            style: bodyStyle?.copyWith(color: colorScheme.onPrimary),
+          ),
+          TextSpan(
+            text: "Termos e Condições",
+            style: bodyStyle?.copyWith(color: colorScheme.primary),
+            recognizer:
+                TapGestureRecognizer()
+                  ..onTap = () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TermsAndConditionsScreen(),
+                      ),
+                    );
+                  },
+          ),
+        ],
+      ),
     );
   }
 }
