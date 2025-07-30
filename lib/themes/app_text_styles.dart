@@ -138,7 +138,7 @@ class AppTextStyles {
 
   /// Returns a responsive text style for AppBar titles.
   static TextStyle appBarTitle(BuildContext context) => TextStyle(
-    fontSize: context.responsiveFont(24),
+    fontSize: context.responsiveFont(20),
     fontFamily: "roboto",
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
