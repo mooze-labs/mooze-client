@@ -9,7 +9,7 @@ final setupRoutes = [
   ),
   GoRoute(
     path: "/setup/create-wallet/confirm-seeds",
-    builder: (context, state) => const ConfirmMnemonicScreen(),
+    builder: (context, state) => ConfirmMnemonicScreen(),
   ),
   GoRoute(
     path: "/setup/create-wallet/display-seeds",
