@@ -4,7 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});
@@ -12,7 +12,7 @@ class TransactionList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionHistory = ref.watch(transactionHistoryProvider);
-    final isVisible = ref.watch(visibilityProvider);
+    final isVisible = ref.watch(isVisibleProvider);
     
     return transactionHistory.when(
       data: (data) => data.fold(
