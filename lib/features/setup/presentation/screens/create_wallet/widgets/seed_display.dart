@@ -1,74 +1,91 @@
 import 'package:flutter/material.dart';
-
-const defaultMaxHeight = 350.0;
-const defaultItemHeight = 45.0;
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 class MnemonicGridDisplay extends StatelessWidget {
   final String mnemonic;
-  final double maxHeight;
 
-  const MnemonicGridDisplay({
-    required this.mnemonic,
-    this.maxHeight = defaultMaxHeight,
-    super.key,
-  });
+  const MnemonicGridDisplay({required this.mnemonic, super.key});
 
   @override
   Widget build(BuildContext context) {
-    final listMnemonic = mnemonic.split(" ");
+    final words = mnemonic.split(" ");
 
-    // Calculate the height for the grid
-    final int rows = (listMnemonic.length / 3).ceil();
-    final double itemHeight = defaultItemHeight;
-    final double totalGridHeight = rows * itemHeight + (rows - 1) * 10;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = 3;
+        final aspectRatio = _calculateAspectRatio(constraints.maxWidth, crossAxisCount);
+        final needsScroll = _needsScroll(
+          wordCount: words.length,
+          constraints: constraints,
+          crossAxisCount: crossAxisCount,
+          aspectRatio: aspectRatio,
+        );
 
-    // Get screen size
-    final screenHeight = MediaQuery.of(context).size.height;
-    final bool needsScrolling =
-        totalGridHeight > maxHeight || screenHeight < 700;
-    final containerHeight = needsScrolling ? maxHeight : totalGridHeight + 32;
+        return GridView.builder(
+          physics: needsScroll
+              ? const AlwaysScrollableScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
+          shrinkWrap: !needsScroll,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 12.0,
+            mainAxisSpacing: 12.0,
+            childAspectRatio: aspectRatio,
+          ),
+          itemCount: words.length,
+          itemBuilder: (context, index) {
+            return _buildWordCard(index + 1, words[index], context);
+          },
+        );
+      },
+    );
+  }
+
+  double _calculateAspectRatio(double availableWidth, int crossAxisCount) {
+    final spacing = 12.0;
+    final itemWidth = (availableWidth - (crossAxisCount - 1) * spacing) / crossAxisCount;
+    const minItemHeight = 40.0;
+    double ratio = itemWidth / minItemHeight;
+
+    return ratio.clamp(2.0, 2.8);
+  }
+
+  bool _needsScroll({
+    required int wordCount,
+    required BoxConstraints constraints,
+    required int crossAxisCount,
+    required double aspectRatio,
+  }) {
+    final rowCount = (wordCount / crossAxisCount).ceil();
+    final itemHeight = (constraints.maxWidth / crossAxisCount) / aspectRatio;
+    final totalHeight = rowCount * itemHeight + (rowCount - 1) * 12;
+    return totalHeight > constraints.maxHeight;
+  }
+
+  Widget _buildWordCard(int number, String word, BuildContext context) {
+    final theme = Theme.of(context).textTheme.labelLarge;
 
     return Container(
-      padding: EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.recoveryPhraseBackground,
+        borderRadius: BorderRadius.circular(8.0),
       ),
-      height: containerHeight,
-      child: ListView(
-        children: [
-          Wrap(
-            spacing: 10, // gap between adjacent items
-            runSpacing: 10, // gap between lines
-            children: List.generate(listMnemonic.length, (index) {
-              return SizedBox(
-                width: (MediaQuery.of(context).size.width - 32 - 32) / 3 - 7,
-                height: itemHeight,
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondary,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.onSecondary,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "${index + 1}. ${listMnemonic[index]}",
-                      style: TextStyle(
-                        fontFamily: "Inter",
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              );
-            }),
+      child: Center(
+        child: RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: '$number. ',
+                style: theme?.copyWith(color: AppColors.textQuintary),
+              ),
+              TextSpan(
+                text: word,
+                style: theme,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

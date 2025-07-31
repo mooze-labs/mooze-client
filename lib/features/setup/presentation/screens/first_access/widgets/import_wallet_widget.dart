@@ -1,53 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/terms_acceptance_provider.dart';
 import 'package:go_router/go_router.dart';
 
-const double fontSize = 16.0;
+import '../providers/terms_acceptance_provider.dart';
 
 class ImportWalletWidget extends ConsumerWidget {
   const ImportWalletWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final termsAccepted = ref.watch(termsAcceptanceProvider);
-    final linkStyle = TextStyle(color: Colors.pinkAccent, fontSize: fontSize);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          "Já tem uma carteira? ",
-          style: TextStyle(color: Colors.white, fontSize: fontSize),
+    final hasAcceptedTerms = ref.watch(termsAcceptanceProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textStyle = Theme.of(context).textTheme.bodyMedium!;
+    return TextButton(
+        style: ButtonStyle(
+          overlayColor: WidgetStateProperty.all(Colors.transparent), 
+          splashFactory: NoSplash.splashFactory, 
+      ),
+      onPressed: hasAcceptedTerms ? () => context.go("/setup/import-wallet") : null,
+      child: Text(
+        'Importar carteira',
+        style: textStyle.copyWith(
+          color: hasAcceptedTerms
+              ? colorScheme.onPrimary
+              : colorScheme.primary.withValues(alpha: 0.5),
         ),
-        InkWell(
-          onTap:
-              termsAccepted ? () => context.go("/setup/import-wallet") : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Importe-a",
-                style:
-                    termsAccepted
-                        ? linkStyle
-                        : linkStyle.copyWith(
-                          color: linkStyle.color?.withOpacity(0.5),
-                        ),
-              ),
-              SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward,
-                size: 16,
-                color:
-                    termsAccepted
-                        ? linkStyle.color
-                        : linkStyle.color?.withOpacity(0.5),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

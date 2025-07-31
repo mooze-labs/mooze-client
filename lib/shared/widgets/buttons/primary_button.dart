@@ -13,7 +13,6 @@ class PrimaryButton extends StatelessWidget {
   }) : super(key: key);
 
   // Constants
-  static const Color _primaryColor = Color(0xFFFF2D84);
   static const Color _textPrimary = Colors.white;
 
   @override
@@ -33,7 +32,7 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryColor,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: _textPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 0,

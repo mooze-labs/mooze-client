@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'themes/theme_base.dart' as mooze_theme;
+import 'package:mooze_mobile/themes/app_theme.dart';
+// import 'themes/theme_base.dart';
 
 // import 'package:mooze_mobile/services/notifications.dart';
 // import 'package:mooze_mobile/widgets/lifecycle_manager.dart';
@@ -27,7 +28,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Mooze',
       debugShowCheckedModeBanner: false,
-      theme: mooze_theme.themeData,
+      theme: AppTheme.darkTheme(context),
+      themeMode: ThemeMode.dark, 
       routerConfig: router,
     );
   }

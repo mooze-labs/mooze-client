@@ -9,6 +9,8 @@ final priceServiceProvider = Provider<TaskEither<String, PriceService>>((ref) {
   final service = PriceSettingsRepositoryImpl().getPriceServiceConfig().flatMap(
     (c) {
       switch (c.priceSource) {
+        case PriceSource.binance:
+          return TaskEither.right(BinancePriceService(c.currency));
         case PriceSource.coingecko:
           return TaskEither.right(CoingeckoPriceServiceImpl(c.currency));
         case PriceSource.mock:

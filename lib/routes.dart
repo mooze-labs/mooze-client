@@ -1,17 +1,10 @@
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/receive/receive.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/menu.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/wallet.dart';
 
 import './features/setup/routes.dart';
 
 final router = GoRouter(
   initialLocation: '/setup/first-access',
   routes: [
-    GoRoute(path: '/menu', builder: (context, state) => MenuScreen()),
-    GoRoute(path: '/receive', builder: (context, state) => ReceiveScreen()),
-    GoRoute(path: '/wallet', builder: (context, state) => WalletScreen()),
-    ...setupRoutes,
   ],
 );
 

@@ -12,6 +12,7 @@ class Transaction {
   final Asset asset;
   final TransactionType type;
   final TransactionStatus status;
+  final DateTime createdAt;
 
   Transaction({
     required this.id,
@@ -20,5 +21,6 @@ class Transaction {
     required this.asset,
     required this.type,
     required this.status,
+    required this.createdAt
   });
 }

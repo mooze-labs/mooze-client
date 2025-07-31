@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/themes/theme_base.dart';
 
 import '../providers/pix_copypaste_provider.dart';
 
 import '../consts.dart';
 
-class CopyableAddress extends StatelessWidget {
-  final String pixCopyPaste;
-  const CopyableAddress({super.key, required this.pixCopyPaste});
+class CopyableAddress extends ConsumerWidget {
+  const CopyableAddress({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pixCopypaste = ref.read(pixCopypasteProvider);
+
     return GestureDetector(
       onTap: () => (),
       child: Container(
@@ -29,8 +29,8 @@ class CopyableAddress extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                pixCopyPaste,
-                style: AppTextStyles.value,
+                pixCopypaste,
+                // style: AppTextStyles.value,
                 overflow: TextOverflow.ellipsis,
               ),
             ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/themes/theme_base.dart';
+import 'package:mooze_mobile/themes/app_text_styles.dart';
 
 class TimerCountdown extends StatelessWidget {
   final DateTime expireAt;

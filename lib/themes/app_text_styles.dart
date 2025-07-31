@@ -28,22 +28,23 @@ class AppTextStyles {
     return TextTheme(
       // Display styles
       displayLarge: TextStyle(
-        fontSize: context.responsiveFont(57),
+        fontSize: context.responsiveFont(40),
         fontWeight: FontWeight.w400,
         letterSpacing: -0.25,
         color: AppColors.textPrimary,
         fontFamily: "Inter",
       ),
       displayMedium: TextStyle(
-        fontSize: context.responsiveFont(45),
-        fontWeight: FontWeight.w400,
+        fontSize: context.responsiveFont(36),
+        fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
         fontFamily: "Inter",
       ),
       displaySmall: TextStyle(
-        fontSize: context.responsiveFont(36),
-        fontWeight: FontWeight.w400,
+        fontSize: context.responsiveFont(32),
+        fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
+        height: 1.2,
         fontFamily: "Inter",
       ),
 
@@ -62,7 +63,7 @@ class AppTextStyles {
       ),
       headlineSmall: TextStyle(
         fontSize: context.responsiveFont(24),
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
         fontFamily: "Inter",
       ),
@@ -121,9 +122,7 @@ class AppTextStyles {
         fontFamily: "Inter",
       ),
       bodyMedium: TextStyle(
-        fontSize: context.responsiveFont(14),
-        fontWeight: FontWeight.w400,
-        letterSpacing: 0.25,
+        fontSize: context.responsiveFont(15),
         color: AppColors.textSecondary,
         fontFamily: "Inter",
       ),
@@ -139,7 +138,7 @@ class AppTextStyles {
 
   /// Returns a responsive text style for AppBar titles.
   static TextStyle appBarTitle(BuildContext context) => TextStyle(
-    fontSize: context.responsiveFont(22),
+    fontSize: context.responsiveFont(20),
     fontFamily: "roboto",
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,

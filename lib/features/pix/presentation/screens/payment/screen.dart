@@ -7,7 +7,7 @@ import 'package:mooze_mobile/features/pix/domain/entities.dart';
 
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/theme_base.dart';
+import 'package:mooze_mobile/themes/app_text_styles.dart';
 
 import 'consts.dart';
 import 'providers.dart';

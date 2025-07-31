@@ -46,6 +46,9 @@ class AppTheme {
 
       // Tile Theme
       listTileTheme: ComponentThemes.listTileTheme,
+
+      // Checkbox Theme
+      checkboxTheme: ComponentThemes.checkboxTheme,
     );
   }
 }
