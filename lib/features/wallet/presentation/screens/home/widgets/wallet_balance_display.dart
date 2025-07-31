@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -13,7 +13,7 @@ class WalletBalanceDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.watch(visibilityProvider);
+    final isVisible = ref.watch(isVisibleProvider);
     final balance = ref.watch(balanceProvider(Asset.btc));
 
     return balance.when(

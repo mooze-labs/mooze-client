@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -42,7 +42,7 @@ class WalletHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.read(visibilityProvider);
+    final isVisible = ref.read(isVisibleProvider);
     final icon = (isVisible) ? Icons.visibility : Icons.visibility_off;
 
     return Row(
@@ -56,7 +56,7 @@ class WalletHeader extends ConsumerWidget {
           )
         ),
         IconButton(
-            onPressed: () => ref.read(visibilityProvider.notifier).state = !isVisible,
+            onPressed: () => ref.read(isVisibleProvider.notifier).state = !isVisible,
             icon: Icon(icon, color: Theme.of(context).colorScheme.primary)
         )
       ]
