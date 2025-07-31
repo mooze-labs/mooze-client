@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/widgets/asset_section.dart';
 
 import 'consts.dart';
 import 'providers.dart';
@@ -23,6 +24,7 @@ class Homepage extends ConsumerWidget {
                   LogoHeader(),
                   _buildWalletSection(),
                   _buildActionButtons(),
+                  AssetSection(),
                 ],
               )
             ),

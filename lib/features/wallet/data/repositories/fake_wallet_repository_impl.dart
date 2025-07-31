@@ -117,6 +117,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
       asset: psbt.asset,
       type: TransactionType.send,
       status: TransactionStatus.pending,
+      createdAt: DateTime.now()
     ));
   }
 
@@ -130,6 +131,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
       asset: Asset.btc,
       type: TransactionType.send,
       status: TransactionStatus.pending,
+      createdAt: DateTime.now()
     ));
   }
 
@@ -143,6 +145,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
       asset: Asset.btc,
       type: TransactionType.send,
       status: TransactionStatus.pending,
+      createdAt: DateTime.now()
     ));
   }
 
@@ -164,6 +167,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
             asset: Asset.btc,
             type: TransactionType.receive,
             status: TransactionStatus.confirmed,
+            createdAt: DateTime.now()
           ),
           Transaction(
             id: 'tx-002',
@@ -172,6 +176,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
             asset: Asset.depix,
             type: TransactionType.send,
             status: TransactionStatus.pending,
+            createdAt: DateTime.now()
           ),
           Transaction(
             id: 'tx-003',
@@ -180,6 +185,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
             asset: Asset.btc,
             type: TransactionType.receive,
             status: TransactionStatus.confirmed,
+            createdAt: DateTime.now()
           ),
           Transaction(
             id: 'tx-004',
@@ -188,6 +194,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
             asset: Asset.usdt,
             type: TransactionType.send,
             status: TransactionStatus.confirmed,
+            createdAt: DateTime.now()
           ),
         ];
 

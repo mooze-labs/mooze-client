@@ -13,13 +13,13 @@ class WalletBalanceDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.read(visibilityProvider);
+    final isVisible = ref.watch(visibilityProvider);
     final balance = ref.watch(balanceProvider(Asset.btc));
 
     return balance.when(
         data: (data) => data.fold(
                 (err) => ErrorWalletBalanceDisplay(),
-                (val) => SuccessfulWalletBalanceDisplay(balanceAmount: val)
+                (val) => SuccessfulWalletBalanceDisplay(balanceAmount: val, isVisible: isVisible)
         ),
         error: (err, stackTrace) => ErrorWalletBalanceDisplay(),
         loading: () => LoadingWalletBalanceDisplay()
@@ -29,12 +29,14 @@ class WalletBalanceDisplay extends ConsumerWidget {
 
 class SuccessfulWalletBalanceDisplay extends StatelessWidget {
   final BigInt balanceAmount;
+  final bool isVisible;
 
-  const SuccessfulWalletBalanceDisplay({super.key, required this.balanceAmount});
+  const SuccessfulWalletBalanceDisplay({super.key, required this.balanceAmount, required this.isVisible});
 
   @override
   Widget build(BuildContext context) {
-    return Text(balanceAmount.toString(), style: TextStyle(
+    final displayText = isVisible ? "******" : balanceAmount.toString();
+    return Text(displayText, style: TextStyle(
         color: Theme.of(context).colorScheme.primary,
         fontSize: balanceFontSize,
         fontWeight: FontWeight.bold

@@ -4,6 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/wallet/providers/visibility_provider.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});
@@ -11,11 +12,12 @@ class TransactionList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionHistory = ref.watch(transactionHistoryProvider);
+    final isVisible = ref.watch(visibilityProvider);
     
     return transactionHistory.when(
       data: (data) => data.fold(
         (err) => ErrorTransactionList(),
-        (transactions) => SuccessfulTransactionList(transactions: transactions)
+        (transactions) => SuccessfulTransactionList(transactions: transactions, isVisible: isVisible)
       ),
       error: (err, stackTrace) => ErrorTransactionList(),
       loading: () => LoadingTransactionList()
@@ -25,8 +27,9 @@ class TransactionList extends ConsumerWidget {
 
 class SuccessfulTransactionList extends StatelessWidget {
   final List<Transaction> transactions;
+  final bool isVisible;
 
-  const SuccessfulTransactionList({super.key, required this.transactions});
+  const SuccessfulTransactionList({super.key, required this.transactions, required this.isVisible});
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +48,7 @@ class SuccessfulTransactionList extends StatelessWidget {
           subtitle: _getTransactionSubtitle(transaction),
           value: amountStr,
           time: _formatTime(transaction),
+          isVisible: isVisible,
         );
       }).toList(),
     );
@@ -255,6 +259,7 @@ class HomeTransactionItem extends StatelessWidget {
   final String subtitle;
   final String value;
   final String time;
+  final bool isVisible;
 
   const HomeTransactionItem({
     super.key,
@@ -263,6 +268,7 @@ class HomeTransactionItem extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.time,
+    required this.isVisible,
   });
 
   @override
@@ -297,9 +303,9 @@ class HomeTransactionItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                value, // exemplo: "-25.00"
+                isVisible ? "******" : value, // exemplo: "-25.00"
                 style: TextStyle(
-                  color: value.contains('-') ? Colors.red : Colors.white,
+                  color: isVisible ? Colors.white : (value.contains('-') ? Colors.red : Colors.white),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
