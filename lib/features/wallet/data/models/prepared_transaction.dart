@@ -7,6 +7,5 @@ part 'prepared_transaction.freezed.dart';
 sealed class PreparedTransaction with _$PreparedTransaction {
   const factory PreparedTransaction.onchain(PreparePayOnchainResponse res) =
       OnchainPsbt;
-
   const factory PreparedTransaction.l2(PrepareSendResponse res) = L2Psbt;
 }

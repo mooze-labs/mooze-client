@@ -62,9 +62,17 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(deposits, deposits.blockchainTxid);
         },
         from3To4: (m, schema) async {
-          await m.addColumn(deposits, deposits.status);
+          await m.alterTable(
+              TableMigration(deposits, columnTransformer: {
+                deposits.status: Constant('pending')
+              },
+              newColumns: [deposits.status]
+              )
+          );
         },
-        from4To5: (m, schema) async { await m.addColumn(deposits, deposits.pixKey); }
+        from4To5: (m, schema) async {
+          await m.alterTable(TableMigration(deposits, columnTransformer: {deposits.pixKey: Constant("N/A")}, newColumns: [deposits.pixKey]));
+        }
       ),
     );
   }

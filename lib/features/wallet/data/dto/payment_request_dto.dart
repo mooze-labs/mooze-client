@@ -1,5 +1,8 @@
 import 'dart:math';
 
+import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' show ReceivePaymentResponse, ReceiveAmount_Bitcoin, ReceiveAmount_Asset, PaymentMethod;
+import 'package:fpdart/fpdart.dart';
+
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
@@ -31,15 +34,15 @@ class BreezPaymentRequestDto {
     required ReceivePaymentResponse paymentResponse,
     required PaymentMethod paymentMethod,
     required BigInt feesSat,
-    ReceiveAmount_Bitcoin? amount,
-    String? description,
+    required Option<BigInt> amount,
+    required Option<String> description,
   }) {
     return BreezPaymentRequestDto(
       receiveAddress: paymentResponse.destination,
       paymentMethod: paymentMethod,
-      amount: amount?.payerAmountSat,
+      amount: amount.fold(() => null, (amount) => amount),
       fees: feesSat,
-      description: description,
+      description: description.fold(() => null, (desc) => desc),
     );
   }
 

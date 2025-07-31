@@ -16,6 +16,7 @@ class BreezTransactionDto {
   final Asset asset;
   final Blockchain blockchain;
   final TransactionStatus status;
+  final DateTime createdAt;
 
   BreezTransactionDto({
     required this.id,
@@ -26,6 +27,7 @@ class BreezTransactionDto {
     required this.destination,
     required this.blockchain,
     required this.status,
+    required this.createdAt
   });
 
   factory BreezTransactionDto.fromSdk({required Payment payment}) {
@@ -51,6 +53,7 @@ class BreezTransactionDto {
       asset: asset,
       blockchain: _parseBlockchain(payment),
       status: _parseStatus(payment),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(payment.timestamp)
     );
   }
 
@@ -65,6 +68,7 @@ class BreezTransactionDto {
               ? TransactionType.send
               : TransactionType.receive,
       status: status,
+      createdAt: createdAt
     );
   }
 
