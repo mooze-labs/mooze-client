@@ -65,7 +65,7 @@ class ValidPixPaymentScreen extends StatelessWidget {
                       const Spacer(),
                       PixQrCodeDisplay(pixQrData: deposit.pixKey, boxConstraints: constraints),
                       const Spacer(),
-                      CopyableAddress(pixCopyPaste: deposit.pixKey),
+                      CopyableAddress(),
                       const Spacer(),
                       Text("Powered by depix.info", style: TextStyle(color: Theme.of(context).colorScheme.onSecondary, fontSize: 12)),
                       const Spacer(),
