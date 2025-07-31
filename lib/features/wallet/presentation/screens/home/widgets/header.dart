@@ -9,6 +9,33 @@ import 'package:shimmer/shimmer.dart';
 
 import '../providers/visibility_provider.dart';
 
+const double logoOpacity = 0.2;
+const String logoPath = 'assets/logos/5.png';
+const double logoWidth = 117.0;
+const double logoHeight = 24.0;
+
+class LogoHeader extends StatelessWidget {
+  const LogoHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Center(
+          child: Opacity(
+            opacity: logoOpacity,
+            child: Image.asset(
+              logoPath,
+              width: logoWidth,
+              height: logoHeight,
+            ),
+          ),
+        )
+      ],
+    );
+  }
+}
 
 class WalletHeader extends ConsumerWidget {
   const WalletHeader({super.key});

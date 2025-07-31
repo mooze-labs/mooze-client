@@ -5,6 +5,25 @@ import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
+import '../consts.dart';
+
+const List<Asset> assetList = [Asset.btc, Asset.usdt, Asset.depix];
+
+class AssetCardList extends ConsumerWidget {
+  const AssetCardList({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(child: AssetGraphCard(asset: Asset.btc)),
+        const SizedBox(width: cardSpacing),
+        Expanded(child: AssetGraphCard(asset: Asset.usdt))
+      ],
+    );
+  }
+}
+
 class AssetGraphCard extends ConsumerWidget {
   final Asset asset;
 
