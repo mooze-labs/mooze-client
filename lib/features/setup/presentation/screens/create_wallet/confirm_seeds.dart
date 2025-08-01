@@ -187,7 +187,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   void _confirm() {
     if (_checkInputs()) {
       ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" "));
-      context.go("/create-wallet/create-pin");
+      context.go("/setup/pin/new");
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
