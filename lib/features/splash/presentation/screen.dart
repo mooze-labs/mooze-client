@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
@@ -139,8 +140,8 @@ class _SplashPageState extends ConsumerState<SplashPage> with TickerProviderStat
       scale: _scaleAnimation,
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Image.asset(
-          'assets/images/mooze-logo.png',
+        child: SvgPicture.asset(
+          'assets/new_ui_wallet/assets/logos/logo_primary.svg',
           width: _logoWidth,
           height: _logoHeight,
         ),
