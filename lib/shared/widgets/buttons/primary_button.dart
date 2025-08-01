@@ -19,6 +19,7 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      height: 55,
       decoration: BoxDecoration(
         boxShadow: isEnabled ? [
           BoxShadow(
