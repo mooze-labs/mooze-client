@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/dropdownburron.dart';
-import 'package:mooze_mobile/features/send_founds/data/asset_data_screen.dart';
+import 'package:mooze_mobile/features/send_founds/data/asset_found_screen_data.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 

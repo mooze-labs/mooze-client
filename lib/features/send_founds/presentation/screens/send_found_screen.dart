@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/send_founds/data/asset_data_screen.dart';
+import 'package:mooze_mobile/features/send_founds/data/asset_found_screen_data.dart';
 import 'package:mooze_mobile/features/send_founds/presentation/widgets/address_modal.dart';
 import 'package:mooze_mobile/features/send_founds/presentation/widgets/amout_%20modal.dart';
 import 'package:mooze_mobile/features/send_founds/presentation/widgets/asset_selector_widget.dart';
+import 'package:mooze_mobile/features/send_founds/utils/formatAddress.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
@@ -220,7 +221,7 @@ class _SendFoundScreenState extends State<SendFoundScreen> {
   }
 
   Widget _buildAddressField() {
-    final displayedText = _formatAddress(_addressController.text);
+    final displayedText = formatAddress(_addressController.text);
 
     return GestureDetector(
       onTap: _openAddressInputModal,
@@ -253,12 +254,6 @@ class _SendFoundScreenState extends State<SendFoundScreen> {
         ),
       ),
     );
-  }
-
-  String _formatAddress(String address) {
-    if (address.isEmpty) return '';
-    if (address.length <= 12) return address;
-    return '${address.substring(0, 8)}...${address.substring(address.length - 6)}';
   }
 
   Widget _buildAmountSelector() {
