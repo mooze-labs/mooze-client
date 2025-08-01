@@ -109,3 +109,4 @@ flutter:
     - assets/default_coins.json
     - assets/new_ui_wallet/assets/logos/
     - assets/new_ui_wallet/assets/images/getstarted/
+    - assets/new_ui_wallet/assets/icons/asset/
