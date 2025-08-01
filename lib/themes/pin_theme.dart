@@ -23,9 +23,9 @@ class PinThemes {
   /// Returns the theme used when the Pinput field is focused.
   static PinTheme get focusedPinTheme => defaultPinTheme.copyWith(
     decoration: BoxDecoration(
-      border: Border.all(color: AppColors.primaryColor, width: 2),
+      border: Border.all(color: AppColors.primaryColor, width: 1),
       borderRadius: BorderRadius.circular(8),
-      color: AppColors.recoveryPhraseBackground,
+      color: AppColors.pinBackground,
     ),
   );
 
