@@ -7,7 +7,9 @@ import 'consts.dart';
 import 'providers.dart';
 import 'widgets.dart';
 
-class Homepage extends ConsumerWidget {
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     _configureSystemUi();

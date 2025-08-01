@@ -6,8 +6,8 @@ import 'package:mooze_mobile/features/new_ui_wallet/pix/presentation/widgets/rec
 import 'package:mooze_mobile/features/new_ui_wallet/pix/presentation/widgets/recive/transaction_details_widget.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/custom_app_bar.dart';
-import 'package:mooze_mobile/themes/theme_base.dart';
 
+/*
 class ReceberPixScreen extends StatefulWidget {
   @override
   _ReceberPixScreenState createState() => _ReceberPixScreenState();
@@ -181,3 +181,4 @@ class _ReceberPixScreenState extends State<ReceberPixScreen>
     );
   }
 }
+ */

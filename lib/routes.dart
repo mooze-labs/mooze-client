@@ -1,10 +1,16 @@
 import 'package:go_router/go_router.dart';
 
 import './features/setup/routes.dart';
+import './features/splash/presentation/screen.dart';
 
 final router = GoRouter(
-  initialLocation: '/setup/first-access',
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashPage(),
+    ),
+    ...setupRoutes,
   ],
 );
 

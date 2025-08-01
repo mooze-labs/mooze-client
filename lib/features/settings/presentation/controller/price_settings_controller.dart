@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
-import '../../domains/repositories/price_settings_repository.dart';
+import 'package:mooze_mobile/shared/prices/settings/price_settings_repository.dart';
+import 'package:mooze_mobile/shared/prices/models.dart';
 
 class PriceSettingsController {
   final PriceSettingsRepository _priceSettingsRepository;
@@ -17,11 +18,7 @@ class PriceSettingsController {
     return _priceSettingsRepository.setPriceCurrency(currency);
   }
 
-  TaskEither<String, PriceSource> getPriceSource() {
-    return _priceSettingsRepository.getPriceSource();
-  }
-
-  TaskEither<String, Currency> getPriceCurrency() {
-    return _priceSettingsRepository.getPriceCurrency();
+  TaskEither<String, PriceServiceConfig> getPriceSource() {
+    return _priceSettingsRepository.getPriceServiceConfig();
   }
 }

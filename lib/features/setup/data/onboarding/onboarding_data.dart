@@ -7,7 +7,7 @@ class OnboardingPageData {
     OnboardingPageData(
       title: 'Seu dinheiro, sob seu controle',
       subtitle:
-          'Receba, envie e gerencie Bitcoin com privacidade real. Nada de KYC. Nada de rastreamento. Uma carteira feita pra quem valoriza liberdade.',
+          'Receba, envie e gerencie Bitcoin com privacidade real. Uma carteira feita pra quem valoriza liberdade.',
     ),
     OnboardingPageData(
       title: 'Segurança em primeiro lugar',

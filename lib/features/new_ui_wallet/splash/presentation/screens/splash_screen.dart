@@ -85,7 +85,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Image.asset(
-          'assets/logos/5.png',
+          'assets/images/logos/mooze-logo.png',
           width: _logoWidth,
           height: _logoHeight,
         ),

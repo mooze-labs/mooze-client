@@ -7,8 +7,8 @@ import 'package:mooze_mobile/features/new_ui_wallet/shared/extensions/responsive
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/custom_app_bar.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/info_row.dart';
-import 'package:mooze_mobile/themes/theme_base.dart';
 
+/*
 class PixPaymentScreen extends StatefulWidget {
   const PixPaymentScreen({super.key});
 
@@ -243,3 +243,4 @@ class _PixPaymentScreenState extends State<PixPaymentScreen> {
     // - Renew payment
   }
 }
+*/

@@ -3,7 +3,7 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
 
-import '../wallet.dart';
+import '../wallet/datasource.dart';
 import 'electrum_node_provider.dart';
 import 'network_provider.dart';
 

@@ -1,4 +1,5 @@
 import 'package:fpdart/fpdart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 
 import 'key_store.dart';
@@ -31,7 +32,10 @@ class MnemonicStoreImpl implements MnemonicStore {
 
   @override
   TaskEither<String, Option<String>> getMnemonic() {
-    return keyStore.getKey(mnemonicKey);
+    if (kDebugMode) debugPrint("[MnemonicStoreImpl] getMnemonic called, delegating to keyStore.getKey with key: $mnemonicKey");
+    final result = keyStore.getKey(mnemonicKey);
+    if (kDebugMode) debugPrint("[MnemonicStoreImpl] keyStore.getKey call completed for key: $mnemonicKey");
+    return result;
   }
 
   @override

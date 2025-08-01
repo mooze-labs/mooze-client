@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as liquidSdk;
 import 'package:mooze_mobile/themes/app_theme.dart';
 // import 'themes/theme_base.dart';
 
@@ -12,6 +13,7 @@ import 'routes.dart';
 
 void main() async {
   // await LibLwk.init();
+  await liquidSdk.initialize();
   WidgetsFlutterBinding.ensureInitialized();
 
   // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

@@ -17,7 +17,8 @@ class LiquidSettingsRepository extends BlockchainSettingsRepository {
   TaskEither<String, String> getNodeUrl() {
     return TaskEither.tryCatch(() async {
       final sharedPreferences = await SharedPreferences.getInstance();
-      return sharedPreferences.getString('liquid_node_url') ?? '';
+      return sharedPreferences.getString('liquid_node_url') ??
+          'blockstream.info:465';
     }, (error, stackTrace) => 'Erro ao obter a URL do node: $error');
   }
 }
