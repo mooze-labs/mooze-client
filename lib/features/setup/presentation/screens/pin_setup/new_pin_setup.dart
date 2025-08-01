@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pinput/pinput.dart';
-
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/themes/pin_theme.dart';
+import 'package:pinput/pinput.dart';
 
 class NewPinSetupScreen extends ConsumerStatefulWidget {
   const NewPinSetupScreen({super.key});
@@ -12,78 +13,108 @@ class NewPinSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
-  final TextEditingController pinController = TextEditingController();
+  final TextEditingController _pinController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  bool isPinValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pinController.addListener(() {
+      setState(() {
+        isPinValid = _pinController.text.length == 6;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onContinuePressed() {
+    final pin = _pinController.text;
+
+    if (pin.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("PIN deve ter pelo menos 6 caracteres")),
+      );
+      return;
+    }
+
+    context.go('/setup/pin/confirm', extra: pin);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Crie seu PIN")),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Flex(
-          direction: Axis.vertical,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Spacer(),
-            Text(
-              "Cadastre seu PIN",
-              style: TextStyle(fontSize: 20, fontFamily: "Inter"),
-            ),
-            Spacer(),
-            Pinput(
-              keyboardType: TextInputType.number,
-              length: 6,
-              obscureText: true,
-              controller: pinController,
-              defaultPinTheme: PinTheme(
-                width: 56,
-                height: 56,
-                textStyle: TextStyle(
-                  fontSize: 20,
-                  fontFamily: "Inter",
-                  color: Theme.of(context).colorScheme.onSecondary,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            Spacer(),
-            Text(
-              "O PIN será utilizado para autorizar transações e acessar sua carteira.",
-              style: TextStyle(
-                fontSize: 16,
-                fontFamily: "Inter",
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            Spacer(),
-            ElevatedButton(
-              onPressed: () {
-                if (pinController.text.length < 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("PIN deve ter pelo menos 6 caracteres"),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Título
+              RichText(
+                text: TextSpan(
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  children: [
+                    TextSpan(text: 'Crie seu '),
+                    TextSpan(
+                      text: 'PIN',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
-                  );
-                  return;
-                }
-                context.go('/setup/pin/confirm', extra: pinController.text);
-              },
-              child: Text(
-                "Continuar",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: "Inter",
-                  color: Theme.of(context).colorScheme.onPrimary,
+                  ],
                 ),
               ),
-            ),
-            Spacer(),
-          ],
+
+              const SizedBox(height: 16),
+
+              RichText(
+                text: TextSpan(
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  children: [
+                    TextSpan(text: 'O '),
+                    TextSpan(
+                      text: 'PIN ',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          'será utilizado para autorizar transações e acessar sua carteira.',
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center
+              ),
+
+              const SizedBox(height: 50),
+
+              Pinput(
+                keyboardType: TextInputType.number,
+                length: 6,
+                obscureText: true,
+                controller: _pinController,
+                focusNode: _focusNode,
+                defaultPinTheme: PinThemes.focusedPinTheme,
+              ),
+
+              const SizedBox(height: 50),
+
+              PrimaryButton(
+                text: 'Continuar',
+                onPressed: _onContinuePressed,
+                isEnabled: isPinValid,
+              ),
+            ],
+          ),
         ),
       ),
     );
