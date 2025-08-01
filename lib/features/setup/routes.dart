@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/verify_pin.dart';
 import 'presentation/screens.dart';
 import 'package:flutter/material.dart';
 
@@ -41,5 +42,9 @@ final setupRoutes = [
       }
       return ConfirmPinSetupScreen(pin: pin);
     },
+  ),
+  GoRoute(
+    path: "/setup/pin/verify",
+    builder: (context, state) =>  VerifyPinScreen(onPinConfirmed: () {  },),
   ),
 ];
