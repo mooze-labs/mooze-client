@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class SlideToConfirmButton extends StatefulWidget {
   final VoidCallback onSlideComplete;
+  final String text;
 
-  const SlideToConfirmButton({required this.onSlideComplete});
+  const SlideToConfirmButton({required this.onSlideComplete, required this.text});
 
   @override
   _SlideToConfirmButtonState createState() => _SlideToConfirmButtonState();
@@ -94,7 +95,7 @@ class _SlideToConfirmButtonState extends State<SlideToConfirmButton>
           // Texto de fundo
           Center(
             child: Text(
-              'Gerar QR Code',
+              widget.text,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
