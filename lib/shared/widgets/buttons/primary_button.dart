@@ -20,13 +20,13 @@ class PrimaryButton extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        boxShadow: [
+        boxShadow: isEnabled ? [
           BoxShadow(
             color: const Color(0x3D840BCD),
             offset: const Offset(8, 8),
             blurRadius: 24,
           ),
-        ],
+        ] : null,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ElevatedButton(
