@@ -13,12 +13,12 @@ import 'widgets.dart';
 
 class ReceivePixScreen extends ConsumerStatefulWidget {
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() => _ReceivePixScreenState();
+  ConsumerState<ConsumerStatefulWidget> createState() =>
+      _ReceivePixScreenState();
 }
 
 class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
-  with SingleTickerProviderStateMixin {
-
+    with SingleTickerProviderStateMixin {
   late AnimationController _circleController;
   late Animation<double> _circleAnimation;
 
@@ -32,9 +32,12 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   }
 
   void _initializeControllers() {
-    _circleController = AnimationController(duration: Duration(milliseconds: 800), vsync: this);
+    _circleController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
     _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
-      CurvedAnimation(parent: _circleController, curve: Curves.easeOutCubic)
+      CurvedAnimation(parent: _circleController, curve: Curves.easeOutCubic),
     );
   }
 
@@ -52,13 +55,26 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
     final amountInCents = (depositAmount * 100).toInt();
 
     controller.fold(
-        (err) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err))); },
-        (controller) async => await controller.newDeposit(amountInCents, selectedAsset).run().then(
+      (err) {
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(err)));
+      },
+      (controller) async => await controller
+          .newDeposit(amountInCents, selectedAsset)
+          .run()
+          .then(
             (maybeDeposit) => maybeDeposit.fold(
-                (err) => { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err))) },
-                (deposit) => context.go("/payment/${deposit.depositId}")
-            )
-        )
+              (err) => {
+                if (mounted)
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(err))),
+              },
+              (deposit) => context.go("/payment/${deposit.depositId}"),
+            ),
+          ),
     );
   }
 
@@ -70,10 +86,17 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: _buildAppBar(context),
           resizeToAvoidBottomInset: false,
-          body: GestureDetector(onTap: () => FocusScope.of(context).unfocus(), child: _buildBody(context)),
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: _buildBody(context),
+          ),
         ),
         if (_showOverlay)
-          LoadingOverlayWidget(circleController: _circleController, circleAnimation: _circleAnimation, showLoadingText: _showLoadingText)
+          LoadingOverlayWidget(
+            circleController: _circleController,
+            circleAnimation: _circleAnimation,
+            showLoadingText: _showLoadingText,
+          ),
       ],
     );
   }
@@ -86,7 +109,9 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
         children: [
           TextSpan(
             text: 'PIX',
-            style: AppTextStyles.title.copyWith(color: Theme.of(context).colorScheme.primary),
+            style: AppTextStyles.title.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ],
       ),
@@ -130,8 +155,11 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
             SizedBox(height: 16),
             Expanded(child: TransactionDisplayWidget()),
             SizedBox(height: 16),
-            SlideToConfirmButton(onSlideComplete: () => _onSlideComplete(context)),
-            SizedBox(height: 16)
+            SlideToConfirmButton(
+              onSlideComplete: () => _onSlideComplete(context),
+              text: 'Gerar QR Code',
+            ),
+            SizedBox(height: 16),
           ],
         ),
       ),
