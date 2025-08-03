@@ -1,0 +1,1 @@
+export 'providers/wallet_repository_provider.dart';
