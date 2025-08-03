@@ -4,6 +4,12 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers.dart';
 
+final currencyProvider = FutureProvider<Either<String, String>>((ref) async {
+  final priceService = ref.read(priceServiceProvider);
+
+  return await priceService.flatMap((svc) => TaskEither.right(svc.currency.toUpperCase())).run();
+});
+
 final fiatPriceProvider = FutureProvider.autoDispose.family<Either<String, double>, Asset>((ref, asset) async {
   final priceService = ref.read(priceServiceProvider);
 
