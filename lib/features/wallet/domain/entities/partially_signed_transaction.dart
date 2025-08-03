@@ -1,28 +1,32 @@
+import 'dart:math';
+
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-class PartiallySignedTransaction {
-  final String id;
-  final String recipient;
-  final Asset asset;
-  final BigInt amount;
-  final BigInt networkFees;
+sealed class PartiallySignedTransaction {
+  String get destination;
+  Asset get asset;
+  Blockchain get blockchain;
 
-  PartiallySignedTransaction({
-    required this.id,
-    required this.recipient,
-    required this.asset,
-    required this.amount,
-    required this.networkFees,
-  });
+  BigInt get satoshi;
+  BigInt get networkFees;
 }
 
-class PreparedStablecoinTransaction {
+class PreparedStablecoinTransaction implements PartiallySignedTransaction {
+
+  @override
   final String destination;
+  @override
   final Asset asset;
-  final double amount;
-  final BigInt networkFees;
+  @override
   final Blockchain blockchain = Blockchain.liquid;
+  @override
+  final BigInt networkFees;
+
+  final double amount;
+  @override
+  BigInt get satoshi => BigInt.from((amount * pow(10, 8)));
+
 
   PreparedStablecoinTransaction({
     required this.destination,
@@ -32,20 +36,36 @@ class PreparedStablecoinTransaction {
   });
 }
 
-class PreparedLayer2BitcoinTransaction {
+class PreparedLayer2BitcoinTransaction implements PartiallySignedTransaction {
+  @override
   final String destination;
-  final BigInt amount;
+  @override
   final BigInt networkFees;
+  @override
   final Blockchain blockchain;
+  @override
+  Asset get asset => Asset.btc;
+
+  final BigInt amount;
+  @override
+  BigInt get satoshi => amount;
 
   PreparedLayer2BitcoinTransaction({required this.destination, required this.amount, required this.networkFees, required this.blockchain});
 }
 
-class PreparedOnchainBitcoinTransaction {
+class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
+  @override
   final String destination;
-  final BigInt amount;
+  @override
   final BigInt networkFees;
+  @override
   final Blockchain blockchain = Blockchain.bitcoin;
+  @override
+  Asset get asset => Asset.btc;
+
+  final BigInt amount;
+  @override
+  BigInt get satoshi => amount;
 
   PreparedOnchainBitcoinTransaction({required this.destination, required this.amount, required this.networkFees});
 }

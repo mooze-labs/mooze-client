@@ -1,5 +1,5 @@
 // import 'package:flutter/material.dart';
-// import 'package:mooze_mobile/features/send_founds/data/asset_data_screen.dart';
+// import 'package:mooze_mobile/features/send_funds/data/asset_data_screen.dart';
 
 // class AmountModal extends StatefulWidget {
 //   final AssetDataScreen asset;
