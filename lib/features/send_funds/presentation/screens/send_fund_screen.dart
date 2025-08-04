@@ -2,48 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/send_founds/data/asset_found_screen_data.dart';
 import 'package:mooze_mobile/features/send_founds/presentation/widgets/address_modal.dart';
 import 'package:mooze_mobile/features/send_founds/presentation/widgets/amout_%20modal.dart';
 import 'package:mooze_mobile/features/send_founds/presentation/widgets/asset_selector_widget.dart';
 import 'package:mooze_mobile/features/send_founds/utils/formatAddress.dart';
+import 'package:mooze_mobile/features/send_funds/data/asset_fund_screen_data.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-class SendFoundScreen extends StatefulWidget {
-  const SendFoundScreen({super.key});
+class SendFundsScreen extends StatefulWidget {
+  const SendFundsScreen({super.key});
 
   @override
-  State<SendFoundScreen> createState() => _SendFoundScreenState();
+  State<SendFundsScreen> createState() => _SendFundsScreenState();
 }
 
-class _SendFoundScreenState extends State<SendFoundScreen> {
+class _SendFundsScreenState extends State<SendFundsScreen> {
   final _addressController = TextEditingController();
   final _amountController = TextEditingController();
 
-  final List<SendFoundScreenData> _assets = [
-    SendFoundScreenData(
+  final List<SendFundsScreenData> _assets = [
+    SendFundsScreenData(
       id: 'bitcoin',
       name: 'Bitcoin',
       symbol: 'BTC',
       icon: 'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
       amount: 0,
     ),
-    SendFoundScreenData(
+    SendFundsScreenData(
       id: 'bitcoin-liquid',
       name: 'Bitcoin Liquid',
       symbol: 'LBTC',
       icon: 'assets/new_ui_wallet/assets/icons/asset/lbtc.svg',
       amount: 0.0021,
     ),
-    SendFoundScreenData(
+    SendFundsScreenData(
       id: 'dpix',
       name: 'DPIX',
       symbol: 'DPIX',
       icon: 'assets/new_ui_wallet/assets/icons/asset/depix.svg',
       amount: 21,
     ),
-    SendFoundScreenData(
+    SendFundsScreenData(
       id: 'usdt',
       name: 'Tether',
       symbol: 'USDT',
@@ -52,7 +52,7 @@ class _SendFoundScreenState extends State<SendFoundScreen> {
     )
   ];
 
-  late SendFoundScreenData _selectedAsset;
+  late SendFundsScreenData _selectedAsset;
   String _amount = '';
 
   @override
@@ -121,7 +121,7 @@ class _SendFoundScreenState extends State<SendFoundScreen> {
     );
   }
 
-  void _onAssetChanged(SendFoundScreenData? asset) {
+  void _onAssetChanged(SendFundsScreenData? asset) {
     if (asset != null) setState(() => _selectedAsset = asset);
   }
 
