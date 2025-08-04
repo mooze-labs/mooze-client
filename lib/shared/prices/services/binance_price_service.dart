@@ -11,6 +11,8 @@ class BinancePriceService extends PriceService {
 
   BinancePriceService(Currency defaultCurrency) : _defaultCurrency = defaultCurrency;
 
+  String get currency => _defaultCurrency.name;
+
   @override
   TaskEither<String, Option<double>> getCoinPrice(Asset asset, {Currency? optionalCurrency}) {
     final currency = (optionalCurrency == null)

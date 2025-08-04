@@ -5,6 +5,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../models.dart';
 
 abstract class PriceService {
+  String get currency;
   TaskEither<String, Option<double>> getCoinPrice(Asset asset, {Currency? optionalCurrency});
 }
 

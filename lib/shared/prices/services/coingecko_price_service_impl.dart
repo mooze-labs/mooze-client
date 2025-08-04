@@ -12,6 +12,8 @@ class CoingeckoPriceServiceImpl extends PriceService {
 
   CoingeckoPriceServiceImpl(Currency currency) : _currency = currency;
 
+  String get currency => _currency.name;
+
   @override
   TaskEither<String, Option<double>> getCoinPrice(Asset asset, {Currency? optionalCurrency}) {
     final currency = optionalCurrency ?? _currency;
