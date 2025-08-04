@@ -1,10 +1,10 @@
-class SendFoundScreenData {
+class SendFundsScreenData {
   final String id;
   final String name;
   final String symbol;
   final String icon;
   final double amount;
-  const SendFoundScreenData({
+  const SendFundsScreenData({
     required this.id,
     required this.name,
     required this.symbol,
@@ -15,7 +15,7 @@ class SendFoundScreenData {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is SendFoundScreenData && other.id == id;
+    return other is SendFundsScreenData && other.id == id;
   }
 
   @override
