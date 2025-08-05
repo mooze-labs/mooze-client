@@ -10,7 +10,7 @@ import 'package:shimmer/shimmer.dart';
 import '../providers/visibility_provider.dart';
 
 const double logoOpacity = 0.2;
-const String logoPath = 'assets/logos/5.png';
+const String logoPath = 'assets/images/mooze-logo.png';
 const double logoWidth = 117.0;
 const double logoHeight = 24.0;
 
@@ -31,7 +31,8 @@ class LogoHeader extends StatelessWidget {
               height: logoHeight,
             ),
           ),
-        )
+        ),
+        const SizedBox(height: 30)
       ],
     );
   }
@@ -42,7 +43,7 @@ class WalletHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.read(isVisibleProvider);
+    final isVisible = ref.watch(isVisibleProvider);
     final icon = (isVisible) ? Icons.visibility : Icons.visibility_off;
 
     return Row(

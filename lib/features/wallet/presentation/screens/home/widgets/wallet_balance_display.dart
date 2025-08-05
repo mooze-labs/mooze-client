@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,10 +19,16 @@ class WalletBalanceDisplay extends ConsumerWidget {
 
     return balance.when(
         data: (data) => data.fold(
-                (err) => ErrorWalletBalanceDisplay(),
+                (err) {
+                  if (kDebugMode) debugPrint("[BREEZ BALANCE] ${err.description} ${err.customDescription}");
+                  return ErrorWalletBalanceDisplay();
+                },
                 (val) => SuccessfulWalletBalanceDisplay(balanceAmount: val, isVisible: isVisible)
         ),
-        error: (err, stackTrace) => ErrorWalletBalanceDisplay(),
+        error: (err, stackTrace) {
+            if (kDebugMode) debugPrint("[BREEZ BALANCE] $err");
+            return ErrorWalletBalanceDisplay();
+        },
         loading: () => LoadingWalletBalanceDisplay()
     );
   }

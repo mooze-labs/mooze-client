@@ -15,7 +15,7 @@ class HomeScreen extends ConsumerWidget {
     _configureSystemUi();
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: const Color(0xFF0A0A0A),
       body: SafeArea(bottom: false,
           child: SingleChildScrollView(
             child: Padding(
@@ -26,6 +26,7 @@ class HomeScreen extends ConsumerWidget {
                   LogoHeader(),
                   _buildWalletSection(),
                   _buildActionButtons(),
+                  const SizedBox(height: 32),
                   AssetSection(),
                 ],
               )

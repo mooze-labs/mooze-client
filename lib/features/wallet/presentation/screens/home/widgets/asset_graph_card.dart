@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
@@ -35,10 +37,16 @@ class AssetGraphCard extends ConsumerWidget {
     
     return priceHistory.when(
       data: (data) => data.fold(
-        (err) => ErrorAssetCard(asset: asset),
+        (err) {
+          if (kDebugMode) debugPrint("[KLINES] $err");
+          return ErrorAssetCard(asset: asset);
+        },
         (klines) => SuccessfulAssetCard(asset: asset, klines: klines)
       ),
-      error: (err, stackTrace) => ErrorAssetCard(asset: asset),
+      error: (err, stackTrace) {
+        if (kDebugMode) debugPrint("[KLINES] $err");
+        return ErrorAssetCard(asset: asset);
+      },
       loading: () => LoadingAssetCard(asset: asset)
     );
   }
@@ -56,7 +64,7 @@ class SuccessfulAssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percentage = klines.last / klines.first * 100;
+    final percentage = klines.last / klines.first;
     final isPositive = klines.last > klines.first;
     final assetValue = klines.last;
 
@@ -82,7 +90,7 @@ class SuccessfulAssetCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Image.asset("assets/images/logos/${asset.name.toLowerCase()}", width: 40, height: 40),
+                SvgPicture.asset("assets/new_ui_wallet/assets/icons/asset/${asset.name.toLowerCase()}.svg", width: 40, height: 40),
               ],
             ),
           ),
@@ -103,7 +111,7 @@ class SuccessfulAssetCard extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  percentage.toStringAsFixed(2),
+                  "${percentage.toStringAsFixed(2)}% (24h)",
                   style: TextStyle(
                     color: isPositive ? Colors.green : Colors.red,
                     fontSize: 12,
@@ -226,7 +234,7 @@ class LoadingAssetCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Image.asset("assets/images/logos/${asset.name.toLowerCase()}", width: 40, height: 40),
+                SvgPicture.asset("assets/new_ui_wallet/assets/icons/asset/${asset.name.toLowerCase()}.svg", width: 40, height: 40),
               ],
             ),
           ),
@@ -311,7 +319,7 @@ class ErrorAssetCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Image.asset("assets/images/logos/${asset.name.toLowerCase()}", height: 40, width: 40),
+                SvgPicture.asset("assets/new_ui_wallet/assets/icons/asset/${asset.name.toLowerCase()}.svg", width: 40, height: 40),
               ],
             ),
           ),

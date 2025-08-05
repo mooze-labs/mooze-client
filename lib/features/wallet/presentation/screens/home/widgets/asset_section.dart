@@ -14,8 +14,9 @@ class AssetSection extends StatelessWidget {
     return Column(
       children: [
         SectionHeader(onAction: () => (), title: "Ativos", actionDescription: "Ver mais"),
-        const SizedBox(width: cardSpacing),
+        const SizedBox(height: 16),
         AssetCardList(),
+        const SizedBox(height: 32)
       ],
     );
   }
