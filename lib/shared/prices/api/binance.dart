@@ -67,7 +67,7 @@ class BinanceApi {
   }
 
   TaskEither<String, List<List<dynamic>>> fetchKlines(String symbol, String interval, int startTime, int endTime) {
-    final url = Uri.parse("$baseUrl/api/v3/klines").replace(queryParameters: {
+    final url = Uri.parse("${baseUrl}klines").replace(queryParameters: {
       "symbol": symbol,
       "interval": interval,
       "startTime": startTime.toString(),
