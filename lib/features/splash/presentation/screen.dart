@@ -77,7 +77,7 @@ class _SplashPageState extends ConsumerState<SplashPage> with TickerProviderStat
       if (mounted) {
         if (mnemonic.isSome()) {
           if (kDebugMode) debugPrint("[SplashScreen] Mnemonic exists, redirecting to /wallet");
-          context.go('/wallet');
+          context.go('/home');
         } else {
           if (kDebugMode) debugPrint("[SplashScreen] No mnemonic found, redirecting to /setup/first-access");
           context.go('/setup/first-access');
