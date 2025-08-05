@@ -8,7 +8,7 @@ import 'config_provider.dart';
 final breezClientProvider = FutureProvider<Either<String, BindingLiquidSdk>>((
   ref,
 ) async {
-  final config = ref.watch(configProvider);
+  final config = await ref.read(configProvider.future);
   final mnemonicOption = await ref.watch(mnemonicProvider.future);
 
   return await mnemonicOption.fold(
