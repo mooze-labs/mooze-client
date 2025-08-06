@@ -1,7 +1,9 @@
 import 'package:go_router/go_router.dart';
 
+import './features/pix/routes.dart';
 import './features/setup/routes.dart';
 import './features/splash/presentation/screen.dart';
+import './features/wallet/routes.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
@@ -10,7 +12,9 @@ final router = GoRouter(
       path: '/splash',
       builder: (context, state) => const SplashPage(),
     ),
+    ...pixRoutes,
     ...setupRoutes,
+    ...walletRoutes
   ],
 );
 
