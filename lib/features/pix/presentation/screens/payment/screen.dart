@@ -92,7 +92,7 @@ class ErrorPixPaymentScreen extends StatelessWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: CustomAppBar(
         title: TextSpan(text: ""),
-        onBack: () => context.go("/pix"),
+        onBack: () => context.go("/pix/receive"),
       ),
       body: Center(
         child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:pinput/pinput.dart';
@@ -55,7 +56,10 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
       (failure) => ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(failure.toString()))),
-      (_) => context.go("/splash"),
+      (_) {
+        ref.invalidate(mnemonicProvider);
+        context.go("/splash");
+      }
     );
   }
 

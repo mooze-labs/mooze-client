@@ -72,7 +72,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
                     context,
                   ).showSnackBar(SnackBar(content: Text(err))),
               },
-              (deposit) => context.go("/payment/${deposit.depositId}"),
+              (deposit) => context.go("/pix/payment/${deposit.depositId}"),
             ),
           ),
     );

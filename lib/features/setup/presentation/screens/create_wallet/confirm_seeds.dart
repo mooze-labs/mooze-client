@@ -184,10 +184,12 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     return true;
   }
 
-  void _confirm() {
+  void _confirm() async {
     if (_checkInputs()) {
-      ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" "));
-      context.go("/setup/pin/new");
+      await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
+      if (mounted) {
+        context.go("/setup/pin/new");
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
