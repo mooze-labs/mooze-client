@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
-import 'package:mooze_mobile/providers/wallet/network_wallet_repository_provider.dart';
 import 'package:mooze_mobile/screens/receive_funds/widgets/qr_code_display.dart';
 import 'package:mooze_mobile/widgets/inputs/amount_input.dart';
 import 'package:mooze_mobile/widgets/appbar.dart';

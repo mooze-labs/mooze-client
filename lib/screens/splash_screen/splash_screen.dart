@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
@@ -20,6 +18,7 @@ import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:mooze_mobile/services/app_bootstrap.dart';
 
 String BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
@@ -33,10 +32,12 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   final _authService = AuthenticationService();
+  late final AppBootstrapService _appBootstrap;
 
   @override
   void initState() {
     super.initState();
+    _appBootstrap = AppBootstrapService(ref);
     _initializeApp();
   }
 
@@ -53,48 +54,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
-      await _preloadPriceData();
-
-      final noScreenshot = NoScreenshot.instance;
-      await noScreenshot.screenshotOn();
-
-      final mnemonicHandler = MnemonicHandler();
-      final mnemonic = await mnemonicHandler.retrieveWalletMnemonic(
-        "mainWallet",
-      );
+      // Start background initialization
+      _appBootstrap.initialize();
 
       final isPinSetup = await _authService.isPinSetup();
       if (!isPinSetup && mounted) {
         Navigator.pushReplacementNamed(context, "/first_access");
+        return;
       }
 
-      if (mnemonic != null) {
-        await _initializeWallets(true, mnemonic);
-        ref.read(walletSyncServiceProvider.notifier).syncNow();
-
-        // Start periodic wallet sync
-        ref.read(walletSyncServiceProvider.notifier).startPeriodicSync();
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => VerifyPinScreen(
-                    onPinConfirmed: () async => await redirectToWallet(context),
-                  ),
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, "/first_access");
-        }
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => VerifyPinScreen(
+                  onPinConfirmed: () async => await redirectToWallet(context),
+                ),
+          ),
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print("Error retrieving mnemonic: $e");
-      }
-      // fallback to first_access screen
       if (mounted) {
         Navigator.pushReplacementNamed(context, "/first_access");
       }
@@ -261,6 +241,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(

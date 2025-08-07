@@ -1,0 +1,1 @@
+export 'controllers/pix_deposit_controller.dart';

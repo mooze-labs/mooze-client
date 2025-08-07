@@ -14,7 +14,8 @@ class FeeCalculator {
   double getFees() {
     double amountInReais = fiatAmount / 100.0;
     if (assetId == "lbtc") {
-      amountInReais = amountInReais / 1.02;
+      amountInReais =
+          amountInReais / 1.02; // account for liquidity provider spread
     }
     double baseFee;
 

@@ -6,7 +6,8 @@ part of 'network_wallet_repository_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$walletRepositoryHash() => r'b6e7aa1b31cbd3e21f7c36ed211b4f1207fa4916';
+String _$networkWolletRepositoryHash() =>
+    r'e98d15cc40b4a223bea5d51851aeee23ff3433a5';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,23 +30,23 @@ class _SystemHash {
   }
 }
 
-/// See also [walletRepository].
-@ProviderFor(walletRepository)
-const walletRepositoryProvider = WalletRepositoryFamily();
+/// See also [networkWolletRepository].
+@ProviderFor(networkWolletRepository)
+const networkWolletRepositoryProvider = NetworkWolletRepositoryFamily();
 
-/// See also [walletRepository].
-class WalletRepositoryFamily extends Family<WalletRepository> {
-  /// See also [walletRepository].
-  const WalletRepositoryFamily();
+/// See also [networkWolletRepository].
+class NetworkWolletRepositoryFamily extends Family<WolletRepository> {
+  /// See also [networkWolletRepository].
+  const NetworkWolletRepositoryFamily();
 
-  /// See also [walletRepository].
-  WalletRepositoryProvider call(Network network) {
-    return WalletRepositoryProvider(network);
+  /// See also [networkWolletRepository].
+  NetworkWolletRepositoryProvider call(Network network) {
+    return NetworkWolletRepositoryProvider(network);
   }
 
   @override
-  WalletRepositoryProvider getProviderOverride(
-    covariant WalletRepositoryProvider provider,
+  NetworkWolletRepositoryProvider getProviderOverride(
+    covariant NetworkWolletRepositoryProvider provider,
   ) {
     return call(provider.network);
   }
@@ -62,28 +63,29 @@ class WalletRepositoryFamily extends Family<WalletRepository> {
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'walletRepositoryProvider';
+  String? get name => r'networkWolletRepositoryProvider';
 }
 
-/// See also [walletRepository].
-class WalletRepositoryProvider extends Provider<WalletRepository> {
-  /// See also [walletRepository].
-  WalletRepositoryProvider(Network network)
+/// See also [networkWolletRepository].
+class NetworkWolletRepositoryProvider extends Provider<WolletRepository> {
+  /// See also [networkWolletRepository].
+  NetworkWolletRepositoryProvider(Network network)
     : this._internal(
-        (ref) => walletRepository(ref as WalletRepositoryRef, network),
-        from: walletRepositoryProvider,
-        name: r'walletRepositoryProvider',
+        (ref) =>
+            networkWolletRepository(ref as NetworkWolletRepositoryRef, network),
+        from: networkWolletRepositoryProvider,
+        name: r'networkWolletRepositoryProvider',
         debugGetCreateSourceHash:
             const bool.fromEnvironment('dart.vm.product')
                 ? null
-                : _$walletRepositoryHash,
-        dependencies: WalletRepositoryFamily._dependencies,
+                : _$networkWolletRepositoryHash,
+        dependencies: NetworkWolletRepositoryFamily._dependencies,
         allTransitiveDependencies:
-            WalletRepositoryFamily._allTransitiveDependencies,
+            NetworkWolletRepositoryFamily._allTransitiveDependencies,
         network: network,
       );
 
-  WalletRepositoryProvider._internal(
+  NetworkWolletRepositoryProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -97,12 +99,12 @@ class WalletRepositoryProvider extends Provider<WalletRepository> {
 
   @override
   Override overrideWith(
-    WalletRepository Function(WalletRepositoryRef provider) create,
+    WolletRepository Function(NetworkWolletRepositoryRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
-      override: WalletRepositoryProvider._internal(
-        (ref) => create(ref as WalletRepositoryRef),
+      override: NetworkWolletRepositoryProvider._internal(
+        (ref) => create(ref as NetworkWolletRepositoryRef),
         from: from,
         name: null,
         dependencies: null,
@@ -114,13 +116,13 @@ class WalletRepositoryProvider extends Provider<WalletRepository> {
   }
 
   @override
-  ProviderElement<WalletRepository> createElement() {
-    return _WalletRepositoryProviderElement(this);
+  ProviderElement<WolletRepository> createElement() {
+    return _NetworkWolletRepositoryProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is WalletRepositoryProvider && other.network == network;
+    return other is NetworkWolletRepositoryProvider && other.network == network;
   }
 
   @override
@@ -134,17 +136,18 @@ class WalletRepositoryProvider extends Provider<WalletRepository> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin WalletRepositoryRef on ProviderRef<WalletRepository> {
+mixin NetworkWolletRepositoryRef on ProviderRef<WolletRepository> {
   /// The parameter `network` of this provider.
   Network get network;
 }
 
-class _WalletRepositoryProviderElement extends ProviderElement<WalletRepository>
-    with WalletRepositoryRef {
-  _WalletRepositoryProviderElement(super.provider);
+class _NetworkWolletRepositoryProviderElement
+    extends ProviderElement<WolletRepository>
+    with NetworkWolletRepositoryRef {
+  _NetworkWolletRepositoryProviderElement(super.provider);
 
   @override
-  Network get network => (origin as WalletRepositoryProvider).network;
+  Network get network => (origin as NetworkWolletRepositoryProvider).network;
 }
 
 // ignore_for_file: type=lint

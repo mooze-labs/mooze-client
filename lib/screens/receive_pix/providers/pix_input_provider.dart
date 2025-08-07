@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
-import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/pix_input.dart';
 import 'liquid_address_provider.dart';

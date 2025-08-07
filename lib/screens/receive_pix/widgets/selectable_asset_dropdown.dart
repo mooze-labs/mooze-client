@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/asset_catalog.dart';
 import 'package:mooze_mobile/models/assets.dart';
-import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
-import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
 import 'package:mooze_mobile/screens/receive_pix/providers/pix_input_provider.dart';
 
 class SelectableAssetsDropdown extends ConsumerWidget {

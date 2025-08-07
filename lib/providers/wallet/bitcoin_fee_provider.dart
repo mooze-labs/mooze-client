@@ -1,10 +1,8 @@
 import 'package:bdk_flutter/bdk_flutter.dart';
-import 'package:mooze_mobile/models/asset_catalog.dart';
-import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/models/network.dart';
-import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
+import 'package:mooze_mobile/repositories/wallet/signer.dart';
+import 'package:mooze_mobile/repositories/wallet/wollet.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,32 +10,22 @@ part 'bitcoin_fee_provider.g.dart';
 
 @riverpod
 Future<NetworkFee?> bitcoinFee(Ref ref, int estimatedBlocks) async {
-  final bitcoinWallet =
-      ref.read(bitcoinWalletRepositoryProvider) as BitcoinWalletRepository;
+  final wallet =
+      ref.read(bitcoinWolletRepositoryProvider) as BitcoinWolletRepository;
+  final signer =
+      ref.read(bitcoinSignerRepositoryProvider) as BitcoinSignerRepository;
 
-  Future<String> addrFuture = bitcoinWallet.generateAddress();
-  Future<List<OwnedAsset>> ownedAssetsFuture = ref.read(
-    ownedAssetsNotifierProvider.future,
-  );
+  Future<String> addrFuture = wallet.generateAddress();
   Future<FeeRate> estimatedFeesFuture =
-      bitcoinWallet.blockchain?.estimateFee(
-        target: BigInt.from(estimatedBlocks),
-      ) ??
+      wallet.blockchain?.estimateFee(target: BigInt.from(estimatedBlocks)) ??
       Future.value(FeeRate(satPerVb: 2));
 
-  final (addr, ownedAssets, estimatedFees) =
-      await (addrFuture, ownedAssetsFuture, estimatedFeesFuture).wait;
-
-  final bitcoinOwnedAsset = ownedAssets.firstWhere(
-    (asset) => asset.asset.id == AssetCatalog.getById("btc")!.id,
-  );
-
+  final (addr, estimatedFees) = await (addrFuture, estimatedFeesFuture).wait;
   try {
-    final response = await bitcoinWallet.buildPartiallySignedTransaction(
-      bitcoinOwnedAsset,
+    final response = await signer.buildPartiallySignedTransaction(
       addr,
       546,
-      estimatedFees.satPerVb,
+      feeRate: estimatedFees.satPerVb,
     );
 
     return NetworkFee(

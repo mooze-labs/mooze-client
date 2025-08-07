@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
+import 'package:mooze_mobile/repositories/wallet/signer.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mooze_mobile/repositories/sideswap.dart';
 import 'package:mooze_mobile/models/sideswap.dart';
@@ -81,99 +81,6 @@ class SwapNotifier extends _$SwapNotifier {
     state = state.copyWith(amount: amount);
   }
 
-  /// Start the swap quote process
-  /*
-  Future<void> requestQuote({
-    required SideswapMarket market,
-    required List<SwapUtxo> utxos,
-  }) async {
-    // Validate state
-    if (state.fromAsset == null ||
-        state.toAsset == null ||
-        state.amount == null) {
-      throw Exception("Swap parameters not fully specified");
-    }
-
-    state = state.copyWith(isSubmitting: true);
-
-    final repository = ref.read(sideswapRepositoryProvider);
-    final receiveAddress =
-        await ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
-    final changeAddress =
-        await ref.read(liquidWalletNotifierProvider.notifier).generateAddress();
-
-    if (receiveAddress == null || changeAddress == null) {
-      throw Exception("Failed to generate addresses");
-    }
-
-    // Determine which asset we're specifying the amount for
-    final String assetType;
-    final SwapDirection direction;
-    final int amount;
-
-    if (state.direction == SwapDirection.sell) {
-      // User is selling fromAsset
-      assetType =
-          state.fromAsset!.liquidAssetId == market.baseAssetId
-              ? "Base"
-              : "Quote";
-      direction = SwapDirection.sell;
-      amount = (state.amount! * pow(10, state.fromAsset!.precision)).toInt();
-    } else {
-      // User is buying toAsset
-      assetType =
-          state.toAsset!.liquidAssetId == market.baseAssetId ? "Base" : "Quote";
-      direction = SwapDirection.buy;
-      amount = (state.amount! * pow(10, state.toAsset!.precision)).toInt();
-    }
-
-    try {
-      // Start listening for quote responses
-      final subscription = repository.quoteResponseStream.listen((
-        quoteResponse,
-      ) {
-        if (quoteResponse.isSuccess) {
-          state = state.copyWith(
-            quote: quoteResponse.quote,
-            isSubmitting: false,
-          );
-        } else if (quoteResponse.isError) {
-          throw Exception("Quote error: ${quoteResponse.error!.errorMessage}");
-        } else if (quoteResponse.isLowBalance) {
-          throw Exception(
-            "Low balance: only ${quoteResponse.lowBalance!.available} available",
-          );
-        }
-      });
-
-      // Make the request
-      repository.startQuote(
-        baseAsset: market.baseAssetId,
-        quoteAsset: market.quoteAssetId,
-        assetType: assetType,
-        amount: amount,
-        direction: direction,
-        utxos: utxos,
-        receiveAddress: receiveAddress,
-        changeAddress: changeAddress,
-      );
-
-      // Wait for a response (or timeout)
-      await Future.delayed(const Duration(seconds: 10));
-      subscription.cancel();
-
-      if (state.isSubmitting) {
-        // If we're still submitting after the timeout, something went wrong
-        state = state.copyWith(isSubmitting: false);
-        throw Exception("Quote request timed out");
-      }
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false);
-      rethrow;
-    }
-  }
-  */
-
   /// Execute the swap with the current quote
   Future<String?> executeSwap() async {
     if (state.quote == null) {
@@ -208,11 +115,10 @@ class SwapNotifier extends _$SwapNotifier {
     }
   }
 
-  // Placeholder for the PSET signing logic
   Future<String> _signPset(String pset) async {
-    final signedPset = await ref
-        .read(liquidWalletNotifierProvider.notifier)
-        .signPsetWithExtraDetails(pset);
+    final signer =
+        ref.read(liquidSignerRepositoryProvider) as LiquidSignerRepository;
+    final signedPset = await signer.signPsetWithExtraDetails(pset);
 
     return signedPset;
   }

@@ -9,7 +9,6 @@ import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/multichain/swaps_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/liquid.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_quote_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/finished_swap_info.dart';

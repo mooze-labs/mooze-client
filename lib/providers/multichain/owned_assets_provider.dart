@@ -8,6 +8,7 @@ import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 
 part 'owned_assets_provider.g.dart';
 
+/*
 @Riverpod(keepAlive: true)
 class OwnedAssetsNotifier extends _$OwnedAssetsNotifier {
   @override
@@ -50,3 +51,4 @@ class OwnedAssetsNotifier extends _$OwnedAssetsNotifier {
     }
   }
 }
+*/

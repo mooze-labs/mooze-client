@@ -1,4 +1,8 @@
+import 'package:dart_nostr/dart_nostr.dart';
 import 'package:mooze_mobile/models/user.dart';
+import 'package:mooze_mobile/repositories/identity.dart';
+import 'package:mooze_mobile/repositories/user.dart';
+import 'package:mooze_mobile/services/mooze/referral.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,18 +15,18 @@ const String backendUrl = String.fromEnvironment(
 );
 
 @riverpod
-UserService userService(Ref ref) {
-  return UserService(backendUrl: backendUrl);
-}
+Future<UserRepository?> userRepository(Ref ref) async {
+  final nostrPubKey = await NostrKeyStore.getPublicKey();
 
-@riverpod
-Future<String?> getUserId(Ref ref) async {
-  final service = ref.watch(userServiceProvider);
-  final userId = service.getUserId();
-}
+  if (nostrPubKey == null) {
+    return null;
+  }
 
-@riverpod
-Future<User?> getUserDetails(Ref ref) async {
-  final service = ref.watch(userServiceProvider);
-  final userId = service.getUserDetails();
+  final userService = UserService(backendUrl: backendUrl);
+  final referralService = ReferralService(backendUrl: backendUrl);
+  return UserRepository(
+    userService: userService,
+    referralService: referralService,
+    nostrPubKey: Nostr.instance.keysService.encodePublicKeyToNpub(nostrPubKey),
+  );
 }

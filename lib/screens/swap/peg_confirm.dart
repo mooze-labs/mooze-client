@@ -9,8 +9,6 @@ import 'package:mooze_mobile/providers/peg_operation_provider.dart';
 import 'package:mooze_mobile/providers/sideswap_repository_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
-import 'package:mooze_mobile/providers/wallet/network_fee_provider.dart';
-import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/screens/swap/providers/swap_input_provider.dart';
 import 'package:mooze_mobile/screens/swap/widgets/peg_details_display.dart';
