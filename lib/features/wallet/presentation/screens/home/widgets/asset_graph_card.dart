@@ -64,7 +64,7 @@ class SuccessfulAssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percentage = klines.last / klines.first;
+    final percentage = ((klines.last - klines.first) / klines.first) * 100;
     final isPositive = klines.last > klines.first;
     final assetValue = klines.last;
 

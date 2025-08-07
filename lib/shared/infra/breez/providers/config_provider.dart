@@ -24,7 +24,15 @@ final configProvider = FutureProvider<Config>((ref) async {
       network: network,
       paymentTimeoutSec: defaultBreezConfig.paymentTimeoutSec,
       useDefaultExternalInputParsers: defaultBreezConfig.useDefaultExternalInputParsers,
-      breezApiKey: breezApiKey
+      breezApiKey: breezApiKey,
+      assetMetadata: [
+        AssetMetadata(
+            assetId: "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
+            name: "DePix",
+            ticker: "DEPIX",
+            precision: 8
+        )
+      ]
   );
 
   return config;
