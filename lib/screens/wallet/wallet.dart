@@ -1,13 +1,19 @@
+import 'dart:io';
+
 import 'package:lwk/lwk.dart' as liquid;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/models/assets.dart';
 import 'package:mooze_mobile/providers/multichain/owned_assets_provider.dart';
 import 'package:mooze_mobile/screens/wallet/widgets/balance_display.dart';
 import 'package:mooze_mobile/screens/wallet/widgets/wallet_buttons.dart';
+import 'package:mooze_mobile/services/mooze/update.dart';
 import 'package:mooze_mobile/widgets/buttons.dart';
 import 'package:mooze_mobile/widgets/mooze_drawer.dart';
 import 'package:mooze_mobile/screens/wallet/widgets/coin_balance.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({Key? key}) : super(key: key);
@@ -22,6 +28,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkUpdate();
+    });
   }
 
   void _toggleBalanceVisibility() {
@@ -35,6 +44,44 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   ) async {
     final balances = await wallet.balances();
     return balances;
+  }
+
+  Future<void> checkUpdate() async {
+    if (!mounted) return;
+    
+    try {
+      final currentAppVersion = await UpdateService().getUpdateData().then((f) => f.currentVersion);
+      if (kDebugMode) {
+        debugPrint("Current app version: $currentAppVersion");
+        debugPrint("Local version: $currentVersion");
+      }
+
+      if (currentAppVersion != currentVersion && mounted) {
+        showDialog(context: context, builder: (context) => AlertDialog(
+          title: Text("Atualização disponível"), 
+          content: Text("Uma atualização está disponível para download. Ao clicar em Download, você será redirecionado ao site para baixar a nova atualização."),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  if (Platform.isIOS) {
+                    launchUrlString(
+                        "https://testflight.apple.com/join/BmxNjKb1",
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    launchUrlString("https://mooze.app", mode: LaunchMode.externalApplication);
+                  }
+                  Navigator.pop(context);
+                },
+                child: Text("Download"),
+            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("Ignorar"))
+          ],
+        ));
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint("Failed to get update status. $e");
+      return;
+    }
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {

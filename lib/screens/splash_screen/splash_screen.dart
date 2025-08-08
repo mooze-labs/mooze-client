@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/fiat/fiat_provider.dart';
+import 'package:mooze_mobile/providers/mooze/update_data_provider.dart';
 import 'package:mooze_mobile/providers/wallet/bitcoin_provider.dart';
 import 'package:mooze_mobile/providers/wallet/liquid_provider.dart';
 import 'package:mooze_mobile/providers/wallet/wallet_sync_provider.dart';
@@ -11,6 +13,7 @@ import 'package:mooze_mobile/repositories/wallet/bitcoin.dart';
 import 'package:mooze_mobile/screens/pin/verify_pin.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/services/mooze/registration.dart';
+import 'package:mooze_mobile/services/mooze/update.dart';
 import 'package:mooze_mobile/services/mooze/user.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
@@ -20,6 +23,7 @@ import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 String BACKEND_URL = String.fromEnvironment(
   "BACKEND_URL",
@@ -258,6 +262,39 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (kDebugMode) {
         print("No descriptor available, skipping preloadUserData");
       }
+    }
+  }
+
+  Future<void> checkUpdate() async {
+    if (!mounted) return;
+    
+    try {
+      final currentAppVersion = await UpdateService().getUpdateData().then((f) => f.currentVersion);
+      if (kDebugMode) {
+        debugPrint("Current app version: $currentAppVersion");
+        debugPrint("Local version: $currentVersion");
+      }
+
+      if (currentAppVersion != currentVersion && mounted) {
+        showDialog(context: context, builder: (context) => AlertDialog(
+          title: Text("Atualização disponível"), 
+          content: Text("Uma atualização está disponível para download. Ao clicar em Download, você será redirecionado ao site para baixar a nova atualização."),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  launchUrl(Uri.parse("https://mooze.app"),
+                      mode: LaunchMode.externalApplication);
+                  Navigator.pop(context);
+                },
+                child: Text("Download"),
+            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("Ignorar"))
+          ],
+        ));
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint("Failed to get update status. $e");
+      return;
     }
   }
 

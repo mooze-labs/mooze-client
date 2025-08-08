@@ -395,7 +395,7 @@ class SideswapRepository {
     _service.signQuote(quoteId, pset);
 
     // Add timeout
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 30), () {
       if (!completer.isCompleted) {
         completer.complete(null);
       }
