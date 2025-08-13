@@ -13,7 +13,7 @@ class NewTransactionScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back_ios)),
+        leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back_ios_new_rounded)),
         title: const Text("Enviar ativos")
       ),
       body: Padding(
