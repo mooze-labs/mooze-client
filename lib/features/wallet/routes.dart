@@ -14,6 +14,8 @@ final walletRoutes = [
       final currentLocation = state.uri.toString();
       return Scaffold(
         body: child,
+        extendBody: true,
+        resizeToAvoidBottomInset: false,
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: _getIndexFromLocation(currentLocation),
           onTap: (index) {
