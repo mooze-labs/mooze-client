@@ -8,7 +8,6 @@ class AssetPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0A0A0A),
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -22,19 +21,7 @@ class AssetPage extends StatelessWidget {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Color(0xFF0A0A0A),
-      elevation: 0,
-      title: Text(
-        'Ativos',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      centerTitle: true,
-    );
+    return AppBar(title: Text('Ativos'));
   }
 
   Widget _buildHeader() {
