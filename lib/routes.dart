@@ -1,4 +1,6 @@
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/phone_verification/routes.dart';
+import 'package:mooze_mobile/features/settings/routes.dart';
 
 import './features/pix/routes.dart';
 import './features/setup/routes.dart';
@@ -6,7 +8,7 @@ import './features/splash/presentation/screen.dart';
 import './features/wallet/routes.dart';
 
 final router = GoRouter(
-  initialLocation: '/splash',
+  initialLocation: '/menu',
   routes: [
     GoRoute(
       path: '/splash',
@@ -14,7 +16,9 @@ final router = GoRouter(
     ),
     ...pixRoutes,
     ...setupRoutes,
-    ...walletRoutes
+    ...walletRoutes,
+    ...phoneVerificarionRoutes,
+    ...settingsRoutes,
   ],
 );
 
