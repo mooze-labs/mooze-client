@@ -17,7 +17,7 @@ final router = GoRouter(
     ...pixRoutes,
     ...setupRoutes,
     ...walletRoutes,
-    ...phoneVerificarionRoutes,
+    ...phoneVerificationRoutes,
     ...settingsRoutes,
   ],
 );
