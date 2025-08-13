@@ -81,10 +81,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   }) {
     bool isSelected = widget.currentIndex == index;
 
-    print('widget.currentIndex : ${widget.currentIndex}');
-    print('isSelected : ${isSelected}');
-    print('index $index');
-
     return GestureDetector(
       onTap: () => widget.onTap(index),
       child: SizedBox(
