@@ -82,7 +82,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
             "Confirme sua frase",
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios),
+            icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
           ),
         ),
@@ -95,7 +95,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
         ),
         title: Text('Confirme sua Frase'),

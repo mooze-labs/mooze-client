@@ -69,7 +69,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
     return AppBar(
       title: const Text("Frase de Recuperação"),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded),
         onPressed: () =>
             context.go("/setup/create-wallet/configure-seeds"),
       ),
