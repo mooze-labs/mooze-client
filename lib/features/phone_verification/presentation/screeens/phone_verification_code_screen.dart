@@ -66,10 +66,8 @@ class _PhoneVerificationCodeScreenState
       _isResending = true;
     });
 
-    // Limpa o PIN
     _pinController.clear();
 
-    // Simula chamada de API para reenviar código
     await Future.delayed(const Duration(seconds: 2));
 
     setState(() {
