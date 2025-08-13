@@ -14,9 +14,7 @@ class MainSettingsScreen extends StatefulWidget {
 class _MainSettingsScreenState extends State<MainSettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(title: Text('Ajustes')),
       body: Stack(
         children: [
@@ -41,7 +39,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     title: 'Histórico de transações',
                     iconSvgPath:
                         'assets/new_ui_wallet/assets/icons/menu/settings/transaction.svg',
-                    action: Navigation(context: context, rota: '/transactions'),
+                    action: Navigation(context: context, rota: '/transactions-history'),
                   ),
                 ],
               ),
