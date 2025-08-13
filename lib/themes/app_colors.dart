@@ -37,6 +37,9 @@ class AppColors {
   // PIN Color
   static const Color pinBackground = Color(0xFF191818);
 
+  // Icon
+  static const Color primaryIconColor = Color(0xFF9DB2CE);
+
   static const ColorScheme darkColorScheme = ColorScheme.dark(
     brightness: Brightness.dark,
     // Primary
