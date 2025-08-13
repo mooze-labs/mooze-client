@@ -1,0 +1,39 @@
+import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/delete_wallet_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/license_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/support_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/view_mnemonic.dart';
+
+final settingsRoutes = [
+  GoRoute(
+    path: "/settings", 
+    builder: (context, state) => SettingsScreen(),
+  ),
+  GoRoute(
+    path: "/settings/delete-wallet",
+    builder: (context, state) => DeleteWalletScreen(),
+  ),
+  GoRoute(
+    path: '/settings/license',
+    builder: (context, state) => LicenseScreen(),
+  ),
+  GoRoute(
+    path: '/settings/terms',
+    builder: (context, state) => TermsAndConditionsScreen(),
+  ),
+  GoRoute(
+    path: '/settings/support',
+    builder: (context, state) => SupportScreen(),
+  ),
+  GoRoute(
+    path: '/settings/view-mnemonic',
+    builder: (context, state) => ViewMnemonicScreen(mnemonic: 'green paper red type wolf paper post miss bitcoin false bunker true',), /// TODO: GET mnemonic
+  ),
+  // TODO: FIX Firebase
+  // GoRoute(
+  //   path: '/settings/referral',
+  //   builder: (context, state) => ReferralInputScreen(),
+  // ),
+];
