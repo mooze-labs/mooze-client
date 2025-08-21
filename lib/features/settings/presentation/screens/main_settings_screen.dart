@@ -54,7 +54,17 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   ),
                 ],
               ),
-
+              SectionSettings(
+                title: 'CARTEIRA',
+                settingsItems: [
+                  ConfigStructure(
+                    title: 'Nivel da carteira',
+                    iconSvgPath:
+                        'assets/new_ui_wallet/assets/icons/menu/settings/wallet_level.svg',
+                    action: Navigation(context: context, rota: '/wallet-levels'),
+                  ),
+                ],
+              ),
               SectionSettings(
                 title: 'LINKS EXTERNOS',
                 settingsItems: [
