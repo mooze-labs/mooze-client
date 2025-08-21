@@ -131,7 +131,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
 
       if (didAuthenticate) {
         if (mounted) {
-          context.go("/setup/pin/new");
+          context.push("/setup/pin/new");
         }
       }
     } on PlatformException catch (e) {
@@ -154,6 +154,15 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
       canPop: true,
       child: Scaffold(
         backgroundColor: Colors.black,
+        appBar: AppBar(
+          title: Text('Validação de segurança'),
+          leading: IconButton(
+            onPressed: () {
+              context.pop();
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded),
+          ),
+        ),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
