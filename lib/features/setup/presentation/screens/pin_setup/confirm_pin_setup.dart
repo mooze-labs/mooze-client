@@ -58,14 +58,23 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
       ).showSnackBar(SnackBar(content: Text(failure.toString()))),
       (_) {
         ref.invalidate(mnemonicProvider);
-        context.go("/splash");
-      }
+        context.go("/home");
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Confirmar PIN'),
+        leading: IconButton(
+          onPressed: () {
+            context.pop();
+          },
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
