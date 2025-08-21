@@ -22,6 +22,7 @@ class AppColors {
   static const Color positiveColor = Color(0xFF32B153);
   static const Color negativeColor = Color(0xFFD73131);
   static const Color errorColor = Colors.red;
+  static const Color editColor = Colors.orangeAccent;
 
   // Surface Colors
   static const Color absoluteBlack = Color(0xFF000000);
