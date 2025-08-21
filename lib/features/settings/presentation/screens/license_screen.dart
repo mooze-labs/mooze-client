@@ -101,7 +101,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
     return AppBar(
       title: const Text('Licença GPL v3'),
       leading: IconButton(
-        onPressed: () => context.go('/settings'),
+        onPressed: () => context.pop(),
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
         tooltip: 'Voltar',
       ),
@@ -134,7 +134,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
             Center(child: Text('FIM DOS TERMOS E CONDIÇÕES')),
             const SizedBox(height: 16),
             _buildFooter(colorScheme),
-            const SizedBox(height: 100), 
+            const SizedBox(height: 100),
           ]),
         ),
       ],
@@ -572,7 +572,6 @@ class _LicenseScreenState extends State<LicenseScreen> {
   String _getPreview(String content) {
     return content.length > 100 ? '${content.substring(0, 100)}...' : content;
   }
-
 
   List<LicenseSection> _getLicenseSections() {
     return [

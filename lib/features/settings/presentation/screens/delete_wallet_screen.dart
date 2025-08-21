@@ -24,7 +24,7 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () {
-            context.go('/settings');
+            context.pop();
           },
         ),
       ),
