@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/referral_input/referral_input_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/delete_wallet_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/license_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
@@ -31,9 +32,8 @@ final settingsRoutes = [
     path: '/settings/view-mnemonic',
     builder: (context, state) => ViewMnemonicScreen(mnemonic: 'green paper red type wolf paper post miss bitcoin false bunker true',), /// TODO: GET mnemonic
   ),
-  // TODO: FIX Firebase
-  // GoRoute(
-  //   path: '/settings/referral',
-  //   builder: (context, state) => ReferralInputScreen(),
-  // ),
+  GoRoute(
+    path: '/settings/referral',
+    builder: (context, state) => ReferralInputScreen(),
+  ),
 ];
