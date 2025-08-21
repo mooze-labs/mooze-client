@@ -20,7 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () {
-            context.go('/menu');
+            context.pop();
           },
         ),
       ),
@@ -47,7 +47,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'assets/new_ui_wallet/assets/icons/menu/settings/key.svg',
                     action: Navigation(
                       context: context,
-                      rota: '/setup/pin/verify', // TODO: Implement to call the /setup/pin/new screen when the verification returns true
+                      rota: '/setup/pin/verify',
+                      verifyPinArgs: VerifyPinArgs(
+                        onPinConfirmed: () {
+                          context.push('/setup/pin/new');
+                        },
+                        forceAuth: true,
+                      ),
                     ),
                   ),
                   ConfigStructure(
