@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fpdart/fpdart.dart';
-import 'package:mooze_mobile/features/wallet/domain/errors.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:shimmer/shimmer.dart';
-
-import '../providers/visibility_provider.dart';
 
 const double logoOpacity = 0.2;
-const String logoPath = 'assets/logos/logo_primary.svg';
+const String logoPath = 'assets/new_ui_wallet/assets/logos/logo_primary.svg';
 const double logoWidth = 117.0;
 const double logoHeight = 24.0;
 
