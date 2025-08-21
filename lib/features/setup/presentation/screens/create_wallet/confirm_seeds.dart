@@ -78,17 +78,13 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     if (_isLoading || !_hasValidData) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(
-            "Confirme sua frase",
-          ),
+          title: Text("Confirme sua frase"),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
+            onPressed: () => context.pop(),
           ),
         ),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -96,9 +92,9 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.go("/setup/create-wallet/configure-seeds"),
+          onPressed: () => context.pop(),
         ),
-        title: Text('Confirme sua Frase'),
+        title: Text('Confirme sua frase'),
       ),
       body: Padding(
         padding: EdgeInsets.all(24),
@@ -188,7 +184,8 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     if (_checkInputs()) {
       await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
       if (mounted) {
-        context.go("/setup/pin/new");
+        selectedWords.clear();
+        context.push("/setup/pin/new");
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
