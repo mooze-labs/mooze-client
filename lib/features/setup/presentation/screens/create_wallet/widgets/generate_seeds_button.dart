@@ -24,7 +24,7 @@ class GenerateSeedsButton extends ConsumerWidget {
               .read(mnemonicControllerProvider)
               .generateMnemonic(extendedPhrase);
 
-          context.go("/setup/create-wallet/display-seeds", extra: mnemonic);
+          context.push("/setup/create-wallet/display-seeds", extra: mnemonic);
         }
       },
     );
