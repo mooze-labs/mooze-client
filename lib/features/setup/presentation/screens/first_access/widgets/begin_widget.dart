@@ -18,7 +18,7 @@ class BeginWidget extends ConsumerWidget {
         text: 'Criar Carteira',
         onPressed: termsAccepted
             ? () {
-                context.go("/setup/create-wallet/configure-seeds");
+                context.push("/setup/create-wallet/configure-seeds");
               }
             : null,
         isEnabled: termsAccepted,

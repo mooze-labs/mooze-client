@@ -13,8 +13,8 @@ class ImportWalletScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text("Importar carteira"),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => context.go("/setup/first-access"),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => context.pop(),
         ),
       ),
       body: Center(

@@ -17,7 +17,7 @@ class ImportWalletWidget extends ConsumerWidget {
           overlayColor: WidgetStateProperty.all(Colors.transparent), 
           splashFactory: NoSplash.splashFactory, 
       ),
-      onPressed: hasAcceptedTerms ? () => context.go("/setup/import-wallet") : null,
+      onPressed: hasAcceptedTerms ? () => context.push("/setup/import-wallet") : null,
       child: Text(
         'Importar carteira',
         style: textStyle.copyWith(

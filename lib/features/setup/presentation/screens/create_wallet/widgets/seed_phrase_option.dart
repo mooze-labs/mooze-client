@@ -41,7 +41,6 @@ class SeedPhraseOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Título e ícone de seleção
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -74,7 +73,6 @@ class SeedPhraseOption extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Descrição
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(

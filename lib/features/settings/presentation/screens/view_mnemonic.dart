@@ -70,7 +70,7 @@ class _ViewMnemonicScreenState extends ConsumerState<ViewMnemonicScreen> {
 
   void _redirectToConfigureSeeds(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.go("/setup/create-wallet/configure-seeds");
+      context.push("/setup/create-wallet/configure-seeds");
     });
   }
 
@@ -79,7 +79,7 @@ class _ViewMnemonicScreenState extends ConsumerState<ViewMnemonicScreen> {
       title: const Text("Frase de Recuperação"),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        onPressed: () => context.go("/settings"),
+        onPressed: () => context.pop(),
       ),
     );
   }

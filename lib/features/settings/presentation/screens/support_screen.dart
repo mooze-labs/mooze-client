@@ -37,7 +37,7 @@ class _SupportScreenState extends State<SupportScreen> {
       appBar: AppBar(
         title: Text('Central de Suporte'),
         leading: IconButton(
-          onPressed: () => context.go('/settings'),
+          onPressed: () => context.pop(),
           icon: Icon(Icons.arrow_back_ios_new_rounded),
         ),
       ),

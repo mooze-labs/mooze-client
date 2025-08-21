@@ -59,7 +59,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
   }
 
   void _goToConfirmSeeds(BuildContext context) {
-    context.go(
+    context.push(
       "/setup/create-wallet/confirm-seeds",
       extra: mnemonic,
     );

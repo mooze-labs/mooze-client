@@ -44,12 +44,21 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
       return;
     }
 
-    context.go('/setup/pin/confirm', extra: pin);
+    context.push('/setup/pin/confirm', extra: pin);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Criar PIN'),
+        leading: IconButton(
+          onPressed: () {
+            context.pop();
+          },
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -83,7 +92,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
                       text: 'PIN ',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     TextSpan(
@@ -92,7 +101,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
                     ),
                   ],
                 ),
-                textAlign: TextAlign.center
+                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 50),
