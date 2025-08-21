@@ -3,14 +3,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 
-class MnemonicInputField extends ConsumerWidget {
+class MnemonicInputField extends ConsumerStatefulWidget {
   const MnemonicInputField({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MnemonicInputField> createState() => _MnemonicInputFieldState();
+}
+
+class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialValue = ref.read(mnemonicInputProvider);
+    _controller = TextEditingController(text: initialValue);
+    _controller.addListener(() {
+      ref.read(mnemonicInputProvider.notifier).state = _controller.text;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return TextField(
-      onChanged:
-          (value) => ref.read(mnemonicInputProvider.notifier).state = value,
+      controller: _controller,
       decoration: InputDecoration(
         hintText: 'Digite sua frase de recuperação',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -18,7 +40,8 @@ class MnemonicInputField extends ConsumerWidget {
       minLines: 3,
       maxLines: 5,
       textAlign: TextAlign.left,
-      keyboardType: TextInputType.visiblePassword,
+      keyboardType: TextInputType.multiline,
+      enableInteractiveSelection: true,
     );
   }
 }
