@@ -35,7 +35,6 @@ final setupRoutes = [
     builder: (context, state) {
       final pin = state.extra as String?;
       if (pin == null) {
-        // Redirect to new pin setup if no PIN is provided
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.go("/setup/pin/new");
         });
