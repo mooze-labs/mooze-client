@@ -25,23 +25,25 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
-        color: widget.hasError
-            ? widget.colorScheme.errorContainer.withOpacity(0.1)
-            : _codeCopied
-                ? widget.colorScheme.primaryContainer.withOpacity(0.3)
+        color:
+            widget.hasError
+                ? widget.colorScheme.errorContainer.withValues(alpha: 0.1)
+                : _codeCopied
+                ? widget.colorScheme.primaryContainer.withValues(alpha: 0.3)
                 : widget.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.hasError
-              ? widget.colorScheme.error.withOpacity(0.3)
-              : _codeCopied
-                  ? widget.colorScheme.primary.withOpacity(0.3)
-                  : widget.colorScheme.outline.withOpacity(0.2),
+          color:
+              widget.hasError
+                  ? widget.colorScheme.error.withValues(alpha: 0.3)
+                  : _codeCopied
+                  ? widget.colorScheme.primary.withValues(alpha: 0.3)
+                  : widget.colorScheme.outline.withValues(alpha: 0.2),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.colorScheme.shadow.withOpacity(0.05),
+            color: widget.colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -54,27 +56,37 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
             Row(
               children: [
                 Icon(
-                  widget.hasError ? Icons.error_rounded : Icons.fingerprint_rounded,
-                  color: widget.hasError ? widget.colorScheme.error : widget.colorScheme.primary,
+                  widget.hasError
+                      ? Icons.error_rounded
+                      : Icons.fingerprint_rounded,
+                  color:
+                      widget.hasError
+                          ? widget.colorScheme.error
+                          : widget.colorScheme.primary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    widget.hasError ? 'Erro ao carregar código' : 'Código único',
+                    widget.hasError
+                        ? 'Erro ao carregar código'
+                        : 'Código único',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: widget.hasError
-                          ? widget.colorScheme.error
-                          : widget.colorScheme.onSurface,
+                      color:
+                          widget.hasError
+                              ? widget.colorScheme.error
+                              : widget.colorScheme.onSurface,
                     ),
                   ),
                 ),
                 if (!widget.hasError)
                   IconButton(
                     onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: widget.userId));
+                      await Clipboard.setData(
+                        ClipboardData(text: widget.userId),
+                      );
                       setState(() {
                         _codeCopied = true;
                       });
@@ -87,9 +99,12 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
                     },
                     icon: Icon(
                       _codeCopied ? Icons.check_rounded : Icons.copy_rounded,
-                      color: _codeCopied
-                          ? widget.colorScheme.primary
-                          : widget.colorScheme.onSurface.withOpacity(0.5),
+                      color:
+                          _codeCopied
+                              ? widget.colorScheme.primary
+                              : widget.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                       size: 20,
                     ),
                   ),
@@ -101,9 +116,10 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: widget.hasError
-                    ? widget.colorScheme.error
-                    : widget.colorScheme.onSurface.withOpacity(0.7),
+                color:
+                    widget.hasError
+                        ? widget.colorScheme.error
+                        : widget.colorScheme.onSurface.withValues(alpha: 0.7),
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

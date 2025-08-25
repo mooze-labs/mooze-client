@@ -11,7 +11,7 @@ class InfoRow extends StatelessWidget {
   final double? fontSize;
 
   const InfoRow({
-    Key? key,
+    super.key,
     required this.label,
     required this.value,
     this.labelColor,
@@ -19,7 +19,7 @@ class InfoRow extends StatelessWidget {
     this.labelFontWeight,
     this.valueFontWeight,
     this.fontSize = 14,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,7 @@ class InfoRow extends StatelessWidget {
             fontWeight: labelFontWeight ?? FontWeight.normal,
           ),
         ),
-        SizedBox(width: 8), 
+        SizedBox(width: 8),
         Text(
           value,
           style: TextStyle(
@@ -59,14 +59,14 @@ class ShimmerInfoRow extends StatelessWidget {
   final double? shimmerHeight;
 
   const ShimmerInfoRow({
-    Key? key,
+    super.key,
     required this.label,
     this.labelColor,
     this.labelFontWeight,
     this.fontSize = 14,
     this.shimmerWidth = 80,
     this.shimmerHeight = 16,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

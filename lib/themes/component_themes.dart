@@ -27,7 +27,7 @@ class ComponentThemes {
   /// Card Theme
   static CardThemeData get cardTheme => CardThemeData(
     color: AppColors.backgroundCard,
-    shadowColor: AppColors.absoluteBlack.withOpacity(0.5),
+    shadowColor: AppColors.absoluteBlack.withValues(alpha: 0.5),
     elevation: 4,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
   );
@@ -149,7 +149,7 @@ class ComponentThemes {
       if (states.contains(WidgetState.disabled)) {
         return Colors.black;
       }
-      return AppColors.onPrimaryColor; 
+      return AppColors.onPrimaryColor;
     }),
     fillColor: WidgetStateProperty.resolveWith<Color>((states) {
       if (states.contains(WidgetState.disabled)) {

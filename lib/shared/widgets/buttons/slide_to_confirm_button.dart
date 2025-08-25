@@ -4,13 +4,17 @@ class SlideToConfirmButton extends StatefulWidget {
   final VoidCallback onSlideComplete;
   final String text;
 
-  const SlideToConfirmButton({required this.onSlideComplete, required this.text});
+  const SlideToConfirmButton({
+    super.key,
+    required this.onSlideComplete,
+    required this.text,
+  });
 
   @override
-  _SlideToConfirmButtonState createState() => _SlideToConfirmButtonState();
+  SlideToConfirmButtonState createState() => SlideToConfirmButtonState();
 }
 
-class _SlideToConfirmButtonState extends State<SlideToConfirmButton>
+class SlideToConfirmButtonState extends State<SlideToConfirmButton>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _slideAnimation;

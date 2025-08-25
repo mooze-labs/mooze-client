@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/data/datasources/pix_deposit_db.dart';
 
 import 'package:mooze_mobile/features/pix/domain/repositories.dart';

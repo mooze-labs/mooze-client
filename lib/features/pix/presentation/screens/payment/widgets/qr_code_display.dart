@@ -1,18 +1,18 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-
-import '../providers/pix_copypaste_provider.dart';
-
 import '../consts.dart';
 
 class PixQrCodeDisplay extends StatelessWidget {
   final BoxConstraints boxConstraints;
   final String pixQrData;
 
-  const PixQrCodeDisplay({super.key, required this.pixQrData, required this.boxConstraints});
+  const PixQrCodeDisplay({
+    super.key,
+    required this.pixQrData,
+    required this.boxConstraints,
+  });
 
   @override
   Widget build(BuildContext context) {

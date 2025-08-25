@@ -11,7 +11,7 @@ class FloatingLabelDropdown<T> extends StatelessWidget {
   final Color backgroundColor;
 
   const FloatingLabelDropdown({
-    Key? key,
+    super.key,
     required this.label,
     required this.value,
     required this.items,
@@ -20,7 +20,7 @@ class FloatingLabelDropdown<T> extends StatelessWidget {
     required this.itemLabelBuilder,
     this.borderColor = const Color(0xFFE91E63),
     this.backgroundColor = Colors.black,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -39,31 +39,29 @@ class FloatingLabelDropdown<T> extends StatelessWidget {
             underline: Container(),
             dropdownColor: Color(0xFF2A2A2A),
             icon: Icon(Icons.arrow_drop_down, color: Colors.white),
-            items: items.map((T item) {
-              return DropdownMenuItem<T>(
-                value: item,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: itemIconBuilder(item),
+            items:
+                items.map((T item) {
+                  return DropdownMenuItem<T>(
+                    value: item,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: itemIconBuilder(item),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          itemLabelBuilder(item),
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 12),
-                    Text(
-                      itemLabelBuilder(item),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
             onChanged: onChanged,
           ),
         ),

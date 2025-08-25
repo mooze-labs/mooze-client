@@ -1,19 +1,17 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/extensions/responsive_extensions.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/currency_input_formater.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/info_row.dart';
 
-
 class PixValueInputWidget extends StatelessWidget {
   final TextEditingController valueController;
 
-  const PixValueInputWidget({
-    Key? key,
-    required this.valueController,
-  }) : super(key: key);
+  const PixValueInputWidget({super.key, required this.valueController});
 
-    // Constants - Colors
+  // Constants - Colors
   static const Color _backgroundColor = Color(0xFF0A0A0A);
   static const Color _cardBackground = Color(0xFF191818);
   static const Color _primaryColor = Color(0xFFEA1E63);
@@ -70,7 +68,7 @@ class PixValueInputWidget extends StatelessWidget {
       controller: valueController,
       style: TextStyle(
         color: Colors.white,
-        fontSize: context.responsiveFont(36), 
+        fontSize: context.responsiveFont(36),
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
       ),
@@ -95,7 +93,7 @@ class PixValueInputWidget extends StatelessWidget {
 
   Widget _buildLimitsSection(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end, 
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         InfoRow(
           label: 'Limite atual',

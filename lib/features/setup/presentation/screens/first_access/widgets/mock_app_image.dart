@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 
 class MockAppImage extends StatelessWidget {
   const MockAppImage({super.key});

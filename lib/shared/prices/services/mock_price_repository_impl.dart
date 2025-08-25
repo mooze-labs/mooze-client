@@ -10,10 +10,14 @@ class MockPriceServiceImpl extends PriceService {
 
   MockPriceServiceImpl(Currency currency) : _currency = currency;
 
+  @override
   String get currency => _currency.name;
 
   @override
-  TaskEither<String, Option<double>> getCoinPrice(Asset asset, {Currency? optionalCurrency}) {
+  TaskEither<String, Option<double>> getCoinPrice(
+    Asset asset, {
+    Currency? optionalCurrency,
+  }) {
     if (_currency == Currency.brl) {
       return TaskEither.right(Option.of(630000.0));
     }

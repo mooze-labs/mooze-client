@@ -7,12 +7,12 @@ class TertiaryButton extends StatelessWidget {
   final bool isEnabled;
 
   const TertiaryButton({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,
     this.isEnabled = true,
-  }) : super(key: key);
+  });
 
   static const Color _backgroundColor = Color(0xFF2B2D33);
   static const Color _textColor = Colors.white;
@@ -21,11 +21,7 @@ class TertiaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: isEnabled ? onPressed : null,
-      icon: Icon(
-        icon,
-        size: 18,
-        color: _textColor,
-      ),
+      icon: Icon(icon, size: 18, color: _textColor),
       label: Text(
         label,
         style: const TextStyle(

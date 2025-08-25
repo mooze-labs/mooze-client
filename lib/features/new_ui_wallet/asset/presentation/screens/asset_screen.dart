@@ -5,6 +5,8 @@ import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/a
 
 // Tela principal de Ativos
 class AssetPage extends StatelessWidget {
+  const AssetPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,7 +59,7 @@ class AssetPage extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

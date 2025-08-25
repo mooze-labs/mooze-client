@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,12 +32,13 @@ class PixValueInputWidget extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Text('Valor do PIX',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: context.responsiveFont(20),
-                  fontWeight: FontWeight.w500
-              )
+          Text(
+            'Valor do PIX',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: context.responsiveFont(20),
+              fontWeight: FontWeight.w500,
+            ),
           ),
           PixDepositAmountInput(),
           AccountLimitsDisplay(),
@@ -74,33 +77,33 @@ class PixDepositAmountInput extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final depositAmountInput = ref.read(depositAmountProvider.notifier);
     return TextField(
-        controller: controller,
-        style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimary,
-            fontSize: context.responsiveFont(36),
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2
+      controller: controller,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onPrimary,
+        fontSize: context.responsiveFont(36),
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
+      ),
+      textAlign: TextAlign.center,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        hintText: 'R\$ 00,00',
+        hintStyle: TextStyle(
+          color: Colors.white38,
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
         ),
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: 'R\$ 00,00',
-          hintStyle: TextStyle(
-            color: Colors.white38,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-          contentPadding: EdgeInsets.zero,
-        ),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          CurrencyInputFormatter()
-        ],
-        onChanged: (val) {
-          String cleanValue = val.replaceAll('R\$ ', '').replaceAll(',', '.');
-          depositAmountInput.state = double.tryParse(cleanValue) ?? 0.0;
-        }
+        contentPadding: EdgeInsets.zero,
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        CurrencyInputFormatter(),
+      ],
+      onChanged: (val) {
+        String cleanValue = val.replaceAll('R\$ ', '').replaceAll(',', '.');
+        depositAmountInput.state = double.tryParse(cleanValue) ?? 0.0;
+      },
     );
   }
 }

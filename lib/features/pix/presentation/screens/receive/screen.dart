@@ -12,6 +12,8 @@ import 'providers.dart';
 import 'widgets.dart';
 
 class ReceivePixScreen extends ConsumerStatefulWidget {
+  const ReceivePixScreen({super.key});
+
   @override
   ConsumerState<ConsumerStatefulWidget> createState() =>
       _ReceivePixScreenState();
@@ -56,24 +58,23 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
 
     controller.fold(
       (err) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(err)));
+        }
       },
       (controller) async => await controller
           .newDeposit(amountInCents, selectedAsset)
           .run()
           .then(
-            (maybeDeposit) => maybeDeposit.fold(
-              (err) => {
-                if (mounted)
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(err))),
-              },
-              (deposit) => context.go("/pix/payment/${deposit.depositId}"),
-            ),
+            (maybeDeposit) => maybeDeposit.fold((err) {
+              if (mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(err)));
+              }
+            }, (deposit) => context.go("/pix/payment/${deposit.depositId}")),
           ),
     );
   }

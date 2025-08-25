@@ -43,7 +43,7 @@ class PinThemes {
     decoration: BoxDecoration(
       border: Border.all(color: AppColors.negativeColor, width: 2),
       borderRadius: BorderRadius.circular(8),
-      color: AppColors.negativeColor.withOpacity(0.1),
+      color: AppColors.negativeColor.withValues(alpha: 0.1),
     ),
   );
 
@@ -57,7 +57,7 @@ class PinThemes {
     decoration: BoxDecoration(
       border: Border.all(color: AppColors.textTertiary),
       borderRadius: BorderRadius.circular(8),
-      color: AppColors.textTertiary.withOpacity(0.1),
+      color: AppColors.textTertiary.withValues(alpha: 0.1),
     ),
   );
 }

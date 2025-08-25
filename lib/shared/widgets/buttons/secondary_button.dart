@@ -6,11 +6,11 @@ class SecondaryButton extends StatelessWidget {
   final bool isEnabled;
 
   const SecondaryButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.isEnabled = true,
-  }) : super(key: key);
+  });
 
   static const Color _primaryColor = Color(0xFFFF2D84);
 
@@ -25,16 +25,11 @@ class SecondaryButton extends StatelessWidget {
           foregroundColor: _primaryColor,
           side: const BorderSide(color: _primaryColor),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -5,12 +7,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
   final List<Widget>? actions;
 
-  const CustomAppBar({
-    Key? key,
-    required this.title,
-    this.onBack,
-    this.actions,
-  }) : super(key: key);
+  const CustomAppBar({Key? key, required this.title, this.onBack, this.actions})
+    : super(key: key);
 
   // Constants - Colors
   static const Color _backgroundColor = Color(0xFF0A0A0A);

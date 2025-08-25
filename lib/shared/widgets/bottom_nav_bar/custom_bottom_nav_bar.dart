@@ -8,10 +8,10 @@ class CustomBottomNavBar extends StatefulWidget {
   final Function(int) onTap;
 
   const CustomBottomNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomBottomNavBar> createState() => _CustomBottomNavBarState();
@@ -93,7 +93,13 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               icon,
               width: 25,
               height: 25,
-              color: isSelected ? AppColors.primaryColor : null,
+              colorFilter:
+                  isSelected
+                      ? ColorFilter.mode(
+                        AppColors.primaryColor,
+                        BlendMode.srcIn,
+                      )
+                      : null,
             ),
             const SizedBox(height: 4),
             isSelected
@@ -128,7 +134,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE91E63).withOpacity(0.4),
+              color: const Color(0xFFE91E63).withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),

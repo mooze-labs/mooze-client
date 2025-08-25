@@ -6,11 +6,11 @@ class PrimaryButton extends StatelessWidget {
   final bool isEnabled;
 
   const PrimaryButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.isEnabled = true,
-  }) : super(key: key);
+  });
 
   // Constants
   static const Color _textPrimary = Colors.white;
@@ -21,13 +21,16 @@ class PrimaryButton extends StatelessWidget {
       width: double.infinity,
       height: 55,
       decoration: BoxDecoration(
-        boxShadow: isEnabled ? [
-          BoxShadow(
-            color: const Color(0x3D840BCD),
-            offset: const Offset(8, 8),
-            blurRadius: 24,
-          ),
-        ] : null,
+        boxShadow:
+            isEnabled
+                ? [
+                  BoxShadow(
+                    color: const Color(0x3D840BCD),
+                    offset: const Offset(8, 8),
+                    blurRadius: 24,
+                  ),
+                ]
+                : null,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ElevatedButton(

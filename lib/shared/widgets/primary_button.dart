@@ -6,11 +6,11 @@ class PrimaryButton extends StatelessWidget {
   final bool isEnabled;
 
   const PrimaryButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.isEnabled = true,
-  }) : super(key: key);
+  });
 
   // Constants
   static const Color _primaryColor = Color(0xFFFF2D84);
