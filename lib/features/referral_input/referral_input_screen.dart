@@ -1,39 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/features/settings/presentation/screens/support_screen.dart';
 import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
-import 'package:mooze_mobile/shared/user/services/mock_referral_service.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/mooze/user.dart';
 
-const BACKEND_URL = String.fromEnvironment(
-  "BACKEND_URL",
-  defaultValue: "api.mooze.app",
-);
+import 'providers/referral_input_provider.dart';
 
-class ReferralInputScreen extends StatefulWidget {
+class ReferralInputScreen extends ConsumerStatefulWidget {
   const ReferralInputScreen({super.key});
 
   @override
-  State<ReferralInputScreen> createState() => _ReferralInputScreenState();
+  ConsumerState<ReferralInputScreen> createState() =>
+      _ReferralInputScreenState();
 }
 
-class _ReferralInputScreenState extends State<ReferralInputScreen>
+class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
     with TickerProviderStateMixin {
   final TextEditingController _referralCodeController = TextEditingController();
-  final userService = MockUserService();
-  // TODO: Remove MOCK
-  // final ReferralService _referralService = ReferralService(
-  //   backendUrl: BACKEND_URL,
-  // );
-  // final userService = UserService(backendUrl: BACKEND_URL);
-  final MockReferralService _referralService = MockReferralService();
-  final UserService _userService = UserService(backendUrl: BACKEND_URL);
-  String? _existingReferralCode;
-  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -55,30 +40,7 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _checkExistingReferralCode();
     _animationController.forward();
-  }
-
-  Future<void> _checkExistingReferralCode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final existingCode = prefs.getString('referralCode');
-
-    final userDetails = await _userService.getUserDetails();
-    if (userDetails?.referredBy != null) {
-      setState(() {
-        _existingReferralCode = userDetails!.referredBy;
-      });
-      if (existingCode == null) {
-        await prefs.setString('referralCode', userDetails!.referredBy!);
-      }
-      return;
-    }
-
-    if (existingCode != null) {
-      setState(() {
-        _existingReferralCode = existingCode;
-      });
-    }
   }
 
   @override
@@ -88,107 +50,18 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
     super.dispose();
   }
 
-  Future<void> _validateReferralCode() async {
-    final referralCode = _referralCodeController.text.trim().toUpperCase();
-    if (referralCode.isEmpty) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-    
-    await Future.delayed(Duration(seconds: 3));
-    // final userId = await userService.getUserId(); // TODO: Remove MOCK and add userId in validateReferralCode
-
-    final result = await _referralService.validateReferralCode(referralCode).run();
-
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    result.match(
-      (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('Código inválido. Verifique e tente novamente.'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      },
-
-      (isValid) async {
-        if (isValid) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('referralCode', referralCode);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Código válido! Desconto aplicado com sucesso.',
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-
-          await _checkExistingReferralCode();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Código inválido. Verifique e tente novamente.'),
-                ],
-              ),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        }
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final state = ref.watch(referralInputControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Código de Indicação'),
+        title: const Text('Código de Indicação'),
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
       ),
       body: FadeTransition(
@@ -217,7 +90,9 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                             ),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
+                              color: const Color(
+                                0xFF4CAF50,
+                              ).withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),
@@ -287,8 +162,8 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                                 'Digite seu código de indicação e aproveite descontos exclusivos em todas as taxas da plataforma.',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: colorScheme.onPrimary.withValues(alpha: 
-                                    0.7,
+                                  color: colorScheme.onPrimary.withValues(
+                                    alpha: 0.7,
                                   ),
                                   height: 1.5,
                                 ),
@@ -300,7 +175,7 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
 
                         const SizedBox(height: 32),
 
-                        if (_existingReferralCode != null)
+                        if (state.existingReferralCode != null)
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 400),
                             padding: const EdgeInsets.all(20),
@@ -329,7 +204,9 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.2),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         borderRadius: BorderRadius.circular(24),
                                       ),
                                       child: const Icon(
@@ -354,12 +231,12 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Código: $_existingReferralCode',
+                                            'Código: ${state.existingReferralCode}',
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
-                                              color: Colors.white.withValues(alpha: 
-                                                0.9,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.9,
                                               ),
                                             ),
                                           ),
@@ -381,7 +258,9 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                                     children: [
                                       Icon(
                                         Icons.savings_rounded,
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.9,
+                                        ),
                                         size: 18,
                                       ),
                                       const SizedBox(width: 8),
@@ -391,8 +270,8 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w500,
-                                            color: Colors.white.withValues(alpha: 
-                                              0.9,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.9,
                                             ),
                                           ),
                                         ),
@@ -491,13 +370,27 @@ class _ReferralInputScreenState extends State<ReferralInputScreen>
                   ),
                 ),
 
-                if (_existingReferralCode == null) ...[
+                if (state.existingReferralCode == null) ...[
                   const SizedBox(height: 24),
                   PrimaryButton(
                     onPressed:
-                        _isLoading ? null : () => _validateReferralCode(),
-                    text: _isLoading ? 'Validando...' : 'Aplicar Código',
-                    isEnabled: !_isLoading,
+                        state.isLoading
+                            ? null
+                            : () {
+                              final code =
+                                  _referralCodeController.text
+                                      .trim()
+                                      .toUpperCase();
+                              if (code.isNotEmpty) {
+                                ref
+                                    .read(
+                                      referralInputControllerProvider.notifier,
+                                    )
+                                    .validateReferralCode(code);
+                              }
+                            },
+                    text: state.isLoading ? 'Validando...' : 'Aplicar Código',
+                    isEnabled: !state.isLoading,
                   ),
                   const SizedBox(height: 25),
                 ],
