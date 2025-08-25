@@ -1,8 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
 import '../providers/terms_acceptance_provider.dart';
-import 'package:mooze_mobile/screens/settings/terms_and_conditions.dart';
 
 class TermsDefinitionWidget extends ConsumerWidget {
   const TermsDefinitionWidget({super.key});
