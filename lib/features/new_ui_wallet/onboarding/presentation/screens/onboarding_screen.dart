@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/onboarding/data/onboarding_page_data.dart';
-import 'package:mooze_mobile/widgets/buttons.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
