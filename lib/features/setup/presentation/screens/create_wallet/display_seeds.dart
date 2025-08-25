@@ -71,7 +71,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
         onPressed: () =>
-            context.go("/setup/create-wallet/configure-seeds"),
+            context.pop(),
       ),
     );
   }
