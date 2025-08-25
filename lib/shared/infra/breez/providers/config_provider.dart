@@ -32,7 +32,8 @@ final configProvider = FutureProvider<Config>((ref) async {
             ticker: "DEPIX",
             precision: 8
         )
-      ]
+      ],
+      useMagicRoutingHints: true
   );
 
   return config;
