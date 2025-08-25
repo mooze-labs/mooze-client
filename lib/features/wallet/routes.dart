@@ -3,10 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/screens/asset_screen.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
-import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/home.dart';
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
 
-import 'presentation/screens/home/home.dart';
+import '../swap/presentation/screens/swap_screen.dart';
 
 final walletRoutes = [
   ShellRoute(
@@ -45,13 +45,13 @@ final walletRoutes = [
         path: '/home',
         pageBuilder:
             (context, state) => NoTransitionPage(
-              child: HomeScreen(),
+              child:
+                  const HomeScreen(), //TODO fix home page image Unable to load asset: "assets/new_ui_wallet/assets/icons/asset/usdt.svg".
             ),
       ),
       GoRoute(
         path: '/asset',
-        pageBuilder:
-            (context, state) => NoTransitionPage(child: AssetPage()),
+        pageBuilder: (context, state) => NoTransitionPage(child: AssetPage()),
       ),
       GoRoute(
         path: '/pix',
@@ -61,13 +61,13 @@ final walletRoutes = [
       GoRoute(
         path: '/swap',
         pageBuilder:
-            (context, state) =>
-                const NoTransitionPage(child: SwapScreen()),
+            (context, state) => const NoTransitionPage(child: SwapScreen()),
       ),
       GoRoute(
         path: '/menu',
         pageBuilder:
-            (context, state) => const NoTransitionPage(child: MainSettingsScreen()),
+            (context, state) =>
+                const NoTransitionPage(child: MainSettingsScreen()),
       ),
     ],
   ),
