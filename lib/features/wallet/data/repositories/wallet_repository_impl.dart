@@ -305,7 +305,7 @@ TaskEither<WalletError, PrepareSendResponse> prepareAssetSendTransaction(
   Asset asset,
   double amount,
 ) {
-  final PayAmount_Asset payAmount = PayAmount_Asset(assetId: Asset.toId(asset), receiverAmount: amount, estimateAssetFees: false);
+  final PayAmount_Asset payAmount = PayAmount_Asset(toAsset: Asset.toId(asset), receiverAmount: amount, estimateAssetFees: false);
   final PrepareSendRequest prepareSendRequest = PrepareSendRequest(destination: destination, amount: payAmount);
 
   return TaskEither.tryCatch(() async => breez.prepareSendPayment(req: prepareSendRequest),
