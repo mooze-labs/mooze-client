@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -86,16 +87,16 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
   }
 
   void _verifyAndDeleteWallet(BuildContext context) {
-    context.push(
-      '/setup/pin/verify',
-      extra: (BuildContext context) async {
+    final verifyPinArgs = VerifyPinArgs(
+      onPinConfirmed: () async {
         final mnemonicHandler = MnemonicHandler();
         await mnemonicHandler.deleteMnemonic("mainWallet");
-
         if (context.mounted) {
           context.go('/setup/first-access');
         }
       },
+      forceAuth: true,
     );
+    context.push('/setup/pin/verify', extra: verifyPinArgs);
   }
 }
