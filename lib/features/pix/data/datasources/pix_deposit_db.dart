@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:fpdart/fpdart.dart';
 
-import 'package:mooze_mobile/database.dart';
+import 'package:mooze_mobile/database/database.dart';
 
 class PixDepositDatabase {
   final AppDatabase _database;
@@ -51,13 +51,16 @@ class PixDepositDatabase {
     String? blockchainTxid,
   }) {
     return TaskEither.tryCatch(() async {
-      await (_database.update(_database.deposits)..where(
-        (tbl) => tbl.depositId.equals(depositId),
-      )).write(DepositsCompanion(
-        status: Value(status),
-        assetAmount: assetAmount != null ? Value(assetAmount) : Value.absent(),
-        blockchainTxid: blockchainTxid != null ? Value(blockchainTxid) : Value.absent(),
-      ));
+      await (_database.update(_database.deposits)
+        ..where((tbl) => tbl.depositId.equals(depositId))).write(
+        DepositsCompanion(
+          status: Value(status),
+          assetAmount:
+              assetAmount != null ? Value(assetAmount) : Value.absent(),
+          blockchainTxid:
+              blockchainTxid != null ? Value(blockchainTxid) : Value.absent(),
+        ),
+      );
 
       return unit;
     }, (error, stackTrace) => error.toString());
