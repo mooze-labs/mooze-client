@@ -6,18 +6,20 @@ class Navigation extends SettingsActions {
   final String rota;
   final BuildContext context;
   final VerifyPinArgs? verifyPinArgs;
+  final Object? args;
 
   Navigation({
     required this.rota,
     required this.context,
     this.verifyPinArgs,
+    this.args
   });
 
   @override
   void execute() {
     context.push(
       rota,
-      extra: verifyPinArgs,
+      extra: verifyPinArgs ?? args,
     );
   }
 }
