@@ -100,7 +100,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
       title: Text('Termos de Uso'),
       leading: IconButton(
         onPressed: () {
-          context.go('/settings');
+          context.pop();
         },
         icon: Icon(Icons.arrow_back_ios_new_rounded),
       ),
