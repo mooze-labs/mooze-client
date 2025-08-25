@@ -5,7 +5,6 @@ import 'package:local_auth/local_auth.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
-import 'package:mooze_mobile/widgets/appbar.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
@@ -131,7 +130,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
 
       if (didAuthenticate) {
         if (mounted) {
-          context.push("/setup/pin/new");
+          widget.onPinConfirmed();
         }
       }
     } on PlatformException catch (e) {
@@ -145,7 +144,9 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: MoozeAppBar(title: "Validar PIN"),
+        appBar: AppBar(
+          title: const Text('Validar PIN'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
