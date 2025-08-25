@@ -16,96 +16,105 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Ajustes')),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              SectionSettings(
-                title: 'COMERCIANTE',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Modo comerciante',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/merchant.svg',
-                    action: Navigation(context: context, rota: '/menu'),
-                    highlight: true,
-                  ),
-                ],
-              ),
-              SectionSettings(
-                title: 'TRANSAÇÕES',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Histórico de transações',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/transaction.svg',
-                    action: Navigation(context: context, rota: '/transactions-history'),
-                  ),
-                ],
-              ),
-              SectionSettings(
-                title: 'CONFIGURAÇÕES',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Configurações',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/settings.svg',
-                    action: Navigation(context: context, rota: '/settings'),
-                  ),
-                ],
-              ),
-              SectionSettings(
-                title: 'CARTEIRA',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Nivel da carteira',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/wallet_level.svg',
-                    action: Navigation(context: context, rota: '/wallet-levels'),
-                  ),
-                ],
-              ),
-              SectionSettings(
-                title: 'LINKS EXTERNOS',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Saque de Depix',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/pix_out_line.svg',
-                    action: ExternalNavigation(
-                      rota: 'https://tally.so/r/w5EMVb',
-                      context: context,
+      body: SingleChildScrollView(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                SectionSettings(
+                  title: 'COMERCIANTE',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Modo comerciante',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/merchant.svg',
+                      action: Navigation(context: context, rota: '/merchant'),
+                      highlight: true,
                     ),
-                  ),
-                  ConfigStructure(
-                    title: 'Central de dados',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/data.svg',
-                    action: ExternalNavigation(
-                      rota: 'https://keepo.io/mooze.app/',
-                      context: context,
+                  ],
+                ),
+                SectionSettings(
+                  title: 'TRANSAÇÕES',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Histórico de transações',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/transaction.svg',
+                      action: Navigation(
+                        context: context,
+                        rota: '/transactions-history',
+                      ),
                     ),
-                  ),
-                  ConfigStructure(
-                    title: 'GitHub',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/github.svg',
-                    action: ExternalNavigation(
-                      rota: 'https://github.com/mooze-labs',
-                      context: context,
+                  ],
+                ),
+                SectionSettings(
+                  title: 'CONFIGURAÇÕES',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Configurações',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/settings.svg',
+                      action: Navigation(context: context, rota: '/settings'),
                     ),
-                  ),
-                ],
-              ),
-              SectionSettings(
-                title: 'VERSÃO',
-                settingsItems: [
-                  ConfigStructure(title: '2025.08.11(1)'),
-                ], // TODO: ADD version
-              ),
-            ],
-          ),
-        ],
+                  ],
+                ),
+                SectionSettings(
+                  title: 'CARTEIRA',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Nivel da carteira',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/wallet_level.svg',
+                      action: Navigation(
+                        context: context,
+                        rota: '/wallet-levels',
+                      ),
+                    ),
+                  ],
+                ),
+                SectionSettings(
+                  title: 'LINKS EXTERNOS',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Saque de Depix',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/pix_out_line.svg',
+                      action: ExternalNavigation(
+                        rota: 'https://tally.so/r/w5EMVb',
+                        context: context,
+                      ),
+                    ),
+                    ConfigStructure(
+                      title: 'Central de dados',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/data.svg',
+                      action: ExternalNavigation(
+                        rota: 'https://keepo.io/mooze.app/',
+                        context: context,
+                      ),
+                    ),
+                    ConfigStructure(
+                      title: 'GitHub',
+                      iconSvgPath:
+                          'assets/new_ui_wallet/assets/icons/menu/settings/github.svg',
+                      action: ExternalNavigation(
+                        rota: 'https://github.com/mooze-labs',
+                        context: context,
+                      ),
+                    ),
+                  ],
+                ),
+                SectionSettings(
+                  title: 'VERSÃO',
+                  settingsItems: [
+                    ConfigStructure(title: '2025.08.11(1)'),
+                  ], // TODO: ADD version
+                ),
+                SizedBox(height: 120),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

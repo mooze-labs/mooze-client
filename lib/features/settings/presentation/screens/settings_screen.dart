@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fpdart/fpdart.dart';
+
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/shared/key_management/store.dart';
+import 'package:mooze_mobile/shared/key_management/providers.dart';
 
-class SettingsScreen extends StatefulWidget {
+final seedProvider = FutureProvider<Either<String, Option<String>>>((
+  ref,
+) async {
+  final MnemonicStore mnemonicStore = ref.read(mnemonicStoreProvider);
+  return mnemonicStore.getMnemonic().run();
+});
+
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,7 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       ),
-
       body: Stack(
         children: [
           Column(
@@ -38,7 +49,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'assets/new_ui_wallet/assets/icons/menu/settings/security.svg',
                     action: Navigation(
                       context: context,
-                      rota: '/settings/view-mnemonic',
+                      rota: '/setup/pin/verify',
+                      verifyPinArgs: VerifyPinArgs(
+                        onPinConfirmed: () async {
+                          // Consome o provider
+                          final seed = await ref.read(seedProvider.future);
+
+                          seed.match(
+                            // erro
+                            (err) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro: $err')),
+                              );
+                            },
+                            (maybeSeed) {
+                              maybeSeed.match(
+                                () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Nenhuma seed encontrada.'),
+                                    ),
+                                  );
+                                },
+                                (seedValue) {
+                                  context.pushReplacement(
+                                    '/settings/view-mnemonic',
+                                    extra: seedValue,
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                        forceAuth: true,
+                      ),
                     ),
                   ),
                   ConfigStructure(
@@ -50,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       rota: '/setup/pin/verify',
                       verifyPinArgs: VerifyPinArgs(
                         onPinConfirmed: () {
-                          context.push('/setup/pin/new');
+                          context.pushReplacement('/setup/pin/new');
                         },
                         forceAuth: true,
                       ),
