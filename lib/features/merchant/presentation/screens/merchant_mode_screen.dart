@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
@@ -190,7 +191,16 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                        IconButton(
+                          onPressed: () {
+                            context.pop();
+                          },
+                          icon: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
                         Text(
                           'Modo comerciante',
                           style: TextStyle(
@@ -418,7 +428,9 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
                         });
                       }
                     },
-                    backgroundColor: AppColors.errorColor.withValues(alpha: 0.3),
+                    backgroundColor: AppColors.errorColor.withValues(
+                      alpha: 0.3,
+                    ),
                     foregroundColor: AppColors.errorColor,
                     icon: Icons.delete,
                   ),
