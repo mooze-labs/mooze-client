@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/confirm_swap_screen.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-class SwapScreen extends StatefulWidget {
+class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
 
   @override
-  State<SwapScreen> createState() => _SwapScreenState();
+  ConsumerState<SwapScreen> createState() => _SwapScreenState();
 }
 
-class _SwapScreenState extends State<SwapScreen> {
+class _SwapScreenState extends ConsumerState<SwapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,8 +176,7 @@ class _SwapScreenState extends State<SwapScreen> {
                       ),
                       TransparentTextButton(
                         text: 'MAX',
-                        onPressed: () {
-                        },
+                        onPressed: () {},
                         style: Theme.of(context).textTheme.labelLarge!.copyWith(
                           color: AppColors.primaryColor,
                         ),

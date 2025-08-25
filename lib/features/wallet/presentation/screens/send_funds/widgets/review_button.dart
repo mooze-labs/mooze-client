@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/widgets/buttons.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 import '../providers/address_provider.dart';
 import '../providers/amount_provider.dart';

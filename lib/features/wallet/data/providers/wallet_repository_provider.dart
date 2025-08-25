@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/providers/wallet/breez_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import '../repositories/wallet_repository_impl.dart';
 import '../repositories/fake_wallet_repository_impl.dart';
-import '../../../../providers/wallet/breez_provider.dart';
 
 part 'wallet_repository_provider.g.dart';
 
