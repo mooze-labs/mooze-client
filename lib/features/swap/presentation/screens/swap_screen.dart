@@ -18,10 +18,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      appBar: AppBar(
-        title: const Text('Swap'),
-        leading: Icon(Icons.arrow_back_ios_new_rounded),
-      ),
+      appBar: AppBar(title: const Text('Swap')),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Container(
