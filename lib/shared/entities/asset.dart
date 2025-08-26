@@ -51,4 +51,12 @@ enum Asset {
       Asset.btc => lbtcAssetId,
     };
   }
+
+  String get iconPath {
+    return switch (this) {
+      Asset.usdt => 'assets/new_ui_wallet/assets/icons/asset/tether.svg',
+      Asset.depix => 'assets/new_ui_wallet/assets/icons/asset/depix.svg',
+      Asset.btc => 'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
+    };
+  }
 }
