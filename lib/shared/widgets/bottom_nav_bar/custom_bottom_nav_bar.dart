@@ -23,7 +23,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     return Stack(
       children: [
         CustomPaint(
-          size: Size(MediaQuery.of(context).size.width, 100),
+          size: Size(MediaQuery.of(context).size.width, 110),
           painter: BottomNavBarPainter(),
         ),
         Positioned(
@@ -31,8 +31,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
           left: 0,
           right: 0,
           child: Container(
-            height: 70,
-            padding: const EdgeInsets.only(bottom: 10),
+            height: 95,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -83,7 +82,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
 
     return GestureDetector(
       onTap: () => widget.onTap(index),
-      child: SizedBox(
+      child: Container(
+        padding: const EdgeInsets.all(10),
         width: 60,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -106,7 +106,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                 ? Text(
                   label,
                   style: const TextStyle(
-                    color: Color(0xFFE91E63),
+                    color: AppColors.primaryColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -127,14 +127,14 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
         height: 60,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFE91E63), Color(0xFFAD1457)],
+            colors: [AppColors.primaryColor, AppColors.navBarFabBackground],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE91E63).withValues(alpha: 0.4),
+              color: AppColors.primaryColor.withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
