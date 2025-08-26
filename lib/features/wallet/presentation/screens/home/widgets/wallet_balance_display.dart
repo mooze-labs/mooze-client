@@ -7,8 +7,6 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:shimmer/shimmer.dart';
 
-const double balanceFontSize = 32.0;
-
 class WalletBalanceDisplay extends ConsumerWidget {
   const WalletBalanceDisplay({super.key});
 
@@ -18,18 +16,25 @@ class WalletBalanceDisplay extends ConsumerWidget {
     final balance = ref.watch(balanceProvider(Asset.btc));
 
     return balance.when(
-        data: (data) => data.fold(
-                (err) {
-                  if (kDebugMode) debugPrint("[BREEZ BALANCE] ${err.description} ${err.customDescription}");
-                  return ErrorWalletBalanceDisplay();
-                },
-                (val) => SuccessfulWalletBalanceDisplay(balanceAmount: val, isVisible: isVisible)
-        ),
-        error: (err, stackTrace) {
-            if (kDebugMode) debugPrint("[BREEZ BALANCE] $err");
-            return ErrorWalletBalanceDisplay();
-        },
-        loading: () => LoadingWalletBalanceDisplay()
+      data:
+          (data) => data.fold(
+            (err) {
+              if (kDebugMode)
+                debugPrint(
+                  "[BREEZ BALANCE] ${err.description} ${err.customDescription}",
+                );
+              return ErrorWalletBalanceDisplay();
+            },
+            (val) => SuccessfulWalletBalanceDisplay(
+              balanceAmount: val,
+              isVisible: isVisible,
+            ),
+          ),
+      error: (err, stackTrace) {
+        if (kDebugMode) debugPrint("[BREEZ BALANCE] $err");
+        return ErrorWalletBalanceDisplay();
+      },
+      loading: () => LoadingWalletBalanceDisplay(),
     );
   }
 }
@@ -38,16 +43,21 @@ class SuccessfulWalletBalanceDisplay extends StatelessWidget {
   final BigInt balanceAmount;
   final bool isVisible;
 
-  const SuccessfulWalletBalanceDisplay({super.key, required this.balanceAmount, required this.isVisible});
+  const SuccessfulWalletBalanceDisplay({
+    super.key,
+    required this.balanceAmount,
+    required this.isVisible,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final displayText = isVisible ? "******" : balanceAmount.toString();
-    return Text(displayText, style: TextStyle(
-        color: Theme.of(context).colorScheme.primary,
-        fontSize: balanceFontSize,
-        fontWeight: FontWeight.bold
-    ));
+    final displayText = isVisible ? "********" : balanceAmount.toString();
+    return Text(
+      'R\$${displayText}',
+      style: Theme.of(
+        context,
+      ).textTheme.displayLarge!.copyWith(fontWeight: FontWeight.bold),
+    );
   }
 }
 
@@ -56,10 +66,13 @@ class ErrorWalletBalanceDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text("N/A", style: TextStyle(
+    return Text(
+      "N/A",
+      style: TextStyle(
         color: Theme.of(context).colorScheme.primary,
-        fontSize: balanceFontSize,
-        fontWeight: FontWeight.bold)
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 }
@@ -77,7 +90,7 @@ class LoadingWalletBalanceDisplay extends StatelessWidget {
       highlightColor: highlightColor,
       child: Container(
         width: 120, // Approximate width for a typical balance display
-        height: balanceFontSize,
+        height: 32,
         decoration: BoxDecoration(
           color: baseColor,
           borderRadius: BorderRadius.circular(4),

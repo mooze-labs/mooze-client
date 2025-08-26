@@ -20,7 +20,7 @@ class AssetCardList extends ConsumerWidget {
       children: [
         Expanded(child: AssetGraphCard(asset: Asset.btc)),
         const SizedBox(width: cardSpacing),
-        Expanded(child: AssetGraphCard(asset: Asset.usdt))
+        Expanded(child: AssetGraphCard(asset: Asset.usdt)),
       ],
     );
   }
@@ -34,20 +34,18 @@ class AssetGraphCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final priceHistory = ref.watch(assetPriceHistoryProvider(asset));
-    
+
     return priceHistory.when(
-      data: (data) => data.fold(
-        (err) {
-          if (kDebugMode) debugPrint("[KLINES] $err");
-          return ErrorAssetCard(asset: asset);
-        },
-        (klines) => SuccessfulAssetCard(asset: asset, klines: klines)
-      ),
+      data:
+          (data) => data.fold((err) {
+            if (kDebugMode) debugPrint("[KLINES] $err");
+            return ErrorAssetCard(asset: asset);
+          }, (klines) => SuccessfulAssetCard(asset: asset, klines: klines)),
       error: (err, stackTrace) {
         if (kDebugMode) debugPrint("[KLINES] $err");
         return ErrorAssetCard(asset: asset);
       },
-      loading: () => LoadingAssetCard(asset: asset)
+      loading: () => LoadingAssetCard(asset: asset),
     );
   }
 }
@@ -59,7 +57,7 @@ class SuccessfulAssetCard extends StatelessWidget {
   const SuccessfulAssetCard({
     super.key,
     required this.asset,
-    required this.klines
+    required this.klines,
   });
 
   @override
@@ -90,14 +88,14 @@ class SuccessfulAssetCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SvgPicture.asset("assets/new_ui_wallet/assets/icons/asset/${asset.name.toLowerCase()}.svg", width: 40, height: 40),
+                SvgPicture.asset(asset.iconPath, width: 40, height: 40),
               ],
             ),
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              assetValue.toStringAsFixed(2),
+              "R\$ ${assetValue.toStringAsFixed(2)}",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -127,14 +125,17 @@ class SuccessfulAssetCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          // Gráfico simples simulado SEM padding
           SizedBox(
             height: 40,
             child: CustomPaint(
-              painter: SimpleChartPainter(isPositive: isPositive, klines: klines),
+              painter: SimpleChartPainter(
+                isPositive: isPositive,
+                klines: klines,
+              ),
               size: Size(double.infinity, 40),
             ),
           ),
+          SizedBox(height: 8),
         ],
       ),
     );
@@ -150,16 +151,16 @@ class SimpleChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
-    Paint()
-      ..color = isPositive ? Colors.green : Colors.red
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..isAntiAlias = true;
+        Paint()
+          ..color = isPositive ? Colors.green : Colors.red
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke
+          ..isAntiAlias = true;
 
     final zeroLinePaint =
-    Paint()
-      ..color = Colors.grey.withValues(alpha: 0)
-      ..strokeWidth = 1;
+        Paint()
+          ..color = Colors.grey.withValues(alpha: 0)
+          ..strokeWidth = 1;
 
     final zeroY = size.height * 0.5;
     canvas.drawLine(Offset(0, zeroY), Offset(size.width, zeroY), zeroLinePaint);
@@ -168,11 +169,11 @@ class SimpleChartPainter extends CustomPainter {
 
     // Normalize kline data to chart coordinates
     if (klines.isEmpty) return;
-    
+
     final minValue = klines.reduce((a, b) => a < b ? a : b);
     final maxValue = klines.reduce((a, b) => a > b ? a : b);
     final range = maxValue - minValue;
-    
+
     final points = <Offset>[];
     for (int i = 0; i < klines.length; i++) {
       final x = (i / (klines.length - 1)) * size.width;
@@ -209,8 +210,8 @@ class LoadingAssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Colors.grey[300]!;
-    final highlightColor = Colors.grey[100]!;
+    final baseColor = Colors.grey[600]!;
+    final highlightColor = Colors.grey[400]!;
 
     return Container(
       decoration: BoxDecoration(
@@ -234,7 +235,7 @@ class LoadingAssetCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SvgPicture.asset("assets/new_ui_wallet/assets/icons/asset/${asset.name.toLowerCase()}.svg", width: 40, height: 40),
+                SvgPicture.asset(asset.iconPath, width: 40, height: 40),
               ],
             ),
           ),
@@ -270,20 +271,25 @@ class LoadingAssetCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          SizedBox(
-            height: 40,
-            child: Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Container(
-                width: double.infinity,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: baseColor,
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              height: 40,
+              child: Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: double.infinity,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                 ),
               ),
             ),
           ),
+          SizedBox(height: 16),
         ],
       ),
     );
@@ -319,7 +325,7 @@ class ErrorAssetCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SvgPicture.asset("assets/new_ui_wallet/assets/icons/asset/${asset.name.toLowerCase()}.svg", width: 40, height: 40),
+                SvgPicture.asset(asset.iconPath, width: 40, height: 40),
               ],
             ),
           ),
@@ -339,19 +345,9 @@ class ErrorAssetCard extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Text(
-                  "N/A",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
-                ),
+                Text("N/A", style: TextStyle(color: Colors.grey, fontSize: 12)),
                 SizedBox(width: 4),
-                Icon(
-                  Icons.remove,
-                  color: Colors.grey,
-                  size: 16,
-                ),
+                Icon(Icons.remove, color: Colors.grey, size: 16),
               ],
             ),
           ),
@@ -372,10 +368,11 @@ class ErrorAssetCard extends StatelessWidget {
 class ErrorChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = Colors.red
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
 
     final y = size.height * 0.5;
     canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);

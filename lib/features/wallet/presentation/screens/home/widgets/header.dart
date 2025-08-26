@@ -26,7 +26,7 @@ class LogoHeader extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 30)
+        const SizedBox(height: 30),
       ],
     );
   }
@@ -38,23 +38,20 @@ class WalletHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isVisible = ref.watch(isVisibleProvider);
-    final icon = (isVisible) ? Icons.visibility : Icons.visibility_off;
+    final String iconPath =
+        (isVisible)
+            ? 'assets/new_ui_wallet/assets/icons/menu/eye_on.svg'
+            : 'assets/new_ui_wallet/assets/icons/menu/eye_off.svg';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            "Minha Carteira",
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSecondary,
-              fontSize: 20
-          )
+        Text("Minha Carteira", style: Theme.of(context).textTheme.titleMedium),
+        GestureDetector(
+          onTap: () => ref.read(isVisibleProvider.notifier).state = !isVisible,
+          child: SvgPicture.asset(iconPath),
         ),
-        IconButton(
-            onPressed: () => ref.read(isVisibleProvider.notifier).state = !isVisible,
-            icon: Icon(icon, color: Theme.of(context).colorScheme.primary)
-        )
-      ]
+      ],
     );
   }
 }
