@@ -17,10 +17,10 @@ final transactionHistoryRoutes = [
           onTap: (index) {
             switch (index) {
               case 0:
-                context.go('/transactions-history');
+                context.push('/transactions-history');
                 break;
               case 1:
-                context.go('/swaps-history');
+                context.push('/swaps-history');
                 break;
             }
           },
