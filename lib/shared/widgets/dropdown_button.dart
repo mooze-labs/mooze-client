@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
+    as AppColors;
 
 class FloatingLabelDropdown<T> extends StatelessWidget {
   final String label;
@@ -18,8 +20,8 @@ class FloatingLabelDropdown<T> extends StatelessWidget {
     required this.onChanged,
     required this.itemIconBuilder,
     required this.itemLabelBuilder,
-    this.borderColor = const Color(0xFFE91E63),
-    this.backgroundColor = Colors.black,
+    this.borderColor = AppColors.primaryColor,
+    this.backgroundColor = AppColors.backgroundColor,
   });
 
   @override
