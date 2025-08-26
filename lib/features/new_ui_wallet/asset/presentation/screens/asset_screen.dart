@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/data/asset_page_data.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/action_button.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/asset_transaction_item.dart';
@@ -14,7 +15,7 @@ class AssetPage extends StatelessWidget {
       body: Column(
         children: [
           _buildHeader(),
-          _buildActionButtons(),
+          _buildActionButtons(context),
           _buildAssetsLabel(),
           Expanded(child: _buildAssetsList()),
         ],
@@ -78,7 +79,7 @@ class AssetPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -87,7 +88,9 @@ class AssetPage extends StatelessWidget {
             child: ActionButton(
               icon: Icons.send,
               label: 'Enviar',
-              onPressed: () {},
+              onPressed: () {
+                context.push('/send-asset');
+              },
             ),
           ),
           SizedBox(width: 12),
@@ -103,7 +106,9 @@ class AssetPage extends StatelessWidget {
             child: ActionButton(
               icon: Icons.swap_horiz,
               label: 'Swap',
-              onPressed: () {},
+              onPressed: () {
+                context.go('/swap');
+              },
             ),
           ),
         ],
