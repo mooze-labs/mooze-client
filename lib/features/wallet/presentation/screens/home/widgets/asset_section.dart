@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
-import '../consts.dart';
-
 import 'asset_graph_card.dart';
 import 'section_header.dart';
 
@@ -13,10 +9,14 @@ class AssetSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SectionHeader(onAction: () => (), title: "Ativos", actionDescription: "Ver mais"),
+        SectionHeader(
+          onAction: () => (),
+          title: "Ativos",
+          actionDescription: "Ver mais",
+        ),
         const SizedBox(height: 16),
         AssetCardList(),
-        const SizedBox(height: 32)
+        const SizedBox(height: 32),
       ],
     );
   }
