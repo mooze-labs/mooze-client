@@ -7,10 +7,10 @@ class TransactionsBottomNavBar extends StatefulWidget {
   final Function(int) onTap;
 
   const TransactionsBottomNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<TransactionsBottomNavBar> createState() =>
@@ -27,7 +27,7 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
           left: 0,
           right: 0,
           child: Container(
-            height: 80,
+            height: 95,
             decoration: BoxDecoration(
               color: AppColors.backgroundCard,
               borderRadius: BorderRadius.only(
@@ -50,12 +50,6 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
                       'assets/new_ui_wallet/assets/icons/menu/navigation/swap.svg',
                   index: 1,
                   label: 'Swaps',
-                ),
-                _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/peg.svg',
-                  index: 2,
-                  label: 'Pegs',
                 ),
               ],
             ),
