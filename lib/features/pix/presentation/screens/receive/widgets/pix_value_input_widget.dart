@@ -1,11 +1,10 @@
-// ignore_for_file: unused_field
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 import '../providers.dart';
 
@@ -13,14 +12,6 @@ import 'account_limits_display_widget.dart';
 
 class PixValueInputWidget extends ConsumerWidget {
   const PixValueInputWidget({super.key});
-
-  static const Color _backgroundColor = Color(0xFF0A0A0A);
-  static const Color _cardBackground = Color(0xFF191818);
-  static const Color _primaryColor = Color(0xFFEA1E63);
-  static const Color _textPrimary = Colors.white;
-  static const Color _textSecondary = Color(0xFF9194A6);
-  static const Color _textTertiary = Color(0xFF8E8E8E);
-  static const Color _positiveColor = Colors.green;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,14 +40,14 @@ class PixValueInputWidget extends ConsumerWidget {
 
   BoxDecoration _buildContainerDecoration(BuildContext context) {
     return BoxDecoration(
-      color: _cardBackground,
+      color: AppColors.pinBackground,
       borderRadius: BorderRadius.circular(12),
       boxShadow: [
         BoxShadow(
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           blurRadius: 10,
           spreadRadius: 0,
-          offset: Offset(0, 4),
+          offset: Offset(0, 0),
         ),
       ],
     );
