@@ -4,50 +4,111 @@ import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/screens/a
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
 
 import '../swap/presentation/screens/swap_screen.dart';
 
+class _MainNavigationScaffold extends StatefulWidget {
+  final String currentLocation;
+  final Widget child;
+
+  const _MainNavigationScaffold({
+    required this.currentLocation,
+    required this.child,
+  });
+
+  @override
+  State<_MainNavigationScaffold> createState() =>
+      _MainNavigationScaffoldState();
+}
+
+class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+      initialPage: _getIndexFromLocation(widget.currentLocation),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_MainNavigationScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentLocation != widget.currentLocation) {
+      _pageController.animateToPage(
+        _getIndexFromLocation(widget.currentLocation),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _onPageChanged(int index) {
+    final routes = ['/home', '/asset', '/pix', '/swap', '/menu'];
+    if (index >= 0 && index < routes.length) {
+      context.go(routes[index]);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentIndex = _getIndexFromLocation(widget.currentLocation);
+
+    return Scaffold(
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: [
+          const HomeScreen(),
+          AssetPage(),
+          ReceivePixScreen(),
+          const SwapScreen(),
+          const MainSettingsScreen(),
+        ],
+      ),
+      extendBody: true,
+      resizeToAvoidBottomInset: false,
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: currentIndex,
+        onTap: (index) {
+          _pageController.jumpToPage(index);
+          _onPageChanged(index);
+        },
+      ),
+    );
+  }
+}
+
 final walletRoutes = [
+  GoRoute(
+    path: '/send-asset',
+    pageBuilder:
+        (context, state) =>
+            const NoTransitionPage(child: NewTransactionScreen()),
+  ),
+
   ShellRoute(
     builder: (context, state, child) {
       final currentLocation = state.uri.toString();
-      return Scaffold(
-        body: child,
-        extendBody: true,
-        resizeToAvoidBottomInset: false,
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: _getIndexFromLocation(currentLocation),
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                context.go('/home');
-                break;
-              case 1:
-                context.go('/asset');
-                break;
-              case 2:
-                context.go('/pix');
-                break;
-              case 3:
-                context.go('/swap');
-                break;
-              case 4:
-                context.go('/menu');
-                break;
-            }
-          },
-        ),
+      return _MainNavigationScaffold(
+        currentLocation: currentLocation,
+        child: child,
       );
     },
     routes: [
       GoRoute(
         path: '/home',
         pageBuilder:
-            (context, state) => NoTransitionPage(
-              child:
-                  const HomeScreen(), //TODO fix home page image Unable to load asset: "assets/new_ui_wallet/assets/icons/asset/usdt.svg".
-            ),
+            (context, state) => NoTransitionPage(child: const HomeScreen()),
       ),
       GoRoute(
         path: '/asset',
