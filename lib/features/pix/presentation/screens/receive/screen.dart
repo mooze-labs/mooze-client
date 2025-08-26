@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
-
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_text_styles.dart';
-
 import 'providers.dart';
 import 'widgets.dart';
 
@@ -84,8 +79,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          appBar: _buildAppBar(context),
+          appBar: AppBar(title: Text('Receber PIX'), centerTitle: true),
           resizeToAvoidBottomInset: false,
           body: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
@@ -99,23 +93,6 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
             showLoadingText: _showLoadingText,
           ),
       ],
-    );
-  }
-
-  CustomAppBar _buildAppBar(BuildContext context) {
-    return CustomAppBar(
-      title: TextSpan(
-        text: 'Receber ',
-        style: AppTextStyles.title,
-        children: [
-          TextSpan(
-            text: 'PIX',
-            style: AppTextStyles.title.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
