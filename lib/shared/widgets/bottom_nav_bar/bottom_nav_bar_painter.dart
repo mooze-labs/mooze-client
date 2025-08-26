@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 class BottomNavBarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()
-      ..color = const Color(0xFF1E1E1E)
-      ..style = PaintingStyle.fill;
+    Paint paint =
+        Paint()
+          ..color = AppColors.navBarBackground
+          ..style = PaintingStyle.fill;
 
     Path path = Path();
 
@@ -20,11 +22,31 @@ class BottomNavBarPainter extends CustomPainter {
     path.lineTo(0, curveHeight + cornerRadius + 2);
     path.quadraticBezierTo(0, curveHeight, cornerRadius, curveHeight);
     path.lineTo(centerX - curveWidth / 2, curveHeight);
-    path.quadraticBezierTo(centerX - curveWidth / 3, curveHeight, centerX - 30, curveHeight - 18);
-    path.quadraticBezierTo(centerX, curveHeight - 45, centerX + 30, curveHeight - 18);
-    path.quadraticBezierTo(centerX + curveWidth / 3, curveHeight, centerX + curveWidth / 2, curveHeight);
+    path.quadraticBezierTo(
+      centerX - curveWidth / 3,
+      curveHeight,
+      centerX - 30,
+      curveHeight - 18,
+    );
+    path.quadraticBezierTo(
+      centerX,
+      curveHeight - 45,
+      centerX + 30,
+      curveHeight - 18,
+    );
+    path.quadraticBezierTo(
+      centerX + curveWidth / 3,
+      curveHeight,
+      centerX + curveWidth / 2,
+      curveHeight,
+    );
     path.lineTo(size.width - cornerRadius, curveHeight);
-    path.quadraticBezierTo(size.width, curveHeight, size.width, curveHeight + cornerRadius);
+    path.quadraticBezierTo(
+      size.width,
+      curveHeight,
+      size.width,
+      curveHeight + cornerRadius,
+    );
     path.lineTo(size.width, size.height - cornerRadius);
     path.quadraticBezierTo(size.width, size.height, size.width, size.height);
     path.close();
