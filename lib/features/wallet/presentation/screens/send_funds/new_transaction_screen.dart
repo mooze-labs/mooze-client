@@ -11,13 +11,16 @@ class NewTransactionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back_ios_new_rounded)),
-        title: const Text("Enviar ativos")
+        title: const Text("Enviar ativos"),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(top: 10, bottom: 24),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+        ).copyWith(top: 10, bottom: 24),
         child: Column(
           children: [
             _buildInstructionText(context),
@@ -25,26 +28,31 @@ class NewTransactionScreen extends ConsumerWidget {
             AssetSelectorWidget(),
             const SizedBox(height: 30),
             BalanceCard(),
-            const Spacer(),
+            const SizedBox(height: 30),
             AddressField(),
             const SizedBox(height: 15),
             AmountField(),
           ],
-        )
-      )
+        ),
+      ),
     );
   }
 }
 
 Widget _buildInstructionText(BuildContext context) {
-  return RichText(
-    textAlign: TextAlign.center,
-    text: TextSpan(
-      style: Theme.of(context).textTheme.bodyLarge,
-      children: [
-        const TextSpan(text: "Escolha o ativo que quer enviar na "),
-        TextSpan(text: "Mooze", style: TextStyle(color: Theme.of(context).colorScheme.primary))
-      ]
-    )
+  return Center(
+    child: RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: Theme.of(context).textTheme.bodyLarge,
+        children: [
+          const TextSpan(text: "Escolha o ativo que quer enviar na "),
+          TextSpan(
+            text: "Mooze",
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+          ),
+        ],
+      ),
+    ),
   );
 }
