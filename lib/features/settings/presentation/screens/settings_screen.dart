@@ -120,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'assets/new_ui_wallet/assets/icons/menu/settings/currency_exchange.svg',
                     action: Navigation(
                       context: context,
-                      rota: '/settings/theme/',
+                      rota: '/settings/currency-selector',
                     ),
                   ),
                 ],
