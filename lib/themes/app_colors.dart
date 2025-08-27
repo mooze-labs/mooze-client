@@ -46,6 +46,10 @@ class AppColors {
   // NavBar Fab colors
   static const Color navBarFabBackground = Color(0xFFAD1457);
 
+  // Shimmer
+  static const Color baseColor = Color(0xFF757575);
+  static const Color highlightColor = Color(0xFFBDBDBD);
+
   static const ColorScheme darkColorScheme = ColorScheme.dark(
     brightness: Brightness.dark,
     // Primary
