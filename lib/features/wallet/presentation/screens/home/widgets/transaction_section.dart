@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../consts.dart';
+import 'package:go_router/go_router.dart';
 
 import 'section_header.dart';
 import 'transaction_list.dart';
@@ -12,9 +11,13 @@ class TransactionSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SectionHeader(onAction: () => (), title: "Transações", actionDescription: "Ver mais"),
-        const SizedBox(width: 16.0),
-        TransactionList()
+        SectionHeader(
+          onAction: () => (context.push('/transactions-history')),
+          title: "Transações",
+          actionDescription: "Ver mais",
+        ),
+        const SizedBox(height: 15),
+        TransactionList(),
       ],
     );
   }
