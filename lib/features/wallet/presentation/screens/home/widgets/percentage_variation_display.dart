@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-
-import '../consts.dart';
 
 class PercentageTagDisplay extends ConsumerWidget {
   final Asset asset;
@@ -15,14 +14,15 @@ class PercentageTagDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final percentage = ref.watch(assetPercentageVariationProvider(asset));
-    
+
     return percentage.when(
-      data: (data) => data.fold(
-        (err) => ErrorPercentageTagDisplay(),
-        (val) => SuccessfulPercentageTagDisplay(percentage: val)
-      ),
+      data:
+          (data) => data.fold(
+            (err) => ErrorPercentageTagDisplay(),
+            (val) => SuccessfulPercentageTagDisplay(percentage: val),
+          ),
       error: (err, stackTrace) => ErrorPercentageTagDisplay(),
-      loading: () => LoadingPercentageTagDisplay()
+      loading: () => LoadingPercentageTagDisplay(),
     );
   }
 }
@@ -34,21 +34,22 @@ class SuccessfulPercentageTagDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = (percentage > 0) ? positiveValueColor : negativeValueColor;
-    
+    final backgroundColor =
+        (percentage > 0) ? AppColors.positiveColor : AppColors.errorColor;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12)
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         "${percentage > 0 ? '+' : '-'}${percentage.toStringAsFixed(2)}%",
         style: TextStyle(
           color: Colors.white,
           fontSize: 14,
-          fontWeight: FontWeight.w500
-        )
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -63,15 +64,15 @@ class ErrorPercentageTagDisplay extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.grey,
-        borderRadius: BorderRadius.circular(12)
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         "N/A",
         style: TextStyle(
           color: Colors.white,
           fontSize: 14,
-          fontWeight: FontWeight.w500
-        )
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -107,21 +108,22 @@ class PercentageTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = (percentage > 0) ? positiveValueColor : negativeValueColor;
-    
+    final backgroundColor =
+        (percentage > 0) ? AppColors.positiveColor : AppColors.errorColor;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12)
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         "${percentage > 0 ? '+' : ''}${percentage.toStringAsFixed(2)}%",
         style: TextStyle(
           color: Colors.white,
           fontSize: 14,
-          fontWeight: FontWeight.w500
-        )
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
