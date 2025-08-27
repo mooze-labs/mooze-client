@@ -48,8 +48,7 @@ class _ConfirmSwapBottomSheetState extends State<ConfirmSwapBottomSheet> {
                 const Spacer(),
                 SlideToConfirmButton(
                   text: 'Confirmar Swap (5s)',
-                  onSlideComplete: () {
-                  },
+                  onSlideComplete: () {},
                 ),
                 const Spacer(),
               ],
@@ -92,14 +91,17 @@ class _ConfirmSwapBottomSheetState extends State<ConfirmSwapBottomSheet> {
                           Text('Você envia'),
                           const SizedBox(width: 10),
                           SvgPicture.asset(
-                            'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
+                            'assets/new_ui_wallet/assets/icons/asset/depix.svg',
                             width: 15,
                             height: 15,
                           ),
                         ],
                       ),
-                      Text('0.0001', style: Theme.of(context).textTheme.headlineSmall,),
-                      Text('bitcoin'),
+                      Text(
+                        '0.00015',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      Text('drex'),
                     ],
                   ),
                   Expanded(
@@ -120,14 +122,17 @@ class _ConfirmSwapBottomSheetState extends State<ConfirmSwapBottomSheet> {
                           Text('Você recebe'),
                           const SizedBox(width: 10),
                           SvgPicture.asset(
-                            'assets/new_ui_wallet/assets/icons/asset/depix.svg',
+                            'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
                             width: 15,
                             height: 15,
                           ),
                         ],
                       ),
-                      Text('0.00015', style: Theme.of(context).textTheme.headlineSmall),
-                      Text('drex'),
+                      Text(
+                        '0.0001',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      Text('bitcoin'),
                     ],
                   ),
                 ],
