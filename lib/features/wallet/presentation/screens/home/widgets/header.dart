@@ -38,18 +38,16 @@ class WalletHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isVisible = ref.watch(isVisibleProvider);
-    final String iconPath =
-        (isVisible)
-            ? 'assets/new_ui_wallet/assets/icons/menu/eye_on.svg'
-            : 'assets/new_ui_wallet/assets/icons/menu/eye_off.svg';
+    final IconData icon = (isVisible) ? Icons.visibility : Icons.visibility_off;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text("Minha Carteira", style: Theme.of(context).textTheme.titleMedium),
-        GestureDetector(
-          onTap: () => ref.read(isVisibleProvider.notifier).state = !isVisible,
-          child: SvgPicture.asset(iconPath),
+        IconButton(
+          icon: Icon(icon, color: Colors.white),
+          onPressed:
+              () => ref.read(isVisibleProvider.notifier).state = !isVisible,
         ),
       ],
     );
