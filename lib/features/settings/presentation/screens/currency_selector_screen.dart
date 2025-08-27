@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../shared/prices/providers/currency_provider.dart';
+import '../../../../shared/prices/providers/currency_controller_provider.dart';
 import '../../../../shared/prices/models.dart';
 
 class CurrencySelectorScreen extends ConsumerWidget {
@@ -28,8 +28,8 @@ class CurrencySelectorScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currency = ref.watch(currencyProvider);
-    final controller = ref.read(currencyProvider.notifier);
+    final currency = ref.watch(currencyControllerProvider);
+    final controller = ref.read(currencyControllerProvider.notifier);
     final assets = _getAssetsMockData();
 
     return Scaffold(
