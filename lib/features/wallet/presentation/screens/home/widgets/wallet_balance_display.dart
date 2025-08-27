@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../../../../../shared/prices/providers/currency_controller_provider.dart';
 
 class WalletBalanceDisplay extends ConsumerWidget {
   const WalletBalanceDisplay({super.key});
@@ -39,7 +40,7 @@ class WalletBalanceDisplay extends ConsumerWidget {
   }
 }
 
-class SuccessfulWalletBalanceDisplay extends StatelessWidget {
+class SuccessfulWalletBalanceDisplay extends ConsumerWidget {
   final BigInt balanceAmount;
   final bool isVisible;
 
@@ -50,13 +51,30 @@ class SuccessfulWalletBalanceDisplay extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final icon = ref.watch(currencyControllerProvider.notifier).icon;
     final displayText = isVisible ? "********" : balanceAmount.toString();
-    return Text(
-      'R\$${displayText}',
-      style: Theme.of(
-        context,
-      ).textTheme.displayLarge!.copyWith(fontWeight: FontWeight.bold),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Text(
+          icon,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          displayText,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -89,7 +107,7 @@ class LoadingWalletBalanceDisplay extends StatelessWidget {
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Container(
-        width: 120, // Approximate width for a typical balance display
+        width: 120,
         height: 32,
         decoration: BoxDecoration(
           color: baseColor,
