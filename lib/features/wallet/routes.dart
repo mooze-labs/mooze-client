@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/screens/asset_screen.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/home.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
 
