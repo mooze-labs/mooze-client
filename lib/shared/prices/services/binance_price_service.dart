@@ -151,7 +151,6 @@ class BinanceDailyPriceVariationService extends DailyPriceVariationService {
     }
 
     if (asset == Asset.usdt && currency == Currency.usd) {
-      // USDT/USD should be stable around 1.0, return flat line
       return TaskEither.right(List.filled(24, 1.0));
     }
 
@@ -191,7 +190,6 @@ class BinanceDailyPriceVariationService extends DailyPriceVariationService {
           now.millisecondsSinceEpoch,
         )
         .map((klinesList) {
-          // First pass: extract all valid close prices
           final validPrices = <double>[];
           for (final kline in klinesList) {
             final price = double.tryParse(kline[4].toString());
@@ -200,13 +198,94 @@ class BinanceDailyPriceVariationService extends DailyPriceVariationService {
             }
           }
 
-          // Calculate average of valid prices
           final average =
               validPrices.isNotEmpty
                   ? validPrices.reduce((a, b) => a + b) / validPrices.length
                   : 0.0;
 
-          // Second pass: build final list with average fallback
+          return klinesList.map((kline) {
+            return double.tryParse(kline[4].toString()) ?? average;
+          }).toList();
+        });
+  }
+
+  @override
+  TaskEither<String, List<double>> getKlinesForPeriod(
+    Asset asset,
+    KlineInterval interval,
+    int periodInDays, {
+    Currency? optionalCurrency,
+  }) {
+    final currency =
+        (optionalCurrency != null) ? optionalCurrency : _defaultCurrency;
+
+    if (asset == Asset.depix && currency == Currency.brl) {
+      return TaskEither.right(List.filled(periodInDays * 24, 1.0));
+    }
+
+    if (asset == Asset.usdt && currency == Currency.usd) {
+      return TaskEither.right(List.filled(periodInDays * 24, 1.0));
+    }
+
+    if (asset == Asset.depix && currency == Currency.usd) {
+      return _getKlinesForSymbolAndPeriod(
+        "USDTBRL",
+        interval,
+        periodInDays,
+      ).map((prices) => prices.map((price) => 1.0 / price).toList());
+    }
+
+    if (asset == Asset.btc) {
+      switch (currency) {
+        case Currency.brl:
+          return _getKlinesForSymbolAndPeriod("BTCBRL", interval, periodInDays);
+        case Currency.usd:
+          return _getKlinesForSymbolAndPeriod(
+            "BTCUSDT",
+            interval,
+            periodInDays,
+          );
+      }
+    }
+
+    if (asset == Asset.usdt && currency == Currency.brl) {
+      return _getKlinesForSymbolAndPeriod("USDTBRL", interval, periodInDays);
+    }
+
+    return TaskEither.left("Unsupported asset/currency combination");
+  }
+
+  TaskEither<String, List<double>> _getKlinesForSymbolAndPeriod(
+    String symbol,
+    KlineInterval interval,
+    int periodInDays,
+  ) {
+    final now = DateTime.now();
+    final startTime = now.subtract(Duration(days: periodInDays));
+    final cache = BinancePriceCache();
+
+    return cache
+        .getCachedKlines(
+          _api,
+          symbol,
+          interval.value,
+          startTime.millisecondsSinceEpoch,
+          now.millisecondsSinceEpoch,
+        )
+        .map((klinesList) {
+          final validPrices = <double>[];
+          for (final kline in klinesList) {
+            final price = double.tryParse(kline[4].toString());
+            if (price != null) {
+              validPrices.add(price);
+            }
+          }
+
+          final average =
+              validPrices.isNotEmpty
+                  ? validPrices.reduce((a, b) => a + b) / validPrices.length
+                  : 0.0;
+
           return klinesList.map((kline) {
             return double.tryParse(kline[4].toString()) ?? average;
           }).toList();
