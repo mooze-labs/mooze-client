@@ -45,7 +45,7 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
     }, (error, stackTrace) => 'Erro ao obter a fonte de preço: $error');
   }
 
-  TaskEither<String, Currency> _getPriceCurrency() {
+  TaskEither<String, Currency> getPriceCurrency() {
     return TaskEither.tryCatch(() async {
       final sharedPreferences = await SharedPreferences.getInstance();
       final priceCurrency = sharedPreferences.getString('price_currency');
@@ -63,8 +63,11 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
 
   @override
   TaskEither<String, PriceServiceConfig> getPriceServiceConfig() {
-    return _getPriceSource().flatMap((priceSource) =>
-        _getPriceCurrency().map((currency) =>
-            PriceServiceConfig(currency: currency, priceSource: priceSource)));
+    return _getPriceSource().flatMap(
+      (priceSource) => getPriceCurrency().map(
+        (currency) =>
+            PriceServiceConfig(currency: currency, priceSource: priceSource),
+      ),
+    );
   }
 }
