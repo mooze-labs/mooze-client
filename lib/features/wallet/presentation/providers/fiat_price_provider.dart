@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
+import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
 
 class AssetPriceHistoryParams {
   final Asset asset;
@@ -38,23 +39,56 @@ final currencyProvider = FutureProvider<Either<String, String>>((ref) async {
       .run();
 });
 
-final fiatPriceProvider = FutureProvider.autoDispose
-    .family<Either<String, double>, Asset>((ref, asset) async {
-      final priceService = ref.read(priceServiceProvider);
+final fiatPriceProvider = FutureProvider.autoDispose.family<
+  Either<String, double>,
+  Asset
+>((ref, asset) async {
+  try {
+    final priceServiceResult = await ref.read(priceServiceProvider).run();
 
-      return await priceService
-          .flatMap(
-            (svc) => svc
-                .getCoinPrice(asset)
-                .flatMap(
-                  (optDouble) => optDouble.fold(
-                    () => TaskEither<String, double>.left("N/A"),
-                    (val) => TaskEither<String, double>.right(val),
-                  ),
-                ),
-          )
-          .run();
+    return await priceServiceResult.fold((error) => Left(error), (svc) async {
+      final priceResult = await svc.getCoinPrice(asset).run();
+
+      return await priceResult.fold(
+        (error) async {
+          print(
+            'DEBUG: Erro ao obter preço de ${asset.name} com moeda padrão: $error',
+          );
+
+          final currentCurrency = svc.currency.toLowerCase();
+          final alternateCurrency =
+              currentCurrency == 'brl' ? Currency.usd : Currency.brl;
+
+          print(
+            'DEBUG: Tentando obter preço de ${asset.name} com moeda alternativa: ${alternateCurrency.name}',
+          );
+
+          final alternateResult =
+              await svc
+                  .getCoinPrice(asset, optionalCurrency: alternateCurrency)
+                  .run();
+
+          return alternateResult.flatMap(
+            (optDouble) => optDouble.fold(
+              () => const Left("Preço não disponível em nenhuma moeda"),
+              (val) {
+                print('DEBUG: Preço obtido com moeda alternativa: $val');
+                return Right(val);
+              },
+            ),
+          );
+        },
+        (optDouble) => optDouble.fold(
+          () => const Left("Preço não disponível"),
+          (val) => Right(val),
+        ),
+      );
     });
+  } catch (e) {
+    print('DEBUG: Erro no fiatPriceProvider para ${asset.name}: $e');
+    return Left('Erro ao obter preço: $e');
+  }
+});
 
 final assetPriceHistoryProvider = FutureProvider.autoDispose
     .family<Either<String, List<double>>, Asset>((ref, asset) async {
