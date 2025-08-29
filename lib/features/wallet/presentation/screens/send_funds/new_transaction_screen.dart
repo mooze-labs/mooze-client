@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../widgets/widgets.dart';
+import '../../widgets/send_funds/widgets.dart';
 
 class NewTransactionScreen extends ConsumerWidget {
   const NewTransactionScreen({super.key});

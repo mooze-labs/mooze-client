@@ -7,7 +7,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});

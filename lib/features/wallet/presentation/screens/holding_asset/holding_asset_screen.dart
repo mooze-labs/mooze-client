@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/action_button.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/presentation/widgets/asset_transaction_item.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/widgets/wallet_header_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
+import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HoldingsAsseetScreen extends ConsumerStatefulWidget {

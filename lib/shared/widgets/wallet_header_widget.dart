@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
@@ -37,7 +37,7 @@ class WalletHeaderWidget extends ConsumerWidget {
                 color: Colors.white,
               ),
               onPressed: () {
-                ref.read(isVisibleProvider.notifier).state = !isVisible;
+                ref.read(isVisibleProvider.notifier).toggle();
               },
             ),
           ],
