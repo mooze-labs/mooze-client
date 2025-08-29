@@ -128,7 +128,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         title: const Text('Histórico de transações'),
         leading: IconButton(
           onPressed: () {
-            context.go('/menu');
+            context.pop();
           },
           icon: Icon(Icons.arrow_back_ios_new_rounded),
         ),
