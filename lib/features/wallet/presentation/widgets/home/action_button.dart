@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/secondary_button.dart';
 
 const double buttonVerticalPadding = 16.0;
 const double borderRadius = 8.0;
@@ -10,21 +12,9 @@ class ReceiveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => context.go("/wallet/receive"),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Theme.of(context).colorScheme.primary,
-        side: BorderSide(color: Theme.of(context).colorScheme.primary),
-        padding: EdgeInsets.symmetric(vertical: buttonVerticalPadding),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(borderRadius)
-        )
-      ),
-      child: Text(
-        "RECEBER",
-        style: TextStyle(fontSize: sectionTitleFontSize, fontWeight: FontWeight.w600)
-      )
+    return SecondaryButton(
+      text: "RECEBER",
+      onPressed: () => context.push('/receive-asset'),
     );
   }
 }
@@ -34,20 +24,9 @@ class SendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-        onPressed: () => context.go("/wallet/send"),
-        style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            padding: EdgeInsets.symmetric(vertical: buttonVerticalPadding),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(borderRadius)
-            )
-        ),
-        child: Text(
-            "ENVIAR",
-            style: TextStyle(fontSize: sectionTitleFontSize, fontWeight: FontWeight.w600)
-        )
+    return PrimaryButton(
+      text: "ENVIAR",
+      onPressed: () => context.push("/send-asset"),
     );
   }
 }
