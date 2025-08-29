@@ -24,15 +24,18 @@ class BalanceCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.pinBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.primary)
+        border: Border.all(color: Theme.of(context).colorScheme.primary),
       ),
       child: Column(
         children: [
-          Text("Saldo disponível", style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            "Saldo disponível",
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
           BalanceText(),
           const SizedBox(height: 4),
-          FiatBalanceText()
+          FiatBalanceText(),
         ],
       ),
     );
@@ -45,21 +48,38 @@ class BalanceText extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asset = ref.read(selectedAssetProvider);
-    final balance = ref.read(selectedAssetBalanceProvider);
+    final balance = ref.watch(selectedAssetBalanceProvider);
 
     return balance.when(
-        data: (data) => data.fold(
-            (err) => Text("Indisponível", style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-              color: Theme.of(context).colorScheme.error
-            )),
-            (val) => Text(_formatBalance(val, asset), style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-              color: Theme.of(context).colorScheme.primary
-            ))
-        ),
-        error: (err, _) => Text("Indisponível", style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-            color: Theme.of(context).colorScheme.error
-        )),
-        loading: () => Shimmer.fromColors( baseColor: Colors.grey[800]!, highlightColor: Colors.grey[600]!, child: SizedBox(width: 100, height: 28)));
+      data:
+          (data) => data.fold(
+            (err) => Text(
+              "Indisponível",
+              style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            (val) => Text(
+              _formatBalance(val, asset),
+              style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+      error:
+          (err, _) => Text(
+            "Indisponível",
+            style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+      loading:
+          () => Shimmer.fromColors(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[600]!,
+            child: SizedBox(width: 100, height: 28),
+          ),
+    );
   }
 }
 
@@ -73,7 +93,13 @@ class FiatBalanceText extends ConsumerWidget {
     final fiatPrice = ref.watch(fiatPriceProvider(selectedAsset));
     final currency = ref.watch(currencyProvider);
 
-    return _buildBalanceWidget(context, assetBalance, fiatPrice, currency, selectedAsset);
+    return _buildBalanceWidget(
+      context,
+      assetBalance,
+      fiatPrice,
+      currency,
+      selectedAsset,
+    );
   }
 
   Widget _buildBalanceWidget(
@@ -84,13 +110,14 @@ class FiatBalanceText extends ConsumerWidget {
     Asset selectedAsset,
   ) {
     return assetBalance.when(
-      data: (balanceResult) => _handleBalanceResult(
-        context,
-        balanceResult,
-        fiatPrice,
-        currency,
-        selectedAsset,
-      ),
+      data:
+          (balanceResult) => _handleBalanceResult(
+            context,
+            balanceResult,
+            fiatPrice,
+            currency,
+            selectedAsset,
+          ),
       error: (err, _) => _buildErrorText(context, "Indisponível"),
       loading: () => _buildLoadingWidget(),
     );
@@ -105,7 +132,13 @@ class FiatBalanceText extends ConsumerWidget {
   ) {
     return balanceResult.fold(
       (err) => _buildErrorText(context, "Indisponível"),
-      (balance) => _buildPriceWidget(context, balance, fiatPrice, currency, selectedAsset),
+      (balance) => _buildPriceWidget(
+        context,
+        balance,
+        fiatPrice,
+        currency,
+        selectedAsset,
+      ),
     );
   }
 
@@ -117,13 +150,14 @@ class FiatBalanceText extends ConsumerWidget {
     Asset selectedAsset,
   ) {
     return fiatPrice.when(
-      data: (priceResult) => _handlePriceResult(
-        context,
-        balance,
-        priceResult,
-        currency,
-        selectedAsset,
-      ),
+      data:
+          (priceResult) => _handlePriceResult(
+            context,
+            balance,
+            priceResult,
+            currency,
+            selectedAsset,
+          ),
       error: (err, _) => _buildErrorText(context, "Valor indisponível"),
       loading: () => _buildLoadingWidget(),
     );
@@ -138,7 +172,13 @@ class FiatBalanceText extends ConsumerWidget {
   ) {
     return priceResult.fold(
       (err) => _buildErrorText(context, "Valor indisponível"),
-      (price) => _buildCurrencyWidget(context, balance, price, currency, selectedAsset),
+      (price) => _buildCurrencyWidget(
+        context,
+        balance,
+        price,
+        currency,
+        selectedAsset,
+      ),
     );
   }
 
@@ -150,13 +190,14 @@ class FiatBalanceText extends ConsumerWidget {
     Asset selectedAsset,
   ) {
     return currency.when(
-      data: (currencyResult) => _handleCurrencyResult(
-        context,
-        balance,
-        price,
-        currencyResult,
-        selectedAsset,
-      ),
+      data:
+          (currencyResult) => _handleCurrencyResult(
+            context,
+            balance,
+            price,
+            currencyResult,
+            selectedAsset,
+          ),
       error: (err, _) => _buildErrorText(context, "Moeda indisponível"),
       loading: () => _buildLoadingWidget(),
     );
@@ -171,7 +212,13 @@ class FiatBalanceText extends ConsumerWidget {
   ) {
     return currencyResult.fold(
       (err) => _buildErrorText(context, "Moeda indisponível"),
-      (currencyCode) => _buildFiatValueText(context, balance, price, currencyCode, selectedAsset),
+      (currencyCode) => _buildFiatValueText(
+        context,
+        balance,
+        price,
+        currencyCode,
+        selectedAsset,
+      ),
     );
   }
 
