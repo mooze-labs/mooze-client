@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/asset/data/asset_page_data.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/action_button.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/asset_transaction_item.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/widgets/wallet_header_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
+import 'package:shimmer/shimmer.dart';
 
-// Tela principal de Ativos
-class HoldingsAsseetScreen extends StatelessWidget {
+class HoldingsAsseetScreen extends ConsumerWidget {
   const HoldingsAsseetScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildActionButtons(context),
-          _buildAssetsLabel(),
-          Expanded(child: _buildAssetsList()),
-        ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            const WalletHeaderWidget(),
+            SizedBox(height: 15),
+            _buildActionButtons(context),
+            SizedBox(height: 15),
+            _buildAssetsLabel(),
+            SizedBox(height: 10),
+            Expanded(child: _buildAssetsList()),
+          ],
+        ),
       ),
     );
   }
@@ -27,161 +36,152 @@ class HoldingsAsseetScreen extends StatelessWidget {
     return AppBar(title: Text('Ativos'));
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Minha Carteira',
-                style: TextStyle(color: Color(0xFF9194A6), fontSize: 16),
-              ),
-              IconButton(
-                icon: Icon(Icons.visibility_off, color: Colors.white),
-                onPressed: () {},
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Text(
-                'R\$ 54,292.79',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(width: 12),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '+7.86%',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildActionButtons(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: ActionButton(
-              icon: Icons.send,
-              label: 'Enviar',
-              onPressed: () {
-                context.push('/send-asset');
-              },
-            ),
+    return Row(
+      children: [
+        Expanded(
+          child: ActionButton(
+            icon: Icons.send,
+            label: 'Enviar',
+            onPressed: () {
+              context.push('/send-asset');
+            },
           ),
-          SizedBox(width: 12),
-          Expanded(
-            child: ActionButton(
-              icon: Icons.qr_code_scanner,
-              label: 'Receber',
-              onPressed: () {},
-            ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: ActionButton(
+            icon: Icons.qr_code_scanner,
+            label: 'Receber',
+            onPressed: () {},
           ),
-          SizedBox(width: 12),
-          Expanded(
-            child: ActionButton(
-              icon: Icons.swap_horiz,
-              label: 'Swap',
-              onPressed: () {
-                context.go('/swap');
-              },
-            ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: ActionButton(
+            icon: Icons.swap_horiz,
+            label: 'Swap',
+            onPressed: () {
+              context.go('/swap');
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildAssetsLabel() {
-    return Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          Text(
-            'Ativos',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+    return Row(
+      children: [
+        Text(
+          'Ativos',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildAssetsList() {
-    final assets = _getAssetsMockData();
+    return Consumer(
+      builder: (context, ref, child) {
+        final holdingsAsync = ref.watch(walletHoldingsProvider);
 
+        return holdingsAsync.when(
+          data:
+              (holdingsResult) => holdingsResult.fold(
+                (error) => _buildErrorWidget(error),
+                (holdings) => _buildHoldingsList(holdings),
+              ),
+          loading: () => _buildLoadingWidget(),
+          error: (error, stack) => _buildErrorWidget('Erro inesperado: $error'),
+        );
+      },
+    );
+  }
+
+  Widget _buildHoldingsList(List<WalletHolding> holdings) {
+    if (holdings.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nenhum ativo encontrado',
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
+    return Consumer(
+      builder: (context, ref, child) {
+        final isVisible = ref.watch(isVisibleProvider);
+
+        return ListView.builder(
+          itemCount: holdings.length,
+          itemBuilder: (context, index) {
+            final holding = holdings[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 15.0),
+              child: AssetTransactionItem(
+                icon: holding.asset.iconPath,
+                title: holding.asset.name,
+                subtitle: isVisible ? '•••••' : holding.formattedBalance,
+                value: isVisible ? '•••••' : holding.formattedFiatValue,
+                time: isVisible ? '' : (holding.hasBalance ? '' : 'Sem saldo'),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingWidget() {
     return ListView.builder(
-      itemCount: assets.length,
+      itemCount: 3,
       itemBuilder: (context, index) {
         return Padding(
-          padding: EdgeInsets.only(bottom: 12.0),
-          child: AssetTransactionItem(
-            icon: assets[index].iconText,
-            title: assets[index].name,
-            subtitle: assets[index].amount,
-            value: assets[index].value,
-            time: assets[index].percentage,
+          padding: const EdgeInsets.only(bottom: 12.0, left: 16.0, right: 16.0),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[600]!,
+            child: Container(
+              height: 72,
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         );
       },
     );
   }
 
-  List<AssetPageData> _getAssetsMockData() {
-    return [
-      AssetPageData(
-        id: '1',
-        name: 'Bitcoin',
-        symbol: 'BTC',
-        amount: '0.18 BTC',
-        value: 'R\$ 40.012,21',
-        percentage: '+7%',
-        isPositive: true,
-        iconColor: Color(0xFFF7931A),
-        iconText: 'assets/images/logos/btc.png',
+  Widget _buildErrorWidget(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            'Erro ao carregar ativos',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
-      AssetPageData(
-        id: '2',
-        name: 'Tether USDT',
-        symbol: 'USDT',
-        amount: '2420.43 USDT',
-        value: 'R\$ 14.280,58',
-        percentage: '-3%',
-        isPositive: true,
-        iconColor: Color(0xFF26A69A),
-        iconText: 'assets/images/logos/usdt.png',
-      ),
-    ];
-  }
-
-  void _onAssetTapped(AssetPageData asset) {
-    print('Ativo selecionado: ${asset.name}');
+    );
   }
 }
