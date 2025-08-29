@@ -321,7 +321,7 @@ class HomeTransactionItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                isVisible ? "******" : value,
+                isVisible ? '•••••••' : value,
                 style: TextStyle(
                   color:
                       isVisible
