@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/action_button.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_loading.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -34,7 +35,6 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Monitora se está carregando dados
     final isLoadingData = ref.watch(isLoadingDataProvider);
 
     return Scaffold(
@@ -167,7 +167,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                 (error) => _buildErrorWidget(error),
                 (holdings) => _buildHoldingsList(holdings),
               ),
-          loading: () => _buildLoadingWidget(),
+          loading: () => AssetLoading(),
           error: (error, stack) => _buildErrorWidget('Erro inesperado: $error'),
         );
       },
