@@ -8,6 +8,7 @@ class CurrencyList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentCurrency = ref.watch(currencyControllerProvider);
     final controller = ref.read(currencyControllerProvider.notifier);
     final availableCurrencies = controller.availableCurrencies;
 
@@ -16,7 +17,7 @@ class CurrencyList extends ConsumerWidget {
       itemCount: availableCurrencies.length,
       itemBuilder: (context, index) {
         final item = availableCurrencies[index];
-        final isSelected = controller.isSelected(item);
+        final isSelected = currentCurrency == item.currency;
 
         return _buildCurrencyListItem(
           item: item,
