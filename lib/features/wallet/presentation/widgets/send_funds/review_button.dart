@@ -1,24 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-
-import '../../providers/send_funds/address_provider.dart';
-import '../../providers/send_funds/amount_provider.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
+import '../../providers/send_funds/send_validation_controller.dart';
 
 class ReviewButton extends ConsumerWidget {
   const ReviewButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final address = ref.read(addressStateProvider);
-    final amount = ref.read(amountStateProvider);
+    final validation = ref.watch(sendValidationControllerProvider);
 
-    final isEnabled = address.isNotEmpty && (amount > 0);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        children: [
+          PrimaryButton(
+            text: "Revisar Transação",
+            onPressed:
+                validation.canProceed
+                    ? () async {
+                      await ref
+                          .read(sendValidationControllerProvider.notifier)
+                          .validateTransaction();
+                      final finalValidation = ref.read(
+                        sendValidationControllerProvider,
+                      );
 
-    return PrimaryButton(
-      text: "Revisar transação",
-      onPressed: () => reviewTransaction(context, address, amount),
+                      if (finalValidation.canProceed) {
+                        context.push('/send-funds/review-simple');
+                      }
+                    }
+                    : null,
+            isEnabled: validation.canProceed,
+          ),
+        ],
+      ),
     );
   }
 }

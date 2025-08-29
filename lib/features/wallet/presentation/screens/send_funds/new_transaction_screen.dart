@@ -9,30 +9,38 @@ class NewTransactionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Enviar ativos"),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
+    return AutoValidationListener(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Enviar ativos"),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.arrow_back_ios_new_rounded),
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-        ).copyWith(top: 10, bottom: 24),
-        child: Column(
-          children: [
-            _buildInstructionText(context),
-            const SizedBox(height: 30),
-            AssetSelectorWidget(),
-            const SizedBox(height: 30),
-            BalanceCard(),
-            const SizedBox(height: 30),
-            AddressField(),
-            const SizedBox(height: 15),
-            AmountField(),
-          ],
+        body: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+          ).copyWith(top: 10, bottom: 24),
+          child: Column(
+            children: [
+              _buildInstructionText(context),
+              const SizedBox(height: 20),
+              AssetSelectorWidget(),
+              const SizedBox(height: 20),
+              BalanceCard(),
+              const SizedBox(height: 20),
+              AddressField(),
+              const SizedBox(height: 15),
+              NetworkIndicatorWidget(),
+              const SizedBox(height: 15),
+              AmountField(),
+              const SizedBox(height: 20),
+              ValidationErrorsWidget(),
+              const Spacer(),
+              ReviewButton(),
+            ],
+          ),
         ),
       ),
     );

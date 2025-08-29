@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 import '../../providers/send_funds/address_provider.dart';
+import '../../providers/send_funds/network_detection_provider.dart';
+import '../../screens/send_funds/qr_scanner_screen.dart';
 
 class AddressField extends ConsumerWidget {
   const AddressField({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final inputAddress = ref.read(addressStateProvider);
+    final inputAddress = ref.watch(addressStateProvider);
     final displayText =
         inputAddress.isEmpty ? 'Digite o endereço aqui' : inputAddress;
 
     return GestureDetector(
-      onTap: () => (),
+      onTap: () => _openAddressInputModal(context),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 5).copyWith(left: 12),
@@ -33,7 +36,7 @@ class AddressField extends ConsumerWidget {
               ),
             ),
             IconButton(
-              onPressed: () => (),
+              onPressed: () => _openQRScanner(context),
               icon: Icon(
                 Icons.qr_code_scanner,
                 size: 20,
@@ -43,6 +46,21 @@ class AddressField extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _openQRScanner(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const QRCodeScannerScreen()),
+    );
+  }
+
+  void _openAddressInputModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const AddressModal(),
     );
   }
 }
@@ -135,7 +153,7 @@ class _AddressModalState extends ConsumerState<AddressModal> {
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: PrimaryButton(
                     text: "OK",
@@ -153,13 +171,4 @@ class _AddressModalState extends ConsumerState<AddressModal> {
       ),
     );
   }
-}
-
-void _openAddressInputModal(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => AddressModal(),
-  );
 }
