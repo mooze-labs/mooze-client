@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/widgets/asset_section.dart';
 
 import 'widgets.dart';
@@ -22,7 +23,8 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 LogoHeader(),
-                _buildWalletSection(),
+                WalletHeaderWidget(),
+                const SizedBox(height: 15),
                 _buildActionButtons(),
                 const SizedBox(height: 32),
                 AssetSection(),
@@ -35,17 +37,6 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-Widget _buildWalletSection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      WalletHeader(),
-      WalletBalanceDisplay(),
-      const SizedBox(height: 16),
-    ],
-  );
 }
 
 Widget _buildActionButtons() {
