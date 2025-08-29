@@ -5,30 +5,33 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
-import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_detail_screen.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final transactionHistory = ref.watch(transactionHistoryProvider);
+    final cachedTransactionHistory = ref.watch(
+      cachedTransactionHistoryProvider,
+    );
     final isVisible = ref.watch(isVisibleProvider);
 
-    return transactionHistory.when(
-      data:
-          (data) => data.fold(
-            (err) => ErrorTransactionList(),
-            (transactions) => SuccessfulTransactionList(
-              transactions: transactions,
-              isVisible: isVisible,
-            ),
-          ),
-      error: (err, stackTrace) => ErrorTransactionList(),
-      loading: () => LoadingTransactionList(),
+    if (cachedTransactionHistory == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(transactionHistoryCacheProvider.notifier).fetchTransactions();
+      });
+      return LoadingTransactionList();
+    }
+
+    return cachedTransactionHistory.fold(
+      (err) => ErrorTransactionList(),
+      (transactions) => SuccessfulTransactionList(
+        transactions: transactions,
+        isVisible: isVisible,
+      ),
     );
   }
 }

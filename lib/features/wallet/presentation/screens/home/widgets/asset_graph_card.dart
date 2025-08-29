@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/all_assets/widgets/asset_card_with_favorite.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/presentation/screens/asset_detail_screen.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -46,20 +46,23 @@ class AssetGraphCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final priceHistory = ref.watch(assetPriceHistoryProvider(asset));
-
-    return priceHistory.when(
-      data:
-          (data) => data.fold((err) {
-            if (kDebugMode) debugPrint("[KLINES] $err");
-            return ErrorAssetCard(asset: asset);
-          }, (klines) => SuccessfulAssetCard(asset: asset, klines: klines)),
-      error: (err, stackTrace) {
-        if (kDebugMode) debugPrint("[KLINES] $err");
-        return ErrorAssetCard(asset: asset);
-      },
-      loading: () => LoadingAssetCard(asset: asset),
+    final cachedPriceHistory = ref.watch(
+      cachedAssetPriceHistoryProvider(asset),
     );
+
+    if (cachedPriceHistory == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(assetPriceHistoryCacheProvider.notifier)
+            .fetchAssetPriceHistory(asset);
+      });
+      return LoadingAssetCard(asset: asset);
+    }
+
+    return cachedPriceHistory.fold((err) {
+      if (kDebugMode) debugPrint("[KLINES] $err");
+      return ErrorAssetCard(asset: asset);
+    }, (klines) => SuccessfulAssetCard(asset: asset, klines: klines));
   }
 }
 
@@ -191,7 +194,6 @@ class SimpleChartPainter extends CustomPainter {
 
     final path = Path();
 
-    // Normalize kline data to chart coordinates
     if (klines.isEmpty) return;
 
     final minValue = klines.reduce((a, b) => a < b ? a : b);
@@ -216,7 +218,6 @@ class SimpleChartPainter extends CustomPainter {
         path.quadraticBezierTo(p1.dx, p1.dy, midPoint.dx, midPoint.dy);
       }
 
-      // Conecta ao último ponto
       path.lineTo(points.last.dx, points.last.dy);
 
       canvas.drawPath(path, paint);

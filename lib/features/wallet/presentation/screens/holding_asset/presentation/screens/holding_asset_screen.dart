@@ -4,32 +4,103 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/new_ui_wallet/asset/presentation/widgets/action_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/presentation/widgets/asset_transaction_item.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/widgets/wallet_header_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
 import 'package:shimmer/shimmer.dart';
 
-class HoldingsAsseetScreen extends ConsumerWidget {
+class HoldingsAsseetScreen extends ConsumerStatefulWidget {
   const HoldingsAsseetScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HoldingsAsseetScreen> createState() =>
+      _HoldingsAsseetScreenState();
+}
+
+class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Monitora se está carregando dados
+    final isLoadingData = ref.watch(isLoadingDataProvider);
+
     return Scaffold(
       appBar: _buildAppBar(),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const WalletHeaderWidget(),
-            SizedBox(height: 15),
-            _buildActionButtons(context),
-            SizedBox(height: 15),
-            _buildAssetsLabel(),
-            SizedBox(height: 10),
-            Expanded(child: _buildAssetsList()),
-          ],
-        ),
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: () => _refreshData(),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const WalletHeaderWidget(),
+                    SizedBox(height: 15),
+                    _buildActionButtons(context),
+                    SizedBox(height: 15),
+                    _buildAssetsLabel(),
+                    SizedBox(height: 10),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height - 300,
+                      child: _buildAssetsList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (isLoadingData)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 3,
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  Future<void> _refreshData() async {
+    try {
+      ref.invalidate(walletHoldingsProvider);
+
+      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+
+      if (_scrollController.hasClients) {
+        await _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    } catch (e) {
+      debugPrint('Erro durante refresh: $e');
+    }
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -118,6 +189,8 @@ class HoldingsAsseetScreen extends ConsumerWidget {
         final isVisible = ref.watch(isVisibleProvider);
 
         return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: holdings.length,
           itemBuilder: (context, index) {
             final holding = holdings[index];
@@ -139,6 +212,8 @@ class HoldingsAsseetScreen extends ConsumerWidget {
 
   Widget _buildLoadingWidget() {
     return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: 3,
       itemBuilder: (context, index) {
         return Padding(
