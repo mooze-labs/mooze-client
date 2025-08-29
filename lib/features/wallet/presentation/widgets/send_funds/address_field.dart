@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-import '../providers/address_provider.dart';
+import '../../providers/send_funds/address_provider.dart';
 
 class AddressField extends ConsumerWidget {
   const AddressField({super.key});
@@ -83,7 +83,6 @@ class _AddressModalState extends ConsumerState<AddressModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Título e botão fechar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

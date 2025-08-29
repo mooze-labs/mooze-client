@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/widgets/period_selector_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
@@ -19,7 +19,6 @@ class AssetChartWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Mapear o período selecionado para parâmetros de API
     final params = _getParamsForPeriod(selectedPeriod, asset);
     final priceHistory = ref.watch(assetPriceHistoryWithPeriodProvider(params));
     return Container(
@@ -204,7 +203,6 @@ class DetailedChartPainter extends CustomPainter {
           ..color = Colors.white.withOpacity(0.1)
           ..strokeWidth = 1;
 
-    // Desenha grid
     for (int i = 0; i <= 4; i++) {
       final y = (size.height / 4) * i;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
@@ -215,7 +213,6 @@ class DetailedChartPainter extends CustomPainter {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
 
-    // Normaliza os dados
     final minValue = klines.reduce((a, b) => a < b ? a : b);
     final maxValue = klines.reduce((a, b) => a > b ? a : b);
     final range = maxValue - minValue;
@@ -232,7 +229,6 @@ class DetailedChartPainter extends CustomPainter {
     }
 
     if (points.isNotEmpty) {
-      // Linha principal
       path.moveTo(points[0].dx, points[0].dy);
       fillPath.moveTo(points[0].dx, size.height);
       fillPath.lineTo(points[0].dx, points[0].dy);
@@ -261,17 +257,13 @@ class DetailedChartPainter extends CustomPainter {
         );
       }
 
-      // Completa o preenchimento
       fillPath.lineTo(points.last.dx, size.height);
       fillPath.close();
 
-      // Desenha preenchimento
       canvas.drawPath(fillPath, gradientPaint);
 
-      // Desenha linha
       canvas.drawPath(path, paint);
 
-      // Desenha pontos
       final pointPaint =
           Paint()
             ..color = isPositive ? Colors.green : Colors.red

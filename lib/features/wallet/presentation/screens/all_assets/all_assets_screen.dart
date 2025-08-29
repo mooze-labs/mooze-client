@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/all_assets/widgets/asset_card_with_favorite.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/all_assets/asset_card_with_favorite.dart';
 
 class AllAssetsScreen extends ConsumerWidget {
   const AllAssetsScreen({super.key});

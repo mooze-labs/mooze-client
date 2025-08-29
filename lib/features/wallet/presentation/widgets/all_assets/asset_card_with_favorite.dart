@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/widgets/asset_graph_card.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_graph_card.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class AssetCardWithFavorite extends ConsumerWidget {

@@ -10,8 +10,8 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../providers/selected_asset_provider.dart';
-import '../providers/selected_asset_balance_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/selected_asset_balance_provider.dart';
 
 class BalanceCard extends ConsumerWidget {
   const BalanceCard({super.key});
@@ -267,6 +267,5 @@ double _getAdjustedBalance(BigInt balance, Asset asset) {
   if (asset == Asset.btc) {
     return balance.toDouble();
   }
-  // For non-BTC assets (like stablecoins), divide by 10^8 for proper precision
   return balance.toDouble() / pow(10, 8);
 }

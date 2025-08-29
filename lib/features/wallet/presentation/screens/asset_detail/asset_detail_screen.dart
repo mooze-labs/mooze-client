@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/widgets/asset_header_widget.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/widgets/period_selector_widget.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/widgets/asset_chart_widget.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/widgets/asset_stats_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/asset_header_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/asset_chart_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/asset_stats_widget.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class AssetDetailScreen extends ConsumerStatefulWidget {
@@ -86,7 +86,6 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header com informações do ativo
               SlideTransition(
                 position: _slideAnimation,
                 child: AssetHeaderWidget(asset: widget.asset),
@@ -94,7 +93,6 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen>
 
               const SizedBox(height: 32),
 
-              // Seletor de período
               SlideTransition(
                 position: Tween<Offset>(
                   begin: const Offset(0, 0.3),
@@ -116,8 +114,6 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen>
               ),
 
               const SizedBox(height: 24),
-
-              // Gráfico principal
               SlideTransition(
                 position: Tween<Offset>(
                   begin: const Offset(0, 0.3),
@@ -136,7 +132,6 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen>
 
               const SizedBox(height: 32),
 
-              // Estatísticas detalhadas
               SlideTransition(
                 position: Tween<Offset>(
                   begin: const Offset(0, 0.3),

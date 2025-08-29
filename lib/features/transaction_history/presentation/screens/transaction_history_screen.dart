@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/widgets/transaction_list.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/transaction_list.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_entity.dart';
@@ -222,11 +222,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.filter_alt,
-                                  // color: Theme.of(,
-                                  size: 20,
-                                ),
+                                Icon(Icons.filter_alt, size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(

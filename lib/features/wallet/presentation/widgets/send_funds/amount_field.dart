@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
-import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/providers/selected_asset_balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_balance_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-import '../providers/amount_provider.dart';
-import '../providers/selected_asset_provider.dart';
+import '../../providers/send_funds/amount_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
 
 class AmountField extends ConsumerWidget {
   const AmountField({super.key});
@@ -276,7 +276,6 @@ Either<String, int> parseStablecoinAmount(String input) {
     // Only comma present - treat as decimal separator
     normalized = trimmed.replaceAll(',', '.');
   }
-  // If only dot present or no separators, use as-is
 
   // Try to parse as double
   try {

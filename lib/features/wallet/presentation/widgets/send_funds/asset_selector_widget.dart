@@ -5,7 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 
-import '../providers/selected_asset_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
 
 class AssetSelectorWidget extends ConsumerWidget {
   const AssetSelectorWidget({super.key});

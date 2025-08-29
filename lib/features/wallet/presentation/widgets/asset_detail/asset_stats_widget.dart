@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/widgets/period_selector_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
@@ -20,7 +20,6 @@ class AssetStatsWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Usar o novo provider baseado no período
     final params = _getParamsForPeriod(selectedPeriod, asset);
     final priceHistory = ref.watch(assetPriceHistoryWithPeriodProvider(params));
     return Container(
