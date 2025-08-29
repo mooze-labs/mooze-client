@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/providers/visibility_provider.dart';
 
 const double logoOpacity = 0.2;
 const String logoPath = 'assets/new_ui_wallet/assets/logos/logo_primary.svg';
@@ -27,28 +25,6 @@ class LogoHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 30),
-      ],
-    );
-  }
-}
-
-class WalletHeader extends ConsumerWidget {
-  const WalletHeader({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.watch(isVisibleProvider);
-    final IconData icon = (isVisible) ? Icons.visibility : Icons.visibility_off;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text("Minha Carteira", style: Theme.of(context).textTheme.titleMedium),
-        IconButton(
-          icon: Icon(icon, color: Colors.white),
-          onPressed:
-              () => ref.read(isVisibleProvider.notifier).state = !isVisible,
-        ),
       ],
     );
   }
