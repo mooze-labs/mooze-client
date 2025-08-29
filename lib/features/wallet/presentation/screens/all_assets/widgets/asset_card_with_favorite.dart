@@ -22,22 +22,6 @@ class AssetCardWithFavorite extends ConsumerWidget {
           child: GestureDetector(
             onTap: () {
               ref.read(favoriteAssetsProvider.notifier).toggleFavorite(asset);
-
-              // Mostrar feedback visual
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isFavorite
-                        ? '${asset.displayName} removido dos favoritos'
-                        : '${asset.displayName} adicionado aos favoritos',
-                  ),
-                  duration: const Duration(seconds: 2),
-                  backgroundColor:
-                      isFavorite
-                          ? Colors.red.withValues(alpha: 0.8)
-                          : Colors.green.withValues(alpha: 0.8),
-                ),
-              );
             },
             child: Container(
               padding: const EdgeInsets.all(6),
