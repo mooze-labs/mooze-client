@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/widgets/wallet_header_widget.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/home/widgets/asset_section.dart';
+import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
 
-import 'widgets.dart';
+import '../../widgets/widgets.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -67,7 +67,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-            // Mostra um indicador sutil de loading no topo quando está carregando
             if (isLoadingData)
               Positioned(
                 top: 0,
