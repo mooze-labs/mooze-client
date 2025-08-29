@@ -6,8 +6,10 @@ import '../models.dart';
 abstract class PriceSettingsRepository {
   TaskEither<String, Unit> setPriceSource(PriceSource source);
   TaskEither<String, Unit> setPriceCurrency(Currency currency);
+  TaskEither<String, Unit> setBalanceVisibility(bool isVisible);
 
   TaskEither<String, PriceServiceConfig> getPriceServiceConfig();
+  TaskEither<String, bool> getBalanceVisibility();
 }
 
 class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
@@ -27,6 +29,19 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
       await sharedPreferences.setString('price_currency', currency.name);
       return unit;
     }, (error, stackTrace) => 'Erro ao atualizar a moeda de preço: $error');
+  }
+
+  @override
+  TaskEither<String, Unit> setBalanceVisibility(bool isVisible) {
+    return TaskEither.tryCatch(
+      () async {
+        final sharedPreferences = await SharedPreferences.getInstance();
+        await sharedPreferences.setBool('balance_visibility', isVisible);
+        return unit;
+      },
+      (error, stackTrace) =>
+          'Erro ao atualizar a visibilidade do saldo: $error',
+    );
   }
 
   TaskEither<String, PriceSource> _getPriceSource() {
@@ -59,6 +74,14 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
           return Currency.brl;
       }
     }, (error, stackTrace) => 'Erro ao obter a moeda de preço: $error');
+  }
+
+  @override
+  TaskEither<String, bool> getBalanceVisibility() {
+    return TaskEither.tryCatch(() async {
+      final sharedPreferences = await SharedPreferences.getInstance();
+      return sharedPreferences.getBool('balance_visibility') ?? true;
+    }, (error, stackTrace) => 'Erro ao obter a visibilidade do saldo: $error');
   }
 
   @override
