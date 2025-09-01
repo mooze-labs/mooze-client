@@ -25,6 +25,7 @@ class AmountField extends ConsumerWidget {
     final inputAmount = ref.watch(amountStateProvider);
     final displayMode = ref.watch(amountDisplayModeProvider);
     final bitcoinPrice = ref.watch(bitcoinPriceProvider);
+    final selectedAssetPrice = ref.watch(selectedAssetPriceProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return GestureDetector(
@@ -40,30 +41,66 @@ class AmountField extends ConsumerWidget {
             SvgPicture.asset(selectedAsset.iconPath, width: 21, height: 21),
             const SizedBox(width: 12),
             Expanded(
-              child: bitcoinPrice.when(
+              child: selectedAssetPrice.when(
                 data:
-                    (btcPrice) => Text(
-                      (inputAmount == 0)
-                          ? "Digite a quantidade"
-                          : _formatDisplayAmount(
-                            inputAmount,
-                            selectedAsset,
-                            displayMode,
-                            btcPrice,
-                            currencySymbol,
+                    (assetPrice) => bitcoinPrice.when(
+                      data:
+                          (btcPrice) => Text(
+                            (inputAmount == 0)
+                                ? "Digite a quantidade"
+                                : _formatDisplayAmount(
+                                  inputAmount,
+                                  selectedAsset,
+                                  displayMode,
+                                  btcPrice,
+                                  assetPrice,
+                                  currencySymbol,
+                                ),
+                          ),
+                      loading: () => const Text("Carregando..."),
+                      error:
+                          (error, _) => Text(
+                            (inputAmount == 0)
+                                ? "Digite a quantidade"
+                                : _formatDisplayAmount(
+                                  inputAmount,
+                                  selectedAsset,
+                                  displayMode,
+                                  null,
+                                  assetPrice,
+                                  currencySymbol,
+                                ),
                           ),
                     ),
                 loading: () => const Text("Carregando..."),
                 error:
-                    (error, _) => Text(
-                      (inputAmount == 0)
-                          ? "Digite a quantidade"
-                          : _formatDisplayAmount(
-                            inputAmount,
-                            selectedAsset,
-                            displayMode,
-                            null,
-                            currencySymbol,
+                    (error, _) => bitcoinPrice.when(
+                      data:
+                          (btcPrice) => Text(
+                            (inputAmount == 0)
+                                ? "Digite a quantidade"
+                                : _formatDisplayAmount(
+                                  inputAmount,
+                                  selectedAsset,
+                                  displayMode,
+                                  btcPrice,
+                                  null,
+                                  currencySymbol,
+                                ),
+                          ),
+                      loading: () => const Text("Carregando..."),
+                      error:
+                          (error, _) => Text(
+                            (inputAmount == 0)
+                                ? "Digite a quantidade"
+                                : _formatDisplayAmount(
+                                  inputAmount,
+                                  selectedAsset,
+                                  displayMode,
+                                  null,
+                                  null,
+                                  currencySymbol,
+                                ),
                           ),
                     ),
               ),
@@ -80,12 +117,55 @@ class AmountField extends ConsumerWidget {
     Asset asset,
     AmountDisplayMode displayMode,
     double? bitcoinPrice,
+    double? selectedAssetPrice,
     String currencySymbol,
   ) {
+    // Para assets não-Bitcoin, precisamos converter de sats usando o preço do asset
     if (asset != Asset.btc) {
-      return amountInSats.toString();
+      switch (displayMode) {
+        case AmountDisplayMode.fiat:
+          if (selectedAssetPrice == null || selectedAssetPrice == 0) {
+            return "$currencySymbol --";
+          }
+          // Converter sats para quantidade do asset usando preço do Bitcoin e do asset
+          if (bitcoinPrice == null || bitcoinPrice == 0) {
+            return "$currencySymbol --";
+          }
+          final btcAmount = amountInSats / 100000000;
+          final fiatFromBtc = btcAmount * bitcoinPrice;
+          final assetAmount = fiatFromBtc / selectedAssetPrice;
+          final fiatValue = assetAmount * selectedAssetPrice;
+          return "$currencySymbol ${fiatValue.toStringAsFixed(2)}";
+
+        case AmountDisplayMode.bitcoin:
+          if (bitcoinPrice == null ||
+              bitcoinPrice == 0 ||
+              selectedAssetPrice == null ||
+              selectedAssetPrice == 0) {
+            return "-- ${asset.name}";
+          }
+          // Converter sats para quantidade do asset
+          final btcAmount = amountInSats / 100000000;
+          final fiatFromBtc = btcAmount * bitcoinPrice;
+          final assetAmount = fiatFromBtc / selectedAssetPrice;
+          return "${assetAmount.toStringAsFixed(8)} ${asset.name}";
+
+        case AmountDisplayMode.satoshis:
+          // Para modo satoshis com assets não-Bitcoin, converter para quantidade do asset
+          if (bitcoinPrice == null ||
+              bitcoinPrice == 0 ||
+              selectedAssetPrice == null ||
+              selectedAssetPrice == 0) {
+            return "-- ${asset.name}";
+          }
+          final btcAmount = amountInSats / 100000000;
+          final fiatFromBtc = btcAmount * bitcoinPrice;
+          final assetAmount = fiatFromBtc / selectedAssetPrice;
+          return "${assetAmount.toStringAsFixed(8)} ${asset.name}";
+      }
     }
 
+    // Para Bitcoin, manter lógica original
     switch (displayMode) {
       case AmountDisplayMode.fiat:
         if (bitcoinPrice == null || bitcoinPrice == 0) {
@@ -155,15 +235,17 @@ class _AddressModalState extends ConsumerState<AmountModal> {
       final asset = ref.read(selectedAssetProvider);
       final displayMode = ref.read(amountDisplayModeProvider);
       final bitcoinPriceAsync = ref.read(bitcoinPriceProvider);
+      final selectedAssetPriceAsync = ref.read(selectedAssetPriceProvider);
 
-      final bitcoinPrice =
-          bitcoinPriceAsync.value; // Extract value from AsyncValue
+      final bitcoinPrice = bitcoinPriceAsync.value;
+      final selectedAssetPrice = selectedAssetPriceAsync.value;
 
       _controller.text = _getInitialDisplayValue(
         currentAmount,
         asset,
         displayMode,
         bitcoinPrice,
+        selectedAssetPrice,
       );
     }
   }
@@ -173,11 +255,33 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     Asset asset,
     AmountDisplayMode displayMode,
     double? bitcoinPrice,
+    double? selectedAssetPrice,
   ) {
+    // Para assets não-Bitcoin, converter usando preços
     if (asset != Asset.btc) {
-      return (amountInSats / 100000000).toString();
+      if (bitcoinPrice == null ||
+          bitcoinPrice == 0 ||
+          selectedAssetPrice == null ||
+          selectedAssetPrice == 0) {
+        return "";
+      }
+
+      // Converter sats para quantidade do asset
+      final btcAmount = amountInSats / 100000000;
+      final fiatFromBtc = btcAmount * bitcoinPrice;
+      final assetAmount = fiatFromBtc / selectedAssetPrice;
+
+      switch (displayMode) {
+        case AmountDisplayMode.fiat:
+          final fiatValue = assetAmount * selectedAssetPrice;
+          return fiatValue.toStringAsFixed(2);
+        case AmountDisplayMode.bitcoin:
+        case AmountDisplayMode.satoshis:
+          return assetAmount.toStringAsFixed(8);
+      }
     }
 
+    // Para Bitcoin, manter lógica original
     switch (displayMode) {
       case AmountDisplayMode.fiat:
         if (bitcoinPrice == null || bitcoinPrice == 0) return "";
@@ -369,15 +473,17 @@ class _AddressModalState extends ConsumerState<AmountModal> {
 
     final selectedAsset = ref.read(selectedAssetProvider);
     final bitcoinPriceAsync = ref.read(bitcoinPriceProvider);
+    final selectedAssetPriceAsync = ref.read(selectedAssetPriceProvider);
 
-    final bitcoinPrice =
-        bitcoinPriceAsync.value; // Extract value from AsyncValue
+    final bitcoinPrice = bitcoinPriceAsync.value;
+    final selectedAssetPrice = selectedAssetPriceAsync.value;
 
     _controller.text = _getInitialDisplayValue(
       currentAmount,
       selectedAsset,
       newMode,
       bitcoinPrice,
+      selectedAssetPrice,
     );
   }
 
@@ -385,15 +491,17 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     final selectedAsset = ref.read(selectedAssetProvider);
     final displayMode = ref.read(amountDisplayModeProvider);
     final bitcoinPriceAsync = ref.read(bitcoinPriceProvider);
+    final selectedAssetPriceAsync = ref.read(selectedAssetPriceProvider);
 
-    final bitcoinPrice =
-        bitcoinPriceAsync.value; // Extract value from AsyncValue
+    final bitcoinPrice = bitcoinPriceAsync.value;
+    final selectedAssetPrice = selectedAssetPriceAsync.value;
 
     final eitherAmount = _parseInputAmountWithMode(
       _controller.text.trim(),
       selectedAsset,
       displayMode,
       bitcoinPrice,
+      selectedAssetPrice,
     );
 
     eitherAmount.fold(
@@ -415,15 +523,43 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     Asset asset,
     AmountDisplayMode displayMode,
     double? bitcoinPrice,
+    double? selectedAssetPrice,
   ) {
     if (input.isEmpty) {
       return const Left("Valor não pode estar vazio");
     }
 
+    // Para assets não-Bitcoin, converter para sats usando preços
     if (asset != Asset.btc) {
-      return parseStablecoinAmount(input);
+      if (bitcoinPrice == null ||
+          bitcoinPrice == 0 ||
+          selectedAssetPrice == null ||
+          selectedAssetPrice == 0) {
+        return const Left("Preços não disponíveis");
+      }
+
+      try {
+        final assetValue = double.parse(input.replaceAll(',', '.'));
+        if (assetValue <= 0) {
+          return const Left("Valor deve ser maior que zero");
+        }
+
+        // Converter quantidade do asset para fiat, depois para BTC, depois para sats
+        final fiatValue = assetValue * selectedAssetPrice;
+        final btcAmount = fiatValue / bitcoinPrice;
+        final satoshis = (btcAmount * 100000000).round();
+
+        if (satoshis < 25000) {
+          return const Left("Valor mínimo é 25.000 sats");
+        }
+
+        return Right(satoshis);
+      } catch (e) {
+        return const Left("Formato inválido");
+      }
     }
 
+    // Para Bitcoin, manter lógica original
     switch (displayMode) {
       case AmountDisplayMode.fiat:
         return _parseFiatAmount(input, bitcoinPrice);

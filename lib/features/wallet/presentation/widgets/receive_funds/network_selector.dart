@@ -17,10 +17,8 @@ class NetworkSelector extends ConsumerWidget {
       receiveValidationControllerProvider.notifier,
     );
 
-    // Define redes disponíveis baseado no asset selecionado
     List<NetworkType> availableNetworks = _getAvailableNetworks(selectedAsset);
 
-    // Se a network atual não está disponível para o asset, seleciona a primeira disponível
     if (selectedNetwork != null &&
         !availableNetworks.contains(selectedNetwork) &&
         availableNetworks.isNotEmpty) {
@@ -43,7 +41,6 @@ class NetworkSelector extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
 
-        // Mostra informação sobre disponibilidade baseada no asset
         if (selectedAsset != null) ...[
           Container(
             padding: const EdgeInsets.all(12),
@@ -81,7 +78,6 @@ class NetworkSelector extends ConsumerWidget {
           ),
         ],
 
-        // Grid de opções de rede
         _buildNetworkGrid(
           context,
           ref,
@@ -119,7 +115,6 @@ class NetworkSelector extends ConsumerWidget {
     );
   }
 
-  // Define redes disponíveis baseado no asset
   List<NetworkType> _getAvailableNetworks(Asset? asset) {
     if (asset == null) return [];
 
@@ -134,7 +129,6 @@ class NetworkSelector extends ConsumerWidget {
     };
   }
 
-  // Constrói o grid de redes baseado nas disponíveis
   Widget _buildNetworkGrid(
     BuildContext context,
     WidgetRef ref,
