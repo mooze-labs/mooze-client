@@ -5,7 +5,13 @@ import 'package:mooze_mobile/features/settings/presentation/screens/main_setting
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/qr_scanner_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/review_transaction_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/receive_funds_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/receive_qr_screen.dart';
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 
 import '../swap/presentation/screens/swap_screen.dart';
 
@@ -95,7 +101,33 @@ final walletRoutes = [
         (context, state) =>
             const NoTransitionPage(child: NewTransactionScreen()),
   ),
-
+  GoRoute(
+    path: '/send-funds/review-simple',
+    builder: (context, state) => const ReviewTransactionScreen(),
+  ),
+  GoRoute(
+    path: '/send-funds/scanner',
+    builder: (context, state) => const QRCodeScannerScreen(),
+  ),
+  GoRoute(
+    path: '/receive-asset',
+    pageBuilder:
+        (context, state) => const NoTransitionPage(child: ReceiveFundsScreen()),
+  ),
+  GoRoute(
+    path: '/receive-qr',
+    builder: (context, state) {
+      final extra = state.extra as Map<String, dynamic>;
+      return ReceiveQRScreen(
+        qrData: extra['qrData'] as String,
+        displayAddress: extra['displayAddress'] as String,
+        asset: extra['asset'] as Asset,
+        network: extra['network'] as NetworkType,
+        amount: extra['amount'] as double?,
+        description: extra['description'] as String?,
+      );
+    },
+  ),
   ShellRoute(
     builder: (context, state, child) {
       final currentLocation = state.uri.toString();
