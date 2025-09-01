@@ -47,9 +47,9 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
                 ),
                 _buildNavItem(
                   icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/swap.svg',
+                      'assets/new_ui_wallet/assets/icons/menu/navigation/pix.svg',
                   index: 1,
-                  label: 'Swaps',
+                  label: 'Pix',
                 ),
               ],
             ),
@@ -78,7 +78,12 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
               icon,
               width: 25,
               height: 25,
-              color: isSelected ? AppColors.primaryColor : null,
+              colorFilter: ColorFilter.mode(
+                isSelected
+                    ? AppColors.primaryColor
+                    : AppColors.primaryIconColor,
+                BlendMode.srcIn,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
