@@ -8,6 +8,11 @@ import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/utils/transaction_formatters.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});
@@ -36,7 +41,7 @@ class TransactionList extends ConsumerWidget {
   }
 }
 
-class SuccessfulTransactionList extends StatelessWidget {
+class SuccessfulTransactionList extends ConsumerWidget {
   final List<Transaction> transactions;
   final bool isVisible;
 
@@ -47,17 +52,31 @@ class SuccessfulTransactionList extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (transactions.isEmpty) {
       return EmptyTransactionList();
     }
 
+    final displayMode = ref.watch(walletDisplayModeProvider);
+    final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+
+    final bitcoinPriceAsync = ref.watch(fiatPriceProvider(Asset.btc));
+
     return Column(
       children:
           transactions.map((transaction) {
-            final isReceive = transaction.type == TransactionType.receive;
-            final amountStr =
-                "${isReceive ? '+' : '-'}${(transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
+            final bitcoinPrice = bitcoinPriceAsync.when(
+              data: (either) => either.fold((error) => null, (price) => price),
+              loading: () => null,
+              error: (_, __) => null,
+            );
+
+            final amountStr = TransactionValueFormatter.formatTransactionValue(
+              transaction: transaction,
+              displayMode: displayMode,
+              bitcoinPrice: bitcoinPrice,
+              currencySymbol: currencyIcon,
+            );
 
             return GestureDetector(
               onTap: () {
