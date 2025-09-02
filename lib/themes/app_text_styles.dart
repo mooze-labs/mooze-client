@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/extensions/responsive_extensions.dart';
+import 'package:mooze_mobile/shared/extensions.dart';
 import 'app_colors.dart';
 
 class AppTextStyles {
@@ -10,12 +10,12 @@ class AppTextStyles {
     fontSize: 20,
     fontWeight: FontWeight.w600,
   );
-  
+
   static const TextStyle subtitle = TextStyle(
     color: AppColors.textWhite60,
     fontSize: 14,
   );
-  
+
   static const TextStyle value = TextStyle(
     color: AppColors.textPrimary,
     fontSize: 16,
@@ -24,7 +24,10 @@ class AppTextStyles {
 
   static const double buttonTextSize = 20.0;
 
-  static TextTheme buildResponsiveTextTheme(BuildContext context, ColorScheme colorScheme) {
+  static TextTheme buildResponsiveTextTheme(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
     return TextTheme(
       // Display styles
       displayLarge: TextStyle(
@@ -145,11 +148,12 @@ class AppTextStyles {
   );
 
   /// Returns a responsive text style for buttons.
-  static TextStyle buttonText(BuildContext context, ColorScheme colorScheme) => TextStyle(
-    fontSize: context.responsiveFont(buttonTextSize),
-    fontWeight: FontWeight.w500,
-    fontFamily: "Inter",
-    color: colorScheme.onPrimary,
-    letterSpacing: 0.0,
-  );
+  static TextStyle buttonText(BuildContext context, ColorScheme colorScheme) =>
+      TextStyle(
+        fontSize: context.responsiveFont(buttonTextSize),
+        fontWeight: FontWeight.w500,
+        fontFamily: "Inter",
+        color: colorScheme.onPrimary,
+        letterSpacing: 0.0,
+      );
 }
