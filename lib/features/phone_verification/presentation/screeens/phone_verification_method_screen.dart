@@ -4,9 +4,8 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/features/phone_verification/presentation/widgets/send_method.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
-
-import '../../../new_ui_wallet/shared/widgets/dropdownburron.dart'; 
 
 final _phoneFormatter = MaskTextInputFormatter(
   mask: '(##) #####-####',
@@ -131,7 +130,7 @@ class _PhoneVerificationMethodScreenState
                                 isCollapsed: true,
                                 contentPadding: EdgeInsets.symmetric(
                                   vertical: 14,
-                                ), 
+                                ),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
