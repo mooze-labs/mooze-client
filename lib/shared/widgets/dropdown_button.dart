@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
-    as AppColors;
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 class FloatingLabelDropdown<T> extends StatelessWidget {
   final String label;
