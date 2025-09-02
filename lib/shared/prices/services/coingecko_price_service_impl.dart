@@ -12,10 +12,14 @@ class CoingeckoPriceServiceImpl extends PriceService {
 
   CoingeckoPriceServiceImpl(Currency currency) : _currency = currency;
 
+  @override
   String get currency => _currency.name;
 
   @override
-  TaskEither<String, Option<double>> getCoinPrice(Asset asset, {Currency? optionalCurrency}) {
+  TaskEither<String, Option<double>> getCoinPrice(
+    Asset asset, {
+    Currency? optionalCurrency,
+  }) {
     final currency = optionalCurrency ?? _currency;
     if (asset == Asset.depix && currency == Currency.brl) {
       return TaskEither.right(Option<double>.of(1.0));
