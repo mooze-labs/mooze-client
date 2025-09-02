@@ -115,7 +115,7 @@ class WalletHeaderWidget extends ConsumerWidget {
             ),
         loading: () => _buildLoadingText(),
         error:
-            (_, __) => const Text(
+            (_, _) => const Text(
               'N/A',
               style: TextStyle(
                 color: Colors.white,
@@ -155,7 +155,7 @@ class WalletHeaderWidget extends ConsumerWidget {
               ),
             );
           }),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       loading: () => _buildLoadingPercentage(),
     );
   }
