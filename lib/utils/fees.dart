@@ -14,16 +14,14 @@ class FeeCalculator {
   double getFees() {
     double amountInReais = fiatAmount / 100.0;
     if (assetId == "lbtc") {
-      amountInReais = amountInReais / 1.02;
+      amountInReais = amountInReais / 1.032;
     }
     double baseFee;
 
-    if (amountInReais >= 5000) {
-      baseFee = 2.75;
-    } else if (amountInReais >= 500 && amountInReais < 5000) {
-      baseFee = 3.25;
-    } else {
+    if (amountInReais < 500) {
       baseFee = 3.5;
+    } else {
+      baseFee = 3.0;
     }
 
     // Apply referral discount if available
