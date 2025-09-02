@@ -278,7 +278,7 @@ class SideswapRepository {
     _service.peg(pegIn, receiveAddress);
 
     // Add timeout
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 20), () {
       if (!completer.isCompleted) {
         completer.complete(null);
       }

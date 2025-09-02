@@ -197,10 +197,16 @@ class _SendAssetRowState extends ConsumerState<SendAssetRow> {
   Widget build(BuildContext context) {
     final swapInput = ref.watch(swapInputNotifierProvider);
     final sendAsset = swapInput.sendAsset;
-    final assets =
-        AssetCatalog.all
-            .where((asset) => asset.id != swapInput.recvAsset.id)
-            .toList();
+    List<Asset> assets;
+
+    if (swapInput.recvAsset == AssetCatalog.bitcoin) {
+      assets = [AssetCatalog.getById("lbtc")!];
+    } else {
+      assets =
+          AssetCatalog.all
+              .where((asset) => asset.id != swapInput.recvAsset.id)
+              .toList();
+    }
 
     // Clear the controller when amount is 0
     if (swapInput.sendAssetSatoshiAmount == 0 &&
@@ -280,11 +286,7 @@ class _ReceiveAssetRowState extends ConsumerState<ReceiveAssetRow> {
     if (swapInput.sendAsset == AssetCatalog.bitcoin) {
       assets = [AssetCatalog.getById("lbtc")!];
     } else if (swapInput.sendAsset == AssetCatalog.getById("lbtc")) {
-      assets = [
-        AssetCatalog.bitcoin!,
-        AssetCatalog.getById("usdt")!,
-        AssetCatalog.getById("depix")!,
-      ];
+      assets = [AssetCatalog.getById("usdt")!, AssetCatalog.getById("depix")!];
     } else {
       assets =
           AssetCatalog.all
