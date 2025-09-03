@@ -2,11 +2,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/selected_words_row.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/word_grid_selector.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
   const ConfirmMnemonicScreen({super.key});
