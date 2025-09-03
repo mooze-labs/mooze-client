@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/asset/data/asset_page_data.dart';
+import 'package:mooze_mobile/features/wallet/data/models/holding_asset/asset_page_data.dart';
 
 class AssetListItem extends StatelessWidget {
   final AssetPageData asset;
