@@ -16,7 +16,6 @@ class TransactionSection extends StatelessWidget {
           title: "Transações",
           actionDescription: "Ver mais",
         ),
-        const SizedBox(height: 15),
         TransactionList(),
       ],
     );
