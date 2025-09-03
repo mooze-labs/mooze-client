@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 import 'providers/referral_input_provider.dart';
