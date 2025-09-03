@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/secondary_button.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 const double buttonVerticalPadding = 16.0;
 const double borderRadius = 8.0;
