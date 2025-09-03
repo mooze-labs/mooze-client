@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/transactions_bottom_nav_bar.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_deposit_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_history_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
 
 final transactionHistoryRoutes = [
+  GoRoute(
+    path: '/transactions-details',
+    pageBuilder: (context, state) {
+      final deposit = state.extra as PixDeposit;
+      return NoTransitionPage(child: PixDepositDetailScreen(deposit: deposit));
+    },
+  ),
   ShellRoute(
     builder: (context, state, child) {
       final currentLocation = state.uri.toString();
