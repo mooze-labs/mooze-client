@@ -26,7 +26,9 @@ class TransactionList extends ConsumerWidget {
 
     if (cachedTransactionHistory == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(transactionHistoryCacheProvider.notifier).fetchTransactions();
+        ref
+            .read(transactionHistoryCacheProvider.notifier)
+            .fetchTransactionsInitial();
       });
       return LoadingTransactionList();
     }
