@@ -28,8 +28,6 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
       selectedStatus = status;
     }
     final assetIds = filters.filter!['assets'] as List<String>?;
-    print('assetIds: $assetIds');
-    print('selectedAssetIds: $selectedAssetIds');
     if (assetIds != null) {
       selectedAssetIds = List.from(assetIds);
     }
@@ -493,7 +491,6 @@ Widget _buildOptimizedGrid<T>({
   required Function(T) onItemSelected,
   required String Function(T) labelBuilder,
 }) {
-  // Calcula a distribuição otimizada dos itens
   List<List<T>> _distributeItems(List<T> items) {
     if (items.isEmpty) return [];
 
@@ -501,22 +498,17 @@ Widget _buildOptimizedGrid<T>({
     final List<List<T>> rows = [];
 
     if (totalItems <= 3) {
-      // Se tem 3 ou menos itens, coloca todos na mesma linha
       rows.add(items);
     } else if (totalItems == 4) {
-      // 4 itens: 2 + 2
       rows.add(items.sublist(0, 2));
       rows.add(items.sublist(2, 4));
     } else if (totalItems == 5) {
-      // 5 itens: 3 + 2
       rows.add(items.sublist(0, 3));
       rows.add(items.sublist(3, 5));
     } else if (totalItems == 6) {
-      // 6 itens: 3 + 3
       rows.add(items.sublist(0, 3));
       rows.add(items.sublist(3, 6));
     } else {
-      // Para mais itens, distribui em linhas de 3
       for (int i = 0; i < totalItems; i += 3) {
         final end = (i + 3 < totalItems) ? i + 3 : totalItems;
         rows.add(items.sublist(i, end));
