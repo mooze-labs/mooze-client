@@ -6,6 +6,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import 'fiat_price_provider.dart';
 import 'transaction_provider.dart';
+import 'balance_provider.dart';
 
 class AssetPriceHistoryState {
   final Map<Asset, Either<String, List<double>>> priceHistory;
@@ -25,6 +26,30 @@ class AssetPriceHistoryState {
   }) {
     return AssetPriceHistoryState(
       priceHistory: priceHistory ?? this.priceHistory,
+      isLoading: isLoading ?? this.isLoading,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+    );
+  }
+}
+
+class BalanceState {
+  final Map<Asset, Either<WalletError, BigInt>> balances;
+  final bool isLoading;
+  final DateTime? lastUpdated;
+
+  const BalanceState({
+    this.balances = const {},
+    this.isLoading = false,
+    this.lastUpdated,
+  });
+
+  BalanceState copyWith({
+    Map<Asset, Either<WalletError, BigInt>>? balances,
+    bool? isLoading,
+    DateTime? lastUpdated,
+  }) {
+    return BalanceState(
+      balances: balances ?? this.balances,
       isLoading: isLoading ?? this.isLoading,
       lastUpdated: lastUpdated ?? this.lastUpdated,
     );
@@ -67,6 +92,36 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
       return;
     }
 
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final result = await ref.read(assetPriceHistoryProvider(asset).future);
+
+      final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
+        state.priceHistory,
+      );
+      updatedPriceHistory[asset] = result;
+
+      state = state.copyWith(
+        priceHistory: updatedPriceHistory,
+        isLoading: false,
+        lastUpdated: DateTime.now(),
+      );
+    } catch (e) {
+      final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
+        state.priceHistory,
+      );
+      updatedPriceHistory[asset] = Left('Erro ao carregar dados: $e');
+
+      state = state.copyWith(
+        priceHistory: updatedPriceHistory,
+        isLoading: false,
+      );
+    }
+  }
+
+  // Novo método para forçar carregamento inicial de um asset
+  Future<void> fetchAssetPriceHistoryInitial(Asset asset) async {
     state = state.copyWith(isLoading: true);
 
     try {
@@ -141,12 +196,38 @@ class TransactionHistoryNotifier
   TransactionHistoryNotifier(this.ref) : super(const TransactionHistoryState());
 
   Future<void> fetchTransactions() async {
+    // Para o carregamento inicial, sempre busca se não tem dados
     if (state.transactions != null &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 2) {
       return;
     }
 
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final result = await ref.read(transactionHistoryProvider.future);
+
+      state = state.copyWith(
+        transactions: result,
+        isLoading: false,
+        lastUpdated: DateTime.now(),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        transactions: Left(
+          WalletError(
+            WalletErrorType.networkError,
+            'Erro ao carregar transações: $e',
+          ),
+        ),
+        isLoading: false,
+      );
+    }
+  }
+
+  // Novo método para forçar carregamento inicial
+  Future<void> fetchTransactionsInitial() async {
     state = state.copyWith(isLoading: true);
 
     try {
@@ -177,11 +258,122 @@ class TransactionHistoryNotifier
   }
 }
 
+class BalanceNotifier extends StateNotifier<BalanceState> {
+  final Ref ref;
+
+  BalanceNotifier(this.ref) : super(const BalanceState());
+
+  Future<void> fetchBalance(Asset asset) async {
+    if (state.balances.containsKey(asset) &&
+        state.lastUpdated != null &&
+        DateTime.now().difference(state.lastUpdated!).inMinutes < 1) {
+      return;
+    }
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final result = await ref.read(balanceProvider(asset).future);
+
+      final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
+        state.balances,
+      );
+      updatedBalances[asset] = result;
+
+      state = state.copyWith(
+        balances: updatedBalances,
+        isLoading: false,
+        lastUpdated: DateTime.now(),
+      );
+    } catch (e) {
+      final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
+        state.balances,
+      );
+      updatedBalances[asset] = Left(
+        WalletError(WalletErrorType.networkError, 'Erro ao carregar saldo: $e'),
+      );
+
+      state = state.copyWith(balances: updatedBalances, isLoading: false);
+    }
+  }
+
+  // Novo método para forçar carregamento inicial de saldo
+  Future<void> fetchBalanceInitial(Asset asset) async {
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final result = await ref.read(balanceProvider(asset).future);
+
+      final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
+        state.balances,
+      );
+      updatedBalances[asset] = result;
+
+      state = state.copyWith(
+        balances: updatedBalances,
+        isLoading: false,
+        lastUpdated: DateTime.now(),
+      );
+    } catch (e) {
+      final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
+        state.balances,
+      );
+      updatedBalances[asset] = Left(
+        WalletError(WalletErrorType.networkError, 'Erro ao carregar saldo: $e'),
+      );
+
+      state = state.copyWith(balances: updatedBalances, isLoading: false);
+    }
+  }
+
+  Future<void> fetchMultipleBalances(List<Asset> assets) async {
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final futures = assets.map(
+        (asset) => ref.read(balanceProvider(asset).future),
+      );
+
+      final results = await Future.wait(futures);
+
+      final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
+        state.balances,
+      );
+
+      for (int i = 0; i < assets.length; i++) {
+        updatedBalances[assets[i]] = results[i];
+      }
+
+      state = state.copyWith(
+        balances: updatedBalances,
+        isLoading: false,
+        lastUpdated: DateTime.now(),
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> refresh(List<Asset> assets) async {
+    state = state.copyWith(balances: {}, lastUpdated: null);
+    await fetchMultipleBalances(assets);
+  }
+
+  Either<WalletError, BigInt>? getAssetBalance(Asset asset) {
+    return state.balances[asset];
+  }
+}
+
 final assetPriceHistoryCacheProvider =
     StateNotifierProvider<AssetPriceHistoryNotifier, AssetPriceHistoryState>((
       ref,
     ) {
       return AssetPriceHistoryNotifier(ref);
+    });
+
+final balanceCacheProvider =
+    StateNotifierProvider<BalanceNotifier, BalanceState>((ref) {
+      return BalanceNotifier(ref);
     });
 
 final transactionHistoryCacheProvider =
@@ -197,6 +389,12 @@ final cachedAssetPriceHistoryProvider =
       return state.priceHistory[asset];
     });
 
+final cachedBalanceProvider =
+    Provider.family<Either<WalletError, BigInt>?, Asset>((ref, asset) {
+      final state = ref.watch(balanceCacheProvider);
+      return state.balances[asset];
+    });
+
 final cachedTransactionHistoryProvider =
     Provider<Either<WalletError, List<Transaction>>?>((ref) {
       final state = ref.watch(transactionHistoryCacheProvider);
@@ -206,6 +404,9 @@ final cachedTransactionHistoryProvider =
 final isLoadingDataProvider = Provider<bool>((ref) {
   final assetState = ref.watch(assetPriceHistoryCacheProvider);
   final transactionState = ref.watch(transactionHistoryCacheProvider);
+  final balanceState = ref.watch(balanceCacheProvider);
 
-  return assetState.isLoading || transactionState.isLoading;
+  return assetState.isLoading ||
+      transactionState.isLoading ||
+      balanceState.isLoading;
 });

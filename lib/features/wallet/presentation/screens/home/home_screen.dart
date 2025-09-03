@@ -97,12 +97,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final transactionCacheNotifier = ref.read(
       transactionHistoryCacheProvider.notifier,
     );
+    final balanceCacheNotifier = ref.read(balanceCacheProvider.notifier);
 
     for (final asset in favoriteAssets) {
-      assetCacheNotifier.fetchAssetPriceHistory(asset);
+      assetCacheNotifier.fetchAssetPriceHistoryInitial(asset);
+      balanceCacheNotifier.fetchBalanceInitial(asset);
     }
 
-    transactionCacheNotifier.fetchTransactions();
+    transactionCacheNotifier.fetchTransactionsInitial();
   }
 
   Future<void> _refreshData() async {
@@ -114,6 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             .read(assetPriceHistoryCacheProvider.notifier)
             .refresh(favoriteAssets),
         ref.read(transactionHistoryCacheProvider.notifier).refresh(),
+        ref.read(balanceCacheProvider.notifier).refresh(favoriteAssets),
       ]);
 
       if (_scrollController.hasClients) {
