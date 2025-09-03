@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/first_access/providers/terms_acceptance_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class BeginWidget extends ConsumerWidget {
   const BeginWidget({super.key});
@@ -16,11 +16,12 @@ class BeginWidget extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
       child: PrimaryButton(
         text: 'Criar Carteira',
-        onPressed: termsAccepted
-            ? () {
-                context.push("/setup/create-wallet/configure-seeds");
-              }
-            : null,
+        onPressed:
+            termsAccepted
+                ? () {
+                  context.push("/setup/create-wallet/configure-seeds");
+                }
+                : null,
         isEnabled: termsAccepted,
       ),
     );
