@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/dropdownburron.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 import '../../../providers.dart';
 
 const _possibleAssets = [Asset.btc, Asset.depix];
