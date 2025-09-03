@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/new_ui_wallet/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/mnemonic_controller_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 import 'package:no_screenshot/no_screenshot.dart';
 import '../providers/extended_phrase_provider.dart';
