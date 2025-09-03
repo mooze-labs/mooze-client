@@ -89,7 +89,6 @@ class ReceiveValidationController
         isValid: isFormValid,
       );
     } catch (e) {
-      // Se houver erro de conectividade ou serviços indisponíveis
       state = state.copyWith(
         amountValue: amount,
         amountError:
@@ -118,7 +117,6 @@ class ReceiveValidationController
             'DEBUG: Erro ao obter preço do Bitcoin, tentando fallback dinâmico: $e',
           );
 
-          // Tentar obter preço via priceServiceProvider como fallback
           try {
             final priceServiceResult =
                 await ref.read(priceServiceProvider).run();
@@ -142,7 +140,6 @@ class ReceiveValidationController
             return (btcAmount * 100000000).round();
           } catch (fallbackError) {
             print('DEBUG: Todos os serviços de preço falharam: $fallbackError');
-            // Não usar valores mockados - solicitar que o usuário tente mais tarde
             throw Exception(
               'Serviços de preço indisponíveis. Tente novamente mais tarde.',
             );
@@ -186,12 +183,10 @@ class ReceiveValidationController
               'DEBUG: Erro ao obter preços, tentando fallback dinâmico: $e',
             );
 
-            // Tentar obter apenas o preço do Bitcoin como fallback
             try {
               final btcPrice = await ref.read(bitcoinPriceProvider.future);
 
-              // Usar preços estimados para os ativos como último recurso
-              const usdtToBrlRate = 5.0; // Estimativa conservative
+              const usdtToBrlRate = 5.0;
               final fiatValue = amount * usdtToBrlRate;
               final btcAmount = fiatValue / btcPrice;
               return (btcAmount * 100000000).round();
@@ -199,7 +194,7 @@ class ReceiveValidationController
               print(
                 'DEBUG: Todos os serviços de preço falharam: $fallbackError',
               );
-              // Não usar valores mockados - solicitar que o usuário tente mais tarde
+
               throw Exception(
                 'Serviços de preço indisponíveis. Tente novamente mais tarde.',
               );
@@ -272,7 +267,6 @@ class ReceiveValidationController
 
       return true;
     } catch (e) {
-      // Se houver erro de conectividade, consideramos inválido
       return false;
     }
   }
