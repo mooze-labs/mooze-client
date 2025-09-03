@@ -120,7 +120,6 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
     }
   }
 
-  // Novo método para forçar carregamento inicial de um asset
   Future<void> fetchAssetPriceHistoryInitial(Asset asset) async {
     state = state.copyWith(isLoading: true);
 
@@ -196,7 +195,6 @@ class TransactionHistoryNotifier
   TransactionHistoryNotifier(this.ref) : super(const TransactionHistoryState());
 
   Future<void> fetchTransactions() async {
-    // Para o carregamento inicial, sempre busca se não tem dados
     if (state.transactions != null &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 2) {
@@ -226,7 +224,6 @@ class TransactionHistoryNotifier
     }
   }
 
-  // Novo método para forçar carregamento inicial
   Future<void> fetchTransactionsInitial() async {
     state = state.copyWith(isLoading: true);
 
@@ -297,7 +294,6 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
     }
   }
 
-  // Novo método para forçar carregamento inicial de saldo
   Future<void> fetchBalanceInitial(Asset asset) async {
     state = state.copyWith(isLoading: true);
 
