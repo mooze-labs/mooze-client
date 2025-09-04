@@ -124,7 +124,9 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
           child: ActionButton(
             icon: Icons.qr_code_scanner,
             label: 'Receber',
-            onPressed: () {},
+            onPressed: () {
+              context.push('/receive-asset');
+            },
           ),
         ),
         SizedBox(width: 12),
