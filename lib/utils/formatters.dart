@@ -64,3 +64,8 @@ class CurrencyInputFormatter extends TextInputFormatter {
     );
   }
 }
+
+String truncateTransactionId(String txId, {int length = 5}) {
+  if (txId.length <= 15) return txId;
+  return '${txId.substring(0, length)}...${txId.substring(txId.length - length)}';
+}
