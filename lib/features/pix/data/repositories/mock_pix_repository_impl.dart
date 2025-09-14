@@ -21,20 +21,19 @@ class MockPixRepositoryImpl implements PixRepository {
       amountInCents: amountInCents,
       network: network,
       status: DepositStatus.pending,
-      createdAt: DateTime.now()
+      createdAt: DateTime.now(),
     );
-    
+
     _mockDeposits.add(deposit);
-    
+
     return TaskEither.of(deposit);
   }
 
   @override
   TaskEither<String, Option<PixDeposit>> getDeposit(String depositId) {
-    final deposit = _mockDeposits
-        .where((d) => d.depositId == depositId)
-        .firstOrNull;
-    
+    final deposit =
+        _mockDeposits.where((d) => d.depositId == depositId).firstOrNull;
+
     return TaskEither.of(Option.fromNullable(deposit));
   }
 
