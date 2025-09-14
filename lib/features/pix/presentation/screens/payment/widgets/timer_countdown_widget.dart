@@ -11,7 +11,7 @@ class TimerCountdown extends StatelessWidget {
     final Duration remainingTime = expireAt.difference(DateTime.now());
     final int minutes = remainingTime.inMinutes;
     final int seconds = remainingTime.inSeconds % 60;
-    
+
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
@@ -20,13 +20,13 @@ class TimerCountdown extends StatelessWidget {
           TextSpan(
             text: "Você tem $minutes minutos e $seconds segundos",
             style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const TextSpan(text: 'para concluir o pagamento')
+          const TextSpan(text: 'para concluir o pagamento'),
         ],
-      )
+      ),
     );
   }
 }

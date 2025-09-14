@@ -4,6 +4,6 @@ abstract class SettingsActions {
   void execute();
 }
 
-abstract class Actions extends StatelessWidget{
+abstract class Actions extends StatelessWidget {
   const Actions({super.key});
 }

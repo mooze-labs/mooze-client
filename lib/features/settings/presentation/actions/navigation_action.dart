@@ -12,27 +12,19 @@ class Navigation extends SettingsActions {
     required this.rota,
     required this.context,
     this.verifyPinArgs,
-    this.args
+    this.args,
   });
 
   @override
   void execute() {
-    context.push(
-      rota,
-      extra: verifyPinArgs ?? args,
-    );
+    context.push(rota, extra: verifyPinArgs ?? args);
   }
 }
-
 
 class VerifyPinArgs {
   final Function()? onPinConfirmed;
   final bool? forceAuth;
   final bool? isAppResuming;
 
-  VerifyPinArgs({
-    this.onPinConfirmed,
-    this.forceAuth,
-    this.isAppResuming,
-  });
+  VerifyPinArgs({this.onPinConfirmed, this.forceAuth, this.isAppResuming});
 }

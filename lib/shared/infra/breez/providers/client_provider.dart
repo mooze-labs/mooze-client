@@ -11,17 +11,16 @@ final breezClientProvider = FutureProvider<Either<String, BindingLiquidSdk>>((
   final config = await ref.read(configProvider.future);
   final mnemonicOption = await ref.watch(mnemonicProvider.future);
 
-  return await mnemonicOption.fold(
-    () async => left('Mnemonic not available'),
-    (mnemonic) async {
-      try {
-        final connectRequest = ConnectRequest(mnemonic: mnemonic, config: config);
+  return await mnemonicOption.fold(() async => left('Mnemonic not available'), (
+    mnemonic,
+  ) async {
+    try {
+      final connectRequest = ConnectRequest(mnemonic: mnemonic, config: config);
 
-        final client = await connect(req: connectRequest);
-        return right(client);
-      } catch (e) {
-        return left('Failed to connect to Breez SDK: ${e.toString()}');
-      }
-    },
-  );
+      final client = await connect(req: connectRequest);
+      return right(client);
+    } catch (e) {
+      return left('Failed to connect to Breez SDK: ${e.toString()}');
+    }
+  });
 });

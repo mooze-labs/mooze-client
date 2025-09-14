@@ -48,35 +48,35 @@ class LiquidDataSource {
 }
 
 TaskEither<String, Descriptor> deriveNewDescriptorFromMnemonic(
-    String mnemonic,
-    Network network,
-    ) {
+  String mnemonic,
+  Network network,
+) {
   return TaskEither.tryCatch(
-        () async =>
+    () async =>
         Descriptor.newConfidential(network: network, mnemonic: mnemonic),
-        (error, stacktrace) => error.toString(),
+    (error, stacktrace) => error.toString(),
   );
 }
 
 TaskEither<String, Wallet> initializeNewWallet(
-    String descriptor,
-    Network network,
-    ) {
+  String descriptor,
+  Network network,
+) {
   final supportDir = TaskEither.tryCatch(
-        () async => getApplicationSupportDirectory(),
-        (error, stackTrace) => error.toString(),
+    () async => getApplicationSupportDirectory(),
+    (error, stackTrace) => error.toString(),
   ).flatMap((dir) => TaskEither.right("${dir.path}/lwk-db"));
 
   final liquidDescriptor = TaskEither.fromEither(
     Either.tryCatch(
-          () => Descriptor(ctDescriptor: descriptor),
-          (error, stackTrace) => error.toString(),
+      () => Descriptor(ctDescriptor: descriptor),
+      (error, stackTrace) => error.toString(),
     ),
   );
 
   return liquidDescriptor.flatMap(
-        (desc) => supportDir.flatMap(
-          (dbpath) => TaskEither.tryCatch(() async {
+    (desc) => supportDir.flatMap(
+      (dbpath) => TaskEither.tryCatch(() async {
         return await Wallet.init(
           network: network,
           dbpath: dbpath,
@@ -86,4 +86,3 @@ TaskEither<String, Wallet> initializeNewWallet(
     ),
   );
 }
-

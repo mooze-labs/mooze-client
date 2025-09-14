@@ -22,9 +22,12 @@ class PaymentDetailsDisplay extends ConsumerWidget {
     final depositAmountInReais = deposit.amountInCents.toDouble() / 100;
     final assetQuote = ref.read(assetQuoteProvider(deposit.asset).future);
     final feeRate = ref.read(feeRateProvider(depositAmountInReais).future);
-    final discountedAmount = ref.read(discountedFeesDepositProvider(depositAmountInReais).future);
-    final assetQuantity = discountedAmount
-        .then((amount) => _getAssetQuantity(assetQuote, amount, deposit.asset));
+    final discountedAmount = ref.read(
+      discountedFeesDepositProvider(depositAmountInReais).future,
+    );
+    final assetQuantity = discountedAmount.then(
+      (amount) => _getAssetQuantity(assetQuote, amount, deposit.asset),
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -34,76 +37,101 @@ class PaymentDetailsDisplay extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: const [BoxShadow(color: Color(0x4DEA1E63), blurRadius: 8)]
+        boxShadow: const [BoxShadow(color: Color(0x4DEA1E63), blurRadius: 8)],
       ),
       child: Column(
         children: [
-          InfoRow(label: "Valor", value: "R\$ ${(deposit.amountInCents.toDouble() / 100)}"),
+          InfoRow(
+            label: "Valor",
+            value: "R\$ ${(deposit.amountInCents.toDouble() / 100)}",
+          ),
           _buildAssetQuote(_getAssetQuote(assetQuote)),
           _buildAssetQuantity(assetQuantity),
-          _buildFeeRateDisplay(feeRate, deposit.amountInCents)
+          _buildFeeRateDisplay(feeRate, deposit.amountInCents),
         ],
       ),
     );
   }
 
   Widget _buildFeeRateDisplay(Future<double> rate, int amountInCents) {
-    if (amountInCents < minimumAmountForVariableFee) return InfoRow(label: "Taxa", value: "R\$ 2.00 + rede");
+    if (amountInCents < minimumAmountForVariableFee)
+      return InfoRow(label: "Taxa", value: "R\$ 2.00 + rede");
 
-    return FutureBuilder(future: rate, builder: (context, snapshot) {
-      if (snapshot.hasData) return InfoRow(label: "Taxa", value: snapshot.data!.toStringAsFixed(2));
-      if (snapshot.connectionState == ConnectionState.waiting) return ShimmerInfoRow(label: "Taxa");
+    return FutureBuilder(
+      future: rate,
+      builder: (context, snapshot) {
+        if (snapshot.hasData)
+          return InfoRow(
+            label: "Taxa",
+            value: snapshot.data!.toStringAsFixed(2),
+          );
+        if (snapshot.connectionState == ConnectionState.waiting)
+          return ShimmerInfoRow(label: "Taxa");
 
-      return InfoRow(label: "Taxa", value: "N/A");
-    });
+        return InfoRow(label: "Taxa", value: "N/A");
+      },
+    );
   }
 
   Widget _buildAssetQuote(Future<String> quote) {
-    return FutureBuilder(future: quote, builder: (context, snapshot) {
-      if (snapshot.hasData) return InfoRow(label: "Cotação", value: snapshot.data!);
-      if (snapshot.connectionState == ConnectionState.waiting) return ShimmerInfoRow(label: "Quantidade");
+    return FutureBuilder(
+      future: quote,
+      builder: (context, snapshot) {
+        if (snapshot.hasData)
+          return InfoRow(label: "Cotação", value: snapshot.data!);
+        if (snapshot.connectionState == ConnectionState.waiting)
+          return ShimmerInfoRow(label: "Quantidade");
 
-      return InfoRow(label: "Quantidade", value: "N/A");
-    });
+        return InfoRow(label: "Quantidade", value: "N/A");
+      },
+    );
   }
 
   Widget _buildAssetQuantity(Future<String> quantity) {
-    return FutureBuilder(future: quantity, builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return InfoRow(label: "Quantidade", value: snapshot.data!);
-      }
+    return FutureBuilder(
+      future: quantity,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return InfoRow(label: "Quantidade", value: snapshot.data!);
+        }
 
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return ShimmerInfoRow(label: "Quantidade");
-      }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return ShimmerInfoRow(label: "Quantidade");
+        }
 
-      return InfoRow(label: "Quantidade", value: "N/A");
-    });
+        return InfoRow(label: "Quantidade", value: "N/A");
+      },
+    );
   }
 }
 
-Future<String> _getAssetQuote(Future<Either<String, Option<double>>> futureEitherOptionQuote) {
-  return futureEitherOptionQuote.then((x) => x.fold(
+Future<String> _getAssetQuote(
+  Future<Either<String, Option<double>>> futureEitherOptionQuote,
+) {
+  return futureEitherOptionQuote.then(
+    (x) => x.fold(
       (err) {
         if (kDebugMode) debugPrint("Failed to get quote: $err");
         return "N/A";
       },
-      (optionQuote) => optionQuote.fold(
-          () => "N/A",
-          (quote) => quote.toStringAsFixed(2)
-      )
-  ));
+      (optionQuote) =>
+          optionQuote.fold(() => "N/A", (quote) => quote.toStringAsFixed(2)),
+    ),
+  );
 }
 
-Future<String> _getAssetQuantity(Future<Either<String, Option<double>>> futureEitherOptionQuote, double amountAfterFees, Asset asset) {
-  return futureEitherOptionQuote.then((x) =>
-      x.fold(
-              (err) => "N/A",
-              (optionQuote) =>
-              optionQuote.fold(
-                      () => "N/A",
-                      (quote) => "${(amountAfterFees / quote)} ${asset.ticker
-                      .toUpperCase()}"
-              )
-      ));
+Future<String> _getAssetQuantity(
+  Future<Either<String, Option<double>>> futureEitherOptionQuote,
+  double amountAfterFees,
+  Asset asset,
+) {
+  return futureEitherOptionQuote.then(
+    (x) => x.fold(
+      (err) => "N/A",
+      (optionQuote) => optionQuote.fold(
+        () => "N/A",
+        (quote) => "${(amountAfterFees / quote)} ${asset.ticker.toUpperCase()}",
+      ),
+    ),
+  );
 }

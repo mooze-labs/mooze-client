@@ -25,8 +25,7 @@ class LoadingOverlayWidget extends StatelessWidget {
           child: Stack(
             children: [
               _buildExpandingCircle(size),
-              if (showLoadingText)
-                _buildLoadingText(),
+              if (showLoadingText) _buildLoadingText(),
             ],
           ),
         );
@@ -41,10 +40,7 @@ class LoadingOverlayWidget extends StatelessWidget {
       child: Container(
         width: size.width * circleAnimation.value,
         height: size.width * circleAnimation.value,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
       ),
     );
   }
@@ -56,10 +52,7 @@ class LoadingOverlayWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
-              color: Colors.black54,
-              strokeWidth: 2,
-            ),
+            CircularProgressIndicator(color: Colors.black54, strokeWidth: 2),
             SizedBox(height: 24),
             Text(
               'Gerando QR Code...',

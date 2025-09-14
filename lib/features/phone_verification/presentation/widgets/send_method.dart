@@ -3,11 +3,7 @@ class SendMethod {
   final String name;
   final String iconAsset;
 
-  SendMethod({
-    required this.id,
-    required this.name,
-    required this.iconAsset,
-  });
+  SendMethod({required this.id, required this.name, required this.iconAsset});
 }
 
 final List<SendMethod> sendMethods = [

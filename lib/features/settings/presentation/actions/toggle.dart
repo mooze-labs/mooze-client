@@ -4,12 +4,8 @@ class Toggle extends SettingsActions {
   final bool value;
   final Function onChange;
 
-  Toggle({
-    required this.value,
-    required this.onChange,
-  });
-  
+  Toggle({required this.value, required this.onChange});
+
   @override
-  void execute() {
-  }
+  void execute() {}
 }

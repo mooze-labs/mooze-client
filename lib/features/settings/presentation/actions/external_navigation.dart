@@ -24,9 +24,9 @@ class ExternalNavigation extends SettingsActions {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erro ao tentar abrir o link")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Erro ao tentar abrir o link")));
     }
   }
 }

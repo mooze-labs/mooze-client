@@ -19,8 +19,14 @@ final lwkSyncEffectProvider = FutureProvider<Either<String, Unit>>((ref) async {
   final dataSourceResult = await ref.watch(liquidDataSourceProvider.future);
 
   return dataSourceResult.fold(
-      (err) => left("Liquid datasource not available: $err"),
-      (dataSource) => service.startPeriodicSync(dataSource, const Duration(minutes: syncDuration)).run()
+    (err) => left("Liquid datasource not available: $err"),
+    (dataSource) =>
+        service
+            .startPeriodicSync(
+              dataSource,
+              const Duration(minutes: syncDuration),
+            )
+            .run(),
   );
 });
 

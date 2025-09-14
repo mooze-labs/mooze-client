@@ -56,7 +56,7 @@ class PixDepositListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        context.push('/transactions-details', extra: deposit);
+        context.push('/depix/transactions/details', extra: deposit);
       },
       child: Container(
         width: double.infinity,

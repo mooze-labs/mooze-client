@@ -22,12 +22,7 @@ class SectionSettings extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-              ),
-            ),
+            child: Text(title, style: const TextStyle(fontSize: 12)),
           ),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -36,24 +31,21 @@ class SectionSettings extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
-                children: List.generate(
-                  settingsItems.length,
-                  (index) {
-                    final item = settingsItems[index];
-                    return Column(
-                      children: [
-                        LabelSettings(
-                          title: item.title,
-                          iconPathSVG: item.iconSvgPath,
-                          action: item.action,
-                          highlight: item.highlight,
-                        ),
-                        if (index < settingsItems.length - 1)
-                          const LabelDivider(),
-                      ],
-                    );
-                  },
-                ),
+                children: List.generate(settingsItems.length, (index) {
+                  final item = settingsItems[index];
+                  return Column(
+                    children: [
+                      LabelSettings(
+                        title: item.title,
+                        iconPathSVG: item.iconSvgPath,
+                        action: item.action,
+                        highlight: item.highlight,
+                      ),
+                      if (index < settingsItems.length - 1)
+                        const LabelDivider(),
+                    ],
+                  );
+                }),
               ),
             ),
           ),

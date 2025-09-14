@@ -35,7 +35,12 @@ class PixRepositoryImpl implements PixRepository {
       network,
     ).flatMap(
       (response) => _database
-          .addNewDeposit(response.depositId, response.qrCopyPaste, asset.id, amountInCents)
+          .addNewDeposit(
+            response.depositId,
+            response.qrCopyPaste,
+            asset.id,
+            amountInCents,
+          )
           .map((_) {
             // Start background subscription to status updates
             _subscribeToStatusUpdates(response.depositId)
