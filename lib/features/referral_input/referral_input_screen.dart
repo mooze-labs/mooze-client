@@ -69,7 +69,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
         child: SlideTransition(
           position: _slideAnimation,
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
                 Expanded(
@@ -173,7 +173,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
 
                         if (state.existingReferralCode != null)
                           AnimatedContainer(
@@ -365,35 +365,38 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                               ),
                             ],
                           ),
+                        if (state.existingReferralCode == null) ...[
+                          const SizedBox(height: 24),
+                          PrimaryButton(
+                            onPressed:
+                                state.isLoading
+                                    ? null
+                                    : () {
+                                      final code =
+                                          _referralCodeController.text
+                                              .trim()
+                                              .toUpperCase();
+                                      if (code.isNotEmpty) {
+                                        ref
+                                            .read(
+                                              referralInputControllerProvider
+                                                  .notifier,
+                                            )
+                                            .validateReferralCode(code);
+                                      }
+                                    },
+                            text:
+                                state.isLoading
+                                    ? 'Validando...'
+                                    : 'Aplicar Código',
+                            isEnabled: !state.isLoading,
+                          ),
+                          const SizedBox(height: 25),
+                        ],
                       ],
                     ),
                   ),
                 ),
-
-                if (state.existingReferralCode == null) ...[
-                  const SizedBox(height: 24),
-                  PrimaryButton(
-                    onPressed:
-                        state.isLoading
-                            ? null
-                            : () {
-                              final code =
-                                  _referralCodeController.text
-                                      .trim()
-                                      .toUpperCase();
-                              if (code.isNotEmpty) {
-                                ref
-                                    .read(
-                                      referralInputControllerProvider.notifier,
-                                    )
-                                    .validateReferralCode(code);
-                              }
-                            },
-                    text: state.isLoading ? 'Validando...' : 'Aplicar Código',
-                    isEnabled: !state.isLoading,
-                  ),
-                  const SizedBox(height: 25),
-                ],
               ],
             ),
           ),
