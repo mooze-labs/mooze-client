@@ -381,7 +381,7 @@ TaskEither<WalletError, PaymentRequest> _createLightningPaymentRequest(
 ) {
   return _createBitcoinPaymentRequest(
     breez,
-    PaymentMethod.liquidAddress,
+    PaymentMethod.lightning,
     Option.of(ReceiveAmount_Bitcoin(payerAmountSat: amount)),
     description,
   );
