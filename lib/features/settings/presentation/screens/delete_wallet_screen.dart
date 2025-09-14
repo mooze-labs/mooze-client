@@ -42,8 +42,7 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
                   'Ao deletar, será necessário passar novamente pelo sistema TRUST e você perderá acesso aos fundos se não tiver salvo sua frase de recuperação.',
             ),
 
-            const SizedBox(height: 32),
-
+            const SizedBox(height: 20),
             DeleteWalletSign(
               title: 'Limites PIX',
               description:
@@ -69,6 +68,7 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
             ),
 
             const Spacer(),
+            const SizedBox(height: 16),
 
             PrimaryButton(
               text: 'Deletar carteira',
@@ -79,7 +79,8 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
               isEnabled: _trustAware && _recoveryAware,
             ),
 
-            const SizedBox(height: 30),
+            // const SizedBox(height: 20),
+            const Spacer(),
           ],
         ),
       ),
