@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Provider para controlar a descrição
 final receiveDescriptionProvider = StateProvider<String>((ref) => '');
 
 class DescriptionField extends ConsumerWidget {
