@@ -18,60 +18,60 @@ class SelectedWordsRow extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     return Row(
-      children: positions.map((position) {
-        final isSelected = selectedWords.containsKey(position);
-        final word = selectedWords[position] ?? '';
+      children:
+          positions.map((position) {
+            final isSelected = selectedWords.containsKey(position);
+            final word = selectedWords[position] ?? '';
 
-        final backgroundColor = isSelected
-            ? colorScheme.primary.withValues(alpha:  0.3)
-            : AppColors.recoveryPhraseBackground;
+            final backgroundColor =
+                isSelected
+                    ? colorScheme.primary.withValues(alpha: 0.3)
+                    : AppColors.recoveryPhraseBackground;
 
-        final borderColor = isSelected
-            ? colorScheme.primary
-            : Colors.transparent;
+            final borderColor =
+                isSelected ? colorScheme.primary : Colors.transparent;
 
-        final numberColor = isSelected
-            ? colorScheme.primary
-            : AppColors.textPrimary;
+            final numberColor =
+                isSelected ? colorScheme.primary : AppColors.textPrimary;
 
-        return Expanded(
-          child: Container(
-            margin: EdgeInsets.only(
-              right: position != positions.last ? 15 : 0,
-            ),
-            padding: EdgeInsets.only(top: 10,bottom: 25, right: 10, left: 10),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: borderColor,
-                width: 2,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  position.toString(),
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: numberColor,
-                  ),
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.only(
+                  right: position != positions.last ? 15 : 0,
                 ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    word,
-                    style: textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
+                padding: EdgeInsets.only(
+                  top: 10,
+                  bottom: 25,
+                  right: 10,
+                  left: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor, width: 2),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      position.toString(),
+                      style: textTheme.bodyMedium?.copyWith(color: numberColor),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        word,
+                        style: textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+              ),
+            );
+          }).toList(),
     );
   }
 }

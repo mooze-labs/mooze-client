@@ -13,17 +13,19 @@ class ImportWalletWidget extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textStyle = Theme.of(context).textTheme.bodyMedium!;
     return TextButton(
-        style: ButtonStyle(
-          overlayColor: WidgetStateProperty.all(Colors.transparent), 
-          splashFactory: NoSplash.splashFactory, 
+      style: ButtonStyle(
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
       ),
-      onPressed: hasAcceptedTerms ? () => context.push("/setup/import-wallet") : null,
+      onPressed:
+          hasAcceptedTerms ? () => context.push("/setup/import-wallet") : null,
       child: Text(
         'Importar carteira',
         style: textStyle.copyWith(
-          color: hasAcceptedTerms
-              ? colorScheme.onPrimary
-              : colorScheme.primary.withValues(alpha: 0.5),
+          color:
+              hasAcceptedTerms
+                  ? colorScheme.onPrimary
+                  : colorScheme.primary.withValues(alpha: 0.5),
         ),
       ),
     );

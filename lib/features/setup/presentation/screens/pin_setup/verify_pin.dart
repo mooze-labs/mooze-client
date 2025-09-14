@@ -144,9 +144,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Validar PIN'),
-        ),
+        appBar: AppBar(title: const Text('Validar PIN')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }

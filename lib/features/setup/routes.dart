@@ -44,15 +44,14 @@ final setupRoutes = [
     },
   ),
   GoRoute(
-  path: "/setup/pin/verify",
-  builder: (context, state) {
-    final args = state.extra as VerifyPinArgs?;
-    return VerifyPinScreen(
-      onPinConfirmed: args?.onPinConfirmed ?? () {},
-      forceAuth: args?.forceAuth ?? false,
-      isAppResuming: args?.isAppResuming ?? false,
-    );
-  },
-),
-
+    path: "/setup/pin/verify",
+    builder: (context, state) {
+      final args = state.extra as VerifyPinArgs?;
+      return VerifyPinScreen(
+        onPinConfirmed: args?.onPinConfirmed ?? () {},
+        forceAuth: args?.forceAuth ?? false,
+        isAppResuming: args?.isAppResuming ?? false,
+      );
+    },
+  ),
 ];

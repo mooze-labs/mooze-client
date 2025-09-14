@@ -24,9 +24,7 @@ class TitleAndSubtitleCreateWallet extends StatelessWidget {
               TextSpan(text: title),
               TextSpan(
                 text: highlighted,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ],
           ),
@@ -34,10 +32,9 @@ class TitleAndSubtitleCreateWallet extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           subtitle,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium!
-              .copyWith(color: Theme.of(context).colorScheme.onPrimary),
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
       ],
     );

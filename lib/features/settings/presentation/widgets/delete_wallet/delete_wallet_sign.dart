@@ -54,18 +54,16 @@ class DeleteWalletSign extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: iconBackground,
-                          border: Border.all(
-                            color: checkBorderColor,
-                            width: 2,
-                          ),
+                          border: Border.all(color: checkBorderColor, width: 2),
                         ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 16,
-                              )
-                            : null,
+                        child:
+                            isSelected
+                                ? const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 16,
+                                )
+                                : null,
                       ),
                     ],
                   ),

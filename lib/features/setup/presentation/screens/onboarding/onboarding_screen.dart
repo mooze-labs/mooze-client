@@ -17,7 +17,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // State
   int _currentIndex = 0;
 
-
   // Constants
   static const Duration _pageAnimationDuration = Duration(milliseconds: 400);
   static const Duration _indicatorAnimationDuration = Duration(

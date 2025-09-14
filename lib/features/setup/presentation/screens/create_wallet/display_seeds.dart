@@ -59,10 +59,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
   }
 
   void _goToConfirmSeeds(BuildContext context) {
-    context.push(
-      "/setup/create-wallet/confirm-seeds",
-      extra: mnemonic,
-    );
+    context.push("/setup/create-wallet/confirm-seeds", extra: mnemonic);
   }
 
   AppBar _buildAppBar(BuildContext context) {
@@ -70,8 +67,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
       title: const Text("Frase de Recuperação"),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        onPressed: () =>
-            context.pop(),
+        onPressed: () => context.pop(),
       ),
     );
   }

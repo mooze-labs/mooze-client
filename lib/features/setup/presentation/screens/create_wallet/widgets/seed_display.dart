@@ -13,7 +13,10 @@ class MnemonicGridDisplay extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = 3;
-        final aspectRatio = _calculateAspectRatio(constraints.maxWidth, crossAxisCount);
+        final aspectRatio = _calculateAspectRatio(
+          constraints.maxWidth,
+          crossAxisCount,
+        );
         final needsScroll = _needsScroll(
           wordCount: words.length,
           constraints: constraints,
@@ -22,9 +25,10 @@ class MnemonicGridDisplay extends StatelessWidget {
         );
 
         return GridView.builder(
-          physics: needsScroll
-              ? const AlwaysScrollableScrollPhysics()
-              : const NeverScrollableScrollPhysics(),
+          physics:
+              needsScroll
+                  ? const AlwaysScrollableScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
           shrinkWrap: !needsScroll,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -43,7 +47,8 @@ class MnemonicGridDisplay extends StatelessWidget {
 
   double _calculateAspectRatio(double availableWidth, int crossAxisCount) {
     final spacing = 12.0;
-    final itemWidth = (availableWidth - (crossAxisCount - 1) * spacing) / crossAxisCount;
+    final itemWidth =
+        (availableWidth - (crossAxisCount - 1) * spacing) / crossAxisCount;
     const minItemHeight = 40.0;
     double ratio = itemWidth / minItemHeight;
 
@@ -79,10 +84,7 @@ class MnemonicGridDisplay extends StatelessWidget {
                 text: '$number. ',
                 style: theme?.copyWith(color: AppColors.textQuintary),
               ),
-              TextSpan(
-                text: word,
-                style: theme,
-              ),
+              TextSpan(text: word, style: theme),
             ],
           ),
         ),
