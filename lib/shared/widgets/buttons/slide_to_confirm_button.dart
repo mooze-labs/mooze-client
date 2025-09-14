@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class SlideToConfirmButton extends StatefulWidget {
   final VoidCallback onSlideComplete;
   final String text;
+  final bool isLoading;
 
   const SlideToConfirmButton({
     super.key,
     required this.onSlideComplete,
     required this.text,
+    this.isLoading = false,
   });
 
   @override
@@ -57,6 +59,8 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
+    if (widget.isLoading) return;
+
     setState(() {
       _isDragging = true;
       _dragValue = (details.localPosition.dx /
@@ -67,6 +71,8 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   }
 
   void _onPanEnd(DragEndDetails details) {
+    if (widget.isLoading) return;
+
     if (_dragValue > 0.8) {
       _controller.forward().then((_) {
         widget.onSlideComplete();
@@ -91,67 +97,95 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: Color(0xFFE91E63),
+        color: widget.isLoading ? Colors.grey : Color(0xFFE91E63),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Stack(
         children: [
           // Texto de fundo
           Center(
-            child: Text(
-              widget.text,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-
-          AnimatedBuilder(
-            animation: Listenable.merge([_slideAnimation, _floatingAnimation]),
-            builder: (context, child) {
-              double slidePosition =
-                  _isDragging ? _dragValue : _slideAnimation.value;
-
-              double floatingOffset =
-                  (!_isDragging && slidePosition == 0)
-                      ? _floatingAnimation.value
-                      : 0;
-
-              return Positioned(
-                left:
-                    4 +
-                    slidePosition * (MediaQuery.of(context).size.width - 90) +
-                    floatingOffset,
-                top: 6,
-                child: GestureDetector(
-                  onPanUpdate: _onPanUpdate,
-                  onPanEnd: _onPanEnd,
-                  child: Container(
-                    width: 50,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+            child:
+                widget.isLoading
+                    ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          "Processando...",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
+                    )
+                    : Text(
+                      widget.text,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.arrow_forward,
-                      color: Color(0xFFE91E63),
-                      size: 24,
+          ),
+
+          if (!widget.isLoading)
+            AnimatedBuilder(
+              animation: Listenable.merge([
+                _slideAnimation,
+                _floatingAnimation,
+              ]),
+              builder: (context, child) {
+                double slidePosition =
+                    _isDragging ? _dragValue : _slideAnimation.value;
+
+                double floatingOffset =
+                    (!_isDragging && slidePosition == 0)
+                        ? _floatingAnimation.value
+                        : 0;
+
+                return Positioned(
+                  left:
+                      4 +
+                      slidePosition * (MediaQuery.of(context).size.width - 90) +
+                      floatingOffset,
+                  top: 6,
+                  child: GestureDetector(
+                    onPanUpdate: _onPanUpdate,
+                    onPanEnd: _onPanEnd,
+                    child: Container(
+                      width: 50,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        color: Color(0xFFE91E63),
+                        size: 24,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
         ],
       ),
     );
