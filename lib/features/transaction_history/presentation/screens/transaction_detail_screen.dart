@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
@@ -153,7 +154,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           ),
           _buildDetailRow(
             'ID da Transação',
-            _truncateTransactionId(widget.transaction.id),
+            truncateHashId(widget.transaction.id),
             null,
             true,
           ),
@@ -287,11 +288,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   String _formatDateTime(DateTime dateTime) {
     final formatter = DateFormat('dd/MM/yyyy HH:mm:ss');
     return formatter.format(dateTime);
-  }
-
-  String _truncateTransactionId(String txId) {
-    if (txId.length <= 15) return txId;
-    return '${txId.substring(0, 5)}...${txId.substring(txId.length - 5)}';
   }
 
   void _copyToClipboard(String text) {
