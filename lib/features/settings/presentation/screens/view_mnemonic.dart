@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/seed_display.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart' show PrimaryButton;
+import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 
 class ViewMnemonicScreen extends ConsumerStatefulWidget {
