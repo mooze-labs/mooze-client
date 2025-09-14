@@ -8,11 +8,9 @@ class BalanceController {
 
   BalanceController(WalletRepository wallet) : _wallet = wallet;
 
-  TaskEither<WalletError, BigInt> getBitcoinBalance() {
-    return getAssetBalance(Asset.btc);
-  }
-
   TaskEither<WalletError, BigInt> getAssetBalance(Asset asset) {
-    return _wallet.getBalance().flatMap((balance) => TaskEither.right(balance[asset] ?? BigInt.zero));
+    return _wallet.getBalance().flatMap(
+      (balance) => TaskEither.right(balance[asset] ?? BigInt.zero),
+    );
   }
 }
