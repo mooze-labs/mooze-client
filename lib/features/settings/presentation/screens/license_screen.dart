@@ -272,7 +272,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
 
   Widget _buildQuickInfo(ColorScheme colorScheme) {
     return SizedBox(
-      height: 100,
+      height: 125,
       child: Row(
         children: [
           Expanded(
@@ -313,13 +313,14 @@ class _LicenseScreenState extends State<LicenseScreen> {
     required ColorScheme colorScheme,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 20, color: colorScheme.primary),
           const SizedBox(height: 6),
