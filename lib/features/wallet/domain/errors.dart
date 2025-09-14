@@ -9,17 +9,17 @@ enum WalletErrorType {
 
 class WalletError {
   const WalletError(this.type, [this.customDescription]);
-  
+
   final WalletErrorType type;
   final String? customDescription;
-  
+
   String get description {
     if (customDescription != null) {
       return '${_getDefaultDescription(type)}: $customDescription';
     }
     return _getDefaultDescription(type);
   }
-  
+
   String _getDefaultDescription(WalletErrorType type) {
     switch (type) {
       case WalletErrorType.insufficientFunds:

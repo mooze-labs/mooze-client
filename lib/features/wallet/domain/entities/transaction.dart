@@ -21,6 +21,6 @@ class Transaction {
     required this.asset,
     required this.type,
     required this.status,
-    required this.createdAt
+    required this.createdAt,
   });
 }

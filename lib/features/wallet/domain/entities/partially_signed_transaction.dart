@@ -13,7 +13,6 @@ sealed class PartiallySignedTransaction {
 }
 
 class PreparedStablecoinTransaction implements PartiallySignedTransaction {
-
   @override
   final String destination;
   @override
@@ -27,12 +26,11 @@ class PreparedStablecoinTransaction implements PartiallySignedTransaction {
   @override
   BigInt get satoshi => BigInt.from((amount * pow(10, 8)));
 
-
   PreparedStablecoinTransaction({
     required this.destination,
     required this.asset,
     required this.amount,
-    required this.networkFees
+    required this.networkFees,
   });
 }
 
@@ -50,7 +48,12 @@ class PreparedLayer2BitcoinTransaction implements PartiallySignedTransaction {
   @override
   BigInt get satoshi => amount;
 
-  PreparedLayer2BitcoinTransaction({required this.destination, required this.amount, required this.networkFees, required this.blockchain});
+  PreparedLayer2BitcoinTransaction({
+    required this.destination,
+    required this.amount,
+    required this.networkFees,
+    required this.blockchain,
+  });
 }
 
 class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
@@ -67,5 +70,9 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
   @override
   BigInt get satoshi => amount;
 
-  PreparedOnchainBitcoinTransaction({required this.destination, required this.amount, required this.networkFees});
+  PreparedOnchainBitcoinTransaction({
+    required this.destination,
+    required this.amount,
+    required this.networkFees,
+  });
 }

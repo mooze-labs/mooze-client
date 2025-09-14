@@ -10,7 +10,9 @@ class TransactionController {
   TransactionController(WalletRepository wallet) : _wallet = wallet;
 
   TaskEither<WalletError, List<Transaction>> getLastTransactions(int count) {
-    return getTransactions().flatMap((transactions) => TaskEither.right(transactions.take(count).toList()));
+    return getTransactions().flatMap(
+      (transactions) => TaskEither.right(transactions.take(count).toList()),
+    );
   }
 
   TaskEither<WalletError, List<Transaction>> getTransactions({
@@ -19,6 +21,11 @@ class TransactionController {
     Asset? asset,
     Blockchain? blockchain,
   }) {
-    return _wallet.getTransactions(type: type, status: status, asset: asset, blockchain: blockchain);
+    return _wallet.getTransactions(
+      type: type,
+      status: status,
+      asset: asset,
+      blockchain: blockchain,
+    );
   }
 }

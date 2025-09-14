@@ -200,7 +200,6 @@ class TransactionHistoryNotifier
         DateTime.now().difference(state.lastUpdated!).inMinutes < 2) {
       return;
     }
-
     state = state.copyWith(isLoading: true);
 
     try {

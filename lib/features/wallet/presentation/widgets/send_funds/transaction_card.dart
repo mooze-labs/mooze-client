@@ -19,10 +19,7 @@ class TransactionCard extends StatelessWidget {
         color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
-      child: Text(
-        content,
-        style: Theme.of(context).textTheme.bodyLarge,
-      ),
+      child: Text(content, style: Theme.of(context).textTheme.bodyLarge),
     );
   }
 }

@@ -1,6 +1,11 @@
 import 'dart:math';
 
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' show ReceivePaymentResponse, ReceiveAmount_Bitcoin, ReceiveAmount_Asset, PaymentMethod;
+import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
+    show
+        ReceivePaymentResponse,
+        ReceiveAmount_Bitcoin,
+        ReceiveAmount_Asset,
+        PaymentMethod;
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
