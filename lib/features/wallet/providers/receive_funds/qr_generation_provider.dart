@@ -1,16 +1,18 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
+import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
+import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 
-// Estado para geração de QR code
 class QRGenerationState {
-  final String? qrData;
   final bool isLoading;
   final String? error;
   final String? displayAddress;
 
   const QRGenerationState({
-    this.qrData,
     this.isLoading = false,
     this.error,
     this.displayAddress,
@@ -23,7 +25,6 @@ class QRGenerationState {
     String? displayAddress,
   }) {
     return QRGenerationState(
-      qrData: qrData,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       displayAddress: displayAddress ?? this.displayAddress,
@@ -31,104 +32,190 @@ class QRGenerationState {
   }
 }
 
-// Controller para gerenciar geração de QR codes
-class QRGenerationController extends StateNotifier<QRGenerationState> {
-  QRGenerationController() : super(const QRGenerationState());
+class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
+  @override
+  FutureOr<QRGenerationState> build() {
+    return const QRGenerationState();
+  }
 
-  // Gera QR code baseado na network e parâmetros
   Future<void> generateQRCode({
     required NetworkType network,
     required Asset asset,
     double? amount,
     String? description,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = const AsyncValue.loading();
 
     try {
-      String qrData;
-      String displayAddress;
+      final walletRepositoryResult = await ref.read(
+        walletRepositoryProvider.future,
+      );
+      final walletRepository = walletRepositoryResult.fold(
+        (error) =>
+            throw Exception(
+              'Failed to get wallet repository: ${error.description}',
+            ),
+        (repository) => repository,
+      );
 
-      switch (network) {
-        case NetworkType.bitcoin:
-          // Para Bitcoin, gera endereço on-chain
-          displayAddress = _generateBitcoinAddress();
-          qrData = _formatBitcoinURI(displayAddress, amount, description);
-          break;
+      final result = switch (network) {
+        NetworkType.bitcoin => _generateBitcoinPaymentRequest(
+          walletRepository,
+          amount,
+          description,
+        ),
+        NetworkType.lightning =>
+          amount == null || amount <= 0
+              ? TaskEither<WalletError, QRGenerationState>.left(
+                const WalletError(
+                  WalletErrorType.invalidAmount,
+                  'Amount é obrigatório para Lightning',
+                ),
+              )
+              : _generateLightningPaymentRequest(
+                walletRepository,
+                amount,
+                description,
+              ),
+        NetworkType.liquid =>
+          asset == Asset.btc
+              ? _generateLiquidBitcoinPaymentRequest(
+                walletRepository,
+                amount,
+                description,
+              )
+              : _generateStablecoinPaymentRequest(
+                walletRepository,
+                asset,
+                amount,
+                description,
+              ),
+        NetworkType.unknown => TaskEither<WalletError, QRGenerationState>.left(
+          const WalletError(
+            WalletErrorType.invalidAsset,
+            'Network não suportada',
+          ),
+        ),
+      };
 
-        case NetworkType.lightning:
-          if (amount == null || amount <= 0) {
-            state = state.copyWith(
-              isLoading: false,
-              error: 'Amount é obrigatório para Lightning',
-            );
-            return;
-          }
-          // Para Lightning, gera invoice
-          final invoice = await _generateLightningInvoice(amount, description);
-          displayAddress = invoice;
-          qrData = invoice;
-          break;
+      final finalResult = await result.run();
 
-        case NetworkType.liquid:
-          // Para Liquid, gera endereço liquid
-          displayAddress = _generateLiquidAddress();
-          qrData = _formatLiquidURI(displayAddress, asset, amount, description);
-          break;
-
-        case NetworkType.unknown:
-          state = state.copyWith(
-            isLoading: false,
-            error: 'Network não suportada',
-          );
-          return;
-      }
-
-      state = state.copyWith(
-        isLoading: false,
-        qrData: qrData,
-        displayAddress: displayAddress,
-        error: null,
+      finalResult.fold(
+        (error) =>
+            state = AsyncValue.data(
+              QRGenerationState(isLoading: false, error: error.description),
+            ),
+        (qrState) => state = AsyncValue.data(qrState),
       );
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Erro ao gerar QR code: $e',
+      state = AsyncValue.data(
+        QRGenerationState(isLoading: false, error: 'Erro ao gerar QR code: $e'),
       );
     }
   }
 
-  // Gera endereço Bitcoin (mock)
-  String _generateBitcoinAddress() {
-    // TODO: Integrar com wallet real
-    return 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
+  TaskEither<WalletError, QRGenerationState> _generateBitcoinPaymentRequest(
+    WalletRepository walletRepository,
+    double? amount,
+    String? description,
+  ) {
+    final amountSats =
+        amount != null ? BigInt.from((amount * 100000000).round()) : null;
+
+    return walletRepository
+        .createBitcoinInvoice(
+          Option.fromNullable(amountSats),
+          Option.fromNullable(description),
+        )
+        .map((paymentRequest) {
+          final displayAddress = paymentRequest.address;
+          final qrData = _formatBitcoinURI(displayAddress, amount, description);
+
+          return QRGenerationState(
+            isLoading: false,
+            displayAddress: displayAddress,
+            error: null,
+          );
+        });
   }
 
-  // Gera endereço Liquid (mock)
-  String _generateLiquidAddress() {
-    // TODO: Integrar com wallet real
-    return 'lq1qqw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
-  }
-
-  // Gera invoice Lightning (mock)
-  Future<String> _generateLightningInvoice(
+  TaskEither<WalletError, QRGenerationState> _generateLightningPaymentRequest(
+    WalletRepository walletRepository,
     double amount,
     String? description,
-  ) async {
-    // Simula delay da rede
-    await Future.delayed(const Duration(seconds: 2));
+  ) {
+    final amountSats = BigInt.from((amount * 100000000).round());
 
-    // TODO: Integrar com Lightning wallet real
-    final satsAmount = (amount * 100000000).round();
-    return 'lnbc${satsAmount}n1p2xqhj8pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdqqcqzpgxqyz5vqsp5usyxuhqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqgz7n';
+    return walletRepository
+        .createLightningInvoice(amountSats, Option.fromNullable(description))
+        .map((paymentRequest) {
+          final displayAddress = paymentRequest.address;
+
+          return QRGenerationState(
+            isLoading: false,
+            displayAddress: displayAddress,
+            error: null,
+          );
+        });
   }
 
-  // Formata URI para Bitcoin
+  TaskEither<WalletError, QRGenerationState>
+  _generateLiquidBitcoinPaymentRequest(
+    WalletRepository walletRepository,
+    double? amount,
+    String? description,
+  ) {
+    final amountSats =
+        amount != null ? BigInt.from((amount * 100000000).round()) : null;
+
+    return walletRepository
+        .createLiquidBitcoinInvoice(
+          Option.fromNullable(amountSats),
+          Option.fromNullable(description),
+        )
+        .map((paymentRequest) {
+          final displayAddress = paymentRequest.address;
+
+          return QRGenerationState(
+            isLoading: false,
+            displayAddress: displayAddress,
+            error: null,
+          );
+        });
+  }
+
+  TaskEither<WalletError, QRGenerationState> _generateStablecoinPaymentRequest(
+    WalletRepository walletRepository,
+    Asset asset,
+    double? amount,
+    String? description,
+  ) {
+    final amountSats =
+        amount != null ? BigInt.from((amount * 100000000).round()) : null;
+
+    return walletRepository
+        .createStablecoinInvoice(
+          asset,
+          Option.fromNullable(amountSats),
+          Option.fromNullable(description),
+        )
+        .map((paymentRequest) {
+          final displayAddress = paymentRequest.address;
+
+          return QRGenerationState(
+            isLoading: false,
+            displayAddress: displayAddress,
+            error: null,
+          );
+        });
+  }
+
   String _formatBitcoinURI(
     String address,
     double? amount,
     String? description,
   ) {
-    var uri = 'bitcoin:$address';
+    var uri = address;
     final params = <String>[];
 
     if (amount != null && amount > 0) {
@@ -146,43 +233,12 @@ class QRGenerationController extends StateNotifier<QRGenerationState> {
     return uri;
   }
 
-  // Formata URI para Liquid
-  String _formatLiquidURI(
-    String address,
-    Asset asset,
-    double? amount,
-    String? description,
-  ) {
-    var uri = 'liquidnetwork:$address';
-    final params = <String>[];
-
-    if (amount != null && amount > 0) {
-      params.add('amount=$amount');
-    }
-
-    if (asset != Asset.btc) {
-      params.add('assetid=${asset.id}');
-    }
-
-    if (description != null && description.isNotEmpty) {
-      params.add('label=${Uri.encodeComponent(description)}');
-    }
-
-    if (params.isNotEmpty) {
-      uri += '?${params.join('&')}';
-    }
-
-    return uri;
-  }
-
-  // Reset do estado
   void reset() {
-    state = const QRGenerationState();
+    state = const AsyncValue.data(QRGenerationState());
   }
 }
 
-// Provider do controller
 final qrGenerationControllerProvider =
-    StateNotifierProvider<QRGenerationController, QRGenerationState>(
-      (ref) => QRGenerationController(),
+    AsyncNotifierProvider<QRGenerationAsyncNotifier, QRGenerationState>(
+      QRGenerationAsyncNotifier.new,
     );

@@ -5,7 +5,6 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
 
-// Provider para o asset selecionado no receive
 final selectedReceiveAssetProvider = StateProvider<Asset?>((ref) => Asset.btc);
 
 class AssetSelectorReceive extends ConsumerWidget {
