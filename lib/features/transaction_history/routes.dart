@@ -4,11 +4,22 @@ import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/transactions_bottom_nav_bar.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_deposit_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_history_screen.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 
 final transactionHistoryRoutes = [
   GoRoute(
-    path: '/transactions-details',
+    path: '/transactions/details',
+    pageBuilder: (context, state) {
+      final transaction = state.extra as Transaction;
+      return NoTransitionPage(
+        child: TransactionDetailScreen(transaction: transaction),
+      );
+    },
+  ),
+  GoRoute(
+    path: '/depix/transactions/details',
     pageBuilder: (context, state) {
       final deposit = state.extra as PixDeposit;
       return NoTransitionPage(child: PixDepositDetailScreen(deposit: deposit));
@@ -26,10 +37,10 @@ final transactionHistoryRoutes = [
           onTap: (index) {
             switch (index) {
               case 0:
-                context.push('/transactions-history');
+                context.pushReplacement('/transactions-history');
                 break;
               case 1:
-                context.push('/swaps-history');
+                context.pushReplacement('/swaps-history');
                 break;
             }
           },
