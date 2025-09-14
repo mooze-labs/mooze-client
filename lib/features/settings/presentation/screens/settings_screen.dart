@@ -36,149 +36,145 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              SectionSettings(
-                title: 'SEGURANÇA',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Ver frase de recuperação',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/security.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/setup/pin/verify',
-                      verifyPinArgs: VerifyPinArgs(
-                        onPinConfirmed: () async {
-                          // Consome o provider
-                          final seed = await ref.read(seedProvider.future);
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            SectionSettings(
+              title: 'SEGURANÇA',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Ver frase de recuperação',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/security.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/setup/pin/verify',
+                    verifyPinArgs: VerifyPinArgs(
+                      onPinConfirmed: () async {
+                        // Consome o provider
+                        final seed = await ref.read(seedProvider.future);
 
-                          seed.match(
-                            // erro
-                            (err) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro: $err')),
-                              );
-                            },
-                            (maybeSeed) {
-                              maybeSeed.match(
-                                () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Nenhuma seed encontrada.'),
-                                    ),
-                                  );
-                                },
-                                (seedValue) {
-                                  context.pushReplacement(
-                                    '/settings/view-mnemonic',
-                                    extra: seedValue,
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        },
-                        forceAuth: true,
-                      ),
+                        seed.match(
+                          // erro
+                          (err) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erro: $err')),
+                            );
+                          },
+                          (maybeSeed) {
+                            maybeSeed.match(
+                              () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Nenhuma seed encontrada.'),
+                                  ),
+                                );
+                              },
+                              (seedValue) {
+                                context.pushReplacement(
+                                  '/settings/view-mnemonic',
+                                  extra: seedValue,
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                      forceAuth: true,
                     ),
                   ),
-                  ConfigStructure(
-                    title: 'Mudar PIN',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/key.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/setup/pin/verify',
-                      verifyPinArgs: VerifyPinArgs(
-                        onPinConfirmed: () {
-                          context.pushReplacement('/setup/pin/new');
-                        },
-                        forceAuth: true,
-                      ),
+                ),
+                ConfigStructure(
+                  title: 'Mudar PIN',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/key.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/setup/pin/verify',
+                    verifyPinArgs: VerifyPinArgs(
+                      onPinConfirmed: () {
+                        context.pushReplacement('/setup/pin/new');
+                      },
+                      forceAuth: true,
                     ),
                   ),
-                  ConfigStructure(
-                    title: 'Deletar carteira',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/delete_account.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/settings/delete-wallet',
-                    ),
+                ),
+                ConfigStructure(
+                  title: 'Deletar carteira',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/delete_account.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/delete-wallet',
                   ),
-                ],
-              ),
-              SectionSettings(
-                title: 'MOEDA',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Alterar Moeda',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/currency_exchange.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/settings/currency-selector',
-                    ),
+                ),
+              ],
+            ),
+            SectionSettings(
+              title: 'MOEDA',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Alterar Moeda',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/currency_exchange.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/currency-selector',
                   ),
-                ],
-              ),
-              SectionSettings(
-                title: 'CONTA E BENEFICIOS',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Cupom de Indicação',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/gift.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/settings/referral',
-                    ),
+                ),
+              ],
+            ),
+            SectionSettings(
+              title: 'CONTA E BENEFICIOS',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Cupom de Indicação',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/gift.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/referral',
                   ),
-                ],
-              ),
-              SectionSettings(
-                title: 'LEGAL',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Termos de uso',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/document.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/settings/terms',
-                    ),
+                ),
+              ],
+            ),
+            SectionSettings(
+              title: 'LEGAL',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Termos de uso',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/document.svg',
+                  action: Navigation(context: context, rota: '/settings/terms'),
+                ),
+                ConfigStructure(
+                  title: 'Licença GPL',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/gavel.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/license',
                   ),
-                  ConfigStructure(
-                    title: 'Licença GPL',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/gavel.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/settings/license',
-                    ),
+                ),
+              ],
+            ),
+            SectionSettings(
+              title: 'AJUDA',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Contatar suporte',
+                  iconSvgPath:
+                      'assets/new_ui_wallet/assets/icons/menu/settings/support.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/support',
                   ),
-                ],
-              ),
-              SectionSettings(
-                title: 'AJUDA',
-                settingsItems: [
-                  ConfigStructure(
-                    title: 'Contatar suporte',
-                    iconSvgPath:
-                        'assets/new_ui_wallet/assets/icons/menu/settings/support.svg',
-                    action: Navigation(
-                      context: context,
-                      rota: '/settings/support',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }
