@@ -121,7 +121,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
           child: ScaleTransition(
             scale: _scaleAnimation,
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
                   Expanded(
@@ -269,65 +269,56 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                               );
                             },
                           ),
-
-                          const SizedBox(height: 32),
-
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer.withValues(
-                                alpha: 0.1,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.1,
+                          const SizedBox(height: 16),
+                          PrimaryButton(
+                            text: 'Falar com o suporte',
+                            onPressed:
+                                () => _launchTelegramSupport(
+                                  context,
+                                  colorScheme,
                                 ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline_rounded,
-                                  color: colorScheme.primary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Nosso time de suporte está disponível 24/7 para ajudá-lo com qualquer dúvida ou problema.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorScheme.onSurface.withValues(
-                                        alpha: 0.7,
-                                      ),
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
                   ),
-                  Column(
-                    children: [
-                      const SizedBox(height: 24),
-                      PrimaryButton(
-                        text: 'Falar com o suporte',
-                        onPressed:
-                            () => _launchTelegramSupport(context, colorScheme),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSupportWidget(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: colorScheme.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Nosso time de suporte está disponível 24/7 para ajudá-lo com qualquer dúvida ou problema.',
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -22,18 +22,12 @@ class SupportErrorWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.errorContainer.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.error.withOpacity(0.2),
-        ),
+        border: Border.all(color: colorScheme.error.withOpacity(0.2)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.error_outline_rounded,
-            color: colorScheme.error,
-            size: 32,
-          ),
+          Icon(Icons.error_outline_rounded, color: colorScheme.error, size: 32),
           const SizedBox(height: 16),
           Text(
             title,
@@ -72,7 +66,7 @@ class SupportErrorWidget extends StatelessWidget {
                     ),
                   ),
                 );
-              }
+              },
             ),
           ),
         ],
