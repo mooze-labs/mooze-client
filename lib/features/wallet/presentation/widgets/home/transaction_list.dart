@@ -82,7 +82,7 @@ class SuccessfulTransactionList extends ConsumerWidget {
 
             return GestureDetector(
               onTap: () {
-                context.push('/transactions-details', extra: transaction);
+                context.push('/transactions/details', extra: transaction);
               },
               child: HomeTransactionItem(
                 icon: transaction.asset.iconPath,
