@@ -5,7 +5,6 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/data/dto/payment_request_dto.dart';
 import 'package:mooze_mobile/features/wallet/data/dto/transaction_dto.dart';
-import 'package:mooze_mobile/features/wallet/data/models/psbt_session.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -20,8 +19,6 @@ import '../dto/psbt_dto.dart';
 
 class BreezWalletRepositoryImpl extends WalletRepository {
   final BindingLiquidSdk _breez;
-  Map<String, PartiallySignedTransactionSession> _psbtSessions =
-      {}; // cache of current send payment requests
 
   BreezWalletRepositoryImpl(this._breez);
 
@@ -189,6 +186,91 @@ class BreezWalletRepositoryImpl extends WalletRepository {
     );
   }
 
+  // DRAIN methods - send all available funds
+
+  @override
+  TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
+  buildDrainOnchainBitcoinTransaction(String destination) {
+    return getBalance().flatMap((balance) {
+      return _prepareDrainOnchainResponse(_breez, destination).flatMap(
+        (response) => TaskEither.right(
+          BreezPreparedOnchainTransactionDto(
+            destination: destination,
+            fees: response.prepareResponse.totalFeesSat,
+            amount: response.prepareResponse.receiverAmountSat,
+          ).toDomain(),
+        ),
+      );
+    });
+  }
+
+  @override
+  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
+  buildDrainLightningTransaction(String destination) {
+    return getBalance().flatMap((balance) {
+      return _prepareDrainLayer2Response(
+        _breez,
+        destination,
+        Blockchain.lightning,
+      ).flatMap((response) {
+        print(
+          '[DEBUG] Lightning Drain Response: exchangeAmountSat=${response.exchangeAmountSat}, feesSat=${response.feesSat}',
+        );
+        return TaskEither.right(
+          BreezPreparedLayer2TransactionDto(
+            destination: destination,
+            blockchain: Blockchain.lightning,
+            fees: response.feesSat ?? BigInt.zero,
+            amount:
+                response.exchangeAmountSat ??
+                BigInt.zero, // Use exchangeAmountSat for drain transactions
+          ).toDomain(),
+        );
+      });
+    });
+  }
+
+  @override
+  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
+  buildDrainLiquidBitcoinTransaction(String destination) {
+    return getBalance().flatMap((balance) {
+      return _prepareDrainLayer2Response(
+        _breez,
+        destination,
+        Blockchain.liquid,
+      ).flatMap((response) {
+        print(
+          '[DEBUG] Liquid Drain Response: exchangeAmountSat=${response.exchangeAmountSat}, feesSat=${response.feesSat}',
+        );
+        return TaskEither.right(
+          BreezPreparedLayer2TransactionDto(
+            destination: destination,
+            blockchain: Blockchain.liquid,
+            fees: response.feesSat ?? BigInt.zero,
+            amount: response.exchangeAmountSat ?? BigInt.zero,
+          ).toDomain(),
+        );
+      });
+    });
+  }
+
+  @override
+  TaskEither<WalletError, PreparedStablecoinTransaction>
+  buildDrainStablecoinTransaction(String destination, Asset asset) {
+    return getBalance().flatMap((balance) {
+      return _prepareDrainAssetResponse(_breez, destination, asset).flatMap(
+        (response) => TaskEither.right(
+          BreezPreparedStablecoinTransactionDto(
+            destination: destination,
+            amount: _extractAssetAmount(response.amount),
+            fees: response.feesSat ?? BigInt.zero,
+            asset: Asset.toId(asset),
+          ).toDomain(),
+        ),
+      );
+    });
+  }
+
   @override
   TaskEither<WalletError, List<Transaction>> getTransactions({
     TransactionType? type,
@@ -261,21 +343,21 @@ class BreezWalletRepositoryImpl extends WalletRepository {
           WalletError(WalletErrorType.networkError, "Falha ao ler saldo: %err"),
     );
   }
+}
 
-  PaymentMethod _getL2PaymentMethod(String destination) {
-    final bolt11Regex = RegExp(r'^ln(bc|tb|bcrt)[0-9a-z]+$');
-    final bolt12Regex = RegExp(r'^ln(o1|i1|r1)[0-9a-z]+$');
+PaymentMethod _getL2PaymentMethod(String destination) {
+  final bolt11Regex = RegExp(r'^ln(bc|tb|bcrt)[0-9a-z]+$');
+  final bolt12Regex = RegExp(r'^ln(o1|i1|r1)[0-9a-z]+$');
 
-    if (bolt11Regex.hasMatch(destination)) {
-      return PaymentMethod.bolt11Invoice;
-    }
-
-    if (bolt12Regex.hasMatch(destination)) {
-      return PaymentMethod.bolt12Offer;
-    }
-
-    return PaymentMethod.liquidAddress;
+  if (bolt11Regex.hasMatch(destination)) {
+    return PaymentMethod.bolt11Invoice;
   }
+
+  if (bolt12Regex.hasMatch(destination)) {
+    return PaymentMethod.bolt12Offer;
+  }
+
+  return PaymentMethod.liquidAddress;
 }
 
 /// RECEIVE functions
@@ -548,4 +630,107 @@ TaskEither<WalletError, SendPaymentResponse> sendOnchainTransaction(
       "Transação falhou: [BREEZ] $err",
     ),
   );
+}
+
+// DRAIN helper functions - for sending all available funds
+
+TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
+  BindingLiquidSdk breez,
+  String destination,
+) {
+  return TaskEither.tryCatch(
+    () async {
+      // For drain transactions, use PayAmount_Drain to send all available funds
+      final prepareResponse = await breez.preparePayOnchain(
+        req: PreparePayOnchainRequest(amount: PayAmount_Drain()),
+      );
+
+      return PayOnchainRequest(
+        address: destination,
+        prepareResponse: prepareResponse,
+      );
+    },
+    (err, stackTrace) => WalletError(
+      WalletErrorType.transactionFailed,
+      "Falha ao preparar transação de envio total: $err",
+    ),
+  );
+}
+
+TaskEither<WalletError, PrepareSendResponse> _prepareDrainLayer2Response(
+  BindingLiquidSdk breez,
+  String destination,
+  Blockchain blockchain,
+) {
+  return TaskEither.tryCatch(
+    () async {
+      // For drain transactions, use PayAmount_Drain to send all available funds
+      final prepareSendRequest = PrepareSendRequest(
+        destination: destination,
+        amount: PayAmount_Drain(),
+      );
+
+      return await breez.prepareSendPayment(req: prepareSendRequest);
+    },
+    (err, stackTrace) => WalletError(
+      WalletErrorType.transactionFailed,
+      "Falha ao preparar transação de envio total L2: $err",
+    ),
+  );
+}
+
+TaskEither<WalletError, PrepareSendResponse> _prepareDrainAssetResponse(
+  BindingLiquidSdk breez,
+  String destination,
+  Asset asset,
+) {
+  return TaskEither.tryCatch(
+    () async {
+      // Get current balance for the specific asset
+      final balance = await breez.getInfo();
+      final assetBalances = balance.walletInfo.assetBalances;
+      final assetId = Asset.toId(asset);
+
+      double assetAmount = 0.0;
+      for (final assetBalance in assetBalances) {
+        if (assetBalance.assetId == assetId) {
+          // Convert from satoshis to asset amount - get full balance for drain
+          assetAmount = assetBalance.balanceSat.toDouble() / 100000000;
+          break;
+        }
+      }
+
+      if (assetAmount <= 0) {
+        throw Exception("Saldo insuficiente para o ativo $assetId");
+      }
+
+      // For asset drain, prepare a request that will send all available asset balance
+      // The Breez SDK should handle fee deduction automatically
+      final prepareSendRequest = PrepareSendRequest(
+        destination: destination,
+        amount: PayAmount_Asset(
+          toAsset: assetId,
+          receiverAmount: assetAmount, // Use the full balance available
+          estimateAssetFees: true,
+        ),
+      );
+
+      return await breez.prepareSendPayment(req: prepareSendRequest);
+    },
+    (err, stackTrace) => WalletError(
+      WalletErrorType.transactionFailed,
+      "Falha ao preparar transação de envio total de asset: $err",
+    ),
+  );
+}
+
+// Helper methods for extracting amounts from PayAmount union types
+double _extractAssetAmount(PayAmount? payAmount) {
+  if (payAmount == null) return 0.0;
+
+  if (payAmount is PayAmount_Asset) {
+    return payAmount.receiverAmount;
+  }
+
+  return 0.0;
 }
