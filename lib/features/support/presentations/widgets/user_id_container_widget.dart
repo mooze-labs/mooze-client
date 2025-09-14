@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/utils/formatters.dart';
 
 class UserIdContainerWidget extends StatefulWidget {
   final String userId;
@@ -50,7 +51,7 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Row(
@@ -110,9 +111,8 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-            SelectableText(
-              widget.userId,
+            Text(
+              truncateHashId(widget.userId, length: 10),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
