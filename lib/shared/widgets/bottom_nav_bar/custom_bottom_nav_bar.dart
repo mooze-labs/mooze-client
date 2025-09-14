@@ -105,9 +105,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
             isSelected
                 ? Text(
                   label,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.primaryColor,
-                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
