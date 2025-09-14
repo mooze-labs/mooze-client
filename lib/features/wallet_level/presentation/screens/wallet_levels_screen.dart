@@ -32,7 +32,7 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
   final List<bool> _expandedSections = List.filled(5, false);
-  
+
   final double _limiteAtual = 750.0;
   final double _limiteMaximoPossivel = 5000.0;
   final double _limiteMinimo = 20.0;
@@ -249,38 +249,40 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildLimitInfo(
-                  'Limite Atual',
-                  'R\$ ${_limiteAtual.toStringAsFixed(0)}',
-                  Icons.trending_up,
-                  colorScheme.primary,
-                  colorScheme,
+          SizedBox(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildLimitInfo(
+                    'Limite Atual',
+                    'R\$ ${_limiteAtual.toStringAsFixed(0)}',
+                    Icons.trending_up,
+                    colorScheme.primary,
+                    colorScheme,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildLimitInfo(
-                  'Máximo Possível',
-                  'R\$ ${_limiteMaximoPossivel.toStringAsFixed(0)}',
-                  Icons.flag,
-                  colorScheme.secondary,
-                  colorScheme,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildLimitInfo(
+                    'Máximo Possível',
+                    'R\$ ${_limiteMaximoPossivel.toStringAsFixed(0)}',
+                    Icons.flag,
+                    colorScheme.secondary,
+                    colorScheme,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildLimitInfo(
-                  'Mínimo',
-                  'R\$ ${_limiteMinimo.toStringAsFixed(0)}',
-                  Icons.low_priority,
-                  colorScheme.tertiary,
-                  colorScheme,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildLimitInfo(
+                    'Mínimo',
+                    'R\$ ${_limiteMinimo.toStringAsFixed(0)}',
+                    Icons.low_priority,
+                    colorScheme.tertiary,
+                    colorScheme,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           LinearProgressIndicator(
@@ -302,7 +304,13 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
     );
   }
 
-  Widget _buildLimitInfo(String title, String value, IconData icon, Color iconColor, ColorScheme colorScheme) {
+  Widget _buildLimitInfo(
+    String title,
+    String value,
+    IconData icon,
+    Color iconColor,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -336,7 +344,7 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
 
   Widget _buildQuickInfo(ColorScheme colorScheme) {
     return SizedBox(
-      height: 95,
+      height: 125,
       child: Center(
         child: Row(
           children: [
@@ -424,13 +432,17 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Card(
           elevation: isCurrentLevel ? 2 : 0,
-          color: isCurrentLevel ? section.levelColor.withValues(alpha: 0.05) : colorScheme.surface,
+          color:
+              isCurrentLevel
+                  ? section.levelColor.withValues(alpha: 0.05)
+                  : colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isCurrentLevel 
-                ? section.levelColor.withValues(alpha: 0.3)
-                : colorScheme.outline.withValues(alpha: 0.2),
+              color:
+                  isCurrentLevel
+                      ? section.levelColor.withValues(alpha: 0.3)
+                      : colorScheme.outline.withValues(alpha: 0.2),
               width: isCurrentLevel ? 2 : 1,
             ),
           ),
@@ -450,11 +462,7 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
                   color: section.levelColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  section.icon,
-                  color: Colors.white,
-                  size: 22,
-                ),
+                child: Icon(section.icon, color: Colors.white, size: 22),
               ),
               title: Row(
                 children: [
@@ -469,7 +477,10 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
                   if (isCurrentLevel) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: section.levelColor,
                         borderRadius: BorderRadius.circular(12),
@@ -620,33 +631,39 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            ...section.beneficios.map((beneficio) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    margin: const EdgeInsets.only(top: 6, right: 8),
-                                    decoration: BoxDecoration(
-                                      color: section.levelColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      beneficio,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: colorScheme.onSurface.withValues(alpha: 0.8),
-                                        height: 1.4,
+                            ...section.beneficios.map(
+                              (beneficio) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      margin: const EdgeInsets.only(
+                                        top: 6,
+                                        right: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: section.levelColor,
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    Expanded(
+                                      child: Text(
+                                        beneficio,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: colorScheme.onSurface
+                                              .withValues(alpha: 0.8),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            )),
+                            ),
                           ],
                         ),
                       ),
@@ -661,7 +678,13 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
     }).toList();
   }
 
-  Widget _buildLevelLimitCard(String title, String value, IconData icon, Color levelColor, ColorScheme colorScheme) {
+  Widget _buildLevelLimitCard(
+    String title,
+    String value,
+    IconData icon,
+    Color levelColor,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -708,7 +731,8 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
     return [
       LevelSection(
         title: "Satoshi",
-        description: "Comece movimentando pequenos valores e desbloqueie os primeiros benefícios. Ideal para quem está começando no mundo das criptomoedas.",
+        description:
+            "Comece movimentando pequenos valores e desbloqueie os primeiros benefícios. Ideal para quem está começando no mundo das criptomoedas.",
         icon: Icons.energy_savings_leaf_rounded,
         limiteDiario: 500.0,
         limiteMaximo: 750.0,
@@ -722,7 +746,8 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
       ),
       LevelSection(
         title: "Minerador",
-        description: "Quanto mais você gasta, mais sobe de nível. Torne-se um minerador e aumente seus limites para movimentações maiores.",
+        description:
+            "Quanto mais você gasta, mais sobe de nível. Torne-se um minerador e aumente seus limites para movimentações maiores.",
         icon: Icons.construction_rounded,
         limiteDiario: 1500.0,
         limiteMaximo: 2000.0,
@@ -737,7 +762,8 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
       ),
       LevelSection(
         title: "Hodler",
-        description: "Mantenha uso frequente da carteira e alcance benefícios exclusivos e funcionalidades avançadas.",
+        description:
+            "Mantenha uso frequente da carteira e alcance benefícios exclusivos e funcionalidades avançadas.",
         icon: Icons.shield_rounded,
         limiteDiario: 3000.0,
         limiteMaximo: 3500.0,
@@ -753,7 +779,8 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
       ),
       LevelSection(
         title: "Whale",
-        description: "Você já movimenta grandes volumes. Tenha status de baleia e acesso a limites premium para grandes investidores.",
+        description:
+            "Você já movimenta grandes volumes. Tenha status de baleia e acesso a limites premium para grandes investidores.",
         icon: Icons.water,
         limiteDiario: 4500.0,
         limiteMaximo: 5000.0,
@@ -770,7 +797,8 @@ class _WalletLevelsScreenState extends State<WalletLevelsScreen> {
       ),
       LevelSection(
         title: "Nakamoto",
-        description: "O nível máximo! Reconhecimento VIP, limites no topo e benefícios exclusivos. Para os verdadeiros magnatas do Bitcoin.",
+        description:
+            "O nível máximo! Reconhecimento VIP, limites no topo e benefícios exclusivos. Para os verdadeiros magnatas do Bitcoin.",
         icon: Icons.workspace_premium_rounded,
         limiteDiario: 10000.0,
         limiteMaximo: 15000.0,
