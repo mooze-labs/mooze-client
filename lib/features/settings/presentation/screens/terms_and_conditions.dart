@@ -90,7 +90,8 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
     return Scaffold(
       appBar: _buildAppBar(),
       body: _buildBody(theme, colorScheme),
-      floatingActionButton: _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
+      floatingActionButton:
+          _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
@@ -131,7 +132,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
             ..._buildTermsSections(theme, colorScheme),
             const SizedBox(height: 32),
             _buildFooter(colorScheme),
-            const SizedBox(height: 100), 
+            const SizedBox(height: 100),
           ]),
         ),
       ],
@@ -195,7 +196,9 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                       'Mooze Wallet',
                       style: TextStyle(
                         fontSize: 16,
-                        color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                        color: colorScheme.onPrimaryContainer.withValues(
+                          alpha: 0.8,
+                        ),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -224,7 +227,10 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
       decoration: BoxDecoration(
         color: colorScheme.errorContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: colorScheme.error.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +268,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
 
   Widget _buildQuickInfo(ColorScheme colorScheme) {
     return SizedBox(
-      height: 95,
+      height: 125,
       child: Center(
         child: Row(
           children: [
@@ -305,13 +311,14 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
     required ColorScheme colorScheme,
   }) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 20, color: colorScheme.primary),
           const SizedBox(height: 6),
