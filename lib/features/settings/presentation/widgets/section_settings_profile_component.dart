@@ -33,45 +33,45 @@ class SectionSettingsProfile extends StatelessWidget {
                 color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 20, left: 20, bottom: 10),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(radius: 25),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 20,
+                      left: 20,
+                      bottom: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(radius: 25),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(
-                            height: 4,
-                          ),
-                          Text(
-                            email,
-                            style: const TextStyle(
+                            const SizedBox(height: 4),
+                            Text(
+                              email,
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF7C7C7C)),
-                          )
-                        ],
-                      )
-                    ],
+                                color: Color(0xFF7C7C7C),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (settingsItems != null)
-                  Column(
-                    children: List.generate(
-                      settingsItems!.length,
-                      (index) {
+                  if (settingsItems != null)
+                    Column(
+                      children: List.generate(settingsItems!.length, (index) {
                         final item = settingsItems![index];
                         return Column(
                           children: [
@@ -85,14 +85,12 @@ class SectionSettingsProfile extends StatelessWidget {
                             // const LabelDivider(),
                           ],
                         );
-                      },
+                      }),
                     ),
-                  ),
-                if (settingsItems == null || settingsItems == [])
-                  const SizedBox(
-                    height: 10,
-                  ),
-              ]),
+                  if (settingsItems == null || settingsItems == [])
+                    const SizedBox(height: 10),
+                ],
+              ),
             ),
           ),
         ],
