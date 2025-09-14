@@ -69,7 +69,7 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
     return GestureDetector(
       onTap: () => widget.onTap(index),
       child: SizedBox(
-        width: 70,
+        width: 80,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.end,
@@ -88,12 +88,11 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color:
                     isSelected
                         ? AppColors.primaryColor
                         : AppColors.primaryIconColor,
-                fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
