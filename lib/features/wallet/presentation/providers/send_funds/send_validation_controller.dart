@@ -13,7 +13,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
 
   Future<void> validateTransaction() async {
     final asset = ref.read(selectedAssetProvider);
-    final amount = ref.read(amountStateProvider);
+    final amount = ref.read(finalAmountProvider);
     final address = ref.read(addressStateProvider);
     final networkType = ref.read(networkDetectionProvider(address));
 
@@ -35,12 +35,16 @@ class SendValidationController extends StateNotifier<SendValidationState> {
       errors.add('Valor deve ser maior que zero');
     }
 
-    if (asset == Asset.btc && amount < 25000) {
-      errors.add('Valor mínimo para Bitcoin é 25.000 sats');
+    if (asset == Asset.btc &&
+        amount < 25000 &&
+        networkType == NetworkType.bitcoin) {
+      errors.add('Valor mínimo para Bitcoin onchain é 25.000 sats');
     }
 
     try {
-      final balanceResult = await ref.read(selectedAssetBalanceProvider.future);
+      final balanceResult = await ref.read(
+        selectedAssetBalanceRawProvider.future,
+      );
       balanceResult.fold(
         (error) => errors.add('Erro ao verificar saldo disponível'),
         (balance) {

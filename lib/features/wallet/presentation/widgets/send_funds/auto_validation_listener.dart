@@ -43,6 +43,10 @@ class _AutoValidationListenerState
       _validateTransaction();
     });
 
+    ref.listen<int>(finalAmountProvider, (_, __) {
+      _validateTransaction();
+    });
+
     ref.listen<Asset>(selectedAssetProvider, (_, __) {
       _validateTransaction();
     });

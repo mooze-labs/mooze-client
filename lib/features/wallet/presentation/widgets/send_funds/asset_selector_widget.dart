@@ -6,6 +6,18 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 
 import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/amount_provider.dart';
+import '../../providers/send_funds/detected_amount_provider.dart';
+import '../../providers/send_funds/address_controller_provider.dart';
+
+void clearAllFields(WidgetRef ref) {
+  final addressController = ref.read(addressControllerProvider);
+  addressController.clear();
+
+  ref.read(syncedAddressControllerProvider.notifier).clear();
+
+  ref.invalidate(detectedAmountProvider);
+}
 
 class AssetSelectorWidget extends ConsumerWidget {
   const AssetSelectorWidget({super.key});
@@ -26,9 +38,16 @@ class AssetSelectorWidget extends ConsumerWidget {
       label: "Selecione um ativo",
       value: selectedAsset,
       items: [Asset.btc, Asset.depix, Asset.usdt],
-      onChanged:
-          (val) =>
-              ref.read(selectedAssetProvider.notifier).state = val ?? Asset.btc,
+      onChanged: (val) {
+        if (val != null && val != selectedAsset) {
+          clearAllFields(ref);
+
+          ref.read(amountStateProvider.notifier).state = 0;
+          ref.invalidate(detectedAmountProvider);
+
+          ref.read(selectedAssetProvider.notifier).state = val;
+        }
+      },
       itemIconBuilder: _buildAssetIcon,
       itemLabelBuilder: (asset) => asset.name,
       borderColor: Theme.of(context).colorScheme.primary,

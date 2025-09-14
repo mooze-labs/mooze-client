@@ -4,11 +4,22 @@ import 'package:go_router/go_router.dart';
 
 import '../../widgets/send_funds/widgets.dart';
 
-class NewTransactionScreen extends ConsumerWidget {
+class NewTransactionScreen extends ConsumerStatefulWidget {
   const NewTransactionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NewTransactionScreen> createState() =>
+      _NewTransactionScreenState();
+}
+
+class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AutoValidationListener(
       child: Scaffold(
         appBar: AppBar(
@@ -18,7 +29,7 @@ class NewTransactionScreen extends ConsumerWidget {
             icon: Icon(Icons.arrow_back_ios_new_rounded),
           ),
         ),
-        body: Padding(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
             horizontal: 24,
           ).copyWith(top: 10, bottom: 24),
@@ -34,10 +45,12 @@ class NewTransactionScreen extends ConsumerWidget {
               const SizedBox(height: 15),
               NetworkIndicatorWidget(),
               const SizedBox(height: 15),
-              AmountField(),
+              ConditionalAmountField(),
+              const SizedBox(height: 15),
+              DrainInfoWidget(),
               const SizedBox(height: 20),
               ValidationErrorsWidget(),
-              const Spacer(),
+              const SizedBox(height: 20),
               ReviewButton(),
             ],
           ),

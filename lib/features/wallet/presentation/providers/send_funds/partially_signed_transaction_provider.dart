@@ -8,6 +8,7 @@ import 'address_provider.dart';
 import 'amount_provider.dart';
 import 'selected_asset_provider.dart';
 import 'selected_network_provider.dart';
+import 'drain_provider.dart';
 
 final psbtProvider = FutureProvider<Either<String, PartiallySignedTransaction>>(
   (ref) async {
@@ -15,15 +16,25 @@ final psbtProvider = FutureProvider<Either<String, PartiallySignedTransaction>>(
     final destination = ref.watch(addressStateProvider);
     final asset = ref.watch(selectedAssetProvider);
     final blockchain = ref.watch(selectedNetworkProvider);
-    final amount = BigInt.from(ref.watch(amountStateProvider));
+    final amount = BigInt.from(ref.watch(finalAmountProvider));
+
+    final isDrainTransaction = ref.watch(isDrainTransactionProvider);
 
     return walletController.match(
       (error) =>
           Either<String, PartiallySignedTransaction>.left(error.toString()),
-      (controller) =>
-          controller
+      (controller) {
+        if (isDrainTransaction) {
+          print('Quantidade total da carteira: $amount');
+          return controller
+              .beginDrainTransaction(destination, asset, blockchain, amount)
+              .run();
+        } else {
+          return controller
               .beginNewTransaction(destination, asset, blockchain, amount)
-              .run(),
+              .run();
+        }
+      },
     );
   },
 );

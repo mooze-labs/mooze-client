@@ -3,18 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
+import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/amount_provider.dart';
-import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/partially_signed_transaction_provider.dart';
-import '../../providers/send_funds/transaction_loading_provider.dart';
 import '../../providers/send_funds/bitcoin_price_provider.dart';
+import '../../providers/send_funds/drain_provider.dart';
+import '../../providers/wallet_provider.dart';
 import '../../widgets/send_funds/network_indicator_widget.dart';
 
 class ReviewTransactionScreen extends ConsumerStatefulWidget {
@@ -28,20 +31,153 @@ class ReviewTransactionScreen extends ConsumerStatefulWidget {
 class _ReviewTransactionScreenState
     extends ConsumerState<ReviewTransactionScreen> {
   bool _isCopied = false;
+  bool _isConfirming = false;
 
   @override
   Widget build(BuildContext context) {
-    final address = ref.watch(addressStateProvider);
-    final amount = ref.watch(amountStateProvider);
-    final asset = ref.watch(selectedAssetProvider);
-    final networkType = ref.watch(networkDetectionProvider(address));
+    final psbtAsyncValue = ref.watch(psbtProvider);
     final bitcoinPrice = ref.watch(bitcoinPriceProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
     final validationState = ref.watch(sendValidationControllerProvider);
+    final isDrainTransaction = ref.watch(isDrainTransactionProvider);
 
+    print(
+      '[DEBUG ReviewTransactionScreen] isDrainTransaction: $isDrainTransaction',
+    );
+
+    return psbtAsyncValue.when(
+      data:
+          (psbtEither) => psbtEither.fold(
+            (error) {
+              print('[DEBUG ReviewTransactionScreen] PSBT Error: $error');
+              return _buildErrorScreen(context, error);
+            },
+            (psbt) {
+              print(
+                '[DEBUG ReviewTransactionScreen] PSBT Success: ${psbt.runtimeType}',
+              );
+              return _buildSuccessScreen(
+                context,
+                psbt,
+                bitcoinPrice,
+                currencySymbol,
+                validationState,
+                isDrainTransaction,
+              );
+            },
+          ),
+      loading: () {
+        print('[DEBUG ReviewTransactionScreen] PSBT Loading...');
+        return _buildLoadingScreen(context, isDrainTransaction);
+      },
+      error: (error, stackTrace) {
+        print('[DEBUG ReviewTransactionScreen] PSBT Error (exception): $error');
+        return _buildErrorScreen(context, error.toString());
+      },
+    );
+  }
+
+  Widget _buildLoadingScreen(
+    BuildContext context, [
+    bool isDrainTransaction = false,
+  ]) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          isDrainTransaction ? "Revisar Envio Total" : "Revisar Transação",
+        ),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              isDrainTransaction
+                  ? 'Calculando envio total de fundos...'
+                  : 'Preparando transação...',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen(BuildContext context, String error) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Revisar Transação"),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_rounded,
+                size: 64,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Erro ao preparar transação',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error,
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.pop(),
+                child: const Text('Voltar'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessScreen(
+    BuildContext context,
+    PartiallySignedTransaction psbt,
+    AsyncValue<double> bitcoinPrice,
+    String currencySymbol,
+    SendValidationState validationState,
+    bool isDrainTransaction,
+  ) {
+    NetworkType networkType;
+    switch (psbt.blockchain) {
+      case Blockchain.bitcoin:
+        networkType = NetworkType.bitcoin;
+        break;
+      case Blockchain.lightning:
+        networkType = NetworkType.lightning;
+        break;
+      case Blockchain.liquid:
+        networkType = NetworkType.liquid;
+        break;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          isDrainTransaction ? "Revisar Envio Total" : "Revisar Transação",
+        ),
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -53,11 +189,46 @@ class _ReviewTransactionScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Resumo da Transação',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
+              // Drain transaction info banner
+              if (isDrainTransaction) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Enviando todos os fundos disponíveis. As taxas serão deduzidas automaticamente do valor total.",
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -91,7 +262,7 @@ class _ReviewTransactionScreenState
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: SvgPicture.asset(
-                        asset.iconPath,
+                        psbt.asset.iconPath,
                         width: 32,
                         height: 32,
                       ),
@@ -102,7 +273,7 @@ class _ReviewTransactionScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            asset.name,
+                            psbt.asset.name,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -113,8 +284,8 @@ class _ReviewTransactionScreenState
                             data:
                                 (btcPrice) => Text(
                                   _formatAmount(
-                                    amount,
-                                    asset,
+                                    psbt.satoshi,
+                                    psbt.asset,
                                     btcPrice,
                                     currencySymbol,
                                   ),
@@ -134,8 +305,8 @@ class _ReviewTransactionScreenState
                             error:
                                 (error, _) => Text(
                                   _formatAmount(
-                                    amount,
-                                    asset,
+                                    psbt.satoshi,
+                                    psbt.asset,
                                     null,
                                     currencySymbol,
                                   ),
@@ -185,31 +356,11 @@ class _ReviewTransactionScreenState
                     'Endereço de Destino',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => _copyAddressToClipboard(context, address),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color:
-                            _isCopied
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        _isCopied ? Icons.check_rounded : Icons.copy_rounded,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
               GestureDetector(
-                onTap: () => _copyAddressToClipboard(context, address),
+                onTap: () => _copyAddressToClipboard(context, psbt.destination),
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -226,7 +377,7 @@ class _ReviewTransactionScreenState
                     children: [
                       Expanded(
                         child: Text(
-                          address,
+                          psbt.destination,
                           style: const TextStyle(
                             fontSize: 14,
                             fontFamily: 'monospace',
@@ -274,7 +425,13 @@ class _ReviewTransactionScreenState
                 ],
               ),
               const SizedBox(height: 12),
-              _buildFeeDetails(context, asset, networkType, amount),
+              _buildFeeDetails(
+                context,
+                psbt.asset,
+                networkType,
+                psbt.satoshi,
+                psbt.networkFees,
+              ),
 
               if (validationState.errors.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -316,7 +473,8 @@ class _ReviewTransactionScreenState
 
               SlideToConfirmButton(
                 text: "Confirmar",
-                onSlideComplete: () => _confirmTransaction(context, ref),
+                onSlideComplete: () => _confirmTransaction(context, ref, psbt),
+                isLoading: _isConfirming,
               ),
               SizedBox(height: 24),
             ],
@@ -330,8 +488,12 @@ class _ReviewTransactionScreenState
     BuildContext context,
     Asset asset,
     NetworkType networkType,
-    int amount,
+    BigInt amount,
+    BigInt networkFees,
   ) {
+    print(
+      '[DEBUG] _buildFeeDetails: asset=$asset, networkType=$networkType, amount=$amount, networkFees=$networkFees',
+    );
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -347,7 +509,7 @@ class _ReviewTransactionScreenState
           _buildFeeRow(
             context,
             'Taxa da Rede',
-            _getNetworkFee(networkType, asset),
+            _formatNetworkFee(networkFees, asset),
           ),
           const SizedBox(height: 12),
           _buildFeeRow(context, 'Taxa de Serviço', _getServiceFee(asset)),
@@ -359,7 +521,7 @@ class _ReviewTransactionScreenState
           _buildFeeRow(
             context,
             'Total das Taxas',
-            _getTotalFees(networkType, asset),
+            _formatNetworkFee(networkFees, asset),
             isTotal: true,
           ),
         ],
@@ -393,24 +555,6 @@ class _ReviewTransactionScreenState
     );
   }
 
-  // TODO: Implementar taxas
-  String _getNetworkFee(NetworkType networkType, Asset asset) {
-    switch (networkType) {
-      case NetworkType.bitcoin:
-        return "~500-2000 sats";
-      case NetworkType.lightning:
-        return "~1-10 sats";
-      case NetworkType.liquid:
-        if (asset == Asset.btc) {
-          return "~100 sats";
-        } else {
-          return "~0.1 L-BTC";
-        }
-      case NetworkType.unknown:
-        return "Taxa não disponível";
-    }
-  }
-
   String _getServiceFee(Asset asset) {
     switch (asset) {
       case Asset.btc:
@@ -421,84 +565,154 @@ class _ReviewTransactionScreenState
     }
   }
 
-  String _getTotalFees(NetworkType networkType, Asset asset) {
-    switch (networkType) {
-      case NetworkType.bitcoin:
-        return "~500-2000 sats";
-      case NetworkType.lightning:
-        return "~1-10 sats";
-      case NetworkType.liquid:
-        if (asset == Asset.btc) {
-          return "~100 sats";
-        } else {
-          return "~0.1 L-BTC";
-        }
-      case NetworkType.unknown:
-        return "Taxa não disponível";
-    }
-  }
-
   String _formatAmount(
-    int amountInSats,
+    BigInt amountInSats,
     Asset asset,
     double? bitcoinPrice,
     String currencySymbol,
   ) {
+    print(
+      '[DEBUG] _formatAmount: amountInSats=$amountInSats, asset=$asset, bitcoinPrice=$bitcoinPrice, currencySymbol=$currencySymbol',
+    );
     if (asset != Asset.btc) {
-      final value = amountInSats / 100000000;
+      final value = amountInSats.toDouble() / 100000000;
+      print(
+        '[DEBUG] _formatAmount (non-BTC): value=$value, ticker=${asset.ticker}',
+      );
       return "${value.toStringAsFixed(2)} ${asset.ticker}";
     }
 
-    final btcAmount = amountInSats / 100000000;
-    final satText = amountInSats == 1 ? 'sat' : 'sats';
+    final btcAmount = amountInSats.toDouble() / 100000000;
+    final satText = amountInSats == BigInt.one ? 'sat' : 'sats';
 
     String result = "${btcAmount.toStringAsFixed(8)} BTC";
     result += " ($amountInSats $satText)";
 
     if (bitcoinPrice != null && bitcoinPrice > 0) {
       final fiatValue = btcAmount * bitcoinPrice;
+      print(
+        '[DEBUG] _formatAmount (BTC): btcAmount=$btcAmount, fiatValue=$fiatValue',
+      );
       result += "\n≈ $currencySymbol ${fiatValue.toStringAsFixed(2)}";
     }
 
     return result;
   }
 
-  void _confirmTransaction(BuildContext context, WidgetRef ref) async {
-    await ref
-        .read(sendValidationControllerProvider.notifier)
-        .validateTransaction();
-    final finalValidation = ref.read(sendValidationControllerProvider);
-
-    if (!finalValidation.canProceed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Não é possível enviar a transação. Verifique os dados.',
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
+  String _formatNetworkFee(BigInt networkFees, Asset asset) {
+    if (asset == Asset.btc) {
+      if (networkFees == BigInt.zero) {
+        return "Gratuito";
+      }
+      final satText = networkFees == BigInt.one ? 'sat' : 'sats';
+      return "$networkFees $satText";
+    } else {
+      if (networkFees == BigInt.zero) {
+        return "Gratuito";
+      }
+      final lbtcAmount = networkFees.toDouble() / 100000000;
+      return "${lbtcAmount.toStringAsFixed(8)} L-BTC";
     }
+  }
 
-    ref.read(transactionLoadingProvider.notifier).state = true;
+  void _confirmTransaction(
+    BuildContext context,
+    WidgetRef ref,
+    PartiallySignedTransaction psbt,
+  ) async {
+    if (_isConfirming) return;
+
+    setState(() {
+      _isConfirming = true;
+    });
 
     try {
-      final psbtAsyncValue = await ref.read(psbtProvider.future);
-
-      psbtAsyncValue.fold(
-        (error) {
-          _showErrorDialog(context, 'Erro ao criar transação: $error');
-        },
-        (psbt) {
-          _showSuccessDialog(context, ref, psbt.destination);
-        },
+      final walletControllerResult = await ref.read(
+        walletControllerProvider.future,
       );
-    } catch (error) {
-      _showErrorDialog(context, 'Erro inesperado: ${error.toString()}');
+
+      final result = await walletControllerResult.fold(
+        (error) async => left<String, dynamic>(
+          "Erro ao acessar carteira: ${error.description}",
+        ),
+        (controller) async => await controller.confirmTransaction(psbt).run(),
+      );
+
+      result.fold(
+        (error) => _showErrorDialog(context, error),
+        (transaction) => _showSuccessDialog(context, ref, psbt.destination),
+      );
+    } catch (e) {
+      _showErrorDialog(context, "Erro inesperado: $e");
     } finally {
-      ref.read(transactionLoadingProvider.notifier).state = false;
+      if (mounted) {
+        setState(() {
+          _isConfirming = false;
+        });
+      }
     }
+  }
+
+  void _showErrorDialog(BuildContext context, String error) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.error_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                const Text('Erro na Transação'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Não foi possível enviar a transação:',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    error,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Verifique os dados e tente novamente.',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
   }
 
   void _copyAddressToClipboard(BuildContext context, String address) async {
@@ -515,32 +729,6 @@ class _ReviewTransactionScreenState
         });
       }
     });
-  }
-
-  void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.error_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                const SizedBox(width: 8),
-                const Text('Erro na Transação'),
-              ],
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
   }
 
   void _showSuccessDialog(

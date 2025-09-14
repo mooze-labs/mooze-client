@@ -154,18 +154,10 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
               ),
             ),
             Text(
-              '${widget.amount!.toStringAsFixed(8)} ${widget.asset.ticker}',
+              '${widget.amount} ${widget.asset.ticker}',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '${(widget.amount! * 100000000).round()} sats',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
             ),
           ],
 

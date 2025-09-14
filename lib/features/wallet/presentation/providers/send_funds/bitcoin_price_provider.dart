@@ -50,14 +50,6 @@ final selectedAssetPriceProvider = FutureProvider<double>((ref) async {
 });
 
 final currencySymbolProvider = Provider<String>((ref) {
-  final currency = ref.watch(currencyControllerProvider);
-
-  switch (currency.toString().toLowerCase()) {
-    case 'brl':
-      return 'R\$';
-    case 'usd':
-      return '\$';
-    default:
-      return 'R\$';
-  }
+  final currency = ref.read(currencyControllerProvider.notifier);
+  return currency.icon;
 });

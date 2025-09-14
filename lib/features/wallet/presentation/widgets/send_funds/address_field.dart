@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 import '../../providers/send_funds/address_provider.dart';
-import '../../providers/send_funds/network_detection_provider.dart';
+import '../../providers/send_funds/detected_amount_provider.dart';
+import '../../providers/send_funds/address_controller_provider.dart';
 import '../../screens/send_funds/qr_scanner_screen.dart';
 
 class AddressField extends ConsumerWidget {
@@ -14,9 +14,10 @@ class AddressField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final inputAddress = ref.watch(addressStateProvider);
+    final addressState = ref.watch(addressStateProvider);
+
     final displayText =
-        inputAddress.isEmpty ? 'Digite o endereço aqui' : inputAddress;
+        addressState.isEmpty ? 'Digite o endereço aqui' : addressState;
 
     return GestureDetector(
       onTap: () => _openAddressInputModal(context),
@@ -33,6 +34,8 @@ class AddressField extends ConsumerWidget {
               child: Text(
                 displayText,
                 style: Theme.of(context).textTheme.bodyLarge,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             IconButton(
@@ -73,8 +76,6 @@ class AddressModal extends ConsumerStatefulWidget {
 }
 
 class _AddressModalState extends ConsumerState<AddressModal> {
-  final TextEditingController _controller = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -82,12 +83,13 @@ class _AddressModalState extends ConsumerState<AddressModal> {
 
   @override
   void dispose() {
-    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = ref.watch(addressControllerProvider);
+
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -128,7 +130,7 @@ class _AddressModalState extends ConsumerState<AddressModal> {
                 ),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: _controller,
+                  controller: controller,
                   autofocus: true,
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   decoration: InputDecoration(
@@ -158,8 +160,12 @@ class _AddressModalState extends ConsumerState<AddressModal> {
                   child: PrimaryButton(
                     text: "OK",
                     onPressed: () {
-                      ref.read(addressStateProvider.notifier).state =
-                          _controller.text.trim();
+                      final controller = ref.read(addressControllerProvider);
+                      final address = controller.text.trim();
+                      ref.read(addressStateProvider.notifier).state = address;
+
+                      ref.invalidate(detectedAmountProvider);
+
                       Navigator.pop(context);
                     },
                   ),

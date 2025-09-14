@@ -7,6 +7,7 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_balance_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
@@ -15,6 +16,9 @@ import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/amount_display_mode_provider.dart';
 import '../../providers/send_funds/bitcoin_price_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
+import '../../providers/send_funds/selected_network_provider.dart';
+import '../../providers/send_funds/amount_controller_provider.dart';
+import '../../providers/send_funds/address_provider.dart';
 
 class AmountField extends ConsumerWidget {
   const AmountField({super.key});
@@ -120,69 +124,11 @@ class AmountField extends ConsumerWidget {
     double? selectedAssetPrice,
     String currencySymbol,
   ) {
-    // Para assets não-Bitcoin, precisamos converter de sats usando o preço do asset
-    if (asset != Asset.btc) {
-      switch (displayMode) {
-        case AmountDisplayMode.fiat:
-          if (selectedAssetPrice == null || selectedAssetPrice == 0) {
-            return "$currencySymbol --";
-          }
-          // Converter sats para quantidade do asset usando preço do Bitcoin e do asset
-          if (bitcoinPrice == null || bitcoinPrice == 0) {
-            return "$currencySymbol --";
-          }
-          final btcAmount = amountInSats / 100000000;
-          final fiatFromBtc = btcAmount * bitcoinPrice;
-          final assetAmount = fiatFromBtc / selectedAssetPrice;
-          final fiatValue = assetAmount * selectedAssetPrice;
-          return "$currencySymbol ${fiatValue.toStringAsFixed(2)}";
+    final BigInt amount = BigInt.from(amountInSats);
+    final double? priceToUse =
+        asset == Asset.btc ? bitcoinPrice : selectedAssetPrice;
 
-        case AmountDisplayMode.bitcoin:
-          if (bitcoinPrice == null ||
-              bitcoinPrice == 0 ||
-              selectedAssetPrice == null ||
-              selectedAssetPrice == 0) {
-            return "-- ${asset.name}";
-          }
-          // Converter sats para quantidade do asset
-          final btcAmount = amountInSats / 100000000;
-          final fiatFromBtc = btcAmount * bitcoinPrice;
-          final assetAmount = fiatFromBtc / selectedAssetPrice;
-          return "${assetAmount.toStringAsFixed(8)} ${asset.name}";
-
-        case AmountDisplayMode.satoshis:
-          // Para modo satoshis com assets não-Bitcoin, converter para quantidade do asset
-          if (bitcoinPrice == null ||
-              bitcoinPrice == 0 ||
-              selectedAssetPrice == null ||
-              selectedAssetPrice == 0) {
-            return "-- ${asset.name}";
-          }
-          final btcAmount = amountInSats / 100000000;
-          final fiatFromBtc = btcAmount * bitcoinPrice;
-          final assetAmount = fiatFromBtc / selectedAssetPrice;
-          return "${assetAmount.toStringAsFixed(8)} ${asset.name}";
-      }
-    }
-
-    // Para Bitcoin, manter lógica original
-    switch (displayMode) {
-      case AmountDisplayMode.fiat:
-        if (bitcoinPrice == null || bitcoinPrice == 0) {
-          return "$currencySymbol --";
-        }
-        final btcAmount = amountInSats / 100000000;
-        final fiatValue = btcAmount * bitcoinPrice;
-        return "$currencySymbol ${fiatValue.toStringAsFixed(2)}";
-
-      case AmountDisplayMode.bitcoin:
-        final btcAmount = amountInSats / 100000000;
-        return "${btcAmount.toStringAsFixed(8)} BTC";
-
-      case AmountDisplayMode.satoshis:
-        final satText = amountInSats == 1 ? 'sat' : 'sats';
-        return "$amountInSats $satText";
-    }
+    return displayMode.formatAmount(asset, amount, priceToUse, currencySymbol);
   }
 }
 
@@ -191,22 +137,32 @@ class MaxButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedAssetBalance = ref.read(selectedAssetBalanceProvider);
+    final selectedAssetBalance = ref.watch(selectedAssetBalanceRawProvider);
+    final selectedAsset = ref.watch(selectedAssetProvider);
+    final destination = ref.watch(addressStateProvider);
 
     return selectedAssetBalance.when(
       data:
           (data) => data.fold(
             (err) => SizedBox.shrink(),
             (amount) => GestureDetector(
-              onTap:
-                  () =>
-                      ref.read(amountStateProvider.notifier).state =
-                          amount.toInt(),
+              onTap: () {
+                ref.read(amountStateProvider.notifier).state = amount.toInt();
+
+                if (selectedAsset == Asset.btc) {
+                  ref.read(amountDisplayModeProvider.notifier).state =
+                      AmountDisplayMode.fiat;
+                } else {
+                  ref.read(amountDisplayModeProvider.notifier).state =
+                      AmountDisplayMode.fiat;
+                }
+              },
               child: Text(
                 "MAX",
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge!.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
           ),
@@ -224,12 +180,9 @@ class AmountModal extends ConsumerStatefulWidget {
 }
 
 class _AddressModalState extends ConsumerState<AmountModal> {
-  final TextEditingController _controller = TextEditingController();
-
   @override
   void initState() {
     super.initState();
-    // Initialize with current amount if exists
     final currentAmount = ref.read(amountStateProvider);
     if (currentAmount > 0) {
       final asset = ref.read(selectedAssetProvider);
@@ -240,7 +193,8 @@ class _AddressModalState extends ConsumerState<AmountModal> {
       final bitcoinPrice = bitcoinPriceAsync.value;
       final selectedAssetPrice = selectedAssetPriceAsync.value;
 
-      _controller.text = _getInitialDisplayValue(
+      final controller = ref.read(amountControllerProvider);
+      controller.text = _getInitialDisplayValue(
         currentAmount,
         asset,
         displayMode,
@@ -257,58 +211,41 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     double? bitcoinPrice,
     double? selectedAssetPrice,
   ) {
-    // Para assets não-Bitcoin, converter usando preços
-    if (asset != Asset.btc) {
-      if (bitcoinPrice == null ||
-          bitcoinPrice == 0 ||
-          selectedAssetPrice == null ||
-          selectedAssetPrice == 0) {
-        return "";
-      }
+    final BigInt amount = BigInt.from(amountInSats);
+    final double? priceToUse =
+        asset == Asset.btc ? bitcoinPrice : selectedAssetPrice;
+    final currencySymbol = ref.read(currencySymbolProvider);
 
-      // Converter sats para quantidade do asset
-      final btcAmount = amountInSats / 100000000;
-      final fiatFromBtc = btcAmount * bitcoinPrice;
-      final assetAmount = fiatFromBtc / selectedAssetPrice;
+    if (priceToUse == null || priceToUse == 0) return "";
 
-      switch (displayMode) {
-        case AmountDisplayMode.fiat:
-          final fiatValue = assetAmount * selectedAssetPrice;
-          return fiatValue.toStringAsFixed(2);
-        case AmountDisplayMode.bitcoin:
-        case AmountDisplayMode.satoshis:
-          return assetAmount.toStringAsFixed(8);
-      }
-    }
-
-    // Para Bitcoin, manter lógica original
-    switch (displayMode) {
-      case AmountDisplayMode.fiat:
-        if (bitcoinPrice == null || bitcoinPrice == 0) return "";
-        final btcAmount = amountInSats / 100000000;
-        final fiatValue = btcAmount * bitcoinPrice;
-        return fiatValue.toStringAsFixed(2);
-
-      case AmountDisplayMode.bitcoin:
-        final btcAmount = amountInSats / 100000000;
-        return btcAmount.toStringAsFixed(8);
-
-      case AmountDisplayMode.satoshis:
-        return amountInSats.toString();
+    try {
+      final formatted = displayMode.formatAmount(
+        asset,
+        amount,
+        priceToUse,
+        currencySymbol,
+      );
+      return formatted.replaceAll(RegExp(r'[^\d.,]'), '').trim();
+    } catch (e) {
+      return "";
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final selectedAsset = ref.watch(selectedAssetProvider);
+    final selectedNetwork = ref.watch(selectedNetworkProvider);
     final displayMode = ref.watch(amountDisplayModeProvider);
     final validation = ref.watch(sendValidationControllerProvider);
+    final controller = ref.watch(amountControllerProvider);
+
+    final hasMinimumValue =
+        selectedAsset == Asset.btc && selectedNetwork == Blockchain.bitcoin;
 
     return Container(
       padding: EdgeInsets.only(
@@ -341,55 +278,63 @@ class _AddressModalState extends ConsumerState<AmountModal> {
               ],
             ),
             const SizedBox(height: 24),
-            if (selectedAsset == Asset.btc) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () {
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (selectedAsset == Asset.btc) {
                       final newMode = displayMode.next;
                       ref.read(amountDisplayModeProvider.notifier).state =
                           newMode;
                       _updateControllerForNewMode(newMode);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            displayMode.label,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.swap_horiz,
-                            size: 16,
+                    } else {
+                      final newMode =
+                          displayMode == AmountDisplayMode.fiat
+                              ? AmountDisplayMode.bitcoin
+                              : AmountDisplayMode.fiat;
+                      ref.read(amountDisplayModeProvider.notifier).state =
+                          newMode;
+                      _updateControllerForNewMode(newMode);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _getDisplayModeLabel(selectedAsset, displayMode),
+                          style: const TextStyle(
                             color: Colors.white,
+                            fontWeight: FontWeight.w500,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.swap_horiz,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Quantia em ${selectedAsset == Asset.btc ? displayMode.label : selectedAsset.ticker}',
+                  'Quantia em ${_getDisplayModeLabel(selectedAsset, displayMode)}',
                   style: const TextStyle(
                     color: Color(0xFF9CA3AF),
                     fontSize: 14,
@@ -397,7 +342,7 @@ class _AddressModalState extends ConsumerState<AmountModal> {
                 ),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: _controller,
+                  controller: controller,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -420,10 +365,10 @@ class _AddressModalState extends ConsumerState<AmountModal> {
                 ),
               ],
             ),
-            if (selectedAsset == Asset.btc) ...[
+            if (hasMinimumValue) ...[
               const SizedBox(height: 8),
               Text(
-                'Valor mínimo: 25.000 sats',
+                'Valor mínimo: 25.000 sats (rede Bitcoin)',
                 style: TextStyle(color: Colors.grey[400], fontSize: 12),
               ),
             ],
@@ -452,20 +397,41 @@ class _AddressModalState extends ConsumerState<AmountModal> {
   }
 
   String _getHintText(Asset asset, AmountDisplayMode displayMode) {
-    if (asset != Asset.btc) return '0.00';
+    if (asset == Asset.btc) {
+      switch (displayMode) {
+        case AmountDisplayMode.fiat:
+          return '0,00';
+        case AmountDisplayMode.bitcoin:
+          return '0.00000000';
+        case AmountDisplayMode.satoshis:
+          return '25000';
+      }
+    } else {
+      switch (displayMode) {
+        case AmountDisplayMode.fiat:
+          return '0,00';
+        case AmountDisplayMode.bitcoin:
+        case AmountDisplayMode.satoshis:
+          return '0.00';
+      }
+    }
+  }
 
-    switch (displayMode) {
-      case AmountDisplayMode.fiat:
-        return '0,00';
-      case AmountDisplayMode.bitcoin:
-        return '0.00000000';
-      case AmountDisplayMode.satoshis:
-        return '25000';
+  String _getDisplayModeLabel(Asset asset, AmountDisplayMode displayMode) {
+    final currencySymbol = ref.read(currencySymbolProvider);
+
+    if (asset == Asset.btc) {
+      return displayMode.label(currencySymbol);
+    } else {
+      return displayMode == AmountDisplayMode.fiat
+          ? displayMode.label(currencySymbol)
+          : asset.ticker;
     }
   }
 
   void _updateControllerForNewMode(AmountDisplayMode newMode) {
-    final currentText = _controller.text.trim();
+    final controller = ref.read(amountControllerProvider);
+    final currentText = controller.text.trim();
     if (currentText.isEmpty) return;
 
     final currentAmount = ref.read(amountStateProvider);
@@ -478,7 +444,7 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     final bitcoinPrice = bitcoinPriceAsync.value;
     final selectedAssetPrice = selectedAssetPriceAsync.value;
 
-    _controller.text = _getInitialDisplayValue(
+    controller.text = _getInitialDisplayValue(
       currentAmount,
       selectedAsset,
       newMode,
@@ -488,7 +454,9 @@ class _AddressModalState extends ConsumerState<AmountModal> {
   }
 
   void _saveAmount() {
+    final controller = ref.read(amountControllerProvider);
     final selectedAsset = ref.read(selectedAssetProvider);
+    final selectedNetwork = ref.read(selectedNetworkProvider);
     final displayMode = ref.read(amountDisplayModeProvider);
     final bitcoinPriceAsync = ref.read(bitcoinPriceProvider);
     final selectedAssetPriceAsync = ref.read(selectedAssetPriceProvider);
@@ -496,12 +464,16 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     final bitcoinPrice = bitcoinPriceAsync.value;
     final selectedAssetPrice = selectedAssetPriceAsync.value;
 
+    final hasMinimumValue =
+        selectedAsset == Asset.btc && selectedNetwork == Blockchain.bitcoin;
+
     final eitherAmount = _parseInputAmountWithMode(
-      _controller.text.trim(),
+      controller.text.trim(),
       selectedAsset,
       displayMode,
       bitcoinPrice,
       selectedAssetPrice,
+      hasMinimumValue,
     );
 
     eitherAmount.fold(
@@ -524,109 +496,24 @@ class _AddressModalState extends ConsumerState<AmountModal> {
     AmountDisplayMode displayMode,
     double? bitcoinPrice,
     double? selectedAssetPrice,
+    bool hasMinimumValue,
   ) {
     if (input.isEmpty) {
       return const Left("Valor não pode estar vazio");
     }
 
-    // Para assets não-Bitcoin, converter para sats usando preços
-    if (asset != Asset.btc) {
-      if (bitcoinPrice == null ||
-          bitcoinPrice == 0 ||
-          selectedAssetPrice == null ||
-          selectedAssetPrice == 0) {
-        return const Left("Preços não disponíveis");
-      }
-
-      try {
-        final assetValue = double.parse(input.replaceAll(',', '.'));
-        if (assetValue <= 0) {
-          return const Left("Valor deve ser maior que zero");
-        }
-
-        // Converter quantidade do asset para fiat, depois para BTC, depois para sats
-        final fiatValue = assetValue * selectedAssetPrice;
-        final btcAmount = fiatValue / bitcoinPrice;
-        final satoshis = (btcAmount * 100000000).round();
-
-        if (satoshis < 25000) {
-          return const Left("Valor mínimo é 25.000 sats");
-        }
-
-        return Right(satoshis);
-      } catch (e) {
-        return const Left("Formato inválido");
-      }
-    }
-
-    // Para Bitcoin, manter lógica original
-    switch (displayMode) {
-      case AmountDisplayMode.fiat:
-        return _parseFiatAmount(input, bitcoinPrice);
-      case AmountDisplayMode.bitcoin:
-        return _parseBtcAmount(input);
-      case AmountDisplayMode.satoshis:
-        return _parseSatsAmount(input);
-    }
-  }
-
-  Either<String, int> _parseFiatAmount(String input, double? bitcoinPrice) {
-    if (bitcoinPrice == null || bitcoinPrice == 0) {
-      return const Left("Preço do Bitcoin não disponível");
-    }
-
     try {
-      final fiatValue = double.parse(input.replaceAll(',', '.'));
-      if (fiatValue <= 0) {
-        return const Left("Valor deve ser maior que zero");
+      final double? priceToUse =
+          asset == Asset.btc ? bitcoinPrice : selectedAssetPrice;
+      final BigInt satoshis = displayMode.parseInput(asset, input, priceToUse);
+
+      if (hasMinimumValue && satoshis.toInt() < 25000) {
+        return const Left("Valor mínimo é 25.000 sats para rede Bitcoin");
       }
 
-      final btcAmount = fiatValue / bitcoinPrice;
-      final satoshis = (btcAmount * 100000000).round();
-
-      if (satoshis < 25000) {
-        return const Left("Valor mínimo é 25.000 sats");
-      }
-
-      return Right(satoshis);
+      return Right(satoshis.toInt());
     } catch (e) {
-      return const Left("Formato inválido");
-    }
-  }
-
-  Either<String, int> _parseBtcAmount(String input) {
-    try {
-      final btcValue = double.parse(input.replaceAll(',', '.'));
-      if (btcValue <= 0) {
-        return const Left("Valor deve ser maior que zero");
-      }
-
-      final satoshis = (btcValue * 100000000).round();
-
-      if (satoshis < 25000) {
-        return const Left("Valor mínimo é 25.000 sats");
-      }
-
-      return Right(satoshis);
-    } catch (e) {
-      return const Left("Formato inválido");
-    }
-  }
-
-  Either<String, int> _parseSatsAmount(String input) {
-    try {
-      final satoshis = int.parse(input);
-      if (satoshis <= 0) {
-        return const Left("Valor deve ser maior que zero");
-      }
-
-      if (satoshis < 25000) {
-        return const Left("Valor mínimo é 25.000 sats");
-      }
-
-      return Right(satoshis);
-    } catch (e) {
-      return const Left("Formato inválido");
+      return Left(e.toString());
     }
   }
 }
@@ -651,15 +538,12 @@ Either<String, int> parseBitcoinAmount(String input) {
     return const Left("Valor não pode estar vazio");
   }
 
-  // Remove whitespace
   final trimmed = input.trim();
 
-  // Check if it contains decimal separators
   if (trimmed.contains('.') || trimmed.contains(',')) {
     return const Left("Bitcoin deve ser um valor em satoshis");
   }
 
-  // Try to parse as integer
   try {
     final parsed = int.parse(trimmed);
     if (parsed <= 0) {
@@ -676,10 +560,8 @@ Either<String, int> parseStablecoinAmount(String input) {
     return const Left("Valor não pode estar vazio");
   }
 
-  // Remove whitespace
   final trimmed = input.trim();
 
-  // Normalize decimal separator - handle both comma and dot
   String normalized = trimmed;
 
   // Count occurrences of both separators

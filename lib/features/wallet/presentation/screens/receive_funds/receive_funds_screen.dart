@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/network_selector.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/amount_field_receive.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/description_field_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/generate_qr_button.dart';
 
 class ReceiveFundsScreen extends ConsumerWidget {
@@ -26,27 +27,33 @@ class ReceiveFundsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const AssetSelectorReceive(),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const AssetSelectorReceive(),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            const NetworkSelector(),
+              const NetworkSelector(),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            const AmountFieldReceive(),
+              const AmountFieldReceive(),
 
-            const Spacer(),
+              const SizedBox(height: 16),
 
-            const GenerateQRButton(),
+              const DescriptionFieldReceive(),
 
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 24),
+
+              const GenerateQRButton(),
+
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

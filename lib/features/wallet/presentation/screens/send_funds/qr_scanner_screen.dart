@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../providers/send_funds/address_provider.dart';
+import '../../providers/send_funds/address_controller_provider.dart';
 
 class QRCodeScannerScreen extends ConsumerStatefulWidget {
   const QRCodeScannerScreen({super.key});
@@ -44,6 +45,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen> {
     }
 
     ref.read(addressStateProvider.notifier).state = address;
+    ref.read(addressControllerProvider).text = address;
     Navigator.of(context).pop();
   }
 
