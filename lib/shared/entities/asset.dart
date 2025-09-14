@@ -5,7 +5,7 @@ const usdtAssetId =
 const depixAssetId =
     '02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189';
 
-// As we are implementing unified bitcoin values, no distinction between btc and lbtc will be made.
+// Unified bitcoin values - no distinction between BTC and LBTC
 enum Asset {
   btc,
   depix,
@@ -58,5 +58,142 @@ enum Asset {
       Asset.depix => 'assets/new_ui_wallet/assets/icons/asset/depix.svg',
       Asset.btc => 'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
     };
+  }
+
+  /// Formats asset balance according to its specific rules
+  String formatBalance(BigInt balanceInSats) {
+    return switch (this) {
+      Asset.btc => _formatBitcoinBalance(balanceInSats),
+      Asset.usdt => _formatTokenBalance(balanceInSats, "USDT"),
+      Asset.depix => _formatTokenBalance(balanceInSats, "DEPIX"),
+    };
+  }
+
+  /// Converts satoshis to asset's natural unit
+  double fromSatoshis(BigInt satoshis) {
+    return switch (this) {
+      Asset.btc => satoshis.toDouble(), // Bitcoin remains in satoshis
+      Asset.usdt ||
+      Asset.depix => satoshis.toDouble() / 100000000, // Tokens divide by 100M
+    };
+  }
+
+  /// Converts asset's natural unit to satoshis
+  BigInt toSatoshis(double amount) {
+    return switch (this) {
+      Asset.btc => BigInt.from(
+        (amount * 100000000).round(),
+      ), // Bitcoin: BTC -> sats
+      Asset.usdt || Asset.depix => BigInt.from(
+        (amount * 100000000).round(),
+      ), // Tokens multiply by 100M
+    };
+  }
+
+  /// Converts satoshis from this asset to another asset using USD prices
+  BigInt convertToAsset(
+    BigInt amountInSats,
+    Asset targetAsset,
+    double fromPriceUsd,
+    double toPriceUsd,
+  ) {
+    if (this == targetAsset) return amountInSats;
+
+    // Convert to USD value
+    final double fromAmount = fromSatoshis(amountInSats);
+    final double usdValue = fromAmount * fromPriceUsd;
+
+    // Convert USD to target asset
+    final double targetAmount = usdValue / toPriceUsd;
+
+    return targetAsset.toSatoshis(targetAmount);
+  }
+
+  /// Converts asset value to USD
+  double toUsd(BigInt amountInSats, double priceUsd) {
+    if (this == Asset.btc) {
+      // For Bitcoin: convert satoshis to BTC then to USD
+      final double btcAmount = amountInSats.toDouble() / 100000000;
+      return btcAmount * priceUsd;
+    } else {
+      // For other assets: use fromSatoshis directly
+      final double amount = fromSatoshis(amountInSats);
+      return amount * priceUsd;
+    }
+  }
+
+  /// Converts USD value to asset
+  BigInt fromUsd(double usdAmount, double priceUsd) {
+    final double amount = usdAmount / priceUsd;
+    return toSatoshis(amount);
+  }
+
+  String formatAsFiat(
+    BigInt amountInSats,
+    double priceUsd,
+    String currencySymbol,
+  ) {
+    final usdValue = toUsd(amountInSats, priceUsd);
+    return "$currencySymbol ${usdValue.toStringAsFixed(2)}";
+  }
+
+  String formatAsAsset(BigInt amountInSats) {
+    if (this == Asset.btc) {
+      final btcAmount = fromSatoshis(amountInSats) / 100000000;
+      return "${btcAmount.toStringAsFixed(8)} BTC";
+    } else {
+      final amount = fromSatoshis(amountInSats);
+      return "${amount.toStringAsFixed(8)} $ticker";
+    }
+  }
+
+  /// Formats value in satoshis (Bitcoin only)
+  String formatAsSatoshis(BigInt amountInSats) {
+    if (this == Asset.btc) {
+      final sats = amountInSats.toInt();
+      final satText = sats == 1 ? 'sat' : 'sats';
+      return "$sats $satText";
+    } else {
+      return formatAsAsset(amountInSats);
+    }
+  }
+
+  /// Formats Bitcoin balance in SATs
+  static String _formatBitcoinBalance(BigInt balanceInSats) {
+    if (balanceInSats == BigInt.zero) {
+      return "0 SATS";
+    }
+
+    if (balanceInSats == BigInt.one) {
+      return "1 SAT";
+    }
+
+    return "${balanceInSats.toString()} SATS";
+  }
+
+  /// Formats token balance (USDT/DEPIX) converting from satoshis to whole units
+  static String _formatTokenBalance(BigInt balanceInSats, String ticker) {
+    if (balanceInSats == BigInt.zero) {
+      return "0 $ticker";
+    }
+
+    // Convert from satoshis to whole units (divide by 100,000,000)
+    final BigInt satoshisPerUnit = BigInt.from(100000000);
+    final BigInt wholePart = balanceInSats ~/ satoshisPerUnit;
+    final BigInt remainder = balanceInSats % satoshisPerUnit;
+
+    if (remainder == BigInt.zero) {
+      // Whole value
+      return "${wholePart.toString()} $ticker";
+    } else {
+      // Decimal value - show up to 8 decimal places and remove trailing zeros
+      final double value =
+          balanceInSats.toDouble() / satoshisPerUnit.toDouble();
+      final String formatted = value
+          .toStringAsFixed(8)
+          .replaceAll(RegExp(r'0+$'), '')
+          .replaceAll(RegExp(r'\.$'), '');
+      return "$formatted $ticker";
+    }
   }
 }
