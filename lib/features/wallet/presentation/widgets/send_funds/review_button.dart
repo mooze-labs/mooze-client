@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
+import '../../providers/send_funds/drain_provider.dart';
+import '../../providers/send_funds/partially_signed_transaction_provider.dart';
 
 class ReviewButton extends ConsumerWidget {
   const ReviewButton({super.key});
@@ -10,13 +12,17 @@ class ReviewButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final validation = ref.watch(sendValidationControllerProvider);
+    final isDrainTransaction = ref.watch(isDrainTransactionProvider);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Column(
         children: [
           PrimaryButton(
-            text: "Revisar Transação",
+            text:
+                isDrainTransaction
+                    ? "Revisar Envio Total"
+                    : "Revisar Transação",
             onPressed:
                 validation.canProceed
                     ? () async {
@@ -28,6 +34,10 @@ class ReviewButton extends ConsumerWidget {
                       );
 
                       if (finalValidation.canProceed) {
+                        // Invalidate psbtProvider to ensure fresh calculation
+                        ref.invalidate(psbtProvider);
+
+                        // Navigate to review screen - psbtProvider will handle drain detection automatically
                         context.push('/send-funds/review-simple');
                       }
                     }
