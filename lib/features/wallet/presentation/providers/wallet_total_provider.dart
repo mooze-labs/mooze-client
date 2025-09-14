@@ -51,13 +51,12 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
             }
 
             double balanceInMainUnit;
+            balanceInMainUnit = balance.toDouble() / 100000000;
             if (asset == Asset.btc) {
-              balanceInMainUnit = balance.toDouble() / 100000000;
               print(
                 'DEBUG: Bitcoin - Saldo em satoshis: $balance, em BTC: $balanceInMainUnit',
               );
             } else {
-              balanceInMainUnit = balance.toDouble();
               print('DEBUG: ${asset.name} - Saldo: $balanceInMainUnit');
             }
 
@@ -120,7 +119,7 @@ final totalWalletBitcoinProvider = FutureProvider<Either<String, double>>((
           if (asset == Asset.btc) {
             return balance.toDouble() / 100000000;
           } else {
-            final balanceInMainUnit = balance.toDouble();
+            final balanceInMainUnit = balance.toDouble() / 100000000;
             final fiatValue = balanceInMainUnit * price;
             return fiatValue / btcPrice;
           }
@@ -136,58 +135,19 @@ final totalWalletBitcoinProvider = FutureProvider<Either<String, double>>((
   }
 });
 
-final totalWalletSatoshisProvider = FutureProvider<Either<String, BigInt>>((
-  ref,
-) async {
-  final allAssets = ref.watch(allAssetsProvider);
-  ref.watch(currencyControllerProvider);
-  BigInt totalSatoshis = BigInt.zero;
+final totalWalletSatoshisProvider =
+    Provider<AsyncValue<Either<String, BigInt>>>((ref) {
+      final bitcoinValue = ref.watch(totalWalletBitcoinProvider);
 
-  try {
-    final btcPriceResult = await ref.read(fiatPriceProvider(Asset.btc).future);
-    final btcPrice = btcPriceResult.fold((error) => 0.0, (price) => price);
-
-    if (btcPrice == 0) {
-      return Either.left("Não foi possível obter o preço do Bitcoin");
-    }
-
-    for (final asset in allAssets) {
-      final balanceResult = await ref.read(balanceProvider(asset).future);
-      final priceResult = await ref.read(fiatPriceProvider(asset).future);
-
-      final hasBalance = balanceResult.fold(
-        (error) => false,
-        (balance) => balance > BigInt.zero,
+      return bitcoinValue.when(
+        data:
+            (either) => AsyncValue.data(
+              either.map((btcValue) => BigInt.from(btcValue * 100000000)),
+            ),
+        loading: () => const AsyncValue.loading(),
+        error: (error, stack) => AsyncValue.error(error, stack),
       );
-
-      if (!hasBalance) {
-        continue;
-      }
-
-      final satoshisFromAsset = balanceResult.fold(
-        (error) => BigInt.zero,
-        (balance) => priceResult.fold((error) => BigInt.zero, (price) {
-          if (price == 0) return BigInt.zero;
-
-          if (asset == Asset.btc) {
-            return balance;
-          } else {
-            final balanceInMainUnit = balance.toDouble();
-            final fiatValue = balanceInMainUnit * price;
-            final btcValue = fiatValue / btcPrice;
-            return BigInt.from(btcValue * 100000000);
-          }
-        }),
-      );
-
-      totalSatoshis += satoshisFromAsset;
-    }
-
-    return Either.right(totalSatoshis);
-  } catch (e) {
-    return Either.left('Erro ao calcular valor em satoshis: $e');
-  }
-});
+    });
 
 final totalWalletVariationProvider = FutureProvider<Either<String, double>>((
   ref,
@@ -209,10 +169,7 @@ final totalWalletVariationProvider = FutureProvider<Either<String, double>>((
     final assetValue = balanceResult.fold(
       (error) => 0.0,
       (balance) => priceResult.fold((error) => 0.0, (price) {
-        final balanceInMainUnit =
-            asset == Asset.btc
-                ? balance.toDouble() / 100000000
-                : balance.toDouble();
+        final balanceInMainUnit = balance.toDouble() / 100000000;
 
         return balanceInMainUnit * price;
       }),
