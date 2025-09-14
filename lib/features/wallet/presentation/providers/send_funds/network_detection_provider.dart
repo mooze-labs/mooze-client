@@ -9,6 +9,7 @@ class NetworkDetectionService {
     // Lightning Network detection
     if (address.toLowerCase().startsWith('lnbc') ||
         address.toLowerCase().startsWith('lightning:') ||
+        address.toLowerCase().startsWith('lnurl') ||
         address.toLowerCase().contains('@')) {
       return NetworkType.lightning;
     }
@@ -22,7 +23,9 @@ class NetworkDetectionService {
         address.startsWith('G') ||
         address.startsWith('Az') ||
         address.startsWith('AzQ') ||
-        address.startsWith('ert1')) {
+        address.startsWith('ert1') ||
+        address.startsWith('liquid:') ||
+        address.startsWith('liquidnetwork:')) {
       return NetworkType.liquid;
     }
 
@@ -33,7 +36,8 @@ class NetworkDetectionService {
         address.startsWith('tb1') || // Testnet bech32
         address.startsWith('2') || // Testnet P2SH
         address.startsWith('m') || // Testnet legacy
-        address.startsWith('n')) {
+        address.startsWith('n') ||
+        address.startsWith('bitcoin:')) {
       // Testnet legacy
       return NetworkType.bitcoin;
     }
