@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
-// import 'package:mooze_mobile/features/pix/presentation/controllers/pix_history_controller.dart';
-import 'package:mooze_mobile/features/pix/presentation/controllers/pix_history_controller_mock.dart'; // TODO: REMOVE MOCK
+import 'package:mooze_mobile/features/pix/presentation/controllers/pix_history_controller.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_deposit_list.dart';
@@ -96,9 +95,7 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Consumer(
           builder: (context, ref, _) {
-            final pixHistoryState = ref.watch(
-              pixHistoryControllerProviderMock,
-            ); // TODO: REMOVE MOCK
+            final pixHistoryState = ref.watch(pixHistoryControllerProvider);
             final isVisible = ref.watch(isVisibleProvider);
 
             return pixHistoryState.when(
@@ -187,7 +184,7 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
                         isVisible: isVisible,
                         onRefresh: () {
                           ref
-                              .read(pixHistoryControllerProviderMock.notifier)
+                              .read(pixHistoryControllerProvider.notifier)
                               .refreshPixHistory();
                         },
                       ),
@@ -199,9 +196,7 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
                   (err, stackTrace) => ErrorPixDepositList(
                     onRetry: () {
                       ref
-                          .read(
-                            pixHistoryControllerProviderMock.notifier,
-                          ) // TODO: REMOVE MOCK
+                          .read(pixHistoryControllerProvider.notifier)
                           .refreshPixHistory();
                     },
                   ),
