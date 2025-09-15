@@ -40,7 +40,7 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDt",
       Asset.depix => "Decentralized Pix",
-      Asset.btc => "Bitcoin",
+      Asset.btc => "bitcoin",
     };
   }
 
