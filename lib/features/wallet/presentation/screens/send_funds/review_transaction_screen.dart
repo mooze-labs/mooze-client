@@ -17,6 +17,7 @@ import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/partially_signed_transaction_provider.dart';
 import '../../providers/send_funds/bitcoin_price_provider.dart';
 import '../../providers/send_funds/drain_provider.dart';
+import '../../providers/balance_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../widgets/send_funds/network_indicator_widget.dart';
 
@@ -280,41 +281,122 @@ class _ReviewTransactionScreenState
                             ),
                           ),
                           const SizedBox(height: 4),
-                          bitcoinPrice.when(
-                            data:
-                                (btcPrice) => Text(
-                                  _formatAmount(
-                                    psbt.satoshi,
-                                    psbt.asset,
-                                    btcPrice,
-                                    currencySymbol,
-                                  ),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                            loading:
-                                () => Text(
-                                  'Carregando preço...',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                            error:
-                                (error, _) => Text(
-                                  _formatAmount(
-                                    psbt.satoshi,
-                                    psbt.asset,
-                                    null,
-                                    currencySymbol,
-                                  ),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
+                          Consumer(
+                            builder: (context, ref, _) {
+                              // Para transações drain de Bitcoin, calcular manualmente o valor
+                              if (isDrainTransaction &&
+                                  psbt.asset == Asset.btc) {
+                                return ref
+                                    .watch(balanceProvider(Asset.btc))
+                                    .when(
+                                      data:
+                                          (balanceEither) => balanceEither.fold(
+                                            (error) => Text(
+                                              'Erro ao calcular valor',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey[400],
+                                              ),
+                                            ),
+                                            (balance) {
+                                              // Calcular valor real do drain: saldo - taxas
+                                              final actualDrainAmount =
+                                                  balance - psbt.networkFees;
+                                              return bitcoinPrice.when(
+                                                data:
+                                                    (btcPrice) => Text(
+                                                      _formatAmount(
+                                                        actualDrainAmount,
+                                                        psbt.asset,
+                                                        btcPrice,
+                                                        currencySymbol,
+                                                      ),
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.grey[400],
+                                                      ),
+                                                    ),
+                                                loading:
+                                                    () => Text(
+                                                      'Carregando preço...',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.grey[400],
+                                                      ),
+                                                    ),
+                                                error:
+                                                    (error, _) => Text(
+                                                      _formatAmount(
+                                                        actualDrainAmount,
+                                                        psbt.asset,
+                                                        null,
+                                                        currencySymbol,
+                                                      ),
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.grey[400],
+                                                      ),
+                                                    ),
+                                              );
+                                            },
+                                          ),
+                                      loading:
+                                          () => Text(
+                                            'Calculando valor...',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey[400],
+                                            ),
+                                          ),
+                                      error:
+                                          (error, _) => Text(
+                                            'Erro ao calcular valor',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey[400],
+                                            ),
+                                          ),
+                                    );
+                              }
+
+                              // Para transações normais, usar o valor do PSBT
+                              return bitcoinPrice.when(
+                                data:
+                                    (btcPrice) => Text(
+                                      _formatAmount(
+                                        psbt.satoshi,
+                                        psbt.asset,
+                                        btcPrice,
+                                        currencySymbol,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey[400],
+                                      ),
+                                    ),
+                                loading:
+                                    () => Text(
+                                      'Carregando preço...',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey[400],
+                                      ),
+                                    ),
+                                error:
+                                    (error, _) => Text(
+                                      _formatAmount(
+                                        psbt.satoshi,
+                                        psbt.asset,
+                                        null,
+                                        currencySymbol,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey[400],
+                                      ),
+                                    ),
+                              );
+                            },
                           ),
                         ],
                       ),
