@@ -67,49 +67,49 @@ class BreezWalletRepositoryImpl extends WalletRepository {
       destination,
       asset,
       amount,
-    ).flatMap(
-      (response) => TaskEither.right(
+    ).flatMap((response) {
+      return TaskEither.right(
         BreezPreparedStablecoinTransactionDto(
           destination: destination,
           amount: amount,
           fees: response.feesSat ?? BigInt.zero,
           asset: asset.id,
         ).toDomain(),
-      ),
-    );
+      );
+    });
   }
 
   @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
   buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount) {
-    return prepareOnchainSendTransaction(_breez, destination, amount).flatMap(
-      (response) => TaskEither.right(
+    return prepareOnchainSendTransaction(_breez, destination, amount).flatMap((
+      response,
+    ) {
+      return TaskEither.right(
         BreezPreparedOnchainTransactionDto(
           destination: destination,
           fees: response.prepareResponse.totalFeesSat,
           amount: amount,
         ).toDomain(),
-      ),
-    );
+      );
+    });
   }
 
   @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLightningPaymentTransaction(String destination, BigInt amount) {
-    return prepareLayer2BitcoinSendTransaction(
-      _breez,
-      destination,
-      amount,
-    ).flatMap(
-      (response) => TaskEither.right(
+    return prepareLightningTransaction(_breez, destination, amount).flatMap((
+      response,
+    ) {
+      return TaskEither.right(
         BreezPreparedLayer2TransactionDto(
           destination: destination,
           blockchain: Blockchain.lightning,
-          fees: response.feesSat ?? BigInt.zero,
+          fees: response.feesSat,
           amount: amount,
         ).toDomain(),
-      ),
-    );
+      );
+    });
   }
 
   @override
@@ -119,16 +119,16 @@ class BreezWalletRepositoryImpl extends WalletRepository {
       _breez,
       destination,
       amount,
-    ).flatMap(
-      (response) => TaskEither.right(
+    ).flatMap((response) {
+      return TaskEither.right(
         BreezPreparedLayer2TransactionDto(
           destination: destination,
           blockchain: Blockchain.liquid,
           fees: response.feesSat ?? BigInt.zero,
           amount: amount,
         ).toDomain(),
-      ),
-    );
+      );
+    });
   }
 
   @override
@@ -140,32 +140,64 @@ class BreezWalletRepositoryImpl extends WalletRepository {
       psbt.destination,
       psbt.asset,
       psbt.amount,
-    ).flatMap(
-      (preparedTransaction) =>
-          sendLayer2Transaction(_breez, preparedTransaction).flatMap(
-            (response) => TaskEither.right(
-              BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
-            ),
-          ),
-    );
+    ).flatMap((preparedTransaction) {
+      return sendLayer2Transaction(_breez, preparedTransaction).flatMap((
+        response,
+      ) {
+        return TaskEither.right(
+          BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
+        );
+      });
+    });
   }
 
   @override
   TaskEither<WalletError, Transaction> sendL2BitcoinPayment(
     PreparedLayer2BitcoinTransaction psbt,
   ) {
-    return prepareLayer2BitcoinSendTransaction(
-      _breez,
-      psbt.destination,
-      psbt.amount,
-    ).flatMap(
-      (preparedTransaction) =>
-          sendLayer2Transaction(_breez, preparedTransaction).flatMap(
-            (response) => TaskEither.right(
-              BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
-            ),
-          ),
-    );
+    if (psbt.blockchain == Blockchain.lightning) {
+      // Check if this is a drain transaction (amount is 0 or very small indicates drain)
+      if (psbt.amount == BigInt.zero) {
+        // Handle Lightning DRAIN payments using LNURL-pay with PayAmount_Drain
+        return _sendDrainLightningPayment(_breez, psbt.destination).flatMap((
+          response,
+        ) {
+          return TaskEither.right(
+            BreezTransactionDto.fromSdk(
+              payment: response.data.payment,
+            ).toDomain(),
+          );
+        });
+      } else {
+        // Handle regular Lightning payments (LNURL-pay only)
+        return sendLightningPayment(
+          _breez,
+          psbt.destination,
+          psbt.amount,
+        ).flatMap((response) {
+          return TaskEither.right(
+            BreezTransactionDto.fromSdk(
+              payment: response.data.payment,
+            ).toDomain(),
+          );
+        });
+      }
+    } else {
+      // Handle Liquid payments
+      return prepareLayer2BitcoinSendTransaction(
+        _breez,
+        psbt.destination,
+        psbt.amount,
+      ).flatMap((preparedTransaction) {
+        return sendLayer2Transaction(_breez, preparedTransaction).flatMap((
+          response,
+        ) {
+          return TaskEither.right(
+            BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
+          );
+        });
+      });
+    }
   }
 
   @override
@@ -176,14 +208,15 @@ class BreezWalletRepositoryImpl extends WalletRepository {
       _breez,
       psbt.destination,
       psbt.amount,
-    ).flatMap(
-      (preparedTransaction) =>
-          sendOnchainTransaction(_breez, preparedTransaction).flatMap(
-            (response) => TaskEither.right(
-              BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
-            ),
-          ),
-    );
+    ).flatMap((preparedTransaction) {
+      return sendOnchainTransaction(_breez, preparedTransaction).flatMap((
+        response,
+      ) {
+        return TaskEither.right(
+          BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
+        );
+      });
+    });
   }
 
   // DRAIN methods - send all available funds
@@ -208,22 +241,17 @@ class BreezWalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLightningTransaction(String destination) {
     return getBalance().flatMap((balance) {
-      return _prepareDrainLayer2Response(
-        _breez,
-        destination,
-        Blockchain.lightning,
-      ).flatMap((response) {
-        print(
-          '[DEBUG] Lightning Drain Response: exchangeAmountSat=${response.exchangeAmountSat}, feesSat=${response.feesSat}',
-        );
+      return _prepareDrainLightningResponse(_breez, destination).flatMap((
+        response,
+      ) {
         return TaskEither.right(
           BreezPreparedLayer2TransactionDto(
             destination: destination,
             blockchain: Blockchain.lightning,
-            fees: response.feesSat ?? BigInt.zero,
+            fees: response.feesSat,
             amount:
-                response.exchangeAmountSat ??
-                BigInt.zero, // Use exchangeAmountSat for drain transactions
+                BigInt
+                    .zero, // For drain transactions, amount is determined by the prepare response
           ).toDomain(),
         );
       });
@@ -239,9 +267,6 @@ class BreezWalletRepositoryImpl extends WalletRepository {
         destination,
         Blockchain.liquid,
       ).flatMap((response) {
-        print(
-          '[DEBUG] Liquid Drain Response: exchangeAmountSat=${response.exchangeAmountSat}, feesSat=${response.feesSat}',
-        );
         return TaskEither.right(
           BreezPreparedLayer2TransactionDto(
             destination: destination,
@@ -314,10 +339,12 @@ class BreezWalletRepositoryImpl extends WalletRepository {
             .map((p) => BreezTransactionDto.fromSdk(payment: p).toDomain())
             .toList();
       },
-      (err, stackTrace) => WalletError(
-        WalletErrorType.networkError,
-        "Falha ao ler transações: $err",
-      ),
+      (err, stackTrace) {
+        return WalletError(
+          WalletErrorType.networkError,
+          "Falha ao ler transações: $err",
+        );
+      },
     );
   }
 
@@ -328,6 +355,7 @@ class BreezWalletRepositoryImpl extends WalletRepository {
         final info = await _breez.getInfo();
         final bitcoinBalance = info.walletInfo.balanceSat;
         final assetBalances = info.walletInfo.assetBalances;
+
         Balance balances = {};
 
         for (final assetBalance in assetBalances) {
@@ -339,25 +367,14 @@ class BreezWalletRepositoryImpl extends WalletRepository {
 
         return balances;
       },
-      (err, stackTrace) =>
-          WalletError(WalletErrorType.networkError, "Falha ao ler saldo: %err"),
+      (err, stackTrace) {
+        return WalletError(
+          WalletErrorType.networkError,
+          "Falha ao ler saldo: $err",
+        );
+      },
     );
   }
-}
-
-PaymentMethod _getL2PaymentMethod(String destination) {
-  final bolt11Regex = RegExp(r'^ln(bc|tb|bcrt)[0-9a-z]+$');
-  final bolt12Regex = RegExp(r'^ln(o1|i1|r1)[0-9a-z]+$');
-
-  if (bolt11Regex.hasMatch(destination)) {
-    return PaymentMethod.bolt11Invoice;
-  }
-
-  if (bolt12Regex.hasMatch(destination)) {
-    return PaymentMethod.bolt12Offer;
-  }
-
-  return PaymentMethod.liquidAddress;
 }
 
 /// RECEIVE functions
@@ -459,14 +476,20 @@ TaskEither<WalletError, PrepareReceiveResponse> _prepareReceiveResponse(
   Option<ReceiveAmount> recvAmount,
   PaymentMethod paymentMethod,
 ) {
-  return TaskEither.tryCatch(() async {
-    return await breez.prepareReceivePayment(
-      req: PrepareReceiveRequest(
-        paymentMethod: paymentMethod,
-        amount: recvAmount.fold(() => null, (amount) => amount),
-      ),
-    );
-  }, (err, stackTrace) => WalletError(WalletErrorType.networkError));
+  return TaskEither.tryCatch(
+    () async {
+      final result = await breez.prepareReceivePayment(
+        req: PrepareReceiveRequest(
+          paymentMethod: paymentMethod,
+          amount: recvAmount.fold(() => null, (amount) => amount),
+        ),
+      );
+      return result;
+    },
+    (err, stackTrace) {
+      return WalletError(WalletErrorType.networkError);
+    },
+  );
 }
 
 TaskEither<WalletError, ReceivePaymentResponse> _receivePayment(
@@ -476,17 +499,20 @@ TaskEither<WalletError, ReceivePaymentResponse> _receivePayment(
 ) {
   return TaskEither.tryCatch(
     () async {
-      return await breez.receivePayment(
+      final result = await breez.receivePayment(
         req: ReceivePaymentRequest(
           prepareResponse: prepareReceiveResponse,
           description: description.fold(() => null, (desc) => desc),
         ),
       );
+      return result;
     },
-    (err, stackTrace) => WalletError(
-      WalletErrorType.transactionFailed,
-      "Falha ao gerar endereço de pagamento",
-    ),
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao gerar endereço de pagamento",
+      );
+    },
   );
 }
 
@@ -511,11 +537,16 @@ TaskEither<WalletError, PrepareSendResponse> prepareAssetSendTransaction(
   );
 
   return TaskEither.tryCatch(
-    () async => breez.prepareSendPayment(req: prepareSendRequest),
-    (err, stackTrace) => WalletError(
-      WalletErrorType.transactionFailed,
-      "Falha ao construir transação: $err",
-    ),
+    () async {
+      final result = await breez.prepareSendPayment(req: prepareSendRequest);
+      return result;
+    },
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao construir transação: $err",
+      );
+    },
   );
 }
 
@@ -532,11 +563,56 @@ prepareLayer2BitcoinSendTransaction(
   );
 
   return TaskEither.tryCatch(
-    () async => breez.prepareSendPayment(req: sendRequest),
-    (err, stackTrace) => WalletError(
-      WalletErrorType.networkError,
-      "Não foi possível preparar a transação: $err",
-    ),
+    () async {
+      final result = await breez.prepareSendPayment(req: sendRequest);
+      return result;
+    },
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.networkError,
+        "Não foi possível preparar a transação: $err",
+      );
+    },
+  );
+}
+
+// Lightning payment preparation - uses prepareLnurlPay directly for cleaner implementation
+TaskEither<WalletError, PrepareLnUrlPayResponse> prepareLightningTransaction(
+  BindingLiquidSdk breez,
+  String destination,
+  BigInt amount,
+) {
+  return TaskEither.tryCatch(
+    () async {
+      // Parse the destination to determine the input type
+      final inputType = await breez.parse(input: destination);
+
+      if (inputType is InputType_LnUrlPay) {
+        final payAmount = PayAmount_Bitcoin(receiverAmountSat: amount);
+
+        final req = PrepareLnUrlPayRequest(
+          data: inputType.data,
+          amount: payAmount,
+          bip353Address: inputType.bip353Address,
+          comment: null, // Optional comment
+          validateSuccessActionUrl: true,
+        );
+
+        final result = await breez.prepareLnurlPay(req: req);
+
+        return result;
+      } else {
+        throw Exception(
+          'Regular lightning invoices not supported in this method. Use prepareLayer2BitcoinSendTransaction instead.',
+        );
+      }
+    },
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Não foi possível preparar a transação Lightning: $err",
+      );
+    },
   );
 }
 
@@ -546,26 +622,28 @@ TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
   BigInt amount,
 ) {
   return _getOnchainPaymentLimits(breez).flatMap((limits) {
-    if (amount < limits.send.minSat)
+    if (amount < limits.send.minSat) {
       return TaskEither.left(
         WalletError(
           WalletErrorType.invalidAmount,
           "Valor insuficiente. Mínimo: ${limits.send.minSat} sats",
         ),
       );
-    if (amount > limits.send.maxSat)
+    }
+    if (amount > limits.send.maxSat) {
       return TaskEither.left(
         WalletError(
           WalletErrorType.invalidAmount,
           "Valor inválido. Máximo: ${limits.send.maxSat} sats",
         ),
       );
+    }
 
-    return _preparePayOnchainResponse(breez, amount).flatMap(
-      (r) => TaskEither.right(
+    return _preparePayOnchainResponse(breez, amount).flatMap((r) {
+      return TaskEither.right(
         PayOnchainRequest(address: destination, prepareResponse: r),
-      ),
-    );
+      );
+    });
   });
 }
 
@@ -600,20 +678,117 @@ TaskEither<WalletError, OnchainPaymentLimitsResponse> _getOnchainPaymentLimits(
 
 // SEND PSBT functions
 
+TaskEither<WalletError, LnUrlPayResult_EndpointSuccess>
+_sendDrainLightningPayment(BindingLiquidSdk breez, String destination) {
+  return TaskEither.tryCatch(
+    () async {
+      final inputType = await breez.parse(input: destination);
+
+      if (inputType is InputType_LnUrlPay) {
+        // Use PayAmount_Drain to send all available funds
+        final drainAmount = PayAmount_Drain();
+
+        final req = PrepareLnUrlPayRequest(
+          data: inputType.data,
+          amount: drainAmount,
+          bip353Address: inputType.bip353Address,
+          comment: null, // Optional comment
+          validateSuccessActionUrl: true,
+        );
+
+        final prepareResponse = await breez.prepareLnurlPay(req: req);
+
+        final result = await breez.lnurlPay(
+          req: LnUrlPayRequest(prepareResponse: prepareResponse),
+        );
+
+        if (result is LnUrlPayResult_EndpointSuccess) {
+          return result;
+        } else if (result is LnUrlPayResult_PayError) {
+          throw Exception('LNURL Drain Payment error: ${result.data.reason}');
+        } else {
+          throw Exception('Unknown LnUrlPayResult type');
+        }
+      } else {
+        throw Exception(
+          'Only LNURL-Pay destinations are supported for Lightning drain transactions',
+        );
+      }
+    },
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Lightning drain payment failed: [BREEZ] $err",
+      );
+    },
+  );
+}
+
+TaskEither<WalletError, LnUrlPayResult_EndpointSuccess> sendLightningPayment(
+  BindingLiquidSdk breez,
+  String destination,
+  BigInt amount,
+) {
+  return TaskEither.tryCatch(
+    () async {
+      final inputType = await breez.parse(input: destination);
+
+      if (inputType is InputType_LnUrlPay) {
+        final payAmount = PayAmount_Bitcoin(receiverAmountSat: amount);
+
+        final req = PrepareLnUrlPayRequest(
+          data: inputType.data,
+          amount: payAmount,
+          bip353Address: inputType.bip353Address,
+          comment: null,
+          validateSuccessActionUrl: true,
+        );
+
+        final prepareResponse = await breez.prepareLnurlPay(req: req);
+
+        final result = await breez.lnurlPay(
+          req: LnUrlPayRequest(prepareResponse: prepareResponse),
+        );
+
+        if (result is LnUrlPayResult_EndpointSuccess) {
+          return result;
+        } else if (result is LnUrlPayResult_PayError) {
+          throw Exception('LNURL Payment error: ${result.data.reason}');
+        } else {
+          throw Exception('Unknown LnUrlPayResult type');
+        }
+      } else {
+        throw Exception(
+          'Only LNURL-Pay destinations are supported in Lightning payments',
+        );
+      }
+    },
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Lightning payment failed: [BREEZ] $err",
+      );
+    },
+  );
+}
+
 TaskEither<WalletError, SendPaymentResponse> sendLayer2Transaction(
   BindingLiquidSdk breez,
   PrepareSendResponse psbt,
 ) {
   return TaskEither.tryCatch(
     () async {
-      return await breez.sendPayment(
+      final result = await breez.sendPayment(
         req: SendPaymentRequest(prepareResponse: psbt),
       );
+      return result;
     },
-    (err, stackTrace) => WalletError(
-      WalletErrorType.transactionFailed,
-      "Transação falhou: [BREEZ] $err",
-    ),
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Transação falhou: [BREEZ] $err",
+      );
+    },
   );
 }
 
@@ -623,16 +798,58 @@ TaskEither<WalletError, SendPaymentResponse> sendOnchainTransaction(
 ) {
   return TaskEither.tryCatch(
     () async {
-      return await breez.payOnchain(req: psbt);
+      final result = await breez.payOnchain(req: psbt);
+      return result;
     },
-    (err, stackTrace) => WalletError(
-      WalletErrorType.transactionFailed,
-      "Transação falhou: [BREEZ] $err",
-    ),
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Transação falhou: [BREEZ] $err",
+      );
+    },
   );
 }
 
 // DRAIN helper functions - for sending all available funds
+
+TaskEither<WalletError, PrepareLnUrlPayResponse> _prepareDrainLightningResponse(
+  BindingLiquidSdk breez,
+  String destination,
+) {
+  return TaskEither.tryCatch(
+    () async {
+      // Parse the destination to determine the input type
+      final inputType = await breez.parse(input: destination);
+
+      if (inputType is InputType_LnUrlPay) {
+        // Use PayAmount_Drain to send all available funds
+        final drainAmount = PayAmount_Drain();
+
+        final req = PrepareLnUrlPayRequest(
+          data: inputType.data,
+          amount: drainAmount,
+          bip353Address: inputType.bip353Address,
+          comment: null, // Optional comment
+          validateSuccessActionUrl: true,
+        );
+
+        final result = await breez.prepareLnurlPay(req: req);
+
+        return result;
+      } else {
+        throw Exception(
+          'Only LNURL-Pay destinations are supported for Lightning drain transactions',
+        );
+      }
+    },
+    (err, stackTrace) {
+      return WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao preparar transação de envio total Lightning: $err",
+      );
+    },
+  );
+}
 
 TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
   BindingLiquidSdk breez,
@@ -664,7 +881,6 @@ TaskEither<WalletError, PrepareSendResponse> _prepareDrainLayer2Response(
 ) {
   return TaskEither.tryCatch(
     () async {
-      // For drain transactions, use PayAmount_Drain to send all available funds
       final prepareSendRequest = PrepareSendRequest(
         destination: destination,
         amount: PayAmount_Drain(),
@@ -686,7 +902,6 @@ TaskEither<WalletError, PrepareSendResponse> _prepareDrainAssetResponse(
 ) {
   return TaskEither.tryCatch(
     () async {
-      // Get current balance for the specific asset
       final balance = await breez.getInfo();
       final assetBalances = balance.walletInfo.assetBalances;
       final assetId = Asset.toId(asset);
@@ -694,7 +909,6 @@ TaskEither<WalletError, PrepareSendResponse> _prepareDrainAssetResponse(
       double assetAmount = 0.0;
       for (final assetBalance in assetBalances) {
         if (assetBalance.assetId == assetId) {
-          // Convert from satoshis to asset amount - get full balance for drain
           assetAmount = assetBalance.balanceSat.toDouble() / 100000000;
           break;
         }
@@ -704,13 +918,11 @@ TaskEither<WalletError, PrepareSendResponse> _prepareDrainAssetResponse(
         throw Exception("Saldo insuficiente para o ativo $assetId");
       }
 
-      // For asset drain, prepare a request that will send all available asset balance
-      // The Breez SDK should handle fee deduction automatically
       final prepareSendRequest = PrepareSendRequest(
         destination: destination,
         amount: PayAmount_Asset(
           toAsset: assetId,
-          receiverAmount: assetAmount, // Use the full balance available
+          receiverAmount: assetAmount,
           estimateAssetFees: true,
         ),
       );
@@ -724,7 +936,6 @@ TaskEither<WalletError, PrepareSendResponse> _prepareDrainAssetResponse(
   );
 }
 
-// Helper methods for extracting amounts from PayAmount union types
 double _extractAssetAmount(PayAmount? payAmount) {
   if (payAmount == null) return 0.0;
 
