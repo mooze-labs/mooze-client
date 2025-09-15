@@ -6,7 +6,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/n
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/shared/prices/providers/price_service_provider.dart';
 
-enum AmountDisplayMode { fiat, bitcoin, selectedAsset, sats }
+enum AmountDisplayMode { fiat, bitcoin, selectedAsset }
 
 class ReceiveValidationState {
   final String? amountError;
@@ -64,15 +64,15 @@ class ReceiveValidationController
         if (amount == null || amount <= 0) {
           errorMessage = 'Amount é obrigatório para Lightning';
         } else {
-          final satsAmount = await _convertToSats(amount, displayMode);
-          if (satsAmount < 25000 && network != NetworkType.liquid) {
-            errorMessage = 'Valor mínimo: 25.000 sats';
+          final btcAmount = await _convertToBitcoin(amount, displayMode);
+          if (btcAmount < 0.000001) {
+            errorMessage = 'Valor mínimo: 100 sats (0.000001 BTC)';
           }
         }
       } else if (amount != null) {
-        final satsAmount = await _convertToSats(amount, displayMode);
-        if (satsAmount < 25000 && network != NetworkType.liquid) {
-          errorMessage = 'Valor mínimo: 25.000 sats';
+        final btcAmount = await _convertToBitcoin(amount, displayMode);
+        if (btcAmount < 0.00025 && network != NetworkType.liquid) {
+          errorMessage = 'Valor mínimo: 0.00025 BTC';
         }
       }
 
@@ -100,7 +100,7 @@ class ReceiveValidationController
     }
   }
 
-  Future<int> _convertToSats(
+  Future<double> _convertToBitcoin(
     double amount,
     AmountDisplayMode displayMode,
   ) async {
@@ -110,8 +110,7 @@ class ReceiveValidationController
       case AmountDisplayMode.fiat:
         try {
           final btcPrice = await ref.read(bitcoinPriceProvider.future);
-          final btcAmount = amount / btcPrice;
-          return (btcAmount * 100000000).round();
+          return amount / btcPrice;
         } catch (e) {
           print(
             'DEBUG: Erro ao obter preço do Bitcoin, tentando fallback dinâmico: $e',
@@ -136,8 +135,7 @@ class ReceiveValidationController
               ),
             );
 
-            final btcAmount = amount / btcPrice;
-            return (btcAmount * 100000000).round();
+            return amount / btcPrice;
           } catch (fallbackError) {
             print('DEBUG: Todos os serviços de preço falharam: $fallbackError');
             throw Exception(
@@ -147,11 +145,11 @@ class ReceiveValidationController
         }
 
       case AmountDisplayMode.bitcoin:
-        return (amount * 100000000).round();
+        return amount;
 
       case AmountDisplayMode.selectedAsset:
         if (selectedAsset == Asset.btc) {
-          return (amount * 100000000).round();
+          return amount;
         } else {
           try {
             final priceServiceResult =
@@ -176,8 +174,7 @@ class ReceiveValidationController
             final btcPrice = await ref.read(bitcoinPriceProvider.future);
 
             final fiatValue = amount * assetPrice;
-            final btcAmount = fiatValue / btcPrice;
-            return (btcAmount * 100000000).round();
+            return fiatValue / btcPrice;
           } catch (e) {
             print(
               'DEBUG: Erro ao obter preços, tentando fallback dinâmico: $e',
@@ -188,8 +185,7 @@ class ReceiveValidationController
 
               const usdtToBrlRate = 5.0;
               final fiatValue = amount * usdtToBrlRate;
-              final btcAmount = fiatValue / btcPrice;
-              return (btcAmount * 100000000).round();
+              return fiatValue / btcPrice;
             } catch (fallbackError) {
               print(
                 'DEBUG: Todos os serviços de preço falharam: $fallbackError',
@@ -201,9 +197,6 @@ class ReceiveValidationController
             }
           }
         }
-
-      case AmountDisplayMode.sats:
-        return amount.round();
     }
   }
 
@@ -256,13 +249,13 @@ class ReceiveValidationController
       if (network == NetworkType.lightning) {
         if (amount == null || amount <= 0) return false;
 
-        final satsAmount = await _convertToSats(amount, displayMode);
-        if (satsAmount < 25000) return false;
+        final btcAmount = await _convertToBitcoin(amount, displayMode);
+        if (btcAmount < 0.000001) return false;
       }
 
       if (network == NetworkType.bitcoin && amount != null) {
-        final satsAmount = await _convertToSats(amount, displayMode);
-        if (satsAmount < 25000) return false;
+        final btcAmount = await _convertToBitcoin(amount, displayMode);
+        if (btcAmount < 0.00025) return false;
       }
 
       return true;
