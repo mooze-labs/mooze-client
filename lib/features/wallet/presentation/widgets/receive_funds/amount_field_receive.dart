@@ -6,8 +6,20 @@ import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_re
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+
+enum ReceiveConversionType { asset, sats, fiat }
 
 final receiveAmountProvider = StateProvider<String>((ref) => '');
+final receiveConversionTypeProvider = StateProvider<ReceiveConversionType>(
+  (ref) => ReceiveConversionType.asset,
+);
+final receiveConversionLoadingProvider = StateProvider<bool>((ref) => false);
+
+final receiveAssetValueProvider = StateProvider<String>((ref) => '');
+final receiveSatsValueProvider = StateProvider<String>((ref) => '');
+final receiveFiatValueProvider = StateProvider<String>((ref) => '');
 
 class AmountFieldReceive extends ConsumerStatefulWidget {
   const AmountFieldReceive({super.key});
@@ -18,6 +30,7 @@ class AmountFieldReceive extends ConsumerStatefulWidget {
 
 class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
   late TextEditingController _textController;
+  bool _isUpdatingFromProvider = false;
 
   @override
   void initState() {
@@ -36,13 +49,18 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final selectedNetwork = ref.watch(selectedReceiveNetworkProvider);
     final selectedAsset = ref.watch(selectedReceiveAssetProvider);
     final validationState = ref.watch(receiveValidationControllerProvider);
-    final amountText = ref.watch(receiveAmountProvider);
+    final conversionType = ref.watch(receiveConversionTypeProvider);
+    final isConversionLoading = ref.watch(receiveConversionLoadingProvider);
 
-    if (_textController.text != amountText) {
-      _textController.text = amountText;
+    final currentValue = _getCurrentValueForType(conversionType, ref);
+
+    if (!_isUpdatingFromProvider && _textController.text != currentValue) {
+      _isUpdatingFromProvider = true;
+      _textController.text = currentValue;
       _textController.selection = TextSelection.fromPosition(
-        TextPosition(offset: amountText.length),
+        TextPosition(offset: currentValue.length),
       );
+      _isUpdatingFromProvider = false;
     }
 
     final isRequired = selectedNetwork == NetworkType.lightning;
@@ -70,23 +88,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
               ),
             ],
             const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              child: Text(
-                selectedAsset!.ticker,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            _buildConversionOptionsRow(context, ref, selectedAsset),
           ],
         ),
         const SizedBox(height: 8),
@@ -102,7 +104,18 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 isRequired
                     ? 'Digite o valor (obrigatório)'
                     : 'Digite o valor (opcional)',
-            suffixText: selectedAsset.ticker,
+            suffixText: _getSuffixText(selectedAsset, conversionType, ref),
+            suffixIcon:
+                isConversionLoading
+                    ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                    : null,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -129,25 +142,525 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                     : 'Valor opcional para Bitcoin/Liquid',
           ),
           onChanged: (value) {
-            ref.read(receiveAmountProvider.notifier).state = value;
-            final doubleValue = double.tryParse(value);
+            if (selectedAsset == null || _isUpdatingFromProvider) return;
 
-            final validationController = ref.read(
-              receiveValidationControllerProvider.notifier,
-            );
-            validationController.validateAmount(
-              doubleValue,
-              AmountDisplayMode.bitcoin,
-            );
+            final conversionType = ref.read(receiveConversionTypeProvider);
+
+            _updateCurrentValueProvider(conversionType, value, ref);
+
+            _updateFinalAmountValue(value, conversionType, selectedAsset, ref);
           },
         ),
 
-        if (selectedNetwork != null && amountText.isNotEmpty) ...[
+        if (selectedNetwork != null &&
+            currentValue.isNotEmpty &&
+            selectedAsset != null) ...[
           const SizedBox(height: 8),
-          _buildAmountInfo(context, selectedNetwork, amountText, selectedAsset),
+          _buildAmountInfo(
+            context,
+            selectedNetwork,
+            currentValue,
+            selectedAsset,
+          ),
         ],
       ],
     );
+  }
+
+  Widget _buildConversionOptionsRow(
+    BuildContext context,
+    WidgetRef ref,
+    Asset? selectedAsset,
+  ) {
+    if (selectedAsset == null) return const SizedBox.shrink();
+
+    final conversionType = ref.watch(receiveConversionTypeProvider);
+    final currencyNotifier = ref.read(currencyControllerProvider.notifier);
+    final fiatCurrency = currencyNotifier.icon;
+
+    return Row(
+      children: [
+        _buildConversionOption(
+          context,
+          ref,
+          icon: Icons.account_balance_wallet,
+          label: selectedAsset.ticker,
+          isSelected: conversionType == ReceiveConversionType.asset,
+          onTap: () {
+            ref.read(receiveConversionLoadingProvider.notifier).state = false;
+            ref.read(receiveConversionTypeProvider.notifier).state =
+                ReceiveConversionType.asset;
+            _syncValuesOnTypeChange(
+              ReceiveConversionType.asset,
+              selectedAsset,
+              ref,
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+        if (selectedAsset == Asset.btc) ...[
+          _buildConversionOption(
+            context,
+            ref,
+            icon: Icons.bolt,
+            label: 'sats',
+            isSelected: conversionType == ReceiveConversionType.sats,
+            onTap: () {
+              ref.read(receiveConversionLoadingProvider.notifier).state = false;
+              ref.read(receiveConversionTypeProvider.notifier).state =
+                  ReceiveConversionType.sats;
+              _syncValuesOnTypeChange(
+                ReceiveConversionType.sats,
+                selectedAsset,
+                ref,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+        _buildConversionOption(
+          context,
+          ref,
+          icon: Icons.monetization_on,
+          label: fiatCurrency,
+          isSelected: conversionType == ReceiveConversionType.fiat,
+          onTap: () {
+            ref.read(receiveConversionLoadingProvider.notifier).state = false;
+            ref.read(receiveConversionTypeProvider.notifier).state =
+                ReceiveConversionType.fiat;
+            _syncValuesOnTypeChange(
+              ReceiveConversionType.fiat,
+              selectedAsset,
+              ref,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConversionOption(
+    BuildContext context,
+    WidgetRef ref, {
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color:
+                isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color:
+                  isSelected
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurface,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color:
+                    isSelected
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  ReceiveConversionType getCurrentConversionType(WidgetRef ref) {
+    return ref.read(receiveConversionTypeProvider);
+  }
+
+  String _getCurrentValueForType(
+    ReceiveConversionType conversionType,
+    WidgetRef ref,
+  ) {
+    switch (conversionType) {
+      case ReceiveConversionType.asset:
+        return ref.watch(receiveAssetValueProvider);
+      case ReceiveConversionType.sats:
+        return ref.watch(receiveSatsValueProvider);
+      case ReceiveConversionType.fiat:
+        return ref.watch(receiveFiatValueProvider);
+    }
+  }
+
+  void _updateCurrentValueProvider(
+    ReceiveConversionType conversionType,
+    String value,
+    WidgetRef ref,
+  ) {
+    switch (conversionType) {
+      case ReceiveConversionType.asset:
+        ref.read(receiveAssetValueProvider.notifier).state = value;
+        break;
+      case ReceiveConversionType.sats:
+        ref.read(receiveSatsValueProvider.notifier).state = value;
+        break;
+      case ReceiveConversionType.fiat:
+        ref.read(receiveFiatValueProvider.notifier).state = value;
+        break;
+    }
+  }
+
+  void _updateFinalAmountValue(
+    String inputValue,
+    ReceiveConversionType conversionType,
+    Asset selectedAsset,
+    WidgetRef ref,
+  ) {
+    if (inputValue.isEmpty) {
+      ref.read(receiveAmountProvider.notifier).state = '';
+      return;
+    }
+
+    final inputDouble = double.tryParse(inputValue);
+    if (inputDouble == null || inputDouble <= 0) {
+      ref.read(receiveAmountProvider.notifier).state = '';
+      return;
+    }
+
+    String finalValue;
+
+    switch (conversionType) {
+      case ReceiveConversionType.asset:
+        finalValue = inputValue;
+        break;
+
+      case ReceiveConversionType.sats:
+        if (selectedAsset == Asset.btc) {
+          final btcValue = inputDouble / 100000000;
+          finalValue = btcValue.toString();
+        } else {
+          finalValue = inputValue;
+        }
+        break;
+
+      case ReceiveConversionType.fiat:
+        _convertFiatToAsset(inputValue, selectedAsset, ref);
+        return;
+    }
+
+    ref.read(receiveAmountProvider.notifier).state = finalValue;
+
+    final doubleValue = double.tryParse(finalValue);
+    final validationController = ref.read(
+      receiveValidationControllerProvider.notifier,
+    );
+    validationController.validateAmount(doubleValue, AmountDisplayMode.bitcoin);
+  }
+
+  void _convertFiatToAsset(
+    String inputValue,
+    Asset selectedAsset,
+    WidgetRef ref,
+  ) async {
+    final inputDouble = double.tryParse(inputValue);
+    if (inputDouble == null || inputDouble <= 0) return;
+
+    ref.read(receiveConversionLoadingProvider.notifier).state = true;
+
+    try {
+      final priceResult = await ref.read(
+        fiatPriceProvider(selectedAsset).future,
+      );
+
+      priceResult.fold(
+        (error) {
+          print('Erro ao obter preço para conversão: $error');
+          ref.read(receiveAmountProvider.notifier).state = '';
+        },
+        (price) {
+          if (price <= 0) {
+            print('Preço inválido recebido: $price');
+            ref.read(receiveAmountProvider.notifier).state = '';
+            return;
+          }
+
+          final assetValue = inputDouble / price;
+          String finalValue;
+
+          if (selectedAsset == Asset.btc) {
+            finalValue = assetValue
+                .toStringAsFixed(8)
+                .replaceAll(RegExp(r'0+$'), '')
+                .replaceAll(RegExp(r'\.$'), '');
+          } else {
+            finalValue = assetValue
+                .toStringAsFixed(6)
+                .replaceAll(RegExp(r'0+$'), '')
+                .replaceAll(RegExp(r'\.$'), '');
+          }
+
+          ref.read(receiveAmountProvider.notifier).state = finalValue;
+
+          final validationController = ref.read(
+            receiveValidationControllerProvider.notifier,
+          );
+          validationController.validateAmount(
+            assetValue,
+            AmountDisplayMode.bitcoin,
+          );
+        },
+      );
+    } catch (e) {
+      print('Erro na conversão fiat: $e');
+      ref.read(receiveAmountProvider.notifier).state = '';
+    } finally {
+      ref.read(receiveConversionLoadingProvider.notifier).state = false;
+    }
+  }
+
+  void _syncValuesOnTypeChange(
+    ReceiveConversionType newType,
+    Asset selectedAsset,
+    WidgetRef ref,
+  ) {
+    final currentAssetValue = ref.read(receiveAmountProvider);
+    if (currentAssetValue.isEmpty) return;
+
+    final assetDouble = double.tryParse(currentAssetValue);
+    if (assetDouble == null || assetDouble <= 0) return;
+
+    switch (newType) {
+      case ReceiveConversionType.asset:
+        ref.read(receiveAssetValueProvider.notifier).state = currentAssetValue;
+        break;
+
+      case ReceiveConversionType.sats:
+        if (selectedAsset == Asset.btc) {
+          final satsValue = (assetDouble * 100000000).round();
+          ref.read(receiveSatsValueProvider.notifier).state =
+              satsValue.toString();
+        }
+        break;
+
+      case ReceiveConversionType.fiat:
+        _convertAssetToFiat(currentAssetValue, selectedAsset, ref);
+        break;
+    }
+  }
+
+  void _convertAssetToFiat(
+    String assetValue,
+    Asset selectedAsset,
+    WidgetRef ref,
+  ) async {
+    final assetDouble = double.tryParse(assetValue);
+    if (assetDouble == null || assetDouble <= 0) return;
+
+    try {
+      final priceResult = await ref.read(
+        fiatPriceProvider(selectedAsset).future,
+      );
+
+      priceResult.fold(
+        (error) {
+          print('Erro ao obter preço para conversão reversa: $error');
+        },
+        (price) {
+          if (price <= 0) return;
+
+          final fiatValue = assetDouble * price;
+          ref.read(receiveFiatValueProvider.notifier).state = fiatValue
+              .toStringAsFixed(2);
+        },
+      );
+    } catch (e) {
+      print('Erro na conversão reversa: $e');
+    }
+  }
+
+  Widget _buildConversionPreview(
+    BuildContext context,
+    Asset selectedAsset,
+    double assetAmount,
+  ) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final currencyNotifier = ref.read(currencyControllerProvider.notifier);
+        final fiatCurrency = currencyNotifier.icon;
+        final conversionType = ref.watch(receiveConversionTypeProvider);
+
+        return FutureBuilder(
+          future: ref.read(fiatPriceProvider(selectedAsset).future),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Row(
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Carregando conversões...',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return snapshot.data!.fold((error) => const SizedBox.shrink(), (
+              price,
+            ) {
+              final fiatValue = assetAmount * price;
+              final satsValue =
+                  selectedAsset == Asset.btc
+                      ? (assetAmount * 100000000).round()
+                      : null;
+
+              return Column(
+                children: [
+                  Container(
+                    height: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.2),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.swap_horiz,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Conversões equivalentes:',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (conversionType != ReceiveConversionType.asset)
+                    _buildConversionRow(
+                      context,
+                      icon: Icons.account_balance_wallet,
+                      label: '${selectedAsset.ticker}:',
+                      value: assetAmount
+                          .toStringAsFixed(selectedAsset == Asset.btc ? 8 : 6)
+                          .replaceAll(RegExp(r'0+$'), '')
+                          .replaceAll(RegExp(r'\.$'), ''),
+                      suffix: selectedAsset.ticker,
+                    ),
+
+                  if (selectedAsset == Asset.btc &&
+                      conversionType != ReceiveConversionType.sats &&
+                      satsValue != null)
+                    _buildConversionRow(
+                      context,
+                      icon: Icons.bolt,
+                      label: 'Satoshis:',
+                      value: satsValue.toString(),
+                      suffix: 'sats',
+                    ),
+
+                  if (conversionType != ReceiveConversionType.fiat)
+                    _buildConversionRow(
+                      context,
+                      icon: Icons.monetization_on,
+                      label: '$fiatCurrency:',
+                      value: fiatValue.toStringAsFixed(2),
+                      suffix: fiatCurrency,
+                    ),
+                ],
+              );
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildConversionRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required String suffix,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '$value $suffix',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSuffixText(
+    Asset? selectedAsset,
+    ReceiveConversionType conversionType,
+    WidgetRef ref,
+  ) {
+    if (selectedAsset == null) return '';
+
+    switch (conversionType) {
+      case ReceiveConversionType.asset:
+        return selectedAsset.ticker;
+      case ReceiveConversionType.sats:
+        return selectedAsset == Asset.btc ? 'sats' : selectedAsset.ticker;
+      case ReceiveConversionType.fiat:
+        final currencyNotifier = ref.read(currencyControllerProvider.notifier);
+        return currencyNotifier.icon;
+    }
   }
 
   Widget _buildAmountInfo(
@@ -156,7 +669,8 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     String amountText,
     Asset selectedAsset,
   ) {
-    final btcAmount = double.tryParse(amountText);
+    final finalAssetValue = ref.watch(receiveAmountProvider);
+    final btcAmount = double.tryParse(finalAssetValue);
 
     if (btcAmount == null) return const SizedBox.shrink();
 
@@ -187,6 +701,9 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 ),
               ],
             ),
+          const SizedBox(height: 8),
+
+          _buildConversionPreview(context, selectedAsset, btcAmount),
           const SizedBox(height: 8),
 
           if (network == NetworkType.lightning) ...[
