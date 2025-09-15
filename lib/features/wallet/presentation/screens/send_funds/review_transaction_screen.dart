@@ -283,7 +283,6 @@ class _ReviewTransactionScreenState
                           const SizedBox(height: 4),
                           Consumer(
                             builder: (context, ref, _) {
-                              // Para transações drain de Bitcoin, calcular manualmente o valor
                               if (isDrainTransaction &&
                                   psbt.asset == Asset.btc) {
                                 return ref
@@ -299,7 +298,6 @@ class _ReviewTransactionScreenState
                                               ),
                                             ),
                                             (balance) {
-                                              // Calcular valor real do drain: saldo - taxas
                                               final actualDrainAmount =
                                                   balance - psbt.networkFees;
                                               return bitcoinPrice.when(
@@ -359,7 +357,6 @@ class _ReviewTransactionScreenState
                                     );
                               }
 
-                              // Para transações normais, usar o valor do PSBT
                               return bitcoinPrice.when(
                                 data:
                                     (btcPrice) => Text(
