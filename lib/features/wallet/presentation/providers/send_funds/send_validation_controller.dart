@@ -38,7 +38,25 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     if (asset == Asset.btc &&
         amount < 25000 &&
         networkType == NetworkType.bitcoin) {
-      errors.add('Valor mínimo para Bitcoin onchain é 25.000 sats');
+      errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
+    }
+
+    if (asset == Asset.btc &&
+        amount < 21 &&
+        networkType == NetworkType.lightning) {
+      errors.add('Valor mínimo para bitcoin lightning é 21 sats');
+    }
+
+    if (asset == Asset.usdt &&
+        amount < 50000000 &&
+        networkType == NetworkType.liquid) {
+      errors.add('Valor mínimo para USDT é 0.5 USDT');
+    }
+
+    if (asset == Asset.depix &&
+        amount < 100000000 &&
+        networkType == NetworkType.liquid) {
+      errors.add('Valor mínimo para Depix é 1.0 Depix');
     }
 
     try {
