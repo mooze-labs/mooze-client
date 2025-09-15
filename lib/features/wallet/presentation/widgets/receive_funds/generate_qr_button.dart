@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/qr_generation_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_receive_network_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/amount_field_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/description_field_receive.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
