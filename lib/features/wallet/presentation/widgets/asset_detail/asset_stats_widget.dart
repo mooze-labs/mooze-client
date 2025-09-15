@@ -83,14 +83,12 @@ class AssetStatsWidget extends ConsumerWidget {
     final current = klines.last;
     final high = klines.reduce((a, b) => a > b ? a : b);
     final low = klines.reduce((a, b) => a < b ? a : b);
-    final volume = klines.length.toDouble() * 1000; // Simulado
 
     return Column(
       children: [
         _buildStatRow('Preço Atual', '$icon ${current.toStringAsFixed(2)}'),
         _buildStatRow('Máxima 24h', '$icon ${high.toStringAsFixed(2)}'),
         _buildStatRow('Mínima 24h', '$icon ${low.toStringAsFixed(2)}'),
-        _buildStatRow('Volume 24h', '${volume.toStringAsFixed(0)}'),
       ],
     );
   }
