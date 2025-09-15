@@ -31,7 +31,6 @@ class ReviewTransactionScreen extends ConsumerStatefulWidget {
 
 class _ReviewTransactionScreenState
     extends ConsumerState<ReviewTransactionScreen> {
-  bool _isCopied = false;
   bool _isConfirming = false;
 
   @override
@@ -42,21 +41,13 @@ class _ReviewTransactionScreenState
     final validationState = ref.watch(sendValidationControllerProvider);
     final isDrainTransaction = ref.watch(isDrainTransactionProvider);
 
-    print(
-      '[DEBUG ReviewTransactionScreen] isDrainTransaction: $isDrainTransaction',
-    );
-
     return psbtAsyncValue.when(
       data:
           (psbtEither) => psbtEither.fold(
             (error) {
-              print('[DEBUG ReviewTransactionScreen] PSBT Error: $error');
               return _buildErrorScreen(context, error);
             },
             (psbt) {
-              print(
-                '[DEBUG ReviewTransactionScreen] PSBT Success: ${psbt.runtimeType}',
-              );
               return _buildSuccessScreen(
                 context,
                 psbt,
@@ -68,11 +59,9 @@ class _ReviewTransactionScreenState
             },
           ),
       loading: () {
-        print('[DEBUG ReviewTransactionScreen] PSBT Loading...');
         return _buildLoadingScreen(context, isDrainTransaction);
       },
       error: (error, stackTrace) {
-        print('[DEBUG ReviewTransactionScreen] PSBT Error (exception): $error');
         return _buildErrorScreen(context, error.toString());
       },
     );
@@ -438,54 +427,7 @@ class _ReviewTransactionScreenState
                 ],
               ),
               const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => _copyAddressToClipboard(context, psbt.destination),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          psbt.destination,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'monospace',
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 3,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color:
-                              _isCopied
-                                  ? Colors.green
-                                  : Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Icon(
-                          _isCopied ? Icons.check_rounded : Icons.copy_rounded,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              CopyButton(textToCopy: psbt.destination),
 
               const SizedBox(height: 24),
 
@@ -570,9 +512,6 @@ class _ReviewTransactionScreenState
     BigInt amount,
     BigInt networkFees,
   ) {
-    print(
-      '[DEBUG] _buildFeeDetails: asset=$asset, networkType=$networkType, amount=$amount, networkFees=$networkFees',
-    );
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -650,14 +589,8 @@ class _ReviewTransactionScreenState
     double? bitcoinPrice,
     String currencySymbol,
   ) {
-    print(
-      '[DEBUG] _formatAmount: amountInSats=$amountInSats, asset=$asset, bitcoinPrice=$bitcoinPrice, currencySymbol=$currencySymbol',
-    );
     if (asset != Asset.btc) {
       final value = amountInSats.toDouble() / 100000000;
-      print(
-        '[DEBUG] _formatAmount (non-BTC): value=$value, ticker=${asset.ticker}',
-      );
       return "${value.toStringAsFixed(2)} ${asset.ticker}";
     }
 
@@ -669,9 +602,6 @@ class _ReviewTransactionScreenState
 
     if (bitcoinPrice != null && bitcoinPrice > 0) {
       final fiatValue = btcAmount * bitcoinPrice;
-      print(
-        '[DEBUG] _formatAmount (BTC): btcAmount=$btcAmount, fiatValue=$fiatValue',
-      );
       result += "\n≈ $currencySymbol ${fiatValue.toStringAsFixed(2)}";
     }
 
@@ -794,22 +724,6 @@ class _ReviewTransactionScreenState
     );
   }
 
-  void _copyAddressToClipboard(BuildContext context, String address) async {
-    await Clipboard.setData(ClipboardData(text: address));
-
-    setState(() {
-      _isCopied = true;
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _isCopied = false;
-        });
-      }
-    });
-  }
-
   void _showSuccessDialog(
     BuildContext context,
     WidgetRef ref,
@@ -853,14 +767,20 @@ class _ReviewTransactionScreenState
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        destinationAddress,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontFamily: 'monospace',
+                      CopyButton(
+                        textToCopy: destinationAddress,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
+                        borderRadius: 6,
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        iconSize: 12,
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
                       ),
                     ],
                   ),
@@ -875,7 +795,6 @@ class _ReviewTransactionScreenState
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
                   ref.read(addressStateProvider.notifier).state = '';
                   ref.read(amountStateProvider.notifier).state = 0;
                   ref
