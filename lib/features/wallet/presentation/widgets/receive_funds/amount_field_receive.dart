@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/n
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_receive_network_provider.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 
 final receiveAmountProvider = StateProvider<String>((ref) => '');
 
@@ -79,7 +80,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 ),
               ),
               child: Text(
-                'SATS',
+                selectedAsset!.ticker,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.w600,
@@ -92,14 +93,16 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
         TextFormField(
           controller: _textController,
           enabled: !isDisabled,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+          ],
           decoration: InputDecoration(
             hintText:
                 isRequired
-                    ? 'Digite o valor em satoshis (obrigatório)'
-                    : 'Digite o valor em satoshis (opcional)',
-            suffixText: 'sats',
+                    ? 'Digite o valor (obrigatório)'
+                    : 'Digite o valor (opcional)',
+            suffixText: selectedAsset.ticker,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -127,22 +130,21 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
           ),
           onChanged: (value) {
             ref.read(receiveAmountProvider.notifier).state = value;
-            final intValue = int.tryParse(value);
-            final doubleValue = intValue?.toDouble();
+            final doubleValue = double.tryParse(value);
 
             final validationController = ref.read(
               receiveValidationControllerProvider.notifier,
             );
             validationController.validateAmount(
               doubleValue,
-              AmountDisplayMode.sats,
+              AmountDisplayMode.bitcoin,
             );
           },
         ),
 
         if (selectedNetwork != null && amountText.isNotEmpty) ...[
           const SizedBox(height: 8),
-          _buildAmountInfo(context, selectedNetwork, amountText),
+          _buildAmountInfo(context, selectedNetwork, amountText, selectedAsset),
         ],
       ],
     );
@@ -152,10 +154,13 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     BuildContext context,
     NetworkType network,
     String amountText,
+    Asset selectedAsset,
   ) {
-    final satsAmount = int.tryParse(amountText);
+    final btcAmount = double.tryParse(amountText);
 
-    if (satsAmount == null) return const SizedBox.shrink();
+    if (btcAmount == null) return const SizedBox.shrink();
+
+    final satsAmount = (btcAmount * 100000000).round();
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -166,26 +171,26 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Valor em BTC:',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                '${(satsAmount / 100000000).toStringAsFixed(8)} BTC',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
+          if (selectedAsset == Asset.btc)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Valor em Satoshis:',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(
+                  '${satsAmount.toString()} sats',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           const SizedBox(height: 8),
 
-          if (network == NetworkType.bitcoin ||
-              network == NetworkType.lightning) ...[
-            if (satsAmount < 25000)
+          if (network == NetworkType.lightning) ...[
+            if (btcAmount < 0.000001)
               Row(
                 children: [
                   Icon(
@@ -196,7 +201,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Valor mínimo recomendado: 25.000 sats',
+                      'Valor mínimo: 100 sats (0.000001 BTC)',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.orange.shade700,
                       ),
@@ -215,7 +220,46 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Valor válido',
+                      'Valor válido para Lightning',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ] else if (network == NetworkType.bitcoin) ...[
+            if (btcAmount < 0.00025)
+              Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_outlined,
+                    color: Colors.orange,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Valor mínimo: 0.00025 BTC',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Valor válido para Bitcoin',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.green.shade700,
                       ),
