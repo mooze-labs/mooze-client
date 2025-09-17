@@ -39,56 +39,45 @@ final currencyProvider = FutureProvider<Either<String, String>>((ref) async {
       .run();
 });
 
-final fiatPriceProvider = FutureProvider.autoDispose.family<
-  Either<String, double>,
-  Asset
->((ref, asset) async {
-  try {
-    final priceServiceResult = await ref.read(priceServiceProvider).run();
+final fiatPriceProvider = FutureProvider.autoDispose
+    .family<Either<String, double>, Asset>((ref, asset) async {
+      try {
+        final priceServiceResult = await ref.read(priceServiceProvider).run();
 
-    return await priceServiceResult.fold((error) => Left(error), (svc) async {
-      final priceResult = await svc.getCoinPrice(asset).run();
+        return await priceServiceResult.fold((error) => Left(error), (
+          svc,
+        ) async {
+          final priceResult = await svc.getCoinPrice(asset).run();
 
-      return await priceResult.fold(
-        (error) async {
-          print(
-            'DEBUG: Erro ao obter preço de ${asset.name} com moeda padrão: $error',
-          );
+          return await priceResult.fold(
+            (error) async {
+              final currentCurrency = svc.currency.toLowerCase();
+              final alternateCurrency =
+                  currentCurrency == 'brl' ? Currency.usd : Currency.brl;
+              final alternateResult =
+                  await svc
+                      .getCoinPrice(asset, optionalCurrency: alternateCurrency)
+                      .run();
 
-          final currentCurrency = svc.currency.toLowerCase();
-          final alternateCurrency =
-              currentCurrency == 'brl' ? Currency.usd : Currency.brl;
-
-          print(
-            'DEBUG: Tentando obter preço de ${asset.name} com moeda alternativa: ${alternateCurrency.name}',
-          );
-
-          final alternateResult =
-              await svc
-                  .getCoinPrice(asset, optionalCurrency: alternateCurrency)
-                  .run();
-
-          return alternateResult.flatMap(
+              return alternateResult.flatMap(
+                (optDouble) => optDouble.fold(
+                  () => const Left("Preço não disponível em nenhuma moeda"),
+                  (val) {
+                    return Right(val);
+                  },
+                ),
+              );
+            },
             (optDouble) => optDouble.fold(
-              () => const Left("Preço não disponível em nenhuma moeda"),
-              (val) {
-                print('DEBUG: Preço obtido com moeda alternativa: $val');
-                return Right(val);
-              },
+              () => const Left("Preço não disponível"),
+              (val) => Right(val),
             ),
           );
-        },
-        (optDouble) => optDouble.fold(
-          () => const Left("Preço não disponível"),
-          (val) => Right(val),
-        ),
-      );
+        });
+      } catch (e) {
+        return Left('Erro ao obter preço: $e');
+      }
     });
-  } catch (e) {
-    print('DEBUG: Erro no fiatPriceProvider para ${asset.name}: $e');
-    return Left('Erro ao obter preço: $e');
-  }
-});
 
 final assetPriceHistoryProvider = FutureProvider.autoDispose
     .family<Either<String, List<double>>, Asset>((ref, asset) async {
