@@ -14,9 +14,6 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
 
   double totalValue = 0.0;
   int assetCount = 0;
-  print(
-    'DEBUG: Calculando valor total da carteira para ${allAssets.length} ativos',
-  );
 
   try {
     for (final asset in allAssets) {
@@ -28,7 +25,6 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
       );
 
       if (!hasBalance) {
-        print('DEBUG: Ativo ${asset.name} tem saldo zero, pulando');
         continue;
       }
 
@@ -36,34 +32,26 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
 
       final assetValue = balanceResult.fold(
         (error) {
-          print('DEBUG: Erro ao obter saldo do ${asset.name}: $error');
           return 0.0;
         },
         (balance) => priceResult.fold(
           (error) {
-            print('DEBUG: Erro ao obter preço do ${asset.name}: $error');
             return 0.0;
           },
           (price) {
             if (price <= 0) {
-              print('DEBUG: Preço do ${asset.name} é inválido: $price');
               return 0.0;
             }
 
             double balanceInMainUnit;
             balanceInMainUnit = balance.toDouble() / 100000000;
             if (asset == Asset.btc) {
-              print(
-                'DEBUG: Bitcoin - Saldo em satoshis: $balance, em BTC: $balanceInMainUnit',
-              );
             } else {
-              print('DEBUG: ${asset.name} - Saldo: $balanceInMainUnit');
+              // For other assets, you might want to adjust the conversion
+              // depending on their decimal places. Here we assume 8 decimals.
             }
 
             final value = balanceInMainUnit * price;
-            print(
-              'DEBUG: ${asset.name} - Saldo: $balanceInMainUnit, Preço: $price, Valor: $value',
-            );
             return value;
           },
         ),
@@ -75,10 +63,8 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
       }
     }
 
-    print('DEBUG: Valor total calculado: $totalValue de $assetCount ativos');
     return Either.right(totalValue);
   } catch (e) {
-    print('DEBUG: Erro durante o cálculo: $e');
     return Either.left('Erro ao calcular valor total: $e');
   }
 });
