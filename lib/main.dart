@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as liquidSdk;
+import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
+import 'package:mooze_mobile/shared/infra/lwk/sync/sync_bootstrap.dart';
 import 'routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await LibLwk.init();
+
+  await LibLwk.init();
 
   await liquidSdk.initialize();
 
   runApp(ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.read(walletSyncBootstrapProvider);
     return MaterialApp.router(
       title: 'Mooze',
       debugShowCheckedModeBanner: false,
