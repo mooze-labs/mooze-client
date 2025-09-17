@@ -112,10 +112,6 @@ class ReceiveValidationController
           final btcPrice = await ref.read(bitcoinPriceProvider.future);
           return amount / btcPrice;
         } catch (e) {
-          print(
-            'DEBUG: Erro ao obter preço do Bitcoin, tentando fallback dinâmico: $e',
-          );
-
           try {
             final priceServiceResult =
                 await ref.read(priceServiceProvider).run();
@@ -137,7 +133,6 @@ class ReceiveValidationController
 
             return amount / btcPrice;
           } catch (fallbackError) {
-            print('DEBUG: Todos os serviços de preço falharam: $fallbackError');
             throw Exception(
               'Serviços de preço indisponíveis. Tente novamente mais tarde.',
             );
@@ -176,10 +171,6 @@ class ReceiveValidationController
             final fiatValue = amount * assetPrice;
             return fiatValue / btcPrice;
           } catch (e) {
-            print(
-              'DEBUG: Erro ao obter preços, tentando fallback dinâmico: $e',
-            );
-
             try {
               final btcPrice = await ref.read(bitcoinPriceProvider.future);
 
@@ -187,10 +178,6 @@ class ReceiveValidationController
               final fiatValue = amount * usdtToBrlRate;
               return fiatValue / btcPrice;
             } catch (fallbackError) {
-              print(
-                'DEBUG: Todos os serviços de preço falharam: $fallbackError',
-              );
-
               throw Exception(
                 'Serviços de preço indisponíveis. Tente novamente mais tarde.',
               );
