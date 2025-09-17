@@ -44,11 +44,6 @@ class HybridPriceService extends PriceService {
     Currency? optionalCurrency,
   }) {
     final targetCurrency = optionalCurrency ?? _defaultCurrency;
-
-    print(
-      'DEBUG: HybridPriceService obtendo preço de ${asset.name} em ${targetCurrency.name}',
-    );
-
     return _tryPrimaryService(asset, targetCurrency).flatMap(
       (result) => result.fold(
         () => _tryAlternativeServices(asset, targetCurrency),
@@ -61,30 +56,19 @@ class HybridPriceService extends PriceService {
     Asset asset,
     Currency currency,
   ) {
-    print(
-      'DEBUG: Tentando serviço primário (${_primarySource.name}) para ${asset.name}',
-    );
-
     return _primaryService
         .getCoinPrice(asset, optionalCurrency: currency)
         .flatMap(
           (result) => result.fold(
             () {
-              print(
-                'DEBUG: Serviço primário não retornou preço para ${asset.name}',
-              );
               return TaskEither.right(Option<double>.none());
             },
             (price) {
-              print(
-                'DEBUG: Serviço primário retornou preço $price para ${asset.name}',
-              );
               return TaskEither.right(Option.of(price));
             },
           ),
         )
         .alt(() {
-          print('DEBUG: Erro no serviço primário para ${asset.name}');
           return TaskEither.right(Option<double>.none());
         });
   }
@@ -93,8 +77,6 @@ class HybridPriceService extends PriceService {
     Asset asset,
     Currency currency,
   ) {
-    print('DEBUG: Tentando serviços alternativos para ${asset.name}');
-
     final alternativeServices = _getAlternativeServices();
 
     return _tryServicesInSequence(alternativeServices, asset, currency);
@@ -117,14 +99,11 @@ class HybridPriceService extends PriceService {
     Currency currency,
   ) {
     if (services.isEmpty) {
-      print('DEBUG: Nenhum serviço alternativo disponível para ${asset.name}');
       return TaskEither.right(Option<double>.none());
     }
 
     final currentService = services.first;
     final remainingServices = services.skip(1).toList();
-
-    print('DEBUG: Tentando serviço alternativo para ${asset.name}');
 
     return currentService
         .getCoinPrice(asset, optionalCurrency: currency)
@@ -132,9 +111,6 @@ class HybridPriceService extends PriceService {
           (result) => result.fold(
             () => _tryServicesInSequence(remainingServices, asset, currency),
             (price) {
-              print(
-                'DEBUG: Serviço alternativo retornou preço $price para ${asset.name}',
-              );
               return TaskEither.right(Option.of(price));
             },
           ),
