@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
 import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
+import 'package:mooze_mobile/shared/infra/lwk/sync/sync_controller.dart';
 
 import '../../domain/entities.dart';
 import '../../domain/repositories.dart';
@@ -10,25 +11,43 @@ import '../../domain/repositories.dart';
 class LiquidWalletRepositoryImpl implements SwapWallet {
   final LiquidDataSource wallet;
   final MnemonicStore mnemonicStore;
+  final WalletSyncController?
+  syncController; // optional injected for sync state
 
   LiquidWalletRepositoryImpl({
     required this.wallet,
     required this.mnemonicStore,
+    this.syncController,
   });
 
   @override
   TaskEither<String, List<SwapUtxo>> getUtxos(Asset asset, BigInt amount) {
     return TaskEither<String, List<SwapUtxo>>(() async {
+      if (amount <= BigInt.zero) {
+        return Either<String, List<SwapUtxo>>.right(const <SwapUtxo>[]);
+      }
+
+      // guarantee sync completed or trigger if needed
+      if (syncController != null) {
+        await syncController!.ensureSynced();
+      }
+
       final utxos = await wallet.wallet.utxos();
+      final balances = await wallet.wallet.balances();
+
+      print(
+        'UTXOs: ${utxos.length}, Asset: ${Asset.toId(asset)}, balances: ${balances[0].value}',
+      );
+
       final filteredUtxos =
           utxos.where((u) => u.unblinded.asset == Asset.toId(asset)).toList();
+      filteredUtxos.sort(
+        (a, b) => a.unblinded.value.compareTo(b.unblinded.value),
+      );
 
       final selectedUtxos = <SwapUtxo>[];
       var remaining = amount;
-
       for (final utxo in filteredUtxos) {
-        if (remaining <= BigInt.zero) break;
-
         selectedUtxos.add(
           SwapUtxo(
             txid: utxo.outpoint.txid,
@@ -39,27 +58,34 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
             valueBf: utxo.unblinded.valueBf,
           ),
         );
-
         remaining -= utxo.unblinded.value;
+        if (remaining <= BigInt.zero) {
+          remaining = BigInt.zero; // normaliza
+          break;
+        }
       }
 
-      final result = (utxos: selectedUtxos, remaining: remaining);
-
-      if (result.remaining > BigInt.zero) {
-        return Either<String, List<SwapUtxo>>.left("Insufficient funds");
+      if (remaining > BigInt.zero) {
+        final missing = remaining; // quanto faltou
+        return Either<String, List<SwapUtxo>>.left(
+          'Insufficient funds: missing $missing sats for ${Asset.toId(asset)}',
+        );
       }
 
-      return Either<String, List<SwapUtxo>>.right(result.utxos);
+      return Either<String, List<SwapUtxo>>.right(selectedUtxos);
     });
   }
 
   @override
   Task<String> getAddress() {
-    return Task(
-      () async => await wallet.wallet.addressLastUnused().then(
+    return Task(() async {
+      if (syncController != null) {
+        await syncController!.ensureSynced();
+      }
+      return await wallet.wallet.addressLastUnused().then(
         (address) => address.confidential,
-      ),
-    );
+      );
+    });
   }
 
   @override
@@ -68,14 +94,16 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
       return optionMnemonic.fold(
         () => TaskEither.left("Frase de recuperação não encontrada"),
         (mnemonic) {
-          return TaskEither.tryCatch(
-            () async => await wallet.wallet.signedPsetWithExtraDetails(
+          return TaskEither.tryCatch(() async {
+            if (syncController != null) {
+              await syncController!.ensureSynced();
+            }
+            return await wallet.wallet.signedPsetWithExtraDetails(
               network: wallet.network,
               pset: pset,
               mnemonic: mnemonic,
-            ),
-            (error, stackTrace) => error.toString(),
-          );
+            );
+          }, (error, stackTrace) => error.toString());
         },
       );
     });
