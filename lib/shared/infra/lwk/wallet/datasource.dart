@@ -10,12 +10,16 @@ class LiquidDataSource {
   final Network network;
   final String electrumUrl;
   final bool validateDomain;
+  final String descriptor; // original descriptor string used to init wallet
+  final String dbPath; // database path used by wallet
 
   LiquidDataSource({
     required this.wallet,
     required this.network,
     required this.electrumUrl,
     required this.validateDomain,
+    required this.descriptor,
+    required this.dbPath,
   });
 
   Future<void> sync() async {
