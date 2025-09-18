@@ -260,7 +260,19 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       ),
                       onChanged: (core.Asset? newAsset) {
                         if (newAsset != null) {
-                          setState(() => _fromAsset = newAsset);
+                          setState(() {
+                            _fromAsset = newAsset;
+                            // Ensure TO asset is always different from FROM
+                            if (_toAsset == _fromAsset) {
+                              final alternatives =
+                                  core.Asset.values
+                                      .where((a) => a != _fromAsset)
+                                      .toList();
+                              if (alternatives.isNotEmpty) {
+                                _toAsset = alternatives.first;
+                              }
+                            }
+                          });
                           _requestQuoteDebounced();
                         }
                       },
@@ -370,6 +382,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   Widget _to(BuildContext context) {
     final currency = ref.read(currencyControllerProvider.notifier);
     final quote = ref.watch(swapControllerProvider).currentQuote?.quote;
+    final toOptions =
+        core.Asset.values.where((asset) => asset != _fromAsset).toList();
     return Container(
       height: 115,
       decoration: BoxDecoration(
@@ -436,37 +450,33 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             }
                           },
                           items:
-                              core.Asset.values
-                                  .map<DropdownMenuItem<core.Asset>>((
-                                    core.Asset asset,
-                                  ) {
-                                    return DropdownMenuItem<core.Asset>(
-                                      value: asset,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SvgPicture.asset(
-                                            asset.iconPath,
-                                            width: 20,
-                                            height: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            asset.ticker,
-                                            style:
-                                                Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge,
-                                          ),
-                                        ],
+                              toOptions.map<DropdownMenuItem<core.Asset>>((
+                                core.Asset asset,
+                              ) {
+                                return DropdownMenuItem<core.Asset>(
+                                  value: asset,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SvgPicture.asset(
+                                        asset.iconPath,
+                                        width: 20,
+                                        height: 20,
                                       ),
-                                    );
-                                  })
-                                  .toList(),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        asset.ticker,
+                                        style:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
                           selectedItemBuilder: (BuildContext context) {
-                            return core.Asset.values.map<Widget>((
-                              core.Asset asset,
-                            ) {
+                            return toOptions.map<Widget>((core.Asset asset) {
                               return Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
