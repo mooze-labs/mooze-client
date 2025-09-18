@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
+import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
@@ -12,8 +13,6 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
-
-import '../swap/presentation/screens/swap_screen.dart';
 
 class _MainNavigationScaffold extends StatefulWidget {
   final String currentLocation;
