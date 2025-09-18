@@ -72,6 +72,7 @@ class SwapController extends StateNotifier<SwapState> {
   final Future<SwapRepository> _repositoryFuture;
   StreamSubscription<QuoteResponse>? _quoteSub;
   Timer? _ttlTimer;
+  DateTime? _ttlDeadline;
 
   SwapController({required Future<SwapRepository> repositoryFuture})
     : _repositoryFuture = repositoryFuture,
@@ -105,8 +106,16 @@ class SwapController extends StateNotifier<SwapState> {
   }) async {
     final repository = await _repositoryFuture;
     _quoteSub?.cancel();
-    state = state.copyWith(loading: true, error: null, currentQuote: null);
+    state = state.copyWith(
+      loading: true,
+      error: null,
+      currentQuote: null,
+      activeQuoteId: null,
+      ttlMilliseconds: null,
+      millisecondsRemaining: null,
+    );
     _ttlTimer?.cancel();
+    _ttlDeadline = null;
     final addrRes = await repository.getNewAddress().run();
     final utxosRes =
         await repository.selectUtxos(assetId: baseAsset, amount: amount).run();
@@ -144,30 +153,43 @@ class SwapController extends StateNotifier<SwapState> {
               'Saldo insuficiente para este swap. Disponível: ${lb.available} sats. Necessário (enviado + taxas): ${lb.baseAmount + totalFees} sats.';
         }
 
+        // Initialize the TTL deadline only once per quote cycle.
+        final ttlMs = quote.quote?.ttl;
+        final initializeDeadline = _ttlDeadline == null && ttlMs != null;
+        if (initializeDeadline) {
+          _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
+        }
+
         state = state.copyWith(
           loading: false,
           currentQuote: quote,
           error: msg,
           activeQuoteId: quote.quote?.quoteId,
-          ttlMilliseconds: quote.quote?.ttl,
-          millisecondsRemaining: quote.quote?.ttl,
+          ttlMilliseconds: initializeDeadline ? ttlMs : state.ttlMilliseconds,
+          millisecondsRemaining:
+              initializeDeadline ? ttlMs : state.millisecondsRemaining,
           lastBaseAssetId: baseAsset,
           lastQuoteAssetId: quoteAsset,
           lastAmount: amount,
           lastDirection: direction,
         );
-        _startTtlCountdown();
+        if (initializeDeadline) {
+          _startTtlCountdown();
+        }
       });
     });
   }
 
   void _startTtlCountdown() {
     _ttlTimer?.cancel();
-    if (state.ttlMilliseconds == null) return;
-    _ttlTimer = Timer.periodic(const Duration(milliseconds: 1000), (t) {
-      final remaining = (state.millisecondsRemaining ?? 0) - 1000;
-      if (remaining <= 0) {
+    if (_ttlDeadline == null) return;
+    _ttlTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      final remainingMs =
+          _ttlDeadline!.difference(DateTime.now()).inMilliseconds;
+      if (remainingMs <= 0) {
         t.cancel();
+        _ttlDeadline = null;
+        state = state.copyWith(millisecondsRemaining: 0);
         final paramsOk =
             state.lastBaseAssetId != null &&
             state.lastQuoteAssetId != null &&
@@ -183,7 +205,7 @@ class SwapController extends StateNotifier<SwapState> {
           );
         }
       } else {
-        state = state.copyWith(millisecondsRemaining: remaining);
+        state = state.copyWith(millisecondsRemaining: remainingMs);
       }
     });
   }
@@ -192,6 +214,7 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlTimer?.cancel();
     _repositoryFuture.then((r) => r.stopQuote());
     _quoteSub?.cancel();
+    _ttlDeadline = null;
     state = state.copyWith(
       currentQuote: null,
       activeQuoteId: null,
@@ -237,13 +260,18 @@ class SwapController extends StateNotifier<SwapState> {
     _quoteSub?.cancel();
     _ttlTimer?.cancel();
     _repositoryFuture.then((r) => r.stopQuote());
+    _ttlDeadline = null;
     super.dispose();
   }
 }
 
-final swapControllerProvider = StateNotifierProvider<SwapController, SwapState>(
-  (ref) {
-    final repoFuture = ref.watch(swapRepositoryProvider.future);
-    return SwapController(repositoryFuture: repoFuture);
-  },
-);
+final swapControllerProvider = StateNotifierProvider.autoDispose<
+  SwapController,
+  SwapState
+>((ref) {
+  final repoFuture = ref.watch(swapRepositoryProvider.future);
+  final controller = SwapController(repositoryFuture: repoFuture);
+  // The controller.dispose already stops quotes; autoDispose ensures it runs
+  // when no longer used (e.g., leaving the swap screen).
+  return controller;
+});
