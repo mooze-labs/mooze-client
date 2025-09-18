@@ -66,6 +66,31 @@ class SideswapApi {
   }
 
   void _handleMessage(Map<String, dynamic> data) {
+    // Handle JSON-RPC error objects (e.g. {id: 1, error: {code, message}})
+    if (data.containsKey('error')) {
+      final err = data['error'];
+      final msg =
+          err is Map<String, dynamic>
+              ? (err['message']?.toString() ??
+                  err['error']?.toString() ??
+                  'Erro desconhecido')
+              : err.toString();
+      debugPrint('[DEBUG] Sideswap: JSON-RPC error received: $msg');
+
+      // Convert to a quote-like error payload so existing consumers can handle it
+      final wrapped = {
+        'params': {
+          'quote': {
+            'status': {
+              'Error': {'error_msg': msg},
+            },
+          },
+        },
+      };
+      _marketController.add(wrapped);
+      return;
+    }
+
     if (data.containsKey('method')) {
       final method = data['method'];
       if (kDebugMode) {
@@ -73,33 +98,86 @@ class SideswapApi {
       }
       switch (method) {
         case "login_client":
+          debugPrint('[DEBUG] Sideswap: Received login_client message');
           _loginController.add(data);
           break;
         case "peg":
+          debugPrint('[DEBUG] Sideswap: Received peg message');
           _pegController.add(data);
           break;
         case "peg_status":
+          debugPrint('[DEBUG] Sideswap: Received peg_status message');
           _pegStatusController.add(data);
           break;
         case "subscribe_value":
+          debugPrint('[DEBUG] Sideswap: Received subscribe_value message');
           _subscribeController.add(data);
           break;
         case "unsubscribe_value":
+          debugPrint('[DEBUG] Sideswap: Received unsubscribe_value message');
           _unsubscribeController.add(data);
           break;
         case "subscribed_value":
+          debugPrint('[DEBUG] Sideswap: Received subscribed_value message');
           _subscribedController.add(data);
           break;
         case "server_status":
+          debugPrint('[DEBUG] Sideswap: Received server_status message');
           _serverStatusController.add(data);
           break;
         case "assets":
+          debugPrint('[DEBUG] Sideswap: Received assets message');
           _assetsController.add(data);
           break;
         case "market":
+          debugPrint('[DEBUG] Sideswap: Received market message');
+          if (data.containsKey('params') &&
+              data['params'].containsKey('quote')) {
+            final quote = data['params']['quote'];
+            debugPrint('[DEBUG] Sideswap Quote: ${quote.toString()}');
+            if (quote.containsKey('status')) {
+              final status = quote['status'];
+              debugPrint('[DEBUG] Sideswap Quote Status: ${status.toString()}');
+
+              if (status.containsKey('LowBalance')) {
+                final lowBalance = status['LowBalance'];
+                debugPrint('[DEBUG] Sideswap LowBalance Details:');
+                debugPrint('   - Available: ${lowBalance['available']}');
+                debugPrint('   - Base Amount: ${lowBalance['base_amount']}');
+                debugPrint('   - Quote Amount: ${lowBalance['quote_amount']}');
+                debugPrint('   - Fixed Fee: ${lowBalance['fixed_fee']}');
+                debugPrint('   - Server Fee: ${lowBalance['server_fee']}');
+              }
+            }
+          }
           _marketController.add(data);
           break;
       }
+    } else if (data.containsKey('result')) {
+      debugPrint('[DEBUG] Sideswap: Received result message');
+      if (data.containsKey('id')) {
+        final id = data['id'];
+        debugPrint('[DEBUG] Sideswap Result ID: $id');
+      }
+
+      if (data['result'].containsKey('list_markets')) {
+        debugPrint('[DEBUG] Sideswap: Market list result');
+        _marketController.add(data);
+      } else if (data['result'].containsKey('start_quotes')) {
+        debugPrint('[DEBUG] Sideswap: Start quotes result');
+        final startQuotes = data['result']['start_quotes'];
+        debugPrint('[DEBUG] Start Quotes Result: ${startQuotes.toString()}');
+        _marketController.add(data);
+      } else if (data['result'].containsKey('stop_quotes')) {
+        debugPrint('[DEBUG] Sideswap: Stop quotes result');
+        _marketController.add(data);
+      } else {
+        debugPrint(
+          '[DEBUG] Sideswap: Unknown result type: ${data['result'].keys}',
+        );
+      }
+    } else {
+      debugPrint('[DEBUG] Sideswap: Unknown message type: ${data.keys}');
     }
   }
 
@@ -301,6 +379,10 @@ class SideswapService {
   final _pegStatusController = StreamController<PegOrderStatus>.broadcast();
   final _quoteResponseController = StreamController<QuoteResponse>.broadcast();
 
+  // Quote tracking to avoid duplicates
+  bool _isQuoteInProgress = false;
+  DateTime? _lastQuoteTime;
+
   SideswapService({required SideswapApi api, required String apiKey})
     : _api = api,
       _apiKey = apiKey;
@@ -383,8 +465,10 @@ class SideswapService {
             final quoteData = data['params']['quote'];
             final quoteResponse = QuoteResponse.fromJson(quoteData);
             _quoteResponseController.add(quoteResponse);
+            _isQuoteInProgress = false;
           } catch (e) {
             debugPrint('Error parsing quote response: $e');
+            _isQuoteInProgress = false;
           }
         });
     quoteResponseStream = _quoteResponseController.stream;
@@ -596,21 +680,71 @@ class SideswapService {
     required String receiveAddress,
     required String changeAddress,
   }) {
+    final now = DateTime.now();
+    if (_isQuoteInProgress) {
+      debugPrint(
+        '[DEBUG] SideswapService.startQuote: Quote already in progress, ignoring',
+      );
+      return;
+    }
+
+    if (_lastQuoteTime != null &&
+        now.difference(_lastQuoteTime!).inSeconds < 2) {
+      debugPrint(
+        '[DEBUG] SideswapService.startQuote: Quote too close to previous one, ignoring',
+      );
+      return;
+    }
+
+    _isQuoteInProgress = true;
+    _lastQuoteTime = now;
+
+    debugPrint('[DEBUG] SideswapService.startQuote: Initializing quote');
+    debugPrint('   - Base Asset: $baseAsset');
+    debugPrint('   - Quote Asset: $quoteAsset');
+    debugPrint('   - Asset Type: $assetType');
+    debugPrint('   - Amount: $amount');
+    debugPrint('   - Direction: $direction');
+    debugPrint('   - UTXOs: ${utxos.length}');
+    debugPrint('   - Receive Address: $receiveAddress');
+    debugPrint('   - Change Address: $changeAddress');
+
     final tradeDir = direction == SwapDirection.sell ? "Sell" : "Buy";
+
+    String assetTypeNorm = assetType;
+    if (assetTypeNorm != 'Base' && assetTypeNorm != 'Quote') {
+      debugPrint(
+        '[DEBUG] SideswapService.startQuote: assetType invalid ("$assetType"), using "Base"',
+      );
+      assetTypeNorm = 'Base';
+    }
 
     final assetPair = {"base": baseAsset, "quote": quoteAsset};
 
     final utxosJson = utxos.map((utxo) => utxo.toJson()).toList();
 
+    debugPrint(
+      '[DEBUG] SideswapService: Calling _api.startQuotes with tradeDir=$tradeDir',
+    );
+
     _api.startQuotes(
       assetPair: assetPair,
-      assetType: assetType,
+      assetType: assetTypeNorm,
       amount: amount,
       tradeDir: tradeDir,
       utxos: utxosJson,
       receiveAddress: receiveAddress,
       changeAddress: changeAddress,
     );
+
+    Future.delayed(const Duration(seconds: 10), () {
+      if (_isQuoteInProgress) {
+        debugPrint(
+          '[DEBUG] SideswapService.startQuote: timeout waiting for quote response, releasing lock',
+        );
+        _isQuoteInProgress = false;
+      }
+    });
   }
 
   /// Get quote details
@@ -678,6 +812,8 @@ class SideswapService {
   }
 
   void stopQuotes() {
+    _isQuoteInProgress = false;
+    debugPrint('[DEBUG] SideswapService.stopQuotes: Quote finished');
     _api.stopQuotes();
   }
 
