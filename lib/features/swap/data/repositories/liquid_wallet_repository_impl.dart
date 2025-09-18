@@ -11,8 +11,7 @@ import '../../domain/repositories.dart';
 class LiquidWalletRepositoryImpl implements SwapWallet {
   final LiquidDataSource wallet;
   final MnemonicStore mnemonicStore;
-  final WalletSyncController?
-  syncController; // optional injected for sync state
+  final WalletSyncController? syncController;
 
   LiquidWalletRepositoryImpl({
     required this.wallet,
@@ -33,11 +32,6 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
       }
 
       final utxos = await wallet.wallet.utxos();
-      final balances = await wallet.wallet.balances();
-
-      print(
-        'UTXOs: ${utxos.length}, Asset: ${Asset.toId(asset)}, balances: ${balances[0].value}',
-      );
 
       final filteredUtxos =
           utxos.where((u) => u.unblinded.asset == Asset.toId(asset)).toList();
@@ -60,13 +54,13 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
         );
         remaining -= utxo.unblinded.value;
         if (remaining <= BigInt.zero) {
-          remaining = BigInt.zero; // normaliza
+          remaining = BigInt.zero;
           break;
         }
       }
 
       if (remaining > BigInt.zero) {
-        final missing = remaining; // quanto faltou
+        final missing = remaining;
         return Either<String, List<SwapUtxo>>.left(
           'Insufficient funds: missing $missing sats for ${Asset.toId(asset)}',
         );
