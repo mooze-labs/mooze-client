@@ -1,13 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:mooze_mobile/features/swap/presentation/screens/confirm_swap_screen.dart';
-import 'package:mooze_mobile/features/swap/presentation/providers/swap_providers.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:fpdart/fpdart.dart' show Either;
+
+import '../../data/models.dart';
+import '../providers/swap_controller.dart';
+import '../widgets/confirm_swap_bottom_sheet.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart' as core;
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -18,16 +25,37 @@ class SwapScreen extends ConsumerStatefulWidget {
 
 class _SwapScreenState extends ConsumerState<SwapScreen> {
   final TextEditingController _fromAmountController = TextEditingController();
+  core.Asset _fromAsset = core.Asset.btc;
+  core.Asset _toAsset = core.Asset.usdt;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => ref.read(swapControllerProvider.notifier).loadMetadata(),
+    );
+  }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _fromAmountController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final swapState = ref.watch(swapNotifierProvider);
+    final swapState = ref.watch(swapControllerProvider);
+
+    final quote = swapState.currentQuote?.quote;
+    final isLoading = swapState.loading;
+    final error = swapState.error;
+
+    double? exchangeRate;
+    if (quote != null && quote.baseAmount > 0) {
+      exchangeRate = quote.quoteAmount / quote.baseAmount;
+    }
 
     return Scaffold(
       extendBody: true,
@@ -44,22 +72,24 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              from(swapState),
+              _from(context),
               GestureDetector(
-                onTap:
-                    () => ref.read(swapNotifierProvider.notifier).swapAssets(),
-                child: Padding(
+                onTap: () {
+                  setState(() {
+                    final tmp = _fromAsset;
+                    _fromAsset = _toAsset;
+                    _toAsset = tmp;
+                  });
+                  _requestQuoteDebounced();
+                },
+                child: const Padding(
                   padding: EdgeInsets.all(10),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/new_ui_wallet/assets/icons/menu/swap.svg',
-                    ),
-                  ),
+                  child: Center(child: _SwapIcon()),
                 ),
               ),
-              to(swapState),
-              SizedBox(height: 15),
-              if (swapState.isLoading)
+              _to(context),
+              const SizedBox(height: 15),
+              if (isLoading)
                 Shimmer.fromColors(
                   baseColor: AppColors.baseColor,
                   highlightColor: AppColors.highlightColor,
@@ -77,49 +107,87 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Text(
-                      '1 ${swapState.fromAsset.ticker} = ${_getExchangeRate(swapState)} ${swapState.toAsset.ticker}',
+                      '1 ${_fromAsset.ticker} = ${_formatRate(exchangeRate)} ${_toAsset.ticker}',
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                   ],
                 ),
               ],
-              if (swapState.error != null)
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Error: ${swapState.error}',
-                    style: TextStyle(color: Colors.red),
-                  ),
+              if (error != null) const SizedBox(height: 8),
+              if (error != null)
+                Text(
+                  'Error: $error',
+                  style: const TextStyle(color: Colors.red),
                 ),
-              SizedBox(height: 15),
-              Center(child: Text('Powered by sideswap.io')),
-              SizedBox(height: 15),
-              PrimaryButton(
-                text: 'swap',
-                onPressed:
-                    swapState.fromAmount.isNotEmpty &&
-                            swapState.toAmount.isNotEmpty &&
-                            !swapState.isLoading
-                        ? () async {
-                          final result =
-                              await ref
-                                  .read(swapNotifierProvider.notifier)
-                                  .startSwap();
+              const SizedBox(height: 15),
+              const Center(child: Text('Powered by sideswap.io')),
+              const SizedBox(height: 15),
 
-                          result.fold(
-                            (error) =>
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: $error')),
+              FutureBuilder<bool>(
+                future: _hasInsufficientBalance(),
+                builder: (context, snapshot) {
+                  final hasInsufficientBalance = snapshot.data ?? false;
+
+                  if (hasInsufficientBalance &&
+                      _fromAmountController.text.isNotEmpty) {
+                    return Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.warning,
+                                color: Colors.orange,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Saldo insuficiente para realizar o swap',
+                                  style: TextStyle(color: Colors.orange),
                                 ),
-                            (operation) {
-                              ref
-                                  .read(swapOperationNotifierProvider.notifier)
-                                  .setCurrentOperation(operation);
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
+              FutureBuilder<bool>(
+                future: _hasInsufficientBalance(),
+                builder: (context, snapshot) {
+                  final hasInsufficientBalance = snapshot.data ?? false;
+                  final hasQuote = swapState.currentQuote?.quote != null;
+
+                  return PrimaryButton(
+                    text: 'swap',
+                    isEnabled:
+                        _fromAmountController.text.isNotEmpty &&
+                        hasQuote &&
+                        !isLoading &&
+                        !hasInsufficientBalance,
+                    onPressed:
+                        (_fromAmountController.text.isNotEmpty &&
+                                hasQuote &&
+                                !isLoading &&
+                                !hasInsufficientBalance)
+                            ? () async {
                               ConfirmSwapBottomSheet.show(context);
-                            },
-                          );
-                        }
-                        : null,
+                            }
+                            : null,
+                  );
+                },
               ),
             ],
           ),
@@ -128,16 +196,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  String _getExchangeRate(SwapUiState state) {
-    if (state.exchangeRate != null) {
-      return state.exchangeRate!.toStringAsFixed(8);
-    }
-    return '...';
-  }
-
-  Widget from(SwapUiState swapState) {
-    final notifier = ref.read(swapNotifierProvider.notifier);
-
+  // FROM card
+  Widget _from(BuildContext context) {
+    final currency = ref.read(currencyControllerProvider.notifier);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
@@ -155,16 +216,25 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               Text('Você envia', style: Theme.of(context).textTheme.labelLarge),
               Row(
                 children: [
-                  Text('Balance: ${notifier.getBalance(swapState.fromAsset)}'),
-                  SizedBox(width: 5),
+                  FutureBuilder<String>(
+                    future: _getBalance(_fromAsset),
+                    builder: (context, snapshot) {
+                      return Text(
+                        'Balance: ${snapshot.data ?? "..."}',
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 5),
                   TransparentTextButton(
                     text: 'MAX',
-                    onPressed: () {
-                      final maxBalance = notifier.getBalance(
-                        swapState.fromAsset,
-                      );
-                      _fromAmountController.text = maxBalance;
-                      notifier.setFromAmount(maxBalance);
+                    onPressed: () async {
+                      final balance = await _getBalanceRaw(_fromAsset);
+                      _fromAmountController.text = balance.toString();
+                      setState(() {});
+                      _requestQuoteDebounced();
                     },
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(
                       color: AppColors.primaryColor,
@@ -176,55 +246,51 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           ),
           Row(
             children: [
-              SvgPicture.asset(
-                notifier.getAssetIconPath(swapState.fromAsset),
-                width: 30,
-                height: 30,
-              ),
-              SizedBox(width: 5),
+              SvgPicture.asset(_fromAsset.iconPath, width: 25, height: 25),
+              const SizedBox(width: 5),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    DropdownButton<Asset>(
-                      value: swapState.fromAsset,
-                      underline: SizedBox.shrink(),
+                    DropdownButton<core.Asset>(
+                      value: _fromAsset,
+                      underline: const SizedBox.shrink(),
                       icon: SvgPicture.asset(
                         'assets/new_ui_wallet/assets/icons/menu/arrow_down.svg',
                       ),
-                      onChanged: (Asset? newAsset) {
+                      onChanged: (core.Asset? newAsset) {
                         if (newAsset != null) {
-                          notifier.setFromAsset(newAsset);
+                          setState(() => _fromAsset = newAsset);
+                          _requestQuoteDebounced();
                         }
                       },
                       items:
-                          Asset.values.map<DropdownMenuItem<Asset>>((
-                            Asset asset,
+                          core.Asset.values.map<DropdownMenuItem<core.Asset>>((
+                            core.Asset asset,
                           ) {
-                            return DropdownMenuItem<Asset>(
+                            return DropdownMenuItem<core.Asset>(
                               value: asset,
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   SvgPicture.asset(
-                                    notifier.getAssetIconPath(asset),
-                                    width: 20,
-                                    height: 20,
+                                    asset.iconPath,
+                                    width: 15,
+                                    height: 15,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
                                     asset.ticker,
                                     style:
-                                        Theme.of(
-                                          context,
-                                        ).textTheme.headlineSmall,
+                                        Theme.of(context).textTheme.bodyLarge,
                                   ),
                                 ],
                               ),
                             );
                           }).toList(),
                       selectedItemBuilder: (BuildContext context) {
-                        return Asset.values.map<Widget>((Asset asset) {
+                        return core.Asset.values.map<Widget>((
+                          core.Asset asset,
+                        ) {
                           return Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -233,7 +299,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 style:
                                     Theme.of(context).textTheme.headlineSmall,
                               ),
-                              SizedBox(width: 5),
+                              const SizedBox(width: 5),
                             ],
                           );
                         }).toList();
@@ -242,11 +308,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     Expanded(
                       child: TextField(
                         controller: _fromAmountController,
-                        keyboardType: TextInputType.numberWithOptions(
+                        keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         textAlign: TextAlign.end,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -258,12 +326,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           fillColor: Colors.transparent,
                           filled: true,
                           hintText: '0',
-                          hintStyle: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(color: Colors.grey),
+                          hintStyle: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
                         ),
-                        onChanged: (value) {
-                          notifier.setFromAmount(value);
-                        },
+                        onChanged: (value) => _requestQuoteDebounced(),
                       ),
                     ),
                   ],
@@ -274,9 +341,23 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(notifier.getAssetDescription(swapState.fromAsset)),
-              Text(
-                notifier.getUsdValue(swapState.fromAsset, swapState.fromAmount),
+              Text(_fromAsset.name),
+              FutureBuilder<Either<String, double>>(
+                future: ref.read(fiatPriceProvider(_fromAsset).future),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return snapshot.data!.fold((error) => const Text(' .00'), (
+                      price,
+                    ) {
+                      final amount =
+                          BigInt.tryParse(_fromAmountController.text.trim()) ??
+                          BigInt.zero;
+                      final usd = _fromAsset.toUsd(amount, price);
+                      return Text('${currency.icon}${usd.toStringAsFixed(2)}');
+                    });
+                  }
+                  return const Text('...');
+                },
               ),
             ],
           ),
@@ -285,16 +366,17 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  Widget to(SwapUiState swapState) {
-    final notifier = ref.read(swapNotifierProvider.notifier);
-
+  // TO card
+  Widget _to(BuildContext context) {
+    final currency = ref.read(currencyControllerProvider.notifier);
+    final quote = ref.watch(swapControllerProvider).currentQuote?.quote;
     return Container(
       height: 115,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
-          colors: [Color(0xFF2D2E2A), AppColors.primaryColor],
+          colors: const [Color(0xFF2D2E2A), AppColors.primaryColor],
         ),
         borderRadius: BorderRadius.circular(15),
       ),
@@ -319,10 +401,15 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   ),
                   Row(
                     children: [
-                      Text(
-                        'Balance: ${notifier.getBalance(swapState.toAsset)}',
-                        style:
-                            Theme.of(context).textTheme.labelLarge!.copyWith(),
+                      FutureBuilder<String>(
+                        future: _getBalance(_toAsset),
+                        builder: (context, snapshot) {
+                          return Text(
+                            'Balance: ${snapshot.data ?? "..."}',
+                            style: Theme.of(context).textTheme.labelLarge!
+                                .copyWith(color: AppColors.textSecondary),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -330,55 +417,56 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               ),
               Row(
                 children: [
-                  SvgPicture.asset(
-                    notifier.getAssetIconPath(swapState.toAsset),
-                    width: 30,
-                    height: 30,
-                  ),
-                  SizedBox(width: 5),
+                  SvgPicture.asset(_toAsset.iconPath, width: 25, height: 25),
+                  const SizedBox(width: 5),
                   Expanded(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        DropdownButton<Asset>(
-                          value: swapState.toAsset,
-                          underline: SizedBox.shrink(),
+                        DropdownButton<core.Asset>(
+                          value: _toAsset,
+                          underline: const SizedBox.shrink(),
                           icon: SvgPicture.asset(
                             'assets/new_ui_wallet/assets/icons/menu/arrow_down.svg',
                           ),
-                          onChanged: (Asset? newAsset) {
+                          onChanged: (core.Asset? newAsset) {
                             if (newAsset != null) {
-                              notifier.setToAsset(newAsset);
+                              setState(() => _toAsset = newAsset);
+                              _requestQuoteDebounced();
                             }
                           },
                           items:
-                              Asset.values.map<DropdownMenuItem<Asset>>((
-                                Asset asset,
-                              ) {
-                                return DropdownMenuItem<Asset>(
-                                  value: asset,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SvgPicture.asset(
-                                        notifier.getAssetIconPath(asset),
-                                        width: 20,
-                                        height: 20,
+                              core.Asset.values
+                                  .map<DropdownMenuItem<core.Asset>>((
+                                    core.Asset asset,
+                                  ) {
+                                    return DropdownMenuItem<core.Asset>(
+                                      value: asset,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SvgPicture.asset(
+                                            asset.iconPath,
+                                            width: 20,
+                                            height: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            asset.ticker,
+                                            style:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge,
+                                          ),
+                                        ],
                                       ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        asset.ticker,
-                                        style:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.headlineSmall,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
+                                    );
+                                  })
+                                  .toList(),
                           selectedItemBuilder: (BuildContext context) {
-                            return Asset.values.map<Widget>((Asset asset) {
+                            return core.Asset.values.map<Widget>((
+                              core.Asset asset,
+                            ) {
                               return Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -389,17 +477,16 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                           context,
                                         ).textTheme.headlineSmall,
                                   ),
-                                  SizedBox(width: 5),
+                                  const SizedBox(width: 5),
                                 ],
                               );
                             }).toList();
                           },
                         ),
                         Text(
-                          swapState.toAmount.isNotEmpty
-                              ? swapState.toAmount
-                              : '0',
-                          style: Theme.of(context).textTheme.headlineSmall,
+                          quote != null ? quote.quoteAmount.toString() : '0',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -409,9 +496,24 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(notifier.getAssetDescription(swapState.toAsset)),
-                  Text(
-                    notifier.getUsdValue(swapState.toAsset, swapState.toAmount),
+                  Text(_toAsset.name),
+                  FutureBuilder<Either<String, double>>(
+                    future: ref.read(fiatPriceProvider(_toAsset).future),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return snapshot.data!.fold(
+                          (error) => const Text('0.00'),
+                          (price) {
+                            final q = quote?.quoteAmount ?? 0;
+                            final usd = _toAsset.toUsd(BigInt.from(q), price);
+                            return Text(
+                              '${currency.icon}${usd.toStringAsFixed(2)}',
+                            );
+                          },
+                        );
+                      }
+                      return const Text('...');
+                    },
                   ),
                 ],
               ),
@@ -420,5 +522,54 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         ),
       ),
     );
+  }
+
+  String _formatRate(double? rate) {
+    if (rate == null) return '...';
+    return rate.toStringAsFixed(8);
+  }
+
+  Future<String> _getBalance(core.Asset asset) async {
+    final either = await ref.read(balanceProvider(asset).future);
+    return either.match((l) => '0', (r) => asset.formatBalance(r));
+  }
+
+  Future<BigInt> _getBalanceRaw(core.Asset asset) async {
+    final either = await ref.read(balanceProvider(asset).future);
+    return either.match((l) => BigInt.zero, (r) => r);
+  }
+
+  Future<bool> _hasInsufficientBalance() async {
+    if (_fromAmountController.text.isEmpty) return false;
+    final balance = await _getBalanceRaw(_fromAsset);
+    final amount =
+        BigInt.tryParse(_fromAmountController.text.trim()) ?? BigInt.zero;
+    return amount > balance;
+  }
+
+  void _requestQuoteDebounced() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      final controller = ref.read(swapControllerProvider.notifier);
+      final text = _fromAmountController.text.trim();
+      final amount = BigInt.tryParse(text);
+      if (amount == null || amount <= BigInt.zero) return;
+      await controller.startQuote(
+        baseAsset: _fromAsset.id,
+        quoteAsset: _toAsset.id,
+        assetType: 'Base',
+        amount: amount,
+        direction: SwapDirection.sell,
+      );
+    });
+  }
+}
+
+class _SwapIcon extends StatelessWidget {
+  const _SwapIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset('assets/new_ui_wallet/assets/icons/menu/swap.svg');
   }
 }
