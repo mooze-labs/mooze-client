@@ -56,7 +56,9 @@ class _ConfirmSwapBottomSheetState
             ),
           ),
           if (millisecondsRemaining != null)
-            Center(child: Chip(label: Text('${millisecondsRemaining}s'))),
+            Center(
+              child: Chip(label: Text(_formatDuration(millisecondsRemaining))),
+            ),
           const SizedBox(height: 8),
           Expanded(
             child: Column(
@@ -129,6 +131,14 @@ class _ConfirmSwapBottomSheetState
     } finally {
       if (mounted) setState(() => _isConfirming = false);
     }
+  }
+
+  String _formatDuration(int millis) {
+    if (millis <= 0) return '00:00';
+    final totalSeconds = (millis / 1000).ceil();
+    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   Widget _fromToSummary(BuildContext context, sc.SwapState state) {
