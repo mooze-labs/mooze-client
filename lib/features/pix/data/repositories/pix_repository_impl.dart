@@ -195,7 +195,7 @@ class PixRepositoryImpl implements PixRepository {
   ) {
     return TaskEither.tryCatch(() async {
       final response = await _dio.post(
-        '/transactions/deposit',
+        '/transactions',
         data: {
           "address": address,
           "amount_in_cents": amountInCents,
@@ -208,7 +208,9 @@ class PixRepositoryImpl implements PixRepository {
         throw Exception("${response.statusCode} ${response.statusMessage}");
       }
 
-      return PixDepositResponse.fromJson(response.data);
+      final jsonResponse = jsonDecode(response.data);
+
+      return PixDepositResponse.fromJson(jsonResponse['data']);
     }, (error, stackTrace) => "Falha ao conectar com o servidor $error");
   }
 
