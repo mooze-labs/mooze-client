@@ -4,23 +4,24 @@ import '../models/price_service_config.dart';
 import 'price_service.dart';
 import 'binance_price_service.dart';
 import 'coingecko_price_service_impl.dart';
-import 'mock_price_repository_impl.dart';
+import 'cached_price_service.dart';
 
 class HybridPriceService extends PriceService {
   final Currency _defaultCurrency;
   final PriceSource _primarySource;
 
   late final PriceService _primaryService;
-  late final PriceService _binanceService;
-  late final PriceService _coingeckoService;
-  late final PriceService _mockService;
+  late final CachedPriceService _binanceService;
+  late final CachedPriceService _coingeckoService;
 
   HybridPriceService(Currency currency, PriceSource primarySource)
     : _defaultCurrency = currency,
       _primarySource = primarySource {
-    _binanceService = BinancePriceService(currency);
-    _coingeckoService = CoingeckoPriceServiceImpl(currency);
-    _mockService = MockPriceServiceImpl(currency);
+    final binanceService = BinancePriceService(currency);
+    final coingeckoService = CoingeckoPriceServiceImpl(currency);
+
+    _binanceService = CachedPriceService(binanceService, currency);
+    _coingeckoService = CachedPriceService(coingeckoService, currency);
 
     switch (primarySource) {
       case PriceSource.binance:
@@ -28,9 +29,6 @@ class HybridPriceService extends PriceService {
         break;
       case PriceSource.coingecko:
         _primaryService = _coingeckoService;
-        break;
-      case PriceSource.mock:
-        _primaryService = _mockService;
         break;
     }
   }
@@ -85,11 +83,9 @@ class HybridPriceService extends PriceService {
   List<PriceService> _getAlternativeServices() {
     switch (_primarySource) {
       case PriceSource.binance:
-        return [_coingeckoService, _mockService];
+        return [_coingeckoService];
       case PriceSource.coingecko:
-        return [_binanceService, _mockService];
-      case PriceSource.mock:
-        return [_binanceService, _coingeckoService];
+        return [_binanceService];
     }
   }
 
@@ -116,5 +112,39 @@ class HybridPriceService extends PriceService {
           ),
         )
         .alt(() => _tryServicesInSequence(remainingServices, asset, currency));
+  }
+
+  TaskEither<String, Unit> cleanExpiredCache() {
+    return _binanceService.cleanExpiredCache();
+  }
+
+  TaskEither<String, bool> hasCachedPrice(
+    Asset asset, {
+    Currency? optionalCurrency,
+  }) {
+    final targetCurrency = optionalCurrency ?? _defaultCurrency;
+    final serviceToCheck =
+        _primarySource == PriceSource.binance
+            ? _binanceService
+            : _coingeckoService;
+    return serviceToCheck.hasCachedPrice(
+      asset,
+      optionalCurrency: targetCurrency,
+    );
+  }
+
+  TaskEither<String, Option<int>> getCacheAgeInMinutes(
+    Asset asset, {
+    Currency? optionalCurrency,
+  }) {
+    final targetCurrency = optionalCurrency ?? _defaultCurrency;
+    final serviceToCheck =
+        _primarySource == PriceSource.binance
+            ? _binanceService
+            : _coingeckoService;
+    return serviceToCheck.getCacheAgeInMinutes(
+      asset,
+      optionalCurrency: targetCurrency,
+    );
   }
 }

@@ -52,8 +52,6 @@ class PriceSettingsRepositoryImpl extends PriceSettingsRepository {
       switch (priceSource) {
         case "coingecko":
           return PriceSource.coingecko;
-        case "mock":
-          return PriceSource.mock;
         default:
           return PriceSource.coingecko;
       }

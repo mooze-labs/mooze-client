@@ -1,6 +1,6 @@
 enum Currency { brl, usd }
 
-enum PriceSource { binance, coingecko, mock }
+enum PriceSource { binance, coingecko }
 
 class PriceServiceConfig {
   final Currency currency;
