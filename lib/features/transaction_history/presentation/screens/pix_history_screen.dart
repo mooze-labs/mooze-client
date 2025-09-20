@@ -3,27 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/presentation/controllers/pix_history_controller.dart';
+import 'package:mooze_mobile/features/pix/presentation/providers/pix_history_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_deposit_list.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/providers/pix_history_state_notifier.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-class PixHistoryScreen extends StatefulWidget {
+class PixHistoryScreen extends ConsumerStatefulWidget {
   const PixHistoryScreen({super.key});
 
   @override
-  State<PixHistoryScreen> createState() => _PixHistoryScreenState();
+  ConsumerState<PixHistoryScreen> createState() => _PixHistoryScreenState();
 }
 
-class _PixHistoryScreenState extends State<PixHistoryScreen> {
+class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
+  final ScrollController _scrollController = ScrollController();
   PixFiltersEntity _filters = PixFiltersEntity();
   List<AssetEntity> _allAssets = [];
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScrollListener);
     _allAssets =
         Asset.values
             .where((asset) => asset != Asset.usdt)
@@ -37,8 +41,26 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
             .toList();
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScrollListener);
+    super.dispose();
+  }
+
   List<PixDeposit> _applyFilters(List<PixDeposit> deposits) {
     return deposits.applyFilters(_filters);
+  }
+
+  /// Usado para detectar quando estiver próximo do fim da lista atual.
+  /// Consulta mais valores quando perto do fim da tela.
+  void _onScrollListener() {
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    const delta = 200.0;
+
+    if (maxScroll - currentScroll <= delta) {
+      ref.read(pixHistoryNotifierProvider.notifier).loadNextPage();
+    }
   }
 
   void _openFilterSheet() async {
@@ -95,12 +117,12 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Consumer(
           builder: (context, ref, _) {
-            final pixHistoryState = ref.watch(pixHistoryControllerProvider);
+            final pixHistoryState = ref.watch(pixHistoryNotifierProvider);
             final isVisible = ref.watch(isVisibleProvider);
 
             return pixHistoryState.when(
               data: (deposits) {
-                final filteredDeposits = _applyFilters(deposits);
+                final filteredDeposits = _applyFilters(deposits.items);
 
                 if (filteredDeposits.isEmpty) {
                   return Column(
@@ -182,10 +204,11 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
                       child: PixDepositList(
                         deposits: filteredDeposits,
                         isVisible: isVisible,
+                        scrollController: _scrollController,
                         onRefresh: () {
                           ref
-                              .read(pixHistoryControllerProvider.notifier)
-                              .refreshPixHistory();
+                              .read(pixHistoryNotifierProvider.notifier)
+                              .refresh();
                         },
                       ),
                     ),
@@ -195,9 +218,7 @@ class _PixHistoryScreenState extends State<PixHistoryScreen> {
               error:
                   (err, stackTrace) => ErrorPixDepositList(
                     onRetry: () {
-                      ref
-                          .read(pixHistoryControllerProvider.notifier)
-                          .refreshPixHistory();
+                      ref.read(pixHistoryNotifierProvider.notifier).refresh();
                     },
                   ),
               loading: () => const LoadingPixDepositList(),
