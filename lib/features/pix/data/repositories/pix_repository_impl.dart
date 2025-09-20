@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:eventflux/eventflux.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/features/pix/data/datasources/pix_deposit_api.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
@@ -16,10 +17,12 @@ import '../models.dart';
 class PixRepositoryImpl implements PixRepository {
   final Dio _dio;
   final PixDepositDatabase _database;
+  final PixDepositApi _api;
 
   PixRepositoryImpl(Dio dio, PixDepositDatabase database)
     : _dio = dio,
-      _database = database;
+      _database = database,
+      _api = PixDepositApi(dio);
 
   @override
   TaskEither<String, PixDeposit> newDeposit(
@@ -77,7 +80,7 @@ class PixRepositoryImpl implements PixRepository {
 
   @override
   TaskEither<String, Option<PixDeposit>> getDeposit(String depositId) {
-    return _database
+    final deposit = _database
         .getDeposit(depositId)
         .flatMap(
           (f) => f.fold(
@@ -101,46 +104,75 @@ class PixRepositoryImpl implements PixRepository {
             ),
           ),
         );
+
+    return deposit;
   }
 
   @override
-  TaskEither<String, List<PixDeposit>> getAllDeposits() {
-    return _database.getAllDeposits().flatMap(
-      (deposits) => TaskEither.fromEither(
-        deposits
-            .map(
-              (deposit) => parseDepositStatus(deposit.status)
-                  .flatMap(
-                    (status) => Either.tryCatch(
-                      () => PixDeposit(
-                        depositId: deposit.depositId,
-                        pixKey: deposit.pixKey,
-                        amountInCents: deposit.amountInCents,
-                        asset: Asset.fromId(deposit.assetId),
-                        network: "liquid",
-                        status: status,
-                        createdAt: deposit.createdAt,
-                        blockchainTxid: deposit.blockchainTxid,
-                        assetAmount: deposit.assetAmount,
+  TaskEither<String, List<PixDeposit>> updateDepositDetails(List<String> ids) {
+    return _api.getDeposits(ids).flatMap((detailList) {
+      // Update all deposits in parallel
+      final updateTasks = detailList.map((d) =>
+        _database.updateDeposit(
+          d.id,
+          d.status,
+          assetAmount:
+              (d.assetAmount != null)
+                  ? BigInt.from(d.assetAmount!)
+                  : BigInt.zero,
+          blockchainTxid: d.blockchainTxid,
+        ),
+      ).toList();
+
+      // Wait for all updates to complete, then return the updated deposits
+      return TaskEither.sequenceList(updateTasks).flatMap((_) =>
+        getDeposits().map((deposits) =>
+          deposits.where((d) => ids.contains(d.depositId)).toList()
+        )
+      );
+    });
+  }
+
+  @override
+  TaskEither<String, List<PixDeposit>> getDeposits({int? limit, int? offset}) {
+    return _database
+        .getDeposits(limit: limit, offset: offset)
+        .flatMap(
+          (deposits) => TaskEither.fromEither(
+            deposits
+                .map(
+                  (deposit) => parseDepositStatus(deposit.status)
+                      .flatMap(
+                        (status) => Either.tryCatch(
+                          () => PixDeposit(
+                            depositId: deposit.depositId,
+                            pixKey: deposit.pixKey,
+                            amountInCents: deposit.amountInCents,
+                            asset: Asset.fromId(deposit.assetId),
+                            network: "liquid",
+                            status: status,
+                            createdAt: deposit.createdAt,
+                            blockchainTxid: deposit.blockchainTxid,
+                            assetAmount: deposit.assetAmount,
+                          ),
+                          (error, _) =>
+                              "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
+                        ),
+                      )
+                      .mapLeft(
+                        (error) =>
+                            "Invalid deposit status '${deposit.status}' for deposit ${deposit.depositId}: $error",
                       ),
-                      (error, _) =>
-                          "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
-                    ),
-                  )
-                  .mapLeft(
-                    (error) =>
-                        "Invalid deposit status '${deposit.status}' for deposit ${deposit.depositId}: $error",
+                )
+                .fold<Either<String, List<PixDeposit>>>(
+                  right(<PixDeposit>[]),
+                  (acc, depositEither) => acc.flatMap(
+                    (deposits) =>
+                        depositEither.map((deposit) => [...deposits, deposit]),
                   ),
-            )
-            .fold<Either<String, List<PixDeposit>>>(
-              right(<PixDeposit>[]),
-              (acc, depositEither) => acc.flatMap(
-                (deposits) =>
-                    depositEither.map((deposit) => [...deposits, deposit]),
-              ),
-            ),
-      ),
-    );
+                ),
+          ),
+        );
   }
 
   Stream<Either<String, PixStatusEvent>> _subscribeToStatusUpdates(

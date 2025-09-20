@@ -11,5 +11,8 @@ abstract class PixRepository {
     String network = "liquid",
   });
   TaskEither<String, Option<PixDeposit>> getDeposit(String depositId);
-  TaskEither<String, List<PixDeposit>> getAllDeposits();
+  TaskEither<String, List<PixDeposit>> getDeposits({int? limit, int? offset});
+  TaskEither<String, List<PixDeposit>> updateDepositDetails(
+    List<String> depositIds,
+  );
 }

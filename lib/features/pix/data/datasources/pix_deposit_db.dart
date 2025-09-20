@@ -94,9 +94,16 @@ class PixDepositDatabase {
     ).map((d) => Option.fromNullable(d));
   }
 
-  TaskEither<String, List<Deposit>> getAllDeposits() {
+  TaskEither<String, List<Deposit>> getDeposits({int? limit, int? offset}) {
     return TaskEither.tryCatch(() async {
-      return await (_database.select(_database.deposits).get());
+      final query = (_database.select(_database.deposits));
+      query.orderBy([(d) => OrderingTerm.desc(d.createdAt)]);
+
+      if (limit != null) {
+        query.limit(limit, offset: offset);
+      }
+
+      return await (query.get());
     }, (error, stackTrace) => error.toString());
   }
 }

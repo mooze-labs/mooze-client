@@ -38,7 +38,14 @@ class MockPixRepositoryImpl implements PixRepository {
   }
 
   @override
-  TaskEither<String, List<PixDeposit>> getAllDeposits() {
+  TaskEither<String, List<PixDeposit>> getDeposits({int? limit, int? offset}) {
+    return TaskEither.of(List.from(_mockDeposits));
+  }
+
+  @override
+  TaskEither<String, List<PixDeposit>> updateDepositDetails(
+    List<String> depositIds,
+  ) {
     return TaskEither.of(List.from(_mockDeposits));
   }
 }

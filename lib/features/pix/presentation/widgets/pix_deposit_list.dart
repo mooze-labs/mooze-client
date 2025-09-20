@@ -1,43 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/providers/pix_history_state_notifier.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-class PixDepositList extends StatelessWidget {
-  final List<PixDeposit> deposits;
+class PixDepositList extends ConsumerWidget {
+  final Function(List<PixDeposit>) filterClosure;
   final bool isVisible;
   final VoidCallback? onRefresh;
+  final ScrollController? scrollController;
 
   const PixDepositList({
     super.key,
-    required this.deposits,
+    required this.filterClosure,
     required this.isVisible,
+    this.scrollController,
     this.onRefresh,
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (deposits.isEmpty) {
-      return const EmptyPixDepositList();
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        onRefresh?.call();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(pixHistoryNotifierProvider);
+    return state.map(
+      data: (asyncData) {
+        if (asyncData.value.items.isEmpty) return EmptyPixDepositList();
+        final deposits = filterClosure(asyncData.value.items);
+        return RefreshIndicator(
+          onRefresh: () async => onRefresh?.call(),
+          child: ListView.builder(
+            controller: scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: deposits.length,
+            itemBuilder: (context, index) {
+              return PixDepositListItem(
+                deposit: deposits[index],
+                isVisible: isVisible,
+              );
+            },
+          ),
+        );
       },
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: deposits.length,
-        itemBuilder: (context, index) {
-          return PixDepositListItem(
-            deposit: deposits[index],
-            isVisible: isVisible,
-          );
-        },
-      ),
+      error: (err) => ErrorPixDepositList(),
+      loading: (_) => LoadingPixDepositList(),
     );
   }
 }
@@ -126,6 +134,8 @@ class PixDepositListItem extends StatelessWidget {
         return "Finalizado";
       case DepositStatus.expired:
         return "Expirado";
+      case DepositStatus.unknown:
+        return "N/A";
     }
   }
 
@@ -153,6 +163,8 @@ class PixDepositListItem extends StatelessWidget {
         return Colors.green;
       case DepositStatus.expired:
         return Colors.red;
+      case DepositStatus.unknown:
+        return Colors.grey;
     }
   }
 }

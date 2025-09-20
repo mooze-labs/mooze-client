@@ -259,6 +259,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
         return 'Finalizado';
       case DepositStatus.expired:
         return 'Expirado';
+      case DepositStatus.unknown:
+        return 'N/A';
     }
   }
 
@@ -272,6 +274,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
         return Colors.green;
       case DepositStatus.expired:
         return Colors.red;
+      case DepositStatus.unknown:
+        return Colors.grey;
     }
   }
 

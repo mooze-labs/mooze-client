@@ -1,6 +1,6 @@
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-enum DepositStatus { pending, processing, finished, expired }
+enum DepositStatus { pending, processing, finished, expired, unknown }
 
 class PixDeposit {
   final String depositId;
