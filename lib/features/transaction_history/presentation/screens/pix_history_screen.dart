@@ -44,6 +44,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
   @override
   void dispose() {
     _scrollController.removeListener(_onScrollListener);
+    _scrollController.dispose();
     super.dispose();
   }
 
