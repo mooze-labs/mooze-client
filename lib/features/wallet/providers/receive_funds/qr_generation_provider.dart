@@ -115,7 +115,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
   }
 
   TaskEither<WalletError, QRGenerationState> _generateBitcoinPaymentRequest(
-    WalletRepository walletRepository,
+    LiquidWalletRepository walletRepository,
     double? amount,
     String? description,
   ) {
@@ -140,7 +140,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
   }
 
   TaskEither<WalletError, QRGenerationState> _generateLightningPaymentRequest(
-    WalletRepository walletRepository,
+    LiquidWalletRepository walletRepository,
     double amount,
     String? description,
   ) {
@@ -161,7 +161,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
 
   TaskEither<WalletError, QRGenerationState>
   _generateLiquidBitcoinPaymentRequest(
-    WalletRepository walletRepository,
+    LiquidWalletRepository walletRepository,
     double? amount,
     String? description,
   ) {
@@ -185,7 +185,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
   }
 
   TaskEither<WalletError, QRGenerationState> _generateStablecoinPaymentRequest(
-    WalletRepository walletRepository,
+    LiquidWalletRepository walletRepository,
     Asset asset,
     double? amount,
     String? description,
