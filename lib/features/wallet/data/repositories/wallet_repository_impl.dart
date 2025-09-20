@@ -17,7 +17,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../dto/psbt_dto.dart';
 
-class BreezWalletRepositoryImpl extends WalletRepository {
+class BreezWalletRepositoryImpl extends LiquidWalletRepository {
   final BindingLiquidSdk _breez;
 
   BreezWalletRepositoryImpl(this._breez);

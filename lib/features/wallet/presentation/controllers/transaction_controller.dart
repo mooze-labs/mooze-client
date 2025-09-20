@@ -5,9 +5,9 @@ import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class TransactionController {
-  final WalletRepository _wallet;
+  final LiquidWalletRepository _wallet;
 
-  TransactionController(WalletRepository wallet) : _wallet = wallet;
+  TransactionController(LiquidWalletRepository wallet) : _wallet = wallet;
 
   TaskEither<WalletError, List<Transaction>> getLastTransactions(int count) {
     return getTransactions().flatMap(

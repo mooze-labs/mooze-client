@@ -7,7 +7,7 @@ import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 
 final walletRepositoryProvider =
-    FutureProvider<Either<WalletError, WalletRepository>>((ref) async {
+    FutureProvider<Either<WalletError, LiquidWalletRepository>>((ref) async {
       final breez = await ref.read(breezClientProvider.future);
 
       return breez.fold(

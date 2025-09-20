@@ -5,7 +5,7 @@ import '../../domain/entities.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/errors.dart';
 
-class FakeWalletRepositoryImpl extends WalletRepository {
+class FakeWalletRepositoryImpl extends LiquidWalletRepository {
   final Map<String, dynamic> _mockData;
 
   FakeWalletRepositoryImpl({Map<String, dynamic>? mockData})
@@ -95,6 +95,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         asset: asset,
         amount: amount,
         networkFees: BigInt.from(500),
+        drain: false,
       ),
     );
   }
@@ -107,6 +108,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         destination: destination,
         amount: amount,
         networkFees: BigInt.from(2000),
+        drain: false,
       ),
     );
   }
@@ -120,6 +122,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         amount: amount,
         networkFees: BigInt.from(100),
         blockchain: Blockchain.lightning,
+        drain: false,
       ),
     );
   }
@@ -133,6 +136,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         amount: amount,
         networkFees: BigInt.from(500),
         blockchain: Blockchain.liquid,
+        drain: false,
       ),
     );
   }
@@ -214,6 +218,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
           destination: destination,
           amount: amountAfterFees,
           networkFees: estimatedFees,
+          drain: true,
         ),
       );
     });
@@ -244,6 +249,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
           amount: amountAfterFees,
           networkFees: estimatedFees,
           blockchain: Blockchain.lightning,
+          drain: true,
         ),
       );
     });
@@ -273,6 +279,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
           amount: amountAfterFees,
           networkFees: estimatedFees,
           blockchain: Blockchain.liquid,
+          drain: true,
         ),
       );
     });
@@ -301,6 +308,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
           asset: asset,
           amount: assetAmount,
           networkFees: BigInt.from(500),
+          drain: true,
         ),
       );
     });
