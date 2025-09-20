@@ -110,11 +110,10 @@ class PixRepositoryImpl implements PixRepository {
 
   @override
   TaskEither<String, List<PixDeposit>> updateDepositDetails(List<String> ids) {
-    final details = _api.getDeposits(ids);
-    details.match(
-      (err) => err,
-      (detailList) => detailList.map(
-        (d) => _database.updateDeposit(
+    return _api.getDeposits(ids).flatMap((detailList) {
+      // Update all deposits in parallel
+      final updateTasks = detailList.map((d) =>
+        _database.updateDeposit(
           d.id,
           d.status,
           assetAmount:
@@ -123,13 +122,15 @@ class PixRepositoryImpl implements PixRepository {
                   : BigInt.zero,
           blockchainTxid: d.blockchainTxid,
         ),
-      ),
-    );
+      ).toList();
 
-    return getDeposits().flatMap(
-      (f) =>
-          TaskEither.right(f.filter((t) => ids.contains(t.depositId)).toList()),
-    );
+      // Wait for all updates to complete, then return the updated deposits
+      return TaskEither.sequenceList(updateTasks).flatMap((_) =>
+        getDeposits().map((deposits) =>
+          deposits.where((d) => ids.contains(d.depositId)).toList()
+        )
+      );
+    });
   }
 
   @override

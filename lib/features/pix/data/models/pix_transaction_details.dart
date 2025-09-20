@@ -1,3 +1,4 @@
+/// Details for a given transaction returned by /transaction/statuses
 class PixTransactionDetails {
   final String id;
   final String status;

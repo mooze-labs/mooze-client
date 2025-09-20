@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/database/database.dart';
 import 'package:mooze_mobile/features/pix/data/datasources/pix_deposit_db.dart';
+import 'package:mooze_mobile/features/pix/di/providers/pix_repository_provider.dart';
 import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/presentation/controllers/pix_history_controller.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
 
@@ -12,18 +14,19 @@ final pixDepositDatabaseProvider = Provider<PixDepositDatabase>((ref) {
   return PixDepositDatabase(database);
 });
 
-// Provider for PIX deposit history
+final pixHistoryControllerProvider = Provider<PixHistoryController>((ref) {
+  final repository = ref.read(pixRepositoryProvider);
+  final controller = PixHistoryController(repository);
+
+  return controller;
+});
+
 final pixDepositHistoryProvider =
-    FutureProvider<Either<String, List<PixDeposit>>>((ref) async {
-      final pixDb = ref.watch(pixDepositDatabaseProvider);
+    FutureProvider.autoDispose<Either<String, List<PixDeposit>>>((ref) async {
+      final controller = ref.read(pixHistoryControllerProvider);
 
-      final result = await pixDb.getAllDeposits().run();
-
-      return result.map((deposits) {
-        return deposits
-            .map((deposit) => _mapDepositToPixDeposit(deposit))
-            .toList();
-      });
+      final deposits = await controller.getPixHistory().run();
+      return deposits;
     });
 
 // Provider for specific PIX deposit
@@ -62,7 +65,7 @@ PixDeposit _mapDepositToPixDeposit(Deposit deposit) {
       status = DepositStatus.expired;
       break;
     default:
-      status = DepositStatus.pending;
+      status = DepositStatus.unknown;
   }
 
   return PixDeposit(
