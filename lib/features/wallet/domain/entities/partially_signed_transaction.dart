@@ -7,6 +7,7 @@ sealed class PartiallySignedTransaction {
   String get destination;
   Asset get asset;
   Blockchain get blockchain;
+  bool get drain;
 
   BigInt get satoshi;
   BigInt get networkFees;
@@ -21,6 +22,8 @@ class PreparedStablecoinTransaction implements PartiallySignedTransaction {
   final Blockchain blockchain = Blockchain.liquid;
   @override
   final BigInt networkFees;
+  @override
+  final bool drain;
 
   final double amount;
   @override
@@ -31,6 +34,7 @@ class PreparedStablecoinTransaction implements PartiallySignedTransaction {
     required this.asset,
     required this.amount,
     required this.networkFees,
+    required this.drain,
   });
 }
 
@@ -43,6 +47,8 @@ class PreparedLayer2BitcoinTransaction implements PartiallySignedTransaction {
   final Blockchain blockchain;
   @override
   Asset get asset => Asset.btc;
+  @override
+  final bool drain;
 
   final BigInt amount;
   @override
@@ -53,6 +59,7 @@ class PreparedLayer2BitcoinTransaction implements PartiallySignedTransaction {
     required this.amount,
     required this.networkFees,
     required this.blockchain,
+    required this.drain,
   });
 }
 
@@ -65,6 +72,8 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
   final Blockchain blockchain = Blockchain.bitcoin;
   @override
   Asset get asset => Asset.btc;
+  @override
+  final bool drain;
 
   final BigInt amount;
   @override
@@ -74,5 +83,6 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
     required this.destination,
     required this.amount,
     required this.networkFees,
+    required this.drain,
   });
 }
