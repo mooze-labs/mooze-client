@@ -203,7 +203,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                     ],
                     Expanded(
                       child: PixDepositList(
-                        deposits: filteredDeposits,
+                        filterClosure: _applyFilters,
                         isVisible: isVisible,
                         scrollController: _scrollController,
                         onRefresh: () {
