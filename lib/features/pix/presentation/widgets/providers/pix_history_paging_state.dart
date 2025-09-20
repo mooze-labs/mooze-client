@@ -4,7 +4,7 @@ class PixHistoryPagingNotifier extends Notifier<int> {
   @override
   int build() => 0;
 
-  void nextPage() => state + 50;
+  void nextPage() => state = state + 50;
   void reset() => state = 0;
 }
 

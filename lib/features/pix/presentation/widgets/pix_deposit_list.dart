@@ -9,14 +9,14 @@ import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 class PixDepositList extends ConsumerWidget {
-  final List<PixDeposit> deposits;
+  final Function(List<PixDeposit>) filterClosure;
   final bool isVisible;
   final VoidCallback? onRefresh;
   final ScrollController? scrollController;
 
   const PixDepositList({
     super.key,
-    required this.deposits,
+    required this.filterClosure,
     required this.isVisible,
     this.scrollController,
     this.onRefresh,
@@ -26,24 +26,24 @@ class PixDepositList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(pixHistoryNotifierProvider);
     return state.map(
-      data:
-          (asyncData) =>
-              asyncData.value.items.isEmpty
-                  ? const EmptyPixDepositList()
-                  : RefreshIndicator(
-                    onRefresh: () async => onRefresh?.call,
-                    child: ListView.builder(
-                      controller: scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: asyncData.value.items.length,
-                      itemBuilder: (context, index) {
-                        return PixDepositListItem(
-                          deposit: asyncData.value.items[index],
-                          isVisible: isVisible,
-                        );
-                      },
-                    ),
-                  ),
+      data: (asyncData) {
+        if (asyncData.value.items.isEmpty) return EmptyPixDepositList();
+        final deposits = filterClosure(asyncData.value.items);
+        return RefreshIndicator(
+          onRefresh: () async => onRefresh?.call(),
+          child: ListView.builder(
+            controller: scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: deposits.length,
+            itemBuilder: (context, index) {
+              return PixDepositListItem(
+                deposit: deposits[index],
+                isVisible: isVisible,
+              );
+            },
+          ),
+        );
+      },
       error: (err) => ErrorPixDepositList(),
       loading: (_) => LoadingPixDepositList(),
     );

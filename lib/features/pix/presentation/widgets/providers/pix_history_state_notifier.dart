@@ -14,7 +14,9 @@ class PixDepositsPageState {
 
   const PixDepositsPageState({required this.items});
 
-  bool get hasMore => !(pageSize > items.length);
+  bool get hasMore =>
+      items.length ==
+      pageSize; // items are limited to pageSize, so we're checking if it has 50 entries
 }
 
 class PixHistoryNotifier extends AsyncNotifier<PixDepositsPageState> {
