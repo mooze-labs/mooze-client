@@ -32,11 +32,11 @@ class BreezTransactionDto {
 
   factory BreezTransactionDto.fromSdk({required Payment payment}) {
     final asset = switch (payment.details) {
-      PaymentDetails_Lightning() => Asset.btc,
+      PaymentDetails_Lightning() => Asset.lbtc,
       PaymentDetails_Bitcoin() => Asset.btc,
       PaymentDetails_Liquid() =>
         (payment.details as PaymentDetails_Liquid).assetId == lBtcAssetId
-            ? Asset.btc
+            ? Asset.lbtc
             : Asset.fromId((payment.details as PaymentDetails_Liquid).assetId),
     };
 
