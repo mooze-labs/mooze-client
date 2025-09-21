@@ -1,11 +1,12 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lwk/lwk.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_service.dart';
 import 'package:path_provider/path_provider.dart';
 
 const String mnemonicKey = 'mnemonic';
 
-class LiquidDataSource {
+class LiquidDataSource implements SyncableDataSource {
   final Wallet wallet;
   final Network network;
   final String electrumUrl;
@@ -22,6 +23,7 @@ class LiquidDataSource {
     required this.dbPath,
   });
 
+  @override
   Future<void> sync() async {
     await wallet.sync_(
       electrumUrl: electrumUrl,
