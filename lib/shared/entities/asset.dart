@@ -34,7 +34,7 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDT",
       Asset.depix => "Depix",
-      Asset.lbtc => "LBTC",
+      Asset.lbtc => "BTC L2",
       Asset.btc => "BTC",
     };
   }
@@ -43,8 +43,8 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDt",
       Asset.depix => "Decentralized Pix",
-      Asset.lbtc => "Liquid Bitcoin",
-      Asset.btc => "bitcoin",
+      Asset.lbtc => "Bitcoin L2",
+      Asset.btc => "Bitcoin",
     };
   }
 
@@ -80,8 +80,8 @@ enum Asset {
   /// Converts satoshis to asset's natural unit
   double fromSatoshis(BigInt satoshis) {
     return switch (this) {
-      Asset.btc => satoshis.toDouble(), // Bitcoin remains in satoshis
-      Asset.lbtc => satoshis.toDouble(),
+      Asset.btc ||
+      Asset.lbtc => satoshis.toDouble(), // Bitcoin remains in satoshis
       Asset.usdt ||
       Asset.depix => satoshis.toDouble() / 100000000, // Tokens divide by 100M
     };
@@ -120,7 +120,7 @@ enum Asset {
 
   /// Converts asset value to USD
   double toUsd(BigInt amountInSats, double priceUsd) {
-    if (this == Asset.btc) {
+    if ((this == Asset.btc) || (this == Asset.lbtc)) {
       // For Bitcoin: convert satoshis to BTC then to USD
       final double btcAmount = amountInSats.toDouble() / 100000000;
       return btcAmount * priceUsd;

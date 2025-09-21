@@ -47,6 +47,8 @@ extension AssetDisplayName on Asset {
     switch (this) {
       case Asset.btc:
         return 'Bitcoin';
+      case Asset.lbtc:
+        return 'Bitcoin L2';
       case Asset.usdt:
         return 'USDT';
       case Asset.depix:

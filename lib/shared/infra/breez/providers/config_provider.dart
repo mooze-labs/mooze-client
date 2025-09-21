@@ -3,7 +3,8 @@ import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:path_provider/path_provider.dart';
 
 final configProvider = FutureProvider<Config>((ref) async {
-  const breezApiKey = String.fromEnvironment('BREEZ_API_KEY');
+  const breezApiKey =
+      'MIIBajCCARygAwIBAgIHPgbGnsVq8TAFBgMrZXAwEDEOMAwGA1UEAxMFQnJlZXowHhcNMjUwNDI5MDEyNDI5WhcNMzUwNDI3MDEyNDI5WjArMRMwEQYDVQQKEwpNb296ZSBMYWJzMRQwEgYDVQQDEwtMdWNjYSBHb2RveTAqMAUGAytlcAMhANCD9cvfIDwcoiDKKYdT9BunHLS2/OuKzV8NS0SzqV13o3oweDAOBgNVHQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2jmj7l5rSw0yVb/vlWAYkK/YBwkwHwYDVR0jBBgwFoAU3qrWklbzjed0khb8TLYgsmsomGswGAYDVR0RBBEwD4ENZGV2QG1vb3plLmFwcDAFBgMrZXADQQAx9hoGj97ubdjFT/C7KqEZOOSVV2C8HHIw4D6//NG9mEJPB1Mc9HTvWmEFaIKhz1vdH6z5zQDyw9RJV4Ej7tEL';
   final workingDir = await getApplicationDocumentsDirectory();
   final network = switch (String.fromEnvironment(
     "BLOCKCHAIN_NETWORK_TYPE",

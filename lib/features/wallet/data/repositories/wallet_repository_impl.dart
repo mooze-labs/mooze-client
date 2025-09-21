@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/bitcoin.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
@@ -150,6 +151,11 @@ class WalletRepositoryImpl extends WalletRepository {
       return TaskEither.fromEither(
         bitcoinBalance.flatMap((btcBal) {
           breezBal[Asset.btc] = btcBal;
+          if (kDebugMode) {
+            for (final balance in breezBal.entries) {
+              debugPrint("${balance.key} - ${balance.value}");
+            }
+          }
           return Either<WalletError, Balance>.right(breezBal);
         }),
       );

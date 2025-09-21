@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -575,7 +574,7 @@ class _ReviewTransactionScreenState
 
   String _getServiceFee(Asset asset) {
     switch (asset) {
-      case Asset.btc:
+      case Asset.btc || Asset.lbtc:
         return "Gratuito";
       case Asset.usdt:
       case Asset.depix:
@@ -652,7 +651,9 @@ class _ReviewTransactionScreenState
         (transaction) => _showSuccessDialog(context, ref, psbt.destination),
       );
     } catch (e) {
-      _showErrorDialog(context, "Erro inesperado: $e");
+      if (context.mounted) {
+        _showErrorDialog(context, "Erro inesperado: $e");
+      }
     } finally {
       if (mounted) {
         setState(() {

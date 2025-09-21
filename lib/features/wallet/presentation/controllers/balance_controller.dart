@@ -4,9 +4,9 @@ import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class BalanceController {
-  final LiquidWalletRepository _wallet;
+  final WalletRepository _wallet;
 
-  BalanceController(LiquidWalletRepository wallet) : _wallet = wallet;
+  BalanceController(WalletRepository wallet) : _wallet = wallet;
 
   TaskEither<WalletError, BigInt> getAssetBalance(Asset asset) {
     return _wallet.getBalance().flatMap(

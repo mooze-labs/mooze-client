@@ -1,4 +1,5 @@
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart'
     show PreparedOnchainBitcoinTransaction;
@@ -127,10 +128,15 @@ class BitcoinWallet {
   }) {
     final walletTxs = Either.tryCatch(
       () => _datasource.wallet.listTransactions(includeRaw: false),
-      (err, _) => WalletError(
-        WalletErrorType.sdkError,
-        "[BDK] Falha ao ler histórico de transações",
-      ),
+      (err, _) {
+        if (kDebugMode) {
+          debugPrint(err.toString());
+        }
+        return WalletError(
+          WalletErrorType.sdkError,
+          "[BDK] Falha ao ler histórico de transações",
+        );
+      },
     );
     return walletTxs.flatMap(
       (txs) => Either.right(

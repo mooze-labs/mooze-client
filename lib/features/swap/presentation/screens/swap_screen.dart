@@ -25,7 +25,7 @@ class SwapScreen extends ConsumerStatefulWidget {
 
 class _SwapScreenState extends ConsumerState<SwapScreen> {
   final TextEditingController _fromAmountController = TextEditingController();
-  core.Asset _fromAsset = core.Asset.btc;
+  core.Asset _fromAsset = core.Asset.lbtc;
   core.Asset _toAsset = core.Asset.usdt;
   Timer? _debounce;
 

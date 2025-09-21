@@ -7,9 +7,9 @@ import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class WalletController {
-  final LiquidWalletRepository _walletRepository;
+  final WalletRepository _walletRepository;
 
-  WalletController(LiquidWalletRepository walletRepository)
+  WalletController(WalletRepository walletRepository)
     : _walletRepository = walletRepository;
 
   TaskEither<String, PartiallySignedTransaction> beginNewTransaction(

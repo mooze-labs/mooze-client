@@ -44,7 +44,7 @@ class TransactionValueFormatter {
       final fiatValue = btcAmount * bitcoinPrice;
       return "$sign$currencySymbol ${fiatValue.toStringAsFixed(2)}";
     } else {
-      final fiatValue = transaction.amount.toDouble();
+      final fiatValue = transaction.amount.toDouble() / 100000000;
       return "$sign$currencySymbol ${fiatValue.toStringAsFixed(2)}";
     }
   }

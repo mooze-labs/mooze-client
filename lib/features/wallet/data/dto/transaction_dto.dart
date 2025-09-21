@@ -119,27 +119,17 @@ class BreezTransactionDto {
   static String _parseTxid(Payment payment) {
     final details = payment.details;
 
-    if (details is PaymentDetails_Lightning) {
-      if (details.claimTxId != null) {
-        return details.claimTxId!;
-      }
+    if (payment.txId != null) return payment.txId!;
 
+    if (details is PaymentDetails_Lightning) {
       return details.swapId;
     }
 
     if (details is PaymentDetails_Bitcoin) {
-      if (details.claimTxId != null) {
-        return details.claimTxId!;
-      }
-
       return details.swapId;
     }
 
     if (details is PaymentDetails_Liquid) {
-      if (payment.txId != null) {
-        return payment.txId!;
-      }
-
       return ''; // fallback
     }
 

@@ -66,7 +66,7 @@ class CoingeckoPriceServiceImpl extends PriceService {
 
   Either<String, String> _convertToCoingeckoTicker(Asset asset) {
     switch (asset) {
-      case Asset.btc:
+      case Asset.btc || Asset.lbtc:
         return right("bitcoin");
       case Asset.usdt:
         return right("tether");

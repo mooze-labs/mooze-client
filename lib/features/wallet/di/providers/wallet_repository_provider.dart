@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl.dart';
@@ -31,8 +32,10 @@ final walletRepositoryProvider = FutureProvider<
     ),
   );
 
-  return walletRepo.fold(
-    (err) => Either.left(WalletError(WalletErrorType.sdkError, err.toString())),
-    (repo) => Either.right(repo),
-  );
+  return walletRepo.fold((err) {
+    if (kDebugMode) {
+      debugPrint(err);
+    }
+    return Either.left(WalletError(WalletErrorType.sdkError, err.toString()));
+  }, (repo) => Either.right(repo));
 });

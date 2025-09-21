@@ -1,9 +1,10 @@
+import 'package:bdk_flutter/bdk_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as liquidSdk;
 import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
-import 'package:mooze_mobile/shared/infra/lwk/sync/sync_bootstrap.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_bootstrap.dart';
 import 'routes.dart';
 
 void main() async {
