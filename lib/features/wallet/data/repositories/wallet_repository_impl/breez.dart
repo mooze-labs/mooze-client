@@ -341,6 +341,9 @@ class BreezWallet {
 
         return payments
             .map((p) => BreezTransactionDto.fromSdk(payment: p).toDomain())
+            .where(
+              (p) => p.blockchain != Blockchain.liquid,
+            ) // do NOT return Liquid payments, these will be retrieved on LWk
             .toList();
       },
       (err, stackTrace) {

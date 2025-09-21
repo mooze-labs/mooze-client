@@ -5,7 +5,7 @@ import '../../domain/entities.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/errors.dart';
 
-class FakeWalletRepositoryImpl extends LiquidWalletRepository {
+class FakeWalletRepositoryImpl extends WalletRepository {
   final Map<String, dynamic> _mockData;
 
   FakeWalletRepositoryImpl({Map<String, dynamic>? mockData})

@@ -117,6 +117,53 @@ class BitcoinWallet {
     );
   }
 
+  Either<WalletError, List<Transaction>> getTransactions({
+    TransactionType? type,
+    TransactionStatus? status,
+    Asset? asset,
+    Blockchain? blockchain,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    final walletTxs = Either.tryCatch(
+      () => _datasource.wallet.listTransactions(includeRaw: false),
+      (err, _) => WalletError(
+        WalletErrorType.sdkError,
+        "[BDK] Falha ao ler histórico de transações",
+      ),
+    );
+    return walletTxs.flatMap(
+      (txs) => Either.right(
+        txs
+            .map(
+              (tx) => Transaction(
+                id: tx.txid,
+                amount: (tx.received > BigInt.zero) ? tx.received : tx.sent,
+                blockchain: Blockchain.bitcoin,
+                asset: Asset.btc,
+                type:
+                    (tx.received > BigInt.zero)
+                        ? TransactionType.receive
+                        : TransactionType.send,
+                status:
+                    (tx.confirmationTime == null)
+                        ? TransactionStatus.pending
+                        : TransactionStatus.confirmed,
+
+                /// TODO: Remove datetime.now() for non-confirmed transactions
+                createdAt:
+                    (tx.confirmationTime == null)
+                        ? DateTime.now()
+                        : DateTime.fromMillisecondsSinceEpoch(
+                          tx.confirmationTime!.timestamp.toInt(),
+                        ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
   TaskEither<
     WalletError,
     (bdk.PartiallySignedTransaction, bdk.TransactionDetails)
