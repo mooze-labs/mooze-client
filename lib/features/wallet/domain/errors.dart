@@ -5,6 +5,8 @@ enum WalletErrorType {
   transactionFailed,
   invalidAmount,
   invalidAsset,
+  connectionError,
+  sdkError,
 }
 
 class WalletError {
@@ -34,6 +36,10 @@ class WalletError {
         return 'Ativo invalido.';
       case WalletErrorType.invalidAmount:
         return 'Valor inválido.';
+      case WalletErrorType.connectionError:
+        return 'Erro de conexão';
+      case WalletErrorType.sdkError:
+        return 'Falha interna';
     }
   }
 }

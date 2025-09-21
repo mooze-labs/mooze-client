@@ -10,7 +10,7 @@ import '../entities/partially_signed_transaction.dart';
 import '../enums/blockchain.dart';
 import '../typedefs.dart';
 
-abstract class LiquidWalletRepository {
+abstract class WalletRepository {
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
     Option<BigInt> amount,
     Option<String> description,
