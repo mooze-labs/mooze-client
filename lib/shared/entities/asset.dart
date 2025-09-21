@@ -8,6 +8,7 @@ const depixAssetId =
 // Unified bitcoin values - no distinction between BTC and LBTC
 enum Asset {
   btc,
+  lbtc,
   depix,
   usdt;
 
@@ -15,16 +16,17 @@ enum Asset {
     return switch (id) {
       usdtAssetId => Asset.usdt,
       depixAssetId => Asset.depix,
-      lbtcAssetId => Asset.btc,
+      lbtcAssetId => Asset.lbtc,
       _ => Asset.btc,
     };
   }
 
-  static String toId(Asset asset) {
+  static String? toId(Asset asset) {
     return switch (asset) {
       Asset.usdt => usdtAssetId,
       Asset.depix => depixAssetId,
-      Asset.btc => lbtcAssetId,
+      Asset.lbtc => lbtcAssetId,
+      _ => null,
     };
   }
 
@@ -32,6 +34,7 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDT",
       Asset.depix => "Depix",
+      Asset.lbtc => "LBTC",
       Asset.btc => "BTC",
     };
   }
@@ -40,6 +43,7 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDt",
       Asset.depix => "Decentralized Pix",
+      Asset.lbtc => "Liquid Bitcoin",
       Asset.btc => "bitcoin",
     };
   }
@@ -49,6 +53,7 @@ enum Asset {
       Asset.usdt => usdtAssetId,
       Asset.depix => depixAssetId,
       Asset.btc => lbtcAssetId,
+      Asset.lbtc => lbtcAssetId,
     };
   }
 
@@ -57,6 +62,8 @@ enum Asset {
       Asset.usdt => 'assets/new_ui_wallet/assets/icons/asset/usdt.svg',
       Asset.depix => 'assets/new_ui_wallet/assets/icons/asset/depix.svg',
       Asset.btc => 'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
+      Asset.lbtc =>
+        'assets/new_ui_wallet/assets/icons/asset/layer2_bitcoin.svg',
     };
   }
 
@@ -64,6 +71,7 @@ enum Asset {
   String formatBalance(BigInt balanceInSats) {
     return switch (this) {
       Asset.btc => _formatBitcoinBalance(balanceInSats),
+      Asset.lbtc => _formatBitcoinBalance(balanceInSats),
       Asset.usdt => _formatTokenBalance(balanceInSats, "USDT"),
       Asset.depix => _formatTokenBalance(balanceInSats, "DEPIX"),
     };
@@ -73,6 +81,7 @@ enum Asset {
   double fromSatoshis(BigInt satoshis) {
     return switch (this) {
       Asset.btc => satoshis.toDouble(), // Bitcoin remains in satoshis
+      Asset.lbtc => satoshis.toDouble(),
       Asset.usdt ||
       Asset.depix => satoshis.toDouble() / 100000000, // Tokens divide by 100M
     };
@@ -81,7 +90,7 @@ enum Asset {
   /// Converts asset's natural unit to satoshis
   BigInt toSatoshis(double amount) {
     return switch (this) {
-      Asset.btc => BigInt.from(
+      Asset.btc || Asset.lbtc => BigInt.from(
         (amount * 100000000).round(),
       ), // Bitcoin: BTC -> sats
       Asset.usdt || Asset.depix => BigInt.from(
