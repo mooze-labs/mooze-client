@@ -19,7 +19,6 @@ class LogoHeader extends ConsumerWidget {
         const SizedBox(height: 20),
         Stack(
           children: [
-            // Logo centralizado
             Center(
               child: Opacity(
                 opacity: logoOpacity,
@@ -30,7 +29,6 @@ class LogoHeader extends ConsumerWidget {
                 ),
               ),
             ),
-            // Indicador offline no lado direito
             Positioned(
               right: 0,
               top: 0,
