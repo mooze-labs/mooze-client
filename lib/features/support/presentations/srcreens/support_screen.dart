@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -113,6 +115,9 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+        ],
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,

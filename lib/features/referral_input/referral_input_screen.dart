@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
@@ -63,6 +65,9 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+        ],
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,

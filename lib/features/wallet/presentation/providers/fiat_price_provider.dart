@@ -5,6 +5,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
 import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
+import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 
 class AssetPriceHistoryParams {
   final Asset asset;
@@ -39,45 +40,59 @@ final currencyProvider = FutureProvider<Either<String, String>>((ref) async {
       .run();
 });
 
-final fiatPriceProvider = FutureProvider.autoDispose
-    .family<Either<String, double>, Asset>((ref, asset) async {
-      try {
-        final priceServiceResult = await ref.read(priceServiceProvider).run();
+final fiatPriceProvider = FutureProvider.autoDispose.family<
+  Either<String, double>,
+  Asset
+>((ref, asset) async {
+  try {
+    final priceServiceResult = await ref.read(priceServiceProvider).run();
 
-        return await priceServiceResult.fold((error) => Left(error), (
-          svc,
-        ) async {
-          final priceResult = await svc.getCoinPrice(asset).run();
+    return await priceServiceResult.fold(
+      (error) {
+        // Erro no serviço - marca como offline
+        ref.read(connectivityProvider.notifier).markOffline();
+        return Left(error);
+      },
+      (svc) async {
+        final priceResult = await svc.getCoinPrice(asset).run();
 
-          return await priceResult.fold(
-            (error) async {
-              final currentCurrency = svc.currency.toLowerCase();
-              final alternateCurrency =
-                  currentCurrency == 'brl' ? Currency.usd : Currency.brl;
-              final alternateResult =
-                  await svc
-                      .getCoinPrice(asset, optionalCurrency: alternateCurrency)
-                      .run();
+        return await priceResult.fold(
+          (error) async {
+            // Erro na API - marca como offline se conseguirmos dados de cache
+            ref.read(connectivityProvider.notifier).markOffline();
 
-              return alternateResult.flatMap(
-                (optDouble) => optDouble.fold(
-                  () => const Left("Preço não disponível em nenhuma moeda"),
-                  (val) {
-                    return Right(val);
-                  },
-                ),
-              );
-            },
-            (optDouble) => optDouble.fold(
-              () => const Left("Preço não disponível"),
-              (val) => Right(val),
-            ),
-          );
-        });
-      } catch (e) {
-        return Left('Erro ao obter preço: $e');
-      }
-    });
+            final currentCurrency = svc.currency.toLowerCase();
+            final alternateCurrency =
+                currentCurrency == 'brl' ? Currency.usd : Currency.brl;
+            final alternateResult =
+                await svc
+                    .getCoinPrice(asset, optionalCurrency: alternateCurrency)
+                    .run();
+
+            return alternateResult.flatMap(
+              (optDouble) => optDouble.fold(
+                () => const Left("Preço não disponível em nenhuma moeda"),
+                (val) {
+                  return Right(val);
+                },
+              ),
+            );
+          },
+          (optDouble) =>
+              optDouble.fold(() => const Left("Preço não disponível"), (val) {
+                // Sucesso - marca como online
+                ref.read(connectivityProvider.notifier).markOnline();
+                return Right(val);
+              }),
+        );
+      },
+    );
+  } catch (e) {
+    // Exceção - marca como offline
+    ref.read(connectivityProvider.notifier).markOffline();
+    return Left('Erro ao obter preço: $e');
+  }
+});
 
 final assetPriceHistoryProvider = FutureProvider.autoDispose
     .family<Either<String, List<double>>, Asset>((ref, asset) async {

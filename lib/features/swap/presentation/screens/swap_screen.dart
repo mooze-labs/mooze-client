@@ -15,6 +15,8 @@ import 'package:mooze_mobile/shared/prices/providers/currency_controller_provide
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -59,7 +61,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     return Scaffold(
       extendBody: true,
-      appBar: AppBar(title: const Text('Swap')),
+      appBar: AppBar(
+        title: const Text('Swap'),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(

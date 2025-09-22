@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/all_assets/asset_card_with_favorite.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class AllAssetsScreen extends ConsumerWidget {
   const AllAssetsScreen({super.key});
@@ -19,6 +21,10 @@ class AllAssetsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
         title: const Text('Todos os Ativos'),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          const SizedBox(width: 16),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

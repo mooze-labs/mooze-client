@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 import '../../widgets/send_funds/widgets.dart';
 
@@ -28,6 +30,12 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
             onPressed: () => context.pop(),
             icon: Icon(Icons.arrow_back_ios_new_rounded),
           ),
+          actions: [
+            OfflineIndicator(
+              onTap: () => OfflinePriceInfoOverlay.show(context),
+            ),
+            const SizedBox(width: 16),
+          ],
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(

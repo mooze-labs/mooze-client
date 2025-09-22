@@ -3,6 +3,8 @@ import 'package:mooze_mobile/features/settings/presentation/actions/external_nav
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class MainSettingsScreen extends StatefulWidget {
   const MainSettingsScreen({super.key});
@@ -15,7 +17,13 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Ajustes')),
+      appBar: AppBar(
+        title: Text('Ajustes'),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Stack(
           children: [

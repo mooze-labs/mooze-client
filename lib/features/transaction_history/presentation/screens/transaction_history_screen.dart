@@ -9,6 +9,8 @@ import 'package:mooze_mobile/features/transaction_history/widgets/transaction_fi
 import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_entity.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -133,6 +135,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded),
         ),
         actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           IconButton(
             icon: Icon(
               Icons.filter_alt_outlined,
