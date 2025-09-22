@@ -40,14 +40,12 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/asset.svg',
+                  icon: 'assets/icons/menu/navigation/asset.svg',
                   index: 0,
                   label: 'Transações',
                 ),
                 _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/pix.svg',
+                  icon: 'assets/icons/menu/navigation/pix.svg',
                   index: 1,
                   label: 'Pix',
                 ),

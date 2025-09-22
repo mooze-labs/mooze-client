@@ -162,7 +162,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: SvgPicture.asset(
-          'assets/new_ui_wallet/assets/logos/logo_primary.svg',
+          'assets/logos/logo_primary.svg',
           width: _logoWidth,
           height: _logoHeight,
         ),

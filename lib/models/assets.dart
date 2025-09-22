@@ -21,14 +21,6 @@ class Asset {
     this.liquidAssetId = "",
     this.fiatPriceId = "",
   });
-
-  String get logoPath {
-    if (AssetCatalog.getById(id) != null) return "assets/images/logos/$id.png";
-    if (network == Network.liquid)
-      return "https://liquid.network/api/v1/asset/$liquidAssetId/icon";
-
-    return "assets/images/logos/nav-default-liquid.png";
-  }
 }
 
 class OwnedAsset {

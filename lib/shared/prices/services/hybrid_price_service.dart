@@ -1,10 +1,12 @@
 import 'package:fpdart/fpdart.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../models/price_service_config.dart';
 import 'price_service.dart';
 import 'binance_price_service.dart';
 import 'coingecko_price_service_impl.dart';
 import 'cached_price_service.dart';
+import '../../connectivity/providers/connectivity_provider.dart';
 
 class HybridPriceService extends PriceService {
   final Currency _defaultCurrency;
@@ -146,5 +148,36 @@ class HybridPriceService extends PriceService {
       asset,
       optionalCurrency: targetCurrency,
     );
+  }
+
+  TaskEither<String, Option<double>> getCoinPriceWithConnectivityUpdate(
+    Asset asset, {
+    Currency? optionalCurrency,
+    Ref? ref,
+  }) {
+    return getCoinPrice(asset, optionalCurrency: optionalCurrency).map((
+      result,
+    ) {
+      if (ref != null) {
+        result.fold(
+          () {
+            hasCachedPrice(
+              asset,
+              optionalCurrency: optionalCurrency,
+            ).run().then((cacheResult) {
+              cacheResult.fold((error) => {}, (hasCache) {
+                if (hasCache) {
+                  ref.read(connectivityProvider.notifier).markOffline();
+                }
+              });
+            });
+          },
+          (price) {
+            ref.read(connectivityProvider.notifier).markOnline();
+          },
+        );
+      }
+      return result;
+    });
   }
 }

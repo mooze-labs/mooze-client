@@ -80,7 +80,7 @@ class _LabelSettingsState extends State<LabelSettings> {
                   Padding(
                     padding: const EdgeInsets.only(right: 20.0),
                     child: SvgPicture.asset(
-                      'assets/new_ui_wallet/assets/icons/menu/settings/open_in_new.svg',
+                      'assets/icons/menu/settings/open_in_new.svg',
                     ),
                   ),
                 if (widget.action is Toggle)

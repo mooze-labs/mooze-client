@@ -3,6 +3,8 @@ import 'package:mooze_mobile/features/settings/presentation/actions/external_nav
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class MainSettingsScreen extends StatefulWidget {
   const MainSettingsScreen({super.key});
@@ -15,7 +17,13 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Ajustes')),
+      appBar: AppBar(
+        title: Text('Ajustes'),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Stack(
           children: [
@@ -26,8 +34,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   settingsItems: [
                     ConfigStructure(
                       title: 'Modo comerciante',
-                      iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/merchant.svg',
+                      iconSvgPath: 'assets/icons/menu/settings/merchant.svg',
                       action: Navigation(context: context, rota: '/merchant'),
                       highlight: true,
                     ),
@@ -38,8 +45,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   settingsItems: [
                     ConfigStructure(
                       title: 'Histórico de transações',
-                      iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/transaction.svg',
+                      iconSvgPath: 'assets/icons/menu/settings/transaction.svg',
                       action: Navigation(
                         context: context,
                         rota: '/transactions-history',
@@ -52,8 +58,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   settingsItems: [
                     ConfigStructure(
                       title: 'Configurações',
-                      iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/settings.svg',
+                      iconSvgPath: 'assets/icons/menu/settings/settings.svg',
                       action: Navigation(context: context, rota: '/settings'),
                     ),
                   ],
@@ -64,7 +69,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ConfigStructure(
                       title: 'Nivel da carteira',
                       iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/wallet_level.svg',
+                          'assets/icons/menu/settings/wallet_level.svg',
                       action: Navigation(
                         context: context,
                         rota: '/wallet-levels',
@@ -78,7 +83,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ConfigStructure(
                       title: 'Saque de Depix',
                       iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/pix_out_line.svg',
+                          'assets/icons/menu/settings/pix_out_line.svg',
                       action: ExternalNavigation(
                         rota: 'https://tally.so/r/w5EMVb',
                         context: context,
@@ -86,8 +91,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ),
                     ConfigStructure(
                       title: 'Central de dados',
-                      iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/data.svg',
+                      iconSvgPath: 'assets/icons/menu/settings/data.svg',
                       action: ExternalNavigation(
                         rota: 'https://keepo.io/mooze.app/',
                         context: context,
@@ -95,8 +99,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ),
                     ConfigStructure(
                       title: 'GitHub',
-                      iconSvgPath:
-                          'assets/new_ui_wallet/assets/icons/menu/settings/github.svg',
+                      iconSvgPath: 'assets/icons/menu/settings/github.svg',
                       action: ExternalNavigation(
                         rota: 'https://github.com/mooze-labs',
                         context: context,

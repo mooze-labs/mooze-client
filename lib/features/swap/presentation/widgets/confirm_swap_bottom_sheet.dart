@@ -204,7 +204,7 @@ class _ConfirmSwapBottomSheetState
                   ),
                   const Spacer(),
                   SvgPicture.asset(
-                    'assets/new_ui_wallet/assets/icons/menu/arrow.svg',
+                    'assets/icons/menu/arrow.svg',
                     width: 25,
                     height: 25,
                   ),
