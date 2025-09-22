@@ -111,16 +111,12 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/flags/
+    - assets/icons/
+    - assets/icons/asset/
+    - assets/icons/contacts/
+    - assets/icons/menu/
     - assets/images/
-    - assets/images/icons/
-    - assets/images/logos/
-    - assets/default_coins.json
-    - assets/new_ui_wallet/assets/logos/
-    - assets/new_ui_wallet/assets/images/getstarted/
-    - assets/new_ui_wallet/assets/icons/asset/
-    - assets/new_ui_wallet/assets/icons/menu/
-    - assets/new_ui_wallet/assets/icons/menu/navigation/
-    - assets/new_ui_wallet/assets/icons/menu/settings/
-    - assets/new_ui_wallet/assets/images/phone_verification/
-    - assets/new_ui_wallet/assets/icons/contacts/
-    - assets/new_ui_wallet/assets/flags/
+    - assets/images/getstarted/
+    - assets/images/phone_verification/
+    - assets/logos/
