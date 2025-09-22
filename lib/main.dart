@@ -4,6 +4,7 @@ import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as liquidSdk;
 import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/shared/infra/lwk/sync/sync_bootstrap.dart';
+import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 import 'routes.dart';
 
 void main() async {
@@ -20,6 +21,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.read(walletSyncBootstrapProvider);
+    ref.read(connectivityProvider);
     return MaterialApp.router(
       title: 'Mooze',
       debugShowCheckedModeBanner: false,
