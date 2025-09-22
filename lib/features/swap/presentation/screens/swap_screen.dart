@@ -264,7 +264,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       value: _fromAsset,
                       underline: const SizedBox.shrink(),
                       icon: SvgPicture.asset(
-                        'assets/new_ui_wallet/assets/icons/menu/arrow_down.svg',
+                        'assets/icons/menu/arrow_down.svg',
                       ),
                       onChanged: (core.Asset? newAsset) {
                         if (newAsset != null) {
@@ -449,7 +449,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           value: _toAsset,
                           underline: const SizedBox.shrink(),
                           icon: SvgPicture.asset(
-                            'assets/new_ui_wallet/assets/icons/menu/arrow_down.svg',
+                            'assets/icons/menu/arrow_down.svg',
                           ),
                           onChanged: (core.Asset? newAsset) {
                             if (newAsset != null) {
@@ -588,6 +588,6 @@ class _SwapIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset('assets/new_ui_wallet/assets/icons/menu/swap.svg');
+    return SvgPicture.asset('assets/icons/menu/swap.svg');
   }
 }

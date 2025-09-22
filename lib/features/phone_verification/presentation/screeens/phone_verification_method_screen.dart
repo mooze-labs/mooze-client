@@ -102,7 +102,7 @@ class _PhoneVerificationMethodScreenState
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SvgPicture.asset(
-                          'assets/new_ui_wallet/assets/flags/br.svg',
+                          'assets/flags/br.svg',
                           width: 24,
                           height: 24,
                         ),

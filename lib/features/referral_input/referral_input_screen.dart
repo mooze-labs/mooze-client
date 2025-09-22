@@ -306,7 +306,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     SvgPicture.asset(
-                                      'assets/new_ui_wallet/assets/icons/menu/settings/gift.svg',
+                                      'assets/icons/menu/settings/gift.svg',
                                       width: 24,
                                       height: 24,
                                     ),

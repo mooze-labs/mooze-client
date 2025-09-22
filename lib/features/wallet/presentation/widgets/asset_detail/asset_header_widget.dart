@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -16,6 +17,10 @@ class AssetHeaderWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
     final priceHistory = ref.watch(assetPriceHistoryProvider(asset));
+
+    // Usar o fiatPriceProvider que já tem cache integrado do HybridPriceService
+    final priceAsync = ref.watch(fiatPriceProvider(asset));
+    final isUsingCache = ref.watch(isUsingCacheProvider);
 
     return Container(
       width: double.infinity,
@@ -31,12 +36,41 @@ class AssetHeaderWidget extends ConsumerWidget {
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.primaryColor.withOpacity(0.3),
+          color:
+              isUsingCache
+                  ? Colors.orange.withOpacity(0.5)
+                  : AppColors.primaryColor.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: Column(
         children: [
+          // Indicador de cache no topo se offline
+          if (isUsingCache) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.offline_bolt, color: Colors.orange, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    'Dados offline',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -52,14 +86,15 @@ class AssetHeaderWidget extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  priceHistory.when(
+                  // Usar o preço do cache que já tem fallback automático
+                  priceAsync.when(
                     data:
-                        (data) => data.fold(
-                          (err) => _buildErrorPrice(),
-                          (klines) => _buildCurrentPrice(icon, klines.last),
+                        (priceResult) => priceResult.fold(
+                          (error) => _buildErrorPrice(),
+                          (price) => _buildCurrentPrice(icon, price),
                         ),
-                    error: (_, __) => _buildErrorPrice(),
                     loading: () => _buildLoadingPrice(),
+                    error: (_, __) => _buildErrorPrice(),
                   ),
                 ],
               ),

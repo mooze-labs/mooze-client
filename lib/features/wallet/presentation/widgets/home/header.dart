@@ -5,7 +5,7 @@ import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart'
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 const double logoOpacity = 0.2;
-const String logoPath = 'assets/new_ui_wallet/assets/logos/logo_primary.svg';
+const String logoPath = 'assets/logos/logo_primary.svg';
 const double logoWidth = 117.0;
 const double logoHeight = 24.0;
 

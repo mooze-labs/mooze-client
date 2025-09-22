@@ -21,7 +21,7 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
           children: [
             Expanded(
               child: SvgPicture.asset(
-                'assets/new_ui_wallet/assets/images/phone_verification/background_image.svg',
+                'assets/images/phone_verification/background_image.svg',
                 width: double.infinity,
                 fit: BoxFit.contain,
               ),
@@ -43,9 +43,12 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 40),
-            PrimaryButton(text: 'Próximo', onPressed: () {
-              context.go('/phone-verification/method');
-            }),
+            PrimaryButton(
+              text: 'Próximo',
+              onPressed: () {
+                context.go('/phone-verification/method');
+              },
+            ),
             const SizedBox(height: 30),
           ],
         ),

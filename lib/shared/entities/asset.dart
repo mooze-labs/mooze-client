@@ -54,9 +54,9 @@ enum Asset {
 
   String get iconPath {
     return switch (this) {
-      Asset.usdt => 'assets/new_ui_wallet/assets/icons/asset/usdt.svg',
-      Asset.depix => 'assets/new_ui_wallet/assets/icons/asset/depix.svg',
-      Asset.btc => 'assets/new_ui_wallet/assets/icons/asset/bitcoin.svg',
+      Asset.usdt => 'assets/icons/asset/usdt.svg',
+      Asset.depix => 'assets/icons/asset/depix.svg',
+      Asset.btc => 'assets/icons/asset/bitcoin.svg',
     };
   }
 

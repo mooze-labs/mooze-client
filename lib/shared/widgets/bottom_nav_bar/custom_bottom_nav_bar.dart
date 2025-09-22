@@ -36,27 +36,23 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/home.svg',
+                  icon: 'assets/icons/menu/navigation/home.svg',
                   index: 0,
                   label: 'Home',
                 ),
                 _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/asset.svg',
+                  icon: 'assets/icons/menu/navigation/asset.svg',
                   index: 1,
                   label: 'Ativos',
                 ),
                 const SizedBox(width: 60),
                 _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/swap.svg',
+                  icon: 'assets/icons/menu/navigation/swap.svg',
                   index: 3,
                   label: 'Swap',
                 ),
                 _buildNavItem(
-                  icon:
-                      'assets/new_ui_wallet/assets/icons/menu/navigation/menu.svg',
+                  icon: 'assets/icons/menu/navigation/menu.svg',
                   index: 4,
                   label: 'Menu',
                 ),
@@ -143,9 +139,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
           child: SizedBox(
             width: 20,
             height: 20,
-            child: SvgPicture.asset(
-              'assets/new_ui_wallet/assets/icons/menu/navigation/pix.svg',
-            ),
+            child: SvgPicture.asset('assets/icons/menu/navigation/pix.svg'),
           ),
         ),
       ),
