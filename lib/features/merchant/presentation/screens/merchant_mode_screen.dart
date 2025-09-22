@@ -84,12 +84,6 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       );
 
       await ref.read(productControllerProvider.notifier).addProduct(product);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Produto adicionado com sucesso!')),
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
