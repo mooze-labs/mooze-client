@@ -22,7 +22,7 @@ class AssetSelectorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedAsset = ref.read(selectedAssetProvider);
+    final selectedAsset = ref.watch(selectedAssetProvider);
     return FloatingLabelDropdown<Asset>(
       label: "Selecione um ativo",
       value: selectedAsset,
