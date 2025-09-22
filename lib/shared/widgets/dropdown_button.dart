@@ -71,10 +71,8 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
     final Offset position = renderBox.localToGlobal(Offset.zero);
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Calcula altura disponível para baixo
     final spaceBelow = screenHeight - position.dy - size.height;
-    final maxHeight =
-        spaceBelow > 150 ? 150.0 : spaceBelow - 20; // 20px de margem
+    final maxHeight = spaceBelow > 150 ? 150.0 : spaceBelow - 20;
 
     return OverlayEntry(
       builder:
@@ -83,7 +81,7 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
             child: CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              offset: Offset(0.0, size.height + 4.0), // Sempre abre para baixo
+              offset: Offset(0.0, size.height + 4.0),
               child: Material(
                 elevation: 4.0,
                 borderRadius: BorderRadius.circular(8),
