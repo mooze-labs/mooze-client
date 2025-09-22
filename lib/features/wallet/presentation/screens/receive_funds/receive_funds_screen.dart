@@ -6,6 +6,8 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/amount_field_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/description_field_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/generate_qr_button.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class ReceiveFundsScreen extends ConsumerWidget {
   const ReceiveFundsScreen({super.key});
@@ -20,10 +22,10 @@ class ReceiveFundsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
         actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           IconButton(
             onPressed: () => _showInfoOverlay(context),
             icon: const Icon(Icons.info_outline_rounded),
-            tooltip: 'Como funciona',
           ),
         ],
       ),

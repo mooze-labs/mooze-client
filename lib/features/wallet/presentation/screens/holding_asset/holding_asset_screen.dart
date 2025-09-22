@@ -8,6 +8,8 @@ import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HoldingsAsseetScreen extends ConsumerStatefulWidget {
@@ -104,7 +106,13 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(title: Text('Ativos'));
+    return AppBar(
+      title: Text('Ativos'),
+      actions: [
+        OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+        const SizedBox(width: 16),
+      ],
+    );
   }
 
   Widget _buildActionButtons(BuildContext context) {

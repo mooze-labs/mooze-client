@@ -9,6 +9,8 @@ import 'package:mooze_mobile/features/transaction_history/widgets/transaction_fi
 import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_entity.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -133,6 +135,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded),
         ),
         actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           IconButton(
             icon: Icon(
               Icons.filter_alt_outlined,
@@ -143,114 +146,130 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Consumer(
-          builder: (context, ref, _) {
-            final transactionHistory = ref.watch(transactionHistoryProvider);
-            final isVisible = ref.watch(isVisibleProvider);
-            return transactionHistory.when(
-              data:
-                  (data) => data.fold((err) => ErrorTransactionList(), (
-                    transactions,
-                  ) {
-                    final filteredTransactions = _applyFilters(transactions);
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight:
+                MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top -
+                kToolbarHeight -
+                32,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Consumer(
+              builder: (context, ref, _) {
+                final transactionHistory = ref.watch(
+                  transactionHistoryProvider,
+                );
+                final isVisible = ref.watch(isVisibleProvider);
+                return transactionHistory.when(
+                  data:
+                      (data) => data.fold((err) => ErrorTransactionList(), (
+                        transactions,
+                      ) {
+                        final filteredTransactions = _applyFilters(
+                          transactions,
+                        );
 
-                    if (filteredTransactions.isEmpty) {
-                      return Column(
-                        children: [
-                          if (_hasActiveFilters) ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.primaryColor,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Filtros ativos - ${_getActiveFiltersDescription()}',
-                                      style: TextStyle(fontSize: 12),
+                        if (filteredTransactions.isEmpty) {
+                          return Column(
+                            children: [
+                              if (_hasActiveFilters) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryColor.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: AppColors.primaryColor.withValues(
+                                        alpha: 0.3,
+                                      ),
                                     ),
                                   ),
-                                  TextButton(
-                                    onPressed: _clearFilters,
-                                    child: const Text('Limpar'),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: AppColors.primaryColor,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Filtros ativos - ${_getActiveFiltersDescription()}',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: _clearFilters,
+                                        child: const Text('Limpar'),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          EmptyTransactionList(),
-                        ],
-                      );
-                    }
-
-                    return Column(
-                      children: [
-                        if (_hasActiveFilters) ...[
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryColor.withValues(
-                                alpha: 0.1,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.3,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.filter_alt, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '${filteredTransactions.length} de ${transactions.length} transações - ${_getActiveFiltersDescription().isNotEmpty ? _getActiveFiltersDescription() : 'Todos'}',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: _clearFilters,
-                                  child: const Text('Limpar'),
                                 ),
                               ],
+                              EmptyTransactionList(),
+                              const SizedBox(height: 80),
+                            ],
+                          );
+                        }
+
+                        return Column(
+                          children: [
+                            if (_hasActiveFilters) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.primaryColor.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.filter_alt, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${filteredTransactions.length} de ${transactions.length} transações - ${_getActiveFiltersDescription().isNotEmpty ? _getActiveFiltersDescription() : 'Todos'}',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _clearFilters,
+                                      child: const Text('Limpar'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            SuccessfulTransactionList(
+                              transactions: filteredTransactions,
+                              isVisible: isVisible,
                             ),
-                          ),
-                        ],
-                        Expanded(
-                          child: SuccessfulTransactionList(
-                            transactions: filteredTransactions,
-                            isVisible: isVisible,
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-              error: (err, stackTrace) => ErrorTransactionList(),
-              loading: () => LoadingTransactionList(),
-            );
-          },
+                            const SizedBox(height: 80),
+                          ],
+                        );
+                      }),
+                  error: (err, stackTrace) => ErrorTransactionList(),
+                  loading: () => LoadingTransactionList(),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

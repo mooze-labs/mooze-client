@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'providers.dart';
 import 'widgets.dart';
@@ -79,7 +81,15 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: Text('Receber PIX'), centerTitle: true),
+          appBar: AppBar(
+            title: Text('Receber PIX'),
+            centerTitle: true,
+            actions: [
+              OfflineIndicator(
+                onTap: () => OfflinePriceInfoOverlay.show(context),
+              ),
+            ],
+          ),
           resizeToAvoidBottomInset: false,
           body: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),

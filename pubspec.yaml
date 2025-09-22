@@ -16,7 +16,7 @@ dependencies:
   slip_0021:
     git:
       url: https://github.com/mooze-labs/slip-21-dart.git
-      ref: main 
+      ref: main
 
   flutter_breez_liquid:
     git:
@@ -25,8 +25,8 @@ dependencies:
 
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8
-  lwk: 
-    path: ./packages/lwk-dart 
+  lwk:
+    path: ./packages/lwk-dart
   ffi: ^2.1.4
   shared_preferences: ^2.5.2
   path_provider: ^2.1.5
@@ -48,6 +48,7 @@ dependencies:
   action_slider: ^0.7.0
   web_socket_client: ^0.2.0
   json_rpc_2: ^4.0.0
+  connectivity_plus: ^7.0.0
   url_launcher: ^6.3.1
   flutter_dotenv: ^5.2.1
   local_auth: ^2.3.0

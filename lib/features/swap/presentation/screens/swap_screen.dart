@@ -15,6 +15,8 @@ import 'package:mooze_mobile/shared/prices/providers/currency_controller_provide
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -59,7 +61,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     return Scaffold(
       extendBody: true,
-      appBar: AppBar(title: const Text('Swap')),
+      appBar: AppBar(
+        title: const Text('Swap'),
+        actions: [
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(
@@ -256,7 +264,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       value: _fromAsset,
                       underline: const SizedBox.shrink(),
                       icon: SvgPicture.asset(
-                        'assets/new_ui_wallet/assets/icons/menu/arrow_down.svg',
+                        'assets/icons/menu/arrow_down.svg',
                       ),
                       onChanged: (core.Asset? newAsset) {
                         if (newAsset != null) {
@@ -441,7 +449,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           value: _toAsset,
                           underline: const SizedBox.shrink(),
                           icon: SvgPicture.asset(
-                            'assets/new_ui_wallet/assets/icons/menu/arrow_down.svg',
+                            'assets/icons/menu/arrow_down.svg',
                           ),
                           onChanged: (core.Asset? newAsset) {
                             if (newAsset != null) {
@@ -580,6 +588,6 @@ class _SwapIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset('assets/new_ui_wallet/assets/icons/menu/swap.svg');
+    return SvgPicture.asset('assets/icons/menu/swap.svg');
   }
 }

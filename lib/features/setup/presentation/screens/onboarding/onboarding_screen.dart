@@ -81,7 +81,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: SvgPicture.asset(
-        'assets/new_ui_wallet/assets/logos/logo_primary.svg',
+        'assets/logos/logo_primary.svg',
         height: _logoHeight,
       ),
     );

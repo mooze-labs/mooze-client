@@ -9,7 +9,7 @@ class MockAppImage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: Center(
         child: Image.asset(
-          'assets/new_ui_wallet/assets/images/getstarted/getstarted_mock.png',
+          'assets/images/getstarted/getstarted_mock.png',
           fit: BoxFit.contain,
         ),
       ),
