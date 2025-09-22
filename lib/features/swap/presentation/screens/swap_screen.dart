@@ -228,7 +228,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     future: _getBalance(_fromAsset),
                     builder: (context, snapshot) {
                       return Text(
-                        'Balance: ${snapshot.data ?? "..."}',
+                        '${snapshot.data ?? "..."}',
                         style: Theme.of(context).textTheme.labelLarge!.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -427,7 +427,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         future: _getBalance(_toAsset),
                         builder: (context, snapshot) {
                           return Text(
-                            'Balance: ${snapshot.data ?? "..."}',
+                            '${snapshot.data ?? "..."}',
                             style: Theme.of(context).textTheme.labelLarge!
                                 .copyWith(color: AppColors.textSecondary),
                           );
