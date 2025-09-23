@@ -6,6 +6,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../entities/transaction.dart';
 import '../entities/payment_request.dart';
 import '../entities/partially_signed_transaction.dart';
+import '../entities/payment_limits.dart';
 
 import '../enums/blockchain.dart';
 import '../typedefs.dart';
@@ -72,4 +73,9 @@ abstract class WalletRepository {
     DateTime? endDate,
   });
   TaskEither<WalletError, Balance> getBalance();
+
+  // Payment Limits
+  TaskEither<WalletError, OnchainPaymentLimitsResponse> fetchOnchainLimits();
+  TaskEither<WalletError, LightningPaymentLimitsResponse>
+  fetchLightningLimits();
 }

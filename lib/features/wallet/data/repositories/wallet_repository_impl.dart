@@ -1,6 +1,7 @@
 import 'dart:math';
 
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
+    hide OnchainPaymentLimitsResponse, LightningPaymentLimitsResponse;
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/data/dto/payment_request_dto.dart';
@@ -9,6 +10,7 @@ import 'package:mooze_mobile/features/wallet/data/dto/transaction_dto.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
@@ -375,6 +377,53 @@ class BreezWalletRepositoryImpl extends WalletRepository {
       },
     );
   }
+
+  @override
+  TaskEither<WalletError, OnchainPaymentLimitsResponse> fetchOnchainLimits() {
+    return TaskEither.tryCatch(
+      () async {
+        final breezLimits = await _breez.fetchOnchainLimits();
+        return OnchainPaymentLimitsResponse(
+          receive: PaymentLimits(
+            minSat: breezLimits.receive.minSat,
+            maxSat: breezLimits.receive.maxSat,
+          ),
+          send: PaymentLimits(
+            minSat: breezLimits.send.minSat,
+            maxSat: breezLimits.send.maxSat,
+          ),
+        );
+      },
+      (err, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao buscar limites onchain: $err",
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, LightningPaymentLimitsResponse>
+  fetchLightningLimits() {
+    return TaskEither.tryCatch(
+      () async {
+        final breezLimits = await _breez.fetchLightningLimits();
+        return LightningPaymentLimitsResponse(
+          receive: PaymentLimits(
+            minSat: breezLimits.receive.minSat,
+            maxSat: breezLimits.receive.maxSat,
+          ),
+          send: PaymentLimits(
+            minSat: breezLimits.send.minSat,
+            maxSat: breezLimits.send.maxSat,
+          ),
+        );
+      },
+      (err, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao buscar limites lightning: $err",
+      ),
+    );
+  }
 }
 
 /// RECEIVE functions
@@ -621,57 +670,33 @@ TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
   String destination,
   BigInt amount,
 ) {
-  return _getOnchainPaymentLimits(breez).flatMap((limits) {
-    if (amount < limits.send.minSat) {
-      return TaskEither.left(
-        WalletError(
+  return TaskEither.tryCatch(
+    () async {
+      final limits = await breez.fetchOnchainLimits();
+      if (amount < limits.send.minSat) {
+        throw WalletError(
           WalletErrorType.invalidAmount,
           "Valor insuficiente. Mínimo: ${limits.send.minSat} sats",
-        ),
-      );
-    }
-    if (amount > limits.send.maxSat) {
-      return TaskEither.left(
-        WalletError(
+        );
+      }
+      if (amount > limits.send.maxSat) {
+        throw WalletError(
           WalletErrorType.invalidAmount,
           "Valor inválido. Máximo: ${limits.send.maxSat} sats",
+        );
+      }
+
+      final response = await breez.preparePayOnchain(
+        req: PreparePayOnchainRequest(
+          amount: PayAmount_Bitcoin(receiverAmountSat: amount),
         ),
       );
-    }
 
-    return _preparePayOnchainResponse(breez, amount).flatMap((r) {
-      return TaskEither.right(
-        PayOnchainRequest(address: destination, prepareResponse: r),
-      );
-    });
-  });
-}
-
-TaskEither<WalletError, PreparePayOnchainResponse> _preparePayOnchainResponse(
-  BindingLiquidSdk breez,
-  BigInt amount,
-) {
-  return TaskEither.tryCatch(
-    () async => breez.preparePayOnchain(
-      req: PreparePayOnchainRequest(
-        amount: PayAmount_Bitcoin(receiverAmountSat: amount),
-      ),
-    ),
-    (err, stackTrace) => WalletError(
+      return PayOnchainRequest(address: destination, prepareResponse: response);
+    },
+    (e, s) => WalletError(
       WalletErrorType.transactionFailed,
-      "Falha ao gerar transação: $err",
-    ),
-  );
-}
-
-TaskEither<WalletError, OnchainPaymentLimitsResponse> _getOnchainPaymentLimits(
-  BindingLiquidSdk breez,
-) {
-  return TaskEither.tryCatch(
-    () async => breez.fetchOnchainLimits(),
-    (err, stackTrace) => WalletError(
-      WalletErrorType.networkError,
-      "Falha ao buscar limites de transação",
+      "Falha ao preparar transação onchain: $e",
     ),
   );
 }
