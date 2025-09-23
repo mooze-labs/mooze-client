@@ -29,6 +29,7 @@ class GenerateQRButton extends ConsumerWidget {
       onPressed: isEnabled ? () => _generateQR(context, ref) : null,
       text: 'Gerar fatura',
       isEnabled: isEnabled,
+      isLoading: isLoading,
     );
   }
 
