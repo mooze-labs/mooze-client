@@ -4,12 +4,14 @@ class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isEnabled;
+  final bool isLoading;
 
   const PrimaryButton({
     super.key,
     required this.text,
     required this.onPressed,
     this.isEnabled = true,
+    this.isLoading = false,
   });
 
   // Constants
@@ -34,7 +36,7 @@ class PrimaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: ElevatedButton(
-        onPressed: isEnabled ? onPressed : null,
+        onPressed: (isEnabled && !isLoading) ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: _textPrimary,
@@ -42,10 +44,23 @@ class PrimaryButton extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        child:
+            isLoading
+                ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
       ),
     );
   }
