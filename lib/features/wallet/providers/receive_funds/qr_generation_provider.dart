@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/n
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 
 class QRGenerationState {
   final bool isLoading;
@@ -47,6 +48,14 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
     state = const AsyncValue.loading();
 
     try {
+      if (amount != null && amount > 0) {
+        final validationError = await _validateAmountLimits(amount, network);
+        if (validationError != null) {
+          state = AsyncValue.error(validationError, StackTrace.current);
+          return;
+        }
+      }
+
       final walletRepositoryResult = await ref.read(
         walletRepositoryProvider.future,
       );
@@ -129,7 +138,6 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
         )
         .map((paymentRequest) {
           final displayAddress = paymentRequest.address;
-          final qrData = _formatBitcoinURI(displayAddress, amount, description);
 
           return QRGenerationState(
             isLoading: false,
@@ -210,27 +218,66 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
         });
   }
 
-  String _formatBitcoinURI(
-    String address,
-    double? amount,
-    String? description,
-  ) {
-    var uri = address;
-    final params = <String>[];
+  Future<WalletError?> _validateAmountLimits(
+    double amount,
+    NetworkType network,
+  ) async {
+    try {
+      final amountSats = BigInt.from((amount * 100000000).round());
 
-    if (amount != null && amount > 0) {
-      params.add('amount=$amount');
+      switch (network) {
+        case NetworkType.lightning:
+          final lightningLimits = await ref.read(
+            lightningLimitsProvider.future,
+          );
+          if (lightningLimits != null) {
+            if (amountSats < lightningLimits.send.minSat) {
+              return WalletError(
+                WalletErrorType.invalidAmount,
+                'Valor mínimo para Lightning: ${lightningLimits.send.minSat} sats',
+              );
+            }
+            if (amountSats > lightningLimits.send.maxSat) {
+              return WalletError(
+                WalletErrorType.invalidAmount,
+                'Valor máximo para Lightning: ${lightningLimits.send.maxSat} sats',
+              );
+            }
+          }
+          break;
+        case NetworkType.bitcoin:
+          final onchainLimits = await ref.read(onchainLimitsProvider.future);
+          if (onchainLimits != null) {
+            if (amountSats < onchainLimits.send.minSat) {
+              return WalletError(
+                WalletErrorType.invalidAmount,
+                'Valor mínimo para Bitcoin: ${onchainLimits.send.minSat} sats',
+              );
+            }
+            if (amountSats > onchainLimits.send.maxSat) {
+              return WalletError(
+                WalletErrorType.invalidAmount,
+                'Valor máximo para Bitcoin: ${onchainLimits.send.maxSat} sats',
+              );
+            }
+          }
+          break;
+        case NetworkType.liquid:
+          break;
+        case NetworkType.unknown:
+          return const WalletError(
+            WalletErrorType.invalidAsset,
+            'Tipo de rede não suportado',
+          );
+      }
+
+      return null; 
+    } catch (e) {
+      return WalletError(
+        WalletErrorType.networkError,
+        'Erro ao validar limites: $e',
+      );
     }
-
-    if (description != null && description.isNotEmpty) {
-      params.add('label=${Uri.encodeComponent(description)}');
-    }
-
-    if (params.isNotEmpty) {
-      uri += '?${params.join('&')}';
-    }
-
-    return uri;
   }
 
   void reset() {
