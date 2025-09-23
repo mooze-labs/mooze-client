@@ -316,7 +316,6 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                         height: 50,
                                         child: TextField(
                                           controller: _referralCodeController,
-                                          keyboardType: TextInputType.phone,
                                           inputFormatters: [
                                             UpperCaseTextFormatter(),
                                           ],
