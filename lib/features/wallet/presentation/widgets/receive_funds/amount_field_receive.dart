@@ -10,6 +10,7 @@ import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_con
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/receive_conversion_widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 
 class AmountFieldReceive extends ConsumerStatefulWidget {
   const AmountFieldReceive({super.key});
@@ -43,7 +44,6 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final isConversionLoading = ref.watch(receiveConversionLoadingProvider);
     final controller = ref.read(receiveConversionControllerProvider.notifier);
 
-    // Obter o valor correto baseado no tipo de conversão
     final currentValue = controller.getCurrentValueForType(conversionType);
 
     if (!_isUpdatingFromProvider && _textController.text != currentValue) {
@@ -138,10 +138,8 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
 
             final conversionType = ref.read(receiveConversionTypeProvider);
 
-            // Atualizar apenas o provider correspondente ao tipo atual
             controller.updateCurrentValueProvider(conversionType, value);
 
-            // Calcular e atualizar o valor final em BTC/Asset para validação
             controller.updateFinalAmountValue(
               value,
               conversionType,
@@ -160,7 +158,6 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     );
   }
 
-  /// Retorna o texto do sufixo baseado no tipo de conversão
   String _getSuffixText(
     Asset? selectedAsset,
     ReceiveConversionType conversionType,
@@ -178,13 +175,11 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     }
   }
 
-  /// Constrói a seção de informações sobre o valor
   Widget _buildAmountInfo(
     BuildContext context,
     NetworkType network,
     Asset selectedAsset,
   ) {
-    // Usar o valor final convertido em asset, não o valor do campo
     final finalAssetValue = ref.watch(receiveAmountProvider);
     final btcAmount = double.tryParse(finalAssetValue);
 
@@ -219,71 +214,141 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
             ),
           const SizedBox(height: 8),
 
-          // Prévia das conversões
           ReceiveConversionPreview(
             selectedAsset: selectedAsset,
             assetAmount: btcAmount,
           ),
           const SizedBox(height: 8),
 
-          // Validações de rede
           _buildNetworkValidations(context, network, btcAmount),
         ],
       ),
     );
   }
 
-  /// Constrói as validações específicas da rede
   Widget _buildNetworkValidations(
     BuildContext context,
     NetworkType network,
     double btcAmount,
   ) {
+    final amountSats = BigInt.from((btcAmount * 100000000).round());
+
     if (network == NetworkType.lightning) {
-      if (btcAmount < 0.000001) {
-        return _buildValidationRow(
-          context,
-          icon: Icons.warning_amber_outlined,
-          text: 'Valor mínimo: 100 sats (0.000001 BTC)',
-          color: Colors.orange,
-        );
-      } else {
-        return _buildValidationRow(
-          context,
-          icon: Icons.check_circle_outline,
-          text: 'Valor válido para Lightning',
-          color: Colors.green,
-        );
-      }
+      return ref
+          .watch(lightningLimitsProvider)
+          .when(
+            data: (limits) {
+              if (limits == null) {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.warning_amber_outlined,
+                  text: 'Não foi possível carregar limites Lightning',
+                  color: Colors.orange,
+                );
+              }
+
+              if (amountSats < limits.send.minSat) {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.warning_amber_outlined,
+                  text: 'Valor mínimo: ${limits.send.minSat} sats',
+                  color: Colors.orange,
+                );
+              } else if (amountSats > limits.send.maxSat) {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.error_outline,
+                  text: 'Valor máximo: ${limits.send.maxSat} sats',
+                  color: Colors.red,
+                );
+              } else {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.check_circle_outline,
+                  text: 'Valor válido para Lightning',
+                  color: Colors.green,
+                );
+              }
+            },
+            loading:
+                () => _buildValidationRow(
+                  context,
+                  icon: Icons.hourglass_empty,
+                  text: 'Carregando limites Lightning...',
+                  color: Colors.grey,
+                ),
+            error:
+                (error, stack) => _buildValidationRow(
+                  context,
+                  icon: Icons.error_outline,
+                  text: 'Erro ao carregar limites Lightning',
+                  color: Colors.red,
+                ),
+          );
     } else if (network == NetworkType.bitcoin) {
-      if (btcAmount < 0.00025) {
-        return _buildValidationRow(
-          context,
-          icon: Icons.warning_amber_outlined,
-          text: 'Valor mínimo: 0.00025 BTC',
-          color: Colors.orange,
-        );
-      } else {
-        return _buildValidationRow(
-          context,
-          icon: Icons.check_circle_outline,
-          text: 'Valor válido para Bitcoin',
-          color: Colors.green,
-        );
-      }
+      return ref
+          .watch(onchainLimitsProvider)
+          .when(
+            data: (limits) {
+              if (limits == null) {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.warning_amber_outlined,
+                  text: 'Não foi possível carregar limites onchain',
+                  color: Colors.orange,
+                );
+              }
+
+              if (amountSats < limits.send.minSat) {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.warning_amber_outlined,
+                  text: 'Valor mínimo: ${limits.send.minSat} sats',
+                  color: Colors.orange,
+                );
+              } else if (amountSats > limits.send.maxSat) {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.error_outline,
+                  text: 'Valor máximo: ${limits.send.maxSat} sats',
+                  color: Colors.red,
+                );
+              } else {
+                return _buildValidationRow(
+                  context,
+                  icon: Icons.check_circle_outline,
+                  text: 'Valor válido para Bitcoin',
+                  color: Colors.green,
+                );
+              }
+            },
+            loading:
+                () => _buildValidationRow(
+                  context,
+                  icon: Icons.hourglass_empty,
+                  text: 'Carregando limites onchain...',
+                  color: Colors.grey,
+                ),
+            error:
+                (error, stack) => _buildValidationRow(
+                  context,
+                  icon: Icons.error_outline,
+                  text: 'Erro ao carregar limites onchain',
+                  color: Colors.red,
+                ),
+          );
     } else if (network == NetworkType.liquid) {
       return _buildValidationRow(
         context,
         icon: Icons.check_circle_outline,
-        text: 'Rede Liquid selecionada',
-        color: Colors.blue,
+        text: 'Valor válido para Liquid',
+        color: Colors.green,
       );
     }
 
     return const SizedBox.shrink();
   }
 
-  /// Constrói uma linha de validação
   Widget _buildValidationRow(
     BuildContext context, {
     required IconData icon,
