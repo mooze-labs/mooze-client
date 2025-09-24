@@ -29,7 +29,7 @@ class AssetSelectorReceive extends ConsumerWidget {
     return FloatingLabelDropdown<Asset>(
       label: "Selecione um ativo",
       value: selectedAsset,
-      items: [Asset.btc, Asset.depix, Asset.usdt],
+      items: [Asset.btc, Asset.lbtc, Asset.depix, Asset.usdt],
       onChanged: (val) {
         ref.read(selectedReceiveAssetProvider.notifier).state =
             val ?? Asset.btc;

@@ -504,12 +504,10 @@ class _AddressModalState extends ConsumerState<AmountModal> {
 
     try {
       final double? priceToUse =
-          asset == Asset.btc ? bitcoinPrice : selectedAssetPrice;
+          ((asset == Asset.btc) || (asset == Asset.lbtc))
+              ? bitcoinPrice
+              : selectedAssetPrice;
       final BigInt satoshis = displayMode.parseInput(asset, input, priceToUse);
-
-      if (hasMinimumValue && satoshis.toInt() < 25000) {
-        return const Left("Valor mínimo é 25.000 sats para rede Bitcoin");
-      }
 
       return Right(satoshis.toInt());
     } catch (e) {

@@ -324,12 +324,7 @@ class ReceiveValidationController
       }
 
       if (network == NetworkType.bitcoin) {
-        if (amount == null || amount <= 0) return false;
-
-        final btcAmount = await _convertToBitcoin(amount, displayMode);
-        if (btcAmount < 0.00025) return false;
-
-        return await _checkDynamicLimits(amount, network, displayMode);
+        return true;
       }
 
       if (network == NetworkType.liquid) {
