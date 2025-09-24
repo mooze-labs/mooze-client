@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../domain/entities.dart';
+import '../../domain/entities/payment_limits.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/errors.dart';
 
@@ -387,5 +388,38 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         };
 
     return TaskEither.right(mockBalance);
+  }
+
+  @override
+  TaskEither<WalletError, OnchainPaymentLimitsResponse> fetchOnchainLimits() {
+    final mockLimits = OnchainPaymentLimitsResponse(
+      send: PaymentLimits(
+        minSat: BigInt.from(1000),
+        maxSat: BigInt.from(100000000),
+      ),
+      receive: PaymentLimits(
+        minSat: BigInt.from(1),
+        maxSat: BigInt.from(500000000),
+      ),
+    );
+
+    return TaskEither.right(mockLimits);
+  }
+
+  @override
+  TaskEither<WalletError, LightningPaymentLimitsResponse>
+  fetchLightningLimits() {
+    final mockLimits = LightningPaymentLimitsResponse(
+      send: PaymentLimits(
+        minSat: BigInt.from(100),
+        maxSat: BigInt.from(10000000),
+      ),
+      receive: PaymentLimits(
+        minSat: BigInt.from(1),
+        maxSat: BigInt.from(50000000),
+      ),
+    );
+
+    return TaskEither.right(mockLimits);
   }
 }

@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/merchant/models/item.dart';
+import 'package:mooze_mobile/features/merchant/models/product.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/product_controller.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
+import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_charge_screen.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/add_edit_item_modal.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_widget.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widget.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 
-class MerchantModeScreen extends StatefulWidget {
+class MerchantModeScreen extends ConsumerStatefulWidget {
   @override
-  MerchantModeScreenState createState() => MerchantModeScreenState();
+  ConsumerState<MerchantModeScreen> createState() => MerchantModeScreenState();
 }
 
-class MerchantModeScreenState extends State<MerchantModeScreen>
+class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  double valorReais = 0;
   double valorBitcoin = 0;
   String valorDigitado = '0.00';
-  List<Item> produtos = [
-    Item(nome: 'Produto 01', preco: 3.00, quantidade: 0),
-    Item(nome: 'Produto 02', preco: 40.00, quantidade: 1),
-    Item(nome: 'Produto 03', preco: 2.50, quantidade: 4),
-  ];
 
   @override
   void initState() {
@@ -34,16 +36,10 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
 
   void _adicionarNumero(String numero) {
     setState(() {
-      if (valorDigitado == '0.00') {
-        valorDigitado = numero;
-      } else {
-        String valorLimpo = valorDigitado
-            .replaceAll('.', '')
-            .replaceAll(',', '');
-        valorLimpo += numero;
-        double valor = double.parse(valorLimpo) / 100;
-        valorDigitado = valor.toStringAsFixed(2);
-      }
+      String valorLimpo = valorDigitado.replaceAll('.', '').replaceAll(',', '');
+      valorLimpo += numero;
+      double valor = double.parse(valorLimpo) / 100;
+      valorDigitado = valor.toStringAsFixed(2);
     });
   }
 
@@ -66,107 +62,173 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
     });
   }
 
-  void _mostrarBottomSheet() {
-    final nomeController = TextEditingController();
-    final precoController = TextEditingController();
+  void _adicionarAoTotal() {
+    setState(() {
+      double valorAdicionado = double.tryParse(valorDigitado) ?? 0.0;
+      if (valorAdicionado > 0) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        ref
+            .read(cartControllerProvider.notifier)
+            .updateQuantity(timestamp, 'Valor Avulso', valorAdicionado, true);
+      }
+      valorDigitado = '0.00';
+    });
+  }
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.grey[900],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (context) => Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Adicionar Item',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: nomeController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Nome do produto',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.pink),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 15),
-                TextField(
-                  controller: precoController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Preço (R\$)',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.pink),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text('Cancelar'),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (nomeController.text.isNotEmpty &&
-                              precoController.text.isNotEmpty) {
-                            setState(() {
-                              produtos.add(
-                                Item(
-                                  nome: nomeController.text,
-                                  preco:
-                                      double.tryParse(precoController.text) ??
-                                      0.0,
-                                  quantidade: 0,
-                                ),
-                              );
-                            });
-                            Navigator.pop(context);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text('Adicionar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+  Future<void> _adicionarItem(Item item) async {
+    try {
+      final product = ProductEntity(
+        name: item.nome,
+        price: item.preco,
+        createdAt: DateTime.now(),
+      );
+
+      await ref.read(productControllerProvider.notifier).addProduct(product);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao adicionar produto: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _editarItem(int index) async {
+    final productsAsync = ref.read(productControllerProvider);
+    final products = productsAsync.maybeWhen(
+      data: (data) => data,
+      orElse: () => <ProductEntity>[],
     );
+
+    if (index >= products.length) return;
+
+    final product = products[index];
+    final item = Item(nome: product.name, preco: product.price, quantidade: 0);
+
+    AddEditItemModal.mostrarBottomSheetEditar(context, item, (
+      Item itemEditado,
+    ) async {
+      try {
+        final updatedProduct = product.copyWith(
+          name: itemEditado.nome,
+          price: itemEditado.preco,
+        );
+
+        await ref
+            .read(productControllerProvider.notifier)
+            .updateProduct(updatedProduct);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Produto atualizado com sucesso!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao atualizar produto: $e')),
+          );
+        }
+      }
+    });
+  }
+
+  Future<void> _removerItem(int index) async {
+    try {
+      final productsAsync = ref.read(productControllerProvider);
+      final products = productsAsync.maybeWhen(
+        data: (data) => data,
+        orElse: () => <ProductEntity>[],
+      );
+
+      if (index >= products.length) return;
+
+      final product = products[index];
+      if (product.id != null) {
+        await ref
+            .read(productControllerProvider.notifier)
+            .removeProduct(product.id!);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Produto removido com sucesso!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao remover produto: $e')));
+      }
+    }
+  }
+
+  void _atualizarQuantidade(int index, bool incrementar) {
+    final productsAsync = ref.read(productControllerProvider);
+    final products = productsAsync.maybeWhen(
+      data: (data) => data,
+      orElse: () => <ProductEntity>[],
+    );
+
+    if (index >= products.length) return;
+
+    final product = products[index];
+    if (product.id != null) {
+      ref
+          .read(cartControllerProvider.notifier)
+          .updateQuantity(
+            product.id!,
+            product.name,
+            product.price,
+            incrementar,
+          );
+    }
+  }
+
+  void _mostrarBottomSheetAdicionar() {
+    AddEditItemModal.mostrarBottomSheetAdicionar(context, _adicionarItem);
+  }
+
+  void _finalizarVenda() {
+    final cartTotal = ref.read(cartTotalProvider);
+    final cartItems = ref.read(cartControllerProvider.notifier).cartItems;
+
+    if (cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Adicione itens ao carrinho antes de finalizar a venda',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (cartTotal < 20.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('O valor mínimo para finalizar a venda é de R\$ 20,00'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder:
+                (context) => MerchantChargeScreen(
+                  totalAmount: cartTotal,
+                  items: cartItems,
+                ),
+          ),
+        )
+        .then((_) {
+          ref.read(cartControllerProvider.notifier).clearCart();
+        });
   }
 
   @override
@@ -186,50 +248,14 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
             children: [
               Padding(
                 padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            context.pop();
-                          },
-                          icon: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        Text(
-                          'Modo comerciante',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Icon(Icons.download, color: Colors.white, size: 24),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'R\$${valorReais.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      '${valorBitcoin.toStringAsFixed(6)} BTC',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final valorReais = ref.watch(cartTotalProvider);
+                    return MerchantHeaderWidget(
+                      valorReais: valorReais,
+                      valorBitcoin: valorBitcoin,
+                    );
+                  },
                 ),
               ),
               SizedBox(height: 16),
@@ -273,7 +299,107 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
                       Expanded(
                         child: TabBarView(
                           controller: _tabController,
-                          children: [_buildKeypadTab(), _buildItensTab()],
+                          children: [
+                            KeypadWidget(
+                              valorDigitado: valorDigitado,
+                              onAdicionarNumero: _adicionarNumero,
+                              onApagarNumero: _apagarNumero,
+                              onAdicionarAoTotal: _adicionarAoTotal,
+                              onFinalizarVenda: _finalizarVenda,
+                              cartTotal: ref.watch(cartTotalProvider),
+                            ),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final productsAsync = ref.watch(
+                                  productControllerProvider,
+                                );
+
+                                return productsAsync.when(
+                                  data: (products) {
+                                    return Consumer(
+                                      builder: (context, ref, child) {
+                                        final items =
+                                            products.map((product) {
+                                              final quantidade =
+                                                  product.id != null
+                                                      ? ref
+                                                          .read(
+                                                            cartControllerProvider
+                                                                .notifier,
+                                                          )
+                                                          .getQuantityForProduct(
+                                                            product.id!,
+                                                          )
+                                                      : 0;
+
+                                              return Item(
+                                                nome: product.name,
+                                                preco: product.price,
+                                                quantidade: quantidade,
+                                              );
+                                            }).toList();
+
+                                        return ItemsListWidget(
+                                          produtos: items,
+                                          onEditarItem: _editarItem,
+                                          onRemoverItem: _removerItem,
+                                          onAtualizarQuantidade:
+                                              _atualizarQuantidade,
+                                          onAdicionarItem:
+                                              _mostrarBottomSheetAdicionar,
+                                        );
+                                      },
+                                    );
+                                  },
+                                  loading:
+                                      () => const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                  error:
+                                      (error, stackTrace) => Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.error,
+                                              color: Colors.red,
+                                              size: 48,
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Erro ao carregar produtos',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              error.toString(),
+                                              style: TextStyle(
+                                                color: Colors.grey[400],
+                                                fontSize: 12,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            const SizedBox(height: 16),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                ref.invalidate(
+                                                  productControllerProvider,
+                                                );
+                                              },
+                                              child: const Text(
+                                                'Tentar novamente',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -286,355 +412,4 @@ class MerchantModeScreenState extends State<MerchantModeScreen>
       ),
     );
   }
-
-  Widget _buildKeypadTab() {
-    return Container(
-      color: Colors.black,
-      padding: EdgeInsets.only(top: 30),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Text(
-            'R\$$valorDigitado',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 40,
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-          SizedBox(height: 20),
-          SizedBox(
-            width: 320,
-            child: GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 3,
-              childAspectRatio: 1.2,
-              children: [
-                for (int i = 1; i <= 9; i++)
-                  _buildKeypadButton(
-                    text: i.toString(),
-                    onPressed: () => _adicionarNumero(i.toString()),
-                  ),
-                _buildKeypadButton(
-                  icon: Icons.backspace_outlined,
-                  onPressed: _apagarNumero,
-                  color: Colors.pink,
-                ),
-                _buildKeypadButton(
-                  text: '0',
-                  onPressed: () => _adicionarNumero('0'),
-                ),
-                _buildKeypadButton(
-                  icon: Icons.add,
-                  onPressed: () {
-                    setState(() {
-                      valorReais += 2;
-                    });
-                  },
-                  color: Colors.green,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKeypadButton({
-    String? text,
-    IconData? icon,
-    required VoidCallback onPressed,
-    Color? color,
-  }) {
-    return Container(
-      margin: EdgeInsets.all(4),
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child:
-            text != null
-                ? Text(
-                  text,
-                  style: TextStyle(
-                    color: color ?? Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                  ),
-                )
-                : Icon(icon, color: color ?? Colors.white, size: 24),
-      ),
-    );
-  }
-
-  Widget _buildItensTab() {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: ListView.separated(
-          itemCount: produtos.length,
-          separatorBuilder: (context, index) => SizedBox(height: 16),
-          itemBuilder: (context, index) {
-            final produto = produtos[index];
-            return Slidable(
-              key: Key(produto.nome + index.toString()),
-              endActionPane: ActionPane(
-                motion: ScrollMotion(),
-                children: [
-                  SlidableAction(
-                    onPressed: (context) => _editarItem(index),
-                    backgroundColor: AppColors.editColor.withValues(alpha: 0.3),
-                    foregroundColor: AppColors.editColor,
-                    icon: Icons.edit,
-                  ),
-                  SlidableAction(
-                    onPressed: (context) async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder:
-                            (context) => AlertDialog(
-                              backgroundColor: Colors.grey[900],
-                              title: Text(
-                                'Deletar item',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              content: Text(
-                                'Deseja realmente deletar "${produto.nome}"?',
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed:
-                                      () => Navigator.pop(context, false),
-                                  child: Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: Text(
-                                    'Deletar',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                      );
-
-                      if (confirm ?? false) {
-                        setState(() {
-                          produtos.removeAt(index);
-                        });
-                      }
-                    },
-                    backgroundColor: AppColors.errorColor.withValues(
-                      alpha: 0.3,
-                    ),
-                    foregroundColor: AppColors.errorColor,
-                    icon: Icons.delete,
-                  ),
-                ],
-              ),
-              child: Container(
-                padding: EdgeInsets.all(0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            produto.nome,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'R\$ ${produto.preco.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            if (produto.quantidade > 0) {
-                              setState(() {
-                                produto.quantidade--;
-                              });
-                            }
-                          },
-                          icon: Icon(
-                            Icons.remove,
-                            color:
-                                produto.quantidade < 1
-                                    ? AppColors.errorColor.withValues(
-                                      alpha: 0.3,
-                                    )
-                                    : AppColors.errorColor,
-                            size: 20,
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        Text(
-                          produto.quantidade.toString(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              produto.quantidade++;
-                            });
-                          },
-                          icon: Icon(
-                            Icons.add,
-                            color: AppColors.positiveColor,
-                            size: 20,
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      floatingActionButton: Container(
-        width: 56,
-        height: 56,
-        child: FloatingActionButton(
-          onPressed: _mostrarBottomSheet,
-          backgroundColor: Color(0xFFE91E63),
-          elevation: 8,
-          child: Icon(Icons.add, color: Colors.white, size: 24),
-        ),
-      ),
-    );
-  }
-
-  void _editarItem(int index) {
-    final produto = produtos[index];
-    final nomeController = TextEditingController(text: produto.nome);
-    final precoController = TextEditingController(
-      text: produto.preco.toString(),
-    );
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.grey[900],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (context) => Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Editar Item',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: nomeController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Nome do produto',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.pink),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 15),
-                TextField(
-                  controller: precoController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Preço (R\$)',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.pink),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text('Cancelar'),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (nomeController.text.isNotEmpty &&
-                              precoController.text.isNotEmpty) {
-                            setState(() {
-                              produto.nome = nomeController.text;
-                              produto.preco =
-                                  double.tryParse(precoController.text) ?? 0.0;
-                            });
-                            Navigator.pop(context);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text('Salvar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-    );
-  }
-}
-
-class Item {
-  String nome;
-  double preco;
-  int quantidade;
-
-  Item({required this.nome, required this.preco, required this.quantidade});
 }

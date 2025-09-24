@@ -80,7 +80,7 @@ class _FilterByAssetState extends State<FilterByAsset> {
                     ),
                     child: Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
                         child: Text(
                           asset.name,
                           maxLines: 2,

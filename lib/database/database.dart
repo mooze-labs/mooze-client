@@ -2,8 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'database.steps.dart';
-
 part 'database.g.dart';
 
 class Swaps extends Table {
@@ -37,12 +35,19 @@ class Deposits extends Table {
   TextColumn get pixKey => text()();
 }
 
-@DriftDatabase(tables: [Swaps, Pegs, Deposits])
+class Products extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 255)();
+  RealColumn get price => real()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [Swaps, Pegs, Deposits, Products])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   // Get all swaps
   Future<List<Swap>> getAllSwaps() => select(swaps).get();
@@ -54,26 +59,35 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (m) => m.createAll(),
-      onUpgrade: stepByStep(
-        from1To2: (m, schema) async {
-          await m.createTable(schema.deposits);
-        },
-        from2To3: (m, schema) async {
-          await m.addColumn(deposits, deposits.blockchainTxid);
-        },
-        from3To4: (m, schema) async {
-          await m.alterTable(
-              TableMigration(deposits, columnTransformer: {
-                deposits.status: Constant('pending')
-              },
-              newColumns: [deposits.status]
-              )
-          );
-        },
-        from4To5: (m, schema) async {
-          await m.alterTable(TableMigration(deposits, columnTransformer: {deposits.pixKey: Constant("N/A")}, newColumns: [deposits.pixKey]));
+      onUpgrade: (m, from, to) async {
+        if (from <= 1 && to >= 2) {
+          await m.createTable(deposits);
         }
-      ),
+        if (from <= 2 && to >= 3) {
+          await m.addColumn(deposits, deposits.blockchainTxid);
+        }
+        if (from <= 3 && to >= 4) {
+          await m.alterTable(
+            TableMigration(
+              deposits,
+              columnTransformer: {deposits.status: Constant('pending')},
+              newColumns: [deposits.status],
+            ),
+          );
+        }
+        if (from <= 4 && to >= 5) {
+          await m.alterTable(
+            TableMigration(
+              deposits,
+              columnTransformer: {deposits.pixKey: Constant("N/A")},
+              newColumns: [deposits.pixKey],
+            ),
+          );
+        }
+        if (from <= 5 && to >= 6) {
+          await m.createTable(products);
+        }
+      },
     );
   }
 

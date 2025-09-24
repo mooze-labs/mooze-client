@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_re
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/shared/prices/providers/price_service_provider.dart';
+import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 
 enum AmountDisplayMode { fiat, bitcoin, selectedAsset }
 
@@ -46,9 +47,69 @@ class ReceiveValidationState {
 
 class ReceiveValidationController
     extends StateNotifier<ReceiveValidationState> {
-  ReceiveValidationController(this.ref) : super(const ReceiveValidationState());
+  ReceiveValidationController(this.ref)
+    : super(const ReceiveValidationState()) {
+    _initializeValidation();
+  }
 
   final Ref ref;
+
+  void _initializeValidation() async {
+    await Future.delayed(Duration.zero);
+
+    final asset = ref.read(selectedReceiveAssetProvider);
+    final network = ref.read(selectedReceiveNetworkProvider);
+
+    if (asset != null && network != null) {
+      await _performInitialValidation(asset, network);
+    }
+  }
+
+  Future<void> _performInitialValidation(
+    Asset asset,
+    NetworkType network,
+  ) async {
+    try {
+      if (network == NetworkType.liquid) {
+        state = state.copyWith(
+          selectedAsset: asset,
+          selectedNetwork: network,
+          isValid: true,
+          amountError: null,
+        );
+        return;
+      }
+
+      if ((network == NetworkType.lightning ||
+              network == NetworkType.bitcoin) &&
+          (state.amountValue == null || state.amountValue! <= 0)) {
+        final networkName =
+            network == NetworkType.lightning ? 'Lightning' : 'Bitcoin';
+        state = state.copyWith(
+          selectedAsset: asset,
+          selectedNetwork: network,
+          isValid: false,
+          amountError: 'Amount é obrigatório para $networkName',
+        );
+        return;
+      }
+
+      final isValid = await _checkIfValid(
+        state.amountValue,
+        asset,
+        network,
+        AmountDisplayMode.bitcoin,
+      );
+
+      state = state.copyWith(
+        selectedAsset: asset,
+        selectedNetwork: network,
+        isValid: isValid,
+      );
+    } catch (e) {
+      // In error case, keep initial state
+    }
+  }
 
   void validateAmount(
     double? amount, [
@@ -69,9 +130,18 @@ class ReceiveValidationController
             errorMessage = 'Valor mínimo: 100 sats (0.000001 BTC)';
           }
         }
+      } else if (network == NetworkType.bitcoin) {
+        if (amount == null || amount <= 0) {
+          errorMessage = 'Amount é obrigatório para Bitcoin';
+        } else {
+          final btcAmount = await _convertToBitcoin(amount, displayMode);
+          if (btcAmount < 0.00025) {
+            errorMessage = 'Valor mínimo: 0.00025 BTC';
+          }
+        }
       } else if (amount != null) {
         final btcAmount = await _convertToBitcoin(amount, displayMode);
-        if (btcAmount < 0.00025 && network != NetworkType.liquid) {
+        if (btcAmount < 0.00025 && network == NetworkType.bitcoin) {
           errorMessage = 'Valor mínimo: 0.00025 BTC';
         }
       }
@@ -199,6 +269,10 @@ class ReceiveValidationController
     );
 
     state = state.copyWith(selectedAsset: asset, isValid: isValid);
+
+    if (network == NetworkType.liquid && asset != null) {
+      state = state.copyWith(isValid: true);
+    }
   }
 
   void validateNetwork(NetworkType? network) async {
@@ -219,6 +293,13 @@ class ReceiveValidationController
         amountError: 'Amount é obrigatório para Lightning',
         isValid: false,
       );
+    } else if (network == NetworkType.bitcoin && amount == null) {
+      state = state.copyWith(
+        amountError: 'Amount é obrigatório para Bitcoin',
+        isValid: false,
+      );
+    } else if (network == NetworkType.liquid && asset != null) {
+      state = state.copyWith(isValid: true, amountError: null);
     }
   }
 
@@ -238,16 +319,57 @@ class ReceiveValidationController
 
         final btcAmount = await _convertToBitcoin(amount, displayMode);
         if (btcAmount < 0.000001) return false;
+
+        return await _checkDynamicLimits(amount, network, displayMode);
       }
 
-      if (network == NetworkType.bitcoin && amount != null) {
+      if (network == NetworkType.bitcoin) {
+        if (amount == null || amount <= 0) return false;
+
         final btcAmount = await _convertToBitcoin(amount, displayMode);
         if (btcAmount < 0.00025) return false;
+
+        return await _checkDynamicLimits(amount, network, displayMode);
+      }
+
+      if (network == NetworkType.liquid) {
+        return true;
       }
 
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<bool> _checkDynamicLimits(
+    double amount,
+    NetworkType network,
+    AmountDisplayMode displayMode,
+  ) async {
+    try {
+      final btcAmount = await _convertToBitcoin(amount, displayMode);
+      final amountSats = BigInt.from((btcAmount * 100000000).round());
+
+      if (network == NetworkType.lightning) {
+        final lightningLimits = await ref.read(lightningLimitsProvider.future);
+        if (lightningLimits != null) {
+          return amountSats >= lightningLimits.send.minSat &&
+              amountSats <= lightningLimits.send.maxSat;
+        }
+        return true;
+      } else if (network == NetworkType.bitcoin) {
+        final onchainLimits = await ref.read(onchainLimitsProvider.future);
+        if (onchainLimits != null) {
+          return amountSats >= onchainLimits.send.minSat &&
+              amountSats <= onchainLimits.send.maxSat;
+        }
+        return true;
+      }
+
+      return true;
+    } catch (e) {
+      return true;
     }
   }
 
