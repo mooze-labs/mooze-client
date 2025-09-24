@@ -256,21 +256,12 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
         );
       }
     } else if (network == NetworkType.bitcoin) {
-      if (btcAmount < 0.00025) {
-        return _buildValidationRow(
-          context,
-          icon: Icons.warning_amber_outlined,
-          text: 'Valor mínimo: 0.00025 BTC',
-          color: Colors.orange,
-        );
-      } else {
-        return _buildValidationRow(
-          context,
-          icon: Icons.check_circle_outline,
-          text: 'Valor válido para Bitcoin',
-          color: Colors.green,
-        );
-      }
+      return _buildValidationRow(
+        context,
+        icon: Icons.check_circle_outline,
+        text: 'Valor válido para Bitcoin',
+        color: Colors.green,
+      );
     } else if (network == NetworkType.liquid) {
       return _buildValidationRow(
         context,
