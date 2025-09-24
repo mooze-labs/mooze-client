@@ -116,6 +116,8 @@ flutter:
     - assets/icons/asset/
     - assets/icons/contacts/
     - assets/icons/menu/
+    - assets/icons/menu/navigation/
+    - assets/icons/menu/settings/
     - assets/images/
     - assets/images/getstarted/
     - assets/images/phone_verification/
