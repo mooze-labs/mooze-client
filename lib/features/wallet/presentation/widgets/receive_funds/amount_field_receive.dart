@@ -286,57 +286,12 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 ),
           );
     } else if (network == NetworkType.bitcoin) {
-      return ref
-          .watch(onchainLimitsProvider)
-          .when(
-            data: (limits) {
-              if (limits == null) {
-                return _buildValidationRow(
-                  context,
-                  icon: Icons.warning_amber_outlined,
-                  text: 'Não foi possível carregar limites onchain',
-                  color: Colors.orange,
-                );
-              }
-
-              if (amountSats < limits.send.minSat) {
-                return _buildValidationRow(
-                  context,
-                  icon: Icons.warning_amber_outlined,
-                  text: 'Valor mínimo: ${limits.send.minSat} sats',
-                  color: Colors.orange,
-                );
-              } else if (amountSats > limits.send.maxSat) {
-                return _buildValidationRow(
-                  context,
-                  icon: Icons.error_outline,
-                  text: 'Valor máximo: ${limits.send.maxSat} sats',
-                  color: Colors.red,
-                );
-              } else {
-                return _buildValidationRow(
-                  context,
-                  icon: Icons.check_circle_outline,
-                  text: 'Valor válido para Bitcoin',
-                  color: Colors.green,
-                );
-              }
-            },
-            loading:
-                () => _buildValidationRow(
-                  context,
-                  icon: Icons.hourglass_empty,
-                  text: 'Carregando limites onchain...',
-                  color: Colors.grey,
-                ),
-            error:
-                (error, stack) => _buildValidationRow(
-                  context,
-                  icon: Icons.error_outline,
-                  text: 'Erro ao carregar limites onchain',
-                  color: Colors.red,
-                ),
-          );
+      return _buildValidationRow(
+        context,
+        icon: Icons.check_circle_outline,
+        text: 'Valor válido para Bitcoin',
+        color: Colors.green,
+      );
     } else if (network == NetworkType.liquid) {
       return _buildValidationRow(
         context,

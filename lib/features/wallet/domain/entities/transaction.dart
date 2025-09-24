@@ -1,7 +1,7 @@
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../enums/blockchain.dart';
 
-enum TransactionType { send, receive, swap }
+enum TransactionType { send, receive, swap, redeposit, submarine, unknown }
 
 enum TransactionStatus { pending, confirmed, failed, refundable }
 

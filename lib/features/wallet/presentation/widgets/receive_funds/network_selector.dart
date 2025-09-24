@@ -119,7 +119,8 @@ class NetworkSelector extends ConsumerWidget {
     if (asset == null) return [];
 
     return switch (asset) {
-      Asset.btc => [
+      Asset.btc => [NetworkType.bitcoin],
+      Asset.lbtc => [
         NetworkType.bitcoin,
         NetworkType.lightning,
         NetworkType.liquid,

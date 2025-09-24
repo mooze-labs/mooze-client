@@ -32,11 +32,11 @@ class BreezTransactionDto {
 
   factory BreezTransactionDto.fromSdk({required Payment payment}) {
     final asset = switch (payment.details) {
-      PaymentDetails_Lightning() => Asset.btc,
+      PaymentDetails_Lightning() => Asset.lbtc,
       PaymentDetails_Bitcoin() => Asset.btc,
       PaymentDetails_Liquid() =>
         (payment.details as PaymentDetails_Liquid).assetId == lBtcAssetId
-            ? Asset.btc
+            ? Asset.lbtc
             : Asset.fromId((payment.details as PaymentDetails_Liquid).assetId),
     };
 
@@ -119,27 +119,17 @@ class BreezTransactionDto {
   static String _parseTxid(Payment payment) {
     final details = payment.details;
 
-    if (details is PaymentDetails_Lightning) {
-      if (details.claimTxId != null) {
-        return details.claimTxId!;
-      }
+    if (payment.txId != null) return payment.txId!;
 
+    if (details is PaymentDetails_Lightning) {
       return details.swapId;
     }
 
     if (details is PaymentDetails_Bitcoin) {
-      if (details.claimTxId != null) {
-        return details.claimTxId!;
-      }
-
       return details.swapId;
     }
 
     if (details is PaymentDetails_Liquid) {
-      if (payment.txId != null) {
-        return payment.txId!;
-      }
-
       return ''; // fallback
     }
 

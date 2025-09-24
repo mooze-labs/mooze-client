@@ -89,6 +89,8 @@ dependencies:
   mask_text_input_formatter: ^2.9.0
   flutter_slidable: ^4.0.0
   firebase_messaging: ^16.0.0
+  bdk_flutter:
+    path: ./packages/bdk-flutter 
 
 dependency_overrides:
 
@@ -109,16 +111,14 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/flags/
+    - assets/icons/
+    - assets/icons/asset/
+    - assets/icons/contacts/
+    - assets/icons/menu/
+    - assets/icons/menu/navigation/
+    - assets/icons/menu/settings/
     - assets/images/
-    - assets/images/icons/
-    - assets/images/logos/
-    - assets/default_coins.json
-    - assets/new_ui_wallet/assets/logos/
-    - assets/new_ui_wallet/assets/images/getstarted/
-    - assets/new_ui_wallet/assets/icons/asset/
-    - assets/new_ui_wallet/assets/icons/menu/
-    - assets/new_ui_wallet/assets/icons/menu/navigation/
-    - assets/new_ui_wallet/assets/icons/menu/settings/
-    - assets/new_ui_wallet/assets/images/phone_verification/
-    - assets/new_ui_wallet/assets/icons/contacts/
-    - assets/new_ui_wallet/assets/flags/
+    - assets/images/getstarted/
+    - assets/images/phone_verification/
+    - assets/logos/

@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:isolate';
 
-import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:stream_transform/stream_transform.dart';
-import '../wallet/datasource.dart';
 
 sealed class SyncState {}
 
@@ -22,27 +19,29 @@ class SyncFailed extends SyncState {
   SyncFailed(this.error);
 }
 
-TaskEither<String, Unit> syncLiquidWallet(LiquidDataSource dataSource) {
+abstract interface class SyncableDataSource {
+  Future<void> sync();
+}
+
+TaskEither<String, Unit> syncDataSource(SyncableDataSource dataSource) {
   return TaskEither.tryCatch(() async {
-    await compute(_performSyncInIsolate, dataSource);
+    await dataSource.sync();
     return unit;
   }, (error, _) => "Sync failed: ${error.toString()}");
 }
 
-Future<void> _performSyncInIsolate(LiquidDataSource dataSource) async =>
-    await dataSource.sync();
-
 Stream<int> createPeriodicTicker(Duration interval) =>
     Stream.periodic(interval, (count) => count);
+
 Stream<TaskEither<String, Unit>> createSyncCommands(
   Stream<int> ticker,
-  LiquidDataSource dataSource,
-) => ticker.map((_) => syncLiquidWallet(dataSource));
+  SyncableDataSource dataSource,
+) => ticker.map((_) => syncDataSource(dataSource));
 
 SyncState reduceSyncState(SyncState current, Either<String, Unit> result) =>
     result.fold((err) => SyncFailed(err), (_) => SyncCompleted(DateTime.now()));
 
-class LwkSyncService {
+class SyncService {
   final StreamController<SyncState> _stateController =
       StreamController.broadcast();
   StreamSubscription? _syncSubscription;
@@ -50,7 +49,7 @@ class LwkSyncService {
   Stream<SyncState> get syncState => _stateController.stream;
 
   TaskEither<String, Unit> startPeriodicSync(
-    LiquidDataSource dataSource,
+    SyncableDataSource dataSource,
     Duration interval,
   ) {
     return TaskEither.tryCatch(() async {
@@ -78,4 +77,9 @@ class LwkSyncService {
     _syncSubscription = null;
     return unit;
   }, (error, _) => "Failed to stop sync service: ${error.toString()}");
+
+  void dispose() {
+    _syncSubscription?.cancel();
+    _stateController.close();
+  }
 }

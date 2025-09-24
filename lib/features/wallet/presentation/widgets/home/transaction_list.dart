@@ -100,11 +100,17 @@ class SuccessfulTransactionList extends ConsumerWidget {
   String _getTransactionTitle(Transaction transaction) {
     switch (transaction.type) {
       case TransactionType.send:
-        return "Sent ${transaction.asset.name}";
+        return "Enviou ${transaction.asset.ticker}";
       case TransactionType.receive:
-        return "Received ${transaction.asset.name}";
+        return "Recebeu ${transaction.asset.ticker}";
       case TransactionType.swap:
-        return "Swapped ${transaction.asset.name}";
+        return "Swap: ${transaction.asset.ticker}";
+      case TransactionType.submarine:
+        return "Swap de rede: ${transaction.asset.ticker}";
+      case TransactionType.redeposit:
+        return "Autodepositou ${transaction.asset.ticker}";
+      case TransactionType.unknown:
+        return "Unknown transaction type";
     }
   }
 

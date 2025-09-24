@@ -245,6 +245,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         return 'Recebimento';
       case TransactionType.swap:
         return 'Swap';
+      case TransactionType.redeposit:
+        return "Auto-redepósito";
+      case TransactionType.submarine:
+        return "Troca de rede";
+      case TransactionType.unknown:
+        return "Desconhecido";
     }
   }
 

@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 final allAssetsProvider = Provider<List<Asset>>((ref) {
-  return const [Asset.btc, Asset.usdt, Asset.depix];
+  return const [Asset.btc, Asset.lbtc, Asset.usdt, Asset.depix];
 });
 
 final favoriteAssetsProvider = StateProvider<List<Asset>>((ref) {
