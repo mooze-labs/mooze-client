@@ -5,6 +5,7 @@ import 'amount_provider.dart';
 import 'address_provider.dart';
 import 'network_detection_provider.dart';
 import 'selected_asset_balance_provider.dart';
+import '../../../providers/payment_limits_provider.dart';
 
 class SendValidationController extends StateNotifier<SendValidationState> {
   final Ref ref;
@@ -35,29 +36,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
       errors.add('Valor deve ser maior que zero');
     }
 
-    if (asset == Asset.btc &&
-        amount < 25000 &&
-        networkType == NetworkType.bitcoin) {
-      errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
-    }
-
-    if (asset == Asset.btc &&
-        amount < 21 &&
-        networkType == NetworkType.lightning) {
-      errors.add('Valor mínimo para bitcoin lightning é 21 sats');
-    }
-
-    if (asset == Asset.usdt &&
-        amount < 50000000 &&
-        networkType == NetworkType.liquid) {
-      errors.add('Valor mínimo para USDT é 0.5 USDT');
-    }
-
-    if (asset == Asset.depix &&
-        amount < 100000000 &&
-        networkType == NetworkType.liquid) {
-      errors.add('Valor mínimo para Depix é 1.0 Depix');
-    }
+    await _validateAmountLimits(asset, amount, networkType, errors);
 
     try {
       final balanceResult = await ref.read(
@@ -80,6 +59,76 @@ class SendValidationController extends StateNotifier<SendValidationState> {
       errors: errors,
       canProceed: errors.isEmpty && address.isNotEmpty && amount > 0,
     );
+  }
+
+  Future<void> _validateAmountLimits(
+    Asset asset,
+    int amount,
+    NetworkType networkType,
+    List<String> errors,
+  ) async {
+    try {
+      if (asset == Asset.btc) {
+        if (networkType == NetworkType.bitcoin) {
+          final onchainLimits = await ref.read(
+            onchainSendLimitsProvider.future,
+          );
+          if (onchainLimits != null) {
+            if (amount < onchainLimits.minSat.toInt()) {
+              errors.add(
+                'Valor mínimo para bitcoin onchain é ${onchainLimits.minSat} sats',
+              );
+            }
+            if (amount > onchainLimits.maxSat.toInt()) {
+              errors.add(
+                'Valor máximo para bitcoin onchain é ${onchainLimits.maxSat} sats',
+              );
+            }
+          } else {
+            if (amount < 25000) {
+              errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
+            }
+          }
+        } else if (networkType == NetworkType.lightning) {
+          final lightningLimits = await ref.read(
+            lightningSendLimitsProvider.future,
+          );
+          if (lightningLimits != null) {
+            if (amount < lightningLimits.minSat.toInt()) {
+              errors.add(
+                'Valor mínimo para bitcoin lightning é ${lightningLimits.minSat} sats',
+              );
+            }
+            if (amount > lightningLimits.maxSat.toInt()) {
+              errors.add(
+                'Valor máximo para bitcoin lightning é ${lightningLimits.maxSat} sats',
+              );
+            }
+          } else {
+            if (amount < 21) {
+              errors.add('Valor mínimo para bitcoin lightning é 21 sats');
+            }
+          }
+        }
+      } else {
+        if (asset == Asset.usdt && amount < 50000000) {
+          errors.add('Valor mínimo para USDT é 0.5 USDT');
+        }
+
+        if (asset == Asset.depix && amount < 100000000) {
+          errors.add('Valor mínimo para Depix é 1.0 Depix');
+        }
+      }
+    } catch (e) {
+      if (asset == Asset.btc) {
+        if (networkType == NetworkType.bitcoin && amount < 25000) {
+          errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
+        }
+        if (networkType == NetworkType.lightning && amount < 21) {
+          errors.add('Valor mínimo para bitcoin lightning é 21 sats');
+        }
+      }
+    }
   }
 
   void clearValidation() {

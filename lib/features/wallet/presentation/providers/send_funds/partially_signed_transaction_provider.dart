@@ -25,7 +25,6 @@ final psbtProvider = FutureProvider<Either<String, PartiallySignedTransaction>>(
           Either<String, PartiallySignedTransaction>.left(error.toString()),
       (controller) {
         if (isDrainTransaction) {
-          print('Quantidade total da carteira: $amount');
           return controller
               .beginDrainTransaction(destination, asset, blockchain, amount)
               .run();
