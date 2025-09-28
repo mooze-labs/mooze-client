@@ -5,13 +5,14 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/data/dto/payment_request_dto.dart';
 import 'package:mooze_mobile/features/wallet/data/dto/transaction_dto.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart'
+    hide OnchainPaymentLimitsResponse, LightningPaymentLimitsResponse;
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
-import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
@@ -21,6 +22,38 @@ class BreezWallet {
   final BindingLiquidSdk _breez;
 
   BreezWallet(this._breez);
+
+  @override
+  TaskEither<WalletError, (PaymentLimits, PaymentLimits)>
+  fetchOnchainPaymentLimits() {
+    final paymentLimits = TaskEither.tryCatch(
+      () async => await _breez.fetchOnchainLimits(),
+      (err, _) => WalletError(WalletErrorType.sdkError, err.toString()),
+    );
+
+    return paymentLimits.flatMap(
+      (lim) => TaskEither.right((
+        PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
+        PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
+      )),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, (PaymentLimits, PaymentLimits)>
+  fetchLightningPaymentLimits() {
+    final paymentLimits = TaskEither.tryCatch(
+      () async => await _breez.fetchLightningLimits(),
+      (err, _) => WalletError(WalletErrorType.sdkError, err.toString()),
+    );
+
+    return paymentLimits.flatMap(
+      (lim) => TaskEither.right((
+        PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
+        PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
+      )),
+    );
+  }
 
   @override
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
