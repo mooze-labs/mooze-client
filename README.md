@@ -2,7 +2,7 @@
 
 Mooze is a mobile cryptocurrency wallet built with Flutter that focuses on Bitcoin and Liquid network assets, with integrated PIX (Brazilian instant payment system) support.
 
-![Mooze Logo](assets/images/mooze-logo.png)
+![Mooze Logo](assets/logos/logo_primary.svg)
 
 ## Features
 
@@ -40,17 +40,20 @@ Mooze is built with a modern Flutter architecture:
 ### Setup
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/mooze-app/mooze-client.git
    cd mooze-client
    ```
 
 2. Install dependencies:
+
    ```bash
    flutter pub get
    ```
 
 3. Run code generation:
+
    ```bash
    dart pub run build_runner build --delete-conflicting-outputs
    ```
@@ -63,11 +66,13 @@ Mooze is built with a modern Flutter architecture:
 ### Building for Production
 
 #### Android
+
 ```bash
 flutter build apk --release
 ```
 
 #### iOS
+
 ```bash
 flutter build ios --release
 ```
