@@ -5,6 +5,8 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provid
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
+import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
+import 'package:mooze_mobile/providers/update_provider.dart';
 
 import '../../widgets/widgets.dart';
 
@@ -56,6 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       LogoHeader(),
                       WalletHeaderWidget(),
+                      UpdateNotificationWidget(),
                       const SizedBox(height: 15),
                       _buildActionButtons(),
                       const SizedBox(height: 32),
@@ -72,7 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Container(
+                child: SizedBox(
                   height: 3,
                   child: LinearProgressIndicator(
                     backgroundColor: Colors.transparent,
@@ -98,6 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       transactionHistoryCacheProvider.notifier,
     );
     final balanceCacheNotifier = ref.read(balanceCacheProvider.notifier);
+    final updateNotifier = ref.read(updateNotifierProvider.notifier);
 
     for (final asset in favoriteAssets) {
       assetCacheNotifier.fetchAssetPriceHistoryInitial(asset);
@@ -105,6 +109,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     transactionCacheNotifier.fetchTransactionsInitial();
+
+    updateNotifier.checkForUpdates();
   }
 
   Future<void> _refreshData() async {
