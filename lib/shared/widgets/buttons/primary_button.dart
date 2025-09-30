@@ -5,6 +5,7 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isEnabled;
   final bool isLoading;
+  final double? height;
 
   const PrimaryButton({
     super.key,
@@ -12,6 +13,7 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.isEnabled = true,
     this.isLoading = false,
+    this.height = 55,
   });
 
   // Constants
@@ -21,7 +23,7 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 55,
+      height: height,
       decoration: BoxDecoration(
         boxShadow:
             isEnabled
@@ -40,7 +42,7 @@ class PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: _textPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),

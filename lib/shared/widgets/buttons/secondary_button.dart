@@ -4,12 +4,14 @@ class SecondaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final bool isEnabled;
+  final double? height;
 
   const SecondaryButton({
     super.key,
     required this.text,
     required this.onPressed,
     this.isEnabled = true,
+    this.height = 55,
   });
 
   static const Color _primaryColor = Color(0xFFFF2D84);
@@ -18,13 +20,13 @@ class SecondaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 55,
+      height: height,
       child: OutlinedButton(
         onPressed: isEnabled ? onPressed : null,
         style: OutlinedButton.styleFrom(
           foregroundColor: _primaryColor,
           side: const BorderSide(color: _primaryColor),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
