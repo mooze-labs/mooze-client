@@ -246,21 +246,6 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
           }
           break;
         case NetworkType.bitcoin:
-          final onchainLimits = await ref.read(onchainLimitsProvider.future);
-          if (onchainLimits != null) {
-            if (amountSats < onchainLimits.send.minSat) {
-              return WalletError(
-                WalletErrorType.invalidAmount,
-                'Valor mínimo para Bitcoin: ${onchainLimits.send.minSat} sats',
-              );
-            }
-            if (amountSats > onchainLimits.send.maxSat) {
-              return WalletError(
-                WalletErrorType.invalidAmount,
-                'Valor máximo para Bitcoin: ${onchainLimits.send.maxSat} sats',
-              );
-            }
-          }
           break;
         case NetworkType.liquid:
           break;
@@ -271,7 +256,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
           );
       }
 
-      return null; 
+      return null;
     } catch (e) {
       return WalletError(
         WalletErrorType.networkError,
