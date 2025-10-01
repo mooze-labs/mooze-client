@@ -48,7 +48,7 @@ class NetworkSelector extends ConsumerWidget {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.surfaceVariant.withOpacity(0.3),
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -58,18 +58,20 @@ class NetworkSelector extends ConsumerWidget {
                   size: 16,
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     selectedAsset == Asset.btc
-                        ? 'Bitcoin suporta todas as redes'
+                        ? 'Bitcoin on-chain é a única rede disponível para BTC'
+                        : selectedAsset == Asset.lbtc
+                        ? 'Bitcoin L2 suporta Lightning e Liquid'
                         : '${selectedAsset.name} suporta apenas rede Liquid',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -91,9 +93,9 @@ class NetworkSelector extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
+              color: Colors.orange.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -120,11 +122,7 @@ class NetworkSelector extends ConsumerWidget {
 
     return switch (asset) {
       Asset.btc => [NetworkType.bitcoin],
-      Asset.lbtc => [
-        NetworkType.bitcoin,
-        NetworkType.lightning,
-        NetworkType.liquid,
-      ],
+      Asset.lbtc => [NetworkType.lightning, NetworkType.liquid],
       Asset.usdt => [NetworkType.liquid],
       Asset.depix => [NetworkType.liquid],
     };
@@ -141,13 +139,17 @@ class NetworkSelector extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           'Selecione um ativo primeiro',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           textAlign: TextAlign.center,
         ),
@@ -236,13 +238,15 @@ class _NetworkOption extends StatelessWidget {
           color:
               isSelected
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  : Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.3),
           width: isSelected ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(12),
         color:
             isSelected
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                 : null,
       ),
       child: Material(
@@ -262,7 +266,7 @@ class _NetworkOption extends StatelessWidget {
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                   size: 24,
                 ),
                 const SizedBox(height: 4),
@@ -282,7 +286,7 @@ class _NetworkOption extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
