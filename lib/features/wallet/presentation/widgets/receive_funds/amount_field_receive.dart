@@ -96,6 +96,11 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 isRequired
                     ? 'Digite o valor (obrigatório)'
                     : 'Digite o valor (opcional)',
+            hintStyle: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             suffixText: _getSuffixText(selectedAsset, conversionType),
             suffixIcon:
                 isConversionLoading
@@ -112,7 +117,9 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.5),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -190,7 +197,9 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
