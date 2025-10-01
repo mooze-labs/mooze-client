@@ -75,7 +75,6 @@ abstract class WalletRepository {
   TaskEither<WalletError, Balance> getBalance();
 
   // Payment Limits
-  TaskEither<WalletError, OnchainPaymentLimitsResponse> fetchOnchainLimits();
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits();
 }
