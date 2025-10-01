@@ -1,10 +1,12 @@
 import 'dart:math';
 
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
+    hide LightningPaymentLimitsResponse;
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/data/dto/payment_request_dto.dart';
 import 'package:mooze_mobile/features/wallet/data/dto/transaction_dto.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -22,6 +24,29 @@ class BreezWallet {
 
   BreezWallet(this._breez);
 
+  TaskEither<WalletError, LightningPaymentLimitsResponse>
+  fetchLightningLimits() {
+    return TaskEither.tryCatch(
+      () async {
+        final breezLimits = await _breez.fetchLightningLimits();
+        return LightningPaymentLimitsResponse(
+          receive: PaymentLimits(
+            minSat: breezLimits.receive.minSat,
+            maxSat: breezLimits.receive.maxSat,
+          ),
+          send: PaymentLimits(
+            minSat: breezLimits.send.minSat,
+            maxSat: breezLimits.send.maxSat,
+          ),
+        );
+      },
+      (err, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao buscar limites lightning: $err",
+      ),
+    );
+  }
+
   @override
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
     Option<BigInt> amount,
@@ -30,7 +55,6 @@ class BreezWallet {
     return _createOnchainBitcoinPaymentRequest(_breez, amount, description);
   }
 
-  @override
   TaskEither<WalletError, PaymentRequest> createLightningInvoice(
     BigInt amount,
     Option<String> description,
@@ -38,7 +62,6 @@ class BreezWallet {
     return _createLightningPaymentRequest(_breez, amount, description);
   }
 
-  @override
   TaskEither<WalletError, PaymentRequest> createLiquidBitcoinInvoice(
     Option<BigInt> amount,
     Option<String> description,
@@ -46,7 +69,6 @@ class BreezWallet {
     return _createLiquidBitcoinPaymentRequest(_breez, amount, description);
   }
 
-  @override
   TaskEither<WalletError, PaymentRequest> createStablecoinInvoice(
     Asset asset,
     Option<BigInt> amount,
@@ -55,7 +77,6 @@ class BreezWallet {
     return _createAssetPaymentRequest(_breez, asset.id, amount, description);
   }
 
-  @override
   TaskEither<WalletError, PreparedStablecoinTransaction>
   buildStablecoinPaymentTransaction(
     String destination,
@@ -79,7 +100,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
   buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount) {
     return prepareOnchainSendTransaction(_breez, destination, amount).flatMap((
@@ -95,7 +115,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLightningPaymentTransaction(String destination, BigInt amount) {
     return prepareLightningTransaction(_breez, destination, amount).flatMap((
@@ -112,7 +131,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLiquidBitcoinPaymentTransaction(String destination, BigInt amount) {
     return prepareLayer2BitcoinSendTransaction(
@@ -131,7 +149,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, Transaction> sendStablecoinPayment(
     PreparedStablecoinTransaction psbt,
   ) {
@@ -151,7 +168,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, Transaction> sendL2BitcoinPayment(
     PreparedLayer2BitcoinTransaction psbt,
   ) {
@@ -200,7 +216,6 @@ class BreezWallet {
     }
   }
 
-  @override
   TaskEither<WalletError, Transaction> sendOnchainBitcoinPayment(
     PreparedOnchainBitcoinTransaction psbt,
   ) {
@@ -221,7 +236,6 @@ class BreezWallet {
 
   // DRAIN methods - send all available funds
 
-  @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
   buildDrainOnchainBitcoinTransaction(String destination) {
     return getBalance().flatMap((balance) {
@@ -238,7 +252,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLightningTransaction(String destination) {
     return getBalance().flatMap((balance) {
@@ -260,7 +273,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLiquidBitcoinTransaction(String destination) {
     return getBalance().flatMap((balance) {
@@ -282,7 +294,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, PreparedStablecoinTransaction>
   buildDrainStablecoinTransaction(String destination, Asset asset) {
     return getBalance().flatMap((balance) {
@@ -300,7 +311,6 @@ class BreezWallet {
     });
   }
 
-  @override
   TaskEither<WalletError, List<Transaction>> getTransactions({
     TransactionType? type,
     TransactionStatus? status,
@@ -355,7 +365,6 @@ class BreezWallet {
     );
   }
 
-  @override
   TaskEither<WalletError, Balance> getBalance() {
     return TaskEither.tryCatch(
       () async {
