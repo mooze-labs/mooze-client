@@ -27,7 +27,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   Widget build(BuildContext context) {
     final isReceive = widget.transaction.type == TransactionType.receive;
     final amountStr =
-        "${isReceive ? '+' : '-'}${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
+        "${isReceive ? '+' : ''}${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
 
     return Scaffold(
       appBar: AppBar(
