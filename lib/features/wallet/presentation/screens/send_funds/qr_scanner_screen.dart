@@ -87,7 +87,11 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Escanear QR Code'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Escanear QR Code'),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+      ),
       body: Stack(
         children: [
           MobileScanner(controller: cameraController, onDetect: _onDetect),
@@ -133,17 +137,6 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
       left: 0,
       right: 0,
       child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.8),
-              Colors.black.withValues(alpha: 0.4),
-              Colors.transparent,
-            ],
-          ),
-        ),
         padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
