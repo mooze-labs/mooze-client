@@ -1,25 +1,17 @@
 import 'package:flutter/foundation.dart';
-
-import 'dart:math';
-
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
-    hide OnchainPaymentLimitsResponse, LightningPaymentLimitsResponse;
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/bitcoin.dart';
+import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/breez.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
-import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
-
-import './wallet_repository_impl/breez.dart';
 
 class WalletRepositoryImpl extends WalletRepository {
   final BreezWallet _breezWallet;
@@ -221,5 +213,14 @@ class WalletRepositoryImpl extends WalletRepository {
       (transactions) => TaskEither.fromEither(
         bitcoinTransactions.flatMap(
           (btcTransactions) => right([...transactions, ...btcTransactions]),
+        ),
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, LightningPaymentLimitsResponse>
+  fetchLightningLimits() {
+    return _breezWallet.fetchLightningLimits();
   }
 }
