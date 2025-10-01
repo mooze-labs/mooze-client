@@ -354,11 +354,6 @@ class ReceiveValidationController
         }
         return true;
       } else if (network == NetworkType.bitcoin) {
-        final onchainLimits = await ref.read(onchainLimitsProvider.future);
-        if (onchainLimits != null) {
-          return amountSats >= onchainLimits.send.minSat &&
-              amountSats <= onchainLimits.send.maxSat;
-        }
         return true;
       }
 
