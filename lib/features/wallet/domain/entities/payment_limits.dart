@@ -24,32 +24,6 @@ class PaymentLimits {
   int get hashCode => minSat.hashCode ^ maxSat.hashCode;
 }
 
-class OnchainPaymentLimitsResponse {
-  final PaymentLimits receive;
-  final PaymentLimits send;
-
-  const OnchainPaymentLimitsResponse({
-    required this.receive,
-    required this.send,
-  });
-
-  @override
-  String toString() {
-    return 'OnchainPaymentLimitsResponse(receive: $receive, send: $send)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is OnchainPaymentLimitsResponse &&
-        other.receive == receive &&
-        other.send == send;
-  }
-
-  @override
-  int get hashCode => receive.hashCode ^ send.hashCode;
-}
-
 class LightningPaymentLimitsResponse {
   final PaymentLimits receive;
   final PaymentLimits send;
