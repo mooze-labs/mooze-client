@@ -70,25 +70,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     try {
       if (asset == Asset.btc) {
         if (networkType == NetworkType.bitcoin) {
-          final onchainLimits = await ref.read(
-            onchainSendLimitsProvider.future,
-          );
-          if (onchainLimits != null) {
-            if (amount < onchainLimits.minSat.toInt()) {
-              errors.add(
-                'Valor mínimo para bitcoin onchain é ${onchainLimits.minSat} sats',
-              );
-            }
-            if (amount > onchainLimits.maxSat.toInt()) {
-              errors.add(
-                'Valor máximo para bitcoin onchain é ${onchainLimits.maxSat} sats',
-              );
-            }
-          } else {
-            if (amount < 25000) {
-              errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
-            }
-          }
+          // On-chain Bitcoin limits
         } else if (networkType == NetworkType.lightning) {
           final lightningLimits = await ref.read(
             lightningSendLimitsProvider.future,
