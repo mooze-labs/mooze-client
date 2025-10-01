@@ -6,6 +6,7 @@ import '../providers/swap_controller.dart' as sc;
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets/info_row.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
+import '../screens/swap_success_screen.dart';
 
 class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
   const ConfirmSwapBottomSheet({super.key});
@@ -122,10 +123,31 @@ class _ConfirmSwapBottomSheetState
           context,
         ).showSnackBar(SnackBar(content: Text('Erro na confirmação: $err'))),
         (txid) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Swap confirmado! TXID: $txid')),
-          );
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(); // Fecha o bottom sheet primeiro
+
+          // Obtém os dados do swap para a tela de sucesso
+          final state = ref.read(sc.swapControllerProvider);
+          final quote = state.currentQuote?.quote;
+          final baseId = state.lastBaseAssetId;
+          final quoteId = state.lastQuoteAssetId;
+          final baseAsset =
+              baseId != null ? core.Asset.fromId(baseId) : core.Asset.btc;
+          final receiveAsset =
+              quoteId != null ? core.Asset.fromId(quoteId) : core.Asset.usdt;
+
+          if (quote != null) {
+            final amountSent = quote.baseAmount.toDouble() / 100000000;
+            final amountReceived = quote.quoteAmount.toDouble() / 100000000;
+
+            SwapSuccessScreen.show(
+              context,
+              fromAsset: baseAsset,
+              toAsset: receiveAsset,
+              amountSent: amountSent,
+              amountReceived: amountReceived,
+              txid: txid,
+            );
+          }
         },
       );
     } finally {
