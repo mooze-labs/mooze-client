@@ -14,7 +14,7 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
     BaseOptions(
       baseUrl: String.fromEnvironment(
         'BACKEND_API_URL',
-        defaultValue: "https://api.mooze.app/v1/",
+        defaultValue: "https://api.mooze.app/",
       ),
       connectTimeout: _timeout,
       receiveTimeout: _timeout,
@@ -33,14 +33,15 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
   }
 
   @override
-  TaskEither<String, AuthChallenge> requestLoginChallenge(String pubKey) {
-    return TaskEither.tryCatch(() async {
+  TaskEither<String, AuthChallenge> requestLoginChallenge() {
+    return signatureClient.getPublicKey().flatMap((pubKey) => TaskEither.tryCatch(() async {
       final response = await dio.post(
-        '/auth/login',
+        '/auth/challenge',
         data: {'public_key': pubKey},
       );
       return AuthChallenge.fromJson(response.data);
-    }, (error, stackTrace) => error.toString());
+    }, (error, stackTrace) => error.toString())
+    );
   }
 
   @override
@@ -50,7 +51,7 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
     return TaskEither.fromEither(signedChallenge).flatMap(
       (signature) => TaskEither.tryCatch(() async {
         final response = await dio.post(
-          '/auth/sign_challenge',
+          '/auth/sign',
           data: {'challenge_id': challenge.challengeId, 'signature': signature},
         );
         return Session.fromJson(response.data);
