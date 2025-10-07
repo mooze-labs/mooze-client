@@ -17,17 +17,11 @@ void main() {
       test('should sign challenge message correctly', () {
         // Arrange
         const challengeId = 'test-challenge-456';
-        const nonce = 'test-nonce-2';
-        const pubkeyFpr = 'test-fingerprint-2';
-        const timestamp = '2023-10-06T13:00:00Z';
         const testMessage = 'specific message to sign';
         final messageBase64 = base64Encode(utf8.encode(testMessage));
 
         final challenge = AuthChallenge(
           challengeId: challengeId,
-          nonce: nonce,
-          pubkeyFpr: pubkeyFpr,
-          timestamp: timestamp,
           message: messageBase64,
         );
 
@@ -62,9 +56,6 @@ void main() {
           final messageBase64 = base64Encode(utf8.encode(message));
           final challenge = AuthChallenge(
             challengeId: 'test-$message',
-            nonce: 'nonce',
-            pubkeyFpr: 'fingerprint',
-            timestamp: DateTime.now().toIso8601String(),
             message: messageBase64,
           );
 
@@ -88,17 +79,11 @@ void main() {
         // Arrange
         final challenge1 = AuthChallenge(
           challengeId: 'challenge1',
-          nonce: 'nonce1',
-          pubkeyFpr: 'fp1',
-          timestamp: '2023-01-01T00:00:00Z',
           message: base64Encode(utf8.encode('message 1')),
         );
 
         final challenge2 = AuthChallenge(
           challengeId: 'challenge2',
-          nonce: 'nonce2',
-          pubkeyFpr: 'fp2',
-          timestamp: '2023-01-02T00:00:00Z',
           message: base64Encode(utf8.encode('message 2')),
         );
 
@@ -120,9 +105,6 @@ void main() {
         // Arrange
         final invalidChallenge = AuthChallenge(
           challengeId: 'test',
-          nonce: 'test',
-          pubkeyFpr: 'test',
-          timestamp: 'test',
           message: 'invalid-base64-content',
         );
 
