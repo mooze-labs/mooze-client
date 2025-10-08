@@ -214,9 +214,7 @@ class EcdsaSignatureClient implements SignatureClient {
       compressedPubKey[0] = prefix;
       compressedPubKey.setRange(1, 33, xBytes);
 
-      return compressedPubKey
-          .map((b) => b.toRadixString(16).padLeft(2, '0'))
-          .join('');
+      return base64Encode(compressedPubKey);
     }, (error, stackTrace) => 'Error getting public key: $error');
   }
 
