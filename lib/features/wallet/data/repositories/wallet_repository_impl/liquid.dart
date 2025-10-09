@@ -20,7 +20,11 @@ class LiquidWallet {
     DateTime? endDate,
   }) {
     final walletTxs = TaskEither.tryCatch(
-      () async => await _datasource.wallet.txs(),
+      () async {
+        final transactions = await _datasource.wallet.txs();
+        print("Liquid Transactions: ${transactions.length}");
+        return transactions;
+      },
       (err, _) => WalletError(
         WalletErrorType.connectionError,
         "Falha ao acessar transações",
@@ -61,9 +65,9 @@ class LiquidWallet {
       if (type != null && tx.type != type) return false;
       if (status != null && tx.status != status) return false;
       if (startDate != null &&
-          tx.createdAt.millisecondsSinceEpoch <= startDate.microsecondsSinceEpoch) return false;
+          tx.createdAt.millisecondsSinceEpoch < startDate.millisecondsSinceEpoch) return false;
       if (endDate != null &&
-          tx.createdAt.millisecondsSinceEpoch >= endDate.microsecondsSinceEpoch) return false;
+          tx.createdAt.millisecondsSinceEpoch > endDate.millisecondsSinceEpoch) return false;
       return true;
     });
   }

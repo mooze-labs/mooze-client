@@ -203,22 +203,37 @@ class WalletRepositoryImpl extends WalletRepository {
       endDate: endDate,
     );
 
-    final layer2Transactions = breezTransactions.flatMap((breezTxs) {
-      return liquidTransactions.flatMap((liquidTxs) {
+    return TaskEither.tryCatch(
+      () async {
+        final breezResult = await breezTransactions.run();
+        final List<Transaction> breezTxs = breezResult.fold((error) {
+          debugPrint('Error fetching breez transactions: $error');
+          return <Transaction>[];
+        }, (txs) => txs);
+
+        final liquidResult = await liquidTransactions.run();
+        final List<Transaction> liquidTxs = liquidResult.fold((error) {
+          debugPrint('Error fetching liquid transactions: $error');
+          return <Transaction>[];
+        }, (txs) => txs);
+
+        final List<Transaction> btcTxs = bitcoinTransactions.fold((error) {
+          debugPrint('Error fetching bitcoin transactions: $error');
+          return <Transaction>[];
+        }, (txs) => txs);
+
+        debugPrint(
+          "Got {${breezTxs.length} from Breez, ${liquidTxs.length} from Liquid, ${btcTxs.length} from Bitcoin}",
+        );
+
         final breezIds = breezTxs.map((tx) => tx.id).toSet();
         final filteredLiquidTxs =
             liquidTxs.where((tx) => !breezIds.contains(tx.id)).toList();
-        final allTransactions = [...breezTxs, ...filteredLiquidTxs];
-        return TaskEither.right(allTransactions);
-      });
-    });
 
-    return layer2Transactions.flatMap(
-      (transactions) => TaskEither.fromEither(
-        bitcoinTransactions.flatMap(
-          (btcTransactions) => right([...transactions, ...btcTransactions]),
-        ),
-      ),
+        return [...breezTxs, ...filteredLiquidTxs, ...btcTxs];
+      },
+      (error, stackTrace) =>
+          WalletError(WalletErrorType.sdkError, error.toString()),
     );
   }
 

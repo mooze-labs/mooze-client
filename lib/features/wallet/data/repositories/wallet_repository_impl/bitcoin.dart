@@ -127,7 +127,11 @@ class BitcoinWallet {
     DateTime? endDate,
   }) {
     final walletTxs = Either.tryCatch(
-      () => _datasource.wallet.listTransactions(includeRaw: false),
+      () {
+        final transactions = _datasource.wallet.listTransactions(includeRaw: false);
+        print("Transactions: ${transactions.length}");
+        return transactions;
+      },
       (err, _) {
         if (kDebugMode) {
           debugPrint(err.toString());
