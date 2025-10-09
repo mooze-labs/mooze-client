@@ -51,7 +51,7 @@ class _FilterOrderByState extends State<FilterOrderBy> {
               borderRadius: BorderRadius.circular(15),
               color:
                   _isMostRecentSelected
-                      ? AppColors.primaryColor.withOpacity(0.3)
+                      ? AppColors.primaryColor.withValues(alpha: 0.3)
                       : Colors.grey,
               border:
                   _isMostRecentSelected
@@ -106,7 +106,7 @@ class _FilterOrderByState extends State<FilterOrderBy> {
               borderRadius: BorderRadius.circular(15),
               color:
                   !_isMostRecentSelected
-                      ? AppColors.primaryColor.withOpacity(0.3)
+                      ? AppColors.primaryColor.withValues(alpha: 0.3)
                       : Colors.grey,
               border:
                   !_isMostRecentSelected

@@ -13,6 +13,10 @@ class Transaction {
   final TransactionType type;
   final TransactionStatus status;
   final DateTime createdAt;
+  final Asset? fromAsset;
+  final Asset? toAsset;
+  final BigInt? sentAmount;
+  final BigInt? receivedAmount;
 
   Transaction({
     required this.id,
@@ -22,5 +26,9 @@ class Transaction {
     required this.type,
     required this.status,
     required this.createdAt,
+    this.fromAsset,
+    this.toAsset,
+    this.sentAmount,
+    this.receivedAmount,
   });
 }
