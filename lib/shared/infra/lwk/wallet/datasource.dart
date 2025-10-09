@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lwk/lwk.dart';
@@ -25,10 +26,18 @@ class LiquidDataSource implements SyncableDataSource {
 
   @override
   Future<void> sync() async {
+    debugPrint("[LiquidDataSource] Syncing");
     await wallet.sync_(
       electrumUrl: electrumUrl,
       validateDomain: validateDomain,
     );
+
+    if (kDebugMode) {
+      final txs = await wallet.txs();
+      for (final tx in txs) {
+        print('Transaction ID: ${tx.txid}');
+      }
+    }
   }
 
   Future<String> getAddress() async {

@@ -3,9 +3,9 @@ import 'dart:isolate';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwk/lwk.dart';
+import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 
 import '../wallet/datasource.dart';
-import '../providers/datasource_provider.dart';
 
 enum WalletSyncStatus { idle, syncing, success, error }
 
