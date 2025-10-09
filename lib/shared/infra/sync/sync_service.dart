@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:stream_transform/stream_transform.dart';
 
@@ -52,15 +53,26 @@ class SyncService {
     SyncableDataSource dataSource,
     Duration interval,
   ) {
+    debugPrint("[SyncService] Initializing");
     return TaskEither.tryCatch(() async {
       await stopPeriodicSync().run();
 
+      // Trigger immediate sync on startup
+      debugPrint("[SyncService] Triggering immediate initial sync");
+      _stateController.add(SyncInProgress());
+      final initialSync = await syncDataSource(dataSource).run();
+      final initialState = reduceSyncState(SyncIdle(), initialSync);
+      _stateController.add(initialState);
+      debugPrint("[SyncService] Initial sync completed: ${initialState.runtimeType}");
+
+      // Set up periodic syncs
       final ticker = createPeriodicTicker(interval);
       final syncCommands = createSyncCommands(ticker, dataSource);
 
       _syncSubscription = syncCommands
           .throttle(interval)
           .asyncMap((syncTask) async {
+            debugPrint("[SyncService] Periodic sync triggered");
             _stateController.add(SyncInProgress());
             final result = await syncTask.run();
             final newState = reduceSyncState(SyncIdle(), result);
