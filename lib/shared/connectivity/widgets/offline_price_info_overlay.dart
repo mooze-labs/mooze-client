@@ -15,7 +15,7 @@ class OfflinePriceInfoOverlay {
               Positioned.fill(
                 child: GestureDetector(
                   onTap: () => overlayEntry.remove(),
-                  child: Container(color: Colors.black.withOpacity(0.3)),
+                  child: Container(color: Colors.black.withValues(alpha: 0.3)),
                 ),
               ),
               Positioned(
@@ -80,7 +80,9 @@ class OfflinePriceInfoOverlay {
           onPressed: () => overlayEntry.remove(),
           icon: Icon(
             Icons.close_rounded,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -109,7 +111,7 @@ class OfflinePriceInfoOverlay {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               );
             }
@@ -166,7 +168,7 @@ class OfflinePriceInfoOverlay {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -212,7 +214,9 @@ class OfflinePriceInfoOverlay {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
