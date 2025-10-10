@@ -72,7 +72,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
               top: 0,
               left: 0,
               right: 0,
-              child: Container(
+              child: SizedBox(
                 height: 3,
                 child: LinearProgressIndicator(
                   backgroundColor: Colors.transparent,

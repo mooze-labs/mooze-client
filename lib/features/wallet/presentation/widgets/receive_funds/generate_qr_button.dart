@@ -19,7 +19,7 @@ class GenerateQRButton extends ConsumerWidget {
 
     final isLoading = qrAsyncState.when(
       loading: () => true,
-      error: (_, __) => false,
+      error: (_, _) => false,
       data: (qrState) => qrState.isLoading,
     );
 

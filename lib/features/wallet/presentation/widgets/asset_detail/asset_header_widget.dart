@@ -30,16 +30,16 @@ class AssetHeaderWidget extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primaryColor.withOpacity(0.2),
-            AppColors.primaryColor.withOpacity(0.05),
+            AppColors.primaryColor.withValues(alpha: 0.2),
+            AppColors.primaryColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color:
               isUsingCache
-                  ? Colors.orange.withOpacity(0.5)
-                  : AppColors.primaryColor.withOpacity(0.3),
+                  ? Colors.orange.withValues(alpha: 0.5)
+                  : AppColors.primaryColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -50,7 +50,7 @@ class AssetHeaderWidget extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
+                color: Colors.orange.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -86,7 +86,6 @@ class AssetHeaderWidget extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Usar o preço do cache que já tem fallback automático
                   priceAsync.when(
                     data:
                         (priceResult) => priceResult.fold(
@@ -101,7 +100,7 @@ class AssetHeaderWidget extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: SvgPicture.asset(asset.iconPath, width: 48, height: 48),
@@ -173,8 +172,8 @@ class AssetHeaderWidget extends ConsumerWidget {
           decoration: BoxDecoration(
             color:
                 isPositive
-                    ? Colors.green.withOpacity(0.2)
-                    : Colors.red.withOpacity(0.2),
+                    ? Colors.green.withValues(alpha: 0.2)
+                    : Colors.red.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isPositive ? Colors.green : Colors.red,
@@ -229,7 +228,7 @@ class AssetHeaderWidget extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey, width: 1),
       ),

@@ -35,19 +35,19 @@ class _AutoValidationListenerState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String>(addressStateProvider, (_, __) {
+    ref.listen<String>(addressStateProvider, (_, _) {
       _validateTransaction();
     });
 
-    ref.listen<int>(amountStateProvider, (_, __) {
+    ref.listen<int>(amountStateProvider, (_, _) {
       _validateTransaction();
     });
 
-    ref.listen<int>(finalAmountProvider, (_, __) {
+    ref.listen<int>(finalAmountProvider, (_, _) {
       _validateTransaction();
     });
 
-    ref.listen<Asset>(selectedAssetProvider, (_, __) {
+    ref.listen<Asset>(selectedAssetProvider, (_, _) {
       _validateTransaction();
     });
 

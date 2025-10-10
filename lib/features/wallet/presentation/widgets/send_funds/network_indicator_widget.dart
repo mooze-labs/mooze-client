@@ -20,7 +20,7 @@ class NetworkIndicatorWidget extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.1),
+          color: Colors.red.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.red, width: 1),
         ),
@@ -45,7 +45,7 @@ class NetworkIndicatorWidget extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _getNetworkColor(networkType).withOpacity(0.1),
+        color: _getNetworkColor(networkType).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _getNetworkColor(networkType), width: 1),
       ),

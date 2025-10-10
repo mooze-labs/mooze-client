@@ -90,7 +90,9 @@ class _ConversionOption extends StatelessWidget {
             color:
                 isSelected
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                    : Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -155,7 +157,7 @@ class ReceiveConversionPreview extends ConsumerWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -173,7 +175,9 @@ class ReceiveConversionPreview extends ConsumerWidget {
             children: [
               Container(
                 height: 1,
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.2),
               ),
               const SizedBox(height: 8),
 
@@ -254,13 +258,17 @@ class _ConversionRow extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
           const SizedBox(width: 6),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const Spacer(),

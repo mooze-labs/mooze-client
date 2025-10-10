@@ -25,9 +25,12 @@ class AssetChartWidget extends ConsumerWidget {
       height: 300,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: priceHistory.when(
         data:
@@ -142,7 +145,7 @@ class AssetChartWidget extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.error_outline,
-                  color: Colors.red.withOpacity(0.7),
+                  color: Colors.red.withValues(alpha: 0.7),
                   size: 48,
                 ),
                 const SizedBox(height: 16),
@@ -193,14 +196,14 @@ class DetailedChartPainter extends CustomPainter {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              (isPositive ? Colors.green : Colors.red).withOpacity(0.3),
-              (isPositive ? Colors.green : Colors.red).withOpacity(0.0),
+              (isPositive ? Colors.green : Colors.red).withValues(alpha: 0.3),
+              (isPositive ? Colors.green : Colors.red).withValues(alpha: 0.0),
             ],
           ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final gridPaint =
         Paint()
-          ..color = Colors.white.withOpacity(0.1)
+          ..color = Colors.white.withValues(alpha: 0.1)
           ..strokeWidth = 1;
 
     for (int i = 0; i <= 4; i++) {

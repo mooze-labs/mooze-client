@@ -104,12 +104,10 @@ class ReceiveConversionController extends StateNotifier<void> {
 
       priceResult.fold(
         (error) {
-          print('Error fetching price for conversion: $error');
           ref.read(receiveAmountProvider.notifier).state = '';
         },
         (price) {
           if (price <= 0) {
-            print('Invalid price received: $price');
             ref.read(receiveAmountProvider.notifier).state = '';
             return;
           }
@@ -141,7 +139,6 @@ class ReceiveConversionController extends StateNotifier<void> {
         },
       );
     } catch (e) {
-      print('Error in fiat conversion: $e');
       ref.read(receiveAmountProvider.notifier).state = '';
     } finally {
       ref.read(receiveConversionLoadingProvider.notifier).state = false;

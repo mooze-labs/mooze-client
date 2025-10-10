@@ -71,7 +71,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
               Positioned.fill(
                 child: GestureDetector(
                   onTap: () => overlayEntry.remove(),
-                  child: Container(color: Colors.black.withOpacity(0.3)),
+                  child: Container(color: Colors.black.withValues(alpha: 0.3)),
                 ),
               ),
               Positioned(
@@ -113,7 +113,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
                                 Icons.close_rounded,
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -143,9 +143,10 @@ class ReceiveFundsScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primaryContainer.withOpacity(0.3),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -226,7 +227,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],

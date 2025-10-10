@@ -9,13 +9,13 @@ class AssetTransactionItem extends StatelessWidget {
   final String time;
 
   const AssetTransactionItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.value,
     required this.time,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

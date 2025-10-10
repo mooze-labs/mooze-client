@@ -89,7 +89,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
       decoration: BoxDecoration(
         color: Theme.of(
           context,
-        ).colorScheme.surfaceVariant.withValues(alpha: 0.3),
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -188,7 +188,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
       decoration: BoxDecoration(
         color: Theme.of(
           context,
-        ).colorScheme.surfaceVariant.withValues(alpha: 0.3),
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
@@ -235,7 +235,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.surfaceVariant.withValues(alpha: 0.3),
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: Theme.of(
