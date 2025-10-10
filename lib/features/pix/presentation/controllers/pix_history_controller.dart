@@ -1,8 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/domain/repositories/pix_repository.dart';
-import 'package:mooze_mobile/features/pix/presentation/providers/pix_history_provider.dart';
 
 class PixHistoryController {
   final PixRepository _repo;

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
-import 'package:mooze_mobile/features/pix/presentation/controllers/pix_history_controller.dart';
-import 'package:mooze_mobile/features/pix/presentation/providers/pix_history_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_deposit_list.dart';

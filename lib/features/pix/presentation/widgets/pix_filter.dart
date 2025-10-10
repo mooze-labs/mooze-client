@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
@@ -174,7 +173,9 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                               color:
                                                   isSelected
                                                       ? AppColors.primaryColor
-                                                          .withOpacity(0.3)
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          )
                                                       : Colors.grey,
                                               border:
                                                   isSelected
@@ -278,8 +279,8 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                           isSelected
                                                               ? AppColors
                                                                   .primaryColor
-                                                                  .withOpacity(
-                                                                    0.3,
+                                                                  .withValues(
+                                                                    alpha: 0.3,
                                                                   )
                                                               : Colors.grey,
                                                       border:
@@ -339,7 +340,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                       selectedDateRangeIndex ==
                                                           null
                                                   ? AppColors.primaryColor
-                                                      .withOpacity(0.3)
+                                                      .withValues(alpha: 0.3)
                                                   : Colors.grey,
                                           border:
                                               startDate != null &&
@@ -549,8 +550,8 @@ Widget _buildOptimizedGrid<T>({
                                 borderRadius: BorderRadius.circular(15),
                                 color:
                                     isSelected
-                                        ? AppColors.primaryColor.withOpacity(
-                                          0.3,
+                                        ? AppColors.primaryColor.withValues(
+                                          alpha: 0.3,
                                         )
                                         : Colors.grey,
                                 border:

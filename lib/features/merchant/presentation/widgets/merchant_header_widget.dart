@@ -51,7 +51,10 @@ class MerchantHeaderWidget extends StatelessWidget {
         SizedBox(height: 8),
         Text(
           '${valorBitcoin.toStringAsFixed(6)} BTC',
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 16,
+          ),
         ),
       ],
     );
