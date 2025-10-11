@@ -154,7 +154,9 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                               color:
                                                   isSelected
                                                       ? AppColors.primaryColor
-                                                          .withOpacity(0.3)
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          )
                                                       : Colors.grey,
                                               border:
                                                   isSelected
@@ -263,8 +265,8 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                           isSelected
                                                               ? AppColors
                                                                   .primaryColor
-                                                                  .withOpacity(
-                                                                    0.3,
+                                                                  .withValues(
+                                                                    alpha: 0.3,
                                                                   )
                                                               : Colors.grey,
                                                       border:
@@ -326,7 +328,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                       selectedDateRangeIndex ==
                                                           null
                                                   ? AppColors.primaryColor
-                                                      .withOpacity(0.3)
+                                                      .withValues(alpha: 0.3)
                                                   : Colors.grey,
                                           border:
                                               startDate != null &&

@@ -128,9 +128,8 @@ class BitcoinWallet {
   }) {
     final walletTxs = Either.tryCatch(
       () {
-        final transactions = _datasource.wallet.listTransactions(includeRaw: false);
-        print("Transactions: ${transactions.length}");
-        return transactions;
+        final rawTxs = _datasource.wallet.listTransactions(includeRaw: false);
+        return rawTxs;
       },
       (err, _) {
         if (kDebugMode) {

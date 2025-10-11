@@ -27,7 +27,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   Widget build(BuildContext context) {
     final isReceive = widget.transaction.type == TransactionType.receive;
     final amountStr =
-        "${isReceive ? '+' : '-'}${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
+        "${isReceive ? '+' : ''}${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
 
     return Scaffold(
       appBar: AppBar(
@@ -46,12 +46,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
             const SizedBox(height: 32),
 
-            // Card com detalhes
             _buildDetailsCard(context),
 
             const SizedBox(height: 24),
 
-            // Botões de ação
             _buildActionButtons(context),
           ],
         ),
@@ -60,51 +58,31 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Widget _buildTransactionHeader(String amountStr, bool isReceive) {
+    final isSwap = widget.transaction.type == TransactionType.swap;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withOpacity(0.1),
+        color: AppColors.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryColor.withOpacity(0.3)),
+        border: Border.all(
+          color: AppColors.primaryColor.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: [
-          // Ícone do asset
-          Container(
-            width: 80,
-            height: 80,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: SvgPicture.asset(
-              widget.transaction.asset.iconPath,
-              width: 48,
-              height: 48,
-            ),
-          ),
+          if (isSwap && _hasSwapDetails())
+            _buildSwapHeader()
+          else
+            _buildRegularHeader(amountStr, isReceive),
 
           const SizedBox(height: 16),
 
-          // Valor da transação
-          Text(
-            '$amountStr ${widget.transaction.asset.ticker}',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: isReceive ? Colors.green : Colors.red,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Tipo da transação
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _getStatusColor().withOpacity(0.2),
+              color: _getStatusColor().withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -121,14 +99,169 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
   }
 
+  Widget _buildRegularHeader(String amountStr, bool isReceive) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(40),
+          ),
+          child: SvgPicture.asset(
+            widget.transaction.asset.iconPath,
+            width: 48,
+            height: 48,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          '$amountStr ${widget.transaction.asset.ticker}',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: isReceive ? Colors.green : Colors.red,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwapHeader() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Asset FROM
+            Column(
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(35),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: SvgPicture.asset(
+                    widget.transaction.fromAsset!.iconPath,
+                    width: 42,
+                    height: 42,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _formatSwapAmount(
+                    widget.transaction.sentAmount!,
+                    widget.transaction.fromAsset!,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+
+            const SizedBox(width: 20),
+
+            Icon(
+              Icons.swap_horiz_rounded,
+              size: 32,
+              color: AppColors.primaryColor,
+            ),
+
+            const SizedBox(width: 20),
+
+            // Asset TO
+            Column(
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(35),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: SvgPicture.asset(
+                    widget.transaction.toAsset!.iconPath,
+                    width: 42,
+                    height: 42,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _formatSwapAmount(
+                    widget.transaction.receivedAmount!,
+                    widget.transaction.toAsset!,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          'Swap realizado',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _hasSwapDetails() {
+    return widget.transaction.fromAsset != null &&
+        widget.transaction.toAsset != null &&
+        widget.transaction.sentAmount != null &&
+        widget.transaction.receivedAmount != null;
+  }
+
+  String _formatSwapAmount(BigInt amount, dynamic asset) {
+    final formattedAmount = (amount.toDouble() / 100000000).toStringAsFixed(8);
+    final cleanAmount = formattedAmount
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
+    return '$cleanAmount ${asset.ticker}';
+  }
+
   Widget _buildDetailsCard(BuildContext context) {
+    final isSwap = widget.transaction.type == TransactionType.swap;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,11 +280,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             'Data',
             _formatDateTime(widget.transaction.createdAt),
           ),
-          _buildDetailRow('Moeda', widget.transaction.asset.name),
-          _buildDetailRow(
-            'Valor',
-            '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
-          ),
+
+          ...(isSwap && _hasSwapDetails()
+              ? [const SizedBox.shrink()]
+              : [_buildRegularDetailsSection()]),
+
           _buildDetailRow(
             'ID da Transação',
             truncateHashId(widget.transaction.id),
@@ -161,6 +294,18 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           _buildDetailRow('Blockchain', _getBlockchainLabel()),
         ],
       ),
+    );
+  }
+
+  Widget _buildRegularDetailsSection() {
+    return Column(
+      children: [
+        _buildDetailRow('Moeda', widget.transaction.asset.name),
+        _buildDetailRow(
+          'Valor',
+          '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
+        ),
+      ],
     );
   }
 
@@ -279,6 +424,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Color _getStatusColor() {
+    if (widget.transaction.type == TransactionType.swap &&
+        widget.transaction.status == TransactionStatus.confirmed) {
+      return Colors.green;
+    }
+
     switch (widget.transaction.status) {
       case TransactionStatus.pending:
         return Colors.orange;
@@ -297,14 +447,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   void _copyToClipboard(String text) {
-    // Copia o ID completo, não o truncado
     Clipboard.setData(ClipboardData(text: widget.transaction.id));
 
     setState(() {
       _isCopied = true;
     });
 
-    // Volta ao estado normal após 2 segundos
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
@@ -316,21 +464,24 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Future<void> _openInExplorer() async {
     String explorerUrl;
-    switch (widget.transaction.asset.id) {
-      case 'bitcoin':
-        explorerUrl = 'https://blockstream.info/tx/${widget.transaction.id}';
-        break;
-      case 'tether':
-        explorerUrl =
-            'https://blockstream.info/liquid/tx/${widget.transaction.id}';
-        break;
-      case 'depix':
-        explorerUrl =
-            'https://blockstream.info/liquid/tx/${widget.transaction.id}';
-        break;
-      default:
-        explorerUrl = 'https://blockstream.info/tx/${widget.transaction.id}';
-        break;
+
+    if (widget.transaction.type == TransactionType.swap ||
+        widget.transaction.blockchain == Blockchain.liquid) {
+      explorerUrl =
+          'https://blockstream.info/liquid/tx/${widget.transaction.id}';
+    } else {
+      switch (widget.transaction.blockchain) {
+        case Blockchain.bitcoin:
+          explorerUrl = 'https://blockstream.info/tx/${widget.transaction.id}';
+          break;
+        case Blockchain.lightning:
+          explorerUrl = 'https://blockstream.info/tx/${widget.transaction.id}';
+          break;
+        case Blockchain.liquid:
+          explorerUrl =
+              'https://blockstream.info/liquid/tx/${widget.transaction.id}';
+          break;
+      }
     }
 
     final Uri url = Uri.parse(explorerUrl);

@@ -70,7 +70,7 @@ class SuccessfulTransactionList extends ConsumerWidget {
             final bitcoinPrice = bitcoinPriceAsync.when(
               data: (either) => either.fold((error) => null, (price) => price),
               loading: () => null,
-              error: (_, __) => null,
+              error: (_, _) => null,
             );
 
             final amountStr = TransactionValueFormatter.formatTransactionValue(
@@ -91,6 +91,7 @@ class SuccessfulTransactionList extends ConsumerWidget {
                 value: amountStr,
                 time: _formatTime(transaction),
                 isVisible: isVisible,
+                transaction: transaction,
               ),
             );
           }).toList(),
@@ -98,6 +99,23 @@ class SuccessfulTransactionList extends ConsumerWidget {
   }
 
   String _getTransactionTitle(Transaction transaction) {
+    if (transaction.fromAsset != null &&
+        transaction.toAsset != null &&
+        transaction.sentAmount != null &&
+        transaction.receivedAmount != null) {
+      return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+    }
+
+    if (transaction.type == TransactionType.send &&
+        transaction.asset == Asset.usdt) {
+      return "Enviou ${transaction.asset.ticker}";
+    }
+
+    if (transaction.type == TransactionType.receive &&
+        transaction.asset == Asset.lbtc) {
+      return "Recebeu ${transaction.asset.ticker}";
+    }
+
     switch (transaction.type) {
       case TransactionType.send:
         return "Enviou ${transaction.asset.ticker}";
@@ -115,15 +133,19 @@ class SuccessfulTransactionList extends ConsumerWidget {
   }
 
   String _getTransactionSubtitle(Transaction transaction) {
-    switch (transaction.status) {
+    return _getStatusText(transaction.status);
+  }
+
+  String _getStatusText(TransactionStatus status) {
+    switch (status) {
       case TransactionStatus.pending:
-        return "Pending";
+        return "Pendente";
       case TransactionStatus.confirmed:
-        return "Confirmed";
+        return "Confirmado";
       case TransactionStatus.failed:
-        return "Failed";
+        return "Falhou";
       case TransactionStatus.refundable:
-        return "Refundable";
+        return "Reembolsável";
     }
   }
 
@@ -308,6 +330,7 @@ class HomeTransactionItem extends StatelessWidget {
   final String value;
   final String time;
   final bool isVisible;
+  final Transaction? transaction;
 
   const HomeTransactionItem({
     super.key,
@@ -317,15 +340,32 @@ class HomeTransactionItem extends StatelessWidget {
     required this.value,
     required this.time,
     required this.isVisible,
+    this.transaction,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isSwapByType = transaction?.type == TransactionType.swap;
+    final isSwapByData =
+        transaction?.fromAsset != null &&
+        transaction?.toAsset != null &&
+        transaction?.sentAmount != null &&
+        transaction?.receivedAmount != null;
+
+    final isSwap = isSwapByType || isSwapByData;
+    final hasSwapDetails =
+        isSwap &&
+        transaction?.fromAsset != null &&
+        transaction?.toAsset != null;
+
     return Container(
       padding: EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          SvgPicture.asset(icon, width: 50, height: 50),
+          if (hasSwapDetails)
+            _buildSwapIcon()
+          else
+            SvgPicture.asset(icon, width: 50, height: 50),
           SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -340,10 +380,14 @@ class HomeTransactionItem extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                ),
+                // Subtitle especial para swaps
+                if (hasSwapDetails)
+                  _buildSwapSubtitle()
+                else
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  ),
               ],
             ),
           ),
@@ -351,7 +395,11 @@ class HomeTransactionItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                isVisible ? '•••••••' : value,
+                isSwap
+                    ? ''
+                    : isVisible
+                    ? '•••••••'
+                    : value,
                 style: TextStyle(
                   color:
                       isVisible
@@ -370,6 +418,90 @@ class HomeTransactionItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSwapIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 5,
+            child: SizedBox(
+              width: 35,
+              height: 35,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15.5),
+                child: SvgPicture.asset(
+                  transaction!.fromAsset!.iconPath,
+                  width: 31,
+                  height: 31,
+                ),
+              ),
+            ),
+          ),
+          // Asset TO (frente, maior)
+          Positioned(
+            right: 0,
+            bottom: 5,
+            child: SizedBox(
+              width: 35,
+              height: 35,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15.5),
+                child: SvgPicture.asset(
+                  transaction!.toAsset!.iconPath,
+                  width: 31,
+                  height: 31,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwapSubtitle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(subtitle, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+        if (!isVisible &&
+            transaction?.sentAmount != null &&
+            transaction?.receivedAmount != null)
+          SizedBox(height: 2),
+        if (!isVisible &&
+            transaction?.sentAmount != null &&
+            transaction?.receivedAmount != null)
+          Row(
+            children: [
+              Text(
+                "${transaction!.fromAsset!.formatBalance(transaction!.sentAmount!)}",
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(width: 4),
+              SvgPicture.asset(
+                "assets/icons/menu/navigation/swap.svg",
+                width: 12,
+                height: 12,
+                color: AppColors.primaryColor,
+              ),
+              SizedBox(width: 4),
+              Text(
+                "${transaction!.toAsset!.formatBalance(transaction!.receivedAmount!)}",
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
