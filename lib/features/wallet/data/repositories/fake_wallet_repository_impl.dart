@@ -390,21 +390,21 @@ class FakeWalletRepositoryImpl extends WalletRepository {
     return TaskEither.right(mockBalance);
   }
 
-  @override
-  TaskEither<WalletError, OnchainPaymentLimitsResponse> fetchOnchainLimits() {
-    final mockLimits = OnchainPaymentLimitsResponse(
-      send: PaymentLimits(
-        minSat: BigInt.from(1000),
-        maxSat: BigInt.from(100000000),
-      ),
-      receive: PaymentLimits(
-        minSat: BigInt.from(1),
-        maxSat: BigInt.from(500000000),
-      ),
-    );
+  // @override
+  // TaskEither<WalletError, OnchainPaymentLimitsResponse> fetchOnchainLimits() {
+  //   final mockLimits = OnchainPaymentLimitsResponse(
+  //     send: PaymentLimits(
+  //       minSat: BigInt.from(1000),
+  //       maxSat: BigInt.from(100000000),
+  //     ),
+  //     receive: PaymentLimits(
+  //       minSat: BigInt.from(1),
+  //       maxSat: BigInt.from(500000000),
+  //     ),
+  //   );
 
-    return TaskEither.right(mockLimits);
-  }
+  //   return TaskEither.right(mockLimits);
+  // }
 
   @override
   TaskEither<WalletError, LightningPaymentLimitsResponse>
