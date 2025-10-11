@@ -7,7 +7,7 @@ import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
-import '../providers.dart';
+import '../../providers.dart';
 
 class AssetAmountDisplay extends ConsumerWidget {
   const AssetAmountDisplay({super.key});

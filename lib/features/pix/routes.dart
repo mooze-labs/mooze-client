@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import 'presentation/screens/payment/screen.dart';
-import 'presentation/screens/receive/screen.dart';
+import 'presentation/screens/receive/presentation/screens/recive_pix_screen.dart';
 
 final pixRoutes = [
   GoRoute(

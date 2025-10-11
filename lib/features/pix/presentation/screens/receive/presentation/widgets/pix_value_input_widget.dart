@@ -6,18 +6,25 @@ import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-import '../providers.dart';
+import '../../providers.dart';
 
 import 'account_limits_display_widget.dart';
 
-class PixValueInputWidget extends ConsumerWidget {
+class PixValueInputWidget extends ConsumerStatefulWidget {
   const PixValueInputWidget({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PixValueInputWidget> createState() =>
+      _PixValueInputWidgetState();
+}
+
+class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
+  bool _showLimits = true;
+
+  @override
+  Widget build(BuildContext context) {
     final allowedDepositAmount = ref.watch(amountLimitProvider);
     return Container(
-      height: double.infinity,
       padding: EdgeInsets.all(16),
       decoration: _buildContainerDecoration(context),
       child: Column(
@@ -32,7 +39,35 @@ class PixValueInputWidget extends ConsumerWidget {
             ),
           ),
           PixDepositAmountInput(),
-          AccountLimitsDisplay(),
+          SizedBox(height: 10),
+          _showLimits
+              ? AccountLimitsDisplay(
+                onToggleView: () {
+                  setState(() {
+                    _showLimits = false;
+                  });
+                },
+              )
+              : Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showLimits = true;
+                      });
+                    },
+                    child: InfoRow(
+                      label: 'Meus níveis',
+                      value: 'Ver Limite',
+                      labelColor: Colors.white,
+                      valueColor: AppColors.primaryColor,
+                      fontSize: context.responsiveFont(14),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  UserLevelDisplay(currentLevel: 3, currentProgress: 0.75),
+                ],
+              ),
         ],
       ),
     );
@@ -54,18 +89,25 @@ class PixValueInputWidget extends ConsumerWidget {
   }
 }
 
-class PixDepositAmountInput extends ConsumerWidget {
-  final TextEditingController controller = TextEditingController();
-
+class PixDepositAmountInput extends ConsumerStatefulWidget {
   PixDepositAmountInput({super.key});
+
+  @override
+  ConsumerState<PixDepositAmountInput> createState() =>
+      _PixDepositAmountInputState();
+}
+
+class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
+  final TextEditingController controller = TextEditingController();
 
   @override
   void dispose() {
     controller.dispose();
+    super.dispose();
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final depositAmountInput = ref.read(depositAmountProvider.notifier);
     return TextField(
       controller: controller,

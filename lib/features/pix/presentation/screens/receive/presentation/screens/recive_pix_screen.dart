@@ -5,8 +5,8 @@ import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'providers.dart';
-import 'widgets.dart';
+import '../../providers.dart';
+import '../../widgets.dart';
 
 class ReceivePixScreen extends ConsumerStatefulWidget {
   const ReceivePixScreen({super.key});
@@ -129,27 +129,24 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   }
 
   Widget _buildBody(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(right: 8, left: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInstructionText(context),
-            SizedBox(height: 10),
-            AssetSelectorWidget(),
-            SizedBox(height: 10),
-            Expanded(child: PixValueInputWidget()),
-            SizedBox(height: 16),
-            Expanded(child: TransactionDisplayWidget()),
-            SizedBox(height: 16),
-            SlideToConfirmButton(
-              onSlideComplete: () => _onSlideComplete(context),
-              text: 'Gerar QR Code',
-            ),
-            SizedBox(height: 16),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(right: 8, left: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInstructionText(context),
+          SizedBox(height: 10),
+          AssetSelectorWidget(),
+          SizedBox(height: 10),
+          PixValueInputWidget(),
+          SizedBox(height: 16),
+          SizedBox(height: 200, child: TransactionDisplayWidget()),
+          SizedBox(height: 16),
+          PrimaryButton(
+            onPressed: () => _onSlideComplete(context),
+            text: 'Gerar QR Code',
+          ),
+        ],
       ),
     );
   }

@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
-import '../providers.dart';
+import '../../providers.dart';
 
 class AccountLimitsDisplay extends ConsumerWidget {
-  const AccountLimitsDisplay({super.key});
+  final VoidCallback? onToggleView;
+
+  const AccountLimitsDisplay({super.key, this.onToggleView});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,6 +19,17 @@ class AccountLimitsDisplay extends ConsumerWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        GestureDetector(
+          onTap: onToggleView,
+          child: InfoRow(
+            label: 'Meus limites',
+            value: 'Ocultar Limite',
+            labelColor: Colors.white,
+            valueColor: AppColors.primaryColor,
+            fontSize: context.responsiveFont(14),
+          ),
+        ),
+        SizedBox(height: 6),
         accountLimit.when(
           data:
               (data) => InfoRow(

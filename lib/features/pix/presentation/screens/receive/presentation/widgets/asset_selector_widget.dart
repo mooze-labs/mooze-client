@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
-import '../../../providers.dart';
+import '../../../../providers.dart';
 
 const _possibleAssets = [Asset.btc, Asset.depix];
 
