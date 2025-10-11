@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
 
@@ -140,8 +141,11 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
     required bool isNext,
     required int index,
   }) {
-    return SizedBox(
-      width: 120,
+    return Container(
+      margin: EdgeInsets.only(
+        left: index == 0 ? 0 : 80,
+        right: index == UserLevels.levels.length - 1 ? 10 : 0,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Column(
@@ -294,13 +298,14 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
               ),
             ),
             if (nextLevelData != null) ...[
-              Text(
-                ' → ',
-                style: TextStyle(
-                  fontSize: context.responsiveFont(14),
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
+              SizedBox(width: 10),
+              SvgPicture.asset(
+                "assets/icons/menu/arrow_to_slide.svg",
+                color: currentLevelData.color,
+                height: 12,
+                width: 12,
               ),
+              SizedBox(width: 10),
               Text(
                 nextLevelData.name,
                 style: TextStyle(
