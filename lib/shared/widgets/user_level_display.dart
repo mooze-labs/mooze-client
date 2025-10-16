@@ -85,7 +85,7 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
 
   void _scrollToCurrentLevel() {
     if (_scrollController.hasClients) {
-      final targetPosition = (widget.currentLevel - 1) * 120.0 - 120.0;
+      final targetPosition = (widget.currentLevel - 1) * 120.0;
       _scrollController.animateTo(
         targetPosition.clamp(0.0, _scrollController.position.maxScrollExtent),
         duration: const Duration(milliseconds: 800),
@@ -102,7 +102,6 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildLevelProgressBar(),
-          const SizedBox(height: 12),
           _buildCurrentLevelInfo(),
         ],
       ),
@@ -121,7 +120,7 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
           final isCurrentLevel = level.order == widget.currentLevel;
           final isCompleted = level.order < widget.currentLevel;
           final isNext = level.order == widget.currentLevel + 1;
-
+      
           return _buildLevelMarker(
             level: level,
             isCurrentLevel: isCurrentLevel,
@@ -142,77 +141,70 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
     required int index,
   }) {
     return Container(
-      margin: EdgeInsets.only(
-        left: index == 0 ? 0 : 80,
-        right: index == UserLevels.levels.length - 1 ? 10 : 0,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              level.name,
-              style: TextStyle(
-                fontSize: context.responsiveFont(12),
-                fontWeight: isCurrentLevel ? FontWeight.bold : FontWeight.w500,
-                color:
-                    isCurrentLevel
-                        ? level.color
-                        : isCompleted
-                        ? level.color.withValues(alpha: 0.8)
-                        : Colors.white.withValues(alpha: 0.6),
-              ),
+      width: 120,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Text(
+            level.name,
+            style: TextStyle(
+              fontSize: context.responsiveFont(12),
+              fontWeight: isCurrentLevel ? FontWeight.bold : FontWeight.w500,
+              color: isCurrentLevel
+                  ? level.color
+                  : isCompleted
+                      ? level.color.withValues(alpha: 0.8)
+                      : Colors.white.withValues(alpha: 0.6),
             ),
-            const SizedBox(height: 8),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          
+          SizedBox(
+            height: 50,
+            width: 120,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                if (index < UserLevels.levels.length - 1)
+                  Positioned(
+                    left: 60,
+                    top: 22.5,
+                    child: AnimatedBuilder(
+                      animation: _progressAnimation,
+                      builder: (context, child) {
+                        final lineProgress = isCompleted
+                            ? 1.0
+                            : isCurrentLevel
+                                ? _progressAnimation.value
+                                : 0.0;
 
-            SizedBox(
-              height: 50,
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  if (index < UserLevels.levels.length - 1)
-                    Positioned(
-                      left: 50,
-                      child: AnimatedBuilder(
-                        animation: _progressAnimation,
-                        builder: (context, child) {
-                          final lineProgress =
-                              isCompleted
-                                  ? 1.0
-                                  : isCurrentLevel
-                                  ? _progressAnimation.value
-                                  : 0.0;
-
-                          return Container(
-                            width: 70,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(2),
+                        return Container(
+                          width: 120,
+                          height: 4,
+                          padding: const EdgeInsets.symmetric(horizontal: 30),
+                          child: LinearProgressIndicator(
+                            value: lineProgress,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.3),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isCompleted || isCurrentLevel
+                                  ? level.color
+                                  : Colors.white.withValues(alpha: 0.3),
                             ),
-                            child: LinearProgressIndicator(
-                              value: lineProgress,
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.3,
-                              ),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isCompleted || isCurrentLevel
-                                    ? level.color
-                                    : Colors.white.withValues(alpha: 0.3),
-                              ),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          );
-                        },
-                      ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      },
                     ),
+                  ),
 
-                  AnimatedBuilder(
-                    animation:
-                        isCurrentLevel
-                            ? _highlightAnimation
-                            : const AlwaysStoppedAnimation(1.0),
+                Center(
+                  child: AnimatedBuilder(
+                    animation: isCurrentLevel
+                        ? _highlightAnimation
+                        : const AlwaysStoppedAnimation(1.0),
                     builder: (context, child) {
                       final scale =
                           isCurrentLevel ? _highlightAnimation.value : 1.0;
@@ -224,49 +216,41 @@ class _UserLevelDisplayState extends State<UserLevelDisplay>
                           height: 45,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color:
-                                isCompleted || isCurrentLevel
-                                    ? level.color
-                                    : Colors.white.withValues(alpha: 0.3),
-                            boxShadow:
-                                isCurrentLevel
-                                    ? [
-                                      BoxShadow(
-                                        color: level.color.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                        blurRadius: 12,
-                                        spreadRadius: 4,
-                                      ),
-                                    ]
-                                    : null,
-                            border:
-                                isCurrentLevel
-                                    ? Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      width: 2,
-                                    )
-                                    : null,
+                            color: isCompleted || isCurrentLevel
+                                ? level.color
+                                : Colors.white.withValues(alpha: 0.3),
+                            boxShadow: isCurrentLevel
+                                ? [
+                                    BoxShadow(
+                                      color: level.color.withValues(alpha: 0.4),
+                                      blurRadius: 12,
+                                      spreadRadius: 4,
+                                    ),
+                                  ]
+                                : null,
+                            border: isCurrentLevel
+                                ? Border.all(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    width: 2,
+                                  )
+                                : null,
                           ),
                           child: Icon(
                             level.icon,
-                            color:
-                                isCompleted || isCurrentLevel
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.5),
+                            color: isCompleted || isCurrentLevel
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.5),
                             size: context.responsiveFont(22),
                           ),
                         ),
                       );
                     },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
