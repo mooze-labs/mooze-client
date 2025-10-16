@@ -6,7 +6,12 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/data/dto/payment_request_dto.dart';
 import 'package:mooze_mobile/features/wallet/data/dto/transaction_dto.dart';
+<<<<<<< HEAD
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
+=======
+import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart'
+    hide OnchainPaymentLimitsResponse, LightningPaymentLimitsResponse;
+>>>>>>> origin/develop
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -43,6 +48,38 @@ class BreezWallet {
         WalletErrorType.transactionFailed,
         "Falha ao buscar limites lightning: $err",
       ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, (PaymentLimits, PaymentLimits)>
+  fetchOnchainPaymentLimits() {
+    final paymentLimits = TaskEither.tryCatch(
+      () async => await _breez.fetchOnchainLimits(),
+      (err, _) => WalletError(WalletErrorType.sdkError, err.toString()),
+    );
+
+    return paymentLimits.flatMap(
+      (lim) => TaskEither.right((
+        PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
+        PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
+      )),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, (PaymentLimits, PaymentLimits)>
+  fetchLightningPaymentLimits() {
+    final paymentLimits = TaskEither.tryCatch(
+      () async => await _breez.fetchLightningLimits(),
+      (err, _) => WalletError(WalletErrorType.sdkError, err.toString()),
+    );
+
+    return paymentLimits.flatMap(
+      (lim) => TaskEither.right((
+        PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
+        PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
+      )),
     );
   }
 

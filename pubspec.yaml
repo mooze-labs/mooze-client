@@ -89,6 +89,7 @@ dependencies:
   mask_text_input_formatter: ^2.9.0
   flutter_slidable: ^4.0.0
   firebase_messaging: ^16.0.0
+  pointycastle: ^3.9.1
   bdk_flutter:
     path: ./packages/bdk-flutter 
 
