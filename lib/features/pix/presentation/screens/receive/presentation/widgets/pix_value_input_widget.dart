@@ -99,10 +99,12 @@ class PixDepositAmountInput extends ConsumerStatefulWidget {
 
 class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
   final TextEditingController controller = TextEditingController();
+  final FocusNode focusNode = FocusNode();
 
   @override
   void dispose() {
     controller.dispose();
+    focusNode.dispose();
     super.dispose();
   }
 
@@ -111,6 +113,7 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
     final depositAmountInput = ref.read(depositAmountProvider.notifier);
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       style: TextStyle(
         color: Theme.of(context).colorScheme.onPrimary,
         fontSize: context.responsiveFont(36),
@@ -121,6 +124,12 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
         border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        filled: false,
         hintText: 'R\$ 00,00',
         hintStyle: TextStyle(
           color: Colors.white38,
@@ -136,6 +145,12 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
       onChanged: (val) {
         String cleanValue = val.replaceAll('R\$ ', '').replaceAll(',', '.');
         depositAmountInput.state = double.tryParse(cleanValue) ?? 0.0;
+      },
+      onTapOutside: (event) {
+        // Does not automatically remove focus
+      },
+      onSubmitted: (val) {
+        focusNode.unfocus();
       },
     );
   }
