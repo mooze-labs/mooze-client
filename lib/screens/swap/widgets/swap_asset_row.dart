@@ -285,6 +285,16 @@ class _ReceiveAssetRowState extends ConsumerState<ReceiveAssetRow> {
         AssetCatalog.getById("usdt")!,
         AssetCatalog.getById("depix")!,
       ];
+    } else if (swapInput.sendAsset == AssetCatalog.getById("usdt")) {
+      assets = [
+        AssetCatalog.getById("lbtc")!,
+        AssetCatalog.getById("depix")!,
+      ];
+    } else if (swapInput.sendAsset == AssetCatalog.getById("depix")) {
+      assets = [
+        AssetCatalog.getById("lbtc")!,
+        AssetCatalog.getById("usdt")!,
+      ];
     } else {
       assets =
           AssetCatalog.all

@@ -364,7 +364,7 @@ class LiquidWalletRepository implements WalletRepository {
                         )
                         : null,
                 asset: AssetCatalog.getByLiquidAssetId(tx.balances[0].assetId)!,
-                amount: tx.balances[0].value,
+                amount: tx.balances[0].value.abs(),
                 direction:
                     tx.kind == "incoming"
                         ? TransactionDirection.incoming
