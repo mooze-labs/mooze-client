@@ -10,7 +10,7 @@ class AllAssetsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allAssets = ref.watch(allAssetsProvider);
+    final allAssets = ref.watch(assetsForQuotesProvider);
     final favoriteAssets = ref.watch(favoriteAssetsProvider);
 
     return Scaffold(
