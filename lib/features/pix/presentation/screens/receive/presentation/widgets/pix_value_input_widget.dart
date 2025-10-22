@@ -65,7 +65,13 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
                     ),
                   ),
                   SizedBox(height: 12),
-                  UserLevelDisplay(currentLevel: 3, currentProgress: 0.75),
+                  UserLevelDisplay(
+                    onTap: () {
+                      setState(() {
+                        _showLimits = true;
+                      });
+                    },
+                  ),
                 ],
               ),
         ],

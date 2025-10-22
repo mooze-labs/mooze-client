@@ -15,8 +15,14 @@ class UserServiceImpl implements UserService {
     return TaskEither(() async {
       try {
         final response = await _dio.get('/users/me');
-        return Right(User.fromJson(response.data));
+
+        final user = User.fromJson(response.data);
+
+        return Right(user);
       } catch (e) {
+        if (e is DioException) {
+          // 404 user not found
+        }
         return Left(e.toString());
       }
     });
@@ -26,7 +32,10 @@ class UserServiceImpl implements UserService {
   TaskEither<String, Unit> addReferral(String referralCode) {
     return TaskEither(() async {
       try {
-        await _dio.post('/users/referral', data: {'code': referralCode});
+        await _dio.post(
+          '/users/me/referral',
+          data: {'referral_code': referralCode},
+        );
         return const Right(unit);
       } catch (e) {
         return Left(e.toString());

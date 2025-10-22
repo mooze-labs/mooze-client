@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/current_limits_card.dart';
+import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 import 'package:mooze_mobile/shared/widgets/user_level_card.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_entity.dart';
@@ -210,7 +211,25 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildUserLevelCard() {
-    return UserLevelCard(currentLevel: 2, currentProgress: 0.75);
+    final spendingLevel = ref.watch(userSpendingLevelProvider);
+    final levelProgress = ref.watch(userLevelProgressProvider);
+
+    return spendingLevel.when(
+      data: (level) {
+        return levelProgress.when(
+          data: (progress) {
+            return UserLevelCard(
+              currentLevel: level,
+              currentProgress: progress,
+            );
+          },
+          loading: () => _buildLoadingUserLevelCard(),
+          error: (error, stack) => _buildErrorUserLevelCard(),
+        );
+      },
+      loading: () => _buildLoadingUserLevelCard(),
+      error: (error, stack) => _buildErrorUserLevelCard(),
+    );
   }
 
   Widget _buildLoadingUserLevelCard() {
@@ -219,6 +238,30 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+
+  Widget _buildErrorUserLevelCard() {
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 24),
+            SizedBox(height: 4),
+            Text(
+              'Erro ao carregar nível',
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -9,7 +9,8 @@ class Session {
   Session({required this.jwt, required this.refreshToken});
 
   factory Session.fromJson(Map<String, dynamic> json) {
-    return Session(jwt: json['jwt'], refreshToken: json['refresh_token']);
+    final data = json['data'] ?? json;
+    return Session(jwt: data['jwt'], refreshToken: data['refresh_token']);
   }
 
   Either<String, bool> isExpired() {

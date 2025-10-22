@@ -1,5 +1,5 @@
+import 'dart:convert';
 import 'package:fpdart/fpdart.dart';
-
 import 'package:dio/dio.dart';
 
 import '../models.dart';
@@ -14,10 +14,14 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
     BaseOptions(
       baseUrl: String.fromEnvironment(
         'BACKEND_API_URL',
-        defaultValue: "https://api.mooze.app/",
+        defaultValue: "http://10.0.2.2:3000",
       ),
       connectTimeout: _timeout,
       receiveTimeout: _timeout,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
     ),
   );
 
@@ -34,13 +38,14 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
   @override
   TaskEither<String, AuthChallenge> requestLoginChallenge() {
-    return signatureClient.getPublicKey().flatMap((pubKey) => TaskEither.tryCatch(() async {
-      final response = await dio.post(
-        '/auth/challenge',
-        data: {'public_key': pubKey},
-      );
-      return AuthChallenge.fromJson(response.data);
-    }, (error, stackTrace) => error.toString())
+    return signatureClient.getPublicKey().flatMap(
+      (pubKey) => TaskEither.tryCatch(() async {
+        final response = await dio.post(
+          '/auth/challenge',
+          data: {'public_key': pubKey},
+        );
+        return AuthChallenge.fromJson(response.data);
+      }, (error, stackTrace) => error.toString()),
     );
   }
 
@@ -50,10 +55,12 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
     return TaskEither.fromEither(signedChallenge).flatMap(
       (signature) => TaskEither.tryCatch(() async {
-        final response = await dio.post(
-          '/auth/sign',
-          data: {'challenge_id': challenge.challengeId, 'signature': signature},
-        );
+        final requestData = {
+          'challenge_id': challenge.challengeId,
+          'signature': signature,
+        };
+
+        final response = await dio.post('/auth/sign', data: requestData);
         return Session.fromJson(response.data);
       }, (error, stackTrace) => error.toString()),
     );
