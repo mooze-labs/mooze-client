@@ -166,14 +166,59 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 final isVisible = ref.watch(isVisibleProvider);
                 return transactionHistory.when(
                   data:
-                      (data) => data.fold((err) => ErrorTransactionList(), (
-                        transactions,
-                      ) {
-                        final filteredTransactions = _applyFilters(
-                          transactions,
-                        );
+                      (data) => data.fold(
+                        (err) => Center(child: ErrorTransactionList()),
+                        (transactions) {
+                          final filteredTransactions = _applyFilters(
+                            transactions,
+                          );
 
-                        if (filteredTransactions.isEmpty) {
+                          if (filteredTransactions.isEmpty) {
+                            return Column(
+                              children: [
+                                if (_hasActiveFilters) ...[
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryColor.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppColors.primaryColor
+                                            .withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.info_outline,
+                                          color: AppColors.primaryColor,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Filtros ativos - ${_getActiveFiltersDescription()}',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: _clearFilters,
+                                          child: const Text('Limpar'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                Center(child: EmptyTransactionList()),
+                                const SizedBox(height: 80),
+                              ],
+                            );
+                          }
+
                           return Column(
                             children: [
                               if (_hasActiveFilters) ...[
@@ -194,15 +239,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(
-                                        Icons.info_outline,
-                                        color: AppColors.primaryColor,
-                                        size: 20,
-                                      ),
+                                      Icon(Icons.filter_alt, size: 20),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          'Filtros ativos - ${_getActiveFiltersDescription()}',
+                                          '${filteredTransactions.length} de ${transactions.length} transações - ${_getActiveFiltersDescription().isNotEmpty ? _getActiveFiltersDescription() : 'Todos'}',
                                           style: TextStyle(fontSize: 12),
                                         ),
                                       ),
@@ -214,56 +255,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   ),
                                 ),
                               ],
-                              EmptyTransactionList(),
+                              SuccessfulTransactionList(
+                                transactions: filteredTransactions,
+                                isVisible: isVisible,
+                              ),
                               const SizedBox(height: 80),
                             ],
                           );
-                        }
-
-                        return Column(
-                          children: [
-                            if (_hasActiveFilters) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                margin: const EdgeInsets.only(bottom: 16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.filter_alt, size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '${filteredTransactions.length} de ${transactions.length} transações - ${_getActiveFiltersDescription().isNotEmpty ? _getActiveFiltersDescription() : 'Todos'}',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: _clearFilters,
-                                      child: const Text('Limpar'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            SuccessfulTransactionList(
-                              transactions: filteredTransactions,
-                              isVisible: isVisible,
-                            ),
-                            const SizedBox(height: 80),
-                          ],
-                        );
-                      }),
+                        },
+                      ),
                   error: (err, stackTrace) => ErrorTransactionList(),
                   loading: () => LoadingTransactionList(),
                 );
