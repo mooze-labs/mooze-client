@@ -256,18 +256,18 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 );
               }
 
-              if (amountSats < limits.send.minSat) {
+              if (amountSats < limits.receive.minSat) {
                 return _buildValidationRow(
                   context,
                   icon: Icons.warning_amber_outlined,
-                  text: 'Valor mínimo: ${limits.send.minSat} sats',
+                  text: 'Valor mínimo: ${limits.receive.minSat} sats',
                   color: Colors.orange,
                 );
-              } else if (amountSats > limits.send.maxSat) {
+              } else if (amountSats > limits.receive.maxSat) {
                 return _buildValidationRow(
                   context,
                   icon: Icons.error_outline,
-                  text: 'Valor máximo: ${limits.send.maxSat} sats',
+                  text: 'Valor máximo: ${limits.receive.maxSat} sats',
                   color: Colors.red,
                 );
               } else {

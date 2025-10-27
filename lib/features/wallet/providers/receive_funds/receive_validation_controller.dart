@@ -80,16 +80,13 @@ class ReceiveValidationController
         return;
       }
 
-      if ((network == NetworkType.lightning ||
-              network == NetworkType.bitcoin) &&
+      if (network == NetworkType.lightning &&
           (state.amountValue == null || state.amountValue! <= 0)) {
-        final networkName =
-            network == NetworkType.lightning ? 'Lightning' : 'Bitcoin';
         state = state.copyWith(
           selectedAsset: asset,
           selectedNetwork: network,
           isValid: false,
-          amountError: 'Amount é obrigatório para $networkName',
+          amountError: 'Amount é obrigatório para Lightning',
         );
         return;
       }
@@ -131,14 +128,7 @@ class ReceiveValidationController
           }
         }
       } else if (network == NetworkType.bitcoin) {
-        if (amount == null || amount <= 0) {
-          errorMessage = 'Amount é obrigatório para Bitcoin';
-        } else {
-          final btcAmount = await _convertToBitcoin(amount, displayMode);
-          if (btcAmount < 0.00025) {
-            errorMessage = 'Valor mínimo: 0.00025 BTC';
-          }
-        }
+        // Sem validações pois é onchain
       } else if (amount != null) {
         final btcAmount = await _convertToBitcoin(amount, displayMode);
         if (btcAmount < 0.00025 && network == NetworkType.bitcoin) {
@@ -291,11 +281,6 @@ class ReceiveValidationController
     if (network == NetworkType.lightning && amount == null) {
       state = state.copyWith(
         amountError: 'Amount é obrigatório para Lightning',
-        isValid: false,
-      );
-    } else if (network == NetworkType.bitcoin && amount == null) {
-      state = state.copyWith(
-        amountError: 'Amount é obrigatório para Bitcoin',
         isValid: false,
       );
     } else if (network == NetworkType.liquid && asset != null) {
