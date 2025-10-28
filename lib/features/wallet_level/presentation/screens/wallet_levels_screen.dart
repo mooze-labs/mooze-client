@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/current_limits_card.dart';
-import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/user_level_card.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_entity.dart';
-import 'package:mooze_mobile/features/wallet_level/domain/entities/current_user_wallet_entity.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_header.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_quick_info.dart';
-import 'package:mooze_mobile/features/wallet_level/presentation/widgets/level_sections_list.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
 class WalletLevelsScreen extends ConsumerStatefulWidget {
   const WalletLevelsScreen({super.key});
@@ -21,6 +22,8 @@ class WalletLevelsScreen extends ConsumerStatefulWidget {
 class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showBackToTop = false;
+  bool _isRetrying = false;
+  bool _isRetryingUserLevel = false;
 
   @override
   void initState() {
@@ -56,23 +59,11 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final walletLevelsAsync = ref.watch(walletLevelsProvider);
-    final currentUserWalletAsync = ref.watch(currentUserWalletProvider);
 
     return Scaffold(
       appBar: _buildAppBar(),
       body: walletLevelsAsync.when(
-        data:
-            (walletLevels) => currentUserWalletAsync.when(
-              data:
-                  (currentUserWallet) => _buildBody(
-                    theme,
-                    colorScheme,
-                    walletLevels,
-                    currentUserWallet,
-                  ),
-              loading: () => _buildLoadingBody(theme, colorScheme),
-              error: (error, stackTrace) => _buildError(error, colorScheme),
-            ),
+        data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
         loading: () => _buildLoadingBody(theme, colorScheme),
         error: (error, stackTrace) => _buildError(error, colorScheme),
       ),
@@ -98,40 +89,45 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     ThemeData theme,
     ColorScheme colorScheme,
     List<WalletLevelEntity> walletLevels,
-    CurrentUserWalletEntity currentUserWallet,
   ) {
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                WalletLevelsHeader(colorScheme: colorScheme),
-                const SizedBox(height: 16),
-                WalletLevelsQuickInfo(colorScheme: colorScheme),
-                const SizedBox(height: 16),
-                _buildUserLevelCard(),
-                const SizedBox(height: 16),
-                CurrentLimitsCard(
-                  colorScheme: colorScheme,
-                  currentUserWallet: currentUserWallet,
-                ),
-              ],
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(walletLevelsProvider);
+        ref.invalidate(levelsProvider);
+
+        try {
+          await Future.wait([
+            ref.read(walletLevelsProvider.future),
+            ref.read(levelsProvider.future),
+          ]);
+        } catch (_) {
+          // Ignore errors here as they will be handled by the when() widgets
+        }
+      },
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  WalletLevelsHeader(colorScheme: colorScheme),
+                  const SizedBox(height: 16),
+                  WalletLevelsQuickInfo(colorScheme: colorScheme),
+                  const SizedBox(height: 16),
+                  _buildUserLevelCard(colorScheme),
+                  const SizedBox(height: 16),
+                  CurrentLimitsCard(colorScheme: colorScheme),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: Column(
-            children: [
-              LevelSectionsList(colorScheme: colorScheme, levels: walletLevels),
-              const SizedBox(height: 32),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -152,23 +148,15 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                   isLoading: true,
                 ),
                 const SizedBox(height: 16),
-                _buildLoadingUserLevelCard(),
+                _buildLoadingUserLevelCard(colorScheme),
               ],
             ),
           ),
         ),
         SliverToBoxAdapter(
-          child: CurrentLimitsCard(colorScheme: colorScheme, isLoading: true),
-        ),
-        SliverToBoxAdapter(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                LevelSectionsList(colorScheme: colorScheme, isLoading: true),
-                const SizedBox(height: 32),
-              ],
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: CurrentLimitsCard(colorScheme: colorScheme),
           ),
         ),
       ],
@@ -177,91 +165,261 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
 
   Widget _buildError(Object error, ColorScheme colorScheme) {
     return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 64,
+                color: colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Erro ao carregar níveis da carteira',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Verifique sua conexão com a internet e tente novamente',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SecondaryButton(
+              text: 'Tentar Novamente',
+              isLoading: _isRetrying,
+              onPressed: () async {
+                setState(() {
+                  _isRetrying = true;
+                });
+
+                ref.invalidate(walletLevelsProvider);
+                ref.invalidate(levelsProvider);
+
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                if (mounted) {
+                  setState(() {
+                    _isRetrying = false;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserLevelCard(ColorScheme colorScheme) {
+    final levelsData = ref.watch(levelsProvider);
+
+    return levelsData.when(
+      data: (data) {
+        return UserLevelCard(
+          currentLevel: data.spendingLevel,
+          currentProgress: data.levelProgress,
+        );
+      },
+      loading: () => _buildLoadingUserLevelCard(colorScheme),
+      error:
+          (error, stack) => _buildErrorUserLevelCard(colorScheme: colorScheme),
+    );
+  }
+
+  Widget _buildLoadingUserLevelCard(ColorScheme colorScheme) {
+    final baseColor = AppColors.baseColor;
+    final highlightColor = AppColors.highlightColor;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline, size: 64, color: colorScheme.error),
-          const SizedBox(height: 16),
-          Text(
-            'Erro ao carregar níveis da carteira',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              height: 25,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Verifique sua conexão e tente novamente',
-            style: TextStyle(
-              fontSize: 14,
-              color: colorScheme.onSurface.withValues(alpha: 0.7),
+          SizedBox(height: 16),
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              height: 70,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              ref.invalidate(walletLevelsProvider);
-            },
-            child: const Text('Tentar Novamente'),
+          SizedBox(height: 16),
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              width: 120,
+              height: 20,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+          ),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: 80,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: 80,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              height: 10,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUserLevelCard() {
-    final spendingLevel = ref.watch(userSpendingLevelProvider);
-    final levelProgress = ref.watch(userLevelProgressProvider);
-
-    return spendingLevel.when(
-      data: (level) {
-        return levelProgress.when(
-          data: (progress) {
-            return UserLevelCard(
-              currentLevel: level,
-              currentProgress: progress,
-            );
-          },
-          loading: () => _buildLoadingUserLevelCard(),
-          error: (error, stack) => _buildErrorUserLevelCard(),
-        );
-      },
-      loading: () => _buildLoadingUserLevelCard(),
-      error: (error, stack) => _buildErrorUserLevelCard(),
-    );
-  }
-
-  Widget _buildLoadingUserLevelCard() {
+  Widget _buildErrorUserLevelCard({required ColorScheme colorScheme}) {
     return Container(
-      height: 100,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-    );
-  }
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Erro ao carregar nível',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tente novamente mais tarde.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SecondaryButton(
+            text: 'Tentar novamente',
+            height: 45,
+            isLoading: _isRetryingUserLevel,
+            onPressed: () async {
+              setState(() {
+                _isRetryingUserLevel = true;
+              });
 
-  Widget _buildErrorUserLevelCard() {
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
-      ),
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 24),
-            SizedBox(height: 4),
-            Text(
-              'Erro ao carregar nível',
-              style: TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ],
-        ),
+              ref.invalidate(levelsProvider);
+
+              await Future.delayed(const Duration(milliseconds: 500));
+
+              if (mounted) {
+                setState(() {
+                  _isRetryingUserLevel = false;
+                });
+              }
+            },
+          ),
+        ],
       ),
     );
   }
