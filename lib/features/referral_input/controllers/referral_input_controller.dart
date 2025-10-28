@@ -1,87 +1,78 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/shared/user/services/mock_referral_service.dart';
 import 'package:mooze_mobile/shared/user/services/user_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ReferralInputState {
   final String? existingReferralCode;
   final bool isLoading;
   final String? error;
+  final bool isSuccess;
 
   const ReferralInputState({
     this.existingReferralCode,
     this.isLoading = false,
     this.error,
+    this.isSuccess = false,
   });
 
   ReferralInputState copyWith({
     String? existingReferralCode,
     bool? isLoading,
     String? error,
+    bool? isSuccess,
+    bool clearExistingReferralCode = false,
   }) {
     return ReferralInputState(
-      existingReferralCode: existingReferralCode ?? this.existingReferralCode,
+      existingReferralCode:
+          clearExistingReferralCode
+              ? null
+              : existingReferralCode ?? this.existingReferralCode,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      isSuccess: isSuccess ?? this.isSuccess,
     );
   }
 }
 
 class ReferralInputController extends StateNotifier<ReferralInputState> {
   final UserService _userService;
-  final MockReferralService _referralService;
 
-  ReferralInputController({
-    required UserService userService,
-    required MockReferralService referralService,
-  }) : _userService = userService,
-       _referralService = referralService,
-       super(const ReferralInputState()) {
+  ReferralInputController({required UserService userService})
+      : _userService = userService,
+        super(const ReferralInputState()) {
     checkExistingReferralCode();
   }
 
   Future<void> checkExistingReferralCode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final existingCode = prefs.getString('referralCode');
-
     final userResult = await _userService.getUser().run();
 
     await userResult.match(
       (error) async {
-        if (existingCode != null) {
-          state = state.copyWith(existingReferralCode: existingCode);
-        }
+        state = state.copyWith(clearExistingReferralCode: true);
       },
       (user) async {
-        if (user.referredBy != null) {
+        if (user.referredBy != null && user.referredBy!.isNotEmpty) {
           state = state.copyWith(existingReferralCode: user.referredBy);
-          if (existingCode == null) {
-            await prefs.setString('referralCode', user.referredBy!);
-          }
-          return;
-        }
-
-        if (existingCode != null) {
-          state = state.copyWith(existingReferralCode: existingCode);
+        } else {
+          state = state.copyWith(clearExistingReferralCode: true);
         }
       },
     );
   }
 
-  Future<void> validateReferralCode(String code) async {
-    if (code.isEmpty) return;
+  Future<bool> validateReferralCode(String code) async {
+    if (code.isEmpty) return false;
 
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
 
-    final validationResult =
-        await _referralService.validateReferralCode(code).run();
+    final validationResult = await _userService.validateReferralCode(code).run();
 
-    await validationResult.match(
+    return await validationResult.match(
       (error) async {
         state = state.copyWith(
           isLoading: false,
           error: 'Código inválido. Verifique e tente novamente.',
         );
+        return false;
       },
       (isValid) async {
         if (!isValid) {
@@ -89,26 +80,42 @@ class ReferralInputController extends StateNotifier<ReferralInputState> {
             isLoading: false,
             error: 'Código inválido. Verifique e tente novamente.',
           );
-          return;
+          return false;
         }
 
         final result = await _userService.addReferral(code).run();
 
-        await result.match(
+        return await result.match(
           (error) async {
             state = state.copyWith(
               isLoading: false,
               error: 'Erro ao adicionar código. Tente novamente.',
             );
+            return false;
           },
           (_) async {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('referralCode', code);
-            await checkExistingReferralCode();
-            state = state.copyWith(isLoading: false);
+            state = state.copyWith(
+              isLoading: false,
+              error: null,
+              isSuccess: true,
+              existingReferralCode: code,
+            );
+            return true;
           },
         );
       },
     );
+  }
+
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+
+  void resetState() {
+    state = state.copyWith(error: null, isSuccess: false);
+  }
+
+  Future<void> refreshUser() async {
+    await checkExistingReferralCode();
   }
 }
