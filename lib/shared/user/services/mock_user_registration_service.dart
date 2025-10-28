@@ -27,7 +27,15 @@ class MockUserRegistrationService implements UserRegistrationService {
 
       final user =
           _mockUser ??
-          User(id: publicKey, verificationLevel: 0, referredBy: referralCode);
+          User(
+            id: publicKey,
+            verificationLevel: 0,
+            referredBy: referralCode,
+            allowedSpending: 2900,
+            dailySpending: 5000,
+            spendingLevel: 1,
+            levelProgress: 1,
+          );
 
       return right(user);
     });

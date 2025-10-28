@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
 class MerchantChargeScreen extends ConsumerStatefulWidget {
   final double totalAmount;
@@ -242,37 +243,46 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   Widget _buildLimitsInfo() {
     return Consumer(
       builder: (context, ref, child) {
-        final amountLimit = ref.watch(amountLimitProvider);
+        final levelsData = ref.watch(levelsProvider);
 
-        return amountLimit.when(
+        return levelsData.when(
           data:
-              (limit) => Column(
+              (data) => Column(
                 children: [
-                  _buildLimitRow('Limite atual', '${limit.toStringAsFixed(2)}'),
+                  _buildLimitRow(
+                    'Limite diário',
+                    'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
+                  ),
                   SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', '20,00'),
+                  _buildLimitRow(
+                    'Limite restante',
+                    'R\$ ${data.remainingLimit.toStringAsFixed(2)}',
+                  ),
                   SizedBox(height: 8),
-                  _buildLimitRow('Limite diário por CPF/CNPJ', 'R\$ 5.000,00'),
+                  _buildLimitRow(
+                    'Valor mínimo',
+                    'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
+                  ),
                 ],
               ),
           loading:
               () => Column(
                 children: [
-                  _buildLimitRow('Limite atual', 'Carregando...'),
+                  _buildLimitRow('Limite diário', 'Carregando...'),
                   SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', '20,00'),
+                  _buildLimitRow('Limite restante', 'Carregando...'),
                   SizedBox(height: 8),
-                  _buildLimitRow('Limite diário por CPF/CNPJ', 'R\$ 5.000,00'),
+                  _buildLimitRow('Valor mínimo', 'Carregando...'),
                 ],
               ),
           error:
               (error, stack) => Column(
                 children: [
-                  _buildLimitRow('Limite atual', '750,00'),
+                  _buildLimitRow('Limite diário', 'R\$ 250.00'),
                   SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', '20,00'),
+                  _buildLimitRow('Limite restante', 'R\$ 250.00'),
                   SizedBox(height: 8),
-                  _buildLimitRow('Limite diário por CPF/CNPJ', 'R\$ 5.000,00'),
+                  _buildLimitRow('Valor mínimo', 'R\$ 20.00'),
                 ],
               ),
         );

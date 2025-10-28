@@ -4,7 +4,7 @@ import '../services.dart';
 
 const String baseUrl = String.fromEnvironment(
   'BACKEND_API_URL',
-  defaultValue: 'https://api.mooze.app/v1',
+  defaultValue: 'https://10.0.2.2:3000',
 );
 
 final userServiceProvider = Provider<UserService>((ref) {

@@ -1,7 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/shared/user/services/mock_user_service.dart';
-import 'package:mooze_mobile/shared/user/services/user_service.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart'
+    as shared;
 
-final userServiceProvider = Provider<UserService>((ref) {
-  return MockUserService();
-});
+final userServiceProvider = shared.userServiceProvider;

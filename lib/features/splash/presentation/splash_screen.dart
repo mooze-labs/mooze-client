@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
+import '../../../shared/authentication/providers/session_manager_service_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -79,24 +80,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Use WidgetsBinding to ensure navigation happens after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (mnemonic.isSome()) {
-          if (kDebugMode)
-            debugPrint(
-              "[SplashScreen] Mnemonic exists, redirecting to /wallet",
-            );
-          context.go('/home');
-        } else {
-          if (kDebugMode)
-            debugPrint(
-              "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
-            );
-          context.go('/setup/first-access');
-        }
+        mnemonic.fold(
+          () {
+            if (kDebugMode)
+              debugPrint(
+                "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
+              );
+            context.go('/setup/first-access');
+          },
+          (mnemonicValue) {
+            if (kDebugMode)
+              debugPrint(
+                "[SplashScreen] Mnemonic exists, attempting authentication...",
+              );
+            _authenticateAndNavigate(mnemonicValue);
+          },
+        );
       }
     });
   }
 
-  /// Handles errors and navigates to setup
   void _handleError(Object error, StackTrace stackTrace) {
     if (kDebugMode)
       debugPrint("[SplashScreen] Error from mnemonicProvider: $error");
@@ -111,6 +114,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         context.go('/setup/first-access');
       }
     });
+  }
+
+  void _authenticateAndNavigate(String mnemonic) async {
+    if (kDebugMode)
+      debugPrint(
+        "[SplashScreen] Starting authentication with session manager...",
+      );
+
+    try {
+      final sessionManager = ref.read(sessionWithAuthProvider(mnemonic));
+      final sessionResult = await sessionManager.getSession().run();
+
+      sessionResult.fold(
+        (error) {
+          if (kDebugMode)
+            debugPrint("[SplashScreen] Authentication error: $error");
+          if (mounted) {
+            context.go('/home');
+          }
+        },
+        (session) {
+          if (kDebugMode)
+            debugPrint(
+              "[SplashScreen] Authentication successful, redirecting to /home",
+            );
+          if (mounted) {
+            context.go('/home');
+          }
+        },
+      );
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint("[SplashScreen] Exception during authentication: $e");
+        debugPrint("[SplashScreen] Stack trace: $stackTrace");
+      }
+      if (mounted) {
+        context.go('/home');
+      }
+    }
   }
 
   @override

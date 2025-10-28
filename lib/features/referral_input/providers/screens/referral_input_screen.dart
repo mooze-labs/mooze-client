@@ -8,7 +8,7 @@ import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-import 'providers/referral_input_provider.dart';
+import '../referral_input_provider.dart';
 
 class ReferralInputScreen extends ConsumerStatefulWidget {
   const ReferralInputScreen({super.key});
@@ -52,11 +52,57 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
     super.dispose();
   }
 
+  void _onTextChanged() {
+    final controller = ref.read(referralInputControllerProvider.notifier);
+    controller.clearError();
+  }
+
+  void _showSuccessMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 8),
+            Text('Código aplicado com sucesso!'),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(BuildContext context, String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final state = ref.watch(referralInputControllerProvider);
+
+    ref.listen(referralInputControllerProvider, (previous, next) {
+      if (next.error != null && previous?.error != next.error) {
+        _showErrorSnackBar(context, next.error!);
+        _referralCodeController.clear();
+      }
+
+      if (next.isSuccess &&
+          previous?.isSuccess != next.isSuccess &&
+          next.existingReferralCode != null) {
+        _showSuccessMessage(context);
+        _referralCodeController.clear();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -316,6 +362,8 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                         height: 50,
                                         child: TextField(
                                           controller: _referralCodeController,
+                                          onChanged: (_) => _onTextChanged(),
+                                          enabled: !state.isLoading,
                                           inputFormatters: [
                                             UpperCaseTextFormatter(),
                                           ],
@@ -375,13 +423,13 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                             onPressed:
                                 state.isLoading
                                     ? null
-                                    : () {
+                                    : () async {
                                       final code =
                                           _referralCodeController.text
                                               .trim()
                                               .toUpperCase();
                                       if (code.isNotEmpty) {
-                                        ref
+                                        await ref
                                             .read(
                                               referralInputControllerProvider
                                                   .notifier,

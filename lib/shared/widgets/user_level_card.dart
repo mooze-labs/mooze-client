@@ -16,8 +16,8 @@ class UserLevelCard extends StatefulWidget {
     this.currentProgress = 0.0,
     this.onTap,
   }) : assert(
-         currentLevel >= 1 && currentLevel <= 5,
-         'Current level must be between 1 and 5',
+         currentLevel >= 0 && currentLevel <= 3,
+         'Current level must be between 0 and 3',
        ),
        assert(
          currentProgress >= 0.0 && currentProgress <= 1.0,

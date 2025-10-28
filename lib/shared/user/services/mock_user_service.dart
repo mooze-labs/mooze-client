@@ -29,6 +29,16 @@ class MockUserService implements UserService {
   }
 
   @override
+  TaskEither<String, bool> validateReferralCode(String referralCode) {
+    return TaskEither(() async {
+      if (_shouldFail) {
+        return left('Failed to validate referral');
+      }
+      return right(referralCode.startsWith('VALID'));
+    });
+  }
+
+  @override
   TaskEither<String, Unit> addReferral(String referralCode) {
     return TaskEither(() async {
       if (_shouldFail) {

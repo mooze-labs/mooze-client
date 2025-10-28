@@ -1,35 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
-import '../../domain/entities/current_user_wallet_entity.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
-class CurrentLimitsCard extends StatelessWidget {
+class CurrentLimitsCard extends ConsumerStatefulWidget {
   final ColorScheme colorScheme;
-  final bool isLoading;
-  final CurrentUserWalletEntity? currentUserWallet;
 
-  const CurrentLimitsCard({
-    super.key,
-    required this.colorScheme,
-    this.isLoading = false,
-    this.currentUserWallet,
-  });
+  const CurrentLimitsCard({super.key, required this.colorScheme});
+
+  @override
+  ConsumerState<CurrentLimitsCard> createState() => _CurrentLimitsCardState();
+}
+
+class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
+  bool _isRetrying = false;
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return _buildLoadingCurrentLimitsCard();
-    }
+    final levelsData = ref.watch(levelsProvider);
 
+    return levelsData.when(
+      data: (data) => _buildLimitsCard(data),
+      loading: () => _buildLoadingCurrentLimitsCard(),
+      error: (error, stack) => _buildErrorCard(),
+    );
+  }
+
+  Widget _buildLimitsCard(UserLevelsData data) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: widget.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: widget.colorScheme.outline.withValues(alpha: 0.2),
+        ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.05),
+            color: widget.colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -43,12 +53,12 @@ class CurrentLimitsCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
+                  color: widget.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.account_balance_wallet_outlined,
-                  color: colorScheme.onPrimaryContainer,
+                  color: widget.colorScheme.onPrimaryContainer,
                   size: 20,
                 ),
               ),
@@ -61,14 +71,16 @@ class CurrentLimitsCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
+                      color: widget.colorScheme.onSurface,
                     ),
                   ),
                   Text(
-                    'Nível: ${currentUserWallet?.currentLevel ?? 'N/A'}',
+                    'Nível: ${data.currentLevelName}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: widget.colorScheme.onSurface.withValues(
+                        alpha: 0.6,
+                      ),
                     ),
                   ),
                 ],
@@ -81,50 +93,188 @@ class CurrentLimitsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildLimitInfo(
-                    'Limite Atual',
-                    'R\$ ${currentUserWallet?.currentLimit.toStringAsFixed(0) ?? '0'}',
+                    'Limite Diário',
+                    'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                     Icons.trending_up,
-                    colorScheme.primary,
+                    widget.colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
                     'Máximo Possível',
-                    'R\$ ${currentUserWallet?.maximumPossibleLimit.toStringAsFixed(0) ?? '0'}',
+                    'R\$ ${data.absoluteMaxLimit.toStringAsFixed(2)}',
                     Icons.flag,
-                    colorScheme.secondary,
+                    widget.colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
                     'Mínimo',
-                    'R\$ ${currentUserWallet?.minimumLimit.toStringAsFixed(0) ?? '0'}',
+                    'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                     Icons.low_priority,
-                    colorScheme.tertiary,
+                    widget.colorScheme.tertiary,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          LinearProgressIndicator(
-            value:
-                currentUserWallet != null
-                    ? currentUserWallet!.currentLimit /
-                        currentUserWallet!.maximumPossibleLimit
-                    : 0.0,
-            backgroundColor: colorScheme.surfaceContainerHighest,
-            valueColor: AlwaysStoppedAnimation(colorScheme.primary),
-            borderRadius: BorderRadius.circular(4),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Uso do Limite Diário',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: widget.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: data.dailyLimitProgress,
+                backgroundColor: widget.colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation(
+                  data.dailyLimitProgress > 0.8
+                      ? Colors.orange
+                      : widget.colorScheme.primary,
+                ),
+                borderRadius: BorderRadius.circular(4),
+                minHeight: 8,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Gasto: R\$ ${data.dailySpending.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: widget.colorScheme.onSurface.withValues(
+                        alpha: 0.6,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Restante: R\$ ${data.remainingLimit.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: widget.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Você está usando ${currentUserWallet != null ? ((currentUserWallet!.currentLimit / currentUserWallet!.maximumPossibleLimit) * 100).toInt() : 0}% do limite máximo',
-            style: TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: widget.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: widget.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Continue usando para desbloquear o próximo nível${data.nextLevelName != null ? ' (${data.nextLevelName})' : ''}!',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: widget.colorScheme.onSurface.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      decoration: BoxDecoration(
+        color: widget.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Erro ao carregar limites',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tente novamente mais tarde ou contate o suporte.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: widget.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SecondaryButton(
+              text: 'Tentar novamente',
+              isLoading: _isRetrying,
+              onPressed: () async {
+                setState(() => _isRetrying = true);
+                await Future.delayed(const Duration(milliseconds: 500));
+                ref.invalidate(levelsProvider);
+                if (mounted) {
+                  setState(() => _isRetrying = false);
+                }
+              },
             ),
           ),
         ],
@@ -141,7 +291,7 @@ class CurrentLimitsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
+        color: widget.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -153,7 +303,7 @@ class CurrentLimitsCard extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 10,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
+              color: widget.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           Text(
@@ -161,7 +311,7 @@ class CurrentLimitsCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
+              color: widget.colorScheme.onSurface,
             ),
           ),
         ],
@@ -176,9 +326,11 @@ class CurrentLimitsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: widget.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: widget.colorScheme.outline.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

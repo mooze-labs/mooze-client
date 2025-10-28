@@ -23,7 +23,6 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final allowedDepositAmount = ref.watch(amountLimitProvider);
     return Container(
       padding: EdgeInsets.all(16),
       decoration: _buildContainerDecoration(context),
@@ -65,7 +64,13 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
                     ),
                   ),
                   SizedBox(height: 12),
-                  UserLevelDisplay(currentLevel: 3, currentProgress: 0.75),
+                  UserLevelDisplay(
+                    onTap: () {
+                      setState(() {
+                        _showLimits = true;
+                      });
+                    },
+                  ),
                 ],
               ),
         ],

@@ -23,6 +23,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
   late final Animation<double> _scaleAnimation;
+  bool _isRetrying = false;
+  String? _lastUserId;
+  bool _hasError = false;
+  String? _lastErrorTitle;
+  String? _lastErrorMessage;
 
   @override
   void initState() {
@@ -214,57 +219,137 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                               );
 
                               return userIdAsync.when(
-                                loading:
-                                    () => Container(
-                                      height: 120,
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.surface,
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: colorScheme.outline.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                        ),
-                                      ),
-                                      child: const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    ),
-                                error:
-                                    (error, stack) => SupportErrorWidget(
-                                      title:
-                                          'Não foi possível carregar seu código',
-                                      message:
-                                          'Ocorreu um erro ao carregar suas informações',
-                                      colorScheme: colorScheme,
-                                      onRetry:
-                                          () =>
-                                              ref
-                                                  .read(
-                                                    userIdControllerProvider
-                                                        .notifier,
-                                                  )
-                                                  .refresh(),
-                                    ),
-                                data: (userId) {
-                                  if (userId == null) {
+                                loading: () {
+                                  if (_isRetrying &&
+                                      _hasError &&
+                                      _lastErrorTitle != null) {
                                     return SupportErrorWidget(
-                                      title:
-                                          'Não foi possível carregar seu código',
-                                      message:
-                                          'Não encontramos suas informações',
-
+                                      title: _lastErrorTitle!,
+                                      message: _lastErrorMessage ?? '',
                                       colorScheme: colorScheme,
-                                      onRetry:
-                                          () =>
-                                              ref
-                                                  .read(
-                                                    userIdControllerProvider
-                                                        .notifier,
-                                                  )
-                                                  .refresh(),
+                                      isLoading: true,
+                                      onRetry: () {},
                                     );
                                   }
+                                  return Container(
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surface,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: colorScheme.outline.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
+                                error: (error, stack) {
+                                  const errorTitle =
+                                      'Não foi possível carregar seu código';
+                                  const errorMessage =
+                                      'Ocorreu um erro ao carregar suas informações';
+
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _hasError = true;
+                                        _lastErrorTitle = errorTitle;
+                                        _lastErrorMessage = errorMessage;
+                                      });
+                                    }
+                                  });
+
+                                  return SupportErrorWidget(
+                                    title: errorTitle,
+                                    message: errorMessage,
+                                    colorScheme: colorScheme,
+                                    isLoading: _isRetrying,
+                                    onRetry: () async {
+                                      setState(() => _isRetrying = true);
+                                      await Future.delayed(
+                                        const Duration(milliseconds: 500),
+                                      );
+                                      await ref
+                                          .read(
+                                            userIdControllerProvider.notifier,
+                                          )
+                                          .refresh();
+                                      if (mounted) {
+                                        setState(() {
+                                          _isRetrying = false;
+                                        });
+                                      }
+                                    },
+                                  );
+                                },
+                                data: (userId) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted && _hasError) {
+                                      setState(() {
+                                        _hasError = false;
+                                        _lastErrorTitle = null;
+                                        _lastErrorMessage = null;
+                                      });
+                                    }
+                                  });
+
+                                  if (userId == null) {
+                                    const errorTitle =
+                                        'Não foi possível carregar seu código';
+                                    const errorMessage =
+                                        'Não encontramos suas informações';
+
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (mounted) {
+                                            setState(() {
+                                              _hasError = true;
+                                              _lastErrorTitle = errorTitle;
+                                              _lastErrorMessage = errorMessage;
+                                            });
+                                          }
+                                        });
+
+                                    return SupportErrorWidget(
+                                      title: errorTitle,
+                                      message: errorMessage,
+                                      colorScheme: colorScheme,
+                                      isLoading: _isRetrying,
+                                      onRetry: () async {
+                                        setState(() => _isRetrying = true);
+                                        await Future.delayed(
+                                          const Duration(milliseconds: 500),
+                                        );
+                                        await ref
+                                            .read(
+                                              userIdControllerProvider.notifier,
+                                            )
+                                            .refresh();
+                                        if (mounted) {
+                                          setState(() {
+                                            _isRetrying = false;
+                                          });
+                                        }
+                                      },
+                                    );
+                                  }
+
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted && _lastUserId != userId) {
+                                      setState(() => _lastUserId = userId);
+                                    }
+                                  });
+
                                   return UserIdContainerWidget(
                                     userId: userId,
                                     hasError: false,
@@ -293,37 +378,6 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoSupportWidget(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            color: colorScheme.primary,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Nosso time de suporte está disponível 24/7 para ajudá-lo com qualquer dúvida ou problema.',
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-                height: 1.3,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
