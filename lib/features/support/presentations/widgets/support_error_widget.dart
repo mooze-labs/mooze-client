@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
 class SupportErrorWidget extends StatelessWidget {
   final String title;
   final String message;
   final ColorScheme colorScheme;
   final VoidCallback onRetry;
+  final bool isLoading;
 
   const SupportErrorWidget({
     super.key,
@@ -13,6 +14,7 @@ class SupportErrorWidget extends StatelessWidget {
     required this.message,
     required this.colorScheme,
     required this.onRetry,
+    this.isLoading = false,
   });
 
   @override
@@ -50,23 +52,10 @@ class SupportErrorWidget extends StatelessWidget {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: Consumer(
-              builder: (context, ref, child) {
-                return OutlinedButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Tentar novamente'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
+            child: SecondaryButton(
+              text: 'Tentar novamente',
+              isLoading: isLoading,
+              onPressed: onRetry,
             ),
           ),
         ],
