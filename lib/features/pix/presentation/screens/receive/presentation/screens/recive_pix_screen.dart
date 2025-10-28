@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../providers.dart';
 import '../../widgets.dart';
@@ -129,6 +130,19 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   }
 
   Widget _buildBody(BuildContext context) {
+    final depositAmount = ref.watch(depositAmountProvider);
+    final levelsData = ref.watch(levelsProvider);
+
+    final isButtonEnabled = levelsData.maybeWhen(
+      data: (data) {
+        if (depositAmount <= 0) return false;
+        if (depositAmount < data.absoluteMinLimit) return false;
+        if (depositAmount > data.remainingLimit) return false;
+        return true;
+      },
+      orElse: () => false,
+    );
+
     return SingleChildScrollView(
       padding: EdgeInsets.only(right: 8, left: 16),
       child: Column(
@@ -143,7 +157,8 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           SizedBox(height: 200, child: TransactionDisplayWidget()),
           SizedBox(height: 16),
           PrimaryButton(
-            onPressed: () => _onSlideComplete(context),
+            onPressed: isButtonEnabled ? () => _onSlideComplete(context) : null,
+            isEnabled: isButtonEnabled,
             text: 'Gerar QR Code',
           ),
         ],

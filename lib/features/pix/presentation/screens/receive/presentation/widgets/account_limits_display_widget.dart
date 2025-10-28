@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
-
-import '../../providers.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
 class AccountLimitsDisplay extends ConsumerWidget {
   final VoidCallback? onToggleView;
@@ -14,7 +13,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountLimit = ref.read(amountLimitProvider);
+    final levelsData = ref.watch(levelsProvider);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -29,41 +28,66 @@ class AccountLimitsDisplay extends ConsumerWidget {
             fontSize: context.responsiveFont(14),
           ),
         ),
-        SizedBox(height: 6),
-        accountLimit.when(
+        const SizedBox(height: 6),
+        levelsData.when(
           data:
-              (data) => InfoRow(
-                label: 'Limite atual',
-                value: 'R\$ $data',
-                labelColor: Colors.white70,
-                valueColor: Colors.white,
-                fontSize: context.responsiveFont(14),
+              (data) => Column(
+                children: [
+                  InfoRow(
+                    label: 'Limite diário',
+                    value: 'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                  const SizedBox(height: 6),
+                  InfoRow(
+                    label: 'Limite atual (restante)',
+                    value: 'R\$ ${data.remainingLimit.toStringAsFixed(2)}',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                  const SizedBox(height: 6),
+                  InfoRow(
+                    label: 'Valor mínimo',
+                    value: 'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                ],
               ),
           error:
-              (error, stackTrace) => InfoRow(
-                label: 'Limite atual',
-                value: 'R\$ 500.00',
-                labelColor: Colors.white70,
-                valueColor: Colors.white,
-                fontSize: context.responsiveFont(14),
+              (error, stackTrace) => Column(
+                children: [
+                  InfoRow(
+                    label: 'Limite diário',
+                    value: 'R\$ 250.00',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                  const SizedBox(height: 6),
+                  InfoRow(
+                    label: 'Valor mínimo',
+                    value: 'R\$ 20,00',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                ],
               ),
-          loading: () => ShimmerInfoRow(label: "Limite atual"),
-        ),
-        SizedBox(height: 6),
-        InfoRow(
-          label: 'Valor mínimo',
-          value: 'R\$ 20,00',
-          labelColor: Colors.white70,
-          valueColor: Colors.white,
-          fontSize: context.responsiveFont(14),
-        ),
-        SizedBox(height: 6),
-        InfoRow(
-          label: 'Limite diário por CPF/CNPJ',
-          value: 'R\$ 5.000,00',
-          labelColor: Colors.white70,
-          valueColor: Colors.white,
-          fontSize: context.responsiveFont(14),
+          loading:
+              () => Column(
+                children: [
+                  ShimmerInfoRow(label: "Limite diário"),
+                  const SizedBox(height: 6),
+                  ShimmerInfoRow(label: "Limite atual"),
+                  const SizedBox(height: 6),
+                  ShimmerInfoRow(label: "Valor mínimo"),
+                ],
+              ),
         ),
       ],
     );

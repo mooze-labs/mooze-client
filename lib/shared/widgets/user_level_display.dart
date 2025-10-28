@@ -3,32 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
-import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
-class UserLevelDisplay extends ConsumerWidget {
+class UserLevelDisplay extends ConsumerStatefulWidget {
   final VoidCallback? onTap;
 
   const UserLevelDisplay({super.key, this.onTap});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final spendingLevel = ref.watch(userSpendingLevelProvider);
-    final levelProgress = ref.watch(userLevelProgressProvider);
+  ConsumerState<UserLevelDisplay> createState() => _UserLevelDisplayState();
+}
 
-    return spendingLevel.when(
-      data: (level) {
-        return levelProgress.when(
-          data: (progress) {
-            return _UserLevelDisplayStateful(
-              currentLevel: level,
-              currentProgress: progress,
-              onTap: onTap,
-            );
-          },
-          loading: () => _buildLoadingCard(),
-          error: (error, stack) {
-            return _buildErrorCard(context);
-          },
+class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
+  bool _isRetrying = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final levelsData = ref.watch(levelsProvider);
+
+    return levelsData.when(
+      data: (data) {
+        return _UserLevelDisplayStateful(
+          currentLevel: data.spendingLevel,
+          currentProgress: data.levelProgress,
+          onTap: widget.onTap,
         );
       },
       loading: () => _buildLoadingCard(),
@@ -50,22 +49,43 @@ class UserLevelDisplay extends ConsumerWidget {
   }
 
   Widget _buildErrorCard(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      height: 200,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.red[50],
-        border: Border.all(color: Colors.red[200]!),
+        color: colorScheme.errorContainer.withValues(alpha: 0.1),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
       ),
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 32),
-            SizedBox(height: 8),
-            Text('Erro ao carregar nível', style: TextStyle(color: Colors.red)),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, color: colorScheme.error, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            'Erro ao carregar nível',
+            style: TextStyle(
+              color: colorScheme.error,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          SecondaryButton(
+            text: 'Tentar novamente',
+            isLoading: _isRetrying,
+            onPressed: () async {
+              setState(() => _isRetrying = true);
+              await Future.delayed(const Duration(milliseconds: 500));
+              ref.invalidate(levelsProvider);
+              if (mounted) {
+                setState(() => _isRetrying = false);
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -81,8 +101,8 @@ class _UserLevelDisplayStateful extends StatefulWidget {
     this.currentProgress = 0.0,
     this.onTap,
   }) : assert(
-         currentLevel >= 1 && currentLevel <= 5,
-         'Current level must be between 1 and 5',
+         currentLevel >= 0 && currentLevel <= 3,
+         'Current level must be between 0 and 3. Received: $currentLevel',
        ),
        assert(
          currentProgress >= 0.0 && currentProgress <= 1.0,
@@ -151,7 +171,7 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
 
   void _scrollToCurrentLevel() {
     if (_scrollController.hasClients) {
-      final targetPosition = (widget.currentLevel - 1) * 120.0;
+      final targetPosition = widget.currentLevel * 120.0;
       _scrollController.animateTo(
         targetPosition.clamp(0.0, _scrollController.position.maxScrollExtent),
         duration: const Duration(milliseconds: 800),
