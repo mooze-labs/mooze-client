@@ -36,6 +36,7 @@ class WalletHolding {
       hasBalance: false,
     );
   }
+  static const int satsPerBtc = 100000000;
 
   factory WalletHolding.fromData({
     required Asset asset,
@@ -44,7 +45,7 @@ class WalletHolding {
     required String currencySymbol,
   }) {
     final hasBalance = balance > BigInt.zero;
-    final balanceInMainUnit = balance.toDouble() / 100000000;
+    final balanceInMainUnit = balance.toDouble() / satsPerBtc;
     final fiatValue = balanceInMainUnit * fiatPrice;
 
     return WalletHolding(
@@ -66,20 +67,23 @@ class WalletHolding {
       return '0 ${asset.ticker}';
     }
 
-    if (asset == Asset.btc) {
-      final btcAmount = balance.toDouble() / 100000000;
+    if (asset == Asset.btc || asset == Asset.lbtc) {
+      final btcAmount = balance.toDouble() / satsPerBtc;
       if (btcAmount < 0.001) {
         final satoshis = balance.toInt();
         return satoshis == 1 ? '1 sat' : '$satoshis sats';
       } else {
-        return '${btcAmount.toStringAsFixed(8)} BTC'
+        final formatted = btcAmount
+            .toStringAsFixed(8)
             .replaceAll(RegExp(r'0+$'), '')
             .replaceAll(RegExp(r'\.$'), '');
+        return '$formatted ${asset.ticker}';
       }
-    } else {
-      final amount = balance.toDouble() / 100000000;
-      return '${amount.toStringAsFixed(2)} ${asset.ticker}';
     }
+
+    // Outros ativos → 2 casas decimais
+    final amount = balance.toDouble() / satsPerBtc;
+    return '${amount.toStringAsFixed(2)} ${asset.ticker}';
   }
 }
 
