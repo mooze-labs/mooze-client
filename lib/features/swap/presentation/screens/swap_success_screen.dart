@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
+import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
@@ -62,6 +63,7 @@ class SwapSuccessScreen extends StatefulWidget {
 
 class _SwapSuccessScreenState extends State<SwapSuccessScreen>
     with TickerProviderStateMixin {
+  bool _txidCopied = false;
   late AnimationController _checkController;
   late AnimationController _glowController;
   late AnimationController _fadeController;
@@ -336,47 +338,88 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                                 const SizedBox(height: 20),
 
                                 // TXID
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.backgroundColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'ID da Transação',
-                                            style: TextStyle(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            truncateHashId(
-                                              widget.txid,
-                                              length: 10,
-                                            ),
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ],
+                                GestureDetector(
+                                  onTap: () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(text: widget.txid),
+                                    );
+                                    setState(() {
+                                      _txidCopied = true;
+                                    });
+                                    await Future.delayed(
+                                      const Duration(seconds: 2),
+                                    );
+                                    if (mounted) {
+                                      setState(() {
+                                        _txidCopied = false;
+                                      });
+                                    }
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          _txidCopied
+                                              ? AppColors.primaryColor
+                                                  .withValues(alpha: 0.08)
+                                              : AppColors.backgroundColor,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            _txidCopied
+                                                ? AppColors.primaryColor
+                                                    .withValues(alpha: 0.5)
+                                                : AppColors.primaryColor
+                                                    .withValues(alpha: 0.2),
+                                        width: 1.2,
                                       ),
-                                      Icon(
-                                        Icons.copy,
-                                        color: AppColors.primaryColor,
-                                        size: 18,
-                                      ),
-                                    ],
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'ID da Transação',
+                                              style: TextStyle(
+                                                color: AppColors.textSecondary,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              truncateHashId(
+                                                widget.txid,
+                                                length: 10,
+                                              ),
+                                              style: TextStyle(
+                                                color:
+                                                    _txidCopied
+                                                        ? AppColors.primaryColor
+                                                        : AppColors.textPrimary,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Icon(
+                                          _txidCopied
+                                              ? Icons.check_rounded
+                                              : Icons.copy_rounded,
+                                          color:
+                                              _txidCopied
+                                                  ? AppColors.primaryColor
+                                                  : AppColors.primaryColor
+                                                      .withValues(alpha: 0.7),
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],

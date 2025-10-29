@@ -27,13 +27,16 @@ class SwapScreen extends ConsumerStatefulWidget {
 
 class _SwapScreenState extends ConsumerState<SwapScreen> {
   final TextEditingController _fromAmountController = TextEditingController();
+  late final TextEditingController _fromAmountDecimalController;
   core.Asset _fromAsset = core.Asset.lbtc;
   core.Asset _toAsset = core.Asset.usdt;
   Timer? _debounce;
+  bool _isSyncingDecimal = false;
 
   @override
   void initState() {
     super.initState();
+    _fromAmountDecimalController = TextEditingController();
     Future.microtask(
       () => ref.read(swapControllerProvider.notifier).loadMetadata(),
     );
@@ -43,6 +46,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   void dispose() {
     _debounce?.cancel();
     _fromAmountController.dispose();
+    _fromAmountDecimalController.dispose();
     super.dispose();
   }
 
@@ -82,12 +86,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
             children: [
               _from(context),
               GestureDetector(
-                onTap: () {
+                onTap: () async {
                   setState(() {
                     final tmp = _fromAsset;
                     _fromAsset = _toAsset;
                     _toAsset = tmp;
                   });
+                  await ref.read(swapControllerProvider.notifier).resetQuote();
                   _requestQuoteDebounced();
                 },
                 child: const Padding(
@@ -123,54 +128,81 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               ],
               if (error != null) const SizedBox(height: 8),
               if (error != null)
-                Text(
-                  'Error: $error',
-                  style: const TextStyle(color: Colors.red),
+                FutureBuilder<bool>(
+                  future: _hasInsufficientBalance(),
+                  builder: (context, snapshot) {
+                    final hasInsufficientBalance = snapshot.data ?? false;
+                    final isInsufficientError =
+                        error!.toLowerCase().contains('insuficiente') ||
+                        hasInsufficientBalance;
+
+                    if (isInsufficientError &&
+                        _fromAmountController.text.isNotEmpty) {
+                      return Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.warning,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Saldo insuficiente para realizar o swap',
+                                    style: TextStyle(color: Colors.orange),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    error!,
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      );
+                    }
+                  },
                 ),
               const SizedBox(height: 15),
               const Center(child: Text('Powered by sideswap.io')),
               const SizedBox(height: 15),
-
-              FutureBuilder<bool>(
-                future: _hasInsufficientBalance(),
-                builder: (context, snapshot) {
-                  final hasInsufficientBalance = snapshot.data ?? false;
-
-                  if (hasInsufficientBalance &&
-                      _fromAmountController.text.isNotEmpty) {
-                    return Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.warning,
-                                color: Colors.orange,
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Saldo insuficiente para realizar o swap',
-                                  style: TextStyle(color: Colors.orange),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
 
               FutureBuilder<bool>(
                 future: _hasInsufficientBalance(),
@@ -207,6 +239,28 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   // FROM card
   Widget _from(BuildContext context) {
     final currency = ref.read(currencyControllerProvider.notifier);
+    // Sincroniza o valor decimal apenas quando o ativo muda ou o valor interno muda externamente
+    void syncDecimalController() {
+      if (_isSyncingDecimal) return;
+      _isSyncingDecimal = true;
+      final text = _fromAmountController.text.trim();
+      if (text.isEmpty) {
+        _fromAmountDecimalController.text = '';
+      } else {
+        final amount = BigInt.tryParse(text) ?? BigInt.zero;
+        if (_fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc) {
+          _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
+              .toStringAsFixed(8);
+        } else {
+          _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
+              .toStringAsFixed(2);
+        }
+      }
+      _isSyncingDecimal = false;
+    }
+
+    // Sempre sincroniza ao build, mas não recria o controller
+    syncDecimalController();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
@@ -266,11 +320,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       icon: SvgPicture.asset(
                         'assets/icons/menu/arrow_down.svg',
                       ),
-                      onChanged: (core.Asset? newAsset) {
+                      onChanged: (core.Asset? newAsset) async {
                         if (newAsset != null) {
                           setState(() {
                             _fromAsset = newAsset;
-                            // Ensure TO asset is always different from FROM
                             if (_toAsset == _fromAsset) {
                               final alternatives =
                                   core.Asset.values
@@ -281,6 +334,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                               }
                             }
                           });
+                          await ref
+                              .read(swapControllerProvider.notifier)
+                              .resetQuote();
                           _requestQuoteDebounced();
                         }
                       },
@@ -327,7 +383,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     ),
                     Expanded(
                       child: TextField(
-                        controller: _fromAmountController,
+                        controller: _fromAmountDecimalController,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -350,7 +406,17 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             context,
                           ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
                         ),
-                        onChanged: (value) => _requestQuoteDebounced(),
+                        onChanged: (value) {
+                          double parsed =
+                              double.tryParse(value.replaceAll(',', '.')) ?? 0;
+                          BigInt sats = BigInt.from(
+                            (parsed * 100000000).round(),
+                          );
+                          if (_fromAmountController.text != sats.toString()) {
+                            _fromAmountController.text = sats.toString();
+                            _requestQuoteDebounced();
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -366,7 +432,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 future: ref.read(fiatPriceProvider(_fromAsset).future),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
-                    return snapshot.data!.fold((error) => const Text(' .00'), (
+                    return snapshot.data!.fold((error) => const Text('0.00'), (
                       price,
                     ) {
                       final amount =
@@ -392,6 +458,16 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     final quote = ref.watch(swapControllerProvider).currentQuote?.quote;
     final toOptions =
         core.Asset.values.where((asset) => asset != _fromAsset).toList();
+    String displayToAmount() {
+      final q = quote?.quoteAmount ?? 0;
+      if (_toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc) {
+        return q.toString();
+      } else {
+        final value = q / 100000000;
+        return value.toStringAsFixed(2);
+      }
+    }
+
     return Container(
       height: 115,
       decoration: BoxDecoration(
@@ -451,9 +527,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           icon: SvgPicture.asset(
                             'assets/icons/menu/arrow_down.svg',
                           ),
-                          onChanged: (core.Asset? newAsset) {
+                          onChanged: (core.Asset? newAsset) async {
                             if (newAsset != null) {
                               setState(() => _toAsset = newAsset);
+                              await ref
+                                  .read(swapControllerProvider.notifier)
+                                  .resetQuote();
                               _requestQuoteDebounced();
                             }
                           },
@@ -501,10 +580,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             }).toList();
                           },
                         ),
-                        Text(
-                          quote != null ? quote.quoteAmount.toString() : '0',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        // Exibição do valor formatado ao lado do campo
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Text(
+                            displayToAmount(),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
                         ),
                       ],
                     ),

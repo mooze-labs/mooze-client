@@ -71,7 +71,7 @@ class _ConfirmSwapBottomSheetState
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      'Erro: ${state.error}',
+                      '${state.error}',
                       style: const TextStyle(color: Colors.red),
                     ),
                   ),
@@ -82,15 +82,19 @@ class _ConfirmSwapBottomSheetState
             const Divider(),
             InfoRow(
               label: 'Taxa do servidor',
-              value: '${quote.serverFee} SATS',
+              value: _formatFee(state, quote.serverFee),
             ),
-            InfoRow(label: 'Taxa fixa', value: '${quote.fixedFee} SATS'),
+            InfoRow(
+              label: 'Taxa fixa',
+              value: _formatFee(state, quote.fixedFee),
+            ),
             InfoRow(
               label: 'Total de taxas',
-              value: '${quote.serverFee + quote.fixedFee} SATS',
+              value: _formatFee(state, quote.serverFee + quote.fixedFee),
               valueFontWeight: FontWeight.bold,
             ),
           ],
+
           SizedBox(height: 24),
 
           SlideToConfirmButton(
@@ -108,6 +112,17 @@ class _ConfirmSwapBottomSheetState
         ],
       ),
     );
+  }
+
+  String _formatFee(sc.SwapState state, int feeSats) {
+    final baseId = state.lastBaseAssetId;
+    final asset = baseId != null ? core.Asset.fromId(baseId) : core.Asset.btc;
+    if (asset == core.Asset.btc || asset == core.Asset.lbtc) {
+      return '$feeSats SATS';
+    } else {
+      final value = feeSats / 100000000;
+      return '${value.toStringAsFixed(4)} ${asset.ticker}';
+    }
   }
 
   Future<void> _confirmSwap(
@@ -194,69 +209,65 @@ class _ConfirmSwapBottomSheetState
             color: const Color(0xFF111111),
             borderRadius: BorderRadius.circular(13),
           ),
-          child: Column(
+          child: Row(
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Você envia'),
-                          const SizedBox(width: 10),
-                          SvgPicture.asset(
-                            baseAsset.iconPath,
-                            width: 15,
-                            height: 15,
-                          ),
-                        ],
+                      const Text('Você envia'),
+                      const SizedBox(width: 10),
+                      SvgPicture.asset(
+                        baseAsset.iconPath,
+                        width: 15,
+                        height: 15,
                       ),
-                      Text(
-                        quote != null
-                            ? formatAmount(baseAsset, quote.baseAmount)
-                            : '0',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(baseAsset.name.toLowerCase()),
                     ],
                   ),
-                  const Spacer(),
-                  SvgPicture.asset(
-                    'assets/icons/menu/arrow.svg',
-                    width: 25,
-                    height: 25,
+                  Text(
+                    quote != null
+                        ? formatAmount(baseAsset, quote.baseAmount)
+                        : '0',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Text(baseAsset.name.toLowerCase()),
+                ],
+              ),
+              const Spacer(),
+              SvgPicture.asset(
+                'assets/icons/menu/arrow.svg',
+                width: 25,
+                height: 25,
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Você recebe'),
-                          const SizedBox(width: 10),
-                          SvgPicture.asset(
-                            receiveAsset.iconPath,
-                            width: 15,
-                            height: 15,
-                          ),
-                        ],
+                      const Text('Você recebe'),
+                      const SizedBox(width: 10),
+                      SvgPicture.asset(
+                        receiveAsset.iconPath,
+                        width: 15,
+                        height: 15,
                       ),
-                      Text(
-                        quote != null
-                            ? formatAmount(receiveAsset, quote.quoteAmount)
-                            : '0',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(receiveAsset.name.toLowerCase()),
                     ],
                   ),
+                  Text(
+                    quote != null
+                        ? formatAmount(receiveAsset, quote.quoteAmount)
+                        : '0',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(receiveAsset.name.toLowerCase()),
                 ],
               ),
             ],

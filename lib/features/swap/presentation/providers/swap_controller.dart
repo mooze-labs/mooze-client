@@ -69,6 +69,25 @@ class SwapState {
 }
 
 class SwapController extends StateNotifier<SwapState> {
+  Future<void> resetQuote() async {
+    _ttlTimer?.cancel();
+    _quoteSub?.cancel();
+    _ttlDeadline = null;
+    final repository = await _repositoryFuture;
+    repository.stopQuote();
+    state = state.copyWith(
+      currentQuote: null,
+      activeQuoteId: null,
+      ttlMilliseconds: null,
+      millisecondsRemaining: null,
+      lastBaseAssetId: null,
+      lastQuoteAssetId: null,
+      lastAmount: null,
+      lastDirection: null,
+      error: null,
+    );
+  }
+
   final Future<SwapRepository> _repositoryFuture;
   StreamSubscription<QuoteResponse>? _quoteSub;
   Timer? _ttlTimer;
@@ -116,6 +135,17 @@ class SwapController extends StateNotifier<SwapState> {
     );
     _ttlTimer?.cancel();
     _ttlDeadline = null;
+
+    final marketExists = state.markets.any(
+      (m) => m.baseAssetId == baseAsset && m.quoteAssetId == quoteAsset,
+    );
+    if (!marketExists) {
+      final errMsg =
+          'Par de ativos não suportado para swap. Selecione um par válido.';
+      state = state.copyWith(loading: false, error: errMsg);
+      return;
+    }
+
     final addrRes = await repository.getNewAddress().run();
     final utxosRes =
         await repository.selectUtxos(assetId: baseAsset, amount: amount).run();
