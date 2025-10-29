@@ -24,43 +24,50 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16),
       decoration: _buildContainerDecoration(context),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Text(
-            'Valor do PIX',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: context.responsiveFont(20),
-              fontWeight: FontWeight.w500,
+          Container(
+            padding: EdgeInsets.only(top: 16),
+            child: Text(
+              'Valor do PIX',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.responsiveFont(20),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           PixDepositAmountInput(),
-          SizedBox(height: 10),
           _showLimits
-              ? AccountLimitsDisplay(
-                onToggleView: () {
-                  setState(() {
-                    _showLimits = false;
-                  });
-                },
+              ? Container(
+                padding: EdgeInsets.all(16),
+                child: AccountLimitsDisplay(
+                  onToggleView: () {
+                    setState(() {
+                      _showLimits = false;
+                    });
+                  },
+                ),
               )
               : Column(
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _showLimits = true;
-                      });
-                    },
-                    child: InfoRow(
-                      label: 'Meus níveis',
-                      value: 'Ver Limite',
-                      labelColor: Colors.white,
-                      valueColor: AppColors.primaryColor,
-                      fontSize: context.responsiveFont(14),
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showLimits = true;
+                        });
+                      },
+                      child: InfoRow(
+                        label: 'Meus níveis',
+                        value: 'Ver Limite',
+                        labelColor: Colors.white,
+                        valueColor: AppColors.primaryColor,
+                        fontSize: context.responsiveFont(14),
+                      ),
                     ),
                   ),
                   SizedBox(height: 12),
