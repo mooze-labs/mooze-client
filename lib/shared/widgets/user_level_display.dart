@@ -186,7 +186,13 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
       onTap: widget.onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [_buildLevelProgressBar(), _buildCurrentLevelInfo()],
+        children: [
+          _buildLevelProgressBar(),
+          Container(
+            padding: EdgeInsets.all(16),
+            child: _buildCurrentLevelInfo(),
+          ),
+        ],
       ),
     );
   }
