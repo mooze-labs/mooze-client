@@ -251,6 +251,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 children: [
                   _buildLimitRow(
                     'Limite diário',
+                    'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
+                  ),
+                  SizedBox(height: 8),
+                  _buildLimitRow(
+                    'Por transação',
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 8),
@@ -270,6 +275,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 children: [
                   _buildLimitRow('Limite diário', 'Carregando...'),
                   SizedBox(height: 8),
+                  _buildLimitRow('Por transação', 'Carregando...'),
+                  SizedBox(height: 8),
                   _buildLimitRow('Limite restante', 'Carregando...'),
                   SizedBox(height: 8),
                   _buildLimitRow('Valor mínimo', 'Carregando...'),
@@ -278,11 +285,16 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           error:
               (error, stack) => Column(
                 children: [
-                  _buildLimitRow('Limite diário', 'R\$ 250.00'),
+                  _buildLimitRow(
+                    'Limite diário',
+                    'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
+                  ),
                   SizedBox(height: 8),
-                  _buildLimitRow('Limite restante', 'R\$ 250.00'),
+                  _buildLimitRow('Por transação', 'Indisponível'),
                   SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', 'R\$ 20.00'),
+                  _buildLimitRow('Limite restante', 'Indisponível'),
+                  SizedBox(height: 8),
+                  _buildLimitRow('Valor mínimo', 'Indisponível'),
                 ],
               ),
         );

@@ -80,7 +80,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
         onPressed: () {
           context.go('/menu');
         },
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded),
       ),
     );
   }

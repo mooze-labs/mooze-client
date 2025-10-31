@@ -93,7 +93,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               children: [
                 Expanded(
                   child: _buildLimitInfo(
-                    'Limite Diário',
+                    'Por transação',
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                     Icons.trending_up,
                     widget.colorScheme.primary,
@@ -102,8 +102,8 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
-                    'Máximo Possível',
-                    'R\$ ${data.absoluteMaxLimit.toStringAsFixed(2)}',
+                    'Limite diário',
+                    'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                     Icons.flag,
                     widget.colorScheme.secondary,
                   ),
