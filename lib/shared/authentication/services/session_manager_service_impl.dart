@@ -82,13 +82,18 @@ class SessionManagerServiceImpl implements SessionManagerService {
 
   @override
   TaskEither<String, Session> refreshSession(Session session) {
-    return _requestNewJwtToken(session.refreshToken).flatMap((newJwt) {
-      final updatedSession = Session(
-        jwt: newJwt,
-        refreshToken: session.refreshToken,
-      );
-      return saveSession(updatedSession).map((_) => updatedSession);
-    });
+    return _requestNewJwtToken(session.refreshToken)
+        .flatMap((newJwt) {
+          final updatedSession = Session(
+            jwt: newJwt,
+            refreshToken: session.refreshToken,
+          );
+          return saveSession(updatedSession).map((_) => updatedSession);
+        })
+        .orElse((error) {
+          // erro 404
+          return _createNewSession();
+        });
   }
 
   TaskEither<String, String> _requestNewJwtToken(String refreshToken) {
