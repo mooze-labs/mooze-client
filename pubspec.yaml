@@ -30,7 +30,7 @@ dependencies:
   ffi: ^2.1.4
   shared_preferences: ^2.5.2
   path_provider: ^2.1.5
-  qr_flutter: ^4.1.0
+  pretty_qr_code: ^3.5.0
   web_socket_channel: ^3.0.2
   uuid: ^4.5.1
   flutter_riverpod: ^2.6.1
@@ -91,7 +91,7 @@ dependencies:
   firebase_messaging: ^16.0.0
   pointycastle: ^3.9.1
   bdk_flutter:
-    path: ./packages/bdk-flutter 
+    path: ./packages/bdk-flutter
 
 dependency_overrides:
 
