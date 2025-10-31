@@ -1,7 +1,6 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../consts.dart';
 
 class PixQrCodeDisplay extends StatelessWidget {
@@ -24,10 +23,23 @@ class PixQrCodeDisplay extends StatelessWidget {
     final maxSize = math.min(screenWidth * 0.8, availableHeight * 0.8);
     final qrSize = math.max(180.0, math.min(maxSize, 314.0));
 
-    return QrImageView(
-      data: pixQrData,
-      size: qrSize,
-      backgroundColor: Colors.white,
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        margin: EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: PrettyQrView.data(data: pixQrData),
+      ),
     );
   }
 }

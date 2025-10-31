@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:eventflux/eventflux.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/data/datasources/pix_deposit_api.dart';
+import 'package:mooze_mobile/shared/authentication/services/session_manager_service.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
@@ -18,11 +19,20 @@ class PixRepositoryImpl implements PixRepository {
   final Dio _dio;
   final PixDepositDatabase _database;
   final PixDepositApi _api;
+  final SessionManagerService _sessionManager;
 
-  PixRepositoryImpl(Dio dio, PixDepositDatabase database)
-    : _dio = dio,
+  final _statusUpdatesController = StreamController<PixStatusEvent>.broadcast();
+
+  Stream<PixStatusEvent> get statusUpdates => _statusUpdatesController.stream;
+
+  PixRepositoryImpl(
+    Dio dio,
+    PixDepositDatabase database,
+    SessionManagerService sessionManager,
+  ) : _dio = dio,
       _database = database,
-      _api = PixDepositApi(dio);
+      _api = PixDepositApi(dio),
+      _sessionManager = sessionManager;
 
   @override
   TaskEither<String, PixDeposit> newDeposit(
@@ -45,22 +55,24 @@ class PixRepositoryImpl implements PixRepository {
             amountInCents,
           )
           .map((_) {
-            // Start background subscription to status updates
             _subscribeToStatusUpdates(response.depositId)
                 .timeout(Duration(minutes: 20))
                 .listen(
                   (statusUpdate) => statusUpdate.fold(
-                    (error) => {}, // Handle errors silently
-                    (update) => _updateTransactionStatus(update).run(),
+                    (error) => {},
+                    (update) {
+                      _statusUpdatesController.add(update);
+                      _updateTransactionStatus(update).run();
+                    },
                   ),
                   onError: (error) {
                     if (error is TimeoutException) {
-                      _updateTransactionStatus(
-                        PixStatusEvent(
-                          depositId: response.depositId,
-                          status: "expired",
-                        ),
-                      ).run();
+                      final expiredEvent = PixStatusEvent(
+                        depositId: response.depositId,
+                        status: "expired",
+                      );
+                      _statusUpdatesController.add(expiredEvent);
+                      _updateTransactionStatus(expiredEvent).run();
                     }
                   },
                 );
@@ -111,24 +123,26 @@ class PixRepositoryImpl implements PixRepository {
   @override
   TaskEither<String, List<PixDeposit>> updateDepositDetails(List<String> ids) {
     return _api.getDeposits(ids).flatMap((detailList) {
-      // Update all deposits in parallel
-      final updateTasks = detailList.map((d) =>
-        _database.updateDeposit(
-          d.id,
-          d.status,
-          assetAmount:
-              (d.assetAmount != null)
-                  ? BigInt.from(d.assetAmount!)
-                  : BigInt.zero,
-          blockchainTxid: d.blockchainTxid,
-        ),
-      ).toList();
+      final updateTasks =
+          detailList
+              .map(
+                (d) => _database.updateDeposit(
+                  d.id,
+                  d.status,
+                  assetAmount:
+                      (d.assetAmount != null)
+                          ? BigInt.from(d.assetAmount!)
+                          : BigInt.zero,
+                  blockchainTxid: d.blockchainTxid,
+                ),
+              )
+              .toList();
 
-      // Wait for all updates to complete, then return the updated deposits
-      return TaskEither.sequenceList(updateTasks).flatMap((_) =>
-        getDeposits().map((deposits) =>
-          deposits.where((d) => ids.contains(d.depositId)).toList()
-        )
+      return TaskEither.sequenceList(updateTasks).flatMap(
+        (_) => getDeposits().map(
+          (deposits) =>
+              deposits.where((d) => ids.contains(d.depositId)).toList(),
+        ),
       );
     });
   }
@@ -177,41 +191,59 @@ class PixRepositoryImpl implements PixRepository {
 
   Stream<Either<String, PixStatusEvent>> _subscribeToStatusUpdates(
     String pixId,
-  ) {
+  ) async* {
     final controller = StreamController<Either<String, PixStatusEvent>>();
     final baseUrl = String.fromEnvironment(
       'BACKEND_API_URL',
-      defaultValue: 'https://api.mooze.app/v1/',
+      defaultValue: 'http://10.0.2.2:3000',
     );
 
-    final eventChannel = EventFlux.spawn();
-    eventChannel.connect(
-      EventFluxConnectionType.get,
-      "$baseUrl/subscribe?event_type=transaction&event_id=$pixId",
-      tag: 'pix-status-update-stream',
-      onSuccessCallback: (EventFluxResponse? response) {
-        response?.stream?.listen(
-          (data) {
-            final update = PixStatusEvent.fromJson(jsonDecode(data.data));
-            controller.add(Right(update));
-          },
-          onError: (error) => controller.add(Left(error.toString())),
-          onDone: () => controller.close(),
-        );
-      },
-      onError: (error) {
-        controller.add(Left(error.toString()));
+    final sseUrl = "$baseUrl/subscribe?event_type=transaction&event_id=$pixId";
+    print("🔗 Connecting to SSE: $sseUrl");
+
+    final sessionResult = await _sessionManager.getSession().run();
+
+    await sessionResult.fold(
+      (error) async {
+        print("❌ Failed to get session: $error");
+        controller.add(Left("Authentication failed: $error"));
         controller.close();
       },
-      autoReconnect: true,
-      reconnectConfig: ReconnectConfig(
-        mode: ReconnectMode.exponential,
-        interval: Duration(seconds: 1),
-        maxAttempts: 5,
-      ),
+      (session) async {
+        print("✅ Got JWT token, connecting...");
+
+        final eventChannel = EventFlux.spawn();
+        eventChannel.connect(
+          EventFluxConnectionType.get,
+          sseUrl,
+          tag: 'pix-status-update-stream',
+          header: {'Authorization': 'Bearer ${session.jwt}'},
+          onSuccessCallback: (EventFluxResponse? response) {
+            response?.stream?.listen(
+              (data) {
+                final update = PixStatusEvent.fromJson(jsonDecode(data.data));
+                controller.add(Right(update));
+              },
+              onError: (error) => controller.add(Left(error.toString())),
+              onDone: () => controller.close(),
+            );
+          },
+          onError: (error) {
+            print("❌ SSE Connection error: $error");
+            controller.add(Left(error.toString()));
+            controller.close();
+          },
+          autoReconnect: true,
+          reconnectConfig: ReconnectConfig(
+            mode: ReconnectMode.exponential,
+            interval: Duration(seconds: 1),
+            maxAttempts: 5,
+          ),
+        );
+      },
     );
 
-    return controller.stream.map(
+    yield* controller.stream.map(
       (either) => either.fold(
         (error) => Either.left(error.toString()),
         (update) => Either.right(update),
@@ -240,8 +272,7 @@ class PixRepositoryImpl implements PixRepository {
         throw Exception("${response.statusCode} ${response.statusMessage}");
       }
 
-      final jsonResponse = jsonDecode(response.data);
-
+      final jsonResponse = response.data;
       return PixDepositResponse.fromJson(jsonResponse['data']);
     }, (error, stackTrace) => "Falha ao conectar com o servidor $error");
   }

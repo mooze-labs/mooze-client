@@ -9,7 +9,7 @@ final pixRoutes = [
     builder: (context, state) => ReceivePixScreen(),
   ),
   GoRoute(
-    path: "/pix/payment/:deposit_id",
+    path: "/pix/payment/:transaction_id",
     builder: (context, state) => PixPaymentScreen(),
   ),
 ];

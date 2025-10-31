@@ -6,7 +6,7 @@ import 'package:mooze_mobile/features/pix/data/models/pix_transaction_details.da
 
 const String backendApiUrl = String.fromEnvironment(
   'BACKEND_API_URL',
-  defaultValue: 'https://api.mooze.app/v1/',
+  defaultValue: 'https://10.0.2.2:3000/v1/',
 );
 
 class PixDepositApi {
@@ -22,6 +22,7 @@ class PixDepositApi {
         "$backendApiUrl/transactions/statuses",
         queryParameters: {'ids': ids},
       );
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.data);
         final List<Map<String, dynamic>> statusesArray = jsonResponse['data'];

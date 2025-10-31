@@ -6,6 +6,7 @@ import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_bootstrap.dart';
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/pix_status_listener.dart';
 import 'routes.dart';
 
 void main() async {
@@ -23,12 +24,14 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.read(walletSyncBootstrapProvider);
     ref.read(connectivityProvider);
-    return MaterialApp.router(
-      title: 'Mooze',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme(context),
-      themeMode: ThemeMode.dark,
-      routerConfig: router,
+    return PixStatusListener(
+      child: MaterialApp.router(
+        title: 'Mooze',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme(context),
+        themeMode: ThemeMode.dark,
+        routerConfig: router,
+      ),
     );
   }
 }

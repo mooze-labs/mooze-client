@@ -22,6 +22,12 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   late AnimationController _circleController;
   late Animation<double> _circleAnimation;
 
+  @override
+  void dispose() {
+    _circleController.dispose();
+    super.dispose();
+  }
+
   bool _showOverlay = false;
   bool _showLoadingText = false;
 
@@ -137,7 +143,10 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
       data: (data) {
         if (depositAmount <= 0) return false;
         if (depositAmount < data.absoluteMinLimit) return false;
-        if (depositAmount > data.remainingLimit) return false;
+        if (depositAmount > data.allowedSpending)
+          return false; 
+        if (depositAmount > data.remainingLimit)
+          return false;
         return true;
       },
       orElse: () => false,

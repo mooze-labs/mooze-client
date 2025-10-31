@@ -35,6 +35,15 @@ class AccountLimitsDisplay extends ConsumerWidget {
                 children: [
                   InfoRow(
                     label: 'Limite diário',
+                    value:
+                        'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                  const SizedBox(height: 6),
+                  InfoRow(
+                    label: 'Por transação',
                     value: 'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                     labelColor: Colors.white70,
                     valueColor: Colors.white,
@@ -42,7 +51,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   InfoRow(
-                    label: 'Limite atual (restante)',
+                    label: 'Limite restante',
                     value: 'R\$ ${data.remainingLimit.toStringAsFixed(2)}',
                     labelColor: Colors.white70,
                     valueColor: Colors.white,
@@ -63,7 +72,16 @@ class AccountLimitsDisplay extends ConsumerWidget {
                 children: [
                   InfoRow(
                     label: 'Limite diário',
-                    value: 'R\$ 250.00',
+                    value:
+                        'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
+                    labelColor: Colors.white70,
+                    valueColor: Colors.white,
+                    fontSize: context.responsiveFont(14),
+                  ),
+                  const SizedBox(height: 6),
+                  InfoRow(
+                    label: 'Por transação',
+                    value: 'Indisponível',
                     labelColor: Colors.white70,
                     valueColor: Colors.white,
                     fontSize: context.responsiveFont(14),
@@ -71,7 +89,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
                   const SizedBox(height: 6),
                   InfoRow(
                     label: 'Valor mínimo',
-                    value: 'R\$ 20,00',
+                    value: 'Indisponível',
                     labelColor: Colors.white70,
                     valueColor: Colors.white,
                     fontSize: context.responsiveFont(14),
@@ -83,7 +101,9 @@ class AccountLimitsDisplay extends ConsumerWidget {
                 children: [
                   ShimmerInfoRow(label: "Limite diário"),
                   const SizedBox(height: 6),
-                  ShimmerInfoRow(label: "Limite atual"),
+                  ShimmerInfoRow(label: "Por transação"),
+                  const SizedBox(height: 6),
+                  ShimmerInfoRow(label: "Limite restante"),
                   const SizedBox(height: 6),
                   ShimmerInfoRow(label: "Valor mínimo"),
                 ],

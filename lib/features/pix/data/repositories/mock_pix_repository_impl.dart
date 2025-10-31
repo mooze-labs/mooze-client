@@ -1,11 +1,17 @@
+import 'dart:async';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../domain/entities.dart';
 import '../../domain/repositories/pix_repository.dart';
+import '../models/pix_status_event.dart';
 
 class MockPixRepositoryImpl implements PixRepository {
   final List<PixDeposit> _mockDeposits = [];
+  final _statusUpdatesController = StreamController<PixStatusEvent>.broadcast();
+
+  @override
+  Stream<PixStatusEvent> get statusUpdates => _statusUpdatesController.stream;
 
   @override
   TaskEither<String, PixDeposit> newDeposit(

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mooze_mobile/features/pix/domain/entities.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_text_styles.dart';
 
 import 'consts.dart';
 import 'providers.dart';
@@ -16,7 +15,7 @@ class PixPaymentScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final depositId =
-        GoRouterState.of(context).pathParameters["depositId"] as String;
+        GoRouterState.of(context).pathParameters["transaction_id"] as String;
     final deposit = ref.watch(depositDataProvider(depositId));
 
     return deposit.when(
@@ -43,19 +42,13 @@ class ValidPixPaymentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: CustomAppBar(
-        title: TextSpan(
-          text: 'Pagamento ',
-          style: AppTextStyles.title,
-          children: [
-            TextSpan(
-              text: 'PIX',
-              style: AppTextStyles.title.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        title: Text('Pagamento PIX'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () {
+            context.go("/pix");
+          },
         ),
       ),
       body: LayoutBuilder(
@@ -68,24 +61,50 @@ class ValidPixPaymentScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     TimerCountdown(
-                      expireAt: deposit.createdAt.add(Duration(minutes: 15)),
+                      expireAt: deposit.createdAt.add(Duration(minutes: 20)),
+                      onExpired: () {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder:
+                              (dialogContext) => AlertDialog(
+                                title: const Text('Tempo Esgotado'),
+                                content: const Text(
+                                  'O tempo para realizar o pagamento expirou. Por favor, gere um novo PIX.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(
+                                        dialogContext,
+                                      ).pop();
+                                      context.go(
+                                        '/pix',
+                                      );
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                        );
+                      },
                     ),
                     const Spacer(),
                     PixQrCodeDisplay(
                       pixQrData: deposit.pixKey,
                       boxConstraints: constraints,
                     ),
-                    const Spacer(),
-                    CopyableAddress(),
-                    const Spacer(),
+                    SizedBox(height: 20),
                     Text(
                       "Powered by depix.info",
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSecondary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 12,
                       ),
                     ),
                     const Spacer(),
+                    CopyableAddress(),
+                    SizedBox(height: 20),
                     PaymentDetailsDisplay(deposit: deposit),
                     const Spacer(),
                   ],
