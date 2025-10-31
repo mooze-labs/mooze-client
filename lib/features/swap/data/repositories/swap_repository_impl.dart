@@ -10,6 +10,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 class SwapRepositoryImpl implements SwapRepository {
   final SideswapService sideswapService;
   final SwapWallet liquidWallet;
+  List<SideswapMarket> _cachedMarkets = [];
 
   SwapRepositoryImpl({
     required this.sideswapService,
@@ -23,10 +24,62 @@ class SwapRepositoryImpl implements SwapRepository {
   );
 
   @override
-  TaskEither<String, List<SideswapMarket>> getMarkets() => TaskEither.tryCatch(
-    () async => await sideswapService.getMarkets(),
-    (e, _) => e.toString(),
-  );
+  TaskEither<String, List<SideswapMarket>> getMarkets() =>
+      TaskEither.tryCatch(() async {
+        _cachedMarkets = await sideswapService.getMarkets();
+        return _cachedMarkets;
+      }, (e, _) => e.toString());
+
+  ({
+    String baseAsset,
+    String quoteAsset,
+    SwapDirection direction,
+    String assetType,
+  })?
+  _normalizeSwapParams({
+    required String sendAsset,
+    required String receiveAsset,
+  }) {
+    final directMarket = _cachedMarkets.any(
+      (m) => m.baseAssetId == sendAsset && m.quoteAssetId == receiveAsset,
+    );
+
+    if (directMarket) {
+      return (
+        baseAsset: sendAsset,
+        quoteAsset: receiveAsset,
+        direction: SwapDirection.sell,
+        assetType: 'Base',
+      );
+    }
+
+    final inverseMarket = _cachedMarkets.any(
+      (m) => m.baseAssetId == receiveAsset && m.quoteAssetId == sendAsset,
+    );
+
+    if (inverseMarket) {
+      return (
+        baseAsset: receiveAsset,
+        quoteAsset: sendAsset,
+        direction: SwapDirection.sell,
+        assetType: 'Quote',
+      );
+    }
+
+    return null;
+  }
+
+  @override
+  ({
+    String baseAsset,
+    String quoteAsset,
+    SwapDirection direction,
+    String assetType,
+  })?
+  normalizeSwapParams({
+    required String sendAsset,
+    required String receiveAsset,
+  }) => _normalizeSwapParams(sendAsset: sendAsset, receiveAsset: receiveAsset);
 
   @override
   Either<String, Stream<QuoteResponse>> startQuote({

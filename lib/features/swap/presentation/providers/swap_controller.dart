@@ -17,10 +17,12 @@ class SwapState {
   final int? activeQuoteId;
   final int? ttlMilliseconds;
   final int? millisecondsRemaining;
-  final String? lastBaseAssetId;
-  final String? lastQuoteAssetId;
+  final String? lastSendAssetId;
+  final String? lastReceiveAssetId;
   final BigInt? lastAmount;
-  final SwapDirection? lastDirection;
+  final bool? isInverseMarket;
+  final String?
+  feeAssetId;
 
   const SwapState({
     required this.loading,
@@ -31,11 +33,31 @@ class SwapState {
     this.activeQuoteId,
     this.ttlMilliseconds,
     this.millisecondsRemaining,
-    this.lastBaseAssetId,
-    this.lastQuoteAssetId,
+    this.lastSendAssetId,
+    this.lastReceiveAssetId,
     this.lastAmount,
-    this.lastDirection,
+    this.isInverseMarket,
+    this.feeAssetId,
   });
+
+  int? get sendAmount {
+    if (currentQuote?.quote == null) return null;
+    final quote = currentQuote!.quote!;
+    return isInverseMarket == true ? quote.quoteAmount : quote.baseAmount;
+  }
+
+  int? get receiveAmount {
+    if (currentQuote?.quote == null) return null;
+    final quote = currentQuote!.quote!;
+    return isInverseMarket == true ? quote.baseAmount : quote.quoteAmount;
+  }
+
+  double? get exchangeRate {
+    final send = sendAmount;
+    final receive = receiveAmount;
+    if (send == null || receive == null || send == BigInt.zero) return null;
+    return receive.toDouble() / send.toDouble();
+  }
 
   SwapState copyWith({
     bool? loading,
@@ -46,10 +68,11 @@ class SwapState {
     int? activeQuoteId,
     int? ttlMilliseconds,
     int? millisecondsRemaining,
-    String? lastBaseAssetId,
-    String? lastQuoteAssetId,
+    String? lastSendAssetId,
+    String? lastReceiveAssetId,
     BigInt? lastAmount,
-    SwapDirection? lastDirection,
+    bool? isInverseMarket,
+    String? feeAssetId,
   }) => SwapState(
     loading: loading ?? this.loading,
     assets: assets ?? this.assets,
@@ -59,10 +82,11 @@ class SwapState {
     activeQuoteId: activeQuoteId ?? this.activeQuoteId,
     ttlMilliseconds: ttlMilliseconds ?? this.ttlMilliseconds,
     millisecondsRemaining: millisecondsRemaining ?? this.millisecondsRemaining,
-    lastBaseAssetId: lastBaseAssetId ?? this.lastBaseAssetId,
-    lastQuoteAssetId: lastQuoteAssetId ?? this.lastQuoteAssetId,
+    lastSendAssetId: lastSendAssetId ?? this.lastSendAssetId,
+    lastReceiveAssetId: lastReceiveAssetId ?? this.lastReceiveAssetId,
     lastAmount: lastAmount ?? this.lastAmount,
-    lastDirection: lastDirection ?? this.lastDirection,
+    isInverseMarket: isInverseMarket ?? this.isInverseMarket,
+    feeAssetId: feeAssetId ?? this.feeAssetId,
   );
 
   static const initial = SwapState(loading: false, assets: [], markets: []);
@@ -80,10 +104,11 @@ class SwapController extends StateNotifier<SwapState> {
       activeQuoteId: null,
       ttlMilliseconds: null,
       millisecondsRemaining: null,
-      lastBaseAssetId: null,
-      lastQuoteAssetId: null,
+      lastSendAssetId: null,
+      lastReceiveAssetId: null,
       lastAmount: null,
-      lastDirection: null,
+      isInverseMarket: null,
+      feeAssetId: null,
       error: null,
     );
   }
@@ -114,11 +139,9 @@ class SwapController extends StateNotifier<SwapState> {
   }
 
   Future<void> startQuote({
-    required String baseAsset,
-    required String quoteAsset,
-    required String assetType,
+    required String sendAsset,
+    required String receiveAsset,
     required BigInt amount,
-    required SwapDirection direction,
     List<SwapUtxo>? explicitUtxos,
     String? explicitReceiveAddress,
     String? explicitChangeAddress,
@@ -136,19 +159,39 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlTimer?.cancel();
     _ttlDeadline = null;
 
-    final marketExists = state.markets.any(
-      (m) => m.baseAssetId == baseAsset && m.quoteAssetId == quoteAsset,
+    final normalizedParams = repository.normalizeSwapParams(
+      sendAsset: sendAsset,
+      receiveAsset: receiveAsset,
     );
-    if (!marketExists) {
+
+    if (normalizedParams == null) {
       final errMsg =
           'Par de ativos não suportado para swap. Selecione um par válido.';
       state = state.copyWith(loading: false, error: errMsg);
       return;
     }
 
+    final baseAsset = normalizedParams.baseAsset;
+    final quoteAsset = normalizedParams.quoteAsset;
+    final direction = normalizedParams.direction;
+    final assetType = normalizedParams.assetType;
+
+    final isInverse = assetType == 'Quote';
+
+    final feeAsset = baseAsset;
+
+    final utxoAsset = assetType == 'Base' ? baseAsset : quoteAsset;
+
+    if (utxoAsset != sendAsset) {
+      final errMsg =
+          'Erro interno: normalização incorreta (utxo=$utxoAsset, send=$sendAsset)';
+      state = state.copyWith(loading: false, error: errMsg);
+      return;
+    }
+
     final addrRes = await repository.getNewAddress().run();
     final utxosRes =
-        await repository.selectUtxos(assetId: baseAsset, amount: amount).run();
+        await repository.selectUtxos(assetId: utxoAsset, amount: amount).run();
     if (addrRes.isLeft() || utxosRes.isLeft()) {
       final err = addrRes.match(
         (l) => l,
@@ -183,7 +226,6 @@ class SwapController extends StateNotifier<SwapState> {
               'Saldo insuficiente para este swap. Disponível: ${lb.available} sats. Necessário (enviado + taxas): ${lb.baseAmount + totalFees} sats.';
         }
 
-        // Initialize the TTL deadline only once per quote cycle.
         final ttlMs = quote.quote?.ttl;
         final initializeDeadline = _ttlDeadline == null && ttlMs != null;
         if (initializeDeadline) {
@@ -198,10 +240,11 @@ class SwapController extends StateNotifier<SwapState> {
           ttlMilliseconds: initializeDeadline ? ttlMs : state.ttlMilliseconds,
           millisecondsRemaining:
               initializeDeadline ? ttlMs : state.millisecondsRemaining,
-          lastBaseAssetId: baseAsset,
-          lastQuoteAssetId: quoteAsset,
+          lastSendAssetId: sendAsset,
+          lastReceiveAssetId: receiveAsset,
           lastAmount: amount,
-          lastDirection: direction,
+          isInverseMarket: isInverse,
+          feeAssetId: feeAsset,
         );
         if (initializeDeadline) {
           _startTtlCountdown();
@@ -221,17 +264,14 @@ class SwapController extends StateNotifier<SwapState> {
         _ttlDeadline = null;
         state = state.copyWith(millisecondsRemaining: 0);
         final paramsOk =
-            state.lastBaseAssetId != null &&
-            state.lastQuoteAssetId != null &&
-            state.lastAmount != null &&
-            state.lastDirection != null;
+            state.lastSendAssetId != null &&
+            state.lastReceiveAssetId != null &&
+            state.lastAmount != null;
         if (paramsOk) {
           startQuote(
-            baseAsset: state.lastBaseAssetId!,
-            quoteAsset: state.lastQuoteAssetId!,
-            assetType: 'Base',
+            sendAsset: state.lastSendAssetId!,
+            receiveAsset: state.lastReceiveAssetId!,
             amount: state.lastAmount!,
-            direction: state.lastDirection!,
           );
         }
       } else {
@@ -301,7 +341,5 @@ final swapControllerProvider = StateNotifierProvider.autoDispose<
 >((ref) {
   final repoFuture = ref.watch(swapRepositoryProvider.future);
   final controller = SwapController(repositoryFuture: repoFuture);
-  // The controller.dispose already stops quotes; autoDispose ensures it runs
-  // when no longer used (e.g., leaving the swap screen).
   return controller;
 });

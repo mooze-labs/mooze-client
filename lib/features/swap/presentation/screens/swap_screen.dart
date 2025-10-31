@@ -5,7 +5,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:fpdart/fpdart.dart' show Either;
 
-import '../../data/models.dart';
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
@@ -32,14 +31,34 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   core.Asset _toAsset = core.Asset.usdt;
   Timer? _debounce;
   bool _isSyncingDecimal = false;
+  bool _hasShownNoLiquidityDialog = false;
+
+  static const int _minBtcLbtcSwapSats = 25000;
+
+  bool get _isBtcLbtcSwap {
+    return (_fromAsset == core.Asset.btc && _toAsset == core.Asset.lbtc) ||
+        (_fromAsset == core.Asset.lbtc && _toAsset == core.Asset.btc);
+  }
 
   @override
   void initState() {
     super.initState();
     _fromAmountDecimalController = TextEditingController();
+
+    _validateAndAdjustAssets();
+
     Future.microtask(
       () => ref.read(swapControllerProvider.notifier).loadMetadata(),
     );
+  }
+
+  void _validateAndAdjustAssets() {
+    if (_fromAsset == core.Asset.btc && _toAsset != core.Asset.lbtc) {
+      _toAsset = core.Asset.lbtc;
+    }
+    else if (_toAsset == core.Asset.btc && _fromAsset != core.Asset.lbtc) {
+      _fromAsset = core.Asset.lbtc;
+    }
   }
 
   @override
@@ -54,14 +73,26 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   Widget build(BuildContext context) {
     final swapState = ref.watch(swapControllerProvider);
 
-    final quote = swapState.currentQuote?.quote;
     final isLoading = swapState.loading;
     final error = swapState.error;
 
-    double? exchangeRate;
-    if (quote != null && quote.baseAmount > 0) {
-      exchangeRate = quote.quoteAmount / quote.baseAmount;
+    if (error != null &&
+        _isNoLiquidityError(error) &&
+        !_hasShownNoLiquidityDialog) {
+      _hasShownNoLiquidityDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showNoLiquidityDialog(context);
+          ref.read(swapControllerProvider.notifier).resetQuote();
+        }
+      });
     }
+
+    if (error == null || !_isNoLiquidityError(error)) {
+      _hasShownNoLiquidityDialog = false;
+    }
+
+    final exchangeRate = swapState.exchangeRate;
 
     return Scaffold(
       extendBody: true,
@@ -115,7 +146,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     ),
                   ),
                 )
-              else ...[
+              else if (!_isBtcLbtcSwap) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
@@ -127,13 +158,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 ),
               ],
               if (error != null) const SizedBox(height: 8),
-              if (error != null)
+              if (error != null && !_isNoLiquidityError(error))
                 FutureBuilder<bool>(
                   future: _hasInsufficientBalance(),
                   builder: (context, snapshot) {
                     final hasInsufficientBalance = snapshot.data ?? false;
                     final isInsufficientError =
-                        error!.toLowerCase().contains('insuficiente') ||
+                        error.toLowerCase().contains('insuficiente') ||
                         hasInsufficientBalance;
 
                     if (isInsufficientError &&
@@ -187,7 +218,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    error!,
+                                    error,
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ),
@@ -201,7 +232,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   },
                 ),
               const SizedBox(height: 15),
-              const Center(child: Text('Powered by sideswap.io')),
+              Center(
+                child: Text(
+                  _isBtcLbtcSwap
+                      ? 'Powered by breez.technology'
+                      : 'Powered by sideswap.io',
+                ),
+              ),
               const SizedBox(height: 15),
 
               FutureBuilder<bool>(
@@ -210,22 +247,66 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   final hasInsufficientBalance = snapshot.data ?? false;
                   final hasQuote = swapState.currentQuote?.quote != null;
 
-                  return PrimaryButton(
-                    text: 'swap',
-                    isEnabled:
-                        _fromAmountController.text.isNotEmpty &&
-                        hasQuote &&
-                        !isLoading &&
-                        !hasInsufficientBalance,
-                    onPressed:
-                        (_fromAmountController.text.isNotEmpty &&
-                                hasQuote &&
-                                !isLoading &&
-                                !hasInsufficientBalance)
-                            ? () async {
-                              ConfirmSwapBottomSheet.show(context);
-                            }
-                            : null,
+                  final canProceed =
+                      _isBtcLbtcSwap
+                          ? _fromAmountController.text.isNotEmpty &&
+                              !isLoading &&
+                              !hasInsufficientBalance &&
+                              _isBtcLbtcSwapAmountValid()
+                          : _fromAmountController.text.isNotEmpty &&
+                              hasQuote &&
+                              !isLoading &&
+                              !hasInsufficientBalance;
+
+                  return Column(
+                    children: [
+                      if (_isBtcLbtcSwap &&
+                          _fromAmountController.text.isNotEmpty &&
+                          !_isBtcLbtcSwapAmountValid())
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Valor mínimo: ${_minBtcLbtcSwapSats.toString()} sats',
+                                    style: const TextStyle(
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      PrimaryButton(
+                        text: 'swap',
+                        isEnabled: canProceed,
+                        onPressed:
+                            canProceed
+                                ? () async {
+                                  if (_isBtcLbtcSwap) {
+                                    _handleBtcLbtcSwap();
+                                  } else {
+                                    ConfirmSwapBottomSheet.show(context);
+                                  }
+                                }
+                                : null,
+                      ),
+                    ],
                   );
                 },
               ),
@@ -239,7 +320,31 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   // FROM card
   Widget _from(BuildContext context) {
     final currency = ref.read(currencyControllerProvider.notifier);
-    // Sincroniza o valor decimal apenas quando o ativo muda ou o valor interno muda externamente
+
+    final fromOptions = () {
+      if (_toAsset == core.Asset.btc) {
+        return [core.Asset.lbtc];
+      }
+      else if (_toAsset == core.Asset.lbtc) {
+        return core.Asset.values
+            .where((asset) => asset != core.Asset.lbtc)
+            .toList();
+      }
+      else {
+        return core.Asset.values
+            .where((asset) => asset != _toAsset && asset != core.Asset.btc)
+            .toList();
+      }
+    }();
+
+    if (!fromOptions.contains(_fromAsset)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _fromAsset = fromOptions.first;
+        });
+      });
+    }
+
     void syncDecimalController() {
       if (_isSyncingDecimal) return;
       _isSyncingDecimal = true;
@@ -259,7 +364,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       _isSyncingDecimal = false;
     }
 
-    // Sempre sincroniza ao build, mas não recria o controller
     syncDecimalController();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -324,7 +428,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         if (newAsset != null) {
                           setState(() {
                             _fromAsset = newAsset;
-                            if (_toAsset == _fromAsset) {
+
+                            if (_fromAsset == core.Asset.btc) {
+                              _toAsset = core.Asset.lbtc;
+                            }
+                            else if (_toAsset == _fromAsset) {
                               final alternatives =
                                   core.Asset.values
                                       .where((a) => a != _fromAsset)
@@ -341,7 +449,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         }
                       },
                       items:
-                          core.Asset.values.map<DropdownMenuItem<core.Asset>>((
+                          fromOptions.map<DropdownMenuItem<core.Asset>>((
                             core.Asset asset,
                           ) {
                             return DropdownMenuItem<core.Asset>(
@@ -364,9 +472,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             );
                           }).toList(),
                       selectedItemBuilder: (BuildContext context) {
-                        return core.Asset.values.map<Widget>((
-                          core.Asset asset,
-                        ) {
+                        return fromOptions.map<Widget>((core.Asset asset) {
                           return Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -455,15 +561,51 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   // TO card
   Widget _to(BuildContext context) {
     final currency = ref.read(currencyControllerProvider.notifier);
-    final quote = ref.watch(swapControllerProvider).currentQuote?.quote;
-    final toOptions =
-        core.Asset.values.where((asset) => asset != _fromAsset).toList();
+    final swapState = ref.watch(swapControllerProvider);
+
+    final toOptions = () {
+      if (_fromAsset == core.Asset.btc) {
+        return [core.Asset.lbtc];
+      }
+      else if (_fromAsset == core.Asset.lbtc) {
+        return core.Asset.values
+            .where((asset) => asset != core.Asset.lbtc)
+            .toList();
+      }
+      else {
+        return core.Asset.values
+            .where((asset) => asset != _fromAsset && asset != core.Asset.btc)
+            .toList();
+      }
+    }();
+
+    if (!toOptions.contains(_toAsset)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _toAsset = toOptions.first;
+        });
+      });
+    }
+
     String displayToAmount() {
-      final q = quote?.quoteAmount ?? 0;
+      if (_isBtcLbtcSwap) {
+        final text = _fromAmountController.text.trim();
+        final amount = BigInt.tryParse(text) ?? BigInt.zero;
+        if (_toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc) {
+          return amount.toString();
+        } else {
+          final value = amount.toDouble() / 100000000;
+          return value.toStringAsFixed(2);
+        }
+      }
+
+      final amount = swapState.receiveAmount;
+      if (amount == null) return '0';
+
       if (_toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc) {
-        return q.toString();
+        return amount.toString();
       } else {
-        final value = q / 100000000;
+        final value = amount / 100000000;
         return value.toStringAsFixed(2);
       }
     }
@@ -503,7 +645,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         future: _getBalance(_toAsset),
                         builder: (context, snapshot) {
                           return Text(
-                            '${snapshot.data ?? "..."}',
+                            snapshot.data ?? "...",
                             style: Theme.of(context).textTheme.labelLarge!
                                 .copyWith(color: AppColors.textSecondary),
                           );
@@ -529,7 +671,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           ),
                           onChanged: (core.Asset? newAsset) async {
                             if (newAsset != null) {
-                              setState(() => _toAsset = newAsset);
+                              setState(() {
+                                _toAsset = newAsset;
+
+                                if (_toAsset == core.Asset.btc) {
+                                  _fromAsset = core.Asset.lbtc;
+                                }
+                              });
                               await ref
                                   .read(swapControllerProvider.notifier)
                                   .resetQuote();
@@ -580,7 +728,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             }).toList();
                           },
                         ),
-                        // Exibição do valor formatado ao lado do campo
                         Padding(
                           padding: const EdgeInsets.only(left: 8.0),
                           child: Text(
@@ -605,8 +752,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         return snapshot.data!.fold(
                           (error) => const Text('0.00'),
                           (price) {
-                            final q = quote?.quoteAmount ?? 0;
-                            final usd = _toAsset.toUsd(BigInt.from(q), price);
+                            final amount = swapState.receiveAmount ?? 0;
+                            final usd = _toAsset.toUsd(
+                              BigInt.from(amount),
+                              price,
+                            );
                             return Text(
                               '${currency.icon}${usd.toStringAsFixed(2)}',
                             );
@@ -648,19 +798,148 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     return amount > balance;
   }
 
+  bool _isBtcLbtcSwapAmountValid() {
+    final text = _fromAmountController.text.trim();
+    final amount = BigInt.tryParse(text);
+    if (amount == null) return false;
+    return amount >= BigInt.from(_minBtcLbtcSwapSats);
+  }
+
+  Future<void> _handleBtcLbtcSwap() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Swap BTC ↔ LBTC MOCK!'),
+        ),
+      );
+    }
+  }
+
+  bool _isNoLiquidityError(String error) {
+    return error.toLowerCase().contains('no matching orders') ||
+        error.toLowerCase().contains('matching orders') ||
+        error.toLowerCase().contains('liquidez');
+  }
+
+  void _showNoLiquidityDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: const Color(0xFF1C1C1C),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.orange.withValues(alpha: 0.2),
+                  ),
+                  child: const Icon(
+                    Icons.water_drop_outlined,
+                    size: 40,
+                    color: Colors.orange,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Sem Liquidez',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No momento não há liquidez disponível na Sideswap para realizar esta operação.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[400],
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _requestQuoteDebounced();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Tentar Novamente',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Text(
+                      'Fechar',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[400]),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _requestQuoteDebounced() {
     _debounce?.cancel();
+
+    if (_isBtcLbtcSwap) {
+      return;
+    }
+
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       final controller = ref.read(swapControllerProvider.notifier);
       final text = _fromAmountController.text.trim();
       final amount = BigInt.tryParse(text);
       if (amount == null || amount <= BigInt.zero) return;
       await controller.startQuote(
-        baseAsset: _fromAsset.id,
-        quoteAsset: _toAsset.id,
-        assetType: 'Base',
+        sendAsset: _fromAsset.id,
+        receiveAsset: _toAsset.id,
         amount: amount,
-        direction: SwapDirection.sell,
       );
     });
   }

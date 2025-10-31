@@ -48,7 +48,6 @@ class _ConfirmSwapBottomSheetState
         ),
       ),
       child: Column(
-        // crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
             child: Text(
@@ -115,8 +114,8 @@ class _ConfirmSwapBottomSheetState
   }
 
   String _formatFee(sc.SwapState state, int feeSats) {
-    final baseId = state.lastBaseAssetId;
-    final asset = baseId != null ? core.Asset.fromId(baseId) : core.Asset.btc;
+    final feeId = state.feeAssetId;
+    final asset = feeId != null ? core.Asset.fromId(feeId) : core.Asset.btc;
     if (asset == core.Asset.btc || asset == core.Asset.lbtc) {
       return '$feeSats SATS';
     } else {
@@ -138,25 +137,25 @@ class _ConfirmSwapBottomSheetState
           context,
         ).showSnackBar(SnackBar(content: Text('Erro na confirmação: $err'))),
         (txid) {
-          Navigator.of(context).pop(); // Fecha o bottom sheet primeiro
+          Navigator.of(context).pop();
 
-          // Obtém os dados do swap para a tela de sucesso
           final state = ref.read(sc.swapControllerProvider);
-          final quote = state.currentQuote?.quote;
-          final baseId = state.lastBaseAssetId;
-          final quoteId = state.lastQuoteAssetId;
-          final baseAsset =
-              baseId != null ? core.Asset.fromId(baseId) : core.Asset.btc;
+          final sendId = state.lastSendAssetId;
+          final receiveId = state.lastReceiveAssetId;
+          final sendAsset =
+              sendId != null ? core.Asset.fromId(sendId) : core.Asset.btc;
           final receiveAsset =
-              quoteId != null ? core.Asset.fromId(quoteId) : core.Asset.usdt;
+              receiveId != null
+                  ? core.Asset.fromId(receiveId)
+                  : core.Asset.usdt;
 
-          if (quote != null) {
-            final amountSent = quote.baseAmount.toDouble() / 100000000;
-            final amountReceived = quote.quoteAmount.toDouble() / 100000000;
+          if (state.sendAmount != null && state.receiveAmount != null) {
+            final amountSent = state.sendAmount!.toDouble() / 100000000;
+            final amountReceived = state.receiveAmount!.toDouble() / 100000000;
 
             SwapSuccessScreen.show(
               context,
-              fromAsset: baseAsset,
+              fromAsset: sendAsset,
               toAsset: receiveAsset,
               amountSent: amountSent,
               amountReceived: amountReceived,
@@ -179,13 +178,12 @@ class _ConfirmSwapBottomSheetState
   }
 
   Widget _fromToSummary(BuildContext context, sc.SwapState state) {
-    final quote = state.currentQuote?.quote;
-    final baseId = state.lastBaseAssetId;
-    final quoteId = state.lastQuoteAssetId;
-    final baseAsset =
-        baseId != null ? core.Asset.fromId(baseId) : core.Asset.btc;
+    final sendId = state.lastSendAssetId;
+    final receiveId = state.lastReceiveAssetId;
+    final sendAsset =
+        sendId != null ? core.Asset.fromId(sendId) : core.Asset.btc;
     final receiveAsset =
-        quoteId != null ? core.Asset.fromId(quoteId) : core.Asset.usdt;
+        receiveId != null ? core.Asset.fromId(receiveId) : core.Asset.usdt;
 
     String formatAmount(core.Asset a, int amountSats) {
       final v = amountSats.toDouble() / 100000000;
@@ -220,21 +218,21 @@ class _ConfirmSwapBottomSheetState
                       const Text('Você envia'),
                       const SizedBox(width: 10),
                       SvgPicture.asset(
-                        baseAsset.iconPath,
+                        sendAsset.iconPath,
                         width: 15,
                         height: 15,
                       ),
                     ],
                   ),
                   Text(
-                    quote != null
-                        ? formatAmount(baseAsset, quote.baseAmount)
+                    state.lastAmount != null
+                        ? formatAmount(sendAsset, state.lastAmount!.toInt())
                         : '0',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(baseAsset.name.toLowerCase()),
+                  Text(sendAsset.name.toLowerCase()),
                 ],
               ),
               const Spacer(),
@@ -260,8 +258,8 @@ class _ConfirmSwapBottomSheetState
                     ],
                   ),
                   Text(
-                    quote != null
-                        ? formatAmount(receiveAsset, quote.quoteAmount)
+                    state.receiveAmount != null
+                        ? formatAmount(receiveAsset, state.receiveAmount!)
                         : '0',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,

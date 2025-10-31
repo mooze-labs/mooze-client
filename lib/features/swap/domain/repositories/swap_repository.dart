@@ -6,6 +6,18 @@ import '../entities.dart';
 abstract class SwapRepository {
   TaskEither<String, List<SideswapAsset>> getAssets();
   TaskEither<String, List<SideswapMarket>> getMarkets();
+
+  ({
+    String baseAsset,
+    String quoteAsset,
+    SwapDirection direction,
+    String assetType,
+  })?
+  normalizeSwapParams({
+    required String sendAsset,
+    required String receiveAsset,
+  });
+
   Either<String, Stream<QuoteResponse>> startQuote({
     required String baseAsset,
     required String quoteAsset,
