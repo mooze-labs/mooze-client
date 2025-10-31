@@ -8,13 +8,14 @@ import 'package:dio/dio.dart';
 class UserLevelsData {
   final int spendingLevel; // 0-3 (bronze, silver, gold, diamond)
   final double levelProgress; // 0.0 - 1.0
-  final double allowedSpending; // current allowed limit (in cents/100)
+  final double allowedSpending; // limit per transaction (varies by level)
   final double dailySpending; // amount already spent today (in cents/100)
   final double currentLevelMinLimit; // minimum limit of the current level
   final double currentLevelMaxLimit; // maximum limit of the current level
   final double absoluteMinLimit; // lowest possible limit (all levels)
   final double absoluteMaxLimit; // highest possible limit (top level)
   final double remainingLimit; // how much can still be spent today
+  static const double dailyLimit = 5000.0; // Fixed daily limit in BRL
 
   const UserLevelsData({
     required this.spendingLevel,
@@ -61,8 +62,8 @@ class UserLevelsData {
 
   /// Calculates the progress within the daily limit (0.0 - 1.0)
   double get dailyLimitProgress {
-    if (allowedSpending <= 0) return 0.0;
-    final progress = dailySpending / allowedSpending;
+    if (dailyLimit <= 0) return 0.0;
+    final progress = dailySpending / dailyLimit;
     return progress.clamp(0.0, 1.0);
   }
 
@@ -140,10 +141,10 @@ final levelsProvider = FutureProvider<UserLevelsData>((ref) async {
   }
   final absoluteMinLimit = bronzeData.minLimit / 100.0;
 
-  // Calculate remaining limit
-  final remainingLimit = (allowedSpending - dailySpending).clamp(
+  // Calculate remaining limit based on the fixed daily limit
+  final remainingLimit = (UserLevelsData.dailyLimit - dailySpending).clamp(
     0.0,
-    allowedSpending,
+    UserLevelsData.dailyLimit,
   );
 
   return UserLevelsData(
