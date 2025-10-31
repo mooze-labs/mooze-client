@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 
@@ -303,7 +303,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
 
   Widget _buildQRCode() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -315,15 +315,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: QrImageView(
-          data: widget.qrData,
-          version: QrVersions.auto,
-          size: 250.0,
-          backgroundColor: Colors.white,
-        ),
-      ),
+      child: PrettyQrView.data(data: widget.qrData),
     );
   }
 

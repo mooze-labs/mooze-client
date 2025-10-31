@@ -7,6 +7,7 @@ import 'package:fpdart/fpdart.dart' show Either;
 
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
+import '../helpers/btc_lbtc_swap_helper.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
@@ -55,8 +56,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   void _validateAndAdjustAssets() {
     if (_fromAsset == core.Asset.btc && _toAsset != core.Asset.lbtc) {
       _toAsset = core.Asset.lbtc;
-    }
-    else if (_toAsset == core.Asset.btc && _fromAsset != core.Asset.lbtc) {
+    } else if (_toAsset == core.Asset.btc && _fromAsset != core.Asset.lbtc) {
       _fromAsset = core.Asset.lbtc;
     }
   }
@@ -324,13 +324,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     final fromOptions = () {
       if (_toAsset == core.Asset.btc) {
         return [core.Asset.lbtc];
-      }
-      else if (_toAsset == core.Asset.lbtc) {
+      } else if (_toAsset == core.Asset.lbtc) {
         return core.Asset.values
             .where((asset) => asset != core.Asset.lbtc)
             .toList();
-      }
-      else {
+      } else {
         return core.Asset.values
             .where((asset) => asset != _toAsset && asset != core.Asset.btc)
             .toList();
@@ -431,8 +429,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
                             if (_fromAsset == core.Asset.btc) {
                               _toAsset = core.Asset.lbtc;
-                            }
-                            else if (_toAsset == _fromAsset) {
+                            } else if (_toAsset == _fromAsset) {
                               final alternatives =
                                   core.Asset.values
                                       .where((a) => a != _fromAsset)
@@ -566,13 +563,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     final toOptions = () {
       if (_fromAsset == core.Asset.btc) {
         return [core.Asset.lbtc];
-      }
-      else if (_fromAsset == core.Asset.lbtc) {
+      } else if (_fromAsset == core.Asset.lbtc) {
         return core.Asset.values
             .where((asset) => asset != core.Asset.lbtc)
             .toList();
-      }
-      else {
+      } else {
         return core.Asset.values
             .where((asset) => asset != _fromAsset && asset != core.Asset.btc)
             .toList();
@@ -806,22 +801,26 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   }
 
   Future<void> _handleBtcLbtcSwap() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    final text = _fromAmountController.text.trim();
+    final amount = BigInt.tryParse(text);
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Swap BTC ↔ LBTC MOCK!'),
-        ),
-      );
+    if (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Quantidade mínima é ${_minBtcLbtcSwapSats} sats'),
+          ),
+        );
+      }
+      return;
     }
+
+    final helper = BtcLbtcSwapHelper(context, ref);
+    await helper.executeSwap(
+      amount: amount,
+      fromAsset: _fromAsset,
+      toAsset: _toAsset,
+    );
   }
 
   bool _isNoLiquidityError(String error) {
