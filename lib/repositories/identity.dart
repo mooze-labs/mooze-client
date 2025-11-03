@@ -1,6 +1,6 @@
 import 'package:dart_nostr/dart_nostr.dart';
+import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class NostrKeyStore {
   static const String _privKeyStorageKey = "nostr_priv_key";
@@ -20,7 +20,7 @@ class NostrKeyStore {
 
   static Future<void> saveKeyPair(String privKey) async {
     final nostr = Nostr.instance;
-    final storage = FlutterSecureStorage();
+    final storage = SecureStorageProvider.instance;
     final prefs = await SharedPreferences.getInstance();
 
     final pubKey = nostr.keysService.derivePublicKey(privateKey: privKey);

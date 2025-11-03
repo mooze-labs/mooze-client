@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_service.dart';
+import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 const String mnemonicKey = 'mnemonic';
@@ -46,7 +46,9 @@ class LiquidDataSource implements SyncableDataSource {
   }
 
   Future<String> signPset(String pset) async {
-    final mnemonic = await FlutterSecureStorage().read(key: mnemonicKey);
+    final mnemonic = await SecureStorageProvider.instance.read(
+      key: mnemonicKey,
+    );
 
     if (mnemonic == null) {
       throw Exception('Mnemonic not found');

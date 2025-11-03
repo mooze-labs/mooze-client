@@ -1,18 +1,15 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 
 import '../models.dart';
 import '../services.dart';
 
 class SessionManagerServiceImpl implements SessionManagerService {
-  SessionManagerServiceImpl({
-    required FlutterSecureStorage secureStorage,
-    RemoteAuthenticationService? remoteAuthService,
-  }) : _secureStorage = secureStorage,
-       _remoteAuthService = remoteAuthService;
+  SessionManagerServiceImpl({RemoteAuthenticationService? remoteAuthService})
+    : _remoteAuthService = remoteAuthService;
 
-  final FlutterSecureStorage _secureStorage;
+  final _secureStorage = SecureStorageProvider.instance;
   final RemoteAuthenticationService? _remoteAuthService;
   final Dio _dio = Dio(
     BaseOptions(

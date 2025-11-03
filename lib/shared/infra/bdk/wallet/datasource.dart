@@ -1,7 +1,6 @@
 import 'package:bdk_flutter/bdk_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_service.dart';
 
 const String mnemonicKey = 'mnemonic';

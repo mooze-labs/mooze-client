@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthenticationService {
   static const int maxPinAttemps = 5;
   static const int sessionTimeoutMinutes = 1;
 
-  final secureStorage = FlutterSecureStorage();
+  final secureStorage = SecureStorageProvider.instance;
 
   Future<bool> isPinSetup() async {
     var hashedPin = await secureStorage.read(key: "hashedPin");
