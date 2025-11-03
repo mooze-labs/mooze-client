@@ -21,8 +21,7 @@ class SwapState {
   final String? lastReceiveAssetId;
   final BigInt? lastAmount;
   final bool? isInverseMarket;
-  final String?
-  feeAssetId;
+  final String? feeAssetId;
 
   const SwapState({
     required this.loading,
@@ -99,6 +98,7 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlDeadline = null;
     final repository = await _repositoryFuture;
     repository.stopQuote();
+    if (!mounted) return;
     state = state.copyWith(
       currentQuote: null,
       activeQuoteId: null,
@@ -117,6 +117,9 @@ class SwapController extends StateNotifier<SwapState> {
   StreamSubscription<QuoteResponse>? _quoteSub;
   Timer? _ttlTimer;
   DateTime? _ttlDeadline;
+  bool _mounted = true;
+
+  bool get mounted => _mounted;
 
   SwapController({required Future<SwapRepository> repositoryFuture})
     : _repositoryFuture = repositoryFuture,
@@ -124,9 +127,11 @@ class SwapController extends StateNotifier<SwapState> {
 
   Future<void> loadMetadata() async {
     final repository = await _repositoryFuture;
+    if (!mounted) return;
     state = state.copyWith(loading: true, error: null);
     final assetsRes = await repository.getAssets().run();
     final marketsRes = await repository.getMarkets().run();
+    if (!mounted) return;
     state = state.copyWith(
       loading: false,
       assets: assetsRes.getOrElse((_) => []),
@@ -147,6 +152,7 @@ class SwapController extends StateNotifier<SwapState> {
     String? explicitChangeAddress,
   }) async {
     final repository = await _repositoryFuture;
+    if (!mounted) return;
     _quoteSub?.cancel();
     state = state.copyWith(
       loading: true,
@@ -167,6 +173,7 @@ class SwapController extends StateNotifier<SwapState> {
     if (normalizedParams == null) {
       final errMsg =
           'Par de ativos não suportado para swap. Selecione um par válido.';
+      if (!mounted) return;
       state = state.copyWith(loading: false, error: errMsg);
       return;
     }
@@ -185,6 +192,7 @@ class SwapController extends StateNotifier<SwapState> {
     if (utxoAsset != sendAsset) {
       final errMsg =
           'Erro interno: normalização incorreta (utxo=$utxoAsset, send=$sendAsset)';
+      if (!mounted) return;
       state = state.copyWith(loading: false, error: errMsg);
       return;
     }
@@ -192,11 +200,13 @@ class SwapController extends StateNotifier<SwapState> {
     final addrRes = await repository.getNewAddress().run();
     final utxosRes =
         await repository.selectUtxos(assetId: utxoAsset, amount: amount).run();
+    if (!mounted) return;
     if (addrRes.isLeft() || utxosRes.isLeft()) {
       final err = addrRes.match(
         (l) => l,
         (_) => utxosRes.match((l2) => l2, (_) => 'Erro inesperado'),
       );
+      if (!mounted) return;
       state = state.copyWith(loading: false, error: err);
       return;
     }
@@ -214,60 +224,71 @@ class SwapController extends StateNotifier<SwapState> {
       receiveAddress: receiveAddress,
       changeAddress: changeAddress,
     );
-    result.match((err) => state = state.copyWith(loading: false, error: err), (
-      stream,
-    ) {
-      _quoteSub = stream.listen((quote) {
-        String? msg = quote.error?.errorMessage;
-        if (msg == null && quote.lowBalance != null) {
-          final lb = quote.lowBalance!;
-          final totalFees = lb.fixedFee + lb.serverFee;
-          msg =
-              'Saldo insuficiente para este swap. Disponível: ${lb.available} sats. Necessário (enviado + taxas): ${lb.baseAmount + totalFees} sats.';
-        }
+    result.match(
+      (err) {
+        if (!mounted) return;
+        state = state.copyWith(loading: false, error: err);
+      },
+      (stream) {
+        _quoteSub = stream.listen((quote) {
+          if (!mounted) return;
+          String? msg = quote.error?.errorMessage;
+          if (msg == null && quote.lowBalance != null) {
+            final lb = quote.lowBalance!;
+            final totalFees = lb.fixedFee + lb.serverFee;
+            msg =
+                'Saldo insuficiente para este swap. Disponível: ${lb.available} sats. Necessário (enviado + taxas): ${lb.baseAmount + totalFees} sats.';
+          }
 
-        final ttlMs = quote.quote?.ttl;
-        final initializeDeadline = _ttlDeadline == null && ttlMs != null;
-        if (initializeDeadline) {
-          _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
-        }
+          final ttlMs = quote.quote?.ttl;
+          final initializeDeadline = _ttlDeadline == null && ttlMs != null;
+          if (initializeDeadline) {
+            _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
+          }
 
-        state = state.copyWith(
-          loading: false,
-          currentQuote: quote,
-          error: msg,
-          activeQuoteId: quote.quote?.quoteId,
-          ttlMilliseconds: initializeDeadline ? ttlMs : state.ttlMilliseconds,
-          millisecondsRemaining:
-              initializeDeadline ? ttlMs : state.millisecondsRemaining,
-          lastSendAssetId: sendAsset,
-          lastReceiveAssetId: receiveAsset,
-          lastAmount: amount,
-          isInverseMarket: isInverse,
-          feeAssetId: feeAsset,
-        );
-        if (initializeDeadline) {
-          _startTtlCountdown();
-        }
-      });
-    });
+          if (!mounted) return;
+          state = state.copyWith(
+            loading: false,
+            currentQuote: quote,
+            error: msg,
+            activeQuoteId: quote.quote?.quoteId,
+            ttlMilliseconds: initializeDeadline ? ttlMs : state.ttlMilliseconds,
+            millisecondsRemaining:
+                initializeDeadline ? ttlMs : state.millisecondsRemaining,
+            lastSendAssetId: sendAsset,
+            lastReceiveAssetId: receiveAsset,
+            lastAmount: amount,
+            isInverseMarket: isInverse,
+            feeAssetId: feeAsset,
+          );
+          if (initializeDeadline) {
+            _startTtlCountdown();
+          }
+        });
+      },
+    );
   }
 
   void _startTtlCountdown() {
     _ttlTimer?.cancel();
     if (_ttlDeadline == null) return;
     _ttlTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       final remainingMs =
           _ttlDeadline!.difference(DateTime.now()).inMilliseconds;
       if (remainingMs <= 0) {
         t.cancel();
         _ttlDeadline = null;
+        if (!mounted) return;
         state = state.copyWith(millisecondsRemaining: 0);
         final paramsOk =
             state.lastSendAssetId != null &&
             state.lastReceiveAssetId != null &&
             state.lastAmount != null;
-        if (paramsOk) {
+        if (paramsOk && mounted) {
           startQuote(
             sendAsset: state.lastSendAssetId!,
             receiveAsset: state.lastReceiveAssetId!,
@@ -275,6 +296,7 @@ class SwapController extends StateNotifier<SwapState> {
           );
         }
       } else {
+        if (!mounted) return;
         state = state.copyWith(millisecondsRemaining: remainingMs);
       }
     });
@@ -285,6 +307,7 @@ class SwapController extends StateNotifier<SwapState> {
     _repositoryFuture.then((r) => r.stopQuote());
     _quoteSub?.cancel();
     _ttlDeadline = null;
+    if (!mounted) return;
     state = state.copyWith(
       currentQuote: null,
       activeQuoteId: null,
@@ -295,14 +318,17 @@ class SwapController extends StateNotifier<SwapState> {
 
   Future<Either<String, String>> confirmSwap() async {
     final repository = await _repositoryFuture;
+    if (!mounted) return Either.left('Controller disposed');
     final quote = state.currentQuote?.quote;
     if (quote == null) {
       return Either.left('Nenhum quote ativo');
     }
     state = state.copyWith(loading: true, error: null);
     final psetRes = await repository.getQuotePset(quote.quoteId).run();
+    if (!mounted) return Either.left('Controller disposed');
     return await psetRes.match(
       (err) async {
+        if (!mounted) return Either.left(err);
         state = state.copyWith(loading: false, error: err);
         return Either.left(err);
       },
@@ -311,12 +337,15 @@ class SwapController extends StateNotifier<SwapState> {
             await repository
                 .signAndBroadcast(quoteId: quote.quoteId, pset: pset)
                 .run();
+        if (!mounted) return txidRes;
         return txidRes.match(
           (err) {
+            if (!mounted) return Either.left(err);
             state = state.copyWith(loading: false, error: err);
             return Either.left(err);
           },
           (txid) {
+            if (!mounted) return Either.right(txid);
             state = state.copyWith(loading: false);
             return Either.right(txid);
           },
@@ -327,6 +356,7 @@ class SwapController extends StateNotifier<SwapState> {
 
   @override
   void dispose() {
+    _mounted = false;
     _quoteSub?.cancel();
     _ttlTimer?.cancel();
     _repositoryFuture.then((r) => r.stopQuote());
@@ -335,11 +365,9 @@ class SwapController extends StateNotifier<SwapState> {
   }
 }
 
-final swapControllerProvider = StateNotifierProvider.autoDispose<
-  SwapController,
-  SwapState
->((ref) {
-  final repoFuture = ref.watch(swapRepositoryProvider.future);
-  final controller = SwapController(repositoryFuture: repoFuture);
-  return controller;
-});
+final swapControllerProvider =
+    StateNotifierProvider.autoDispose<SwapController, SwapState>((ref) {
+      final repoFuture = ref.watch(swapRepositoryProvider.future);
+      final controller = SwapController(repositoryFuture: repoFuture);
+      return controller;
+    });

@@ -123,7 +123,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     _fromAsset = _toAsset;
                     _toAsset = tmp;
                   });
+                  if (!mounted) return;
                   await ref.read(swapControllerProvider.notifier).resetQuote();
+                  if (!mounted) return;
                   _requestQuoteDebounced();
                 },
                 child: const Padding(
@@ -396,6 +398,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     text: 'MAX',
                     onPressed: () async {
                       final balance = await _getBalanceRaw(_fromAsset);
+                      if (!mounted) return;
                       _fromAmountController.text = balance.toString();
                       setState(() {});
                       _requestQuoteDebounced();
@@ -439,9 +442,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                               }
                             }
                           });
+                          if (!mounted) return;
                           await ref
                               .read(swapControllerProvider.notifier)
                               .resetQuote();
+                          if (!mounted) return;
                           _requestQuoteDebounced();
                         }
                       },
@@ -673,9 +678,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   _fromAsset = core.Asset.lbtc;
                                 }
                               });
+                              if (!mounted) return;
                               await ref
                                   .read(swapControllerProvider.notifier)
                                   .resetQuote();
+                              if (!mounted) return;
                               _requestQuoteDebounced();
                             }
                           },
@@ -931,6 +938,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
 
     _debounce = Timer(const Duration(milliseconds: 350), () async {
+      if (!mounted) return;
       final controller = ref.read(swapControllerProvider.notifier);
       final text = _fromAmountController.text.trim();
       final amount = BigInt.tryParse(text);
