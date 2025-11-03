@@ -7,10 +7,11 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
-import 'package:shimmer/shimmer.dart';
 
 class HoldingsAsseetScreen extends ConsumerStatefulWidget {
   const HoldingsAsseetScreen({super.key});
@@ -89,6 +90,12 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   Future<void> _refreshData() async {
     try {
+      final allAssets = ref.read(allAssetsProvider);
+
+      for (final asset in allAssets) {
+        ref.invalidate(balanceProvider(asset));
+      }
+
       ref.invalidate(walletHoldingsProvider);
 
       await ref.read(transactionHistoryCacheProvider.notifier).refresh();
@@ -215,30 +222,6 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
               ),
             );
           },
-        );
-      },
-    );
-  }
-
-  Widget _buildLoadingWidget() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: 3,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0, left: 16.0, right: 16.0),
-          child: Shimmer.fromColors(
-            baseColor: Colors.grey[800]!,
-            highlightColor: Colors.grey[600]!,
-            child: Container(
-              height: 72,
-              decoration: BoxDecoration(
-                color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
         );
       },
     );

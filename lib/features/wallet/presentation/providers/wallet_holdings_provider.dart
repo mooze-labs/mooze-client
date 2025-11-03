@@ -98,7 +98,14 @@ final walletHoldingsProvider =
         final currency = ref.read(currencyControllerProvider.notifier);
 
         for (final asset in allAssets) {
-          final balanceResult = await ref.read(balanceProvider(asset).future);
+          final balanceAsync = ref.watch(balanceProvider(asset));
+
+          final balanceResult = await balanceAsync.when(
+            data: (data) => data,
+            loading: () => throw Exception('Loading'),
+            error: (error, stack) => throw error,
+          );
+
           final priceResult = await ref.read(fiatPriceProvider(asset).future);
 
           final holding = balanceResult.fold(

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
@@ -100,12 +102,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final transactionCacheNotifier = ref.read(
       transactionHistoryCacheProvider.notifier,
     );
-    final balanceCacheNotifier = ref.read(balanceCacheProvider.notifier);
     final updateNotifier = ref.read(updateNotifierProvider.notifier);
 
     for (final asset in favoriteAssets) {
       assetCacheNotifier.fetchAssetPriceHistoryInitial(asset);
-      balanceCacheNotifier.fetchBalanceInitial(asset);
+      ref.read(balanceProvider(asset));
     }
 
     transactionCacheNotifier.fetchTransactionsInitial();
@@ -116,13 +117,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _refreshData() async {
     try {
       final favoriteAssets = ref.read(favoriteAssetsProvider);
+      final allAssets = ref.read(allAssetsProvider);
+
+      for (final asset in allAssets) {
+        ref.invalidate(balanceProvider(asset));
+      }
+
+      ref.invalidate(transactionHistoryProvider);
 
       await Future.wait([
         ref
             .read(assetPriceHistoryCacheProvider.notifier)
             .refresh(favoriteAssets),
         ref.read(transactionHistoryCacheProvider.notifier).refresh(),
-        ref.read(balanceCacheProvider.notifier).refresh(favoriteAssets),
       ]);
 
       if (_scrollController.hasClients) {

@@ -186,6 +186,10 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
   Either<String, List<double>>? getAssetData(Asset asset) {
     return state.priceHistory[asset];
   }
+
+  void reset() {
+    state = const AssetPriceHistoryState();
+  }
 }
 
 class TransactionHistoryNotifier
@@ -251,6 +255,10 @@ class TransactionHistoryNotifier
     state = state.copyWith(transactions: null, lastUpdated: null);
 
     await fetchTransactions();
+  }
+
+  void reset() {
+    state = const TransactionHistoryState();
   }
 }
 
@@ -356,6 +364,10 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
 
   Either<WalletError, BigInt>? getAssetBalance(Asset asset) {
     return state.balances[asset];
+  }
+
+  void reset() {
+    state = const BalanceState();
   }
 }
 

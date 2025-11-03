@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 
 final initialDataLoaderProvider = FutureProvider<Either<String, bool>>((
   ref,
@@ -16,7 +17,6 @@ final initialDataLoaderProvider = FutureProvider<Either<String, bool>>((
     final transactionCacheNotifier = ref.read(
       transactionHistoryCacheProvider.notifier,
     );
-    final balanceCacheNotifier = ref.read(balanceCacheProvider.notifier);
 
     final futures = <Future<void>>[];
 
@@ -25,7 +25,7 @@ final initialDataLoaderProvider = FutureProvider<Either<String, bool>>((
     }
 
     for (final asset in allAssets) {
-      futures.add(balanceCacheNotifier.fetchBalanceInitial(asset));
+      futures.add(ref.read(balanceProvider(asset).future).then((_) {}));
     }
 
     futures.add(transactionCacheNotifier.fetchTransactionsInitial());

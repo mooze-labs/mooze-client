@@ -7,6 +7,16 @@ import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/w
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/word_grid_selector.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
+import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/shared/infra/breez/providers.dart';
+import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
   const ConfirmMnemonicScreen({super.key});
@@ -183,6 +193,49 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   void _confirm() async {
     if (_checkInputs()) {
       await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
+
+      final allAssets = ref.read(allAssetsProvider);
+
+      // Invalidate all providers that depend on the seed/mnemonic
+      ref.invalidate(mnemonicProvider);
+      ref.invalidate(bdkDatasourceProvider);
+      ref.invalidate(liquidDataSourceProvider);
+      ref.invalidate(breezClientProvider);
+      ref.invalidate(walletRepositoryProvider);
+      ref.invalidate(transactionControllerProvider);
+      ref.invalidate(transactionHistoryProvider);
+
+      // Invalidate balance and wallet providers
+      ref.invalidate(balanceControllerProvider);
+
+      for (final asset in allAssets) {
+        ref.invalidate(balanceProvider(asset));
+      }
+
+      ref.invalidate(walletHoldingsProvider);
+      ref.invalidate(walletHoldingsWithBalanceProvider);
+      ref.invalidate(totalWalletValueProvider);
+      ref.invalidate(totalWalletBitcoinProvider);
+      ref.invalidate(totalWalletSatoshisProvider);
+      ref.invalidate(totalWalletVariationProvider);
+
+      for (final asset in allAssets) {
+        ref
+            .read(balanceProvider(asset).future)
+            .then((balance) {
+              balance.fold(
+                (error) => debugPrint(
+                  '[ConfirmSeeds] Error pre-loading $asset: $error',
+                ),
+                (value) =>
+                    debugPrint('[ConfirmSeeds] Pre-loaded $asset: $value'),
+              );
+            })
+            .catchError((error) {
+              debugPrint('[ConfirmSeeds] Exception pre-loading asset: $error');
+            });
+      }
+
       if (mounted) {
         selectedWords.clear();
         context.push("/setup/pin/new");

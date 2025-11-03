@@ -13,11 +13,16 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
   ref.watch(currencyControllerProvider);
 
   double totalValue = 0.0;
-  int assetCount = 0;
 
   try {
     for (final asset in allAssets) {
-      final balanceResult = await ref.read(balanceProvider(asset).future);
+      final balanceAsync = ref.watch(balanceProvider(asset));
+
+      final balanceResult = await balanceAsync.when(
+        data: (data) => data,
+        loading: () => throw Exception('Loading'),
+        error: (error, stack) => throw error,
+      );
 
       final hasBalance = balanceResult.fold(
         (error) => false,
@@ -58,9 +63,6 @@ final totalWalletValueProvider = FutureProvider<Either<String, double>>((
       );
 
       totalValue += assetValue;
-      if (assetValue > 0) {
-        assetCount++;
-      }
     }
 
     return Either.right(totalValue);
@@ -74,6 +76,7 @@ final totalWalletBitcoinProvider = FutureProvider<Either<String, double>>((
 ) async {
   final allAssets = ref.watch(allAssetsProvider);
   ref.watch(currencyControllerProvider);
+
   double totalBitcoin = 0.0;
 
   try {
@@ -85,7 +88,14 @@ final totalWalletBitcoinProvider = FutureProvider<Either<String, double>>((
     }
 
     for (final asset in allAssets) {
-      final balanceResult = await ref.read(balanceProvider(asset).future);
+      final balanceAsync = ref.watch(balanceProvider(asset));
+
+      final balanceResult = await balanceAsync.when(
+        data: (data) => data,
+        loading: () => throw Exception('Loading'),
+        error: (error, stack) => throw error,
+      );
+
       final priceResult = await ref.read(fiatPriceProvider(asset).future);
 
       final hasBalance = balanceResult.fold(

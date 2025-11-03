@@ -1,19 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
+import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/shared/infra/breez/providers.dart';
+import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 
-class DeleteWalletScreen extends StatefulWidget {
+class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
 
   @override
-  State<DeleteWalletScreen> createState() => _DeleteWalletScreenState();
+  ConsumerState<DeleteWalletScreen> createState() => _DeleteWalletScreenState();
 }
 
-class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
+class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   bool _trustAware = false;
   bool _recoveryAware = false;
 
@@ -92,6 +103,32 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
       onPinConfirmed: () async {
         final mnemonicHandler = MnemonicHandler();
         await mnemonicHandler.deleteMnemonic("mainWallet");
+
+        // Invalidate seed/mnemonic providers
+        ref.invalidate(mnemonicProvider);
+        ref.invalidate(bdkDatasourceProvider);
+        ref.invalidate(liquidDataSourceProvider);
+        ref.invalidate(breezClientProvider);
+        ref.invalidate(walletRepositoryProvider);
+        ref.invalidate(transactionControllerProvider);
+        ref.invalidate(transactionHistoryProvider);
+
+        // Invalidate balance and wallet providers
+        ref.invalidate(balanceControllerProvider);
+        ref.invalidate(balanceProvider);
+        ref.invalidate(walletHoldingsProvider);
+        ref.invalidate(walletHoldingsWithBalanceProvider);
+        ref.invalidate(totalWalletValueProvider);
+        ref.invalidate(totalWalletBitcoinProvider);
+        ref.invalidate(totalWalletSatoshisProvider);
+        ref.invalidate(totalWalletVariationProvider);
+
+        // Clear caches of transactions and price history
+        ref.read(assetPriceHistoryCacheProvider.notifier).reset();
+        ref.read(transactionHistoryCacheProvider.notifier).reset();
+
+        await Future.delayed(const Duration(milliseconds: 100));
+
         if (context.mounted) {
           context.go('/setup/first-access');
         }
