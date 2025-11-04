@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
-import '../providers/pix_copypaste_provider.dart';
-
 class CopyableAddress extends ConsumerStatefulWidget {
-  const CopyableAddress({super.key});
+  final String pixKey;
+
+  const CopyableAddress({super.key, required this.pixKey});
 
   @override
   ConsumerState<CopyableAddress> createState() => _CopyableAddressState();
@@ -30,10 +30,8 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
 
   @override
   Widget build(BuildContext context) {
-    final pixCopypaste = ref.read(pixCopypasteProvider);
-
     return GestureDetector(
-      onTap: () => _copyToClipboard(pixCopypaste),
+      onTap: () => _copyToClipboard(widget.pixKey),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(16),
@@ -76,7 +74,7 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    pixCopypaste,
+                    widget.pixKey,
                     style: TextStyle(
                       color: _isCopied ? AppColors.primaryColor : Colors.white,
                       fontSize: 14,

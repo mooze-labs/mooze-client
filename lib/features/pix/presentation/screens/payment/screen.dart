@@ -75,12 +75,8 @@ class ValidPixPaymentScreen extends StatelessWidget {
                                 actions: [
                                   TextButton(
                                     onPressed: () {
-                                      Navigator.of(
-                                        dialogContext,
-                                      ).pop();
-                                      context.go(
-                                        '/pix',
-                                      );
+                                      Navigator.of(dialogContext).pop();
+                                      context.go('/pix');
                                     },
                                     child: const Text('OK'),
                                   ),
@@ -103,7 +99,7 @@ class ValidPixPaymentScreen extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    CopyableAddress(),
+                    CopyableAddress(pixKey: deposit.pixKey),
                     SizedBox(height: 20),
                     PaymentDetailsDisplay(deposit: deposit),
                     const Spacer(),

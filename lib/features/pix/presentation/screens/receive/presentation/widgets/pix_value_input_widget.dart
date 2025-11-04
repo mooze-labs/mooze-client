@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
 import '../../providers.dart';
 
@@ -124,15 +125,20 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
   Widget build(BuildContext context) {
     final depositAmountInput = ref.read(depositAmountProvider.notifier);
     final validation = ref.watch(depositValidationProvider);
+    final levelsAsync = ref.watch(levelsProvider);
+    final isLoadingLimits = levelsAsync.isLoading;
 
     return Column(
       children: [
         TextField(
           controller: controller,
           focusNode: focusNode,
+          enabled: !isLoadingLimits,
           style: TextStyle(
             color:
-                validation.isValid
+                isLoadingLimits
+                    ? Colors.white38
+                    : validation.isValid
                     ? Theme.of(context).colorScheme.onPrimary
                     : Theme.of(context).colorScheme.error,
             fontSize: context.responsiveFont(36),
@@ -149,10 +155,10 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
             errorBorder: InputBorder.none,
             focusedErrorBorder: InputBorder.none,
             filled: false,
-            hintText: 'R\$ 00,00',
+            hintText: isLoadingLimits ? 'Carregando limites...' : 'R\$ 00,00',
             hintStyle: TextStyle(
               color: Colors.white38,
-              fontSize: 28,
+              fontSize: isLoadingLimits ? 20 : 28,
               fontWeight: FontWeight.bold,
             ),
             contentPadding: EdgeInsets.zero,

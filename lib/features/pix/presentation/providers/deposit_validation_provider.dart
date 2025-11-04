@@ -33,15 +33,18 @@ final depositValidationProvider = Provider<DepositValidation>((ref) {
   final depositAmount = ref.watch(depositAmountProvider);
   final levelsAsync = ref.watch(levelsProvider);
 
+  if (depositAmount <= 0) {
+    return DepositValidation.error(
+      DepositValidationError.invalidAmount,
+      'Digite um valor válido',
+    );
+  }
+
   if (levelsAsync.isLoading) {
     return const DepositValidation.valid();
   }
 
   if (levelsAsync.hasError) {
-    return const DepositValidation.valid();
-  }
-
-  if (depositAmount <= 0) {
     return const DepositValidation.valid();
   }
 

@@ -203,7 +203,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildHeader(context),
-            _buildAssetInfo(selectedAsset),
+            _buildAssetInfo(selectedAsset, ref),
             Divider(color: Colors.white24, thickness: 1),
             FeeDisplay(),
           ],
@@ -226,12 +226,27 @@ class TransactionDisplayWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildAssetInfo(Asset asset) {
+  Widget _buildAssetInfo(Asset asset, WidgetRef ref) {
+    final validation = ref.watch(depositValidationProvider);
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [_buildAssetLabel(asset), AssetAmountDisplay()],
+        children: [
+          _buildAssetLabel(asset),
+          validation.isValid
+              ? AssetAmountDisplay()
+              : Text(
+                "-",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+        ],
       ),
     );
   }
