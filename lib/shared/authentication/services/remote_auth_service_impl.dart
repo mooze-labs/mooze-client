@@ -14,7 +14,7 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
     BaseOptions(
       baseUrl: String.fromEnvironment(
         'BACKEND_API_URL',
-        defaultValue: "http://10.0.2.2:3000",
+        defaultValue: "https://api.mooze.app",
       ),
       connectTimeout: _timeout,
       receiveTimeout: _timeout,
@@ -29,7 +29,6 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
   RemoteAuthServiceImpl({required this.signatureClient});
 
-  /// Factory method to create an EcdsaSignatureClient using a mnemonic
   factory RemoteAuthServiceImpl.withEcdsaClient(String userMnemonic) {
     return RemoteAuthServiceImpl(
       signatureClient: EcdsaSignatureClient(userSeed: userMnemonic),
@@ -39,13 +38,18 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
   @override
   TaskEither<String, AuthChallenge> requestLoginChallenge() {
     return signatureClient.getPublicKey().flatMap(
-      (pubKey) => TaskEither.tryCatch(() async {
-        final response = await dio.post(
-          '/auth/challenge',
-          data: {'public_key': pubKey},
-        );
-        return AuthChallenge.fromJson(response.data);
-      }, (error, stackTrace) => error.toString()),
+      (pubKey) => TaskEither.tryCatch(
+        () async {
+          final response = await dio.post(
+            '/auth/challenge',
+            data: {'public_key': pubKey},
+          );
+          return AuthChallenge.fromJson(response.data);
+        },
+        (error, stackTrace) {
+          return error.toString();
+        },
+      ),
     );
   }
 
@@ -54,15 +58,20 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
     final signedChallenge = signatureClient.signMessage(challenge.message);
 
     return TaskEither.fromEither(signedChallenge).flatMap(
-      (signature) => TaskEither.tryCatch(() async {
-        final requestData = {
-          'challenge_id': challenge.challengeId,
-          'signature': signature,
-        };
+      (signature) => TaskEither.tryCatch(
+        () async {
+          final requestData = {
+            'challenge_id': challenge.challengeId,
+            'signature': signature,
+          };
 
-        final response = await dio.post('/auth/sign', data: requestData);
-        return Session.fromJson(response.data);
-      }, (error, stackTrace) => error.toString()),
+          final response = await dio.post('/auth/sign', data: requestData);
+          return Session.fromJson(response.data);
+        },
+        (error, stackTrace) {
+          return error.toString();
+        },
+      ),
     );
   }
 }
