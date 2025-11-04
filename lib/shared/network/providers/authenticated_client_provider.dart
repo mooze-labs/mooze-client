@@ -5,7 +5,7 @@ import 'auth_interceptor_provider.dart';
 
 const _apiBaseUrl = String.fromEnvironment(
   "BACKEND_API_URL",
-  defaultValue: "http://10.0.2.2:3000",
+  defaultValue: "https://api.mooze.app",
 );
 
 final authenticatedClientProvider = Provider<Dio>((ref) {
