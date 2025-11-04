@@ -33,7 +33,7 @@ class ReceiveConversionOptionsRow extends ConsumerWidget {
               ),
         ),
         const SizedBox(width: 8),
-        if (selectedAsset == Asset.btc) ...[
+        if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) ...[
           _ConversionOption(
             icon: Icons.bolt,
             label: 'sats',
@@ -167,7 +167,7 @@ class ReceiveConversionPreview extends ConsumerWidget {
         return snapshot.data!.fold((error) => const SizedBox.shrink(), (price) {
           final fiatValue = assetAmount * price;
           final satsValue =
-              selectedAsset == Asset.btc
+              (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
                   ? (assetAmount * 100000000).round()
                   : null;
 
@@ -205,13 +205,18 @@ class ReceiveConversionPreview extends ConsumerWidget {
                   icon: Icons.account_balance_wallet,
                   label: '${selectedAsset.ticker}:',
                   value: assetAmount
-                      .toStringAsFixed(selectedAsset == Asset.btc ? 8 : 6)
+                      .toStringAsFixed(
+                        selectedAsset == Asset.btc ||
+                                selectedAsset == Asset.lbtc
+                            ? 8
+                            : 6,
+                      )
                       .replaceAll(RegExp(r'0+$'), '')
                       .replaceAll(RegExp(r'\.$'), ''),
                   suffix: selectedAsset.ticker,
                 ),
 
-              if (selectedAsset == Asset.btc &&
+              if ((selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) &&
                   conversionType != ReceiveConversionType.sats &&
                   satsValue != null)
                 _ConversionRow(

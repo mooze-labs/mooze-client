@@ -175,7 +175,9 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
       case ReceiveConversionType.asset:
         return selectedAsset.ticker;
       case ReceiveConversionType.sats:
-        return selectedAsset == Asset.btc ? 'sats' : selectedAsset.ticker;
+        return (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
+            ? 'sats'
+            : selectedAsset.ticker;
       case ReceiveConversionType.fiat:
         final currencyNotifier = ref.read(currencyControllerProvider.notifier);
         return currencyNotifier.icon;
@@ -205,7 +207,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (selectedAsset == Asset.btc)
+          if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

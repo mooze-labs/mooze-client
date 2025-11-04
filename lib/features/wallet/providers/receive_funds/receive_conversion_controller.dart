@@ -65,7 +65,7 @@ class ReceiveConversionController extends StateNotifier<void> {
         break;
 
       case ReceiveConversionType.sats:
-        if (selectedAsset == Asset.btc) {
+        if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) {
           final btcValue = inputDouble / 100000000;
           finalValue = btcValue.toString();
         } else {
@@ -115,7 +115,7 @@ class ReceiveConversionController extends StateNotifier<void> {
           final assetValue = inputDouble / price;
           String finalValue;
 
-          if (selectedAsset == Asset.btc) {
+          if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) {
             finalValue = assetValue
                 .toStringAsFixed(8)
                 .replaceAll(RegExp(r'0+$'), '')
@@ -172,7 +172,7 @@ class ReceiveConversionController extends StateNotifier<void> {
         break;
 
       case ReceiveConversionType.sats:
-        if (selectedAsset == Asset.btc) {
+        if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) {
           final satsValue = (assetDouble * 100000000).round();
           ref.read(receiveSatsValueProvider.notifier).state =
               satsValue.toString();
@@ -226,7 +226,9 @@ class ReceiveConversionController extends StateNotifier<void> {
       case ReceiveConversionType.asset:
         return selectedAsset.ticker;
       case ReceiveConversionType.sats:
-        return selectedAsset == Asset.btc ? 'sats' : selectedAsset.ticker;
+        return (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
+            ? 'sats'
+            : selectedAsset.ticker;
       case ReceiveConversionType.fiat:
         // Returns empty here because it needs ref in context
         return '';
