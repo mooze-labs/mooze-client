@@ -15,7 +15,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
     BaseOptions(
       baseUrl: String.fromEnvironment(
         'BACKEND_API_URL',
-        defaultValue: "http://10.0.2.2:3000",
+        defaultValue: "https://api.mooze.app",
       ),
     ),
   );
