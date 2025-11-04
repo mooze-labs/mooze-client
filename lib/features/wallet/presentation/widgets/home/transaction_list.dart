@@ -8,10 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/utils/transaction_formatters.dart';
 
 class TransactionList extends ConsumerWidget {
@@ -59,25 +56,11 @@ class SuccessfulTransactionList extends ConsumerWidget {
       return EmptyTransactionList();
     }
 
-    final displayMode = ref.watch(walletDisplayModeProvider);
-    final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
-
-    final bitcoinPriceAsync = ref.watch(fiatPriceProvider(Asset.btc));
-
     return Column(
       children:
           transactions.map((transaction) {
-            final bitcoinPrice = bitcoinPriceAsync.when(
-              data: (either) => either.fold((error) => null, (price) => price),
-              loading: () => null,
-              error: (_, _) => null,
-            );
-
             final amountStr = TransactionValueFormatter.formatTransactionValue(
               transaction: transaction,
-              displayMode: displayMode,
-              bitcoinPrice: bitcoinPrice,
-              currencySymbol: currencyIcon,
             );
 
             return GestureDetector(
