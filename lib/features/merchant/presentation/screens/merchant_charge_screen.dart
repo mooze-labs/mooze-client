@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_validation_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
@@ -150,9 +151,24 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                               SizedBox(height: 20),
                               _buildTransactionData(),
                               SizedBox(height: 20),
-                              SlideToConfirmButton(
-                                onSlideComplete: _onSlideComplete,
-                                text: 'Gerar QR Code',
+                              Builder(
+                                builder: (context) {
+                                  final validation = ref.watch(
+                                    merchantValidationProvider(
+                                      widget.totalAmount,
+                                    ),
+                                  );
+                                  return Opacity(
+                                    opacity: validation.isValid ? 1.0 : 0.5,
+                                    child: IgnorePointer(
+                                      ignoring: !validation.isValid,
+                                      child: SlideToConfirmButton(
+                                        onSlideComplete: _onSlideComplete,
+                                        text: 'Gerar QR Code',
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                               SizedBox(height: 16),
                             ],
@@ -177,6 +193,10 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildHeader() {
+    final validation = ref.watch(
+      merchantValidationProvider(widget.totalAmount),
+    );
+
     return Padding(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -207,11 +227,24 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           Text(
             'R\$${widget.totalAmount.toStringAsFixed(2)}',
             style: TextStyle(
-              color: Colors.white,
+              color: validation.isValid ? Colors.white : Colors.amber,
               fontSize: 36,
               fontWeight: FontWeight.bold,
             ),
           ),
+          if (!validation.isValid && validation.message != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                validation.message!,
+                style: TextStyle(
+                  color: Colors.amber,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           // TODO: Put BTC value here
         ],
       ),

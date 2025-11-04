@@ -1,40 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 import '../providers/pix_copypaste_provider.dart';
 
-import '../consts.dart';
-
-class CopyableAddress extends ConsumerWidget {
+class CopyableAddress extends ConsumerStatefulWidget {
   const CopyableAddress({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CopyableAddress> createState() => _CopyableAddressState();
+}
+
+class _CopyableAddressState extends ConsumerState<CopyableAddress> {
+  bool _isCopied = false;
+
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    setState(() {
+      _isCopied = true;
+    });
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      setState(() {
+        _isCopied = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final pixCopypaste = ref.read(pixCopypasteProvider);
 
     return GestureDetector(
-      onTap: () => (),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: containerPadding,
-          vertical: containerVerticalPadding,
-        ),
+      onTap: () => _copyToClipboard(pixCopypaste),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: cardBackground,
-          borderRadius: BorderRadius.circular(borderRadius),
+          color:
+              _isCopied
+                  ? AppColors.primaryColor.withValues(alpha: 0.08)
+                  : AppColors.pinBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                _isCopied
+                    ? AppColors.primaryColor.withValues(alpha: 0.5)
+                    : AppColors.primaryColor.withValues(alpha: 0.2),
+            width: 1.2,
+          ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.link_rounded, color: primaryColor, size: iconSize),
-            const SizedBox(width: 8),
+            Icon(
+              Icons.qr_code_rounded,
+              color:
+                  _isCopied
+                      ? AppColors.primaryColor
+                      : AppColors.primaryColor.withValues(alpha: 0.7),
+              size: 24,
+            ),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                pixCopypaste,
-                // style: AppTextStyles.value,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Chave PIX',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    pixCopypaste,
+                    style: TextStyle(
+                      color: _isCopied ? AppColors.primaryColor : Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ],
               ),
             ),
-            const Icon(Icons.copy, color: primaryColor, size: copyIconSize),
+            const SizedBox(width: 12),
+            Icon(
+              _isCopied ? Icons.check_rounded : Icons.copy_rounded,
+              color:
+                  _isCopied
+                      ? AppColors.primaryColor
+                      : AppColors.primaryColor.withValues(alpha: 0.7),
+              size: 20,
+            ),
           ],
         ),
       ),

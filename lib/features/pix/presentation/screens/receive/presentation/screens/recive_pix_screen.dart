@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
-import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../providers.dart';
 import '../../widgets.dart';
@@ -72,13 +71,24 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           .newDeposit(amountInCents, selectedAsset)
           .run()
           .then(
-            (maybeDeposit) => maybeDeposit.fold((err) {
-              if (mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(err)));
-              }
-            }, (deposit) => context.go("/pix/payment/${deposit.depositId}")),
+            (maybeDeposit) => maybeDeposit.fold(
+              (err) {
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(err)));
+                }
+              },
+              (deposit) {
+                ref.read(depositAmountProvider.notifier).state = 0.0;
+                ref.invalidate(feeRateProvider);
+                ref.invalidate(feeAmountProvider);
+                ref.invalidate(discountedFeesDepositProvider);
+                ref.invalidate(assetQuoteProvider);
+
+                context.go("/pix/payment/${deposit.depositId}");
+              },
+            ),
           ),
     );
   }
@@ -137,20 +147,9 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
 
   Widget _buildBody(BuildContext context) {
     final depositAmount = ref.watch(depositAmountProvider);
-    final levelsData = ref.watch(levelsProvider);
+    final validation = ref.watch(depositValidationProvider);
 
-    final isButtonEnabled = levelsData.maybeWhen(
-      data: (data) {
-        if (depositAmount <= 0) return false;
-        if (depositAmount < data.absoluteMinLimit) return false;
-        if (depositAmount > data.allowedSpending)
-          return false; 
-        if (depositAmount > data.remainingLimit)
-          return false;
-        return true;
-      },
-      orElse: () => false,
-    );
+    final isButtonEnabled = depositAmount > 0 && validation.isValid;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(right: 8, left: 16),

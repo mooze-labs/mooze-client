@@ -123,47 +123,69 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
   @override
   Widget build(BuildContext context) {
     final depositAmountInput = ref.read(depositAmountProvider.notifier);
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      style: TextStyle(
-        color: Theme.of(context).colorScheme.onPrimary,
-        fontSize: context.responsiveFont(36),
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
-      ),
-      textAlign: TextAlign.center,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        disabledBorder: InputBorder.none,
-        errorBorder: InputBorder.none,
-        focusedErrorBorder: InputBorder.none,
-        filled: false,
-        hintText: 'R\$ 00,00',
-        hintStyle: TextStyle(
-          color: Colors.white38,
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
+    final validation = ref.watch(depositValidationProvider);
+
+    return Column(
+      children: [
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          style: TextStyle(
+            color:
+                validation.isValid
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).colorScheme.error,
+            fontSize: context.responsiveFont(36),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+          textAlign: TextAlign.center,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            filled: false,
+            hintText: 'R\$ 00,00',
+            hintStyle: TextStyle(
+              color: Colors.white38,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            CurrencyInputFormatter(),
+          ],
+          onChanged: (val) {
+            String cleanValue = val.replaceAll('R\$ ', '').replaceAll(',', '.');
+            depositAmountInput.state = double.tryParse(cleanValue) ?? 0.0;
+          },
+          onTapOutside: (event) {
+            // Does not automatically remove focus
+          },
+          onSubmitted: (val) {
+            focusNode.unfocus();
+          },
         ),
-        contentPadding: EdgeInsets.zero,
-      ),
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        CurrencyInputFormatter(),
+        if (!validation.isValid && validation.message != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              validation.message!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
       ],
-      onChanged: (val) {
-        String cleanValue = val.replaceAll('R\$ ', '').replaceAll(',', '.');
-        depositAmountInput.state = double.tryParse(cleanValue) ?? 0.0;
-      },
-      onTapOutside: (event) {
-        // Does not automatically remove focus
-      },
-      onSubmitted: (val) {
-        focusNode.unfocus();
-      },
     );
   }
 }
