@@ -55,14 +55,26 @@ PixDeposit _mapDepositToPixDeposit(Deposit deposit) {
     case 'pending':
       status = DepositStatus.pending;
       break;
+    case 'under_review':
+      status = DepositStatus.underReview;
+      break;
     case 'processing':
       status = DepositStatus.processing;
+      break;
+    case 'funds_prepared':
+      status = DepositStatus.fundsPrepared;
+      break;
+    case 'depix_sent':
+      status = DepositStatus.depixSent;
+      break;
+    case 'broadcasted':
+      status = DepositStatus.broadcasted;
       break;
     case 'finished':
       status = DepositStatus.finished;
       break;
-    case 'expired':
-      status = DepositStatus.expired;
+    case 'failed':
+      status = DepositStatus.failed;
       break;
     default:
       status = DepositStatus.unknown;

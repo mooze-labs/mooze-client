@@ -128,14 +128,22 @@ class PixDepositListItem extends StatelessWidget {
     switch (deposit.status) {
       case DepositStatus.pending:
         return "Pendente";
+      case DepositStatus.underReview:
+        return "Em Análise";
       case DepositStatus.processing:
         return "Processando";
+      case DepositStatus.fundsPrepared:
+        return "Fundos Preparados";
+      case DepositStatus.depixSent:
+        return "Enviado";
+      case DepositStatus.broadcasted:
+        return "Transmitido";
       case DepositStatus.finished:
         return "Finalizado";
-      case DepositStatus.expired:
-        return "Expirado";
+      case DepositStatus.failed:
+        return "Falhou";
       case DepositStatus.unknown:
-        return "N/A";
+        return "Desconhecido";
     }
   }
 
@@ -157,11 +165,19 @@ class PixDepositListItem extends StatelessWidget {
     switch (deposit.status) {
       case DepositStatus.pending:
         return Colors.orange;
+      case DepositStatus.underReview:
+        return Colors.yellow;
       case DepositStatus.processing:
         return Colors.blue;
+      case DepositStatus.fundsPrepared:
+        return Colors.lightBlue;
+      case DepositStatus.depixSent:
+        return Colors.cyan;
+      case DepositStatus.broadcasted:
+        return Colors.teal;
       case DepositStatus.finished:
         return Colors.green;
-      case DepositStatus.expired:
+      case DepositStatus.failed:
         return Colors.red;
       case DepositStatus.unknown:
         return Colors.grey;
@@ -304,22 +320,24 @@ class ErrorPixDepositList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.grey, size: 48),
-          const SizedBox(height: 12),
-          const Text(
-            "Erro ao carregar depósitos PIX",
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Tente novamente mais tarde",
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
-        ],
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.grey, size: 48),
+            const SizedBox(height: 12),
+            const Text(
+              "Erro ao carregar depósitos PIX",
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Tente novamente mais tarde",
+              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }

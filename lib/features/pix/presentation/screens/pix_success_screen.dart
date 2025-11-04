@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
@@ -258,7 +257,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                                               Icon(
                                                 Icons.pix,
                                                 color: AppColors.primaryColor,
-                                                size: 20,
+                                                size: 30,
                                               ),
                                               const SizedBox(width: 8),
                                               const Text(
@@ -266,12 +265,12 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                                                 style: TextStyle(
                                                   color:
                                                       AppColors.textSecondary,
-                                                  fontSize: 12,
+                                                  fontSize: 16,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(height: 4),
+                                          const SizedBox(height: 10),
                                           Text(
                                             _formatCurrency(
                                               widget.amountInCents,
@@ -279,56 +278,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                                             style: const TextStyle(
                                               color: AppColors.textPrimary,
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: Icon(
-                                        Icons.arrow_forward,
-                                        color: AppColors.primaryColor,
-                                        size: 20,
-                                      ),
-                                    ),
-
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              SvgPicture.asset(
-                                                widget.asset.iconPath,
-                                                width: 20,
-                                                height: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                widget.asset.name,
-                                                style: const TextStyle(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            widget.assetAmount.toStringAsFixed(
-                                              8,
-                                            ),
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
+                                              fontSize: 24,
                                             ),
                                           ),
                                         ],
@@ -338,10 +288,12 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                                 ),
 
                                 const SizedBox(height: 20),
-
                                 _buildCopyableField(
                                   label: 'ID do Depósito',
-                                  value: widget.depositId,
+                                  value: truncateHashId(
+                                    widget.depositId,
+                                    length: 10,
+                                  ),
                                   fullValue: widget.depositId,
                                 ),
 

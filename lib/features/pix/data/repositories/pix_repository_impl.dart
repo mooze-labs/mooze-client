@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:eventflux/eventflux.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/data/datasources/pix_deposit_api.dart';
-import 'package:mooze_mobile/shared/authentication/services/session_manager_service.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
@@ -19,20 +16,15 @@ class PixRepositoryImpl implements PixRepository {
   final Dio _dio;
   final PixDepositDatabase _database;
   final PixDepositApi _api;
-  final SessionManagerService _sessionManager;
 
   final _statusUpdatesController = StreamController<PixStatusEvent>.broadcast();
 
   Stream<PixStatusEvent> get statusUpdates => _statusUpdatesController.stream;
 
-  PixRepositoryImpl(
-    Dio dio,
-    PixDepositDatabase database,
-    SessionManagerService sessionManager,
-  ) : _dio = dio,
+  PixRepositoryImpl(Dio dio, PixDepositDatabase database)
+    : _dio = dio,
       _database = database,
-      _api = PixDepositApi(dio),
-      _sessionManager = sessionManager;
+      _api = PixDepositApi(dio);
 
   @override
   TaskEither<String, PixDeposit> newDeposit(
@@ -55,27 +47,31 @@ class PixRepositoryImpl implements PixRepository {
             amountInCents,
           )
           .map((_) {
-            _subscribeToStatusUpdates(response.depositId)
-                .timeout(Duration(minutes: 20))
-                .listen(
-                  (statusUpdate) => statusUpdate.fold(
-                    (error) => {},
-                    (update) {
-                      _statusUpdatesController.add(update);
-                      _updateTransactionStatus(update).run();
-                    },
-                  ),
-                  onError: (error) {
-                    if (error is TimeoutException) {
-                      final expiredEvent = PixStatusEvent(
-                        depositId: response.depositId,
-                        status: "expired",
-                      );
-                      _statusUpdatesController.add(expiredEvent);
-                      _updateTransactionStatus(expiredEvent).run();
-                    }
-                  },
-                );
+            // NOTE: Currently using polling due to issues with the API's SSE
+            // When SSE is working, replace it with:
+
+            // _subscribeToStatusUpdates(response.depositId)
+            //     .timeout(Duration(minutes: 20))
+            //     .listen(
+            //       (statusUpdate) => statusUpdate.fold((error) => {}, (update) {
+            //         _statusUpdatesController.add(update);
+            //         _updateTransactionStatus(update).run();
+            //       }),
+            //       onError: (error) {
+            //         if (error is TimeoutException) {
+            //           final expiredEvent = PixStatusEvent(
+            //             depositId: response.depositId,
+            //             status: "expired",
+            //           );
+            //           _statusUpdatesController.add(expiredEvent);
+            //           _updateTransactionStatus(expiredEvent).run();
+            //         }
+            //       },
+            //     );
+
+            // For now, uses polling as a fallback
+
+            _startPollingPixStatus(response.depositId);
 
             return PixDeposit(
               depositId: response.depositId,
@@ -88,6 +84,51 @@ class PixRepositoryImpl implements PixRepository {
             );
           }),
     );
+  }
+
+
+  void _startPollingPixStatus(String depositId) {
+    const pollingInterval = Duration(seconds: 30);
+    const maxDuration = Duration(minutes: 20);
+    final startTime = DateTime.now();
+
+    Timer.periodic(pollingInterval, (timer) {
+      if (DateTime.now().difference(startTime) > maxDuration) {
+        timer.cancel();
+
+        final expiredEvent = PixStatusEvent(
+          depositId: depositId,
+          status: "expired",
+        );
+        _statusUpdatesController.add(expiredEvent);
+        _updateTransactionStatus(expiredEvent).run();
+        return;
+      }
+
+      _api.getDeposits([depositId]).run().then((result) {
+        result.fold(
+          (error) {
+            // erro in polling
+          },
+          (deposits) {
+
+            final deposit = deposits.first;
+            if (deposit.status != "pending") {
+              final statusEvent = PixStatusEvent(
+                depositId: depositId,
+                status: deposit.status,
+                assetAmount: deposit.assetAmount,
+                blockchainTxid: deposit.blockchainTxid,
+              );
+
+              _statusUpdatesController.add(statusEvent);
+              _updateTransactionStatus(statusEvent).run();
+              timer.cancel();
+            }
+          },
+        );
+      });
+    });
   }
 
   @override
@@ -189,13 +230,16 @@ class PixRepositoryImpl implements PixRepository {
         );
   }
 
+// TODO: Reactivate when SSE is working in the API
+// Method kept commented for future use with Server-Sent Events
+  /*
   Stream<Either<String, PixStatusEvent>> _subscribeToStatusUpdates(
     String pixId,
   ) async* {
     final controller = StreamController<Either<String, PixStatusEvent>>();
     final baseUrl = String.fromEnvironment(
       'BACKEND_API_URL',
-      defaultValue: 'http://10.0.2.2:3000',
+      defaultValue: 'https://api.mooze.app',
     );
 
     final sseUrl = "$baseUrl/subscribe?event_type=transaction&event_id=$pixId";
@@ -250,6 +294,7 @@ class PixRepositoryImpl implements PixRepository {
       ),
     );
   }
+  */
 
   TaskEither<String, PixDepositResponse> _requestNewPixDeposit(
     int amountInCents,
@@ -257,24 +302,39 @@ class PixRepositoryImpl implements PixRepository {
     Asset asset,
     String network,
   ) {
-    return TaskEither.tryCatch(() async {
-      final response = await _dio.post(
-        '/transactions',
-        data: {
-          "address": address,
-          "amount_in_cents": amountInCents,
-          "asset": asset.id,
-          "network": network,
-        },
-      );
+    return TaskEither.tryCatch(
+      () async {
+        final response = await _dio.post(
+          '/transactions',
+          data: {
+            "address": address,
+            "amount_in_cents": amountInCents,
+            "asset": asset.id,
+            "network": network,
+          },
+        );
 
-      if (response.statusCode != 200) {
-        throw Exception("${response.statusCode} ${response.statusMessage}");
-      }
 
-      final jsonResponse = response.data;
-      return PixDepositResponse.fromJson(jsonResponse['data']);
-    }, (error, stackTrace) => "Falha ao conectar com o servidor $error");
+        if (response.statusCode != 200) {
+          throw Exception("${response.statusCode} ${response.statusMessage}");
+        }
+
+        final jsonResponse = response.data;
+        final pixResponse = PixDepositResponse.fromJson(jsonResponse['data']);
+        return pixResponse;
+      },
+      (error, stackTrace) {
+        if (error is DioException) {
+          if (error.response?.statusCode == 401) {
+            return "Erro de autenticação. Por favor, tente novamente.";
+          } else if (error.response?.statusCode != null) {
+            return "Erro ${error.response?.statusCode}: ${error.response?.statusMessage ?? 'Falha ao conectar com o servidor'}";
+          }
+        }
+
+        return "Falha ao conectar com o servidor: $error";
+      },
+    );
   }
 
   TaskEither<String, Unit> _updateTransactionStatus(PixStatusEvent pixStatus) {
@@ -294,13 +354,21 @@ Either<String, DepositStatus> parseDepositStatus(String status) {
   switch (status) {
     case "pending":
       return right(DepositStatus.pending);
+    case "under_review":
+      return right(DepositStatus.underReview);
     case "processing":
       return right(DepositStatus.processing);
-    case "expired":
-      return right(DepositStatus.expired);
+    case "funds_prepared":
+      return right(DepositStatus.fundsPrepared);
+    case "depix_sent":
+      return right(DepositStatus.depixSent);
+    case "broadcasted":
+      return right(DepositStatus.broadcasted);
     case "finished":
       return right(DepositStatus.finished);
+    case "failed":
+      return right(DepositStatus.failed);
     default:
-      return left("Invalid status");
+      return right(DepositStatus.unknown);
   }
 }

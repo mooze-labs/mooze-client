@@ -1,12 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:dio/dio.dart';
 import 'package:mooze_mobile/features/pix/data/models/pix_transaction_details.dart';
 
 const String backendApiUrl = String.fromEnvironment(
   'BACKEND_API_URL',
-  defaultValue: 'https://10.0.2.2:3000/v1/',
+  defaultValue: 'https://api.mooze.app',
 );
 
 class PixDepositApi {
@@ -17,24 +18,44 @@ class PixDepositApi {
   TaskEither<String, List<PixTransactionDetails>> getDeposits(
     List<String> ids,
   ) {
-    return TaskEither.tryCatch(() async {
-      final response = await _dio.get(
-        "$backendApiUrl/transactions/statuses",
-        queryParameters: {'ids': ids},
-      );
+    return TaskEither.tryCatch(
+      () async {
+        final url = '$backendApiUrl/transactions/status';
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = jsonDecode(response.data);
-        final List<Map<String, dynamic>> statusesArray = jsonResponse['data'];
+        final response = await _dio.get(
+          url,
+          queryParameters: {'ids': ids},
+          options: Options(validateStatus: (status) => true),
+        );
+
+        if (response.statusCode != 200) {
+          final errorMsg = 'Erro HTTP ${response.statusCode}: ${response.data}';
+          throw Exception(errorMsg);
+        }
+
+        final jsonResponse =
+            response.data is String
+                ? jsonDecode(response.data)
+                : response.data as Map<String, dynamic>;
+
+        final List list = jsonResponse['data'] ?? [];
+
         final pixDetails =
-            statusesArray
-                .map((json) => PixTransactionDetails.fromJson(json))
+            list
+                .map(
+                  (e) => PixTransactionDetails.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                )
                 .toList();
 
         return pixDetails;
-      }
+      },
+      (error, stackTrace) {
+        final errorMsg = 'Erro ao buscar depósitos: $error';
 
-      throw Error();
-    }, (error, stackTrace) => error.toString());
+        return errorMsg;
+      },
+    );
   }
 }

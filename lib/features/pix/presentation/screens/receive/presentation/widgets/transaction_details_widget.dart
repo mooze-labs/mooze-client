@@ -108,9 +108,28 @@ class FeeDisplay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final depositAmount = ref.read(depositAmountProvider);
-    final feeRate = ref.read(feeRateProvider(depositAmount));
-    final feeAmount = ref.read(feeAmountProvider(depositAmount));
-    final discountedDeposit = ref.read(
+    final validation = ref.watch(depositValidationProvider);
+
+    if (!validation.isValid) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          children: [
+            InfoRow(label: "Taxa Mooze", value: "-"),
+            SizedBox(height: 6),
+            InfoRow(label: "Percentual", value: "-"),
+            SizedBox(height: 6),
+            InfoRow(label: "Taxa da processadora", value: "-"),
+            SizedBox(height: 6),
+            InfoRow(label: "Valor final", value: "-"),
+          ],
+        ),
+      );
+    }
+
+    final feeRate = ref.watch(feeRateProvider(depositAmount));
+    final feeAmount = ref.watch(feeAmountProvider(depositAmount));
+    final discountedDeposit = ref.watch(
       discountedFeesDepositProvider(depositAmount),
     );
 
@@ -142,7 +161,7 @@ class FeeDisplay extends ConsumerWidget {
                   ? InfoRow(label: "Percentual", value: "R\$ 1,00 (FIXO)")
                   : InfoRow(
                     label: "Percentual",
-                    value: "R\$ ${data.toStringAsFixed(2)}",
+                    value: "${data.toStringAsFixed(2)}%",
                   );
             },
             error:

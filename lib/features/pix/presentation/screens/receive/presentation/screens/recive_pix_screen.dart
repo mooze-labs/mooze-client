@@ -38,7 +38,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
 
   void _initializeControllers() {
     _circleController = AnimationController(
-      duration: Duration(milliseconds: 800),
+      duration: Duration(milliseconds: 1200),
       vsync: this,
     );
     _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
@@ -59,67 +59,84 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
 
     final amountInCents = (depositAmount * 100).toInt();
 
+    final minAnimationTime = Future.delayed(Duration(milliseconds: 1500));
+
     controller.fold(
-      (err) {
+      (err) async {
+        await minAnimationTime;
         if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(err)));
+          setState(() {
+            _showOverlay = false;
+            _showLoadingText = false;
+          });
+          _circleController.reset();
         }
       },
-      (controller) async => await controller
-          .newDeposit(amountInCents, selectedAsset)
-          .run()
-          .then(
-            (maybeDeposit) => maybeDeposit.fold(
-              (err) {
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(err)));
-                }
-              },
-              (deposit) {
-                ref.read(depositAmountProvider.notifier).state = 0.0;
-                ref.invalidate(feeRateProvider);
-                ref.invalidate(feeAmountProvider);
-                ref.invalidate(discountedFeesDepositProvider);
-                ref.invalidate(assetQuoteProvider);
+      (controller) async {
+        final result =
+            await controller.newDeposit(amountInCents, selectedAsset).run();
 
-                context.go("/pix/payment/${deposit.depositId}");
-              },
-            ),
-          ),
+        await minAnimationTime;
+
+        result.fold(
+          (err) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(err)));
+              setState(() {
+                _showOverlay = false;
+                _showLoadingText = false;
+              });
+              _circleController.reset();
+            }
+          },
+          (deposit) {
+            ref.read(depositAmountProvider.notifier).state = 0.0;
+            ref.invalidate(feeRateProvider);
+            ref.invalidate(feeAmountProvider);
+            ref.invalidate(discountedFeesDepositProvider);
+            ref.invalidate(assetQuoteProvider);
+
+            context.go("/pix/payment/${deposit.depositId}");
+          },
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(
-            title: Text('Receber PIX'),
-            centerTitle: true,
-            actions: [
-              OfflineIndicator(
-                onTap: () => OfflinePriceInfoOverlay.show(context),
-              ),
-            ],
+    return Material(
+      child: Stack(
+        children: [
+          Scaffold(
+            appBar: AppBar(
+              title: Text('Receber PIX'),
+              centerTitle: true,
+              actions: [
+                OfflineIndicator(
+                  onTap: () => OfflinePriceInfoOverlay.show(context),
+                ),
+              ],
+            ),
+            resizeToAvoidBottomInset: false,
+            body: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: _buildBody(context),
+            ),
           ),
-          resizeToAvoidBottomInset: false,
-          body: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: _buildBody(context),
-          ),
-        ),
-        if (_showOverlay)
-          LoadingOverlayWidget(
-            circleController: _circleController,
-            circleAnimation: _circleAnimation,
-            showLoadingText: _showLoadingText,
-          ),
-      ],
+          if (_showOverlay)
+            LoadingOverlayWidget(
+              circleController: _circleController,
+              circleAnimation: _circleAnimation,
+              showLoadingText: _showLoadingText,
+            ),
+        ],
+      ),
     );
   }
 
