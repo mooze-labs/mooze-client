@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,7 +28,6 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScrollListener);
     _allAssets =
         Asset.values
             .where((asset) => asset != Asset.usdt)
@@ -39,29 +39,27 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
               ),
             )
             .toList();
+
+    // Busca dados ao entrar na tela
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  Future<void> _refreshData() async {
+    if (mounted) {
+      await ref.read(pixHistoryNotifierProvider.notifier).refresh();
+    }
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScrollListener);
     _scrollController.dispose();
     super.dispose();
   }
 
   List<PixDeposit> _applyFilters(List<PixDeposit> deposits) {
     return deposits.applyFilters(_filters);
-  }
-
-  /// Usado para detectar quando estiver próximo do fim da lista atual.
-  /// Consulta mais valores quando perto do fim da tela.
-  void _onScrollListener() {
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    const delta = 200.0;
-
-    if (maxScroll - currentScroll <= delta) {
-      ref.read(pixHistoryNotifierProvider.notifier).loadNextPage();
-    }
   }
 
   void _openFilterSheet() async {
@@ -115,117 +113,138 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Consumer(
-          builder: (context, ref, _) {
-            final pixHistoryState = ref.watch(pixHistoryNotifierProvider);
-            final isVisible = ref.watch(isVisibleProvider);
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        color: AppColors.primaryColor,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          controller: _scrollController,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  kToolbarHeight -
+                  32,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final pixHistoryState = ref.watch(pixHistoryNotifierProvider);
+                  final isVisible = ref.watch(isVisibleProvider);
 
-            return pixHistoryState.when(
-              data: (deposits) {
-                final filteredDeposits = _applyFilters(deposits.items);
+                  return pixHistoryState.when(
+                    data: (deposits) {
+                      final filteredDeposits = _applyFilters(deposits.items);
 
-                if (filteredDeposits.isEmpty) {
-                  return Column(
-                    children: [
-                      if (_hasActiveFilters) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryColor.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: AppColors.primaryColor.withValues(
-                                alpha: 0.3,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.filter_alt, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _getActiveFiltersDescription(),
-                                  style: const TextStyle(fontSize: 14),
+                      if (filteredDeposits.isEmpty) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_hasActiveFilters) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.primaryColor.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.filter_alt, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _getActiveFiltersDescription(),
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _clearFilters,
+                                      child: const Text('Limpar'),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              TextButton(
-                                onPressed: _clearFilters,
-                                child: const Text('Limpar'),
-                              ),
                             ],
-                          ),
-                        ),
-                      ],
-                      const Expanded(child: EmptyPixDepositList()),
-                    ],
-                  );
-                }
+                            Center(child: EmptyPixDepositList()),
+                            const SizedBox(height: 80),
+                          ],
+                        );
+                      }
 
-                return Column(
-                  children: [
-                    if (_hasActiveFilters) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primaryColor.withValues(
-                              alpha: 0.3,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.filter_alt, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _getActiveFiltersDescription(),
-                                style: const TextStyle(fontSize: 14),
+                      return Column(
+                        children: [
+                          if (_hasActiveFilters) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor.withValues(
+                                  alpha: 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.primaryColor.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
                               ),
-                            ),
-                            TextButton(
-                              onPressed: _clearFilters,
-                              child: const Text('Limpar'),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.filter_alt, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _getActiveFiltersDescription(),
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: _clearFilters,
+                                    child: const Text('Limpar'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                    Expanded(
-                      child: PixDepositList(
-                        filterClosure: _applyFilters,
-                        isVisible: isVisible,
-                        scrollController: _scrollController,
-                        onRefresh: () {
-                          ref
-                              .read(pixHistoryNotifierProvider.notifier)
-                              .refresh();
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-              error:
-                  (err, stackTrace) => ErrorPixDepositList(
-                    onRetry: () {
-                      ref.read(pixHistoryNotifierProvider.notifier).refresh();
+                          ...filteredDeposits.map((deposit) {
+                            return PixDepositListItem(
+                              deposit: deposit,
+                              isVisible: isVisible,
+                            );
+                          }),
+                          const SizedBox(height: 80),
+                        ],
+                      );
                     },
-                  ),
-              loading: () => const LoadingPixDepositList(),
-            );
-          },
+                    error: (err, stackTrace) {
+                      if (kDebugMode) {
+                        debugPrint("❌ Erro ao carregar histórico PIX: $err");
+                        debugPrint("📚 Stack trace: $stackTrace");
+                      }
+                      return ErrorPixDepositList(
+                        onRetry: () {
+                          _refreshData();
+                        },
+                      );
+                    },
+                    loading: () => const LoadingPixDepositList(),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -240,14 +259,26 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
         case 'pending':
           descriptions.add('Pendentes');
           break;
+        case 'under_review':
+          descriptions.add('Em Análise');
+          break;
         case 'processing':
           descriptions.add('Processando');
+          break;
+        case 'funds_prepared':
+          descriptions.add('Fundos Preparados');
+          break;
+        case 'depix_sent':
+          descriptions.add('Enviados');
+          break;
+        case 'broadcasted':
+          descriptions.add('Transmitidos');
           break;
         case 'finished':
           descriptions.add('Finalizados');
           break;
-        case 'expired':
-          descriptions.add('Expirados');
+        case 'failed':
+          descriptions.add('Falhados');
           break;
       }
     }

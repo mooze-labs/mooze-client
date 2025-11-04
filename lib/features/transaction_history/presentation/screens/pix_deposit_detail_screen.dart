@@ -253,14 +253,22 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     switch (widget.deposit.status) {
       case DepositStatus.pending:
         return 'Pendente';
+      case DepositStatus.underReview:
+        return 'Em Análise';
       case DepositStatus.processing:
         return 'Processando';
+      case DepositStatus.fundsPrepared:
+        return 'Fundos Preparados';
+      case DepositStatus.depixSent:
+        return 'Enviado';
+      case DepositStatus.broadcasted:
+        return 'Transmitido';
       case DepositStatus.finished:
         return 'Finalizado';
-      case DepositStatus.expired:
-        return 'Expirado';
+      case DepositStatus.failed:
+        return 'Falhou';
       case DepositStatus.unknown:
-        return 'N/A';
+        return 'Desconhecido';
     }
   }
 
@@ -268,11 +276,19 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     switch (widget.deposit.status) {
       case DepositStatus.pending:
         return Colors.orange;
+      case DepositStatus.underReview:
+        return Colors.yellow;
       case DepositStatus.processing:
         return Colors.blue;
+      case DepositStatus.fundsPrepared:
+        return Colors.lightBlue;
+      case DepositStatus.depixSent:
+        return Colors.cyan;
+      case DepositStatus.broadcasted:
+        return Colors.teal;
       case DepositStatus.finished:
         return Colors.green;
-      case DepositStatus.expired:
+      case DepositStatus.failed:
         return Colors.red;
       case DepositStatus.unknown:
         return Colors.grey;
