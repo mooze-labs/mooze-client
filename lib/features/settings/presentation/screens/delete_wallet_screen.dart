@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
@@ -113,9 +114,19 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         ref.invalidate(transactionControllerProvider);
         ref.invalidate(transactionHistoryProvider);
 
-        // Invalidate balance and wallet providers
+        // Invalidate ALL balance-related providers
         ref.invalidate(balanceControllerProvider);
-        ref.invalidate(balanceProvider);
+        ref.invalidate(
+          allBalancesProvider,
+        ); // Invalida o provider que busca os saldos
+
+        // Invalidate balance providers for each asset individually
+        final allAssets = ref.read(allAssetsProvider);
+        for (final asset in allAssets) {
+          ref.invalidate(balanceProvider(asset));
+        }
+
+        // Invalidate wallet providers
         ref.invalidate(walletHoldingsProvider);
         ref.invalidate(walletHoldingsWithBalanceProvider);
         ref.invalidate(totalWalletValueProvider);

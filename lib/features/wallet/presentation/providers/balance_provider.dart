@@ -11,7 +11,7 @@ final balanceControllerProvider =
       return wallet.flatMap((w) => Either.right(BalanceController(w)));
     });
 
-final _allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
+final allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
   final walletRepository = await ref.read(walletRepositoryProvider.future);
 
   return walletRepository.fold(
@@ -39,10 +39,6 @@ final _allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
         );
 
         final hasNonZeroBalance = balances.values.any((b) => b > BigInt.zero);
-        final totalBalance = balances.values.fold(
-          BigInt.zero,
-          (sum, b) => sum + b,
-        );
 
         if (hasNonZeroBalance) {
           break;
@@ -65,7 +61,7 @@ final balanceProvider =
       ref,
       Asset asset,
     ) async {
-      final allBalances = await ref.watch(_allBalancesProvider.future);
+      final allBalances = await ref.watch(allBalancesProvider.future);
 
       final balance = allBalances[asset] ?? BigInt.zero;
 

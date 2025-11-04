@@ -207,6 +207,9 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
 
       // Invalidate balance and wallet providers
       ref.invalidate(balanceControllerProvider);
+      ref.invalidate(
+        allBalancesProvider,
+      );
 
       for (final asset in allAssets) {
         ref.invalidate(balanceProvider(asset));

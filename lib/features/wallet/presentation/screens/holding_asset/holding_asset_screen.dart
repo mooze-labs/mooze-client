@@ -8,6 +8,7 @@ import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
@@ -92,11 +93,19 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
     try {
       final allAssets = ref.read(allAssetsProvider);
 
+      ref.invalidate(allBalancesProvider);
+
       for (final asset in allAssets) {
         ref.invalidate(balanceProvider(asset));
       }
 
+      ref.invalidate(totalWalletValueProvider);
+      ref.invalidate(totalWalletBitcoinProvider);
+      ref.invalidate(totalWalletSatoshisProvider);
+      ref.invalidate(totalWalletVariationProvider);
+
       ref.invalidate(walletHoldingsProvider);
+      ref.invalidate(walletHoldingsWithBalanceProvider);
 
       await ref.read(transactionHistoryCacheProvider.notifier).refresh();
 

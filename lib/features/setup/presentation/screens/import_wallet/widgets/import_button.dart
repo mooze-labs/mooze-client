@@ -44,6 +44,9 @@ class ImportButton extends ConsumerWidget {
             ref.invalidate(transactionHistoryProvider);
 
             ref.invalidate(balanceControllerProvider);
+            ref.invalidate(
+              allBalancesProvider,
+            );
 
             for (final asset in allAssets) {
               ref.invalidate(balanceProvider(asset));
