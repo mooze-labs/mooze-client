@@ -1,6 +1,6 @@
 const String defaultBitcoinNode = "blockstream.info:110";
 const String defaultLiquidNode = "blockstream.info:995";
-const String defaultBreezApiKey = "breez-api-key";
+const String defaultBreezApiKey = String.fromEnvironment("BREEZ_API_KEY");
 
 enum Network { mainnet, testnet, regtest }
 

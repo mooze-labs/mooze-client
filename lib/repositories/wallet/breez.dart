@@ -6,7 +6,7 @@ import 'package:mooze_mobile/repositories/wallet/node_config.dart'
     as node_config;
 import 'package:mooze_mobile/utils/mnemonic.dart';
 
-const String breezApiKey = "breez-api-key";
+const String breezApiKey = String.fromEnvironment("BREEZ_API_KEY");
 
 class BreezRepository {
   final node_config.NodeConfigRepository _nodeConfigRepository;
