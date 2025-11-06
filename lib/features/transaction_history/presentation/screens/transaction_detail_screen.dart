@@ -485,8 +485,28 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     }
 
     final Uri url = Uri.parse(explorerUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+
+    try {
+      final bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        await Clipboard.setData(ClipboardData(text: explorerUrl));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Não foi possível abrir o navegador. Link copiado para área de transferência.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 }

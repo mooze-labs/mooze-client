@@ -389,8 +389,25 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     }
 
     final Uri url = Uri.parse(explorerUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+
+    try {
+      final bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível abrir o navegador.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 }
