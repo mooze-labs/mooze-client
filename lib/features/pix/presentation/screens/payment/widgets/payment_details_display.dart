@@ -166,7 +166,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
 
   Widget _buildFeeRateDisplay(Future<double> rate, int amountInCents) {
     if (amountInCents < minimumAmountForVariableFee) {
-      return const InfoRow(label: "Taxa Mooze", value: "R\$ 2.00 + rede");
+      return const InfoRow(label: "Taxa Mooze", value: "R\$ 1.00 + rede");
     }
 
     return FutureBuilder(
