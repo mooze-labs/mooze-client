@@ -16,17 +16,28 @@ class ExternalNavigation extends SettingsActions {
   Future<void> _openLink() async {
     try {
       final uri = Uri.parse(rota);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Não foi possível abrir o link")),
+
+      final bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        final bool launchedAlternative = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
         );
+
+        if (!launchedAlternative) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Não foi possível abrir o link")),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erro ao tentar abrir o link")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erro ao tentar abrir o link")),
+      );
     }
   }
 }
