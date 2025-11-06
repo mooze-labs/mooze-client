@@ -17,26 +17,28 @@ class ImportWalletScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
       ),
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Digite suas palavras de recuperação separadas por espaço.",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onPrimary,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Digite suas palavras de recuperação separadas por espaço.",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 20),
-              MnemonicInputField(),
-              SizedBox(height: 20),
-              ImportButton(),
-            ],
+                SizedBox(height: 20),
+                MnemonicInputField(),
+                SizedBox(height: 20),
+                ImportButton(),
+              ],
+            ),
           ),
         ),
       ),
