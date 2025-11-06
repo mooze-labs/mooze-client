@@ -28,7 +28,9 @@ class SendValidationController extends StateNotifier<SendValidationState> {
 
     if (address.isNotEmpty && networkType != NetworkType.unknown) {
       if (asset != Asset.btc && networkType != NetworkType.liquid) {
-        errors.add('${asset.name} só pode ser enviado pela rede Liquid');
+        errors.add(
+          '${asset.name} só pode ser enviado pela rede Liquid ou Lightning',
+        );
       }
     }
 
