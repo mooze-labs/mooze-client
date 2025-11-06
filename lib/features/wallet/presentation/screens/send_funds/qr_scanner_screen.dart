@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
@@ -74,6 +75,9 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
     ref.read(addressStateProvider.notifier).state = address;
     ref.read(addressControllerProvider).text = address;
+
+    // Fechar a tela após processar o QR code
+    context.pop();
   }
 
   void _toggleFlash() {
@@ -91,6 +95,12 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
         title: const Text('Escanear QR Code'),
         centerTitle: true,
         backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () {
+            context.pop();
+          },
+        ),
       ),
       body: Stack(
         children: [
