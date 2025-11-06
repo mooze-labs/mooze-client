@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
-import '../../screens/send_funds/qr_scanner_screen.dart';
 
 class AddressField extends ConsumerWidget {
   const AddressField({super.key});
@@ -53,9 +53,7 @@ class AddressField extends ConsumerWidget {
   }
 
   void _openQRScanner(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const QRCodeScannerScreen()),
-    );
+    context.push('/send-funds/scanner');
   }
 
   void _openAddressInputModal(BuildContext context) {
