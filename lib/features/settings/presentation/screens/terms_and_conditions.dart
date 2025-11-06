@@ -72,10 +72,21 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
   Future<void> _launchUrl(String url) async {
     try {
       final Uri uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        _showSnackBar('Não foi possível abrir o link');
+
+      final bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        final bool launchedAlternative = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+
+        if (!launchedAlternative) {
+          _showSnackBar('Não foi possível abrir o link');
+        }
       }
     } catch (e) {
       _showSnackBar('Erro ao abrir o link');
