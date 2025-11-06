@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
+import '../../providers/send_funds/network_detection_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
 
 class AddressField extends ConsumerWidget {
   const AddressField({super.key});
@@ -82,6 +85,40 @@ class _AddressModalState extends ConsumerState<AddressModal> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  void _autoSwitchAssetBasedOnNetwork(String address) {
+    if (address.isEmpty) return;
+
+    final networkType = NetworkDetectionService.detectNetworkType(address);
+    final currentAsset = ref.read(selectedAssetProvider);
+
+    if (currentAsset != Asset.btc && currentAsset != Asset.lbtc) {
+      return;
+    }
+
+    Asset? newAsset;
+
+    switch (networkType) {
+      case NetworkType.bitcoin:
+        if (currentAsset != Asset.btc) {
+          newAsset = Asset.btc;
+        }
+        break;
+      case NetworkType.lightning:
+      case NetworkType.liquid:
+        if (currentAsset != Asset.lbtc) {
+          newAsset = Asset.lbtc;
+        }
+        break;
+
+      case NetworkType.unknown:
+        break;
+    }
+
+    if (newAsset != null) {
+      ref.read(selectedAssetProvider.notifier).state = newAsset;
+    }
   }
 
   @override
@@ -160,7 +197,10 @@ class _AddressModalState extends ConsumerState<AddressModal> {
                     onPressed: () {
                       final controller = ref.read(addressControllerProvider);
                       final address = controller.text.trim();
+
                       ref.read(addressStateProvider.notifier).state = address;
+
+                      _autoSwitchAssetBasedOnNetwork(address);
 
                       ref.invalidate(detectedAmountProvider);
 

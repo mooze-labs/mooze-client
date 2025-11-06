@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
+import '../../providers/send_funds/network_detection_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
 
 class QRCodeScannerScreen extends ConsumerStatefulWidget {
   const QRCodeScannerScreen({super.key});
@@ -76,8 +79,42 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
     ref.read(addressStateProvider.notifier).state = address;
     ref.read(addressControllerProvider).text = address;
 
-    // Fechar a tela após processar o QR code
+    _autoSwitchAssetBasedOnNetwork(address);
+
     context.pop();
+  }
+
+  void _autoSwitchAssetBasedOnNetwork(String address) {
+    if (address.isEmpty) return;
+
+    final networkType = NetworkDetectionService.detectNetworkType(address);
+    final currentAsset = ref.read(selectedAssetProvider);
+
+    if (currentAsset != Asset.btc && currentAsset != Asset.lbtc) {
+      return;
+    }
+
+    Asset? newAsset;
+
+    switch (networkType) {
+      case NetworkType.bitcoin:
+        if (currentAsset != Asset.btc) {
+          newAsset = Asset.btc;
+        }
+        break;
+      case NetworkType.lightning:
+      case NetworkType.liquid:
+        if (currentAsset != Asset.lbtc) {
+          newAsset = Asset.lbtc;
+        }
+        break;
+      case NetworkType.unknown:
+        break;
+    }
+
+    if (newAsset != null) {
+      ref.read(selectedAssetProvider.notifier).state = newAsset;
+    }
   }
 
   void _toggleFlash() {
