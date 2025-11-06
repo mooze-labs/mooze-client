@@ -80,9 +80,20 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             _showLoadingText = false;
           });
           _circleController.reset();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(err)));
+
+          // Mostra mensagem de erro amigável
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(err),
+              backgroundColor: Colors.red[700],
+              duration: Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {},
+              ),
+            ),
+          );
         }
       },
       (controller) async => await controller
@@ -96,9 +107,20 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                   _showLoadingText = false;
                 });
                 _circleController.reset();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(err)));
+
+                // Mostra mensagem de erro amigável
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(err),
+                    backgroundColor: Colors.red[700],
+                    duration: Duration(seconds: 5),
+                    action: SnackBarAction(
+                      label: 'OK',
+                      textColor: Colors.white,
+                      onPressed: () {},
+                    ),
+                  ),
+                );
               }
             }, (deposit) => context.go("/pix/payment/${deposit.depositId}")),
           ),

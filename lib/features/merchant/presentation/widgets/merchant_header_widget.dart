@@ -3,12 +3,12 @@ import 'package:go_router/go_router.dart';
 
 class MerchantHeaderWidget extends StatelessWidget {
   final double valorReais;
-  final double valorBitcoin;
+  final VoidCallback onLimparCarrinho;
 
   const MerchantHeaderWidget({
     super.key,
     required this.valorReais,
-    required this.valorBitcoin,
+    required this.onLimparCarrinho,
   });
 
   @override
@@ -36,10 +36,10 @@ class MerchantHeaderWidget extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            Icon(Icons.download, color: Colors.white, size: 24),
+            SizedBox(width: 48),
           ],
         ),
-        SizedBox(height: 20),
+        SizedBox(height: 10),
         Text(
           'R\$${valorReais.toStringAsFixed(2)}',
           style: TextStyle(
@@ -48,14 +48,35 @@ class MerchantHeaderWidget extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: 8),
-        Text(
-          '${valorBitcoin.toStringAsFixed(6)} BTC',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 16,
+        if (valorReais > 0) ...[
+          SizedBox(height: 4),
+          GestureDetector(
+            onTap: onLimparCarrinho,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade400, width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.delete_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    'Limpar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

@@ -5,8 +5,6 @@ class KeypadWidget extends StatelessWidget {
   final Function(String) onAdicionarNumero;
   final VoidCallback onApagarNumero;
   final VoidCallback onAdicionarAoTotal;
-  final VoidCallback? onFinalizarVenda;
-  final double? cartTotal;
 
   const KeypadWidget({
     super.key,
@@ -14,108 +12,107 @@ class KeypadWidget extends StatelessWidget {
     required this.onAdicionarNumero,
     required this.onApagarNumero,
     required this.onAdicionarAoTotal,
-    this.onFinalizarVenda,
-    this.cartTotal,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final isVerySmallScreen = screenHeight < 650;
+    final isSmallScreen = screenHeight < 700 && screenHeight >= 650;
+
+    final topPadding = isVerySmallScreen ? 8.0 : (isSmallScreen ? 12.0 : 30.0);
+    final titleFontSize =
+        isVerySmallScreen ? 28.0 : (isSmallScreen ? 32.0 : 40.0);
+    final verticalSpacing =
+        isVerySmallScreen ? 8.0 : (isSmallScreen ? 10.0 : 20.0);
+    final buttonFontSize =
+        isVerySmallScreen ? 18.0 : (isSmallScreen ? 20.0 : 24.0);
+    final buttonIconSize =
+        isVerySmallScreen ? 18.0 : (isSmallScreen ? 20.0 : 24.0);
+    final horizontalPadding =
+        isVerySmallScreen ? 20.0 : (isSmallScreen ? 30.0 : 40.0);
+    final buttonMargin = isVerySmallScreen ? 2.0 : 4.0;
+
     return Container(
       color: Colors.black,
-      padding: EdgeInsets.only(top: 30),
+      padding: EdgeInsets.only(top: topPadding),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Text(
-            'R\$$valorDigitado',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 40,
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-          SizedBox(height: 20),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              child: GridView.count(
-                crossAxisCount: 3,
-                childAspectRatio: 1.2,
-                children: [
-                  for (int i = 1; i <= 9; i++)
-                    _buildKeypadButton(
-                      text: i.toString(),
-                      onPressed: () => onAdicionarNumero(i.toString()),
-                    ),
-                  _buildKeypadButton(
-                    icon: Icons.backspace_outlined,
-                    onPressed: onApagarNumero,
-                    color: Colors.pink,
-                  ),
-                  _buildKeypadButton(
-                    text: '0',
-                    onPressed: () => onAdicionarNumero('0'),
-                  ),
-                  _buildKeypadButton(
-                    icon: Icons.add,
-                    onPressed: onAdicionarAoTotal,
-                    color: Colors.green,
-                  ),
-                ],
+          // Cabeçalho com valor
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Text(
+              'R\$$valorDigitado',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: titleFontSize,
+                fontWeight: FontWeight.w300,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
-          SizedBox(height: 20),
-          if (onFinalizarVenda != null)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              child: Container(
-                width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors:
-                        (cartTotal != null && cartTotal! < 20.0)
-                            ? [Colors.grey.shade600, Colors.grey.shade700]
-                            : [Color(0xFFE91E63), Color(0xFFAD1457)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: ElevatedButton(
-                  onPressed: onFinalizarVenda,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          SizedBox(height: verticalSpacing),
+
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final buttonSize =
+                    (constraints.maxWidth - (buttonMargin * 6)) / 3;
+                final aspectRatio =
+                    isVerySmallScreen ? 0.9 : (isSmallScreen ? 1.0 : 1.2);
+                final gridHeight =
+                    (buttonSize / aspectRatio) * 4 + (buttonMargin * 8);
+
+                return SizedBox(
+                  height: gridHeight,
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    mainAxisSpacing: buttonMargin,
+                    crossAxisSpacing: buttonMargin,
+                    childAspectRatio: aspectRatio,
                     children: [
-                      Text(
-                        'Finalizar Venda',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                      for (int i = 1; i <= 9; i++)
+                        _buildKeypadButton(
+                          text: i.toString(),
+                          onPressed: () => onAdicionarNumero(i.toString()),
+                          fontSize: buttonFontSize,
+                          iconSize: buttonIconSize,
+                          margin: buttonMargin,
                         ),
+                      _buildKeypadButton(
+                        icon: Icons.backspace_outlined,
+                        onPressed: onApagarNumero,
+                        color: Colors.pink,
+                        fontSize: buttonFontSize,
+                        iconSize: buttonIconSize,
+                        margin: buttonMargin,
                       ),
-                      if (cartTotal != null &&
-                          cartTotal! > 0 &&
-                          cartTotal! < 20.0)
-                        Text(
-                          'Mínimo R\$ 20,00',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
+                      _buildKeypadButton(
+                        text: '0',
+                        onPressed: () => onAdicionarNumero('0'),
+                        fontSize: buttonFontSize,
+                        iconSize: buttonIconSize,
+                        margin: buttonMargin,
+                      ),
+                      _buildKeypadButton(
+                        icon: Icons.add,
+                        onPressed: onAdicionarAoTotal,
+                        color: Colors.green,
+                        fontSize: buttonFontSize,
+                        iconSize: buttonIconSize,
+                        margin: buttonMargin,
+                      ),
                     ],
                   ),
-                ),
-              ),
+                );
+              },
             ),
-          SizedBox(height: 20),
+          ),
         ],
       ),
     );
@@ -126,9 +123,12 @@ class KeypadWidget extends StatelessWidget {
     IconData? icon,
     required VoidCallback onPressed,
     Color? color,
+    required double fontSize,
+    required double iconSize,
+    required double margin,
   }) {
     return Container(
-      margin: EdgeInsets.all(4),
+      margin: EdgeInsets.all(margin / 2),
       child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(
@@ -140,11 +140,11 @@ class KeypadWidget extends StatelessWidget {
                   text,
                   style: TextStyle(
                     color: color ?? Colors.white,
-                    fontSize: 24,
+                    fontSize: fontSize,
                     fontWeight: FontWeight.w300,
                   ),
                 )
-                : Icon(icon, color: color ?? Colors.white, size: 24),
+                : Icon(icon, color: color ?? Colors.white, size: iconSize),
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/add_edit_ite
 import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 class MerchantModeScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,6 @@ class MerchantModeScreen extends ConsumerStatefulWidget {
 class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  double valorBitcoin = 0;
   String valorDigitado = '0.00';
 
   @override
@@ -60,6 +60,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         valorDigitado = '0.00';
       }
     });
+  }
+
+  void _limparValor() {
+    // Limpa o carrinho completo
+    ref.read(cartControllerProvider.notifier).clearCart();
   }
 
   void _adicionarAoTotal() {
@@ -247,13 +252,13 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.symmetric(horizontal: 16).copyWith(top: 10),
                 child: Consumer(
                   builder: (context, ref, child) {
                     final valorReais = ref.watch(cartTotalProvider);
                     return MerchantHeaderWidget(
                       valorReais: valorReais,
-                      valorBitcoin: valorBitcoin,
+                      onLimparCarrinho: _limparValor,
                     );
                   },
                 ),
@@ -305,8 +310,6 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                               onAdicionarNumero: _adicionarNumero,
                               onApagarNumero: _apagarNumero,
                               onAdicionarAoTotal: _adicionarAoTotal,
-                              onFinalizarVenda: _finalizarVenda,
-                              cartTotal: ref.watch(cartTotalProvider),
                             ),
                             Consumer(
                               builder: (context, ref, child) {
@@ -318,18 +321,17 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                   data: (products) {
                                     return Consumer(
                                       builder: (context, ref, child) {
+                                        final cart = ref.watch(
+                                          cartControllerProvider,
+                                        );
+
                                         final items =
                                             products.map((product) {
                                               final quantidade =
                                                   product.id != null
-                                                      ? ref
-                                                          .read(
-                                                            cartControllerProvider
-                                                                .notifier,
-                                                          )
-                                                          .getQuantityForProduct(
-                                                            product.id!,
-                                                          )
+                                                      ? cart[product.id!]
+                                                              ?.quantidade ??
+                                                          0
                                                       : 0;
 
                                               return Item(
@@ -405,6 +407,15 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                     ],
                   ),
                 ),
+              ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final cartTotal = ref.watch(cartTotalProvider);
+                  return FinalizarVendaButton(
+                    onPressed: _finalizarVenda,
+                    cartTotal: cartTotal,
+                  );
+                },
               ),
             ],
           ),

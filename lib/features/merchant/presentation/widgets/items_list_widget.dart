@@ -24,7 +24,7 @@ class ItemsListWidget extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       body: produtos.isEmpty ? _buildEmptyState() : _buildProductsList(),
-      floatingActionButton: Container(
+      floatingActionButton: SizedBox(
         width: 56,
         height: 56,
         child: FloatingActionButton(
@@ -67,139 +67,137 @@ class ItemsListWidget extends StatelessWidget {
   }
 
   Widget _buildProductsList() {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: ListView.separated(
-        itemCount: produtos.length,
-        separatorBuilder: (context, index) => SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final produto = produtos[index];
-          return Slidable(
-            key: Key(produto.nome + index.toString()),
-            endActionPane: ActionPane(
-              motion: ScrollMotion(),
-              children: [
-                SlidableAction(
-                  onPressed: (context) => onEditarItem(index),
-                  backgroundColor: AppColors.editColor.withValues(alpha: 0.3),
-                  foregroundColor: AppColors.editColor,
-                  icon: Icons.edit,
-                ),
-                SlidableAction(
-                  onPressed: (context) async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            backgroundColor: Colors.grey[900],
-                            title: Text(
-                              'Deletar item',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            content: Text(
-                              'Deseja realmente deletar "${produto.nome}"?',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text('Cancelar'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: Text(
-                                  'Deletar',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
+    return ListView.separated(
+      padding: EdgeInsets.all(20).copyWith(bottom: 100),
+      itemCount: produtos.length,
+      separatorBuilder: (context, index) => SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final produto = produtos[index];
+        return Slidable(
+          key: Key(produto.nome + index.toString()),
+          endActionPane: ActionPane(
+            motion: ScrollMotion(),
+            children: [
+              SlidableAction(
+                onPressed: (context) => onEditarItem(index),
+                backgroundColor: AppColors.editColor.withValues(alpha: 0.3),
+                foregroundColor: AppColors.editColor,
+                icon: Icons.edit,
+              ),
+              SlidableAction(
+                onPressed: (context) async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          backgroundColor: Colors.grey[900],
+                          title: Text(
+                            'Deletar item',
+                            style: TextStyle(color: Colors.white),
                           ),
-                    );
+                          content: Text(
+                            'Deseja realmente deletar "${produto.nome}"?',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text('Cancelar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(
+                                'Deletar',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                  );
 
-                    if (confirm ?? false) {
-                      onRemoverItem(index);
-                    }
-                  },
-                  backgroundColor: AppColors.errorColor.withValues(alpha: 0.3),
-                  foregroundColor: AppColors.errorColor,
-                  icon: Icons.delete,
-                ),
-              ],
-            ),
-            child: Container(
-              padding: EdgeInsets.all(0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          produto.nome,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'R\$ ${produto.preco.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  if (confirm ?? false) {
+                    onRemoverItem(index);
+                  }
+                },
+                backgroundColor: AppColors.errorColor.withValues(alpha: 0.3),
+                foregroundColor: AppColors.errorColor,
+                icon: Icons.delete,
+              ),
+            ],
+          ),
+          child: Container(
+            padding: EdgeInsets.all(0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        onPressed: () {
-                          if (produto.quantidade > 0) {
-                            onAtualizarQuantidade(index, false);
-                          }
-                        },
-                        icon: Icon(
-                          Icons.remove,
-                          color:
-                              produto.quantidade < 1
-                                  ? AppColors.errorColor.withValues(alpha: 0.3)
-                                  : AppColors.errorColor,
-                          size: 20,
-                        ),
-                        padding: EdgeInsets.zero,
-                      ),
                       Text(
-                        produto.quantidade.toString(),
+                        produto.nome,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      IconButton(
-                        onPressed: () {
-                          onAtualizarQuantidade(index, true);
-                        },
-                        icon: Icon(
-                          Icons.add,
-                          color: AppColors.positiveColor,
-                          size: 20,
+                      SizedBox(height: 4),
+                      Text(
+                        'R\$ ${produto.preco.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
                         ),
-                        padding: EdgeInsets.zero,
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        if (produto.quantidade > 0) {
+                          onAtualizarQuantidade(index, false);
+                        }
+                      },
+                      icon: Icon(
+                        Icons.remove,
+                        color:
+                            produto.quantidade < 1
+                                ? AppColors.errorColor.withValues(alpha: 0.3)
+                                : AppColors.errorColor,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                    Text(
+                      produto.quantidade.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        onAtualizarQuantidade(index, true);
+                      },
+                      icon: Icon(
+                        Icons.add,
+                        color: AppColors.positiveColor,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
