@@ -86,7 +86,6 @@ class PixRepositoryImpl implements PixRepository {
     );
   }
 
-
   void _startPollingPixStatus(String depositId) {
     const pollingInterval = Duration(seconds: 30);
     const maxDuration = Duration(minutes: 20);
@@ -111,7 +110,6 @@ class PixRepositoryImpl implements PixRepository {
             // erro in polling
           },
           (deposits) {
-
             final deposit = deposits.first;
             if (deposit.status != "pending") {
               final statusEvent = PixStatusEvent(
@@ -230,8 +228,8 @@ class PixRepositoryImpl implements PixRepository {
         );
   }
 
-// TODO: Reactivate when SSE is working in the API
-// Method kept commented for future use with Server-Sent Events
+  // TODO: Reactivate when SSE is working in the API
+  // Method kept commented for future use with Server-Sent Events
   /*
   Stream<Either<String, PixStatusEvent>> _subscribeToStatusUpdates(
     String pixId,
@@ -314,7 +312,6 @@ class PixRepositoryImpl implements PixRepository {
           },
         );
 
-
         if (response.statusCode != 200) {
           throw Exception("${response.statusCode} ${response.statusMessage}");
         }
@@ -326,13 +323,39 @@ class PixRepositoryImpl implements PixRepository {
       (error, stackTrace) {
         if (error is DioException) {
           if (error.response?.statusCode == 401) {
-            return "Erro de autenticação. Por favor, tente novamente.";
-          } else if (error.response?.statusCode != null) {
-            return "Erro ${error.response?.statusCode}: ${error.response?.statusMessage ?? 'Falha ao conectar com o servidor'}";
+            return "Erro de autenticação. Por favor, faça login novamente.";
+          }
+
+          if (error.type == DioExceptionType.connectionError ||
+              error.type == DioExceptionType.connectionTimeout) {
+            return "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.";
+          }
+
+          if (error.type == DioExceptionType.receiveTimeout ||
+              error.type == DioExceptionType.sendTimeout) {
+            return "O servidor demorou muito para responder. Tente novamente.";
+          }
+
+          if (error.response?.statusCode != null) {
+            final statusCode = error.response!.statusCode!;
+            switch (statusCode) {
+              case 400:
+                return "Dados inválidos. Verifique o valor e tente novamente.";
+              case 403:
+                return "Você não tem permissão para realizar esta operação.";
+              case 404:
+                return "Serviço não encontrado. Entre em contato com o suporte.";
+              case 500:
+              case 502:
+              case 503:
+                return "O servidor está temporariamente indisponível. Tente novamente em alguns instantes.";
+              default:
+                return "Erro $statusCode: ${error.response?.statusMessage ?? 'Falha ao conectar com o servidor'}";
+            }
           }
         }
 
-        return "Falha ao conectar com o servidor: $error";
+        return "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.";
       },
     );
   }
