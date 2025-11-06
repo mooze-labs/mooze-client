@@ -123,10 +123,10 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
                 ),
               ],
             ),
-            resizeToAvoidBottomInset: false,
+            resizeToAvoidBottomInset: true,
             body: GestureDetector(
               onTap: () => FocusScope.of(context).unfocus(),
-              child: _buildBody(context),
+              child: SingleChildScrollView(child: _buildBody(context)),
             ),
           ),
           if (_showOverlay)
@@ -168,8 +168,8 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
 
     final isButtonEnabled = depositAmount > 0 && validation.isValid;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(right: 8, left: 16),
+    return Padding(
+      padding: EdgeInsets.only(right: 8, left: 16, bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -186,6 +186,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
             isEnabled: isButtonEnabled,
             text: 'Gerar QR Code',
           ),
+          SizedBox(height: 120),
         ],
       ),
     );
