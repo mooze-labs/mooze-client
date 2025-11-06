@@ -28,22 +28,24 @@ final transactionHistoryRoutes = [
   ShellRoute(
     builder: (context, state, child) {
       final currentLocation = state.uri.toString();
-      return Scaffold(
-        body: child,
-        extendBody: true,
-        resizeToAvoidBottomInset: false,
-        bottomNavigationBar: TransactionsBottomNavBar(
-          currentIndex: _getIndexFromLocation(currentLocation),
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                context.pushReplacement('/transactions-history');
-                break;
-              case 1:
-                context.pushReplacement('/swaps-history');
-                break;
-            }
-          },
+      return SafeArea(
+        child: Scaffold(
+          body: child,
+          extendBody: true,
+          resizeToAvoidBottomInset: false,
+          bottomNavigationBar: TransactionsBottomNavBar(
+            currentIndex: _getIndexFromLocation(currentLocation),
+            onTap: (index) {
+              switch (index) {
+                case 0:
+                  context.pushReplacement('/transactions-history');
+                  break;
+                case 1:
+                  context.pushReplacement('/swaps-history');
+                  break;
+              }
+            },
+          ),
         ),
       );
     },
