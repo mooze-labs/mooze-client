@@ -8,7 +8,7 @@ final receiveAmountProvider = StateProvider<String>((ref) => '');
 
 /// Provider for the current conversion type
 final receiveConversionTypeProvider = StateProvider<ReceiveConversionType>(
-  (ref) => ReceiveConversionType.asset,
+  (ref) => ReceiveConversionType.fiat,
 );
 
 /// Provider for the loading state of conversions
