@@ -30,6 +30,7 @@ class _MainNavigationScaffold extends StatefulWidget {
 
 class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   late final PageController _pageController;
+  bool _isPageChanging = false;
 
   @override
   void initState() {
@@ -48,19 +49,28 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   @override
   void didUpdateWidget(_MainNavigationScaffold oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentLocation != widget.currentLocation) {
-      _pageController.animateToPage(
-        _getIndexFromLocation(widget.currentLocation),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    if (oldWidget.currentLocation != widget.currentLocation &&
+        !_isPageChanging) {
+      final newIndex = _getIndexFromLocation(widget.currentLocation);
+      if (_pageController.hasClients &&
+          _pageController.page?.round() != newIndex) {
+        _pageController.jumpToPage(newIndex);
+      }
     }
   }
 
   void _onPageChanged(int index) {
+    if (_isPageChanging) return;
+
+    _isPageChanging = true;
     final routes = ['/home', '/asset', '/pix', '/swap', '/menu'];
     if (index >= 0 && index < routes.length) {
-      context.go(routes[index]);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.go(routes[index]);
+          _isPageChanging = false;
+        }
+      });
     }
   }
 
@@ -68,26 +78,29 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   Widget build(BuildContext context) {
     final currentIndex = _getIndexFromLocation(widget.currentLocation);
 
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: [
-          const HomeScreen(),
-          HoldingsAsseetScreen(),
-          ReceivePixScreen(),
-          const SwapScreen(),
-          const MainSettingsScreen(),
-        ],
-      ),
-      extendBody: true,
-      resizeToAvoidBottomInset: false,
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          _pageController.jumpToPage(index);
-          _onPageChanged(index);
-        },
+    return SafeArea(
+      child: Scaffold(
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          children: [
+            const HomeScreen(),
+            const HoldingsAsseetScreen(),
+            const ReceivePixScreen(),
+            const SwapScreen(),
+            const MainSettingsScreen(),
+          ],
+        ),
+        extendBody: true,
+        resizeToAvoidBottomInset: false,
+        bottomNavigationBar: CustomBottomNavBar(
+          currentIndex: currentIndex,
+          onTap: (index) {
+            if (_pageController.hasClients) {
+              _pageController.jumpToPage(index);
+            }
+          },
+        ),
       ),
     );
   }
