@@ -14,47 +14,51 @@ class ReceiveFundsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Receber Ativos"),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        actions: [
-          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-          IconButton(
-            onPressed: () => _showInfoOverlay(context),
-            icon: const Icon(Icons.info_outline_rounded),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Receber Ativos"),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AssetSelectorReceive(),
+          actions: [
+            OfflineIndicator(
+              onTap: () => OfflinePriceInfoOverlay.show(context),
+            ),
+            IconButton(
+              onPressed: () => _showInfoOverlay(context),
+              icon: const Icon(Icons.info_outline_rounded),
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const AssetSelectorReceive(),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              const NetworkSelector(),
+                const NetworkSelector(),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              const AmountFieldReceive(),
+                const AmountFieldReceive(),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              const DescriptionFieldReceive(),
+                const DescriptionFieldReceive(),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              const GenerateQRButton(),
+                const GenerateQRButton(),
 
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),

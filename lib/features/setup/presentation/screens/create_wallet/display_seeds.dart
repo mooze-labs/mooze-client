@@ -25,27 +25,28 @@ class DisplaySeedsScreen extends ConsumerWidget {
       onPopInvokedWithResult: (didPop, result) async {
         await noScreenshot.screenshotOn();
       },
-      child: Scaffold(
-        appBar: _buildAppBar(context),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              const TitleAndSubtitleCreateWallet(
-                title: 'Palavras de ',
-                highlighted: 'Recuperação',
-                subtitle:
-                    'Anote estas palavras em um local seguro. Elas são a única forma de recuperar sua carteira.',
-              ),
-              const SizedBox(height: 24),
-              Expanded(child: MnemonicGridDisplay(mnemonic: mnemonic)),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                text: "Confirmar frase",
-                onPressed: () => _goToConfirmSeeds(context),
-              ),
-              const SizedBox(height: 30),
-            ],
+      child: SafeArea(
+        child: Scaffold(
+          appBar: _buildAppBar(context),
+          body: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                const TitleAndSubtitleCreateWallet(
+                  title: 'Palavras de ',
+                  highlighted: 'Recuperação',
+                  subtitle:
+                      'Anote estas palavras em um local seguro. Elas são a única forma de recuperar sua carteira.',
+                ),
+                const SizedBox(height: 24),
+                Expanded(child: MnemonicGridDisplay(mnemonic: mnemonic)),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  text: "Confirmar frase",
+                  onPressed: () => _goToConfirmSeeds(context),
+                ),
+              ],
+            ),
           ),
         ),
       ),

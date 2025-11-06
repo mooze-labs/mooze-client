@@ -10,17 +10,19 @@ class FirstAccessScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: Column(
-        children: const [
-          SizedBox(height: 40),
-          Expanded(child: MockAppImage()),
-          TitleAndSubtitle(),
-          TermsDefinitionWidget(),
-          SizedBox(height: 20),
-          BeginWidget(),
-          ImportWalletWidget(),
-          SizedBox(height: 20),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: const [
+            SizedBox(height: 40),
+            Expanded(child: MockAppImage()),
+            TitleAndSubtitle(),
+            TermsDefinitionWidget(),
+            SizedBox(height: 20),
+            BeginWidget(),
+            ImportWalletWidget(),
+            SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }

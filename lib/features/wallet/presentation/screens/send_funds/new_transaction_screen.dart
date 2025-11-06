@@ -23,44 +23,46 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     return AutoValidationListener(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("Enviar ativos"),
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_new_rounded),
-          ),
-          actions: [
-            OfflineIndicator(
-              onTap: () => OfflinePriceInfoOverlay.show(context),
+      child: SafeArea(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text("Enviar ativos"),
+            leading: IconButton(
+              onPressed: () => context.pop(),
+              icon: Icon(Icons.arrow_back_ios_new_rounded),
             ),
-            const SizedBox(width: 16),
-          ],
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-          ).copyWith(top: 10, bottom: 24),
-          child: Column(
-            children: [
-              _buildInstructionText(context),
-              const SizedBox(height: 20),
-              AssetSelectorWidget(),
-              const SizedBox(height: 20),
-              BalanceCard(),
-              const SizedBox(height: 20),
-              AddressField(),
-              const SizedBox(height: 15),
-              NetworkIndicatorWidget(),
-              const SizedBox(height: 15),
-              ConditionalAmountField(),
-              const SizedBox(height: 15),
-              DrainInfoWidget(),
-              const SizedBox(height: 20),
-              ValidationErrorsWidget(),
-              const SizedBox(height: 20),
-              ReviewButton(),
+            actions: [
+              OfflineIndicator(
+                onTap: () => OfflinePriceInfoOverlay.show(context),
+              ),
+              const SizedBox(width: 16),
             ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+            ).copyWith(top: 10, bottom: 24),
+            child: Column(
+              children: [
+                _buildInstructionText(context),
+                const SizedBox(height: 20),
+                AssetSelectorWidget(),
+                const SizedBox(height: 20),
+                BalanceCard(),
+                const SizedBox(height: 20),
+                AddressField(),
+                const SizedBox(height: 15),
+                NetworkIndicatorWidget(),
+                const SizedBox(height: 15),
+                ConditionalAmountField(),
+                const SizedBox(height: 15),
+                DrainInfoWidget(),
+                const SizedBox(height: 20),
+                ValidationErrorsWidget(),
+                const SizedBox(height: 20),
+                ReviewButton(),
+              ],
+            ),
           ),
         ),
       ),

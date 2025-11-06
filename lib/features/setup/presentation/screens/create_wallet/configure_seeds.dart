@@ -9,37 +9,37 @@ class ConfigureSeedsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => context.pop(),
+          ),
+          title: Text('Criar carteira'),
         ),
-        title: Text('Criar carteira'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Título principal
-            TitleAndSubtitleCreateWallet(
-              title: 'Selecione o tamanho da ',
-              highlighted: 'frase-semente',
-              subtitle:
-                  'Você pode criar sua carteira com 12 ou 24 palavras. Ambas são seguras, mas cada opção tem seu nível de praticidade e proteção.',
-            ),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Título principal
+              TitleAndSubtitleCreateWallet(
+                title: 'Selecione o tamanho da ',
+                highlighted: 'frase-semente',
+                subtitle:
+                    'Você pode criar sua carteira com 12 ou 24 palavras. Ambas são seguras, mas cada opção tem seu nível de praticidade e proteção.',
+              ),
 
-            SizedBox(height: 32),
+              SizedBox(height: 32),
 
-            SeedPhraseSelector(),
+              SeedPhraseSelector(),
 
-            Spacer(),
+              Spacer(),
 
-            GenerateSeedsButton(),
-
-            SizedBox(height: 30),
-          ],
+              GenerateSeedsButton(),
+            ],
+          ),
         ),
       ),
     );
