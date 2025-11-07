@@ -96,11 +96,17 @@ class BreezPaymentRequestDto {
       PaymentMethod.liquidAddress => Blockchain.liquid,
     };
 
+    final defaultAsset = switch (blockchain) {
+      Blockchain.bitcoin => Asset.btc,
+      Blockchain.liquid => Asset.lbtc,
+      Blockchain.lightning => Asset.btc,
+    };
+
     return PaymentRequest(
       address: receiveAddress,
       blockchain: blockchain,
       fees: fees,
-      asset: assetId != null ? Asset.fromId(assetId!) : Asset.btc,
+      asset: assetId != null ? Asset.fromId(assetId!) : defaultAsset,
       amount: amount,
       description: description,
     );
