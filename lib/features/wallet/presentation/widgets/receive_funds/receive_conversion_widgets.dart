@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_con
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 
 class ReceiveConversionOptionsRow extends ConsumerWidget {
   final Asset? selectedAsset;
@@ -222,7 +223,7 @@ class ReceiveConversionPreview extends ConsumerWidget {
                 _ConversionRow(
                   icon: Icons.bolt,
                   label: 'Satoshis:',
-                  value: satsValue.toString(),
+                  value: SatsInputFormatter.formatValue(satsValue),
                   suffix: 'sats',
                 ),
 
