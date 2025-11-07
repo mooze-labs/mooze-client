@@ -79,6 +79,12 @@ class GenerateQRButton extends ConsumerWidget {
             context,
           ).showSnackBar(SnackBar(content: Text(qrState.error!)));
         } else if (qrState.displayAddress != null) {
+          ref.read(receiveAmountProvider.notifier).state = '';
+          ref.read(receiveAssetValueProvider.notifier).state = '';
+          ref.read(receiveSatsValueProvider.notifier).state = '';
+          ref.read(receiveFiatValueProvider.notifier).state = '';
+          ref.read(receiveDescriptionProvider.notifier).state = '';
+
           context.push(
             '/receive-qr',
             extra: {
