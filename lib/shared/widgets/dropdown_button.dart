@@ -72,65 +72,75 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     final spaceBelow = screenHeight - position.dy - size.height;
-    final maxHeight = spaceBelow > 150 ? 150.0 : spaceBelow - 20;
+    final maxHeight = spaceBelow > 180 ? 180.0 : spaceBelow - 20;
 
     return OverlayEntry(
       builder:
-          (context) => Positioned(
-            width: size.width,
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(0.0, size.height + 4.0),
-              child: Material(
-                elevation: 4.0,
-                borderRadius: BorderRadius.circular(8),
-                color: Color(0xFF2A2A2A),
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: maxHeight.clamp(50.0, 150.0),
-                  ),
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    children:
-                        widget.items.map((T item) {
-                          return InkWell(
-                            onTap: () {
-                              widget.onChanged(item);
-                              _closeDropdown();
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
+          (context) => GestureDetector(
+            onTap: _closeDropdown,
+            behavior: HitTestBehavior.translucent,
+            child: Stack(
+              children: [
+                Positioned(
+                  width: size.width,
+                  child: CompositedTransformFollower(
+                    link: _layerLink,
+                    showWhenUnlinked: false,
+                    offset: Offset(0.0, size.height + 4.0),
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: Material(
+                        elevation: 4.0,
+                        borderRadius: BorderRadius.circular(8),
+                        color: Color(0xFF2A2A2A),
+                        child: Container(
+                          constraints: BoxConstraints(maxHeight: 300),
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            children:
+                                widget.items.map((T item) {
+                                  return InkWell(
+                                    onTap: () {
+                                      widget.onChanged(item);
+                                      _closeDropdown();
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: widget.itemIconBuilder(item),
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            widget.itemLabelBuilder(item),
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    child: widget.itemIconBuilder(item),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    widget.itemLabelBuilder(item),
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
     );
