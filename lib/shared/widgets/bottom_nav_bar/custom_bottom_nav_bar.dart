@@ -79,6 +79,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     return GestureDetector(
       onTap: () => widget.onTap(index),
       child: Container(
+        color: Colors.transparent,
         padding: const EdgeInsets.all(10),
         width: 60,
         child: Column(
