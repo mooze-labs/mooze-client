@@ -11,6 +11,9 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
+import 'package:mooze_mobile/shared/formatters/btc_input_formatter.dart';
+import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
+import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 
 class AmountFieldReceive extends ConsumerStatefulWidget {
   const AmountFieldReceive({super.key});
@@ -35,6 +38,26 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     super.dispose();
   }
 
+  List<TextInputFormatter> _getInputFormatters(
+    Asset? selectedAsset,
+    ReceiveConversionType conversionType,
+  ) {
+    if (conversionType == ReceiveConversionType.asset &&
+        (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)) {
+      return [BtcInputFormatter()];
+    }
+
+    if (conversionType == ReceiveConversionType.sats) {
+      return [SatsInputFormatter()];
+    }
+
+    if (conversionType == ReceiveConversionType.fiat) {
+      return [FiatInputFormatter()];
+    }
+
+    return [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))];
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedNetwork = ref.watch(selectedReceiveNetworkProvider);
@@ -44,9 +67,35 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final isConversionLoading = ref.watch(receiveConversionLoadingProvider);
     final controller = ref.read(receiveConversionControllerProvider.notifier);
 
+
     final currentValue = controller.getCurrentValueForType(conversionType);
 
-    if (!_isUpdatingFromProvider && _textController.text != currentValue) {
+    if (!_isUpdatingFromProvider &&
+        conversionType == ReceiveConversionType.asset &&
+        (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) &&
+        _textController.text.isEmpty) {
+      _isUpdatingFromProvider = true;
+      _textController.text = '0.00000000';
+      _textController.selection = TextSelection.collapsed(offset: 10);
+      _isUpdatingFromProvider = false;
+    }
+    else if (!_isUpdatingFromProvider &&
+        conversionType == ReceiveConversionType.sats &&
+        _textController.text.isEmpty) {
+      _isUpdatingFromProvider = true;
+      _textController.text = '0';
+      _textController.selection = TextSelection.collapsed(offset: 1);
+      _isUpdatingFromProvider = false;
+    }
+    else if (!_isUpdatingFromProvider &&
+        conversionType == ReceiveConversionType.fiat &&
+        _textController.text.isEmpty) {
+      _isUpdatingFromProvider = true;
+      _textController.text = '0,00';
+      _textController.selection = TextSelection.collapsed(offset: 4);
+      _isUpdatingFromProvider = false;
+    } else if (!_isUpdatingFromProvider &&
+        _textController.text != currentValue) {
       _isUpdatingFromProvider = true;
       _textController.text = currentValue;
       _textController.selection = TextSelection.fromPosition(
@@ -88,9 +137,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
           controller: _textController,
           enabled: !isDisabled,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-          ],
+          inputFormatters: _getInputFormatters(selectedAsset, conversionType),
           decoration: InputDecoration(
             hintText:
                 isRequired
@@ -145,10 +192,20 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
 
             final conversionType = ref.read(receiveConversionTypeProvider);
 
+            String valueForController = value;
+            if (conversionType == ReceiveConversionType.sats) {
+              final intValue = SatsInputFormatter.parseValue(value);
+              valueForController = intValue.toString();
+            }
+            else if (conversionType == ReceiveConversionType.fiat) {
+              final doubleValue = FiatInputFormatter.parseValue(value);
+              valueForController = doubleValue.toString();
+            }
+
             controller.updateCurrentValueProvider(conversionType, value);
 
             controller.updateFinalAmountValue(
-              value,
+              valueForController,
               conversionType,
               selectedAsset,
             );
@@ -216,7 +273,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
-                  '${satsAmount.toString()} sats',
+                  '${SatsInputFormatter.formatValue(satsAmount)} sats',
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
@@ -262,14 +319,16 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 return _buildValidationRow(
                   context,
                   icon: Icons.warning_amber_outlined,
-                  text: 'Valor mínimo: ${limits.receive.minSat} sats',
+                  text:
+                      'Valor mínimo: ${SatsInputFormatter.formatValue(limits.receive.minSat.toInt())} sats',
                   color: Colors.orange,
                 );
               } else if (amountSats > limits.receive.maxSat) {
                 return _buildValidationRow(
                   context,
                   icon: Icons.error_outline,
-                  text: 'Valor máximo: ${limits.receive.maxSat} sats',
+                  text:
+                      'Valor máximo: ${SatsInputFormatter.formatValue(limits.receive.maxSat.toInt())} sats',
                   color: Colors.red,
                 );
               } else {
