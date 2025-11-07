@@ -46,7 +46,7 @@ class PreparedLayer2BitcoinTransaction implements PartiallySignedTransaction {
   @override
   final Blockchain blockchain;
   @override
-  Asset get asset => Asset.btc;
+  Asset get asset => Asset.lbtc;
   @override
   final bool drain;
 
