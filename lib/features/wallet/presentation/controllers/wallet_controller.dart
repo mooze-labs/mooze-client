@@ -18,7 +18,7 @@ class WalletController {
     Blockchain blockchain,
     BigInt amount,
   ) {
-    if (asset != Asset.btc) {
+    if (asset != Asset.btc && asset != Asset.lbtc) {
       final stablecoinAmount =
           (amount / BigInt.from(pow(10, 8))).roundToDouble();
       final psbt = _walletRepository.buildStablecoinPaymentTransaction(
@@ -50,7 +50,7 @@ class WalletController {
     Blockchain blockchain,
     BigInt amount,
   ) {
-    if (asset != Asset.btc) {
+    if (asset != Asset.btc && asset != Asset.lbtc) {
       return _walletRepository
           .buildDrainStablecoinTransaction(destination, asset)
           .mapLeft((err) => err.description);
