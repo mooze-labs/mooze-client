@@ -272,9 +272,10 @@ class _ReviewTransactionScreenState
                           Consumer(
                             builder: (context, ref, _) {
                               if (isDrainTransaction &&
-                                  psbt.asset == Asset.btc) {
+                                  (psbt.asset == Asset.btc ||
+                                      psbt.asset == Asset.lbtc)) {
                                 return ref
-                                    .watch(balanceProvider(Asset.btc))
+                                    .watch(balanceProvider(psbt.asset))
                                     .when(
                                       data:
                                           (balanceEither) => balanceEither.fold(
@@ -588,7 +589,7 @@ class _ReviewTransactionScreenState
     double? bitcoinPrice,
     String currencySymbol,
   ) {
-    if (asset != Asset.btc) {
+    if (asset != Asset.btc && asset != Asset.lbtc) {
       final value = amountInSats.toDouble() / 100000000;
       return "${value.toStringAsFixed(2)} ${asset.ticker}";
     }
@@ -608,7 +609,7 @@ class _ReviewTransactionScreenState
   }
 
   String _formatNetworkFee(BigInt networkFees, Asset asset) {
-    if (asset == Asset.btc) {
+    if (asset == Asset.btc || asset == Asset.lbtc) {
       if (networkFees == BigInt.zero) {
         return "Gratuito";
       }
