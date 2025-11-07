@@ -6,7 +6,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 import '../../../../providers.dart';
 
-const _possibleAssets = [Asset.btc, Asset.depix];
+const _possibleAssets = [Asset.lbtc, Asset.depix];
 
 class AssetSelectorWidget extends ConsumerWidget {
   const AssetSelectorWidget({super.key});
