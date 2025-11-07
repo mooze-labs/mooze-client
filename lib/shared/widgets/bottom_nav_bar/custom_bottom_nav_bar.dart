@@ -31,7 +31,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
           left: 0,
           right: 0,
           child: SizedBox(
-            height: 95,
+            height: 75,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
