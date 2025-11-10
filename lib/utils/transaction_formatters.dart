@@ -1,5 +1,6 @@
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 
 class TransactionValueFormatter {
   static String formatTransactionValue({required Transaction transaction}) {
@@ -9,7 +10,8 @@ class TransactionValueFormatter {
     if (transaction.asset == Asset.btc || transaction.asset == Asset.lbtc) {
       final satoshis = transaction.amount.toInt();
       final satText = satoshis == 1 ? 'sat' : 'sats';
-      return "$sign$satoshis $satText";
+      final formattedSats = SatsInputFormatter.formatValue(satoshis);
+      return "$sign$formattedSats $satText";
     }
 
     if (transaction.asset == Asset.usdt) {
