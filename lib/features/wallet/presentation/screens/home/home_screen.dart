@@ -121,10 +121,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final favoriteAssets = ref.read(favoriteAssetsProvider);
       final allAssets = ref.read(allAssetsProvider);
 
-      // Invalida o provider principal que busca os saldos
+      ref.invalidate(transactionHistoryCacheProvider);
+      ref.invalidate(transactionHistoryProvider);
+
       ref.invalidate(allBalancesProvider);
 
-      // Invalida cada balance provider individual
       for (final asset in allAssets) {
         ref.invalidate(balanceProvider(asset));
       }
@@ -136,8 +137,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       ref.invalidate(walletHoldingsProvider);
       ref.invalidate(walletHoldingsWithBalanceProvider);
-
-      ref.invalidate(transactionHistoryProvider);
 
       await Future.wait([
         ref
