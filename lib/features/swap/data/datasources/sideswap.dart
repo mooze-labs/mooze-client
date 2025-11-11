@@ -688,14 +688,6 @@ class SideswapService {
       return;
     }
 
-    if (_lastQuoteTime != null &&
-        now.difference(_lastQuoteTime!).inSeconds < 2) {
-      debugPrint(
-        '[DEBUG] SideswapService.startQuote: Quote too close to previous one, ignoring',
-      );
-      return;
-    }
-
     _isQuoteInProgress = true;
     _lastQuoteTime = now;
 
@@ -750,65 +742,99 @@ class SideswapService {
   /// Get quote details
   Future<String?> getQuoteDetails(int quoteId) async {
     final completer = Completer<String?>();
+    StreamSubscription? subscription;
 
-    final subscription = _api.marketStream
-        .where(
-          (data) =>
-              data.containsKey('result') &&
-              data['result'].containsKey('get_quote') &&
-              data['result']['get_quote'].containsKey('pset'),
-        )
-        .listen((data) {
-          if (!completer.isCompleted) {
-            completer.complete(data['result']['get_quote']['pset']);
-          }
-        });
+    try {
+      subscription = _api.marketStream
+          .where(
+            (data) =>
+                data.containsKey('result') &&
+                data['result'].containsKey('get_quote') &&
+                data['result']['get_quote'].containsKey('pset'),
+          )
+          .listen(
+            (data) {
+              if (!completer.isCompleted) {
+                completer.complete(data['result']['get_quote']['pset']);
+              }
+            },
+            onError: (error) {
+              if (!completer.isCompleted) {
+                completer.completeError('Erro ao obter quote: $error');
+              }
+            },
+            cancelOnError: true,
+          );
 
-    // Request quote
-    _api.receiveQuote(quoteId);
+      // Request quote
+      _api.receiveQuote(quoteId);
 
-    // Add timeout
-    Future.delayed(const Duration(seconds: 30), () {
-      if (!completer.isCompleted) {
-        completer.complete(null);
-      }
-    });
+      // Add timeout
+      Future.delayed(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            'Timeout ao obter detalhes do quote. Verifique sua conexão.',
+          );
+        }
+      });
 
-    final result = await completer.future;
-    subscription.cancel();
-    return result;
+      final result = await completer.future;
+      await subscription.cancel();
+      return result;
+    } catch (e) {
+      await subscription?.cancel();
+      debugPrint('[ERROR] getQuoteDetails exception: $e');
+      return null;
+    }
   }
 
   /// Sign and submit a quote
   Future<String?> signQuote(int quoteId, String pset) async {
     final completer = Completer<String?>();
+    StreamSubscription? subscription;
 
-    final subscription = _api.marketStream
-        .where(
-          (data) =>
-              data.containsKey('result') &&
-              data['result'].containsKey('taker_sign') &&
-              data['result']['taker_sign'].containsKey('txid'),
-        )
-        .listen((data) {
-          if (!completer.isCompleted) {
-            completer.complete(data['result']['taker_sign']['txid']);
-          }
-        });
+    try {
+      subscription = _api.marketStream
+          .where(
+            (data) =>
+                data.containsKey('result') &&
+                data['result'].containsKey('taker_sign') &&
+                data['result']['taker_sign'].containsKey('txid'),
+          )
+          .listen(
+            (data) {
+              if (!completer.isCompleted) {
+                completer.complete(data['result']['taker_sign']['txid']);
+              }
+            },
+            onError: (error) {
+              if (!completer.isCompleted) {
+                completer.completeError('Erro ao assinar quote: $error');
+              }
+            },
+            cancelOnError: true,
+          );
 
-    // Send signed quote
-    _api.signQuote(quoteId, pset);
+      // Send signed quote
+      _api.signQuote(quoteId, pset);
 
-    // Add timeout
-    Future.delayed(const Duration(seconds: 10), () {
-      if (!completer.isCompleted) {
-        completer.complete(null);
-      }
-    });
+      // Add timeout
+      Future.delayed(const Duration(seconds: 10), () {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            'Timeout ao assinar quote. Verifique sua conexão.',
+          );
+        }
+      });
 
-    final result = await completer.future;
-    subscription.cancel();
-    return result;
+      final result = await completer.future;
+      await subscription.cancel();
+      return result;
+    } catch (e) {
+      await subscription?.cancel();
+      debugPrint('[ERROR] signQuote exception: $e');
+      return null;
+    }
   }
 
   void stopQuotes() {
