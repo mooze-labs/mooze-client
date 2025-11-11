@@ -5,7 +5,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
-import '../../../shared/authentication/providers/session_manager_service_provider.dart';
+import '../../settings/presentation/actions/navigation_action.dart';
+import '../../../routes.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -122,37 +123,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         "[SplashScreen] Starting authentication with session manager...",
       );
 
-    try {
-      final sessionManager = ref.read(sessionWithAuthProvider(mnemonic));
-      final sessionResult = await sessionManager.getSession().run();
+    // Navigate to PIN verification screen
+    if (!mounted) return;
 
-      sessionResult.fold(
-        (error) {
-          if (kDebugMode)
-            debugPrint("[SplashScreen] Authentication error: $error");
-          if (mounted) {
-            context.go('/home');
-          }
-        },
-        (session) {
-          if (kDebugMode)
-            debugPrint(
-              "[SplashScreen] Authentication successful, redirecting to /home",
-            );
-          if (mounted) {
-            context.go('/home');
-          }
-        },
-      );
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        debugPrint("[SplashScreen] Exception during authentication: $e");
-        debugPrint("[SplashScreen] Stack trace: $stackTrace");
-      }
-      if (mounted) {
-        context.go('/home');
-      }
-    }
+    final verifyPinArgs = VerifyPinArgs(
+      onPinConfirmed: () {
+        if (kDebugMode)
+          debugPrint("[SplashScreen] PIN confirmed, redirecting to /home");
+        // Navigation will be handled by the router
+        rootNavigatorKey.currentContext?.go('/home');
+      },
+      forceAuth: true,
+    );
+
+    context.go('/setup/pin/verify', extra: verifyPinArgs);
   }
 
   @override
