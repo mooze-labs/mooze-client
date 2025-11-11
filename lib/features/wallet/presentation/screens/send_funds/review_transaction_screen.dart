@@ -171,33 +171,79 @@ class _ReviewTransactionScreenState
         break;
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isDrainTransaction ? "Revisar Envio Total" : "Revisar Transação",
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isDrainTransaction ? "Revisar Envio Total" : "Revisar Transação",
+          ),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          ),
         ),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Drain transaction info banner
-              if (isDrainTransaction) ...[
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drain transaction info banner
+                if (isDrainTransaction) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Enviando todos os fundos disponíveis. As taxas serão deduzidas automaticamente do valor total.",
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Theme.of(
                         context,
@@ -206,308 +252,279 @@ class _ReviewTransactionScreenState
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Enviando todos os fundos disponíveis. As taxas serão deduzidas automaticamente do valor total.",
-                          style: Theme.of(
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
                             context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          ).colorScheme.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: SvgPicture.asset(
+                          psbt.asset.iconPath,
+                          width: 32,
+                          height: 32,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.05),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: SvgPicture.asset(
-                        psbt.asset.iconPath,
-                        width: 32,
-                        height: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            psbt.asset.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              psbt.asset.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Consumer(
-                            builder: (context, ref, _) {
-                              if (isDrainTransaction &&
-                                  (psbt.asset == Asset.btc ||
-                                      psbt.asset == Asset.lbtc)) {
-                                return ref
-                                    .watch(balanceProvider(psbt.asset))
-                                    .when(
-                                      data:
-                                          (balanceEither) => balanceEither.fold(
-                                            (error) => Text(
+                            const SizedBox(height: 4),
+                            Consumer(
+                              builder: (context, ref, _) {
+                                if (isDrainTransaction &&
+                                    (psbt.asset == Asset.btc ||
+                                        psbt.asset == Asset.lbtc)) {
+                                  return ref
+                                      .watch(balanceProvider(psbt.asset))
+                                      .when(
+                                        data:
+                                            (
+                                              balanceEither,
+                                            ) => balanceEither.fold(
+                                              (error) => Text(
+                                                'Erro ao calcular valor',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.grey[400],
+                                                ),
+                                              ),
+                                              (balance) {
+                                                final actualDrainAmount =
+                                                    balance - psbt.networkFees;
+                                                return bitcoinPrice.when(
+                                                  data:
+                                                      (btcPrice) => Text(
+                                                        _formatAmount(
+                                                          actualDrainAmount,
+                                                          psbt.asset,
+                                                          btcPrice,
+                                                          currencySymbol,
+                                                        ),
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                  loading:
+                                                      () => Text(
+                                                        'Carregando preço...',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                  error:
+                                                      (error, _) => Text(
+                                                        _formatAmount(
+                                                          actualDrainAmount,
+                                                          psbt.asset,
+                                                          null,
+                                                          currencySymbol,
+                                                        ),
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                );
+                                              },
+                                            ),
+                                        loading:
+                                            () => Text(
+                                              'Calculando valor...',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey[400],
+                                              ),
+                                            ),
+                                        error:
+                                            (error, _) => Text(
                                               'Erro ao calcular valor',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 color: Colors.grey[400],
                                               ),
                                             ),
-                                            (balance) {
-                                              final actualDrainAmount =
-                                                  balance - psbt.networkFees;
-                                              return bitcoinPrice.when(
-                                                data:
-                                                    (btcPrice) => Text(
-                                                      _formatAmount(
-                                                        actualDrainAmount,
-                                                        psbt.asset,
-                                                        btcPrice,
-                                                        currencySymbol,
-                                                      ),
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        color: Colors.grey[400],
-                                                      ),
-                                                    ),
-                                                loading:
-                                                    () => Text(
-                                                      'Carregando preço...',
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        color: Colors.grey[400],
-                                                      ),
-                                                    ),
-                                                error:
-                                                    (error, _) => Text(
-                                                      _formatAmount(
-                                                        actualDrainAmount,
-                                                        psbt.asset,
-                                                        null,
-                                                        currencySymbol,
-                                                      ),
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        color: Colors.grey[400],
-                                                      ),
-                                                    ),
-                                              );
-                                            },
-                                          ),
-                                      loading:
-                                          () => Text(
-                                            'Calculando valor...',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.grey[400],
-                                            ),
-                                          ),
-                                      error:
-                                          (error, _) => Text(
-                                            'Erro ao calcular valor',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.grey[400],
-                                            ),
-                                          ),
-                                    );
-                              }
+                                      );
+                                }
 
-                              return bitcoinPrice.when(
-                                data:
-                                    (btcPrice) => Text(
-                                      _formatAmount(
-                                        psbt.satoshi,
-                                        psbt.asset,
-                                        btcPrice,
-                                        currencySymbol,
+                                return bitcoinPrice.when(
+                                  data:
+                                      (btcPrice) => Text(
+                                        _formatAmount(
+                                          psbt.satoshi,
+                                          psbt.asset,
+                                          btcPrice,
+                                          currencySymbol,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[400],
+                                        ),
                                       ),
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey[400],
+                                  loading:
+                                      () => Text(
+                                        'Carregando preço...',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[400],
+                                        ),
                                       ),
-                                    ),
-                                loading:
-                                    () => Text(
-                                      'Carregando preço...',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey[400],
+                                  error:
+                                      (error, _) => Text(
+                                        _formatAmount(
+                                          psbt.satoshi,
+                                          psbt.asset,
+                                          null,
+                                          currencySymbol,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[400],
+                                        ),
                                       ),
-                                    ),
-                                error:
-                                    (error, _) => Text(
-                                      _formatAmount(
-                                        psbt.satoshi,
-                                        psbt.asset,
-                                        null,
-                                        currencySymbol,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey[400],
-                                      ),
-                                    ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Row(
-                children: [
-                  Icon(
-                    Icons.hub_rounded,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Rede de Destino',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              const NetworkIndicatorWidget(),
-              const SizedBox(height: 24),
-
-              Row(
-                children: [
-                  Icon(
-                    Icons.account_balance_wallet_rounded,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Endereço de Destino',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              CopyButton(textToCopy: psbt.destination),
-
-              const SizedBox(height: 24),
-
-              Row(
-                children: [
-                  Icon(
-                    Icons.receipt_long_rounded,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Detalhes das Taxas',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildFeeDetails(
-                context,
-                psbt.asset,
-                networkType,
-                psbt.satoshi,
-                psbt.networkFees,
-              ),
-
-              if (validationState.errors.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.warning_rounded,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Há problemas com esta transação. Verifique os dados.',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontWeight: FontWeight.w500,
-                          ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Icon(
+                      Icons.hub_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Rede de Destino',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                const NetworkIndicatorWidget(),
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Endereço de Destino',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                CopyButton(textToCopy: psbt.destination),
+
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Icon(
+                      Icons.receipt_long_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Detalhes das Taxas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildFeeDetails(
+                  context,
+                  psbt.asset,
+                  networkType,
+                  psbt.satoshi,
+                  psbt.networkFees,
+                ),
+
+                if (validationState.errors.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.errorContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.error.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_rounded,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Há problemas com esta transação. Verifique os dados.',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                SizedBox(height: 20),
+
+                SlideToConfirmButton(
+                  text: "Confirmar",
+                  onSlideComplete:
+                      () => _confirmTransaction(context, ref, psbt),
+                  isLoading: _isConfirming,
+                ),
+                SizedBox(height: 24),
               ],
-
-              SizedBox(height: 20),
-
-              SlideToConfirmButton(
-                text: "Confirmar",
-                onSlideComplete: () => _confirmTransaction(context, ref, psbt),
-                isLoading: _isConfirming,
-              ),
-              SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),
