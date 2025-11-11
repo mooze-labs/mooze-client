@@ -69,6 +69,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
                       error,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.error,
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -76,6 +77,32 @@ class ValidationErrorsWidget extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          if (validationState.errors.any((error) => 
+              error.contains('mínimo') || 
+              error.contains('máximo') || 
+              error.contains('inválido'))) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.7),
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'As validações são verificadas automaticamente conforme você digita.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.8),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

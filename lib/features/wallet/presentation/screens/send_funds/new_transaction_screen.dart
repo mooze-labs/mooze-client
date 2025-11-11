@@ -59,6 +59,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
                 DrainInfoWidget(),
                 const SizedBox(height: 20),
                 ValidationErrorsWidget(),
+                FeeEstimationWidget(),
                 const SizedBox(height: 20),
                 ReviewButton(),
               ],

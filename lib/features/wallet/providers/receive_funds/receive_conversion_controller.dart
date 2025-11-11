@@ -3,6 +3,9 @@ import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_con
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/formatters/btc_input_formatter.dart';
+import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
+import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 
 /// Controller to manage all conversion logic when receiving
 class ReceiveConversionController extends StateNotifier<void> {
@@ -168,14 +171,22 @@ class ReceiveConversionController extends StateNotifier<void> {
 
     switch (newType) {
       case ReceiveConversionType.asset:
-        ref.read(receiveAssetValueProvider.notifier).state = currentAssetValue;
+        if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) {
+          ref
+              .read(receiveAssetValueProvider.notifier)
+              .state = BtcInputFormatter.formatValue(assetDouble);
+        } else {
+          ref.read(receiveAssetValueProvider.notifier).state =
+              currentAssetValue;
+        }
         break;
 
       case ReceiveConversionType.sats:
         if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) {
           final satsValue = (assetDouble * 100000000).round();
-          ref.read(receiveSatsValueProvider.notifier).state =
-              satsValue.toString();
+          ref
+              .read(receiveSatsValueProvider.notifier)
+              .state = SatsInputFormatter.formatValue(satsValue);
         }
         break;
 
@@ -206,8 +217,9 @@ class ReceiveConversionController extends StateNotifier<void> {
           if (price <= 0) return;
 
           final fiatValue = assetDouble * price;
-          ref.read(receiveFiatValueProvider.notifier).state = fiatValue
-              .toStringAsFixed(2);
+          ref
+              .read(receiveFiatValueProvider.notifier)
+              .state = FiatInputFormatter.formatValue(fiatValue);
         },
       );
     } catch (e) {

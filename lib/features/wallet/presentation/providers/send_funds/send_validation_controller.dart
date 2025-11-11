@@ -5,6 +5,8 @@ import 'amount_provider.dart';
 import 'address_provider.dart';
 import 'network_detection_provider.dart';
 import 'selected_asset_balance_provider.dart';
+import 'fee_estimation_provider.dart';
+import 'drain_provider.dart';
 import '../../../providers/payment_limits_provider.dart';
 
 class SendValidationController extends StateNotifier<SendValidationState> {
@@ -17,6 +19,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     final amount = ref.read(finalAmountProvider);
     final address = ref.read(addressStateProvider);
     final networkType = ref.read(networkDetectionProvider(address));
+    final isDrainTransaction = ref.read(isDrainTransactionProvider);
 
     final errors = <String>[];
 
@@ -27,7 +30,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     }
 
     if (address.isNotEmpty && networkType != NetworkType.unknown) {
-      if (asset != Asset.btc && networkType != NetworkType.liquid) {
+      if (asset != Asset.btc && networkType == NetworkType.bitcoin) {
         errors.add(
           '${asset.name} só pode ser enviado pela rede Liquid ou Lightning',
         );
@@ -40,20 +43,46 @@ class SendValidationController extends StateNotifier<SendValidationState> {
 
     await _validateAmountLimits(asset, amount, networkType, errors);
 
-    try {
-      final balanceResult = await ref.read(
-        selectedAssetBalanceRawProvider.future,
+    if (errors.isNotEmpty) {
+      state = SendValidationState(
+        isValid: false,
+        errors: errors,
+        canProceed: false,
       );
-      balanceResult.fold(
-        (error) => errors.add('Erro ao verificar saldo disponível'),
-        (balance) {
-          if (amount > balance.toInt()) {
-            errors.add('Valor informado é maior que o saldo disponível');
+      return;
+    }
+
+    if (!isDrainTransaction) {
+      await _validateBalanceWithFees(asset, amount, errors);
+    } else {
+      try {
+        final balanceResult = await ref.read(
+          selectedAssetBalanceRawProvider.future,
+        );
+
+        final feeEstimation = await ref.read(feeEstimationProvider.future);
+
+        balanceResult.fold(
+          (error) => errors.add('Erro ao verificar saldo disponível'),
+          (balance) {
+            if (balance <= BigInt.zero) {
+              errors.add('Saldo insuficiente');
+            }
+          },
+        );
+
+        if (feeEstimation.hasError) {
+          if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
+            errors.add('Endereço inválido ou não reconhecido');
+          } else if (feeEstimation.errorMessage != 'INSUFFICIENT_FUNDS') {
+            errors.add(
+              'Não foi possível validar a transação: ${feeEstimation.errorMessage}',
+            );
           }
-        },
-      );
-    } catch (e) {
-      errors.add('Erro ao verificar saldo disponível');
+        }
+      } catch (e) {
+        errors.add('Erro ao verificar saldo disponível');
+      }
     }
 
     state = SendValidationState(
@@ -63,16 +92,69 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     );
   }
 
+  Future<void> _validateBalanceWithFees(
+    Asset asset,
+    int amount,
+    List<String> errors,
+  ) async {
+    try {
+      final balanceResult = await ref.read(
+        selectedAssetBalanceRawProvider.future,
+      );
+
+      final feeEstimation = await ref.read(feeEstimationProvider.future);
+
+      balanceResult.fold((error) => errors.add('Erro ao verificar saldo disponível'), (
+        balance,
+      ) {
+        if (amount > balance.toInt()) {
+          errors.add('Valor informado é maior que o saldo disponível');
+          return;
+        }
+
+        if (feeEstimation.isValid) {
+          final totalNeeded = BigInt.from(amount) + feeEstimation.fees;
+
+          if (totalNeeded > balance) {
+            final feesInSats = feeEstimation.fees.toInt();
+            final satText = feesInSats == 1 ? 'sat' : 'sats';
+
+            errors.add(
+              'Saldo insuficiente. Você precisa de $totalNeeded sats (${amount} + $feesInSats $satText de taxa), mas tem apenas ${balance} sats disponíveis',
+            );
+          }
+        } else if (feeEstimation.hasError) {
+          if (feeEstimation.errorMessage == 'INSUFFICIENT_FUNDS') {
+          } else if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
+            errors.add('Endereço inválido ou não reconhecido');
+          } else {
+            errors.add(
+              'Não foi possível calcular as taxas: ${feeEstimation.errorMessage}',
+            );
+          }
+        }
+      });
+    } catch (e) {
+      errors.add('Erro ao validar saldo e taxas: $e');
+    }
+  }
+
   Future<void> _validateAmountLimits(
     Asset asset,
     int amount,
     NetworkType networkType,
     List<String> errors,
   ) async {
+    if (amount <= 0) {
+      return;
+    }
+
     try {
-      if (asset == Asset.btc) {
+      if (asset == Asset.btc || asset == Asset.lbtc) {
         if (networkType == NetworkType.bitcoin) {
-          // On-chain Bitcoin limits
+          if (amount < 25000) {
+            errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
+          }
         } else if (networkType == NetworkType.lightning) {
           final lightningLimits = await ref.read(
             lightningSendLimitsProvider.future,
@@ -80,17 +162,19 @@ class SendValidationController extends StateNotifier<SendValidationState> {
           if (lightningLimits != null) {
             if (amount < lightningLimits.minSat.toInt()) {
               errors.add(
-                'Valor mínimo para bitcoin lightning é ${lightningLimits.minSat} sats',
+                'Valor mínimo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é ${lightningLimits.minSat} sats',
               );
             }
             if (amount > lightningLimits.maxSat.toInt()) {
               errors.add(
-                'Valor máximo para bitcoin lightning é ${lightningLimits.maxSat} sats',
+                'Valor máximo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é ${lightningLimits.maxSat} sats',
               );
             }
           } else {
             if (amount < 21) {
-              errors.add('Valor mínimo para bitcoin lightning é 21 sats');
+              errors.add(
+                'Valor mínimo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é 21 sats',
+              );
             }
           }
         }
@@ -104,12 +188,14 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         }
       }
     } catch (e) {
-      if (asset == Asset.btc) {
+      if (asset == Asset.btc || asset == Asset.lbtc) {
         if (networkType == NetworkType.bitcoin && amount < 25000) {
           errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
         }
         if (networkType == NetworkType.lightning && amount < 21) {
-          errors.add('Valor mínimo para bitcoin lightning é 21 sats');
+          errors.add(
+            'Valor mínimo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é 21 sats',
+          );
         }
       }
     }

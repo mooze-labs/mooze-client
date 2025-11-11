@@ -6,6 +6,8 @@ import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/amount_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/transaction_loading_provider.dart';
+import '../../providers/send_funds/drain_provider.dart';
 
 class AutoValidationListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -28,6 +30,11 @@ class _AutoValidationListenerState
   }
 
   void _validateTransaction() async {
+    final preparationController = ref.read(
+      transactionPreparationControllerProvider.notifier,
+    );
+    preparationController.reset();
+
     await ref
         .read(sendValidationControllerProvider.notifier)
         .validateTransaction();
@@ -35,20 +42,34 @@ class _AutoValidationListenerState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String>(addressStateProvider, (_, _) {
-      _validateTransaction();
+    ref.listen<String>(addressStateProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
     });
 
-    ref.listen<int>(amountStateProvider, (_, _) {
-      _validateTransaction();
+    ref.listen<int>(amountStateProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
     });
 
-    ref.listen<int>(finalAmountProvider, (_, _) {
-      _validateTransaction();
+    ref.listen<int>(finalAmountProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
     });
 
-    ref.listen<Asset>(selectedAssetProvider, (_, _) {
-      _validateTransaction();
+    ref.listen<Asset>(selectedAssetProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
+    });
+
+    ref.listen<bool>(isDrainTransactionProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
     });
 
     return widget.child;

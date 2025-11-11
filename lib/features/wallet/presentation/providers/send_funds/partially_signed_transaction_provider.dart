@@ -16,7 +16,8 @@ final psbtProvider = FutureProvider<Either<String, PartiallySignedTransaction>>(
     final destination = ref.watch(addressStateProvider);
     final asset = ref.watch(selectedAssetProvider);
     final blockchain = ref.watch(selectedNetworkProvider);
-    final amount = BigInt.from(ref.watch(finalAmountProvider));
+    final finalAmount = ref.watch(finalAmountProvider);
+    final amount = BigInt.from(finalAmount);
 
     final isDrainTransaction = ref.watch(isDrainTransactionProvider);
 

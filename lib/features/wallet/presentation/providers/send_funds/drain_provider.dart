@@ -81,26 +81,18 @@ final isDrainTransactionProvider = Provider<bool>((ref) {
     data:
         (maxAmountResult) => maxAmountResult.fold(
           (error) {
-            print(
-              '[DEBUG isDrainTransactionProvider] Error getting max amount: $error',
-            );
             return false;
           },
           (maxAmount) {
             final currentAmountBigInt = BigInt.from(currentAmount);
             final threshold = (maxAmount * BigInt.from(99)) ~/ BigInt.from(100);
+
+            if (currentAmountBigInt > maxAmount) {
+              return false;
+            }
+
             final isDrain =
                 currentAmountBigInt >= threshold && maxAmount > BigInt.zero;
-
-            print('[DEBUG isDrainTransactionProvider] maxAmount: $maxAmount');
-            print(
-              '[DEBUG isDrainTransactionProvider] threshold (99%): $threshold',
-            );
-            print(
-              '[DEBUG isDrainTransactionProvider] currentAmountBigInt: $currentAmountBigInt',
-            );
-            print('[DEBUG isDrainTransactionProvider] isDrain: $isDrain');
-
             return isDrain;
           },
         ),

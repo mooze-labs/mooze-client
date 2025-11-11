@@ -44,6 +44,9 @@ class _ReviewTransactionScreenState
       data:
           (psbtEither) => psbtEither.fold(
             (error) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.pop();
+              });
               return _buildErrorScreen(context, error);
             },
             (psbt) {
@@ -58,9 +61,15 @@ class _ReviewTransactionScreenState
             },
           ),
       loading: () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.pop();
+        });
         return _buildLoadingScreen(context, isDrainTransaction);
       },
       error: (error, stackTrace) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.pop();
+        });
         return _buildErrorScreen(context, error.toString());
       },
     );
