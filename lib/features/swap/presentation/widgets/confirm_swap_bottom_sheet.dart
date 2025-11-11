@@ -9,14 +9,23 @@ import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart
 import '../screens/swap_success_screen.dart';
 
 class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
-  const ConfirmSwapBottomSheet({super.key});
+  final VoidCallback? onSuccess;
+  final VoidCallback? onError;
 
-  static void show(BuildContext context) {
+  const ConfirmSwapBottomSheet({super.key, this.onSuccess, this.onError});
+
+  static void show(
+    BuildContext context, {
+    VoidCallback? onSuccess,
+    VoidCallback? onError,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const ConfirmSwapBottomSheet(),
+      builder:
+          (context) =>
+              ConfirmSwapBottomSheet(onSuccess: onSuccess, onError: onError),
     );
   }
 
@@ -37,78 +46,82 @@ class _ConfirmSwapBottomSheetState
     final millisecondsRemaining =
         state.millisecondsRemaining ?? state.ttlMilliseconds;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.55,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1C1C1C),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.55,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1C1C1C),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Center(
-            child: Text(
-              'Confirmar Swap',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          if (millisecondsRemaining != null)
+        child: Column(
+          children: [
             Center(
-              child: Chip(label: Text(_formatDuration(millisecondsRemaining))),
+              child: Text(
+                'Confirmar Swap',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Column(
-              children: [
-                const Spacer(),
-                _fromToSummary(context, state),
-                const Spacer(),
-                if (state.error != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      '${state.error}',
-                      style: const TextStyle(color: Colors.red),
+            if (millisecondsRemaining != null)
+              Center(
+                child: Chip(
+                  label: Text(_formatDuration(millisecondsRemaining)),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Column(
+                children: [
+                  const Spacer(),
+                  _fromToSummary(context, state),
+                  const Spacer(),
+                  if (state.error != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        '${state.error}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          if (quote != null) ...[
-            const Divider(),
-            InfoRow(
-              label: 'Taxa do servidor',
-              value: _formatFee(state, quote.serverFee),
+            if (quote != null) ...[
+              const Divider(),
+              InfoRow(
+                label: 'Taxa do servidor',
+                value: _formatFee(state, quote.serverFee),
+              ),
+              InfoRow(
+                label: 'Taxa fixa',
+                value: _formatFee(state, quote.fixedFee),
+              ),
+              InfoRow(
+                label: 'Total de taxas',
+                value: _formatFee(state, quote.serverFee + quote.fixedFee),
+                valueFontWeight: FontWeight.bold,
+              ),
+            ],
+
+            SizedBox(height: 24),
+
+            SlideToConfirmButton(
+              text:
+                  _isConfirming || state.loading
+                      ? 'Confirmando...'
+                      : 'Confirmar Swap',
+              isLoading: _isConfirming || state.loading,
+              onSlideComplete:
+                  _isConfirming || state.loading
+                      ? () {}
+                      : () => _confirmSwap(context, controller),
             ),
-            InfoRow(
-              label: 'Taxa fixa',
-              value: _formatFee(state, quote.fixedFee),
-            ),
-            InfoRow(
-              label: 'Total de taxas',
-              value: _formatFee(state, quote.serverFee + quote.fixedFee),
-              valueFontWeight: FontWeight.bold,
-            ),
+            SizedBox(height: 24),
           ],
-
-          SizedBox(height: 24),
-
-          SlideToConfirmButton(
-            text:
-                _isConfirming || state.loading
-                    ? 'Confirmando...'
-                    : 'Confirmar Swap',
-            isLoading: _isConfirming || state.loading,
-            onSlideComplete:
-                _isConfirming || state.loading
-                    ? () {}
-                    : () => _confirmSwap(context, controller),
-          ),
-          SizedBox(height: 24),
-        ],
+        ),
       ),
     );
   }
@@ -129,19 +142,36 @@ class _ConfirmSwapBottomSheetState
     sc.SwapController controller,
   ) async {
     setState(() => _isConfirming = true);
+
+    final currentState = ref.read(sc.swapControllerProvider);
+    final sendId = currentState.lastSendAssetId;
+    final receiveId = currentState.lastReceiveAssetId;
+    final sendAmount = currentState.sendAmount;
+    final receiveAmount = currentState.receiveAmount;
+
     try {
       final result = await controller.confirmSwap();
       if (!mounted) return;
       result.match(
-        (err) => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro na confirmação: $err'))),
+        (err) {
+          Navigator.of(context).pop();
+
+          widget.onError?.call();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro na confirmação: $err'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        },
         (txid) {
           Navigator.of(context).pop();
 
-          final state = ref.read(sc.swapControllerProvider);
-          final sendId = state.lastSendAssetId;
-          final receiveId = state.lastReceiveAssetId;
+          // Chama o callback de sucesso para limpar campos
+          widget.onSuccess?.call();
+
           final sendAsset =
               sendId != null ? core.Asset.fromId(sendId) : core.Asset.btc;
           final receiveAsset =
@@ -149,9 +179,9 @@ class _ConfirmSwapBottomSheetState
                   ? core.Asset.fromId(receiveId)
                   : core.Asset.usdt;
 
-          if (state.sendAmount != null && state.receiveAmount != null) {
-            final amountSent = state.sendAmount!.toDouble() / 100000000;
-            final amountReceived = state.receiveAmount!.toDouble() / 100000000;
+          if (sendAmount != null && receiveAmount != null) {
+            final amountSent = sendAmount.toDouble() / 100000000;
+            final amountReceived = receiveAmount.toDouble() / 100000000;
 
             SwapSuccessScreen.show(
               context,

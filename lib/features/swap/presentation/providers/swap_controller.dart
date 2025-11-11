@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
@@ -233,6 +234,16 @@ class SwapController extends StateNotifier<SwapState> {
         _quoteSub = stream.listen((quote) {
           if (!mounted) return;
           String? msg = quote.error?.errorMessage;
+
+          if (msg != null &&
+              (msg.toLowerCase().contains('invalid utxo') ||
+                  msg.toLowerCase().contains('unknown utxo') ||
+                  msg.toLowerCase().contains('wait for wallet sync'))) {
+            msg =
+                'Aguarde alguns instantes antes de realizar outro swap. '
+                'Sua transação anterior ainda está sendo processada.';
+          }
+
           if (msg == null && quote.lowBalance != null) {
             final lb = quote.lowBalance!;
             final totalFees = lb.fixedFee + lb.serverFee;
@@ -317,39 +328,137 @@ class SwapController extends StateNotifier<SwapState> {
   }
 
   Future<Either<String, String>> confirmSwap() async {
+    debugPrint('[SwapController] Iniciando confirmação do swap...');
+
+    debugPrint('[SwapController] Parando quotes antes de confirmar');
+    _ttlTimer?.cancel();
+    _quoteSub?.cancel();
+    _ttlDeadline = null;
+
     final repository = await _repositoryFuture;
-    if (!mounted) return Either.left('Controller disposed');
+    repository.stopQuote();
+
+    if (!mounted) {
+      debugPrint('[SwapController] Controller disposed antes de iniciar');
+      return Either.left('Controller disposed');
+    }
     final quote = state.currentQuote?.quote;
     if (quote == null) {
+      debugPrint('[SwapController] Nenhum quote ativo');
       return Either.left('Nenhum quote ativo');
     }
+    debugPrint('[SwapController] Quote ID: ${quote.quoteId}');
     state = state.copyWith(loading: true, error: null);
-    final psetRes = await repository.getQuotePset(quote.quoteId).run();
-    if (!mounted) return Either.left('Controller disposed');
+
+    try {
+      debugPrint(
+        '[SwapController] Iniciando processo de swap com timeout de 60s',
+      );
+      final result = await Future.any([
+        _performSwap(repository, quote.quoteId),
+        Future.delayed(const Duration(seconds: 60), () {
+          debugPrint('[SwapController] TIMEOUT: Operação excedeu 60 segundos');
+          return Either.left(
+                'Timeout: A operação demorou muito. Tente novamente.',
+              )
+              as Either<String, String>;
+        }),
+      ]);
+
+      if (!mounted) {
+        debugPrint('[SwapController] Controller disposed após swap');
+        return Either.left('Controller disposed');
+      }
+
+      return result.match(
+        (err) {
+          debugPrint('[SwapController] Erro no swap: $err');
+          if (!mounted) return Either.left(err);
+          state = state.copyWith(
+            loading: false,
+            error: err,
+            currentQuote: null,
+            activeQuoteId: null,
+            ttlMilliseconds: null,
+            millisecondsRemaining: null,
+            lastSendAssetId: null,
+            lastReceiveAssetId: null,
+            lastAmount: null,
+            isInverseMarket: null,
+            feeAssetId: null,
+          );
+          return Either.left(err);
+        },
+        (txid) {
+          debugPrint('[SwapController] Swap bem-sucedido! TXID: $txid');
+          debugPrint('[SwapController] Limpando estado após sucesso');
+          if (!mounted) return Either.right(txid);
+          state = state.copyWith(
+            loading: false,
+            currentQuote: null,
+            activeQuoteId: null,
+            ttlMilliseconds: null,
+            millisecondsRemaining: null,
+            lastSendAssetId: null,
+            lastReceiveAssetId: null,
+            lastAmount: null,
+            isInverseMarket: null,
+            feeAssetId: null,
+            error: null,
+          );
+          return Either.right(txid);
+        },
+      );
+    } catch (e) {
+      debugPrint('[SwapController] Exceção não tratada: $e');
+      if (!mounted) return Either.left('Erro inesperado: ${e.toString()}');
+      state = state.copyWith(
+        loading: false,
+        error: 'Erro inesperado: ${e.toString()}',
+        currentQuote: null,
+        activeQuoteId: null,
+        ttlMilliseconds: null,
+        millisecondsRemaining: null,
+        lastSendAssetId: null,
+        lastReceiveAssetId: null,
+        lastAmount: null,
+        isInverseMarket: null,
+        feeAssetId: null,
+      );
+      return Either.left('Erro inesperado: ${e.toString()}');
+    }
+  }
+
+  Future<Either<String, String>> _performSwap(
+    SwapRepository repository,
+    int quoteId,
+  ) async {
+    debugPrint('[SwapController] Obtendo PSET para quote $quoteId');
+    final psetRes = await repository.getQuotePset(quoteId).run();
+    if (!mounted) {
+      debugPrint('[SwapController] Controller disposed após obter PSET');
+      return Either.left('Controller disposed');
+    }
+
     return await psetRes.match(
       (err) async {
+        debugPrint('[SwapController] Erro ao obter PSET: $err');
         if (!mounted) return Either.left(err);
-        state = state.copyWith(loading: false, error: err);
         return Either.left(err);
       },
       (pset) async {
+        debugPrint('[SwapController] PSET obtido, assinando e transmitindo...');
         final txidRes =
             await repository
-                .signAndBroadcast(quoteId: quote.quoteId, pset: pset)
+                .signAndBroadcast(quoteId: quoteId, pset: pset)
                 .run();
-        if (!mounted) return txidRes;
-        return txidRes.match(
-          (err) {
-            if (!mounted) return Either.left(err);
-            state = state.copyWith(loading: false, error: err);
-            return Either.left(err);
-          },
-          (txid) {
-            if (!mounted) return Either.right(txid);
-            state = state.copyWith(loading: false);
-            return Either.right(txid);
-          },
-        );
+        if (!mounted) {
+          debugPrint(
+            '[SwapController] Controller disposed após signAndBroadcast',
+          );
+          return Either.left('Controller disposed');
+        }
+        return txidRes;
       },
     );
   }
