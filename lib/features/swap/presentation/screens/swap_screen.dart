@@ -48,9 +48,39 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     _validateAndAdjustAssets();
 
+    _fromAmountController.addListener(_syncDecimalFromAmount);
+
     Future.microtask(
       () => ref.read(swapControllerProvider.notifier).loadMetadata(),
     );
+  }
+
+  void _syncDecimalFromAmount() {
+    if (_isSyncingDecimal) return;
+    _isSyncingDecimal = true;
+
+    final text = _fromAmountController.text.trim();
+    if (text.isEmpty) {
+      if (_fromAmountDecimalController.text.isNotEmpty) {
+        _fromAmountDecimalController.text = '';
+      }
+    } else {
+      final amount = BigInt.tryParse(text);
+      if (amount != null && amount > BigInt.zero) {
+        final isBtcOrLbtc =
+            _fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc;
+        final decimals = isBtcOrLbtc ? 8 : 2;
+        final newValue = (amount.toDouble() / 100000000).toStringAsFixed(
+          decimals,
+        );
+
+        if (_fromAmountDecimalController.text != newValue) {
+          _fromAmountDecimalController.text = newValue;
+        }
+      }
+    }
+
+    _isSyncingDecimal = false;
   }
 
   void _validateAndAdjustAssets() {
@@ -64,6 +94,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _fromAmountController.removeListener(_syncDecimalFromAmount);
     _fromAmountController.dispose();
     _fromAmountDecimalController.dispose();
     super.dispose();
@@ -103,216 +134,266 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           const SizedBox(width: 16),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            color: AppColors.surfaceColor,
-          ),
-          width: double.infinity,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _from(context),
-              GestureDetector(
-                onTap: () async {
-                  setState(() {
-                    final tmp = _fromAsset;
-                    _fromAsset = _toAsset;
-                    _toAsset = tmp;
-                  });
-                  if (!mounted) return;
-                  await ref.read(swapControllerProvider.notifier).resetQuote();
-                  if (!mounted) return;
-                  _requestQuoteDebounced();
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Center(child: _SwapIcon()),
-                ),
-              ),
-              _to(context),
-              const SizedBox(height: 15),
-              if (isLoading)
-                Shimmer.fromColors(
-                  baseColor: AppColors.baseColor,
-                  highlightColor: AppColors.highlightColor,
-                  child: Container(
-                    width: 50,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              color: AppColors.surfaceColor,
+            ),
+            width: double.infinity,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _from(context),
+                GestureDetector(
+                  onTap: () async {
+                    setState(() {
+                      final tmp = _fromAsset;
+                      _fromAsset = _toAsset;
+                      _toAsset = tmp;
+
+                      _fromAmountController.text = '';
+                      _fromAmountDecimalController.text = '';
+                    });
+                    if (!mounted) return;
+                    await ref
+                        .read(swapControllerProvider.notifier)
+                        .resetQuote();
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Center(child: _SwapIcon()),
                   ),
-                )
-              else if (!_isBtcLbtcSwap) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      '1 ${_fromAsset.ticker} = ${_formatRate(exchangeRate)} ${_toAsset.ticker}',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
                 ),
-              ],
-              if (error != null) const SizedBox(height: 8),
-              if (error != null && !_isNoLiquidityError(error))
+                _to(context),
+                const SizedBox(height: 15),
+                if (isLoading)
+                  Shimmer.fromColors(
+                    baseColor: AppColors.baseColor,
+                    highlightColor: AppColors.highlightColor,
+                    child: Container(
+                      width: 50,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  )
+                else if (!_isBtcLbtcSwap) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        '1 ${_fromAsset.ticker} = ${_formatRate(exchangeRate)} ${_toAsset.ticker}',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ],
+                  ),
+                ],
+                if (error != null) const SizedBox(height: 8),
+                if (error != null && !_isNoLiquidityError(error))
+                  FutureBuilder<bool>(
+                    future: _hasInsufficientBalance(),
+                    builder: (context, snapshot) {
+                      final hasInsufficientBalance = snapshot.data ?? false;
+                      final isInsufficientError =
+                          error.toLowerCase().contains('insuficiente') ||
+                          hasInsufficientBalance;
+
+                      final isUtxoError =
+                          error.toLowerCase().contains(
+                            'aguarde alguns instantes',
+                          ) ||
+                          error.toLowerCase().contains('transação anterior');
+
+                      if (isUtxoError) {
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.blue),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.schedule,
+                                    color: Colors.blue,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      error,
+                                      style: const TextStyle(
+                                        color: Colors.blue,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        );
+                      }
+
+                      if (isInsufficientError &&
+                          _fromAmountController.text.isNotEmpty) {
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.orange,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Saldo insuficiente para realizar o swap',
+                                      style: TextStyle(color: Colors.orange),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        );
+                      } else {
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.red),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.orange,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      error,
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        );
+                      }
+                    },
+                  ),
+                const SizedBox(height: 15),
+                Center(
+                  child: Text(
+                    _isBtcLbtcSwap
+                        ? 'Powered by breez.technology'
+                        : 'Powered by sideswap.io',
+                  ),
+                ),
+                const SizedBox(height: 15),
+
                 FutureBuilder<bool>(
                   future: _hasInsufficientBalance(),
                   builder: (context, snapshot) {
                     final hasInsufficientBalance = snapshot.data ?? false;
-                    final isInsufficientError =
-                        error.toLowerCase().contains('insuficiente') ||
-                        hasInsufficientBalance;
+                    final hasQuote = swapState.currentQuote?.quote != null;
 
-                    if (isInsufficientError &&
-                        _fromAmountController.text.isNotEmpty) {
-                      return Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(
-                                  Icons.warning,
-                                  color: Colors.orange,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Saldo insuficiente para realizar o swap',
-                                    style: TextStyle(color: Colors.orange),
+                    final canProceed =
+                        _isBtcLbtcSwap
+                            ? _fromAmountController.text.isNotEmpty &&
+                                !isLoading &&
+                                !hasInsufficientBalance &&
+                                _isBtcLbtcSwapAmountValid()
+                            : _fromAmountController.text.isNotEmpty &&
+                                hasQuote &&
+                                !isLoading &&
+                                !hasInsufficientBalance;
+
+                    return Column(
+                      children: [
+                        if (_isBtcLbtcSwap &&
+                            _fromAmountController.text.isNotEmpty &&
+                            !_isBtcLbtcSwapAmountValid())
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    color: Colors.orange,
+                                    size: 20,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                      );
-                    } else {
-                      return Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.red),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.warning,
-                                  color: Colors.orange,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    error,
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                      );
-                    }
-                  },
-                ),
-              const SizedBox(height: 15),
-              Center(
-                child: Text(
-                  _isBtcLbtcSwap
-                      ? 'Powered by breez.technology'
-                      : 'Powered by sideswap.io',
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              FutureBuilder<bool>(
-                future: _hasInsufficientBalance(),
-                builder: (context, snapshot) {
-                  final hasInsufficientBalance = snapshot.data ?? false;
-                  final hasQuote = swapState.currentQuote?.quote != null;
-
-                  final canProceed =
-                      _isBtcLbtcSwap
-                          ? _fromAmountController.text.isNotEmpty &&
-                              !isLoading &&
-                              !hasInsufficientBalance &&
-                              _isBtcLbtcSwapAmountValid()
-                          : _fromAmountController.text.isNotEmpty &&
-                              hasQuote &&
-                              !isLoading &&
-                              !hasInsufficientBalance;
-
-                  return Column(
-                    children: [
-                      if (_isBtcLbtcSwap &&
-                          _fromAmountController.text.isNotEmpty &&
-                          !_isBtcLbtcSwapAmountValid())
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.info_outline,
-                                  color: Colors.orange,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Valor mínimo: ${_minBtcLbtcSwapSats.toString()} sats',
-                                    style: const TextStyle(
-                                      color: Colors.orange,
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Valor mínimo: ${_minBtcLbtcSwapSats.toString()} sats',
+                                      style: const TextStyle(
+                                        color: Colors.orange,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      PrimaryButton(
-                        text: 'swap',
-                        isEnabled: canProceed,
-                        onPressed:
-                            canProceed
-                                ? () async {
-                                  if (_isBtcLbtcSwap) {
-                                    _handleBtcLbtcSwap();
-                                  } else {
-                                    ConfirmSwapBottomSheet.show(context);
+                        PrimaryButton(
+                          text: 'swap',
+                          isEnabled: canProceed,
+                          onPressed:
+                              canProceed
+                                  ? () async {
+                                    if (_isBtcLbtcSwap) {
+                                      _handleBtcLbtcSwap();
+                                    } else {
+                                      ConfirmSwapBottomSheet.show(
+                                        context,
+                                        onSuccess: _clearSwapFields,
+                                        onError: _clearSwapFields,
+                                      );
+                                    }
                                   }
-                                }
-                                : null,
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+                                  : null,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -344,27 +425,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         });
       });
     }
-
-    void syncDecimalController() {
-      if (_isSyncingDecimal) return;
-      _isSyncingDecimal = true;
-      final text = _fromAmountController.text.trim();
-      if (text.isEmpty) {
-        _fromAmountDecimalController.text = '';
-      } else {
-        final amount = BigInt.tryParse(text) ?? BigInt.zero;
-        if (_fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc) {
-          _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
-              .toStringAsFixed(8);
-        } else {
-          _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
-              .toStringAsFixed(2);
-        }
-      }
-      _isSyncingDecimal = false;
-    }
-
-    syncDecimalController();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
@@ -441,13 +501,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 _toAsset = alternatives.first;
                               }
                             }
+
+                            _fromAmountController.text = '';
+                            _fromAmountDecimalController.text = '';
                           });
                           if (!mounted) return;
                           await ref
                               .read(swapControllerProvider.notifier)
                               .resetQuote();
-                          if (!mounted) return;
-                          _requestQuoteDebounced();
                         }
                       },
                       items:
@@ -515,6 +576,16 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
                         ),
                         onChanged: (value) {
+                          if (_isSyncingDecimal) return;
+                          _isSyncingDecimal = true;
+
+                          if (value.isEmpty) {
+                            _fromAmountController.text = '';
+                            _isSyncingDecimal = false;
+                            _requestQuoteDebounced();
+                            return;
+                          }
+
                           double parsed =
                               double.tryParse(value.replaceAll(',', '.')) ?? 0;
                           BigInt sats = BigInt.from(
@@ -522,8 +593,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           );
                           if (_fromAmountController.text != sats.toString()) {
                             _fromAmountController.text = sats.toString();
-                            _requestQuoteDebounced();
                           }
+                          _isSyncingDecimal = false;
+                          _requestQuoteDebounced();
                         },
                       ),
                     ),
@@ -588,6 +660,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
 
     String displayToAmount() {
+      if (_fromAmountController.text.trim().isEmpty) {
+        return '0';
+      }
+
       if (_isBtcLbtcSwap) {
         final text = _fromAmountController.text.trim();
         final amount = BigInt.tryParse(text) ?? BigInt.zero;
@@ -677,13 +753,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 if (_toAsset == core.Asset.btc) {
                                   _fromAsset = core.Asset.lbtc;
                                 }
+
+                                _fromAmountController.text = '';
+                                _fromAmountDecimalController.text = '';
                               });
                               if (!mounted) return;
                               await ref
                                   .read(swapControllerProvider.notifier)
                                   .resetQuote();
-                              if (!mounted) return;
-                              _requestQuoteDebounced();
                             }
                           },
                           items:
@@ -780,6 +857,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   String _formatRate(double? rate) {
     if (rate == null) return '...';
     return rate.toStringAsFixed(8);
+  }
+
+  void _clearSwapFields() {
+    if (!mounted) return;
+    setState(() {
+      _fromAmountController.text = '';
+      _fromAmountDecimalController.text = '';
+    });
   }
 
   Future<String> _getBalance(core.Asset asset) async {
@@ -937,7 +1022,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
+    _debounce = Timer(const Duration(milliseconds: 800), () async {
       if (!mounted) return;
       final controller = ref.read(swapControllerProvider.notifier);
       final text = _fromAmountController.text.trim();
