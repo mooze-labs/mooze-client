@@ -11,10 +11,10 @@ import 'package:mooze_mobile/themes/pin_theme.dart';
 
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
-  bool forceAuth;
-  bool isAppResuming;
+  final bool forceAuth;
+  final bool isAppResuming;
 
-  VerifyPinScreen({
+  const VerifyPinScreen({
     super.key,
     required this.onPinConfirmed,
     this.forceAuth = false,
@@ -31,7 +31,6 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
 
   bool _isLoading = true;
   bool _isVerifying = false;
-  bool _isLocked = true;
   bool _isPinValid = false;
 
   final LocalAuthentication auth = LocalAuthentication();
@@ -58,9 +57,6 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     if ((isStoreMode && !widget.forceAuth) ||
         (hasValidSession && !widget.forceAuth) ||
         !isPinSetup) {
-      setState(() {
-        _isLocked = false;
-      });
       widget.onPinConfirmed();
     } else {
       if (mounted) {
@@ -81,8 +77,8 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     try {
       final auth = await _authService.authenticate(_pinController.text);
 
-      if (auth && mounted) {
-        setState(() => _isLocked = false);
+      if (auth) {
+        // Call the callback first, which should handle navigation
         widget.onPinConfirmed();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,14 +125,14 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
       );
 
       if (didAuthenticate) {
-        if (mounted) {
-          widget.onPinConfirmed();
-        }
+        widget.onPinConfirmed();
       }
     } on PlatformException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao autenticar: ${e.message}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao autenticar: ${e.message}')),
+        );
+      }
     }
   }
 
@@ -149,18 +145,25 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
       );
     }
 
+    // Determine if back button should be enabled
+    final canGoBack = !widget.forceAuth || widget.isAppResuming;
+
     return PopScope(
-      canPop: true,
+      canPop: canGoBack,
       child: Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
           title: Text('Validação de segurança'),
-          leading: IconButton(
-            onPressed: () {
-              context.pop();
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded),
-          ),
+          leading:
+              canGoBack
+                  ? IconButton(
+                    onPressed: () {
+                      context.pop();
+                    },
+                    icon: Icon(Icons.arrow_back_ios_new_rounded),
+                  )
+                  : null,
+          automaticallyImplyLeading: canGoBack,
         ),
         body: SafeArea(
           child: Padding(
