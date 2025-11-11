@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -85,7 +86,10 @@ class WalletHeaderWidget extends ConsumerWidget {
         break;
       case WalletDisplayMode.satoshis:
         value = totalSatoshisValue;
-        formatter = (val) => '$val ${val == BigInt.one ? 'sat' : 'sats'}';
+        formatter = (val) {
+          final formattedSats = SatsInputFormatter.formatValue(val.toInt());
+          return '$formattedSats ${val == BigInt.one ? 'sat' : 'sats'}';
+        };
         break;
     }
 
