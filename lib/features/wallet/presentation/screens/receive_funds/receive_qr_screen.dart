@@ -51,32 +51,31 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Receber Pagamento"),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Receber Pagamento"),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Informações do pagamento
-            _buildPaymentInfo(),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildPaymentInfo(),
 
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-            // QR Code
-            _buildQRCode(),
+              _buildQRCode(),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Endereço/Invoice
-            _buildAddressSection(),
-          ],
+              _buildAddressSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -328,7 +327,6 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
 
     _animationController.forward();
 
-    // Reset após 2 segundos
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
@@ -340,7 +338,6 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
   }
 
   void _shareQRCode() {
-    // TODO: Implementar compartilhamento
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Compartilhamento não implementado')),
     );
