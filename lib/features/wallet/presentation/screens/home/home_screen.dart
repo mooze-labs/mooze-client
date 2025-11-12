@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
 import 'package:mooze_mobile/providers/update_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync.dart';
 
 import '../../widgets/widgets.dart';
 
@@ -49,101 +44,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            RefreshIndicator(
-              onRefresh: () => _refreshData(),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      LogoHeader(),
-                      WalletHeaderWidget(),
-                      UpdateNotificationWidget(),
-                      const SizedBox(height: 15),
-                      _buildActionButtons(),
-                      const SizedBox(height: 32),
-                      AssetSection(),
-                      TransactionSection(),
-                      SizedBox(height: 120),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            if (isLoadingData)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SizedBox(
-                  height: 3,
-                  child: LinearProgressIndicator(
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Theme.of(context).primaryColor,
+        child: WalletScreenWrapper(
+          child: Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: () => _refreshData(),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LogoHeader(),
+                        WalletHeaderWidget(),
+                        UpdateNotificationWidget(),
+                        const SizedBox(height: 15),
+                        _buildActionButtons(),
+                        const SizedBox(height: 32),
+                        AssetSection(),
+                        TransactionSection(),
+                        SizedBox(height: 120),
+                      ],
                     ),
                   ),
                 ),
               ),
-          ],
+              if (isLoadingData)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SizedBox(
+                    height: 3,
+                    child: LinearProgressIndicator(
+                      backgroundColor: Colors.transparent,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _loadInitialData() {
-    final favoriteAssets = ref.read(favoriteAssetsProvider);
-
-    final assetCacheNotifier = ref.read(
-      assetPriceHistoryCacheProvider.notifier,
-    );
-    final transactionCacheNotifier = ref.read(
-      transactionHistoryCacheProvider.notifier,
-    );
     final updateNotifier = ref.read(updateNotifierProvider.notifier);
-
-    for (final asset in favoriteAssets) {
-      assetCacheNotifier.fetchAssetPriceHistoryInitial(asset);
-      ref.read(balanceProvider(asset));
-    }
-
-    transactionCacheNotifier.fetchTransactionsInitial();
-
     updateNotifier.checkForUpdates();
   }
 
   Future<void> _refreshData() async {
     try {
-      final favoriteAssets = ref.read(favoriteAssetsProvider);
-      final allAssets = ref.read(allAssetsProvider);
-
-      ref.invalidate(transactionHistoryCacheProvider);
-      ref.invalidate(transactionHistoryProvider);
-
-      ref.invalidate(allBalancesProvider);
-
-      for (final asset in allAssets) {
-        ref.invalidate(balanceProvider(asset));
-      }
-
-      ref.invalidate(totalWalletValueProvider);
-      ref.invalidate(totalWalletBitcoinProvider);
-      ref.invalidate(totalWalletSatoshisProvider);
-      ref.invalidate(totalWalletVariationProvider);
-
-      ref.invalidate(walletHoldingsProvider);
-      ref.invalidate(walletHoldingsWithBalanceProvider);
-
-      await Future.wait([
-        ref
-            .read(assetPriceHistoryCacheProvider.notifier)
-            .refresh(favoriteAssets),
-        ref.read(transactionHistoryCacheProvider.notifier).refresh(),
-      ]);
+      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
+      await walletDataManager.refreshWalletData();
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(

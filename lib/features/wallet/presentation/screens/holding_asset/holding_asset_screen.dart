@@ -5,14 +5,11 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_loading.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class HoldingsAsseetScreen extends ConsumerStatefulWidget {
   const HoldingsAsseetScreen({super.key});
@@ -91,23 +88,8 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   Future<void> _refreshData() async {
     try {
-      final allAssets = ref.read(allAssetsProvider);
-
-      ref.invalidate(allBalancesProvider);
-
-      for (final asset in allAssets) {
-        ref.invalidate(balanceProvider(asset));
-      }
-
-      ref.invalidate(totalWalletValueProvider);
-      ref.invalidate(totalWalletBitcoinProvider);
-      ref.invalidate(totalWalletSatoshisProvider);
-      ref.invalidate(totalWalletVariationProvider);
-
-      ref.invalidate(walletHoldingsProvider);
-      ref.invalidate(walletHoldingsWithBalanceProvider);
-
-      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
+      await walletDataManager.refreshWalletData();
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(
