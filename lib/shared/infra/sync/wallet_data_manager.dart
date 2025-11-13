@@ -14,14 +14,13 @@ import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_config.dart';
 
-enum WalletDataState { idle, loading, refreshing, success, error, retrying }
+enum WalletDataState { idle, loading, refreshing, success, error }
 
 class WalletDataStatus {
   final WalletDataState state;
   final String? errorMessage;
   final DateTime? lastSync;
   final bool isInitialLoad;
-  final int retryCount;
   final bool hasLiquidSyncFailed;
   final bool hasBdkSyncFailed;
 
@@ -30,28 +29,21 @@ class WalletDataStatus {
     this.errorMessage,
     this.lastSync,
     this.isInitialLoad = false,
-    this.retryCount = 0,
     this.hasLiquidSyncFailed = false,
     this.hasBdkSyncFailed = false,
   });
 
   bool get isLoading => state == WalletDataState.loading;
   bool get isRefreshing => state == WalletDataState.refreshing;
-  bool get isRetrying => state == WalletDataState.retrying;
-  bool get isLoadingOrRefreshing => isLoading || isRefreshing || isRetrying;
+  bool get isLoadingOrRefreshing => isLoading || isRefreshing;
   bool get hasError => state == WalletDataState.error;
   bool get isSuccess => state == WalletDataState.success;
-
-  bool get shouldRetry =>
-      retryCount < WalletSyncConfig.maxRetries &&
-      (hasLiquidSyncFailed || hasBdkSyncFailed);
 
   WalletDataStatus copyWith({
     WalletDataState? state,
     String? errorMessage,
     DateTime? lastSync,
     bool? isInitialLoad,
-    int? retryCount,
     bool? hasLiquidSyncFailed,
     bool? hasBdkSyncFailed,
   }) {
@@ -60,7 +52,6 @@ class WalletDataStatus {
       errorMessage: errorMessage,
       lastSync: lastSync ?? this.lastSync,
       isInitialLoad: isInitialLoad ?? this.isInitialLoad,
-      retryCount: retryCount ?? this.retryCount,
       hasLiquidSyncFailed: hasLiquidSyncFailed ?? this.hasLiquidSyncFailed,
       hasBdkSyncFailed: hasBdkSyncFailed ?? this.hasBdkSyncFailed,
     );
@@ -116,7 +107,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         },
       );
 
-      if (!hasValidDataSource && state.retryCount == 0) {
+      if (!hasValidDataSource) {
         throw Exception('Nenhum datasource disponível para inicialização');
       }
 
@@ -138,21 +129,11 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     } catch (error) {
       debugPrint('[WalletDataManager] Erro na inicialização: $error');
 
-      if (state.shouldRetry) {
-        debugPrint('[WalletDataManager] Programando retry da inicialização...');
-        state = state.copyWith(
-          state: WalletDataState.error,
-          errorMessage: error.toString(),
-          isInitialLoad: false,
-        );
-        _handleSyncFailure();
-      } else {
-        state = state.copyWith(
-          state: WalletDataState.error,
-          errorMessage: error.toString(),
-          isInitialLoad: false,
-        );
-      }
+      state = state.copyWith(
+        state: WalletDataState.error,
+        errorMessage: error.toString(),
+        isInitialLoad: false,
+      );
     }
   }
 
@@ -194,31 +175,10 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   void notifyLiquidSyncFailed(String error) {
     WalletSyncLogger.error('[WalletDataManager] Liquid sync falhou: $error');
 
-    final isPersistentNetworkError =
-        error.contains('network') ||
-        error.contains('connection') ||
-        error.contains('timeout') ||
-        error.contains('Check network connection');
-
-    if (isPersistentNetworkError && state.retryCount >= 2) {
-      WalletSyncLogger.info(
-        '[WalletDataManager] Detectado erro de rede persistente no Liquid. Usando apenas Bitcoin.',
-      );
-      state = state.copyWith(
-        hasLiquidSyncFailed: true,
-        errorMessage: 'Liquid network unavailable - using Bitcoin only',
-        retryCount: WalletSyncConfig.maxRetries,
-      );
-
-      _loadBitcoinOnlyData();
-    } else {
-      state = state.copyWith(
-        hasLiquidSyncFailed: true,
-        errorMessage: 'Liquid sync failed: $error',
-      );
-
-      _handleSyncFailure();
-    }
+    state = state.copyWith(
+      hasLiquidSyncFailed: true,
+      errorMessage: 'Liquid sync failed: $error',
+    );
   }
 
   void notifyBdkSyncFailed(String error) {
@@ -228,143 +188,6 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       hasBdkSyncFailed: true,
       errorMessage: 'BDK sync failed: $error',
     );
-
-    _handleSyncFailure();
-  }
-
-  void _handleSyncFailure() {
-    if (state.shouldRetry) {
-      WalletSyncLogger.info(
-        '[WalletDataManager] Tentando retry ${state.retryCount + 1}/${WalletSyncConfig.maxRetries}...',
-      );
-
-      state = state.copyWith(
-        state: WalletDataState.retrying,
-        retryCount: state.retryCount + 1,
-      );
-
-      final retryDelay =
-          WalletSyncConfig.retryInterval * (state.retryCount + 1);
-
-      Timer(retryDelay, () {
-        _performRetry();
-      });
-    } else {
-      WalletSyncLogger.info(
-        '[WalletDataManager] Máximo de retries atingido (${WalletSyncConfig.maxRetries}). Tentando carregar apenas dados disponíveis...',
-      );
-
-      _loadAvailableDataOnly();
-    }
-  }
-
-  Future<void> _performRetry() async {
-    debugPrint('[WalletDataManager] Executando retry da inicialização...');
-
-    state = state.copyWith(
-      hasLiquidSyncFailed: false,
-      hasBdkSyncFailed: false,
-      errorMessage: null,
-    );
-
-    invalidateAllWalletProviders();
-
-    await initializeWallet();
-  }
-
-  Future<void> _loadAvailableDataOnly() async {
-    debugPrint(
-      '[WalletDataManager] Carregando dados disponíveis mesmo com falhas de sync...',
-    );
-
-    try {
-      state = state.copyWith(state: WalletDataState.loading);
-
-      await _loadPartialData();
-
-      state = state.copyWith(
-        state: WalletDataState.success,
-        lastSync: DateTime.now(),
-        errorMessage:
-            state.hasLiquidSyncFailed
-                ? 'Liquid sync failed, showing available data only'
-                : state.hasBdkSyncFailed
-                ? 'BDK sync failed, showing available data only'
-                : null,
-      );
-
-      debugPrint('[WalletDataManager] Dados parciais carregados com sucesso');
-    } catch (error) {
-      debugPrint('[WalletDataManager] Erro ao carregar dados parciais: $error');
-      state = state.copyWith(
-        state: WalletDataState.error,
-        errorMessage: error.toString(),
-      );
-    }
-  }
-
-  Future<void> _loadBitcoinOnlyData() async {
-    debugPrint('[WalletDataManager] Carregando apenas dados Bitcoin (BDK)...');
-
-    try {
-      state = state.copyWith(state: WalletDataState.loading);
-
-      final favoriteAssets = ref.read(favoriteAssetsProvider);
-      final bitcoinAssets =
-          favoriteAssets
-              .where(
-                (asset) => asset.ticker == 'BTC' || asset.ticker == 'L-BTC',
-              )
-              .toList();
-
-      final balanceLoadingFutures =
-          bitcoinAssets.map((asset) {
-            return ref
-                .read(balanceProvider(asset).future)
-                .then((balance) {
-                  balance.fold(
-                    (error) => debugPrint(
-                      '[WalletDataManager] Erro ao carregar saldo ${asset.ticker}: $error',
-                    ),
-                    (value) => debugPrint(
-                      '[WalletDataManager] Saldo ${asset.ticker} carregado: $value',
-                    ),
-                  );
-                })
-                .catchError((error) {
-                  debugPrint(
-                    '[WalletDataManager] Exceção ao carregar saldo ${asset.ticker}: $error',
-                  );
-                });
-          }).toList();
-
-      try {
-        final transactionCacheNotifier = ref.read(
-          transactionHistoryCacheProvider.notifier,
-        );
-        await transactionCacheNotifier.fetchTransactionsInitial();
-      } catch (e) {
-        debugPrint('[WalletDataManager] Erro ao carregar transações: $e');
-      }
-
-      await Future.wait(balanceLoadingFutures);
-
-      state = state.copyWith(
-        state: WalletDataState.success,
-        lastSync: DateTime.now(),
-        errorMessage: 'Liquid network unavailable - showing Bitcoin data only',
-      );
-
-      debugPrint(
-        '[WalletDataManager] Dados Bitcoin carregados com sucesso (modo fallback)',
-      );
-    } catch (error) {
-      debugPrint('[WalletDataManager] Erro ao carregar dados Bitcoin: $error');
-      state = state.copyWith(
-        state: WalletDataState.error,
-        errorMessage: 'Failed to load wallet data: $error',
-      );
-    }
   }
 
   Future<void> _loadPartialData() async {
@@ -613,10 +436,6 @@ final isLoadingDataProvider = Provider<bool>((ref) {
 
 final isRefreshingDataProvider = Provider<bool>((ref) {
   return ref.watch(walletDataManagerProvider).isRefreshing;
-});
-
-final isRetryingProvider = Provider<bool>((ref) {
-  return ref.watch(walletDataManagerProvider).isRetrying;
 });
 
 final hasSyncFailuresProvider = Provider<bool>((ref) {

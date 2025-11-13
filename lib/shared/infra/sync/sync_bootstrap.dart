@@ -5,7 +5,6 @@ import '../lwk/providers/datasource_provider.dart';
 import 'sync_service_provider.dart';
 import '../bdk/providers/datasource_provider.dart';
 import 'wallet_data_manager.dart';
-import 'hot_reload_helper.dart';
 import 'sync_config.dart';
 
 /// Extracts useful details from LwkError
@@ -37,11 +36,6 @@ String _extractErrorDetails(dynamic error) {
 
 final walletSyncBootstrapProvider = Provider<void>((ref) {
   WalletSyncLogger.info("[WalletSyncBootstrapProvider] Initializing");
-
-  // In development, force state reset after hot reload
-  if (WalletSyncConfig.isHotReloadDetectionEnabled) {
-    ref.watch(hotReloadDetectorProvider);
-  }
 
   // Automatic reset on hot reload (development)
   ref.onDispose(() {
