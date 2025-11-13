@@ -41,74 +41,76 @@ class ValidPixPaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Pagamento PIX'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () {
-            context.go("/pix");
-          },
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Pagamento PIX'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () {
+              context.go("/pix");
+            },
+          ),
         ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.all(contentPadding),
-                child: Column(
-                  children: [
-                    TimerCountdown(
-                      expireAt: deposit.createdAt.add(Duration(minutes: 20)),
-                      onExpired: () {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder:
-                              (dialogContext) => AlertDialog(
-                                title: const Text('Tempo Esgotado'),
-                                content: const Text(
-                                  'O tempo para realizar o pagamento expirou. Por favor, gere um novo PIX.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(dialogContext).pop();
-                                      context.go('/pix');
-                                    },
-                                    child: const Text('OK'),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.all(contentPadding),
+                  child: Column(
+                    children: [
+                      TimerCountdown(
+                        expireAt: deposit.createdAt.add(Duration(minutes: 20)),
+                        onExpired: () {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder:
+                                (dialogContext) => AlertDialog(
+                                  title: const Text('Tempo Esgotado'),
+                                  content: const Text(
+                                    'O tempo para realizar o pagamento expirou. Por favor, gere um novo PIX.',
                                   ),
-                                ],
-                              ),
-                        );
-                      },
-                    ),
-                    const Spacer(),
-                    PixQrCodeDisplay(
-                      pixQrData: deposit.pixKey,
-                      boxConstraints: constraints,
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      "Powered by depix.info",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: 12,
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(dialogContext).pop();
+                                        context.go('/pix');
+                                      },
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                        },
                       ),
-                    ),
-                    const Spacer(),
-                    CopyableAddress(pixKey: deposit.pixKey),
-                    SizedBox(height: 20),
-                    PaymentDetailsDisplay(deposit: deposit),
-                    const Spacer(),
-                  ],
+                      const Spacer(),
+                      PixQrCodeDisplay(
+                        pixQrData: deposit.pixKey,
+                        boxConstraints: constraints,
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        "Powered by depix.info",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const Spacer(),
+                      CopyableAddress(pixKey: deposit.pixKey),
+                      SizedBox(height: 20),
+                      PaymentDetailsDisplay(deposit: deposit),
+                      const Spacer(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
