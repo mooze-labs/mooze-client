@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provid
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
@@ -252,6 +253,8 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       await _invalidateAndRefreshAllProviders();
 
+      _syncPendingTransactions();
+
       state = state.copyWith(
         state: WalletDataState.success,
         lastSync: DateTime.now(),
@@ -267,6 +270,16 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     } finally {
       _currentSyncCompleter?.complete();
       _currentSyncCompleter = null;
+    }
+  }
+
+  void _syncPendingTransactions() {
+    try {
+      final monitorService = ref.read(transactionMonitorServiceProvider);
+      monitorService.syncPendingTransactions();
+      debugPrint('[WalletDataManager] Sincronização de pendentes disparada');
+    } catch (e) {
+      debugPrint('[WalletDataManager] Erro ao sincronizar pendentes: $e');
     }
   }
 
@@ -392,6 +405,8 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       ref.invalidate(totalWalletVariationProvider);
 
       state = state.copyWith(lastSync: DateTime.now());
+
+      _syncPendingTransactions();
 
       debugPrint('[WalletDataManager] Sync periódico concluído');
     } catch (error) {
