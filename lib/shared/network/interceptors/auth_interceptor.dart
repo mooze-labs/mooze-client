@@ -6,6 +6,7 @@ import '../../authentication/services.dart';
 class AuthInterceptor extends Interceptor {
   final SessionManagerService _sessionManager;
   final Dio _dio;
+  bool _isRefreshing = false;
 
   AuthInterceptor(this._sessionManager, this._dio);
 
@@ -27,6 +28,7 @@ class AuthInterceptor extends Interceptor {
       (error) {
         // If we can't get a valid session, proceed without auth
         // The API will return 401 and the app can handle accordingly
+        // Note: This can happen if no mnemonic is available yet
         handler.next(options);
       },
       (session) {
@@ -41,41 +43,79 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // Handle 401 Unauthorized responses
     if (err.response?.statusCode == 401) {
-      // Get the current session to attempt a forced refresh
-      final currentSessionResult = await _sessionManager.getSession().run();
+      // If already refreshing, wait for it to complete
+      if (_isRefreshing) {
+        // Add this request to pending queue
+        await Future.delayed(Duration(milliseconds: 100));
 
-      currentSessionResult.fold(
-        (error) {
-          // No valid session available, pass through the original error
-          handler.next(err);
-        },
-        (currentSession) async {
-          // Force refresh the session regardless of local expiration status
-          final refreshResult =
-              await _sessionManager.refreshSession(currentSession).run();
+        // Try to get the refreshed session and retry
+        final sessionResult = await _sessionManager.getSession().run();
+        await sessionResult.fold(
+          (error) async {
+            handler.next(err);
+          },
+          (session) async {
+            final options = err.requestOptions;
+            options.headers['Authorization'] = 'Bearer ${session.jwt}';
 
-          refreshResult.fold(
-            (error) {
-              // Refresh failed, pass through the original error
+            try {
+              final response = await _dio.fetch(options);
+              handler.resolve(response);
+            } catch (e) {
               handler.next(err);
-            },
-            (refreshedSession) async {
-              // Refresh successful, retry the original request with new token
-              final options = err.requestOptions;
-              options.headers['Authorization'] =
-                  'Bearer ${refreshedSession.jwt}';
+            }
+          },
+        );
+        return;
+      }
 
-              try {
-                final response = await _dio.fetch(options);
-                handler.resolve(response);
-              } catch (e) {
-                // If retry also fails, pass through the original error
+      // Start refresh process
+      _isRefreshing = true;
+
+      try {
+        // Get the current session
+        final currentSessionResult = await _sessionManager.getSession().run();
+
+        await currentSessionResult.fold(
+          (error) async {
+            _isRefreshing = false;
+            handler.next(err);
+          },
+          (currentSession) async {
+            // Force refresh the session regardless of local expiration status
+            final refreshResult =
+                await _sessionManager.refreshSession(currentSession).run();
+
+            await refreshResult.fold(
+              (error) async {
+                _isRefreshing = false;
                 handler.next(err);
-              }
-            },
-          );
-        },
-      );
+              },
+              (refreshedSession) async {
+                // Save the refreshed session
+                await _sessionManager.saveSession(refreshedSession).run();
+
+                _isRefreshing = false;
+
+                // Retry the original request with new token
+                final options = err.requestOptions;
+                options.headers['Authorization'] =
+                    'Bearer ${refreshedSession.jwt}';
+
+                try {
+                  final response = await _dio.fetch(options);
+                  handler.resolve(response);
+                } catch (e) {
+                  handler.next(err);
+                }
+              },
+            );
+          },
+        );
+      } catch (e) {
+        _isRefreshing = false;
+        handler.next(err);
+      }
     } else {
       handler.next(err);
     }

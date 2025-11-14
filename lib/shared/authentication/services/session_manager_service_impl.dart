@@ -39,6 +39,12 @@ class SessionManagerServiceImpl implements SessionManagerService {
       final refreshToken = await _secureStorage.read(key: 'refresh_token');
 
       if (jwt == null || refreshToken == null) {
+        if (_remoteAuthService == null) {
+          throw Exception(
+            'Sessão não encontrada e RemoteAuthService não disponível',
+          );
+        }
+
         final newSessionResult = await _createNewSession().run();
         return newSessionResult.fold(
           (error) => throw Exception('Erro ao criar nova sessão: $error'),
