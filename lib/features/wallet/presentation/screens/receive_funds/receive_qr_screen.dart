@@ -353,6 +353,21 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
       return address;
     }
 
+    if (widget.network == NetworkType.bitcoin) {
+      String address = widget.displayAddress;
+
+      if (address.startsWith('bitcoin:')) {
+        address = address.substring('bitcoin:'.length);
+      }
+
+      final queryIndex = address.indexOf('?');
+      if (queryIndex != -1) {
+        address = address.substring(0, queryIndex);
+      }
+
+      return address;
+    }
+
     return widget.displayAddress;
   }
 
