@@ -64,13 +64,6 @@ final depositValidationProvider = Provider<DepositValidation>((ref) {
         );
       }
 
-      if (depositAmount > levels.remainingLimit) {
-        return DepositValidation.error(
-          DepositValidationError.aboveRemaining,
-          'Limite restante hoje: R\$ ${levels.remainingLimit.toStringAsFixed(2)}',
-        );
-      }
-
       return const DepositValidation.valid();
     },
     loading: () => const DepositValidation.valid(),

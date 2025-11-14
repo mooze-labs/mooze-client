@@ -51,14 +51,6 @@ class AccountLimitsDisplay extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   InfoRow(
-                    label: 'Limite restante',
-                    value: 'R\$ ${data.remainingLimit.toStringAsFixed(2)}',
-                    labelColor: Colors.white70,
-                    valueColor: Colors.white,
-                    fontSize: context.responsiveFont(14),
-                  ),
-                  const SizedBox(height: 6),
-                  InfoRow(
                     label: 'Valor mínimo',
                     value: 'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                     labelColor: Colors.white70,
@@ -102,8 +94,6 @@ class AccountLimitsDisplay extends ConsumerWidget {
                   ShimmerInfoRow(label: "Limite diário"),
                   const SizedBox(height: 6),
                   ShimmerInfoRow(label: "Por transação"),
-                  const SizedBox(height: 6),
-                  ShimmerInfoRow(label: "Limite restante"),
                   const SizedBox(height: 6),
                   ShimmerInfoRow(label: "Valor mínimo"),
                 ],

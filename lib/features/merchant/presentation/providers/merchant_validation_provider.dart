@@ -34,24 +34,20 @@ final merchantValidationProvider = Provider.family<MerchantValidation, double>((
 ) {
   final levelsAsync = ref.watch(levelsProvider);
 
-  // Se ainda está carregando os limites, não valida
   if (levelsAsync.isLoading) {
     return const MerchantValidation.valid();
   }
 
-  // Se houve erro ao carregar limites, não valida
   if (levelsAsync.hasError) {
     return const MerchantValidation.valid();
   }
 
-  // Se não tem valor, não mostra erro
   if (totalAmount <= 0) {
     return const MerchantValidation.valid();
   }
 
   return levelsAsync.when(
     data: (levels) {
-      // Validação: Valor mínimo
       if (totalAmount < levels.absoluteMinLimit) {
         return MerchantValidation.error(
           MerchantValidationError.belowMinimum,
@@ -59,19 +55,10 @@ final merchantValidationProvider = Provider.family<MerchantValidation, double>((
         );
       }
 
-      // Validação: Limite por transação
       if (totalAmount > levels.allowedSpending) {
         return MerchantValidation.error(
           MerchantValidationError.aboveTransaction,
           'Limite por transação: R\$ ${levels.allowedSpending.toStringAsFixed(2)}',
-        );
-      }
-
-      // Validação: Limite restante diário
-      if (totalAmount > levels.remainingLimit) {
-        return MerchantValidation.error(
-          MerchantValidationError.aboveRemaining,
-          'Limite restante hoje: R\$ ${levels.remainingLimit.toStringAsFixed(2)}',
         );
       }
 

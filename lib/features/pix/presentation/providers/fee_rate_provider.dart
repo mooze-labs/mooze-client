@@ -22,7 +22,7 @@ final feeRateProvider = FutureProvider.autoDispose.family<double, double>((
     feeRate = 2.75;
   }
 
-  if (hasReferral) feeRate -= 0.5;
+  if (hasReferral) feeRate *= 0.85;
 
   return feeRate;
 });

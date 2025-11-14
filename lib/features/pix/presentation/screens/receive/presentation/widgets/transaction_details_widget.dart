@@ -132,6 +132,7 @@ class FeeDisplay extends ConsumerWidget {
     final discountedDeposit = ref.watch(
       discountedFeesDepositProvider(depositAmount),
     );
+    final hasReferral = ref.watch(hasReferralProvider);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),
@@ -170,7 +171,27 @@ class FeeDisplay extends ConsumerWidget {
             loading: () => ShimmerInfoRow(label: "Percentual"),
           ),
           SizedBox(height: 6),
+          hasReferral.when(
+            data: (hasRef) {
+              if (hasRef && depositAmount >= 55) {
+                return Column(
+                  children: [
+                    InfoRow(
+                      label: "Desconto referral",
+                      value: "-15%",
+                      valueColor: Colors.green,
+                    ),
+                    SizedBox(height: 6),
+                  ],
+                );
+              }
+              return SizedBox.shrink();
+            },
+            error: (_, __) => SizedBox.shrink(),
+            loading: () => SizedBox.shrink(),
+          ),
           InfoRow(label: "Taxa da processadora", value: "R\$ 1.00"),
+          SizedBox(height: 6),
           discountedDeposit.when(
             data:
                 (data) => InfoRow(
@@ -182,6 +203,7 @@ class FeeDisplay extends ConsumerWidget {
                     InfoRow(label: "Valor final", value: "Erro"),
             loading: () => ShimmerInfoRow(label: "Valor final"),
           ),
+          SizedBox(height: 6),
         ],
       ),
     );
