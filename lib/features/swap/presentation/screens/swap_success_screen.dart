@@ -221,7 +221,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                           const SizedBox(height: 8),
 
                           Text(
-                            'Sua transação foi processada com sucesso',
+                            'Sua transação foi processada com sucesso, em instantes o saldo estará disponível na sua carteira.',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: AppColors.textSecondary),
                             textAlign: TextAlign.center,
