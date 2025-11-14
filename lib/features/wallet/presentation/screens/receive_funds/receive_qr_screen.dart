@@ -243,7 +243,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
               ),
             ),
             child: SelectableText(
-              widget.displayAddress,
+              _getCleanAddress(),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontFamily: 'monospace',
                 fontSize: 13,
@@ -319,7 +319,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
   }
 
   void _copyAddressToClipboard() async {
-    await Clipboard.setData(ClipboardData(text: widget.displayAddress));
+    await Clipboard.setData(ClipboardData(text: _getCleanAddress()));
 
     setState(() {
       _isCopied = true;
@@ -335,6 +335,25 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
         _animationController.reverse();
       }
     });
+  }
+
+  String _getCleanAddress() {
+    if (widget.network == NetworkType.liquid) {
+      String address = widget.displayAddress;
+
+      if (address.startsWith('liquidnetwork:')) {
+        address = address.substring('liquidnetwork:'.length);
+      }
+
+      final queryIndex = address.indexOf('?');
+      if (queryIndex != -1) {
+        address = address.substring(0, queryIndex);
+      }
+
+      return address;
+    }
+
+    return widget.displayAddress;
   }
 
   void _shareQRCode() {
