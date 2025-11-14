@@ -251,13 +251,70 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       debugPrint('[WalletDataManager] Iniciando refresh manual...');
       state = state.copyWith(state: WalletDataState.refreshing);
 
+      final liquidResult = await ref.read(liquidDataSourceProvider.future);
+      final bdkResult = await ref.read(bdkDatasourceProvider.future);
+
+      bool hasValidDataSource = false;
+      bool liquidFailed = false;
+      bool bdkFailed = false;
+
+      liquidResult.fold(
+        (error) {
+          debugPrint(
+            '[WalletDataManager] ⚠️ Liquid datasource com erro durante refresh: $error',
+          );
+          liquidFailed = true;
+        },
+        (success) {
+          debugPrint('[WalletDataManager] ✅ Liquid datasource disponível');
+          hasValidDataSource = true;
+        },
+      );
+
+      bdkResult.fold(
+        (error) {
+          debugPrint(
+            '[WalletDataManager] ⚠️ BDK datasource com erro durante refresh: $error',
+          );
+          bdkFailed = true;
+        },
+        (success) {
+          debugPrint('[WalletDataManager] ✅ BDK datasource disponível');
+          hasValidDataSource = true;
+        },
+      );
+
+      if (!hasValidDataSource) {
+        debugPrint(
+          '[WalletDataManager] ❌ Nenhum datasource disponível, abortando refresh',
+        );
+        state = state.copyWith(
+          state: WalletDataState.error,
+          errorMessage: 'Datasources não disponíveis',
+          hasLiquidSyncFailed: liquidFailed,
+          hasBdkSyncFailed: bdkFailed,
+        );
+
+        debugPrint(
+          '[WalletDataManager] ⏭️ Pulando sincronização de transações pendentes',
+        );
+        return;
+      }
+
       await _invalidateAndRefreshAllProviders();
 
-      _syncPendingTransactions();
+      await _syncPendingTransactions();
+
+      debugPrint(
+        '[WalletDataManager] Forçando refresh do cache após sync de pendentes',
+      );
+      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
 
       state = state.copyWith(
         state: WalletDataState.success,
         lastSync: DateTime.now(),
+        hasLiquidSyncFailed: liquidFailed,
+        hasBdkSyncFailed: bdkFailed,
       );
 
       debugPrint('[WalletDataManager] Refresh manual concluído');
@@ -273,11 +330,12 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     }
   }
 
-  void _syncPendingTransactions() {
+  Future<void> _syncPendingTransactions() async {
     try {
-      final monitorService = ref.read(transactionMonitorServiceProvider);
-      monitorService.syncPendingTransactions();
       debugPrint('[WalletDataManager] Sincronização de pendentes disparada');
+      final monitorService = ref.read(transactionMonitorServiceProvider);
+      await monitorService.syncPendingTransactions();
+      debugPrint('[WalletDataManager] Sincronização de pendentes concluída');
     } catch (e) {
       debugPrint('[WalletDataManager] Erro ao sincronizar pendentes: $e');
     }
@@ -374,8 +432,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
   void _startPeriodicSync() {
     _periodicSyncTimer?.cancel();
-
-    const syncInterval = Duration(minutes: 2);
+    const syncInterval = Duration(minutes: 1);
     _periodicSyncTimer = Timer.periodic(syncInterval, (timer) {
       _performPeriodicSync();
     });
@@ -386,32 +443,18 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   Future<void> _performPeriodicSync() async {
-    if (state.isLoadingOrRefreshing) return;
+    if (state.isLoadingOrRefreshing) {
+      debugPrint(
+        '[WalletDataManager] Sync já em andamento, pulando sync periódico',
+      );
+      return;
+    }
 
     debugPrint('[WalletDataManager] Executando sync periódico...');
 
-    try {
-      final favoriteAssets = ref.read(favoriteAssetsProvider);
+    await refreshWalletData();
 
-      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
-
-      for (final asset in favoriteAssets) {
-        ref.invalidate(balanceProvider(asset));
-      }
-
-      ref.invalidate(totalWalletValueProvider);
-      ref.invalidate(totalWalletBitcoinProvider);
-      ref.invalidate(totalWalletSatoshisProvider);
-      ref.invalidate(totalWalletVariationProvider);
-
-      state = state.copyWith(lastSync: DateTime.now());
-
-      _syncPendingTransactions();
-
-      debugPrint('[WalletDataManager] Sync periódico concluído');
-    } catch (error) {
-      debugPrint('[WalletDataManager] Erro no sync periódico: $error');
-    }
+    debugPrint('[WalletDataManager] Sync periódico concluído');
   }
 
   void stopPeriodicSync() {

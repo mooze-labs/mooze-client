@@ -17,6 +17,7 @@ class TransactionMonitorService {
 
   Timer? _monitorTimer;
   final Set<String> _notifiedTransactions = {};
+  final Set<String> _knownTransactionIds = {};
 
   TransactionMonitorService(this._ref) : _storage = PendingTransactionStorage();
 
@@ -175,81 +176,67 @@ class TransactionMonitorService {
         '[TransactionMonitor] Iniciando sincronização de pendentes...',
       );
 
-      final transactionHistoryAsync = _ref.read(transactionHistoryProvider);
+      final result = await _ref.read(transactionHistoryProvider.future);
 
-      await transactionHistoryAsync.when(
-        data: (result) async {
-          await result.fold(
-            (error) async {
-              debugPrint(
-                '[TransactionMonitor] Erro ao buscar transações: $error',
-              );
-            },
-            (transactions) async {
-              debugPrint(
-                '[TransactionMonitor] Total de transações da API: ${transactions.length}',
-              );
-
-              // PRIMEIRO: Verificar se alguma transação pendente foi confirmada
-              final oldPendingTransactions =
-                  await _storage.getPendingTransactions();
-              debugPrint(
-                '[TransactionMonitor] Transações no storage antes do sync: ${oldPendingTransactions.length}',
-              );
-
-              if (oldPendingTransactions.isNotEmpty) {
-                debugPrint(
-                  '[TransactionMonitor] Verificando confirmações antes de atualizar storage...',
-                );
-                await _compareAndNotify(oldPendingTransactions, transactions);
-              }
-
-              // DEPOIS: Atualizar storage com transações que ainda estão pendentes
-              final pendingReceives = transactions.where(
-                (t) =>
-                    t.status == TransactionStatus.pending &&
-                    (t.type == TransactionType.receive ||
-                        t.type == TransactionType.swap),
-              );
-
-              debugPrint(
-                '[TransactionMonitor] Transações pendentes (receive/swap): ${pendingReceives.length}',
-              );
-
-              for (final tx in pendingReceives) {
-                debugPrint(
-                  '[TransactionMonitor] - ${tx.id}: ${tx.type.name} ${tx.asset.ticker} status=${tx.status.name}',
-                );
-              }
-
-              final pendingList =
-                  pendingReceives
-                      .map(
-                        (t) => PendingTransaction(
-                          id: t.id,
-                          assetId: t.asset.id,
-                          assetTicker: t.asset.ticker,
-                          amount: t.amount,
-                          detectedAt: DateTime.now(),
-                        ),
-                      )
-                      .toList();
-
-              await _storage.savePendingTransactions(pendingList);
-
-              debugPrint(
-                '[TransactionMonitor] ${pendingList.length} transações salvas no storage',
-              );
-            },
-          );
+      await result.fold(
+        (error) async {
+          debugPrint('[TransactionMonitor] Erro ao buscar transações: $error');
         },
-        loading: () async {
+        (transactions) async {
           debugPrint(
-            '[TransactionMonitor] Aguardando carregamento de transações...',
+            '[TransactionMonitor] Total de transações da API: ${transactions.length}',
           );
-        },
-        error: (error, stack) async {
-          debugPrint('[TransactionMonitor] Erro no provider: $error');
+
+          final oldPendingTransactions =
+              await _storage.getPendingTransactions();
+          debugPrint(
+            '[TransactionMonitor] Transações no storage antes do sync: ${oldPendingTransactions.length}',
+          );
+
+          if (oldPendingTransactions.isNotEmpty) {
+            debugPrint(
+              '[TransactionMonitor] Verificando confirmações antes de atualizar storage...',
+            );
+            await _compareAndNotify(oldPendingTransactions, transactions);
+          }
+
+          await _detectNewTransactions(transactions);
+
+          final pendingReceives = transactions.where(
+            (t) =>
+                t.status == TransactionStatus.pending &&
+                (t.type == TransactionType.receive ||
+                    t.type == TransactionType.swap),
+          );
+
+          debugPrint(
+            '[TransactionMonitor] Transações pendentes (receive/swap): ${pendingReceives.length}',
+          );
+
+          for (final tx in pendingReceives) {
+            debugPrint(
+              '[TransactionMonitor] - ${tx.id}: ${tx.type.name} ${tx.asset.ticker} status=${tx.status.name}',
+            );
+          }
+
+          final pendingList =
+              pendingReceives
+                  .map(
+                    (t) => PendingTransaction(
+                      id: t.id,
+                      assetId: t.asset.id,
+                      assetTicker: t.asset.ticker,
+                      amount: t.amount,
+                      detectedAt: DateTime.now(),
+                    ),
+                  )
+                  .toList();
+
+          await _storage.savePendingTransactions(pendingList);
+
+          debugPrint(
+            '[TransactionMonitor] ${pendingList.length} transações salvas no storage',
+          );
         },
       );
     } catch (e, stack) {
@@ -258,8 +245,68 @@ class TransactionMonitorService {
     }
   }
 
+  Future<void> _detectNewTransactions(List<Transaction> transactions) async {
+    try {
+      final confirmedReceives = transactions.where(
+        (t) =>
+            t.status == TransactionStatus.confirmed &&
+            (t.type == TransactionType.receive ||
+                t.type == TransactionType.swap),
+      );
+
+      debugPrint(
+        '[TransactionMonitor] Verificando ${confirmedReceives.length} transações confirmadas (receive/swap)',
+      );
+
+      for (final tx in confirmedReceives) {
+        final isNew = _knownTransactionIds.add(tx.id);
+
+        if (isNew && !_notifiedTransactions.contains(tx.id)) {
+          debugPrint(
+            '[TransactionMonitor] 🆕 Nova transação detectada: ${tx.id}',
+          );
+
+          final isSwap = tx.type == TransactionType.swap && tx.toAsset != null;
+          final asset = isSwap ? tx.toAsset! : tx.asset;
+          final amount = isSwap ? tx.receivedAmount! : tx.amount;
+
+          debugPrint(
+            '[TransactionMonitor] Tipo: ${tx.type.name}, Asset: ${asset.ticker}, Amount: $amount',
+          );
+
+          _notifiedTransactions.add(tx.id);
+
+          final event = TransactionStatusEvent(
+            transactionId: tx.id,
+            assetId: asset.id,
+            assetTicker: asset.ticker,
+            amount: amount,
+            confirmedAt: DateTime.now(),
+          );
+
+          _statusController.add(event);
+
+          debugPrint(
+            '[TransactionMonitor] ✅ Evento disparado para nova transação',
+          );
+        } else if (!isNew) {
+          debugPrint('[TransactionMonitor] Transação ${tx.id} já conhecida');
+        }
+      }
+    } catch (e, stack) {
+      debugPrint('[TransactionMonitor] Erro ao detectar novas transações: $e');
+      debugPrint('Stack: $stack');
+    }
+  }
+
   Future<void> clearNotifiedTransactions() async {
     _notifiedTransactions.clear();
+    debugPrint('[TransactionMonitor] Cache de notificadas limpo');
+  }
+
+  Future<void> clearKnownTransactions() async {
+    _knownTransactionIds.clear();
+    debugPrint('[TransactionMonitor] Cache de transações conhecidas limpo');
   }
 
   Future<void> debugStorageState() async {
@@ -273,6 +320,7 @@ class TransactionMonitorService {
     for (final id in _notifiedTransactions) {
       debugPrint('  - $id');
     }
+    debugPrint('Transações conhecidas: ${_knownTransactionIds.length}');
     debugPrint('====================');
   }
 
