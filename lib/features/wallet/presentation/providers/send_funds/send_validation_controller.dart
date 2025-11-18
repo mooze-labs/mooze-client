@@ -104,36 +104,37 @@ class SendValidationController extends StateNotifier<SendValidationState> {
 
       final feeEstimation = await ref.read(feeEstimationProvider.future);
 
-      balanceResult.fold((error) => errors.add('Erro ao verificar saldo disponível'), (
-        balance,
-      ) {
-        if (amount > balance.toInt()) {
-          errors.add('Valor informado é maior que o saldo disponível');
-          return;
-        }
-
-        if (feeEstimation.isValid) {
-          final totalNeeded = BigInt.from(amount) + feeEstimation.fees;
-
-          if (totalNeeded > balance) {
-            final feesInSats = feeEstimation.fees.toInt();
-            final satText = feesInSats == 1 ? 'sat' : 'sats';
-
-            errors.add(
-              'Saldo insuficiente. Você precisa de $totalNeeded sats (${amount} + $feesInSats $satText de taxa), mas tem apenas ${balance} sats disponíveis',
-            );
+      balanceResult.fold(
+        (error) => errors.add('Erro ao verificar saldo disponível'),
+        (balance) {
+          if (amount > balance.toInt()) {
+            errors.add('Valor informado é maior que o saldo disponível');
+            return;
           }
-        } else if (feeEstimation.hasError) {
-          if (feeEstimation.errorMessage == 'INSUFFICIENT_FUNDS') {
-          } else if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
-            errors.add('Endereço inválido ou não reconhecido');
-          } else {
-            errors.add(
-              'Não foi possível calcular as taxas: ${feeEstimation.errorMessage}',
-            );
+
+          if (feeEstimation.isValid) {
+            final totalNeeded = BigInt.from(amount) + feeEstimation.fees;
+
+            if (totalNeeded > balance) {
+              final feesInSats = feeEstimation.fees.toInt();
+              final satText = feesInSats == 1 ? 'sat' : 'sats';
+
+              errors.add(
+                'Saldo insuficiente. Você precisa de $totalNeeded sats (${amount} + $feesInSats $satText de taxa), mas tem apenas ${balance} sats disponíveis',
+              );
+            }
+          } else if (feeEstimation.hasError) {
+            if (feeEstimation.errorMessage == 'INSUFFICIENT_FUNDS') {
+            } else if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
+              errors.add('Endereço inválido ou não reconhecido');
+            } else {
+              errors.add(
+                'Não foi possível calcular as taxas: ${feeEstimation.errorMessage}',
+              );
+            }
           }
-        }
-      });
+        },
+      );
     } catch (e) {
       errors.add('Erro ao validar saldo e taxas: $e');
     }
@@ -150,54 +151,48 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     }
 
     try {
+      // BTC e LBTC
       if (asset == Asset.btc || asset == Asset.lbtc) {
-        if (networkType == NetworkType.bitcoin) {
-          if (amount < 25000) {
-            errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
-          }
-        } else if (networkType == NetworkType.lightning) {
+        if (networkType == NetworkType.lightning) {
           final lightningLimits = await ref.read(
             lightningSendLimitsProvider.future,
           );
-          if (lightningLimits != null) {
-            if (amount < lightningLimits.minSat.toInt()) {
-              errors.add(
-                'Valor mínimo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é ${lightningLimits.minSat} sats',
-              );
-            }
-            if (amount > lightningLimits.maxSat.toInt()) {
-              errors.add(
-                'Valor máximo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é ${lightningLimits.maxSat} sats',
-              );
-            }
-          } else {
-            if (amount < 21) {
-              errors.add(
-                'Valor mínimo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é 21 sats',
-              );
-            }
+
+          final min = lightningLimits?.minSat.toInt() ?? 21;
+          final max = lightningLimits?.maxSat.toInt();
+
+          if (amount < min) {
+            errors.add('Valor mínimo para lightning é $min sats');
+          }
+
+          if (max != null && amount > max) {
+            errors.add('Valor máximo para lightning é $max sats');
           }
         }
-      } else {
-        if (asset == Asset.usdt && amount < 50000000) {
+
+        // networkType == bitcoin ⇒ no extra validation
+        return;
+      }
+
+      // USDT
+      if (asset == Asset.usdt) {
+        const minUsdt = 50000000; // 0.5 USDT
+        if (amount < minUsdt) {
           errors.add('Valor mínimo para USDT é 0.5 USDT');
         }
+        return;
+      }
 
-        if (asset == Asset.depix && amount < 100000000) {
+      // Depix
+      if (asset == Asset.depix) {
+        const minDepix = 100000000; // 1 Depix
+        if (amount < minDepix) {
           errors.add('Valor mínimo para Depix é 1.0 Depix');
         }
+        return;
       }
     } catch (e) {
-      if (asset == Asset.btc || asset == Asset.lbtc) {
-        if (networkType == NetworkType.bitcoin && amount < 25000) {
-          errors.add('Valor mínimo para bitcoin onchain é 25.000 sats');
-        }
-        if (networkType == NetworkType.lightning && amount < 21) {
-          errors.add(
-            'Valor mínimo para ${asset == Asset.btc ? 'bitcoin' : 'L-BTC'} lightning é 21 sats',
-          );
-        }
-      }
+      errors.add('Erro ao validar limites de envio: $e');
     }
   }
 
