@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/enums/blockchain.dart';
 import '../../presentation/providers/transaction_provider.dart';
@@ -18,10 +19,67 @@ class TransactionMonitorService {
   Timer? _monitorTimer;
   final Set<String> _notifiedTransactions = {};
   final Set<String> _knownTransactionIds = {};
+  bool _isImporting = false;
+  late DateTime _importStartTime;
 
-  TransactionMonitorService(this._ref) : _storage = PendingTransactionStorage();
+  TransactionMonitorService(this._ref)
+    : _storage = PendingTransactionStorage() {
+    _importStartTime = DateTime.now();
+    debugPrint(
+      '[TransactionMonitor] Serviço criado, timestamp inicial: $_importStartTime',
+    );
+  }
 
   Stream<TransactionStatusEvent> get statusUpdates => _statusController.stream;
+
+  void startImporting() {
+    _isImporting = true;
+    _importStartTime = DateTime.now();
+    debugPrint(
+      '[TransactionMonitor] Modo importação ativado em ${_importStartTime}',
+    );
+  }
+
+  void finishImporting() {
+    _isImporting = false;
+    debugPrint('[TransactionMonitor] Modo importação desativado');
+  }
+
+  Future<void> markExistingTransactionsAsKnown() async {
+    try {
+      final transactionHistoryAsync = _ref.read(transactionHistoryProvider);
+
+      await transactionHistoryAsync.whenOrNull(
+        data: (result) async {
+          await result.fold(
+            (error) async {
+              debugPrint(
+                '[TransactionMonitor] Erro ao carregar transações para marcar como conhecidas: $error',
+              );
+            },
+            (transactions) async {
+              for (final tx in transactions) {
+                _knownTransactionIds.add(tx.id);
+                print('[TransactionTime] ${tx.createdAt}');
+                if (tx.status == TransactionStatus.confirmed &&
+                    (tx.type == TransactionType.receive ||
+                        tx.type == TransactionType.swap)) {
+                  _notifiedTransactions.add(tx.id);
+                }
+              }
+              debugPrint(
+                '[TransactionMonitor] ${transactions.length} transações marcadas como conhecidas',
+              );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint(
+        '[TransactionMonitor] Erro ao marcar transações como conhecidas: $e',
+      );
+    }
+  }
 
   void startMonitoring({Duration interval = const Duration(seconds: 10)}) {
     _monitorTimer?.cancel();
@@ -42,6 +100,15 @@ class TransactionMonitorService {
 
   Future<void> _checkTransactions() async {
     try {
+      final walletStatus = _ref.read(walletDataManagerProvider);
+
+      if (!walletStatus.isSuccess && !walletStatus.isRefreshing) {
+        debugPrint(
+          '[TransactionMonitor] Wallet não está pronto (${walletStatus.state}), pulando verificação',
+        );
+        return;
+      }
+
       final pendingTransactions = await _storage.getPendingTransactions();
 
       debugPrint(
@@ -110,6 +177,15 @@ class TransactionMonitorService {
       );
 
       if (confirmed.id.isNotEmpty) {
+        if (_isImporting) {
+          debugPrint(
+            '[TransactionMonitor] Importação em andamento, confirmação de ${pending.id} não será notificada',
+          );
+          _notifiedTransactions.add(pending.id);
+          await _storage.removePendingTransaction(pending.id);
+          continue;
+        }
+
         // Transaction confirmed!
         debugPrint(
           '[TransactionMonitor] ✅ Transação confirmada encontrada: ${pending.id}',
@@ -172,6 +248,15 @@ class TransactionMonitorService {
 
   Future<void> syncPendingTransactions() async {
     try {
+      final walletStatus = _ref.read(walletDataManagerProvider);
+
+      if (!walletStatus.isSuccess && !walletStatus.isRefreshing) {
+        debugPrint(
+          '[TransactionMonitor] Wallet não está pronto (${walletStatus.state}), pulando sincronização',
+        );
+        return;
+      }
+
       debugPrint(
         '[TransactionMonitor] Iniciando sincronização de pendentes...',
       );
@@ -260,6 +345,27 @@ class TransactionMonitorService {
 
       for (final tx in confirmedReceives) {
         final isNew = _knownTransactionIds.add(tx.id);
+
+        if (_isImporting) {
+          debugPrint(
+            '[TransactionMonitor] Importação em andamento, transação ${tx.id} não será notificada',
+          );
+          _notifiedTransactions.add(tx.id);
+          continue;
+        }
+
+        if (tx.createdAt.isBefore(_importStartTime) ||
+            tx.createdAt.isAtSameMomentAs(_importStartTime)) {
+          debugPrint(
+            '[TransactionMonitor] Transação ${tx.id} (${tx.createdAt}) é ANTERIOR/IGUAL ao timestamp ($_importStartTime), ignorando',
+          );
+          _notifiedTransactions.add(tx.id);
+          continue;
+        }
+
+        debugPrint(
+          '[TransactionMonitor] Transação ${tx.id} (${tx.createdAt}) é POSTERIOR ao timestamp ($_importStartTime)',
+        );
 
         if (isNew && !_notifiedTransactions.contains(tx.id)) {
           debugPrint(
