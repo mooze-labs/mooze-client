@@ -8,3 +8,5 @@ export './screens/first_access/first_access.dart';
 
 export './screens/pin_setup/confirm_pin_setup.dart';
 export './screens/pin_setup/new_pin_setup.dart';
+
+export './screens/wallet_import_loading/wallet_import_loading_screen.dart';

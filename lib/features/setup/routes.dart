@@ -54,4 +54,8 @@ final setupRoutes = [
       );
     },
   ),
+  GoRoute(
+    path: "/setup/wallet-import-loading",
+    builder: (context, state) => const WalletImportLoadingScreen(),
+  ),
 ];
