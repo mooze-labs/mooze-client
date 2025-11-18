@@ -53,14 +53,50 @@ final liquidDataSourceProvider = FutureProvider<
             debugPrint('[LWK] Wallet inicializado com sucesso');
             return wallet;
           } catch (error) {
-            debugPrint('[LWK] Erro na inicialização do LWK: $error');
-            debugPrint(
-              '[LWK] Detectada corrupção do banco de dados. Limpando e reiniciando app...',
-            );
+            String errorMessage = error.toString();
+            if (error is LwkError) {
+              errorMessage = 'LwkError: ${error.msg}';
+            }
 
-            LwkCacheManager.clearAndRestart();
+            final errorStr = errorMessage.toLowerCase();
+            debugPrint('[LWK] Erro na inicialização do LWK: $errorMessage');
 
-            await Future.delayed(const Duration(seconds: 1));
+            final isCorruption =
+                (errorStr.contains('database') &&
+                    (errorStr.contains('corrupt') ||
+                        errorStr.contains('malform') ||
+                        errorStr.contains('not a database'))) ||
+                errorStr.contains('updateondifferentstatus');
+
+            if (isCorruption) {
+              debugPrint(
+                '[LWK] Detectada incompatibilidade/corrupção do banco de dados. Limpando...',
+              );
+
+              await LwkCacheManager.clearLwkDatabase();
+
+              debugPrint('[LWK] Banco limpo. Tente novamente.');
+
+              if (errorStr.contains('updateondifferentstatus')) {
+                debugPrint('[LWK] Tentando reinicializar após limpeza...');
+                try {
+                  final wallet = await Wallet.init(
+                    network: network,
+                    dbpath: dbpath,
+                    descriptor: desc,
+                  );
+                  debugPrint(
+                    '[LWK] Wallet reinicializado com sucesso após limpeza',
+                  );
+                  return wallet;
+                } catch (retryError) {
+                  debugPrint('[LWK] Falha ao reinicializar: $retryError');
+                  rethrow;
+                }
+              }
+            } else {
+              debugPrint('[LWK] Erro genérico (não é corrupção): $errorStr');
+            }
 
             rethrow;
           }

@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 
 import '../lwk/providers/datasource_provider.dart';
 import 'sync_service_provider.dart';
 import '../bdk/providers/datasource_provider.dart';
 import 'wallet_data_manager.dart';
 import 'sync_config.dart';
+import '../../key_management/providers/mnemonic_provider.dart';
 
 /// Extracts useful details from LwkError
 String _extractErrorDetails(dynamic error) {
@@ -44,13 +46,53 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
     );
   });
 
-  // Initialize the wallet data manager
+  bool _hasInitialized = false;
+  bool _liquidReady = false;
+  bool _bdkReady = false;
+
+  void _tryInitializeWallet() {
+    if (!_hasInitialized && _liquidReady && _bdkReady) {
+      WalletSyncLogger.info(
+        "[WalletSyncBootstrapProvider] Ambos datasources prontos (Liquid: $_liquidReady, BDK: $_bdkReady), inicializando wallet",
+      );
+      _hasInitialized = true;
+      ref.read(walletDataManagerProvider.notifier).initializeWallet();
+    } else if (!_hasInitialized) {
+      WalletSyncLogger.debug(
+        "[WalletSyncBootstrapProvider] Aguardando datasources (Liquid: $_liquidReady, BDK: $_bdkReady)",
+      );
+    }
+  }
+
+  // Initialize the wallet data manager listener 
   ref.listen(walletDataManagerProvider, (prev, next) {
     if (prev?.state != next.state) {
       debugPrint(
         "[WalletSyncBootstrapProvider] Wallet data state changed: ${prev?.state} → ${next.state}",
       );
     }
+  });
+
+  ref.listen<AsyncValue<Option<String>>>(mnemonicProvider, (previous, next) {
+    next.whenData((mnemonicOption) {
+      final hasMnemonic = mnemonicOption.isSome();
+
+      if (hasMnemonic) {
+        WalletSyncLogger.info(
+          "[WalletSyncBootstrapProvider] Mnemonic disponível, iniciando datasources",
+        );
+
+        ref.read(liquidDataSourceProvider);
+        ref.read(bdkDatasourceProvider);
+      } else {
+        WalletSyncLogger.info(
+          "[WalletSyncBootstrapProvider] Mnemonic não disponível, aguardando...",
+        );
+        _hasInitialized = false;
+        _liquidReady = false;
+        _bdkReady = false;
+      }
+    });
   });
 
   // Start Liquid sync when datasource is ready
@@ -77,6 +119,8 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
               ref
                   .read(walletDataManagerProvider.notifier)
                   .notifyLiquidSyncFailed(errorDetails);
+
+              _liquidReady = false;
             },
             (datasource) {
               debugPrint("Liquid datasource ready, starting sync");
@@ -84,8 +128,10 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
               ref
                   .read(walletDataManagerProvider.notifier)
                   .notifyDataSourceRecovered('liquid');
-              // Try to initialize the wallet when datasource is ready
-              ref.read(walletDataManagerProvider.notifier).initializeWallet();
+
+              _liquidReady = true;
+              _tryInitializeWallet();
+
               ref.read(
                 liquidSyncEffectProvider,
               ); // Keep the original sync as well
@@ -116,6 +162,8 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
               ref
                   .read(walletDataManagerProvider.notifier)
                   .notifyBdkSyncFailed(errorDetails);
+
+              _bdkReady = false;
             },
             (datasource) {
               debugPrint("BDK datasource ready, starting sync");
@@ -123,6 +171,10 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
               ref
                   .read(walletDataManagerProvider.notifier)
                   .notifyDataSourceRecovered('bdk');
+
+              _bdkReady = true;
+              _tryInitializeWallet();
+
               ref.read(bdkSyncEffectProvider);
             },
           ),

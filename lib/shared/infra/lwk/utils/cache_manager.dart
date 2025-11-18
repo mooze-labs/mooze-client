@@ -4,6 +4,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:restart_app/restart_app.dart';
 
 class LwkCacheManager {
+  static bool _hasAttemptedCleanup = false;
+
+  static void resetCleanupFlag() {
+    _hasAttemptedCleanup = false;
+    debugPrint('[LwkCacheManager] Flag de limpeza resetada');
+  }
+
   static Future<void> clearLwkDatabase() async {
     try {
       debugPrint(
@@ -32,6 +39,15 @@ class LwkCacheManager {
   }
 
   static Future<void> clearAndRestart() async {
+    if (_hasAttemptedCleanup) {
+      debugPrint(
+        '[LwkCacheManager] Já tentou limpar nesta sessão, evitando loop infinito',
+      );
+      return;
+    }
+
+    _hasAttemptedCleanup = true;
+
     try {
       debugPrint(
         '[LwkCacheManager] Limpando banco de dados e reiniciando app...',

@@ -68,7 +68,12 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     : super(const WalletDataStatus(state: WalletDataState.idle));
 
   Future<void> initializeWallet() async {
-    if (state.isLoadingOrRefreshing) return;
+    if (state.isLoadingOrRefreshing) {
+      debugPrint(
+        '[WalletDataManager] Inicialização já em andamento, ignorando',
+      );
+      return;
+    }
 
     debugPrint('[WalletDataManager] Inicializando carteira...');
 
@@ -301,6 +306,43 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         return;
       }
 
+      debugPrint('[WalletDataManager] Sincronizando datasources...');
+      final syncFutures = <Future<void>>[];
+
+      liquidResult.fold(
+        (_) => debugPrint(
+          '[WalletDataManager] ⏭️ Pulando sync do Liquid (com erro)',
+        ),
+        (datasource) {
+          debugPrint('[WalletDataManager] 🔄 Sincronizando Liquid...');
+          syncFutures.add(
+            datasource.sync().catchError((e) {
+              debugPrint(
+                '[WalletDataManager] ❌ Erro ao sincronizar Liquid: $e',
+              );
+              return Future.value();
+            }),
+          );
+        },
+      );
+
+      bdkResult.fold(
+        (_) =>
+            debugPrint('[WalletDataManager] ⏭️ Pulando sync do BDK (com erro)'),
+        (datasource) {
+          debugPrint('[WalletDataManager] 🔄 Sincronizando BDK...');
+          syncFutures.add(
+            datasource.sync().catchError((e) {
+              debugPrint('[WalletDataManager] ❌ Erro ao sincronizar BDK: $e');
+              return Future.value();
+            }),
+          );
+        },
+      );
+
+      await Future.wait(syncFutures);
+      debugPrint('[WalletDataManager] ✅ Datasources sincronizados');
+
       await _invalidateAndRefreshAllProviders();
 
       await _syncPendingTransactions();
@@ -341,15 +383,11 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     }
   }
 
-  void invalidateAllWalletProviders() {
+  void _invalidateDataProviders() {
     debugPrint(
-      '[WalletDataManager] Invalidando todos os providers da carteira...',
+      '[WalletDataManager] Invalidando providers de dados (mantendo datasources)...',
     );
 
-    ref.invalidate(mnemonicProvider);
-    ref.invalidate(bdkDatasourceProvider);
-    ref.invalidate(liquidDataSourceProvider);
-    ref.invalidate(breezClientProvider);
     ref.invalidate(walletRepositoryProvider);
 
     ref.invalidate(transactionControllerProvider);
@@ -372,6 +410,19 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     ref.invalidate(totalWalletVariationProvider);
 
     ref.invalidate(assetPriceHistoryCacheProvider);
+  }
+
+  void invalidateAllWalletProviders() {
+    debugPrint(
+      '[WalletDataManager] ⚠️ Invalidando TODOS os providers (incluindo datasources)...',
+    );
+
+    ref.invalidate(mnemonicProvider);
+    ref.invalidate(bdkDatasourceProvider);
+    ref.invalidate(liquidDataSourceProvider);
+    ref.invalidate(breezClientProvider);
+
+    _invalidateDataProviders();
   }
 
   Future<void> _loadInitialData() async {
@@ -420,7 +471,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   Future<void> _invalidateAndRefreshAllProviders() async {
-    invalidateAllWalletProviders();
+    _invalidateDataProviders();
 
     final favoriteAssets = ref.read(favoriteAssetsProvider);
 
@@ -433,12 +484,13 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   void _startPeriodicSync() {
     _periodicSyncTimer?.cancel();
     const syncInterval = Duration(minutes: 1);
+
     _periodicSyncTimer = Timer.periodic(syncInterval, (timer) {
       _performPeriodicSync();
     });
 
     debugPrint(
-      '[WalletDataManager] Sync periódico iniciado (${syncInterval.inMinutes} min)',
+      '[WalletDataManager] Sync periódico iniciado (${syncInterval.inMinutes} min) - próximo sync em ${syncInterval.inMinutes} minuto(s)',
     );
   }
 
