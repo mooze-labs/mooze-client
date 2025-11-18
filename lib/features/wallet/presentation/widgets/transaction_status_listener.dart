@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
 import 'package:mooze_mobile/routes.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class TransactionStatusListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -21,12 +22,29 @@ class _TransactionStatusListenerState
     extends ConsumerState<TransactionStatusListener> {
   StreamSubscription<TransactionStatusEvent>? _subscription;
   final Set<String> _processedTransactions = {};
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _setupListener();
-    _startMonitoring();
+    _checkAndInitialize();
+  }
+
+  void _checkAndInitialize() {
+    final walletStatus = ref.read(walletDataManagerProvider);
+
+    if (walletStatus.isSuccess && !_isInitialized) {
+      debugPrint(
+        '[TransactionStatusListener] Wallet pronto (${walletStatus.state}), iniciando monitoramento',
+      );
+      _isInitialized = true;
+      _setupListener();
+      _startMonitoring();
+    } else {
+      debugPrint(
+        '[TransactionStatusListener] Wallet não está pronto (${walletStatus.state}), aguardando...',
+      );
+    }
   }
 
   void _startMonitoring() {
@@ -116,6 +134,17 @@ class _TransactionStatusListenerState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<WalletDataStatus>(walletDataManagerProvider, (previous, next) {
+      if (!_isInitialized && next.isSuccess) {
+        debugPrint(
+          '[TransactionStatusListener] Wallet ficou pronto (${next.state}), iniciando monitoramento',
+        );
+        _isInitialized = true;
+        _setupListener();
+        _startMonitoring();
+      }
+    });
+
     return widget.child;
   }
 }
