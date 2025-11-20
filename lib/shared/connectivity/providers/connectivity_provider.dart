@@ -6,13 +6,23 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 class ConnectivityState {
   final bool isOnline;
   final DateTime lastUpdate;
+  final int consecutiveFailures;
 
-  ConnectivityState({required this.isOnline, required this.lastUpdate});
+  ConnectivityState({
+    required this.isOnline,
+    required this.lastUpdate,
+    this.consecutiveFailures = 0,
+  });
 
-  ConnectivityState copyWith({bool? isOnline, DateTime? lastUpdate}) {
+  ConnectivityState copyWith({
+    bool? isOnline,
+    DateTime? lastUpdate,
+    int? consecutiveFailures,
+  }) {
     return ConnectivityState(
       isOnline: isOnline ?? this.isOnline,
       lastUpdate: lastUpdate ?? this.lastUpdate,
+      consecutiveFailures: consecutiveFailures ?? this.consecutiveFailures,
     );
   }
 }
@@ -23,7 +33,13 @@ class ConnectivityNotifier extends StateNotifier<ConnectivityState> {
   final Connectivity _connectivity = Connectivity();
 
   ConnectivityNotifier()
-    : super(ConnectivityState(isOnline: true, lastUpdate: DateTime.now())) {
+    : super(
+        ConnectivityState(
+          isOnline: true,
+          lastUpdate: DateTime.now(),
+          consecutiveFailures: 0,
+        ),
+      ) {
     _initConnectivityMonitoring();
   }
 
@@ -76,20 +92,48 @@ class ConnectivityNotifier extends StateNotifier<ConnectivityState> {
   }
 
   Future<void> _checkRealConnectivity() async {
-    try {
-      final result = await InternetAddress.lookup(
-        'google.com',
-      ).timeout(const Duration(seconds: 5));
+    final List<String> testHosts = [
+      '1.1.1.1',
+      '8.8.8.8',
+      'dns.google',
+    ];
 
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        if (!state.isOnline) {
-          _markOnlineInternal();
+    bool hasConnection = false;
+
+    for (final host in testHosts) {
+      try {
+        final result = await InternetAddress.lookup(
+          host,
+        ).timeout(const Duration(seconds: 3));
+
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          hasConnection = true;
+          break;
         }
-      } else {
-        markOffline();
+      } catch (e) {
+        continue;
       }
-    } catch (e) {
-      markOffline();
+    }
+
+    if (hasConnection) {
+      if (!state.isOnline || state.consecutiveFailures > 0) {
+        state = state.copyWith(
+          isOnline: true,
+          lastUpdate: DateTime.now(),
+          consecutiveFailures: 0,
+        );
+      }
+    } else {
+      final newFailures = state.consecutiveFailures + 1;
+
+      if (newFailures >= 2) {
+        state = state.copyWith(
+          isOnline: false,
+          consecutiveFailures: newFailures,
+        );
+      } else {
+        state = state.copyWith(consecutiveFailures: newFailures);
+      }
     }
   }
 
@@ -98,7 +142,11 @@ class ConnectivityNotifier extends StateNotifier<ConnectivityState> {
   }
 
   void _markOnlineInternal() {
-    state = state.copyWith(isOnline: true, lastUpdate: DateTime.now());
+    state = state.copyWith(
+      isOnline: true,
+      lastUpdate: DateTime.now(),
+      consecutiveFailures: 0,
+    );
   }
 
   void markOnline() {
@@ -119,7 +167,10 @@ class ConnectivityNotifier extends StateNotifier<ConnectivityState> {
   }
 
   void markOffline() {
-    state = state.copyWith(isOnline: false);
+    state = state.copyWith(
+      isOnline: false,
+      consecutiveFailures: state.consecutiveFailures + 1,
+    );
   }
 
   void updateLastCheck() {
