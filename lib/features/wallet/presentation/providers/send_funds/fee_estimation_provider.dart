@@ -86,14 +86,19 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
             isDrainTransaction
                 ? await controller
                     .beginDrainTransaction(
-                      destination,
-                      asset,
-                      blockchain,
-                      amount,
+                      destination: destination,
+                      asset: asset,
+                      blockchain: blockchain,
+                      amount: amount,
                     )
                     .run()
                 : await controller
-                    .beginNewTransaction(destination, asset, blockchain, amount)
+                    .beginNewTransaction(
+                      destination: destination,
+                      asset: asset,
+                      blockchain: blockchain,
+                      amount: amount,
+                    )
                     .run();
 
         return psbtResult.fold((error) {
