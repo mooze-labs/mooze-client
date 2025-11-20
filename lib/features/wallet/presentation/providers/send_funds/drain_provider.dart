@@ -6,7 +6,7 @@ import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-import 'address_provider.dart';
+import 'clean_address_provider.dart';
 import 'selected_asset_provider.dart';
 import 'selected_network_provider.dart';
 import 'amount_provider.dart';
@@ -18,7 +18,7 @@ final drainTransactionProvider =
       final walletRepositoryResult = await ref.read(
         walletRepositoryProvider.future,
       );
-      final destination = ref.watch(addressStateProvider);
+      final destination = ref.watch(cleanAddressProvider);
       final asset = ref.watch(selectedAssetProvider);
       final blockchain = ref.watch(selectedNetworkProvider);
 
@@ -60,12 +60,12 @@ final drainTransactionProvider =
     });
 
 final isDrainAvailableProvider = Provider<bool>((ref) {
-  final destination = ref.watch(addressStateProvider);
+  final destination = ref.watch(cleanAddressProvider);
   return destination.isNotEmpty;
 });
 
 final isDrainTransactionProvider = Provider<bool>((ref) {
-  final destination = ref.watch(addressStateProvider);
+  final destination = ref.watch(cleanAddressProvider);
   final currentAmount = ref.watch(finalAmountProvider);
   final maxAmountAsync = ref.watch(maxAvailableAmountProvider);
 

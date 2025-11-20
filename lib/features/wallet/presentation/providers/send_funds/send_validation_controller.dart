@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'selected_asset_provider.dart';
 import 'amount_provider.dart';
-import 'address_provider.dart';
+import 'clean_address_provider.dart';
 import 'network_detection_provider.dart';
 import 'selected_asset_balance_provider.dart';
 import 'fee_estimation_provider.dart';
@@ -17,7 +17,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
   Future<void> validateTransaction() async {
     final asset = ref.read(selectedAssetProvider);
     final amount = ref.read(finalAmountProvider);
-    final address = ref.read(addressStateProvider);
+    final address = ref.read(cleanAddressProvider);
     final networkType = ref.read(networkDetectionProvider(address));
     final isDrainTransaction = ref.read(isDrainTransactionProvider);
 

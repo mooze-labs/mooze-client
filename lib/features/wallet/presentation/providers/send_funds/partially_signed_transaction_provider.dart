@@ -8,7 +8,7 @@ import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.d
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-import 'address_provider.dart';
+import 'clean_address_provider.dart';
 import 'amount_provider.dart';
 import 'selected_asset_provider.dart';
 import 'selected_network_provider.dart';
@@ -18,7 +18,7 @@ import 'fee_speed_provider.dart';
 final psbtProvider = FutureProvider<Either<String, PartiallySignedTransaction>>(
   (ref) async {
     final walletController = await ref.read(walletControllerProvider.future);
-    final destination = ref.watch(addressStateProvider);
+    final destination = ref.watch(cleanAddressProvider);
     final asset = ref.watch(selectedAssetProvider);
     final blockchain = ref.watch(selectedNetworkProvider);
     final finalAmount = ref.watch(finalAmountProvider);
@@ -53,7 +53,6 @@ final psbtProvider = FutureProvider<Either<String, PartiallySignedTransaction>>(
         );
       },
       (controller) {
-
         if (isDrainTransaction) {
           return controller
               .beginDrainTransaction(

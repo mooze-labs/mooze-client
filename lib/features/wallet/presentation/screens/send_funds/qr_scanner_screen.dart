@@ -8,6 +8,7 @@ import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/qr_validation_service.dart';
 
 class QRCodeScannerScreen extends ConsumerStatefulWidget {
   const QRCodeScannerScreen({super.key});
@@ -65,21 +66,63 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   }
 
   void _processScannedData(String data) {
-    String address = data;
+    // Validate the QR code data
+    final validationResult = QrValidationService.validateQrData(data);
 
-    if (data.startsWith('bitcoin:')) {
-      final uri = Uri.parse(data);
-      address = uri.path;
-    } else if (data.startsWith('lightning:')) {
-      address = data.replaceFirst('lightning:', '');
-    } else if (data.startsWith('liquidnetwork:')) {
-      address = data.replaceFirst('liquidnetwork:', '');
+    if (!validationResult.isValid) {
+      // Show error message and allow scanning again
+      setState(() {
+        isScanning = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationResult.errorMessage ?? 'QR code inválido'),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Re-enable scanning after a delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            isScanning = true;
+          });
+        }
+      });
+
+      return;
     }
 
-    ref.read(addressStateProvider.notifier).state = address;
-    ref.read(addressControllerProvider).text = address;
+    // Use the cleaned data from validation
+    String cleanedData = validationResult.cleanedData ?? data;
 
-    _autoSwitchAssetBasedOnNetwork(address);
+    // Store the full data for amount detection
+    // The amount detection service will parse it correctly
+    ref.read(addressStateProvider.notifier).state = cleanedData;
+
+    // For the text controller, extract just the address part for display
+    String displayAddress = cleanedData;
+
+    if (cleanedData.startsWith('bitcoin:') ||
+        cleanedData.startsWith('liquidnetwork:') ||
+        cleanedData.startsWith('liquid:')) {
+      try {
+        final uri = Uri.parse(cleanedData);
+        displayAddress = uri.path;
+      } catch (e) {
+        // If parsing fails, use the cleaned data as is
+        displayAddress = cleanedData;
+      }
+    } else if (cleanedData.startsWith('lightning:')) {
+      displayAddress = cleanedData.replaceFirst('lightning:', '');
+    }
+
+    ref.read(addressControllerProvider).text = displayAddress;
+
+    _autoSwitchAssetBasedOnNetwork(cleanedData);
 
     context.pop();
   }

@@ -148,45 +148,51 @@ class AmountDetectionService {
       final parsedUri = Uri.parse(uri);
       final queryParams = parsedUri.queryParameters;
 
+      // Determine base asset from URI scheme
       Asset asset = Asset.btc;
-      if (uri.toLowerCase().startsWith('liquidnetwork:') ||
-          uri.toLowerCase().startsWith('liquid:')) {
-        asset = Asset.btc;
+      final lowerUri = uri.toLowerCase();
+
+      // Check for Liquid Network
+      bool isLiquid =
+          lowerUri.startsWith('liquidnetwork:') ||
+          lowerUri.startsWith('liquid:');
+
+      if (isLiquid) {
+        asset = Asset.lbtc; // Default to L-BTC for Liquid Network
       }
 
-      final amountStr = queryParams['amount'];
-      if (amountStr != null) {
-        final amount = double.tryParse(amountStr);
-        if (amount != null && amount > 0) {
-          final satoshis = (amount * 100000000).round();
-
-          return AmountDetectionResult(
-            amountInSats: satoshis,
-            asset: asset,
-            label: queryParams['label'],
-            message: queryParams['message'],
-          );
-        }
-      }
-
+      // Parse asset ID if present (Liquid only)
       final assetId = queryParams['assetid'];
-      if (assetId != null) {
+      if (assetId != null && assetId.isNotEmpty) {
         if (assetId ==
             'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2') {
           asset = Asset.usdt; // USDT on Liquid
         } else if (assetId ==
             '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d') {
-          asset = Asset.btc;
+          asset = Asset.lbtc; // L-BTC on Liquid
+        }
+        // For other asset IDs, keep the default L-BTC
+      }
+
+      // Parse amount if present
+      final amountStr = queryParams['amount'];
+      int? satoshis;
+
+      if (amountStr != null && amountStr.isNotEmpty) {
+        final amount = double.tryParse(amountStr);
+        if (amount != null && amount > 0) {
+          satoshis = (amount * 100000000).round();
         }
       }
 
       return AmountDetectionResult(
+        amountInSats: satoshis,
         asset: asset,
         label: queryParams['label'],
         message: queryParams['message'],
       );
     } catch (e) {
-      // Ignore parsing errors
+      // Ignore parsing errors and return empty result
     }
 
     return const AmountDetectionResult();
@@ -210,27 +216,40 @@ class AmountDetectionService {
         }
       }
 
+      // Determine asset from address format
       Asset asset = Asset.btc;
-      if (baseAddress.startsWith('lq1') || baseAddress.startsWith('VJL')) {
-        asset = Asset.btc;
+      if (baseAddress.startsWith('lq1') ||
+          baseAddress.startsWith('VJL') ||
+          baseAddress.startsWith('VT') ||
+          baseAddress.startsWith('VG')) {
+        asset = Asset.lbtc; // Liquid Network
       }
 
+      // Parse asset ID if present (Liquid only)
+      final assetId = params['assetid'];
+      if (assetId != null && assetId.isNotEmpty) {
+        if (assetId ==
+            'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2') {
+          asset = Asset.usdt; // USDT on Liquid
+        } else if (assetId ==
+            '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d') {
+          asset = Asset.lbtc; // L-BTC on Liquid
+        }
+      }
+
+      // Parse amount if present
       final amountStr = params['amount'];
-      if (amountStr != null) {
+      int? satoshis;
+
+      if (amountStr != null && amountStr.isNotEmpty) {
         final amount = double.tryParse(amountStr);
         if (amount != null && amount > 0) {
-          final satoshis = (amount * 100000000).round();
-
-          return AmountDetectionResult(
-            amountInSats: satoshis,
-            asset: asset,
-            label: params['label'],
-            message: params['message'],
-          );
+          satoshis = (amount * 100000000).round();
         }
       }
 
       return AmountDetectionResult(
+        amountInSats: satoshis,
         asset: asset,
         label: params['label'],
         message: params['message'],

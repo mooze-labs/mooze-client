@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../wallet_provider.dart';
-import 'address_provider.dart';
+import 'clean_address_provider.dart';
 import 'amount_provider.dart';
 import 'selected_asset_provider.dart';
 import 'selected_network_provider.dart';
@@ -51,7 +51,7 @@ class FeeEstimation {
 }
 
 final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
-  final destination = ref.watch(addressStateProvider);
+  final destination = ref.watch(cleanAddressProvider);
   final asset = ref.watch(selectedAssetProvider);
   final blockchain = ref.watch(selectedNetworkProvider);
   final finalAmount = ref.watch(finalAmountProvider);
