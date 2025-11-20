@@ -229,10 +229,6 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                       );
                     },
                     error: (err, stackTrace) {
-                      if (kDebugMode) {
-                        debugPrint("❌ Erro ao carregar histórico PIX: $err");
-                        debugPrint("📚 Stack trace: $stackTrace");
-                      }
                       return ErrorPixDepositList(
                         onRetry: () {
                           _refreshData();
@@ -257,28 +253,31 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
     if (status != null && status != 'all') {
       switch (status) {
         case 'pending':
-          descriptions.add('Pendentes');
+          descriptions.add(DepositStatus.pending.labelPlural);
           break;
         case 'under_review':
-          descriptions.add('Em Análise');
+          descriptions.add(DepositStatus.underReview.labelPlural);
           break;
         case 'processing':
-          descriptions.add('Processando');
+          descriptions.add(DepositStatus.processing.labelPlural);
           break;
         case 'funds_prepared':
-          descriptions.add('Fundos Preparados');
+          descriptions.add(DepositStatus.fundsPrepared.labelPlural);
           break;
         case 'depix_sent':
-          descriptions.add('Enviados');
+          descriptions.add(DepositStatus.depixSent.labelPlural);
           break;
         case 'broadcasted':
-          descriptions.add('Transmitidos');
+          descriptions.add(DepositStatus.broadcasted.labelPlural);
           break;
         case 'finished':
-          descriptions.add('Finalizados');
+          descriptions.add(DepositStatus.finished.labelPlural);
           break;
         case 'failed':
-          descriptions.add('Falhados');
+          descriptions.add(DepositStatus.failed.labelPlural);
+          break;
+        case 'expired':
+          descriptions.add(DepositStatus.expired.labelPlural);
           break;
       }
     }

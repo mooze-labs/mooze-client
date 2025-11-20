@@ -391,6 +391,8 @@ Either<String, DepositStatus> parseDepositStatus(String status) {
       return right(DepositStatus.finished);
     case "failed":
       return right(DepositStatus.failed);
+    case "expired":
+      return right(DepositStatus.expired);
     default:
       return right(DepositStatus.unknown);
   }

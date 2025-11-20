@@ -100,11 +100,18 @@ class PixDepositListItem extends StatelessWidget {
                 Text(
                   isVisible
                       ? '•••••••'
-                      : '+R\$ ${_formatAmount(deposit.amountInCents)}',
+                      : deposit.status == DepositStatus.finished
+                      ? '+R\$ ${_formatAmount(deposit.amountInCents)}'
+                      : 'R\$ ${_formatAmount(deposit.amountInCents)}',
                   style: TextStyle(
                     color: isVisible ? Colors.white : _getStatusColor(),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    decoration:
+                        deposit.status == DepositStatus.finished ||
+                                deposit.status == DepositStatus.expired
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -125,26 +132,7 @@ class PixDepositListItem extends StatelessWidget {
   }
 
   String _getPixDepositSubtitle() {
-    switch (deposit.status) {
-      case DepositStatus.pending:
-        return "Pendente";
-      case DepositStatus.underReview:
-        return "Em Análise";
-      case DepositStatus.processing:
-        return "Processando";
-      case DepositStatus.fundsPrepared:
-        return "Fundos Preparados";
-      case DepositStatus.depixSent:
-        return "Enviado";
-      case DepositStatus.broadcasted:
-        return "Transmitido";
-      case DepositStatus.finished:
-        return "Finalizado";
-      case DepositStatus.failed:
-        return "Falhou";
-      case DepositStatus.unknown:
-        return "Desconhecido";
-    }
+    return deposit.status.label;
   }
 
   String _formatTime(DateTime dateTime) {
@@ -162,26 +150,7 @@ class PixDepositListItem extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    switch (deposit.status) {
-      case DepositStatus.pending:
-        return Colors.orange;
-      case DepositStatus.underReview:
-        return Colors.yellow;
-      case DepositStatus.processing:
-        return Colors.blue;
-      case DepositStatus.fundsPrepared:
-        return Colors.lightBlue;
-      case DepositStatus.depixSent:
-        return Colors.cyan;
-      case DepositStatus.broadcasted:
-        return Colors.teal;
-      case DepositStatus.finished:
-        return Colors.green;
-      case DepositStatus.failed:
-        return Colors.red;
-      case DepositStatus.unknown:
-        return Colors.grey;
-    }
+    return deposit.status.color;
   }
 }
 

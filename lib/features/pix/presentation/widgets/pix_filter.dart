@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
@@ -596,13 +597,23 @@ String _getStatusLabel(String status) {
     case 'all':
       return 'Todos';
     case 'pending':
-      return 'Pendente';
+      return DepositStatus.pending.label;
+    case 'under_review':
+      return DepositStatus.underReview.label;
     case 'processing':
-      return 'Processando';
+      return DepositStatus.processing.label;
+    case 'funds_prepared':
+      return DepositStatus.fundsPrepared.label;
+    case 'depix_sent':
+      return DepositStatus.depixSent.label;
+    case 'broadcasted':
+      return DepositStatus.broadcasted.label;
     case 'finished':
-      return 'Finalizado';
+      return DepositStatus.finished.label;
+    case 'failed':
+      return DepositStatus.failed.label;
     case 'expired':
-      return 'Expirado';
+      return DepositStatus.expired.label;
     default:
       return 'Todos';
   }

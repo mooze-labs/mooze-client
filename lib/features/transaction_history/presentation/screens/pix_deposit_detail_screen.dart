@@ -150,7 +150,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
             true,
             'depositId',
           ),
-          if (widget.deposit.assetAmount != null) ...[
+          if (widget.deposit.assetAmount != null &&
+              widget.deposit.status == DepositStatus.finished) ...[
             _buildDetailRow(
               'Valor recebido',
               '${(widget.deposit.assetAmount!.toDouble() / 100000000).toStringAsFixed(8)} ${widget.deposit.asset.ticker}',
@@ -250,49 +251,11 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
   }
 
   String _getStatusLabel() {
-    switch (widget.deposit.status) {
-      case DepositStatus.pending:
-        return 'Pendente';
-      case DepositStatus.underReview:
-        return 'Em Análise';
-      case DepositStatus.processing:
-        return 'Processando';
-      case DepositStatus.fundsPrepared:
-        return 'Fundos Preparados';
-      case DepositStatus.depixSent:
-        return 'Enviado';
-      case DepositStatus.broadcasted:
-        return 'Transmitido';
-      case DepositStatus.finished:
-        return 'Finalizado';
-      case DepositStatus.failed:
-        return 'Falhou';
-      case DepositStatus.unknown:
-        return 'Desconhecido';
-    }
+    return widget.deposit.status.label;
   }
 
   Color _getStatusColor() {
-    switch (widget.deposit.status) {
-      case DepositStatus.pending:
-        return Colors.orange;
-      case DepositStatus.underReview:
-        return Colors.yellow;
-      case DepositStatus.processing:
-        return Colors.blue;
-      case DepositStatus.fundsPrepared:
-        return Colors.lightBlue;
-      case DepositStatus.depixSent:
-        return Colors.cyan;
-      case DepositStatus.broadcasted:
-        return Colors.teal;
-      case DepositStatus.finished:
-        return Colors.green;
-      case DepositStatus.failed:
-        return Colors.red;
-      case DepositStatus.unknown:
-        return Colors.grey;
-    }
+    return widget.deposit.status.color;
   }
 
   String _formatDateTime(DateTime dateTime) {
