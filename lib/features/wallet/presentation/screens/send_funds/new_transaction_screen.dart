@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
+import '../../providers/balance_provider.dart';
+import '../../providers/send_funds/selected_asset_balance_provider.dart';
 import '../../widgets/send_funds/widgets.dart';
 
 class NewTransactionScreen extends ConsumerStatefulWidget {
@@ -15,6 +17,16 @@ class NewTransactionScreen extends ConsumerStatefulWidget {
 }
 
 class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.invalidate(balanceProvider);
+      ref.invalidate(selectedAssetBalanceProvider);
+      ref.invalidate(selectedAssetBalanceRawProvider);
+    });
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -57,6 +69,8 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
                 ConditionalAmountField(),
                 const SizedBox(height: 15),
                 DrainInfoWidget(),
+                const SizedBox(height: 20),
+                FeeSpeedSelectionWidget(),
                 const SizedBox(height: 20),
                 ValidationErrorsWidget(),
                 FeeEstimationWidget(),
