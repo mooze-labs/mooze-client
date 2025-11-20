@@ -44,6 +44,11 @@ class BreezTransactionDto {
 
     final String txid = _parseTxid(payment);
 
+  // Breez SDK timestamp may come in seconds or milliseconds
+  // Very small timestamps (< 10 billion) are in seconds
+    final timestamp = payment.timestamp;
+    final timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+
     return BreezTransactionDto(
       id: txid,
       destination: destination,
@@ -53,7 +58,7 @@ class BreezTransactionDto {
       asset: asset,
       blockchain: _parseBlockchain(payment),
       status: _parseStatus(payment),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(payment.timestamp),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(timestampMs.toInt()),
     );
   }
 
