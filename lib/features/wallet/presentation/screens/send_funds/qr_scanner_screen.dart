@@ -169,26 +169,28 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('Escanear QR Code'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () {
-            context.pop();
-          },
+    return SafeArea(
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          title: const Text('Escanear QR Code'),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () {
+              context.pop();
+            },
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          MobileScanner(controller: cameraController, onDetect: _onDetect),
-          _buildModernOverlay(),
-          _buildInstructions(),
-          _buildControlButtons(),
-        ],
+        body: Stack(
+          children: [
+            MobileScanner(controller: cameraController, onDetect: _onDetect),
+            _buildModernOverlay(),
+            _buildInstructions(),
+            _buildControlButtons(),
+          ],
+        ),
       ),
     );
   }
