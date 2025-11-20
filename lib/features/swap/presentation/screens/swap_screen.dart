@@ -33,6 +33,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   Timer? _debounce;
   bool _isSyncingDecimal = false;
   bool _hasShownNoLiquidityDialog = false;
+  bool _useDrain = false;
 
   static const int _minBtcLbtcSwapSats = 25000;
 
@@ -460,7 +461,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       final balance = await _getBalanceRaw(_fromAsset);
                       if (!mounted) return;
                       _fromAmountController.text = balance.toString();
-                      setState(() {});
+                      setState(() {
+                        _useDrain = true;
+                      });
                       _requestQuoteDebounced();
                     },
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(
@@ -489,6 +492,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         if (newAsset != null) {
                           setState(() {
                             _fromAsset = newAsset;
+                            _useDrain = false;
 
                             if (_fromAsset == core.Asset.btc) {
                               _toAsset = core.Asset.lbtc;
@@ -578,6 +582,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         onChanged: (value) {
                           if (_isSyncingDecimal) return;
                           _isSyncingDecimal = true;
+
+                          _useDrain = false;
 
                           if (value.isEmpty) {
                             _fromAmountController.text = '';
@@ -896,7 +902,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     final text = _fromAmountController.text.trim();
     final amount = BigInt.tryParse(text);
 
-    if (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats)) {
+    if (!_useDrain &&
+        (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats))) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -909,9 +916,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     final helper = BtcLbtcSwapHelper(context, ref);
     await helper.executeSwap(
-      amount: amount,
+      amount: amount ?? BigInt.zero,
       fromAsset: _fromAsset,
       toAsset: _toAsset,
+      drain: _useDrain && _isBtcLbtcSwap,
     );
   }
 

@@ -1,8 +1,21 @@
 import 'package:fpdart/fpdart.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/controllers/wallet_controller.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+
+class BtcLbtcFeeEstimate {
+  final BigInt boltzServiceFeeSat;
+  final BigInt networkFeeSat;
+  final BigInt totalFeeSat;
+
+  BtcLbtcFeeEstimate({
+    required this.boltzServiceFeeSat,
+    required this.networkFeeSat,
+    required this.totalFeeSat,
+  });
+}
 
 class BtcLbtcSwapController {
   final WalletController _walletController;
@@ -11,44 +24,138 @@ class BtcLbtcSwapController {
 
   static const int minSwapAmount = 25000;
 
-  TaskEither<String, Transaction> executePegIn(BigInt amount) {
-    if (amount < BigInt.from(minSwapAmount)) {
+  TaskEither<String, BtcLbtcFeeEstimate> prepareFeeEstimate({
+    required BigInt amount,
+    required bool isPegIn,
+    int? feeRateSatPerVByte,
+    bool drain = false,
+  }) {
+    if (kDebugMode) {
+      print(
+        '[BtcLbtcSwapController] prepareFeeEstimate - amount: $amount, isPegIn: $isPegIn, drain: $drain, feeRate: $feeRateSatPerVByte',
+      );
+    }
+
+    if (!drain && amount < BigInt.from(minSwapAmount)) {
       return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
     }
 
-    return _walletController
-        .beginNewTransaction(
-          '',
-          Asset.btc,
-          Blockchain.bitcoin,
-          amount,
-        )
-        .mapLeft((error) => 'Erro ao preparar peg-in: $error')
-        .flatMap(
-          (psbt) => _walletController
-              .confirmTransaction(psbt)
-              .mapLeft((error) => 'Erro ao enviar peg-in: $error'),
-        );
+    if (isPegIn) {
+      return _walletController.getLiquidReceiveAddress().flatMap(
+        (liquidAddress) => _walletController
+            .beginNewTransaction(
+              destination: liquidAddress,
+              asset: Asset.btc,
+              blockchain: Blockchain.bitcoin,
+              amount: amount,
+              feeRateSatPerVByte: feeRateSatPerVByte,
+              drain: drain,
+            )
+            .mapLeft((error) => 'Erro ao preparar peg-in: $error')
+            .map((psbt) {
+              if (kDebugMode) {
+                print(
+                  '[PegIn] Network fees: ${psbt.networkFees} sats, feeRate: $feeRateSatPerVByte sat/vB',
+                );
+              }
+              return BtcLbtcFeeEstimate(
+                boltzServiceFeeSat: BigInt.zero,
+                networkFeeSat: psbt.networkFees,
+                totalFeeSat: psbt.networkFees,
+              );
+            }),
+      );
+    } else {
+      return _walletController.getBitcoinReceiveAddress().flatMap(
+        (bitcoinAddress) => _walletController
+            .beginNewTransaction(
+              destination: bitcoinAddress,
+              asset: Asset.lbtc,
+              blockchain:
+                  Blockchain.bitcoin,
+              amount: amount,
+              feeRateSatPerVByte: feeRateSatPerVByte,
+              drain: drain,
+            )
+            .mapLeft((error) => 'Erro ao preparar peg-out: $error')
+            .map((psbt) {
+              final claimFee =
+                  (psbt is PreparedOnchainBitcoinTransaction)
+                      ? (psbt.claimFeesSat ?? BigInt.zero)
+                      : BigInt.zero;
+              final serviceFee = psbt.networkFees - claimFee;
+
+              if (kDebugMode) {
+                print(
+                  '[PegOut] Total fees: ${psbt.networkFees} sats, Claim (network): $claimFee sats, Service (Boltz): $serviceFee sats',
+                );
+              }
+
+              return BtcLbtcFeeEstimate(
+                boltzServiceFeeSat: serviceFee,
+                networkFeeSat: claimFee,
+                totalFeeSat: psbt.networkFees,
+              );
+            }),
+      );
+    }
   }
 
-  TaskEither<String, Transaction> executePegOut(BigInt amount) {
-    if (amount < BigInt.from(minSwapAmount)) {
+  TaskEither<String, Transaction> executePegIn({
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+    bool drain = false,
+  }) {
+    if (!drain && amount < BigInt.from(minSwapAmount)) {
       return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
     }
 
-    return _walletController
-        .beginNewTransaction(
-          '',
-          Asset.lbtc,
-          Blockchain.liquid,
-          amount,
-        )
-        .mapLeft((error) => 'Erro ao preparar peg-out: $error')
-        .flatMap(
-          (psbt) => _walletController
-              .confirmTransaction(psbt)
-              .mapLeft((error) => 'Erro ao enviar peg-out: $error'),
-        );
+    return _walletController.getLiquidReceiveAddress().flatMap(
+      (liquidAddress) => _walletController
+          .beginNewTransaction(
+            destination: liquidAddress,
+            asset: Asset.btc,
+            blockchain: Blockchain.bitcoin,
+            amount: amount,
+            feeRateSatPerVByte: feeRateSatPerVByte,
+            drain: drain,
+          )
+          .mapLeft((error) => 'Erro ao preparar peg-in: $error')
+          .flatMap(
+            (psbt) => _walletController
+                .confirmTransaction(psbt: psbt)
+                .mapLeft((error) => 'Erro ao enviar peg-in: $error'),
+          ),
+    );
+  }
+
+  TaskEither<String, Transaction> executePegOut({
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+    bool drain = false,
+  }) {
+    if (!drain && amount < BigInt.from(minSwapAmount)) {
+      return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
+    }
+
+    return _walletController.getBitcoinReceiveAddress().flatMap(
+      (bitcoinAddress) => _walletController
+          .beginNewTransaction(
+            destination: bitcoinAddress,
+            asset: Asset.lbtc,
+            blockchain:
+                Blockchain.bitcoin,
+            amount: amount,
+            feeRateSatPerVByte: feeRateSatPerVByte,
+            drain: drain,
+          )
+          .mapLeft((error) => 'Erro ao preparar peg-out: $error')
+          .flatMap(
+            (psbt) => _walletController
+                .confirmTransaction(psbt: psbt)
+                .mapLeft((error) => 'Erro ao enviar peg-out: $error'),
+          ),
+    );
   }
 
   bool isValidAmount(BigInt? amount) {

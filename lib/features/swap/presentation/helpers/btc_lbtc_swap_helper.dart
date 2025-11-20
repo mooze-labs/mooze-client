@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import '../providers/btc_lbtc_swap_controller_provider.dart';
-import '../widgets/btc_lbtc_confirm_dialog.dart';
+import '../widgets/btc_lbtc_confirm_bottom_sheet.dart';
 import '../screens/swap_success_screen.dart';
 
 class BtcLbtcSwapHelper {
@@ -17,74 +17,74 @@ class BtcLbtcSwapHelper {
     required BigInt amount,
     required core.Asset fromAsset,
     required core.Asset toAsset,
+    bool drain = false,
   }) async {
     final isPegIn = fromAsset == core.Asset.btc;
 
-    final confirmed = await _showConfirmDialog(amount, isPegIn);
-    if (!confirmed) return;
-
     if (!context.mounted) return;
 
-    _showLoadingDialog();
-
-    try {
-      final controllerEither = await ref.read(
-        btcLbtcSwapControllerProvider.future,
-      );
-
-      await controllerEither.match(
-        (error) async {
-          if (context.mounted) {
-            Navigator.of(context).pop();
-            _showErrorSnackBar(error);
-          }
-        },
-        (controller) async {
-          final result =
-              isPegIn
-                  ? await controller.executePegIn(amount).run()
-                  : await controller.executePegOut(amount).run();
-
-          if (context.mounted) {
-            Navigator.of(context).pop();
-
-            result.match(
-              (error) => _showErrorSnackBar(error),
-              (transaction) {
-                ref.invalidate(balanceProvider);
-                _showSuccessScreen(amount, fromAsset, toAsset, transaction.id);
-              },
-            );
-          }
-        },
-      );
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        _showErrorSnackBar('Erro inesperado: $e');
-      }
-    }
-  }
-
-  Future<bool> _showConfirmDialog(BigInt amount, bool isPegIn) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => BtcLbtcConfirmDialog(
-            amount: amount,
-            isPegIn: isPegIn,
-            onConfirm: () => Navigator.of(context).pop(true),
-            onCancel: () => Navigator.of(context).pop(false),
-          ),
+    final controllerEither = await ref.read(
+      btcLbtcSwapControllerProvider.future,
     );
-    return result ?? false;
-  }
 
-  void _showLoadingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+    await controllerEither.match(
+      (error) async {
+        if (context.mounted) {
+          _showErrorSnackBar(error);
+        }
+      },
+      (controller) async {
+        if (!context.mounted) return;
+
+        BtcLbtcConfirmBottomSheet.show(
+          context,
+          amount: amount,
+          isPegIn: isPegIn,
+          controller: controller,
+          drain: drain,
+          onConfirm: (feeRateSatPerVByte) async {
+            try {
+              final result =
+                  isPegIn
+                      ? await controller
+                          .executePegIn(
+                            amount: amount,
+                            feeRateSatPerVByte: feeRateSatPerVByte,
+                            drain: drain,
+                          )
+                          .run()
+                      : await controller
+                          .executePegOut(
+                            amount: amount,
+                            feeRateSatPerVByte: feeRateSatPerVByte,
+                            drain: drain,
+                          )
+                          .run();
+
+              if (context.mounted) {
+                Navigator.of(context).pop();
+
+                result.match((error) => _showErrorSnackBar(error), (
+                  transaction,
+                ) {
+                  ref.invalidate(balanceProvider);
+                  _showSuccessScreen(
+                    amount,
+                    fromAsset,
+                    toAsset,
+                    transaction.id,
+                  );
+                });
+              }
+            } catch (e) {
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                _showErrorSnackBar('Erro inesperado: $e');
+              }
+            }
+          },
+        );
+      },
     );
   }
 

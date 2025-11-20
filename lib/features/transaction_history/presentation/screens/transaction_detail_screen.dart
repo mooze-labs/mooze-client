@@ -29,29 +29,31 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final amountStr =
         "${isReceive ? '+' : ''}${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalhes da Transação'),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Detalhes da Transação'),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTransactionHeader(amountStr, isReceive),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTransactionHeader(amountStr, isReceive),
 
-            const SizedBox(height: 32),
+              const SizedBox(height: 32),
 
-            _buildDetailsCard(context),
+              _buildDetailsCard(context),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            _buildActionButtons(context),
-          ],
+              _buildActionButtons(context),
+            ],
+          ),
         ),
       ),
     );
@@ -285,12 +287,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               ? [const SizedBox.shrink()]
               : [_buildRegularDetailsSection()]),
 
-          _buildDetailRow(
-            'ID da Transação',
-            truncateHashId(widget.transaction.id),
-            null,
-            true,
-          ),
+          if (isSwap && _isCrossChainSwap())
+            ..._buildCrossChainSwapIds()
+          else
+            _buildDetailRow(
+              'ID da Transação',
+              truncateHashId(widget.transaction.id),
+              null,
+              true,
+            ),
           _buildDetailRow('Blockchain', _getBlockchainLabel()),
         ],
       ),
@@ -374,9 +379,39 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    if (_isCrossChainSwap()) {
+      return Column(
+        children: [
+          PrimaryButton(
+            text:
+                'Ver Envio no Explorer (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
+            onPressed:
+                () => _openInExplorer(
+                  txId: widget.transaction.sendTxId,
+                  blockchain: widget.transaction.sendBlockchain,
+                ),
+          ),
+          const SizedBox(height: 12),
+          PrimaryButton(
+            text:
+                'Ver Recebimento no Explorer (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
+            onPressed:
+                () => _openInExplorer(
+                  txId: widget.transaction.receiveTxId,
+                  blockchain: widget.transaction.receiveBlockchain,
+                ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      );
+    }
+
     return Column(
       children: [
-        PrimaryButton(text: 'Ver no Explorer', onPressed: _openInExplorer),
+        PrimaryButton(
+          text: 'Ver no Explorer',
+          onPressed: () => _openInExplorer(),
+        ),
         const SizedBox(height: 24),
       ],
     );
@@ -462,24 +497,25 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     });
   }
 
-  Future<void> _openInExplorer() async {
+  Future<void> _openInExplorer({String? txId, Blockchain? blockchain}) async {
+    final useTxId = txId ?? widget.transaction.id;
+    final useBlockchain = blockchain ?? widget.transaction.blockchain;
+
     String explorerUrl;
 
     if (widget.transaction.type == TransactionType.swap ||
-        widget.transaction.blockchain == Blockchain.liquid) {
-      explorerUrl =
-          'https://blockstream.info/liquid/tx/${widget.transaction.id}';
+        useBlockchain == Blockchain.liquid) {
+      explorerUrl = 'https://blockstream.info/liquid/tx/$useTxId';
     } else {
-      switch (widget.transaction.blockchain) {
+      switch (useBlockchain) {
         case Blockchain.bitcoin:
-          explorerUrl = 'https://blockstream.info/tx/${widget.transaction.id}';
+          explorerUrl = 'https://blockstream.info/tx/$useTxId';
           break;
         case Blockchain.lightning:
-          explorerUrl = 'https://blockstream.info/tx/${widget.transaction.id}';
+          explorerUrl = 'https://blockstream.info/tx/$useTxId';
           break;
         case Blockchain.liquid:
-          explorerUrl =
-              'https://blockstream.info/liquid/tx/${widget.transaction.id}';
+          explorerUrl = 'https://blockstream.info/liquid/tx/$useTxId';
           break;
       }
     }
@@ -507,6 +543,43 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           ),
         );
       }
+    }
+  }
+
+  bool _isCrossChainSwap() {
+    return widget.transaction.sendTxId != null &&
+        widget.transaction.receiveTxId != null &&
+        widget.transaction.sendBlockchain != null &&
+        widget.transaction.receiveBlockchain != null &&
+        widget.transaction.sendBlockchain !=
+            widget.transaction.receiveBlockchain;
+  }
+
+  List<Widget> _buildCrossChainSwapIds() {
+    return [
+      _buildDetailRow(
+        'ID Envio (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
+        widget.transaction.sendTxId!,
+        null,
+        true,
+      ),
+      _buildDetailRow(
+        'ID Recebimento (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
+        widget.transaction.receiveTxId!,
+        null,
+        true,
+      ),
+    ];
+  }
+
+  String _getBlockchainName(Blockchain blockchain) {
+    switch (blockchain) {
+      case Blockchain.bitcoin:
+        return 'Bitcoin';
+      case Blockchain.liquid:
+        return 'Liquid';
+      case Blockchain.lightning:
+        return 'Lightning';
     }
   }
 }
