@@ -97,6 +97,9 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     int amount,
     List<String> errors,
   ) async {
+    if (asset == Asset.btc) {
+      return;
+    }
     try {
       final balanceResult = await ref.read(
         selectedAssetBalanceRawProvider.future,
@@ -152,7 +155,10 @@ class SendValidationController extends StateNotifier<SendValidationState> {
 
     try {
       // BTC e LBTC
-      if (asset == Asset.btc || asset == Asset.lbtc) {
+      if (asset == Asset.btc) {
+        return;
+      }
+      if (asset == Asset.lbtc) {
         if (networkType == NetworkType.lightning) {
           final lightningLimits = await ref.read(
             lightningSendLimitsProvider.future,

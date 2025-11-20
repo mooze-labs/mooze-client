@@ -230,7 +230,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
         ref.read(sendFiatValueProvider.notifier).state = fiatAmount
             .toStringAsFixed(2);
       }
-
     } finally {
       ref.read(sendConversionLoadingProvider.notifier).state = false;
     }
@@ -397,7 +396,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
   }
 
   void _setMaxAmount(Asset selectedAsset, int satsAmount) {
-
     final conversionType = ref.read(sendConversionTypeProvider);
     final bitcoinPriceAsync = ref.read(bitcoinPriceProvider);
     final selectedAssetPriceAsync = ref.read(selectedAssetPriceProvider);
@@ -462,7 +460,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     });
 
     ref.read(amountStateProvider.notifier).state = satsAmount;
-
   }
 
   Widget _buildAmountInfo(
@@ -517,31 +514,11 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     Blockchain network,
     double btcAmount,
   ) {
-    final amountSats = BigInt.from((btcAmount * 100000000).round());
-
-    if (network == Blockchain.bitcoin) {
-      final minBitcoinSats = BigInt.from(25000);
-
-      if (amountSats < minBitcoinSats) {
-        return _buildValidationRow(
-          context,
-          icon: Icons.warning_amber_outlined,
-          text: 'Valor mínimo: 25.000 sats para Bitcoin',
-          color: Colors.orange,
-        );
-      } else {
-        return _buildValidationRow(
-          context,
-          icon: Icons.check_circle_outline,
-          text: 'Valor válido para Bitcoin',
-          color: Colors.green,
-        );
-      }
-    } else if (network == Blockchain.liquid) {
+    if (network == Blockchain.liquid || network == Blockchain.bitcoin) {
       return _buildValidationRow(
         context,
         icon: Icons.check_circle_outline,
-        text: 'Valor válido para Liquid',
+        text: 'Valor válido!',
         color: Colors.green,
       );
     }

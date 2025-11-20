@@ -20,6 +20,10 @@ class FeeEstimationWidget extends ConsumerWidget {
     if (isDrainTransaction) {
       return const SizedBox.shrink();
     }
+    
+    if (asset == Asset.btc) {
+      return const SizedBox.shrink();
+    }
 
     if (validationState.errors.isNotEmpty) {
       final hasOnlyBalanceErrors = validationState.errors.every(
