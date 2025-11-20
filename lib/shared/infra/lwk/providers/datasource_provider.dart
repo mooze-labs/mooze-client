@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:io';
 
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
 
@@ -27,75 +27,76 @@ final liquidDataSourceProvider = FutureProvider<
       ).flatMap((descriptor) => TaskEither.right(descriptor.ctDescriptor)),
     ),
   );
+
   return descriptor.flatMap((descriptorStr) {
     final supportDir = TaskEither.tryCatch(
       () async => getApplicationSupportDirectory(),
-      (error, stackTrace) => error.toString(),
+      (error, stackTrace) =>
+          'Failed to get application support directory: ${error.toString()}',
     ).flatMap((dir) => TaskEither.right("${dir.path}/lwk-db"));
 
     final liquidDescriptor = TaskEither.fromEither(
-      Either.tryCatch(
-        () => Descriptor(ctDescriptor: descriptorStr),
-        (error, stackTrace) => error.toString(),
-      ),
+      Either.tryCatch(() => Descriptor(ctDescriptor: descriptorStr), (
+        error,
+        stackTrace,
+      ) {
+        return 'Failed to create Descriptor: ${error.toString()}';
+      }),
     );
 
     return liquidDescriptor.flatMap(
       (desc) => supportDir.flatMap(
         (dbpath) => TaskEither.tryCatch(() async {
           try {
+            final dbDir = Directory(dbpath);
+
+            if (!await dbDir.exists()) {
+              await dbDir.create(recursive: true);
+            } else {
+              await dbDir.list().toList();
+            }
+
+            await dbDir.stat();
+
             final wallet = await Wallet.init(
               network: network,
               dbpath: dbpath,
               descriptor: desc,
             );
 
-            debugPrint('[LWK] Wallet inicializado com sucesso');
             return wallet;
           } catch (error) {
-            String errorMessage = error.toString();
-            if (error is LwkError) {
-              errorMessage = 'LwkError: ${error.msg}';
-            }
-
+            String errorMessage =
+                (error is LwkError)
+                    ? 'LwkError: ${error.msg}'
+                    : error.toString();
             final errorStr = errorMessage.toLowerCase();
-            debugPrint('[LWK] Erro na inicialização do LWK: $errorMessage');
 
             final isCorruption =
                 (errorStr.contains('database') &&
                     (errorStr.contains('corrupt') ||
                         errorStr.contains('malform') ||
                         errorStr.contains('not a database'))) ||
-                errorStr.contains('updateondifferentstatus');
+                errorStr.contains('updateondifferentstatus') ||
+                (errorStr.contains('persisterror') &&
+                    errorStr.contains('notfound'));
 
             if (isCorruption) {
-              debugPrint(
-                '[LWK] Detectada incompatibilidade/corrupção do banco de dados. Limpando...',
-              );
-
               await LwkCacheManager.clearLwkDatabase();
 
-              debugPrint('[LWK] Banco limpo. Tente novamente.');
-
-              if (errorStr.contains('updateondifferentstatus')) {
-                debugPrint('[LWK] Tentando reinicializar após limpeza...');
+              if (errorStr.contains('updateondifferentstatus') ||
+                  errorStr.contains('persisterror')) {
                 try {
                   final wallet = await Wallet.init(
                     network: network,
                     dbpath: dbpath,
                     descriptor: desc,
                   );
-                  debugPrint(
-                    '[LWK] Wallet reinicializado com sucesso após limpeza',
-                  );
                   return wallet;
                 } catch (retryError) {
-                  debugPrint('[LWK] Falha ao reinicializar: $retryError');
                   rethrow;
                 }
               }
-            } else {
-              debugPrint('[LWK] Erro genérico (não é corrupção): $errorStr');
             }
 
             rethrow;
