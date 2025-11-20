@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:fpdart/fpdart.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
@@ -12,12 +13,30 @@ class WalletController {
   WalletController(WalletRepository walletRepository)
     : _walletRepository = walletRepository;
 
-  TaskEither<String, PartiallySignedTransaction> beginNewTransaction(
-    String destination,
-    Asset asset,
-    Blockchain blockchain,
-    BigInt amount,
-  ) {
+  TaskEither<String, PartiallySignedTransaction> beginNewTransaction({
+    required String destination,
+    required Asset asset,
+    required Blockchain blockchain,
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+    bool drain = false,
+  }) {
+    if (kDebugMode) {
+      print(
+        '[WalletController] beginNewTransaction - drain: $drain, asset: $asset, blockchain: $blockchain, amount: $amount, feeRate: $feeRateSatPerVByte sat/vB',
+      );
+    }
+
+    if (drain) {
+      return beginDrainTransaction(
+        destination: destination,
+        asset: asset,
+        blockchain: blockchain,
+        amount: amount,
+        feeRateSatPerVByte: feeRateSatPerVByte,
+      );
+    }
+
     if (asset != Asset.btc && asset != Asset.lbtc) {
       final stablecoinAmount =
           (amount / BigInt.from(pow(10, 8))).roundToDouble();
@@ -32,7 +51,12 @@ class WalletController {
 
     switch (blockchain) {
       case Blockchain.bitcoin:
-        return _buildOnchainPsbt(destination, amount);
+        return _buildOnchainPsbt(
+          destination,
+          amount,
+          feeRateSatPerVByte,
+          asset,
+        );
       case Blockchain.lightning:
         return _walletRepository
             .buildLightningPaymentTransaction(destination, amount)
@@ -44,12 +68,14 @@ class WalletController {
     }
   }
 
-  TaskEither<String, PartiallySignedTransaction> beginDrainTransaction(
-    String destination,
-    Asset asset,
-    Blockchain blockchain,
-    BigInt amount,
-  ) {
+  TaskEither<String, PartiallySignedTransaction> beginDrainTransaction({
+    required String destination,
+    required Asset asset,
+    required Blockchain blockchain,
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+  }) {
+
     if (asset != Asset.btc && asset != Asset.lbtc) {
       return _walletRepository
           .buildDrainStablecoinTransaction(destination, asset)
@@ -58,9 +84,16 @@ class WalletController {
 
     switch (blockchain) {
       case Blockchain.bitcoin:
+
         return _walletRepository
-            .buildDrainOnchainBitcoinTransaction(destination)
-            .mapLeft((err) => err.description);
+            .buildDrainOnchainBitcoinTransaction(
+              destination,
+              asset: asset,
+              feeRateSatPerVbyte: feeRateSatPerVByte,
+            )
+            .mapLeft((err) {
+              return err.description;
+            });
       case Blockchain.lightning:
         return _walletRepository
             .buildDrainLightningTransaction(destination)
@@ -72,9 +105,9 @@ class WalletController {
     }
   }
 
-  TaskEither<String, Transaction> confirmTransaction(
-    PartiallySignedTransaction psbt,
-  ) {
+  TaskEither<String, Transaction> confirmTransaction({
+    required PartiallySignedTransaction psbt,
+  }) {
     switch (psbt) {
       case PreparedOnchainBitcoinTransaction():
         return _walletRepository
@@ -94,12 +127,31 @@ class WalletController {
   TaskEither<String, PartiallySignedTransaction> _buildOnchainPsbt(
     String destination,
     BigInt amount,
-  ) {
-    if (amount < BigInt.from(25000))
-      return TaskEither.left("Quantidade deve ser maior que 25000 sats");
+    int? feeRateSatPerVByte, [
+    Asset? asset,
+  ]) {
 
     return _walletRepository
-        .buildOnchainBitcoinPaymentTransaction(destination, amount)
-        .mapLeft((err) => err.description);
+        .buildOnchainBitcoinPaymentTransaction(
+          destination,
+          amount,
+          feeRateSatPerVByte,
+          asset,
+        )
+        .mapLeft((err) {
+          return err.description;
+        });
+  }
+
+  TaskEither<String, String> getBitcoinReceiveAddress() {
+    return _walletRepository.getBitcoinReceiveAddress().mapLeft(
+      (err) => err.description,
+    );
+  }
+
+  TaskEither<String, String> getLiquidReceiveAddress() {
+    return _walletRepository.getLiquidReceiveAddress().mapLeft(
+      (err) => err.description,
+    );
   }
 }

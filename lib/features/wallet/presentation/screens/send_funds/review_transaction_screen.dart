@@ -670,7 +670,8 @@ class _ReviewTransactionScreenState
         (error) async => left<String, dynamic>(
           "Erro ao acessar carteira: ${error.description}",
         ),
-        (controller) async => await controller.confirmTransaction(psbt).run(),
+        (controller) async =>
+            await controller.confirmTransaction(psbt: psbt).run(),
       );
 
       result.fold(

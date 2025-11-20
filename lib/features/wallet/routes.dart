@@ -8,6 +8,7 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_scre
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/qr_scanner_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/review_transaction_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/review_onchain_transaction_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/receive_funds_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/receive_qr_screen.dart';
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
@@ -116,6 +117,10 @@ final walletRoutes = [
   GoRoute(
     path: '/send-funds/review-simple',
     builder: (context, state) => const ReviewTransactionScreen(),
+  ),
+  GoRoute(
+    path: '/send-funds/review-onchain',
+    builder: (context, state) => const ReviewOnchainTransactionScreen(),
   ),
   GoRoute(
     path: '/send-funds/scanner',

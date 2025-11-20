@@ -129,17 +129,26 @@ class BreezWallet {
   }
 
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount) {
-    return prepareOnchainSendTransaction(_breez, destination, amount).flatMap((
-      response,
-    ) {
-      return TaskEither.right(
-        BreezPreparedOnchainTransactionDto(
-          destination: destination,
-          fees: response.prepareResponse.totalFeesSat,
-          amount: amount,
-        ).toDomain(),
-      );
+  buildOnchainBitcoinPaymentTransaction(
+    String destination,
+    BigInt amount, [
+    int? feeRateSatPerVByte,
+  ]) {
+    return prepareOnchainSendTransaction(
+      _breez,
+      destination,
+      amount,
+      feeRateSatPerVByte,
+    ).flatMap((response) {
+      final preparedTx =
+          BreezPreparedOnchainTransactionDto(
+            destination: destination,
+            fees: response.prepareResponse.totalFeesSat,
+            amount: amount,
+            claimFeesSat: response.prepareResponse.claimFeesSat,
+          ).toDomain();
+
+      return TaskEither.right(preparedTx);
     });
   }
 
@@ -166,14 +175,15 @@ class BreezWallet {
       destination,
       amount,
     ).flatMap((response) {
-      return TaskEither.right(
-        BreezPreparedLayer2TransactionDto(
-          destination: destination,
-          blockchain: Blockchain.liquid,
-          fees: response.feesSat ?? BigInt.zero,
-          amount: amount,
-        ).toDomain(),
-      );
+      final preparedTx =
+          BreezPreparedLayer2TransactionDto(
+            destination: destination,
+            blockchain: Blockchain.liquid,
+            fees: response.feesSat ?? BigInt.zero,
+            amount: amount,
+          ).toDomain();
+
+      return TaskEither.right(preparedTx);
     });
   }
 
@@ -228,25 +238,44 @@ class BreezWallet {
       }
     } else {
       // Handle Liquid payments
-      return prepareLayer2BitcoinSendTransaction(
-        _breez,
-        psbt.destination,
-        psbt.amount,
-      ).flatMap((preparedTransaction) {
-        return sendLayer2Transaction(_breez, preparedTransaction).flatMap((
-          response,
-        ) {
-          return TaskEither.right(
-            BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
-          );
+      // Check if this is a drain transaction using the drain flag
+      if (psbt.drain) {
+        return _prepareDrainLayer2Response(
+          _breez,
+          psbt.destination,
+          Blockchain.liquid,
+        ).flatMap((preparedTransaction) {
+          return sendLayer2Transaction(_breez, preparedTransaction).flatMap((
+            response,
+          ) {
+            return TaskEither.right(
+              BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
+            );
+          });
         });
-      });
+      } else {
+        return prepareLayer2BitcoinSendTransaction(
+          _breez,
+          psbt.destination,
+          psbt.amount,
+        ).flatMap((preparedTransaction) {
+          return sendLayer2Transaction(_breez, preparedTransaction).flatMap((
+            response,
+          ) {
+            return TaskEither.right(
+              BreezTransactionDto.fromSdk(payment: response.payment).toDomain(),
+            );
+          });
+        });
+      }
     }
   }
 
   TaskEither<WalletError, Transaction> sendOnchainBitcoinPayment(
     PreparedOnchainBitcoinTransaction psbt,
   ) {
+    // Note: feeRateSatPerVbyte is already included in the prepared transaction
+    // We don't need to pass it again here
     return prepareOnchainSendTransaction(
       _breez,
       psbt.destination,
@@ -265,18 +294,26 @@ class BreezWallet {
   // DRAIN methods - send all available funds
 
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildDrainOnchainBitcoinTransaction(String destination) {
+  buildDrainOnchainBitcoinTransaction(
+    String destination, {
+    int? feeRateSatPerVbyte,
+  }) {
     return getBalance().flatMap((balance) {
-      return _prepareDrainOnchainResponse(_breez, destination).flatMap(
-        (response) => TaskEither.right(
+      return _prepareDrainOnchainResponse(
+        _breez,
+        destination,
+        feeRateSatPerVbyte: feeRateSatPerVbyte,
+      ).flatMap((response) {
+        return TaskEither.right(
           BreezPreparedOnchainTransactionDto(
             destination: destination,
             fees: response.prepareResponse.totalFeesSat,
             amount: response.prepareResponse.receiverAmountSat,
+            claimFeesSat: response.prepareResponse.claimFeesSat,
             drain: true,
           ).toDomain(),
-        ),
-      );
+        );
+      });
     });
   }
 
@@ -663,8 +700,9 @@ TaskEither<WalletError, PrepareLnUrlPayResponse> prepareLightningTransaction(
 TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
   BindingLiquidSdk breez,
   String destination,
-  BigInt amount,
-) {
+  BigInt amount, [
+  int? feeRateSatPerVbyte,
+]) {
   return _getOnchainPaymentLimits(breez).flatMap((limits) {
     if (amount < limits.send.minSat) {
       return TaskEither.left(
@@ -683,7 +721,11 @@ TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
       );
     }
 
-    return _preparePayOnchainResponse(breez, amount).flatMap((r) {
+    return _preparePayOnchainResponse(
+      breez,
+      amount,
+      feeRateSatPerVbyte,
+    ).flatMap((r) {
       return TaskEither.right(
         PayOnchainRequest(address: destination, prepareResponse: r),
       );
@@ -693,14 +735,20 @@ TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
 
 TaskEither<WalletError, PreparePayOnchainResponse> _preparePayOnchainResponse(
   BindingLiquidSdk breez,
-  BigInt amount,
-) {
+  BigInt amount, [
+  int? feeRateSatPerVbyte,
+]) {
   return TaskEither.tryCatch(
-    () async => breez.preparePayOnchain(
-      req: PreparePayOnchainRequest(
-        amount: PayAmount_Bitcoin(receiverAmountSat: amount),
-      ),
-    ),
+    () async {
+      final response = await breez.preparePayOnchain(
+        req: PreparePayOnchainRequest(
+          amount: PayAmount_Bitcoin(receiverAmountSat: amount),
+          feeRateSatPerVbyte: feeRateSatPerVbyte,
+        ),
+      );
+
+      return response;
+    },
     (err, stackTrace) => WalletError(
       WalletErrorType.transactionFailed,
       "Falha ao gerar transação: $err",
@@ -897,13 +945,19 @@ TaskEither<WalletError, PrepareLnUrlPayResponse> _prepareDrainLightningResponse(
 
 TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
   BindingLiquidSdk breez,
-  String destination,
-) {
+  String destination, {
+  int? feeRateSatPerVbyte,
+}) {
   return TaskEither.tryCatch(
     () async {
       // For drain transactions, use PayAmount_Drain to send all available funds
+      // IMPORTANTE: Mesmo em drain mode, o feeRateSatPerVbyte afeta o cálculo
+      // O SDK Breez recalcula o máximo enviável baseado na taxa especificada
       final prepareResponse = await breez.preparePayOnchain(
-        req: PreparePayOnchainRequest(amount: PayAmount_Drain()),
+        req: PreparePayOnchainRequest(
+          amount: PayAmount_Drain(),
+          feeRateSatPerVbyte: feeRateSatPerVbyte,
+        ),
       );
 
       return PayOnchainRequest(

@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/drain_provider.dart';
 import '../../providers/send_funds/transaction_loading_provider.dart';
 import '../../providers/send_funds/partially_signed_transaction_provider.dart';
+import '../../providers/send_funds/prepared_psbt_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/selected_network_provider.dart';
 
 class ReviewButton extends ConsumerWidget {
   const ReviewButton({super.key});
@@ -80,6 +85,52 @@ class ReviewButton extends ConsumerWidget {
   }
 
   Future<void> _prepareTransaction(BuildContext context, WidgetRef ref) async {
+    final asset = ref.read(selectedAssetProvider);
+    final blockchain = ref.read(selectedNetworkProvider);
+
+    if (asset == Asset.btc && blockchain == Blockchain.bitcoin) {
+      final preparationController = ref.read(
+        transactionPreparationControllerProvider.notifier,
+      );
+
+      preparationController.startLoading();
+
+      await ref
+          .read(sendValidationControllerProvider.notifier)
+          .validateTransaction();
+
+      final finalValidation = ref.read(sendValidationControllerProvider);
+
+      if (!finalValidation.canProceed || finalValidation.errors.isNotEmpty) {
+        preparationController.reset();
+        return;
+      }
+
+      try {
+        ref.invalidate(psbtProvider);
+
+        final psbtResult = await ref.read(psbtProvider.future);
+
+        psbtResult.fold(
+          (error) {
+            final errorMessage = _parseInsufficientFundsError(error);
+            preparationController.setError(errorMessage);
+          },
+          (psbt) {
+            ref.read(preparedPsbtProvider.notifier).state = psbt;
+
+            preparationController.setSuccess();
+            if (!context.mounted) return;
+            context.push('/send-funds/review-onchain');
+          },
+        );
+      } catch (e) {
+        final errorMessage = _parseInsufficientFundsError(e.toString());
+        preparationController.setError(errorMessage);
+      }
+      return;
+    }
+
     final preparationController = ref.read(
       transactionPreparationControllerProvider.notifier,
     );

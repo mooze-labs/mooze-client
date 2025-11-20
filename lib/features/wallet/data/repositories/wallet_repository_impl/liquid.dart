@@ -11,6 +11,8 @@ class LiquidWallet {
 
   LiquidWallet(LiquidDataSource datasource) : _datasource = datasource;
 
+  LiquidDataSource get datasource => _datasource;
+
   TaskEither<WalletError, List<Transaction>> getTransactions({
     TransactionType? type,
     TransactionStatus? status,

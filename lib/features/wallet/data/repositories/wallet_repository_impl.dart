@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:fpdart/fpdart.dart';
+import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/bitcoin.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/breez.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
@@ -76,10 +77,24 @@ class WalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount) {
+  buildOnchainBitcoinPaymentTransaction(
+    String destination,
+    BigInt amount, [
+    int? feeRateSatPerVByte,
+    Asset? asset,
+  ]) {
+    if (asset == Asset.lbtc || destination.startsWith('lq1')) {
+      return _breezWallet.buildOnchainBitcoinPaymentTransaction(
+        destination,
+        amount,
+        feeRateSatPerVByte,
+      );
+    }
+
     return _bitcoinWallet.buildOnchainBitcoinPaymentTransaction(
       destination,
       amount,
+      feeRateSatPerVByte,
     );
   }
 
@@ -118,8 +133,22 @@ class WalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildDrainOnchainBitcoinTransaction(String destination) {
-    return _bitcoinWallet.buildDrainOnchainBitcoinTransaction(destination);
+  buildDrainOnchainBitcoinTransaction(
+    String destination, {
+    Asset? asset,
+    int? feeRateSatPerVbyte,
+  }) {
+    if (asset == Asset.lbtc || destination.startsWith('lq1')) {
+      return _breezWallet.buildDrainOnchainBitcoinTransaction(
+        destination,
+        feeRateSatPerVbyte: feeRateSatPerVbyte,
+      );
+    }
+
+    return _bitcoinWallet.buildDrainOnchainBitcoinTransaction(
+      destination,
+      feeRateSatPerVbyte: feeRateSatPerVbyte,
+    );
   }
 
   @override
@@ -140,7 +169,10 @@ class WalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, Transaction> sendOnchainBitcoinPayment(
     PreparedOnchainBitcoinTransaction psbt,
   ) {
-    return _breezWallet.sendOnchainBitcoinPayment(psbt);
+    if (psbt.destination.startsWith('lq1')) {
+      return _breezWallet.sendOnchainBitcoinPayment(psbt);
+    }
+    return _bitcoinWallet.sendOnchainBitcoinPayment(psbt);
   }
 
   @override
@@ -214,28 +246,165 @@ class WalletRepositoryImpl extends WalletRepository {
           return <Transaction>[];
         }, (txs) => txs);
 
-        final List<Transaction> btcTxs = bitcoinTransactions.fold((error) {
+        final bitcoinResult = await bitcoinTransactions.run();
+        final List<Transaction> btcTxs = bitcoinResult.fold((error) {
           debugPrint('Error fetching bitcoin transactions: $error');
           return <Transaction>[];
         }, (txs) => txs);
-
-        debugPrint(
-          "Got {${breezTxs.length} from Breez, ${liquidTxs.length} from Liquid, ${btcTxs.length} from Bitcoin}",
-        );
 
         final breezIds = breezTxs.map((tx) => tx.id).toSet();
         final filteredLiquidTxs =
             liquidTxs.where((tx) => !breezIds.contains(tx.id)).toList();
         final allTransactions = [...breezTxs, ...filteredLiquidTxs, ...btcTxs];
-        return allTransactions;
+
+        allTransactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        final processedTransactions = _identifyInternalSwaps(allTransactions);
+
+        return processedTransactions;
       },
-      (error, stackTrace) => WalletError(WalletErrorType.sdkError, error.toString()),
+      (error, stackTrace) =>
+          WalletError(WalletErrorType.sdkError, error.toString()),
     );
+  }
+  // Identify internal swaps between BTC and LBTC transactions
+  List<Transaction> _identifyInternalSwaps(List<Transaction> transactions) {
+    final result = <Transaction>[];
+    final processedIds = <String>{};
+
+
+    for (int i = 0; i < transactions.length; i++) {
+      if (processedIds.contains(transactions[i].id)) {
+        continue;
+      }
+
+      final tx1 = transactions[i];
+
+      if (tx1.type != TransactionType.send) {
+        result.add(tx1);
+        continue;
+      }
+
+      bool foundSwapPair = false;
+
+      for (int j = 0; j < transactions.length; j++) {
+        if (j == i || processedIds.contains(transactions[j].id)) {
+          continue;
+        }
+
+        final tx2 = transactions[j];
+
+        if (tx2.type != TransactionType.receive) {
+          continue;
+        }
+
+        final isBtcToLbtcSwap =
+            tx1.asset == Asset.btc &&
+            tx2.asset == Asset.lbtc &&
+            tx1.blockchain == Blockchain.bitcoin &&
+            tx2.blockchain == Blockchain.liquid;
+
+        final isLbtcToBtcSwap =
+            tx1.asset == Asset.lbtc &&
+            tx2.asset == Asset.btc &&
+            tx1.blockchain == Blockchain.liquid &&
+            tx2.blockchain == Blockchain.bitcoin;
+
+        if (!isBtcToLbtcSwap && !isLbtcToBtcSwap) {
+          continue;
+        }
+
+        final minAmount = BigInt.from(25000);
+        final sentAmount = tx1.amount;
+        final receivedAmount = tx2.amount;
+
+        final minExpectedReceived =
+            (sentAmount * BigInt.from(90)) ~/ BigInt.from(100);
+        final maxExpectedReceived =
+            (sentAmount * BigInt.from(101)) ~/ BigInt.from(100);
+
+        final hasValidAmount =
+            sentAmount >= minAmount &&
+            receivedAmount >= minExpectedReceived &&
+            receivedAmount <= maxExpectedReceived;
+
+        if (hasValidAmount) {
+          final swapDate =
+              tx1.createdAt.isBefore(tx2.createdAt)
+                  ? tx1.createdAt
+                  : tx2.createdAt;
+
+          final swapTx = Transaction(
+            id: '${tx1.id}_${tx2.id}_swap',
+            amount: tx2.amount,
+            blockchain: tx2.blockchain,
+            asset: tx2.asset,
+            type: TransactionType.swap,
+            status:
+                tx1.status == TransactionStatus.confirmed &&
+                        tx2.status == TransactionStatus.confirmed
+                    ? TransactionStatus.confirmed
+                    : TransactionStatus.pending,
+            createdAt: swapDate,
+            fromAsset: tx1.asset,
+            toAsset: tx2.asset,
+            sentAmount: tx1.amount,
+            receivedAmount: tx2.amount,
+            sendTxId: tx1.id,
+            receiveTxId: tx2.id,
+            sendBlockchain: tx1.blockchain,
+            receiveBlockchain: tx2.blockchain,
+          );
+
+          result.add(swapTx);
+          processedIds.add(tx1.id);
+          processedIds.add(tx2.id);
+          foundSwapPair = true;
+          break;
+        }
+      }
+
+      if (!foundSwapPair) {
+        result.add(tx1);
+      }
+    }
+    return result;
   }
 
   @override
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits() {
     return _breezWallet.fetchLightningLimits();
+  }
+
+  @override
+  TaskEither<WalletError, String> getBitcoinReceiveAddress() {
+    return TaskEither.tryCatch(
+      () async {
+        final addressInfo = _bitcoinWallet.datasource.wallet.getAddress(
+          addressIndex: bdk.AddressIndex.increase(),
+        );
+        return addressInfo.address.toString();
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.sdkError,
+        'Erro ao obter endereço Bitcoin: $error',
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, String> getLiquidReceiveAddress() {
+    return TaskEither.tryCatch(
+      () async {
+        final address =
+            await _liquidWallet.datasource.wallet.addressLastUnused();
+        return address.confidential;
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.sdkError,
+        'Erro ao obter endereço Liquid: $error',
+      ),
+    );
   }
 }

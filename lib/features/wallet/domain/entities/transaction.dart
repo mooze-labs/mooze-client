@@ -17,6 +17,10 @@ class Transaction {
   final Asset? toAsset;
   final BigInt? sentAmount;
   final BigInt? receivedAmount;
+  final String? sendTxId;
+  final String? receiveTxId;
+  final Blockchain? sendBlockchain;
+  final Blockchain? receiveBlockchain;
 
   Transaction({
     required this.id,
@@ -30,5 +34,9 @@ class Transaction {
     this.toAsset,
     this.sentAmount,
     this.receivedAmount,
+    this.sendTxId,
+    this.receiveTxId,
+    this.sendBlockchain,
+    this.receiveBlockchain,
   });
 }

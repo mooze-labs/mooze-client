@@ -38,7 +38,12 @@ abstract class WalletRepository {
     double amount,
   );
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount);
+  buildOnchainBitcoinPaymentTransaction(
+    String destination,
+    BigInt amount, [
+    int? feeRateSatPerVByte,
+    Asset? asset,
+  ]);
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLightningPaymentTransaction(String destination, BigInt amount);
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
@@ -46,7 +51,11 @@ abstract class WalletRepository {
 
   // DRAIN functions - send all available funds
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildDrainOnchainBitcoinTransaction(String destination);
+  buildDrainOnchainBitcoinTransaction(
+    String destination, {
+    Asset? asset,
+    int? feeRateSatPerVbyte,
+  });
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLightningTransaction(String destination);
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
@@ -77,4 +86,8 @@ abstract class WalletRepository {
   // Payment Limits
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits();
+
+  // Receive Addresses
+  TaskEither<WalletError, String> getBitcoinReceiveAddress();
+  TaskEither<WalletError, String> getLiquidReceiveAddress();
 }

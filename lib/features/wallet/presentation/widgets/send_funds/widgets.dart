@@ -6,6 +6,7 @@ export 'balance_card.dart';
 export 'conditional_amount_field.dart';
 export 'drain_info_widget.dart';
 export 'fee_estimation_widget.dart';
+export 'fee_speed_selection_widget.dart';
 export 'network_indicator_widget.dart';
 export 'pre_defined_amount_widget.dart';
 export 'review_button.dart';

@@ -1,5 +1,4 @@
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
-import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart'
     show PreparedOnchainBitcoinTransaction;
@@ -14,6 +13,8 @@ class BitcoinWallet {
   final BdkDataSource _datasource;
 
   BitcoinWallet(BdkDataSource datasource) : _datasource = datasource;
+
+  BdkDataSource get datasource => _datasource;
 
   Either<WalletError, BigInt> get balance {
     return Either.tryCatch(
@@ -47,39 +48,49 @@ class BitcoinWallet {
   }
 
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount) {
-    if (amount < _datasource.wallet.getBalance().spendable) {
-      return TaskEither.left(WalletError(WalletErrorType.insufficientFunds));
-    }
+  buildOnchainBitcoinPaymentTransaction(
+    String destination,
+    BigInt amount, [
+    int? feeRateSatPerVByte,
+  ]) {
+    if (amount > _datasource.wallet.getBalance().spendable) {}
 
-    return _buildPsbt(destination, amount).flatMap(
-      (r) => TaskEither.right(
+    return _buildPsbt(destination, amount, feeRateSatPerVByte).flatMap((r) {
+      return TaskEither.right(
         PreparedOnchainBitcoinTransaction(
           destination: destination,
           amount: amount,
-          networkFees: r.$1.feeAmount() ?? BigInt.zero,
+          networkFees: r.$2.fee ?? BigInt.zero,
           drain: false,
+          feeRateSatPerVByte: feeRateSatPerVByte,
         ),
-      ),
-    );
+      );
+    });
   }
 
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildDrainOnchainBitcoinTransaction(String destination) {
+  buildDrainOnchainBitcoinTransaction(
+    String destination, {
+    int? feeRateSatPerVbyte,
+  }) {
     return _parseAddress(destination).flatMap(
       (scriptPubKey) => TaskEither.tryCatch(
         () async {
-          final (tx, details) = await bdk.TxBuilder()
-              .drainWallet()
-              .drainTo(scriptPubKey)
-              .enableRbf()
-              .finish(_datasource.wallet);
+          final builder =
+              bdk.TxBuilder().drainWallet().drainTo(scriptPubKey).enableRbf();
+
+          if (feeRateSatPerVbyte != null) {
+            builder.feeRate(feeRateSatPerVbyte.toDouble());
+          }
+
+          final (tx, details) = await builder.finish(_datasource.wallet);
 
           return PreparedOnchainBitcoinTransaction(
             destination: destination,
             amount: details.sent,
             networkFees: tx.feeAmount() ?? BigInt.zero,
             drain: true,
+            feeRateSatPerVByte: feeRateSatPerVbyte,
           );
         },
         (err, _) =>
@@ -93,32 +104,42 @@ class BitcoinWallet {
   ) {
     final partialTransaction =
         (psbt.drain)
-            ? _buildDrainPsbt(psbt.destination)
-            : _buildPsbt(psbt.destination, psbt.amount);
+            ? _buildDrainPsbt(psbt.destination, psbt.feeRateSatPerVByte)
+            : _buildPsbt(
+              psbt.destination,
+              psbt.amount,
+              psbt.feeRateSatPerVByte,
+            );
 
-    return partialTransaction.flatMap(
-      (psbtTuple) =>
-          TaskEither.fromEither(_signTransaction(psbtTuple.$1)).flatMap(
-            (signedPsbt) => TaskEither.tryCatch(() async {
-              final txid = await _datasource.blockchain.broadcast(
-                transaction: signedPsbt.extractTx(),
-              );
+    return partialTransaction.flatMap((psbtTuple) {
+      return TaskEither.fromEither(_signTransaction(psbtTuple.$1)).flatMap((
+        signedPsbt,
+      ) {
+        return TaskEither.tryCatch(
+          () async {
+            final txid = await _datasource.blockchain.broadcast(
+              transaction: signedPsbt.extractTx(),
+            );
 
-              return Transaction(
-                id: txid,
-                amount: psbt.amount,
-                blockchain: Blockchain.bitcoin,
-                asset: Asset.btc,
-                type: TransactionType.send,
-                status: TransactionStatus.pending,
-                createdAt: DateTime.now(),
-              );
-            }, (err, _) => WalletError(WalletErrorType.connectionError)),
-          ),
-    );
+            return Transaction(
+              id: txid,
+              amount: psbt.amount,
+              blockchain: Blockchain.bitcoin,
+              asset: Asset.btc,
+              type: TransactionType.send,
+              status: TransactionStatus.pending,
+              createdAt: DateTime.now(),
+            );
+          },
+          (err, _) {
+            return WalletError(WalletErrorType.connectionError);
+          },
+        );
+      });
+    });
   }
 
-  Either<WalletError, List<Transaction>> getTransactions({
+  TaskEither<WalletError, List<Transaction>> getTransactions({
     TransactionType? type,
     TransactionStatus? status,
     Asset? asset,
@@ -126,70 +147,71 @@ class BitcoinWallet {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-    final walletTxs = Either.tryCatch(
-      () {
+    return TaskEither.tryCatch(
+      () async {
+        await _datasource.sync();
+
         final rawTxs = _datasource.wallet.listTransactions(includeRaw: false);
-        return rawTxs;
+
+        final transactions =
+            rawTxs
+                .map(
+                  (tx) => Transaction(
+                    id: tx.txid,
+                    amount: (tx.received > BigInt.zero) ? tx.received : tx.sent,
+                    blockchain: Blockchain.bitcoin,
+                    asset: Asset.btc,
+                    type:
+                        (tx.received > BigInt.zero)
+                            ? TransactionType.receive
+                            : TransactionType.send,
+                    status:
+                        (tx.confirmationTime == null)
+                            ? TransactionStatus.pending
+                            : TransactionStatus.confirmed,
+
+                    createdAt:
+                        (tx.confirmationTime == null)
+                            ? DateTime.now()
+                            : DateTime.fromMillisecondsSinceEpoch(
+                              tx.confirmationTime!.timestamp.toInt() * 1000,
+                            ),
+                  ),
+                )
+                .toList();
+
+        return transactions;
       },
       (err, _) {
-        if (kDebugMode) {
-          debugPrint(err.toString());
-        }
         return WalletError(
           WalletErrorType.sdkError,
-          "[BDK] Falha ao ler histórico de transações",
+          "[BDK] Falha ao ler histórico de transações: $err",
         );
       },
     );
-    return walletTxs.flatMap(
-      (txs) => Either.right(
-        txs
-            .map(
-              (tx) => Transaction(
-                id: tx.txid,
-                amount: (tx.received > BigInt.zero) ? tx.received : tx.sent,
-                blockchain: Blockchain.bitcoin,
-                asset: Asset.btc,
-                type:
-                    (tx.received > BigInt.zero)
-                        ? TransactionType.receive
-                        : TransactionType.send,
-                status:
-                    (tx.confirmationTime == null)
-                        ? TransactionStatus.pending
-                        : TransactionStatus.confirmed,
-
-                /// TODO: Remove datetime.now() for non-confirmed transactions
-                createdAt:
-                    (tx.confirmationTime == null)
-                        ? DateTime.now()
-                        : DateTime.fromMillisecondsSinceEpoch(
-                          tx.confirmationTime!.timestamp.toInt(),
-                        ),
-              ),
-            )
-            .toList(),
-      ),
-    );
   }
 
   TaskEither<
     WalletError,
     (bdk.PartiallySignedTransaction, bdk.TransactionDetails)
   >
-  _buildPsbt(String address, BigInt amount) {
+  _buildPsbt(String address, BigInt amount, [int? feeRateSatPerVByte]) {
     return _parseAddress(address).flatMap(
       (scriptBuf) => TaskEither.tryCatch(
         () async {
-          final (psbt, details) = await bdk.TxBuilder()
-              .addRecipient(scriptBuf, amount)
-              .enableRbf()
-              .finish(_datasource.wallet);
+          final builder =
+              bdk.TxBuilder().addRecipient(scriptBuf, amount).enableRbf();
 
+          if (feeRateSatPerVByte != null) {
+            builder.feeRate(feeRateSatPerVByte.toDouble());
+          }
+
+          final (psbt, details) = await builder.finish(_datasource.wallet);
           return (psbt, details);
         },
-        (err, _) =>
-            WalletError(WalletErrorType.transactionFailed, err.toString()),
+        (err, _) {
+          return WalletError(WalletErrorType.transactionFailed, err.toString());
+        },
       ),
     );
   }
@@ -198,13 +220,19 @@ class BitcoinWallet {
     WalletError,
     (bdk.PartiallySignedTransaction, bdk.TransactionDetails)
   >
-  _buildDrainPsbt(String address) {
+  _buildDrainPsbt(String address, [int? feeRateSatPerVByte]) {
     return _parseAddress(address).flatMap(
       (scriptBuf) => TaskEither.tryCatch(
-        () async => await bdk.TxBuilder()
-            .drainWallet()
-            .drainTo(scriptBuf)
-            .finish(_datasource.wallet),
+        () async {
+          final builder =
+              bdk.TxBuilder().drainWallet().drainTo(scriptBuf).enableRbf();
+
+          if (feeRateSatPerVByte != null) {
+            builder.feeRate(feeRateSatPerVByte.toDouble());
+          }
+
+          return await builder.finish(_datasource.wallet);
+        },
         (err, _) =>
             WalletError(WalletErrorType.transactionFailed, err.toString()),
       ),
