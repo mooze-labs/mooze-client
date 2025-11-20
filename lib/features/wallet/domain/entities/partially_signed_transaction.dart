@@ -74,6 +74,9 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
   Asset get asset => Asset.btc;
   @override
   final bool drain;
+  final BigInt? claimFeesSat;
+  final int?
+  feeRateSatPerVByte;
 
   final BigInt amount;
   @override
@@ -84,5 +87,7 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
     required this.amount,
     required this.networkFees,
     required this.drain,
+    this.claimFeesSat,
+    this.feeRateSatPerVByte,
   });
 }
