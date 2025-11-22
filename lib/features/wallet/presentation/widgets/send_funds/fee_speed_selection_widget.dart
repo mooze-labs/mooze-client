@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
+import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/fee_speed_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_network_provider.dart';

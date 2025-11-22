@@ -1,113 +1,55 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import '../../domain/interfaces/fee_provider.dart';
+import '../../domain/models/bitcoin_fee_estimate.dart';
+import '../providers/blockstream_fee_provider.dart';
+import '../providers/bitgo_fee_provider.dart';
 
-class BitcoinFeeEstimate {
-  final int lowFeeSatPerVByte;
-  final int mediumFeeSatPerVByte;
-  final int fastFeeSatPerVByte;
-  final Map<String, double> feeByBlockTarget;
-
-  BitcoinFeeEstimate({
-    required this.lowFeeSatPerVByte,
-    required this.mediumFeeSatPerVByte,
-    required this.fastFeeSatPerVByte,
-    required this.feeByBlockTarget,
-  });
-
-  factory BitcoinFeeEstimate.fromBlockstream(Map<String, dynamic> json) {
-    final feeByBlock = json.map((k, v) => MapEntry(k, (v as num).toDouble()));
-
-    final fast = (feeByBlock['1'] ?? feeByBlock['2'] ?? 4.0).ceil();
-    final medium = (feeByBlock['3'] ?? feeByBlock['6'] ?? 3.0).ceil();
-    final low = (feeByBlock['144'] ?? 1.0).ceil();
-
-    return BitcoinFeeEstimate(
-      lowFeeSatPerVByte: low,
-      mediumFeeSatPerVByte: medium,
-      fastFeeSatPerVByte: fast,
-      feeByBlockTarget: feeByBlock,
-    );
-  }
-
-  factory BitcoinFeeEstimate.fromBitgo(Map<String, dynamic> json) {
-    final feeByBlock = (json['feeByBlockTarget'] as Map<String, dynamic>).map(
-      (k, v) => MapEntry(k, (v as int) / 1000),
-    );
-
-    final fast = feeByBlock['1']?.ceil() ?? 4;
-    final medium = feeByBlock['3']?.ceil() ?? 3;
-    final low = 1;
-
-    return BitcoinFeeEstimate(
-      lowFeeSatPerVByte: low,
-      mediumFeeSatPerVByte: medium,
-      fastFeeSatPerVByte: fast,
-      feeByBlockTarget: feeByBlock,
-    );
-  }
-}
-
+/// Serviço de aplicação responsável por gerenciar a busca de estimativas de taxa
+/// Implementa pattern de fallback entre provedores (Blockstream -> BitGo)
 class BitcoinFeeService {
-  static const String _blockstreamApiUrl =
-      'https://blockstream.info/api/fee-estimates';
-  static const String _bitgoApiUrl = 'https://www.bitgo.com/api/v2/btc/tx/fee';
+  final List<FeeProvider> _providers;
 
+  BitcoinFeeService({List<FeeProvider>? providers})
+    : _providers = providers ?? [BlockstreamFeeProvider(), BitgoFeeProvider()];
+
+  /// Busca estimativa de taxa tentando cada provedor em ordem até obter sucesso
   Future<BitcoinFeeEstimate?> fetchFeeEstimate() async {
-    try {
-      final response = await http
-          .get(Uri.parse(_blockstreamApiUrl))
-          .timeout(const Duration(seconds: 5));
+    for (int i = 0; i < _providers.length; i++) {
+      final provider = _providers[i];
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final estimate = BitcoinFeeEstimate.fromBlockstream(data);
+      try {
+        final estimate = await provider.fetchFeeEstimate();
 
-        if (kDebugMode) {
-          print('[BitcoinFeeService] Blockstream API success:');
-          print('  - Low: ${estimate.lowFeeSatPerVByte} sat/vB');
-          print('  - Medium: ${estimate.mediumFeeSatPerVByte} sat/vB');
-          print('  - Fast: ${estimate.fastFeeSatPerVByte} sat/vB');
+        if (estimate != null) {
+          return estimate;
         }
 
-        return estimate;
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('[BitcoinFeeService] Blockstream API failed: $e');
-        print('[BitcoinFeeService] Trying BitGo fallback...');
-      }
-    }
-
-    // Fallback to BitGo
-    try {
-      final response = await http
-          .get(Uri.parse(_bitgoApiUrl))
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final estimate = BitcoinFeeEstimate.fromBitgo(data);
-
-        if (kDebugMode) {
-          print('[BitcoinFeeService] BitGo API success:');
-          print('  - Low: ${estimate.lowFeeSatPerVByte} sat/vB');
-          print('  - Medium: ${estimate.mediumFeeSatPerVByte} sat/vB');
-          print('  - Fast: ${estimate.fastFeeSatPerVByte} sat/vB');
+        if (i < _providers.length - 1 && kDebugMode) {
+          print('[BitcoinFeeService] Trying next provider...');
         }
-
-        return estimate;
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('[BitcoinFeeService] BitGo API also failed: $e');
+      } catch (e) {
+        if (kDebugMode) {
+          print(
+            '[BitcoinFeeService] Provider ${provider.providerName} error: $e',
+          );
+        }
       }
     }
 
     if (kDebugMode) {
-      print('[BitcoinFeeService] All APIs failed, returning null');
+      print('[BitcoinFeeService] All providers failed, returning null');
     }
 
     return null;
+  }
+
+  /// Retorna estimativas padrão caso todos os provedores falhem
+  BitcoinFeeEstimate getDefaultFeeEstimate() {
+    return BitcoinFeeEstimate(
+      lowFeeSatPerVByte: 1,
+      mediumFeeSatPerVByte: 3,
+      fastFeeSatPerVByte: 5,
+      feeByBlockTarget: {'1': 5.0, '3': 3.0, '6': 2.0, '144': 1.0},
+    );
   }
 }
