@@ -441,7 +441,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       case TransactionStatus.confirmed:
         return 'Confirmada';
       case TransactionStatus.failed:
-        return 'Falhou';
+        return 'Em Análise';
       case TransactionStatus.refundable:
         return 'Reembolsável';
     }
