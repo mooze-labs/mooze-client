@@ -357,12 +357,6 @@ class _BtcLbtcConfirmBottomSheetState
     );
   }
 
-  String _formatDollarValue(BigInt sats) {
-    final btc = sats.toDouble() / 100000000;
-    final dollarValue = btc * 91300;
-    return dollarValue.toStringAsFixed(2);
-  }
-
   String _getEstimatedTime() {
     switch (_selectedFeeSpeed) {
       case FeeSpeed.low:
