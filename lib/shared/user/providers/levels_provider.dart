@@ -81,9 +81,9 @@ final _walletLevelsRemoteProvider = FutureProvider<WalletLevelsResponseModel>((
 });
 
 /// Centralized provider that combines user data with level limits
-final levelsProvider = FutureProvider<UserLevelsData>((ref) async {
+final levelsProvider = FutureProvider.autoDispose<UserLevelsData>((ref) async {
   // Fetch user data
-  final userService = ref.read(userServiceProvider);
+  final userService = ref.watch(userServiceProvider);
   final userResult = await userService.getUser().run();
 
   final user = userResult.fold(

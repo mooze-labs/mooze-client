@@ -121,55 +121,6 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
             ),
           ),
           const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Uso do Limite Diário',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: widget.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: data.dailyLimitProgress,
-                backgroundColor: widget.colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation(
-                  data.dailyLimitProgress > 0.8
-                      ? Colors.orange
-                      : widget.colorScheme.primary,
-                ),
-                borderRadius: BorderRadius.circular(4),
-                minHeight: 8,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Gasto: R\$ ${data.dailySpending.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.colorScheme.onSurface.withValues(
-                        alpha: 0.6,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'Restante: R\$ ${data.remainingLimit.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: widget.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -186,7 +137,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Continue usando para desbloquear o próximo nível${data.nextLevelName != null ? ' (${data.nextLevelName})' : ''}!',
+                    'Continue usando para desbloquear o próximo nível${data.nextLevelName != null ? ' ${data.nextLevelName}' : ''}!',
                     style: TextStyle(
                       fontSize: 11,
                       color: widget.colorScheme.onSurface.withValues(

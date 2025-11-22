@@ -60,16 +60,18 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     final colorScheme = theme.colorScheme;
     final walletLevelsAsync = ref.watch(walletLevelsProvider);
 
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: walletLevelsAsync.when(
-        data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
-        loading: () => _buildLoadingBody(theme, colorScheme),
-        error: (error, stackTrace) => _buildError(error, colorScheme),
+    return SafeArea(
+      child: Scaffold(
+        appBar: _buildAppBar(),
+        body: walletLevelsAsync.when(
+          data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
+          loading: () => _buildLoadingBody(theme, colorScheme),
+          error: (error, stackTrace) => _buildError(error, colorScheme),
+        ),
+        floatingActionButton:
+            _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
-      floatingActionButton:
-          _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 

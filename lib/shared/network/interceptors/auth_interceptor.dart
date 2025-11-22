@@ -7,6 +7,8 @@ class AuthInterceptor extends Interceptor {
   final SessionManagerService _sessionManager;
   final Dio _dio;
   bool _isRefreshing = false;
+  int _refreshAttempts = 0;
+  static const int _maxRefreshAttempts = 3;
 
   AuthInterceptor(this._sessionManager, this._dio);
 
@@ -43,6 +45,16 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // Handle 401 Unauthorized responses
     if (err.response?.statusCode == 401) {
+      // Check if we've exceeded max refresh attempts
+      if (_refreshAttempts >= _maxRefreshAttempts) {
+        _refreshAttempts = 0;
+        _isRefreshing = false;
+        // Clear invalid session
+        await _sessionManager.deleteSession().run();
+        handler.next(err);
+        return;
+      }
+
       // If already refreshing, wait for it to complete
       if (_isRefreshing) {
         // Add this request to pending queue
@@ -71,6 +83,7 @@ class AuthInterceptor extends Interceptor {
 
       // Start refresh process
       _isRefreshing = true;
+      _refreshAttempts++;
 
       try {
         // Get the current session
@@ -89,6 +102,13 @@ class AuthInterceptor extends Interceptor {
             await refreshResult.fold(
               (error) async {
                 _isRefreshing = false;
+
+                // Se refresh token não existe (404), limpar sessão inválida
+                if (error.contains('REFRESH_TOKEN_NOT_FOUND') ||
+                    error.contains('Refresh token inválido')) {
+                  await _sessionManager.deleteSession().run();
+                }
+
                 handler.next(err);
               },
               (refreshedSession) async {
@@ -96,6 +116,7 @@ class AuthInterceptor extends Interceptor {
                 await _sessionManager.saveSession(refreshedSession).run();
 
                 _isRefreshing = false;
+                _refreshAttempts = 0; // Reset counter on success
 
                 // Retry the original request with new token
                 final options = err.requestOptions;

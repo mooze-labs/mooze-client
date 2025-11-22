@@ -1,13 +1,22 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../entities.dart';
+import '../entities/level_change.dart';
 import 'user_service.dart';
+import 'user_level_storage_service.dart';
 
 class UserServiceImpl implements UserService {
   final Dio _dio;
+  final UserLevelStorageService _levelStorageService;
 
-  UserServiceImpl(Dio dio) : _dio = dio;
+  final _levelChangeController = StreamController<LevelChange>.broadcast();
+
+  Stream<LevelChange> get levelChanges => _levelChangeController.stream;
+
+  UserServiceImpl(Dio dio, this._levelStorageService) : _dio = dio;
 
   @override
   TaskEither<String, User> getUser() {
@@ -15,11 +24,41 @@ class UserServiceImpl implements UserService {
       try {
         final response = await _dio.get('/users/me');
         final user = User.fromJson(response.data);
+
+        await _detectLevelChange(user.verificationLevel);
+
         return Right(user);
       } catch (e) {
         return Left(e.toString());
       }
     });
+  }
+
+  Future<void> _detectLevelChange(int newLevel) async {
+    final storedLevel = _levelStorageService.getStoredVerificationLevel();
+
+    if (storedLevel == null) {
+      await _levelStorageService.saveVerificationLevel(newLevel);
+      return;
+    }
+
+    if (storedLevel != newLevel) {
+      final levelChange = LevelChange(
+        oldLevel: storedLevel,
+        newLevel: newLevel,
+      );
+
+      _levelChangeController.add(levelChange);
+      await _levelStorageService.saveVerificationLevel(newLevel);
+    }
+  }
+
+  Future<void> clearStoredLevel() async {
+    await _levelStorageService.clearVerificationLevel();
+  }
+
+  void dispose() {
+    _levelChangeController.close();
   }
 
   @override
@@ -57,7 +96,7 @@ class UserServiceImpl implements UserService {
   TaskEither<String, Unit> addReferral(String referralCode) {
     return TaskEither(() async {
       try {
-        final response = await _dio.post(
+        await _dio.post(
           '/users/me/referral',
           data: {'referral_code': referralCode},
         );
