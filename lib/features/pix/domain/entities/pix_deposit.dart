@@ -26,13 +26,13 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.fundsPrepared:
         return 'Fundos Preparados';
       case DepositStatus.depixSent:
-        return 'Enviado';
+        return 'Pagamento detectado';
       case DepositStatus.broadcasted:
         return 'Transmitido';
       case DepositStatus.finished:
-        return 'Finalizado';
+        return 'Enviado';
       case DepositStatus.failed:
-        return 'Falhou';
+        return 'Em Análise';
       case DepositStatus.expired:
         return 'Expirado';
       case DepositStatus.unknown:
