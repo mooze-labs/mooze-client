@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -6,6 +7,7 @@ class PrimaryButton extends StatelessWidget {
   final bool isEnabled;
   final bool isLoading;
   final double? height;
+  final Color? color;
 
   const PrimaryButton({
     super.key,
@@ -14,6 +16,7 @@ class PrimaryButton extends StatelessWidget {
     this.isEnabled = true,
     this.isLoading = false,
     this.height = 55,
+    this.color = AppColors.primaryColor,
   });
 
   // Constants
@@ -40,7 +43,7 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: (isEnabled && !isLoading) ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
+          backgroundColor: color,
           foregroundColor: _textPrimary,
           padding: const EdgeInsets.symmetric(vertical: 10),
           elevation: 0,
