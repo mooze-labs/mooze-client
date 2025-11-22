@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
+import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/utils/mnemonic.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
@@ -137,6 +138,9 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         // Clear caches of transactions and price history
         ref.read(assetPriceHistoryCacheProvider.notifier).reset();
         ref.read(transactionHistoryCacheProvider.notifier).reset();
+
+        // Invalidate session provider
+        ref.invalidate(ensureAuthSessionProvider);
 
         await Future.delayed(const Duration(milliseconds: 100));
 
