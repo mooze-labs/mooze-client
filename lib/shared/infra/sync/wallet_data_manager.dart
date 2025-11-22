@@ -13,6 +13,7 @@ import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
+import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_config.dart';
 
 enum WalletDataState { idle, loading, refreshing, success, error }
@@ -63,6 +64,9 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   final Ref ref;
   Timer? _periodicSyncTimer;
   Completer<void>? _currentSyncCompleter;
+  int _dataSourceRetryCount = 0;
+  static const int _maxDataSourceRetries = 5;
+  static const Duration _initialRetryDelay = Duration(seconds: 2);
 
   WalletDataManager(this.ref)
     : super(const WalletDataStatus(state: WalletDataState.idle));
@@ -80,6 +84,62 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     state = state.copyWith(state: WalletDataState.loading, isInitialLoad: true);
 
     try {
+      debugPrint('[WalletDataManager] Garantindo sessão de autenticação...');
+
+      bool sessionEnsured = false;
+      int attempts = 0;
+      const maxAttempts = 3;
+
+      while (!sessionEnsured && attempts < maxAttempts) {
+        attempts++;
+        debugPrint(
+          '[WalletDataManager] Tentativa $attempts/$maxAttempts de garantir sessão...',
+        );
+
+        try {
+          if (attempts > 1) {
+            ref.invalidate(ensureAuthSessionProvider);
+            await Future.delayed(
+              Duration(seconds: attempts),
+            ); 
+          }
+
+          sessionEnsured = await ref.read(ensureAuthSessionProvider.future);
+
+          if (sessionEnsured) {
+            debugPrint(
+              '[WalletDataManager] Sessão JWT garantida na tentativa $attempts',
+            );
+            break;
+          } else {
+            debugPrint(
+              '[WalletDataManager] Sessão não garantida na tentativa $attempts',
+            );
+          }
+        } catch (authError) {
+          debugPrint(
+            '[WalletDataManager] Erro na tentativa $attempts: $authError',
+          );
+
+          await Future.delayed(Duration(seconds: 2));
+
+          if (attempts >= maxAttempts) {
+            debugPrint(
+              '[WalletDataManager] Máximo de tentativas atingido, continuando sem sessão...',
+            );
+            debugPrint(
+              '[WalletDataManager]  Verifique os badges de status no topo da tela para mais informações',
+            );
+          }
+        }
+      }
+
+      if (!sessionEnsured) {
+        debugPrint(
+          '[WalletDataManager] Inicializando sem sessão autenticada - algumas funcionalidades podem não funcionar',
+        );
+      }
+
       await Future.delayed(const Duration(milliseconds: 500));
 
       final liquidResult = await ref.read(liquidDataSourceProvider.future);
@@ -114,8 +174,41 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       );
 
       if (!hasValidDataSource) {
-        throw Exception('Nenhum datasource disponível para inicialização');
+        debugPrint(
+          '[WalletDataManager] Nenhum datasource disponível (tentativa ${_dataSourceRetryCount + 1}/$_maxDataSourceRetries)',
+        );
+
+        if (_dataSourceRetryCount < _maxDataSourceRetries) {
+          _dataSourceRetryCount++;
+          final retryDelay = _initialRetryDelay * _dataSourceRetryCount;
+
+          debugPrint(
+            '[WalletDataManager] Tentando recriar datasources em ${retryDelay.inSeconds}s...',
+          );
+
+          state = state.copyWith(
+            state: WalletDataState.error,
+            errorMessage:
+                'Tentando reconectar datasources (${_dataSourceRetryCount}/$_maxDataSourceRetries)...',
+            isInitialLoad: false,
+          );
+
+          await Future.delayed(retryDelay);
+
+          ref.invalidate(liquidDataSourceProvider);
+          ref.invalidate(bdkDatasourceProvider);
+
+          return await initializeWallet();
+        } else {
+          _dataSourceRetryCount = 0;
+          throw Exception(
+            'Nenhum datasource disponível após $_maxDataSourceRetries tentativas. '
+            'Verifique sua conexão e tente novamente.',
+          );
+        }
       }
+
+      _dataSourceRetryCount = 0;
 
       if (hasValidDataSource) {
         await _loadInitialData();
@@ -149,6 +242,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     _periodicSyncTimer?.cancel();
     _currentSyncCompleter?.complete();
     _currentSyncCompleter = null;
+    _dataSourceRetryCount = 0;
   }
 
   void notifyDataSourceRecovered(String dataSourceType) {
@@ -194,6 +288,22 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       hasBdkSyncFailed: true,
       errorMessage: 'BDK sync failed: $error',
     );
+  }
+
+  Future<void> retryDataSourceConnection() async {
+    debugPrint(
+      '[WalletDataManager] Tentativa manual de reconexão de datasources...',
+    );
+
+    _dataSourceRetryCount = 0;
+
+    ref.invalidate(liquidDataSourceProvider);
+    ref.invalidate(bdkDatasourceProvider);
+    ref.invalidate(breezClientProvider);
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    await initializeWallet();
   }
 
   Future<void> _loadPartialData() async {
@@ -291,18 +401,32 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       if (!hasValidDataSource) {
         debugPrint(
-          '[WalletDataManager] ❌ Nenhum datasource disponível, abortando refresh',
+          '[WalletDataManager] Nenhum datasource disponível durante refresh',
         );
+
         state = state.copyWith(
           state: WalletDataState.error,
-          errorMessage: 'Datasources não disponíveis',
+          errorMessage: 'Datasources não disponíveis. Tentando reconectar...',
           hasLiquidSyncFailed: liquidFailed,
           hasBdkSyncFailed: bdkFailed,
         );
 
         debugPrint(
-          '[WalletDataManager] ⏭️ Pulando sincronização de transações pendentes',
+          '[WalletDataManager] Tentando reinicializar datasources...',
         );
+
+        ref.invalidate(liquidDataSourceProvider);
+        ref.invalidate(bdkDatasourceProvider);
+
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            debugPrint(
+              '[WalletDataManager] Tentando reinicialização completa...',
+            );
+            initializeWallet();
+          }
+        });
+
         return;
       }
 
@@ -311,14 +435,14 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       liquidResult.fold(
         (_) => debugPrint(
-          '[WalletDataManager] ⏭️ Pulando sync do Liquid (com erro)',
+          '[WalletDataManager] ⏭Pulando sync do Liquid (com erro)',
         ),
         (datasource) {
-          debugPrint('[WalletDataManager] 🔄 Sincronizando Liquid...');
+          debugPrint('[WalletDataManager] Sincronizando Liquid...');
           syncFutures.add(
             datasource.sync().catchError((e) {
               debugPrint(
-                '[WalletDataManager] ❌ Erro ao sincronizar Liquid: $e',
+                '[WalletDataManager] Erro ao sincronizar Liquid: $e',
               );
               return Future.value();
             }),
@@ -328,12 +452,12 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       bdkResult.fold(
         (_) =>
-            debugPrint('[WalletDataManager] ⏭️ Pulando sync do BDK (com erro)'),
+            debugPrint('[WalletDataManager] Pulando sync do BDK (com erro)'),
         (datasource) {
-          debugPrint('[WalletDataManager] 🔄 Sincronizando BDK...');
+          debugPrint('[WalletDataManager] Sincronizando BDK...');
           syncFutures.add(
             datasource.sync().catchError((e) {
-              debugPrint('[WalletDataManager] ❌ Erro ao sincronizar BDK: $e');
+              debugPrint('[WalletDataManager] Erro ao sincronizar BDK: $e');
               return Future.value();
             }),
           );
@@ -341,7 +465,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       );
 
       await Future.wait(syncFutures);
-      debugPrint('[WalletDataManager] ✅ Datasources sincronizados');
+      debugPrint('[WalletDataManager] Datasources sincronizados');
 
       await _invalidateAndRefreshAllProviders();
 
@@ -413,10 +537,6 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   void invalidateAllWalletProviders() {
-    debugPrint(
-      '[WalletDataManager] ⚠️ Invalidando TODOS os providers (incluindo datasources)...',
-    );
-
     ref.invalidate(mnemonicProvider);
     ref.invalidate(bdkDatasourceProvider);
     ref.invalidate(liquidDataSourceProvider);

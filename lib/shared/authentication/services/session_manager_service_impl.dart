@@ -17,6 +17,9 @@ class SessionManagerServiceImpl implements SessionManagerService {
         'BACKEND_API_URL',
         defaultValue: "https://api.mooze.app",
       ),
+      connectTimeout: Duration(seconds: 10),
+      receiveTimeout: Duration(seconds: 10),
+      sendTimeout: Duration(seconds: 10),
     ),
   );
 
@@ -58,7 +61,10 @@ class SessionManagerServiceImpl implements SessionManagerService {
       if (isExpiredResult.getOrElse((l) => true)) {
         final refreshResult = await refreshSession(session).run();
         return refreshResult.fold((error) async {
-          if (error.contains('404') || error.contains('Session not found')) {
+          if (error.contains('REFRESH_TOKEN_NOT_FOUND') ||
+              error.contains('404') ||
+              error.contains('Session not found') ||
+              error.contains('Refresh token inválido')) {
             final newSessionResult = await _createNewSession().run();
             return newSessionResult.fold(
               (createError) =>
@@ -94,18 +100,44 @@ class SessionManagerServiceImpl implements SessionManagerService {
           return saveSession(updatedSession).map((_) => updatedSession);
         })
         .orElse((error) {
-          // erro 404
-          return _createNewSession();
+          if (error.contains('REFRESH_TOKEN_NOT_FOUND')) {
+            return TaskEither.tryCatch(() async {
+              await deleteSession().run();
+
+              final newSessionResult = await _createNewSession().run();
+              return newSessionResult.fold(
+                (createError) =>
+                    throw Exception(
+                      'Refresh token inválido e falha ao criar nova sessão: $createError',
+                    ),
+                (newSession) => newSession,
+              );
+            }, (e, s) => e.toString());
+          }
+          return TaskEither.left(error);
         });
   }
 
   TaskEither<String, String> _requestNewJwtToken(String refreshToken) {
     return TaskEither.tryCatch(() async {
-      final response = await _dio.post(
-        '/auth/refresh',
-        data: {'refresh_token': refreshToken},
-      );
-      return response.data['jwt'];
+      try {
+        final response = await _dio.post(
+          '/auth/refresh',
+          data: {'refresh_token': refreshToken},
+        );
+
+        final jwt = response.data?['jwt'];
+        if (jwt == null) {
+          throw Exception('JWT_NULL_IN_RESPONSE');
+        }
+
+        return jwt as String;
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404) {
+          throw Exception('REFRESH_TOKEN_NOT_FOUND');
+        }
+        rethrow;
+      }
     }, (error, stackTrace) => error.toString());
   }
 
