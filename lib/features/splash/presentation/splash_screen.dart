@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
+import '../../../shared/authentication/providers/ensure_auth_session_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
 import '../../../routes.dart';
 
@@ -126,11 +127,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Navigate to PIN verification screen
     if (!mounted) return;
 
+    final refCaptured = ref;
+
     final verifyPinArgs = VerifyPinArgs(
-      onPinConfirmed: () {
+      onPinConfirmed: () async {
         if (kDebugMode)
-          debugPrint("[SplashScreen] PIN confirmed, redirecting to /home");
+          debugPrint("[SplashScreen] PIN confirmed, ensuring auth session...");
+
+        try {
+          final sessionCreated = await refCaptured.read(
+            ensureAuthSessionProvider.future,
+          );
+
+        } catch (e) {
+          if (kDebugMode) debugPrint("[SplashScreen] Error ensuring auth: $e");
+        }
+
         // Navigation will be handled by the router
+        if (kDebugMode) debugPrint("[SplashScreen] Navigating to /home...");
         rootNavigatorKey.currentContext?.go('/home');
       },
       forceAuth: true,
