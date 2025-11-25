@@ -8,6 +8,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
+import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/controllers/btc_lbtc_swap_controller.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 

@@ -103,7 +103,12 @@ class FakeWalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildOnchainBitcoinPaymentTransaction(String destination, BigInt amount) {
+  buildOnchainBitcoinPaymentTransaction(
+    String destination,
+    BigInt amount, [
+    int? feeRateSatPerVByte,
+    Asset? asset,
+  ]) {
     return TaskEither.right(
       PreparedOnchainBitcoinTransaction(
         destination: destination,
@@ -197,7 +202,11 @@ class FakeWalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
-  buildDrainOnchainBitcoinTransaction(String destination) {
+  buildDrainOnchainBitcoinTransaction(
+    String destination, {
+    Asset? asset,
+    int? feeRateSatPerVbyte,
+  }) {
     return getBalance().flatMap((balance) {
       final btcBalance = balance[Asset.btc] ?? BigInt.zero;
       if (btcBalance <= BigInt.from(25000)) {
@@ -421,5 +430,15 @@ class FakeWalletRepositoryImpl extends WalletRepository {
     );
 
     return TaskEither.right(mockLimits);
+  }
+
+  @override
+  TaskEither<WalletError, String> getBitcoinReceiveAddress() {
+    return TaskEither.right("bc1abcdefg");
+  }
+
+  @override
+  TaskEither<WalletError, String> getLiquidReceiveAddress() {
+    return TaskEither.right("tlq1abcdef");
   }
 }

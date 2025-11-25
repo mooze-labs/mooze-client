@@ -19,7 +19,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../../dto/psbt_dto.dart';
 
 class BreezWallet {
-  final BindingLiquidSdk _breez;
+  final BreezSdkLiquid _breez;
 
   BreezWallet(this._breez);
 
@@ -460,7 +460,7 @@ class BreezWallet {
 
 /// RECEIVE functions
 TaskEither<WalletError, PaymentRequest> _createLiquidBitcoinPaymentRequest(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   Option<BigInt> amount,
   Option<String> description,
 ) {
@@ -473,7 +473,7 @@ TaskEither<WalletError, PaymentRequest> _createLiquidBitcoinPaymentRequest(
 }
 
 TaskEither<WalletError, PaymentRequest> _createLightningPaymentRequest(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   BigInt amount,
   Option<String> description,
 ) {
@@ -486,7 +486,7 @@ TaskEither<WalletError, PaymentRequest> _createLightningPaymentRequest(
 }
 
 TaskEither<WalletError, PaymentRequest> _createOnchainBitcoinPaymentRequest(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   Option<BigInt> amount,
   Option<String> description,
 ) {
@@ -499,7 +499,7 @@ TaskEither<WalletError, PaymentRequest> _createOnchainBitcoinPaymentRequest(
 }
 
 TaskEither<WalletError, PaymentRequest> _createBitcoinPaymentRequest(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   PaymentMethod paymentMethod,
   Option<ReceiveAmount_Bitcoin> amount,
   Option<String> description,
@@ -521,7 +521,7 @@ TaskEither<WalletError, PaymentRequest> _createBitcoinPaymentRequest(
 }
 
 TaskEither<WalletError, PaymentRequest> _createAssetPaymentRequest(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String assetId,
   Option<BigInt> amount,
   Option<String> description,
@@ -553,7 +553,7 @@ TaskEither<WalletError, PaymentRequest> _createAssetPaymentRequest(
 }
 
 TaskEither<WalletError, PrepareReceiveResponse> _prepareReceiveResponse(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   Option<ReceiveAmount> recvAmount,
   PaymentMethod paymentMethod,
 ) {
@@ -574,7 +574,7 @@ TaskEither<WalletError, PrepareReceiveResponse> _prepareReceiveResponse(
 }
 
 TaskEither<WalletError, ReceivePaymentResponse> _receivePayment(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   PrepareReceiveResponse prepareReceiveResponse,
   Option<String> description,
 ) {
@@ -598,11 +598,11 @@ TaskEither<WalletError, ReceivePaymentResponse> _receivePayment(
 }
 
 // PREPARE PSBT functions.
-// Functions receive BindingLiquidSdk as a parameter.
+// Functions receive BreezSdkLiquid as a parameter.
 // This is to keep the functions as pure as possible.
 
 TaskEither<WalletError, PrepareSendResponse> prepareAssetSendTransaction(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   Asset asset,
   double amount,
@@ -633,7 +633,7 @@ TaskEither<WalletError, PrepareSendResponse> prepareAssetSendTransaction(
 
 TaskEither<WalletError, PrepareSendResponse>
 prepareLayer2BitcoinSendTransaction(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   BigInt amount,
 ) {
@@ -659,7 +659,7 @@ prepareLayer2BitcoinSendTransaction(
 
 // Lightning payment preparation - uses prepareLnurlPay directly for cleaner implementation
 TaskEither<WalletError, PrepareLnUrlPayResponse> prepareLightningTransaction(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   BigInt amount,
 ) {
@@ -698,7 +698,7 @@ TaskEither<WalletError, PrepareLnUrlPayResponse> prepareLightningTransaction(
 }
 
 TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   BigInt amount, [
   int? feeRateSatPerVbyte,
@@ -734,7 +734,7 @@ TaskEither<WalletError, PayOnchainRequest> prepareOnchainSendTransaction(
 }
 
 TaskEither<WalletError, PreparePayOnchainResponse> _preparePayOnchainResponse(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   BigInt amount, [
   int? feeRateSatPerVbyte,
 ]) {
@@ -757,7 +757,7 @@ TaskEither<WalletError, PreparePayOnchainResponse> _preparePayOnchainResponse(
 }
 
 TaskEither<WalletError, OnchainPaymentLimitsResponse> _getOnchainPaymentLimits(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
 ) {
   return TaskEither.tryCatch(
     () async => breez.fetchOnchainLimits(),
@@ -771,7 +771,7 @@ TaskEither<WalletError, OnchainPaymentLimitsResponse> _getOnchainPaymentLimits(
 // SEND PSBT functions
 
 TaskEither<WalletError, LnUrlPayResult_EndpointSuccess>
-_sendDrainLightningPayment(BindingLiquidSdk breez, String destination) {
+_sendDrainLightningPayment(BreezSdkLiquid breez, String destination) {
   return TaskEither.tryCatch(
     () async {
       final inputType = await breez.parse(input: destination);
@@ -817,7 +817,7 @@ _sendDrainLightningPayment(BindingLiquidSdk breez, String destination) {
 }
 
 TaskEither<WalletError, LnUrlPayResult_EndpointSuccess> sendLightningPayment(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   BigInt amount,
 ) {
@@ -865,7 +865,7 @@ TaskEither<WalletError, LnUrlPayResult_EndpointSuccess> sendLightningPayment(
 }
 
 TaskEither<WalletError, SendPaymentResponse> sendLayer2Transaction(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   PrepareSendResponse psbt,
 ) {
   return TaskEither.tryCatch(
@@ -885,7 +885,7 @@ TaskEither<WalletError, SendPaymentResponse> sendLayer2Transaction(
 }
 
 TaskEither<WalletError, SendPaymentResponse> sendOnchainTransaction(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   PayOnchainRequest psbt,
 ) {
   return TaskEither.tryCatch(
@@ -905,7 +905,7 @@ TaskEither<WalletError, SendPaymentResponse> sendOnchainTransaction(
 // DRAIN helper functions - for sending all available funds
 
 TaskEither<WalletError, PrepareLnUrlPayResponse> _prepareDrainLightningResponse(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
 ) {
   return TaskEither.tryCatch(
@@ -944,7 +944,7 @@ TaskEither<WalletError, PrepareLnUrlPayResponse> _prepareDrainLightningResponse(
 }
 
 TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination, {
   int? feeRateSatPerVbyte,
 }) {
@@ -973,7 +973,7 @@ TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
 }
 
 TaskEither<WalletError, PrepareSendResponse> _prepareDrainLayer2Response(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   Blockchain blockchain,
 ) {
@@ -994,7 +994,7 @@ TaskEither<WalletError, PrepareSendResponse> _prepareDrainLayer2Response(
 }
 
 TaskEither<WalletError, PrepareSendResponse> _prepareDrainAssetResponse(
-  BindingLiquidSdk breez,
+  BreezSdkLiquid breez,
   String destination,
   Asset asset,
 ) {

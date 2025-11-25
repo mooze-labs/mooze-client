@@ -19,9 +19,10 @@ dependencies:
       ref: main
 
   flutter_breez_liquid:
-    git:
-      url: https://github.com/breez/breez-sdk-liquid-flutter
-      ref: v0.11.2
+    path: ./packages/breez-sdk-liquid-flutter
+    #git:
+    # url: https://github.com/breez/breez-sdk-liquid-flutter
+    # ref: main 
 
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8

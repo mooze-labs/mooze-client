@@ -14,7 +14,7 @@ void main() async {
 
   await LibLwk.init();
 
-  await liquidSdk.initialize();
+  await liquidSdk.FlutterBreezLiquid.init();
 
   runApp(ProviderScope(child: MyApp()));
 }

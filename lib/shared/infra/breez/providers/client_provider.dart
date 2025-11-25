@@ -5,7 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../key_management/providers/mnemonic_provider.dart';
 import 'config_provider.dart';
 
-final breezClientProvider = FutureProvider<Either<String, BindingLiquidSdk>>((
+final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
   ref,
 ) async {
   final config = await ref.read(configProvider.future);

@@ -4,7 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'signature_client.dart';
 
 class BreezSignatureClient implements SignatureClient {
-  final BindingLiquidSdk _breez;
+  final BreezSdkLiquid _breez;
 
   BreezSignatureClient(this._breez);
 
