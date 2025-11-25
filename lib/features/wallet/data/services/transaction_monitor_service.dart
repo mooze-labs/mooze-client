@@ -25,9 +25,6 @@ class TransactionMonitorService {
   TransactionMonitorService(this._ref)
     : _storage = PendingTransactionStorage() {
     _importStartTime = DateTime.now();
-    debugPrint(
-      '[TransactionMonitor] Serviço criado, timestamp inicial: $_importStartTime',
-    );
   }
 
   Stream<TransactionStatusEvent> get statusUpdates => _statusController.stream;
@@ -35,14 +32,10 @@ class TransactionMonitorService {
   void startImporting() {
     _isImporting = true;
     _importStartTime = DateTime.now();
-    debugPrint(
-      '[TransactionMonitor] Modo importação ativado em ${_importStartTime}',
-    );
   }
 
   void finishImporting() {
     _isImporting = false;
-    debugPrint('[TransactionMonitor] Modo importação desativado');
   }
 
   Future<void> markExistingTransactionsAsKnown() async {
@@ -51,33 +44,20 @@ class TransactionMonitorService {
 
       await transactionHistoryAsync.whenOrNull(
         data: (result) async {
-          await result.fold(
-            (error) async {
-              debugPrint(
-                '[TransactionMonitor] Erro ao carregar transações para marcar como conhecidas: $error',
-              );
-            },
-            (transactions) async {
-              for (final tx in transactions) {
-                _knownTransactionIds.add(tx.id);
-                print('[TransactionTime] ${tx.createdAt}');
-                if (tx.status == TransactionStatus.confirmed &&
-                    (tx.type == TransactionType.receive ||
-                        tx.type == TransactionType.swap)) {
-                  _notifiedTransactions.add(tx.id);
-                }
+          await result.fold((error) async {}, (transactions) async {
+            for (final tx in transactions) {
+              _knownTransactionIds.add(tx.id);
+              if (tx.status == TransactionStatus.confirmed &&
+                  (tx.type == TransactionType.receive ||
+                      tx.type == TransactionType.swap)) {
+                _notifiedTransactions.add(tx.id);
               }
-              debugPrint(
-                '[TransactionMonitor] ${transactions.length} transações marcadas como conhecidas',
-              );
-            },
-          );
+            }
+          });
         },
       );
     } catch (e) {
-      debugPrint(
-        '[TransactionMonitor] Erro ao marcar transações como conhecidas: $e',
-      );
+      // Error to mark transactions as known
     }
   }
 
@@ -85,11 +65,6 @@ class TransactionMonitorService {
     _monitorTimer?.cancel();
     _monitorTimer = Timer.periodic(interval, (_) => _checkTransactions());
 
-    debugPrint(
-      '[TransactionMonitor] Timer iniciado com intervalo de ${interval.inSeconds}s',
-    );
-
-    // Check immediately on start
     _checkTransactions();
   }
 
@@ -103,17 +78,10 @@ class TransactionMonitorService {
       final walletStatus = _ref.read(walletDataManagerProvider);
 
       if (!walletStatus.isSuccess && !walletStatus.isRefreshing) {
-        debugPrint(
-          '[TransactionMonitor] Wallet não está pronto (${walletStatus.state}), pulando verificação',
-        );
         return;
       }
 
       final pendingTransactions = await _storage.getPendingTransactions();
-
-      debugPrint(
-        '[TransactionMonitor] Verificando ${pendingTransactions.length} transações pendentes',
-      );
 
       if (pendingTransactions.isEmpty) return;
 
@@ -123,25 +91,20 @@ class TransactionMonitorService {
         data: (result) async {
           await result.fold(
             (error) async {
-              debugPrint(
-                '[TransactionMonitor] Erro ao carregar transações: $error',
-              );
+              // Error to compare transactions
             },
             (transactions) async {
-              debugPrint(
-                '[TransactionMonitor] Comparando com ${transactions.length} transações da API',
-              );
               await _compareAndNotify(pendingTransactions, transactions);
             },
           );
         },
         loading: () async {},
         error: (error, stack) async {
-          debugPrint('[TransactionMonitor] Erro: $error');
+          // debugPrint('[TransactionMonitor] Erro: $error');
         },
       );
     } catch (e) {
-      debugPrint('[TransactionMonitor] Exceção ao verificar transações: $e');
+      // debugPrint('[TransactionMonitor] Exceção ao verificar transações: $e');
     }
   }
 
@@ -150,17 +113,9 @@ class TransactionMonitorService {
     List<Transaction> currentTransactions,
   ) async {
     for (final pending in pendingTransactions) {
-      // Skip if already notified
       if (_notifiedTransactions.contains(pending.id)) {
-        debugPrint(
-          '[TransactionMonitor] Transação ${pending.id} já notificada, pulando',
-        );
         continue;
       }
-
-      debugPrint(
-        '[TransactionMonitor] Verificando transação pendente: ${pending.id}',
-      );
 
       final confirmed = currentTransactions.firstWhere(
         (t) => t.id == pending.id && t.status == TransactionStatus.confirmed,
@@ -178,18 +133,10 @@ class TransactionMonitorService {
 
       if (confirmed.id.isNotEmpty) {
         if (_isImporting) {
-          debugPrint(
-            '[TransactionMonitor] Importação em andamento, confirmação de ${pending.id} não será notificada',
-          );
           _notifiedTransactions.add(pending.id);
           await _storage.removePendingTransaction(pending.id);
           continue;
         }
-
-        // Transaction confirmed!
-        debugPrint(
-          '[TransactionMonitor] ✅ Transação confirmada encontrada: ${pending.id}',
-        );
 
         _notifiedTransactions.add(pending.id);
 
@@ -197,10 +144,6 @@ class TransactionMonitorService {
             confirmed.type == TransactionType.swap && confirmed.toAsset != null;
         final asset = isSwap ? confirmed.toAsset! : confirmed.asset;
         final amount = isSwap ? confirmed.receivedAmount! : confirmed.amount;
-
-        debugPrint(
-          '[TransactionMonitor] Tipo: ${confirmed.type.name}, Asset: ${asset.ticker}, Amount: $amount',
-        );
 
         final event = TransactionStatusEvent(
           transactionId: confirmed.id,
@@ -212,16 +155,9 @@ class TransactionMonitorService {
 
         _statusController.add(event);
 
-        // Remove from pending storage
         await _storage.removePendingTransaction(pending.id);
-
-        debugPrint(
-          '[TransactionMonitor] Evento disparado e transação removida do storage',
-        );
       } else {
-        debugPrint(
-          '[TransactionMonitor] Transação ${pending.id} ainda pendente',
-        );
+        // Transaction still pending
       }
     }
   }
@@ -239,10 +175,6 @@ class TransactionMonitorService {
       );
 
       await _storage.savePendingTransaction(pending);
-
-      debugPrint(
-        '[TransactionMonitor] Rastreando transação: ${transaction.id}',
-      );
     }
   }
 
@@ -251,37 +183,20 @@ class TransactionMonitorService {
       final walletStatus = _ref.read(walletDataManagerProvider);
 
       if (!walletStatus.isSuccess && !walletStatus.isRefreshing) {
-        debugPrint(
-          '[TransactionMonitor] Wallet não está pronto (${walletStatus.state}), pulando sincronização',
-        );
         return;
       }
-
-      debugPrint(
-        '[TransactionMonitor] Iniciando sincronização de pendentes...',
-      );
 
       final result = await _ref.read(transactionHistoryProvider.future);
 
       await result.fold(
         (error) async {
-          debugPrint('[TransactionMonitor] Erro ao buscar transações: $error');
+          // Error to sync transactions
         },
         (transactions) async {
-          debugPrint(
-            '[TransactionMonitor] Total de transações da API: ${transactions.length}',
-          );
-
           final oldPendingTransactions =
               await _storage.getPendingTransactions();
-          debugPrint(
-            '[TransactionMonitor] Transações no storage antes do sync: ${oldPendingTransactions.length}',
-          );
 
           if (oldPendingTransactions.isNotEmpty) {
-            debugPrint(
-              '[TransactionMonitor] Verificando confirmações antes de atualizar storage...',
-            );
             await _compareAndNotify(oldPendingTransactions, transactions);
           }
 
@@ -293,16 +208,6 @@ class TransactionMonitorService {
                 (t.type == TransactionType.receive ||
                     t.type == TransactionType.swap),
           );
-
-          debugPrint(
-            '[TransactionMonitor] Transações pendentes (receive/swap): ${pendingReceives.length}',
-          );
-
-          for (final tx in pendingReceives) {
-            debugPrint(
-              '[TransactionMonitor] - ${tx.id}: ${tx.type.name} ${tx.asset.ticker} status=${tx.status.name}',
-            );
-          }
 
           final pendingList =
               pendingReceives
@@ -318,15 +223,11 @@ class TransactionMonitorService {
                   .toList();
 
           await _storage.savePendingTransactions(pendingList);
-
-          debugPrint(
-            '[TransactionMonitor] ${pendingList.length} transações salvas no storage',
-          );
         },
       );
     } catch (e, stack) {
-      debugPrint('[TransactionMonitor] Erro ao sincronizar: $e');
-      debugPrint('Stack: $stack');
+      // debugPrint('[TransactionMonitor] Erro ao sincronizar: $e');
+      // debugPrint('Stack: $stack');
     }
   }
 
@@ -339,46 +240,24 @@ class TransactionMonitorService {
                 t.type == TransactionType.swap),
       );
 
-      debugPrint(
-        '[TransactionMonitor] Verificando ${confirmedReceives.length} transações confirmadas (receive/swap)',
-      );
-
       for (final tx in confirmedReceives) {
         final isNew = _knownTransactionIds.add(tx.id);
 
         if (_isImporting) {
-          debugPrint(
-            '[TransactionMonitor] Importação em andamento, transação ${tx.id} não será notificada',
-          );
           _notifiedTransactions.add(tx.id);
           continue;
         }
 
         if (tx.createdAt.isBefore(_importStartTime) ||
             tx.createdAt.isAtSameMomentAs(_importStartTime)) {
-          debugPrint(
-            '[TransactionMonitor] Transação ${tx.id} (${tx.createdAt}) é ANTERIOR/IGUAL ao timestamp ($_importStartTime), ignorando',
-          );
           _notifiedTransactions.add(tx.id);
           continue;
         }
 
-        debugPrint(
-          '[TransactionMonitor] Transação ${tx.id} (${tx.createdAt}) é POSTERIOR ao timestamp ($_importStartTime)',
-        );
-
         if (isNew && !_notifiedTransactions.contains(tx.id)) {
-          debugPrint(
-            '[TransactionMonitor] 🆕 Nova transação detectada: ${tx.id}',
-          );
-
           final isSwap = tx.type == TransactionType.swap && tx.toAsset != null;
           final asset = isSwap ? tx.toAsset! : tx.asset;
           final amount = isSwap ? tx.receivedAmount! : tx.amount;
-
-          debugPrint(
-            '[TransactionMonitor] Tipo: ${tx.type.name}, Asset: ${asset.ticker}, Amount: $amount',
-          );
 
           _notifiedTransactions.add(tx.id);
 
@@ -391,43 +270,22 @@ class TransactionMonitorService {
           );
 
           _statusController.add(event);
-
-          debugPrint(
-            '[TransactionMonitor] ✅ Evento disparado para nova transação',
-          );
         } else if (!isNew) {
-          debugPrint('[TransactionMonitor] Transação ${tx.id} já conhecida');
+          // known transaction, no notification needed
         }
       }
     } catch (e, stack) {
-      debugPrint('[TransactionMonitor] Erro ao detectar novas transações: $e');
-      debugPrint('Stack: $stack');
+      // debugPrint('[TransactionMonitor] Erro ao detectar novas transações: $e');
+      // debugPrint('Stack: $stack');
     }
   }
 
   Future<void> clearNotifiedTransactions() async {
     _notifiedTransactions.clear();
-    debugPrint('[TransactionMonitor] Cache de notificadas limpo');
   }
 
   Future<void> clearKnownTransactions() async {
     _knownTransactionIds.clear();
-    debugPrint('[TransactionMonitor] Cache de transações conhecidas limpo');
-  }
-
-  Future<void> debugStorageState() async {
-    final pending = await _storage.getPendingTransactions();
-    debugPrint('=== STORAGE DEBUG ===');
-    debugPrint('Transações pendentes no storage: ${pending.length}');
-    for (final tx in pending) {
-      debugPrint('  - ${tx.id}: ${tx.assetTicker} ${tx.amount}');
-    }
-    debugPrint('Transações notificadas: ${_notifiedTransactions.length}');
-    for (final id in _notifiedTransactions) {
-      debugPrint('  - $id');
-    }
-    debugPrint('Transações conhecidas: ${_knownTransactionIds.length}');
-    debugPrint('====================');
   }
 
   void dispose() {
