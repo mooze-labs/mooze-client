@@ -10,6 +10,9 @@ class Session {
 
   factory Session.fromJson(Map<String, dynamic> json) {
     final data = json['data'] ?? json;
+    if (data['jwt'] == null || data['refresh_token'] == null) {
+      throw Exception('Session.fromJson: jwt ou refresh_token está nulo!');
+    }
     return Session(jwt: data['jwt'], refreshToken: data['refresh_token']);
   }
 
