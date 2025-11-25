@@ -4,3 +4,6 @@
 [submodule "packages/bdk-flutter"]
 	path = packages/bdk-flutter
 	url = git@github.com:mooze-labs/bdk-flutter.git
+[submodule "packages/breez-sdk-liquid-flutter"]
+	path = packages/breez-sdk-liquid-flutter
+	url = git@github.com:mooze-labs/breez-sdk-liquid-flutter.git
