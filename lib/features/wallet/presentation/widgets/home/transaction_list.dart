@@ -463,7 +463,10 @@ class HomeTransactionItem extends StatelessWidget {
           Row(
             children: [
               Text(
-                "${transaction!.fromAsset!.formatBalance(transaction!.sentAmount!)}",
+                _formatSwapAmount(
+                  transaction!.fromAsset!,
+                  transaction!.sentAmount!,
+                ),
                 style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -477,7 +480,10 @@ class HomeTransactionItem extends StatelessWidget {
               ),
               SizedBox(width: 4),
               Text(
-                "${transaction!.toAsset!.formatBalance(transaction!.receivedAmount!)}",
+                _formatSwapAmount(
+                  transaction!.toAsset!,
+                  transaction!.receivedAmount!,
+                ),
                 style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -486,5 +492,19 @@ class HomeTransactionItem extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  String _formatSwapAmount(Asset asset, BigInt amount) {
+    if (asset == Asset.usdt) {
+      final usdtAmount = amount.toDouble() / 100000000;
+      return "\$${usdtAmount.toStringAsFixed(2)}";
+    }
+
+    if (asset == Asset.depix) {
+      final depixAmount = amount.toDouble() / 100000000;
+      return "R\$${depixAmount.toStringAsFixed(2)}";
+    }
+
+    return asset.formatBalance(amount);
   }
 }
