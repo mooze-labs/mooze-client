@@ -6,6 +6,9 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_sec
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
 import 'package:mooze_mobile/providers/update_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync.dart';
+import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
+import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 
 import '../../widgets/widgets.dart';
 
@@ -41,51 +44,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final isLoadingData = ref.watch(isLoadingDataProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: WalletScreenWrapper(
-          child: Stack(
-            children: [
-              RefreshIndicator(
-                onRefresh: () => _refreshData(),
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        LogoHeader(),
-                        WalletHeaderWidget(),
-                        UpdateNotificationWidget(),
-                        const SizedBox(height: 15),
-                        _buildActionButtons(),
-                        const SizedBox(height: 32),
-                        AssetSection(),
-                        TransactionSection(),
-                        SizedBox(height: 120),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              if (isLoadingData)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SizedBox(
-                    height: 3,
-                    child: LinearProgressIndicator(
-                      backgroundColor: Colors.transparent,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).primaryColor,
+    return AuthInitializerWidget(
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: WalletScreenWrapper(
+            child: Stack(
+              children: [
+                RefreshIndicator(
+                  onRefresh: () => _refreshData(),
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LogoHeader(),
+                          StatusIndicators(
+                            onRetrySync: () {
+                              ref.invalidate(ensureAuthSessionProvider);
+                              _refreshData();
+                            },
+                          ),
+                          WalletHeaderWidget(),
+                          UpdateNotificationWidget(),
+                          const SizedBox(height: 15),
+                          _buildActionButtons(),
+                          const SizedBox(height: 32),
+                          AssetSection(),
+                          TransactionSection(),
+                          SizedBox(height: 120),
+                        ],
                       ),
                     ),
                   ),
                 ),
-            ],
+                if (isLoadingData)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SizedBox(
+                      height: 3,
+                      child: LinearProgressIndicator(
+                        backgroundColor: Colors.transparent,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
