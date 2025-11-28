@@ -71,8 +71,7 @@ class BtcLbtcSwapController {
             .beginNewTransaction(
               destination: bitcoinAddress,
               asset: Asset.lbtc,
-              blockchain:
-                  Blockchain.bitcoin,
+              blockchain: Blockchain.bitcoin,
               amount: amount,
               feeRateSatPerVByte: feeRateSatPerVByte,
               drain: drain,
@@ -139,22 +138,12 @@ class BtcLbtcSwapController {
     }
 
     return _walletController.getBitcoinReceiveAddress().flatMap(
-      (bitcoinAddress) => _walletController
-          .beginNewTransaction(
-            destination: bitcoinAddress,
-            asset: Asset.lbtc,
-            blockchain:
-                Blockchain.bitcoin,
-            amount: amount,
-            feeRateSatPerVByte: feeRateSatPerVByte,
-            drain: drain,
-          )
-          .mapLeft((error) => 'Erro ao preparar peg-out: $error')
-          .flatMap(
-            (psbt) => _walletController
-                .confirmTransaction(psbt: psbt)
-                .mapLeft((error) => 'Erro ao enviar peg-out: $error'),
-          ),
+      (bitcoinAddress) => _walletController.executePegOut(
+        btcAddress: bitcoinAddress,
+        amount: amount,
+        feeRateSatPerVByte: feeRateSatPerVByte,
+        drain: drain,
+      ),
     );
   }
 

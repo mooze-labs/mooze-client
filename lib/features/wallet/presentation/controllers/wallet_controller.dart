@@ -75,7 +75,6 @@ class WalletController {
     required BigInt amount,
     int? feeRateSatPerVByte,
   }) {
-
     if (asset != Asset.btc && asset != Asset.lbtc) {
       return _walletRepository
           .buildDrainStablecoinTransaction(destination, asset)
@@ -84,7 +83,6 @@ class WalletController {
 
     switch (blockchain) {
       case Blockchain.bitcoin:
-
         return _walletRepository
             .buildDrainOnchainBitcoinTransaction(
               destination,
@@ -130,7 +128,6 @@ class WalletController {
     int? feeRateSatPerVByte, [
     Asset? asset,
   ]) {
-
     return _walletRepository
         .buildOnchainBitcoinPaymentTransaction(
           destination,
@@ -153,5 +150,68 @@ class WalletController {
     return _walletRepository.getLiquidReceiveAddress().mapLeft(
       (err) => err.description,
     );
+  }
+
+  TaskEither<String, Transaction> executePegOut({
+    required String btcAddress,
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+    bool drain = false,
+  }) {
+    if (kDebugMode) {
+      print(
+        '✅ [WalletController] Iniciando peg-out - amount: $amount sats, drain: $drain, feeRate: $feeRateSatPerVByte sat/vB',
+      );
+    }
+
+    return _walletRepository
+        .fetchOnchainLimits()
+        .mapLeft((err) => err.description)
+        .flatMap((limits) {
+          if (kDebugMode) {
+            print(
+              '✅ [PegOut] Limites obtidos - Min: ${limits.minSat} sats, Max: ${limits.maxSat} sats',
+            );
+          }
+
+          if (!drain) {
+            if (amount < limits.minSat) {
+              return TaskEither<String, Transaction>.left(
+                'Valor insuficiente. Mínimo: ${limits.minSat} sats',
+              );
+            }
+
+            if (amount > limits.maxSat) {
+              return TaskEither<String, Transaction>.left(
+                'Valor inválido. Máximo: ${limits.maxSat} sats',
+              );
+            }
+          }
+
+          return _walletRepository
+              .preparePegOut(
+                receiverAmountSat: amount,
+                feeRateSatPerVbyte: feeRateSatPerVByte,
+                drain: drain,
+              )
+              .mapLeft((err) => err.description)
+              .flatMap((totalFeesSat) {
+                if (kDebugMode) {
+                  print(
+                    '✅ [PegOut] Peg-out preparado - Total de taxas: $totalFeesSat sats',
+                  );
+                }
+
+                return _walletRepository
+                    .executePegOut(
+                      btcAddress: btcAddress,
+                      receiverAmountSat: amount,
+                      totalFeesSat: totalFeesSat,
+                      feeRateSatPerVbyte: feeRateSatPerVByte,
+                      drain: drain,
+                    )
+                    .mapLeft((err) => err.description);
+              });
+        });
   }
 }

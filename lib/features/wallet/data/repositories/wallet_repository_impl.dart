@@ -267,11 +267,11 @@ class WalletRepositoryImpl extends WalletRepository {
           WalletError(WalletErrorType.sdkError, error.toString()),
     );
   }
+
   // Identify internal swaps between BTC and LBTC transactions
   List<Transaction> _identifyInternalSwaps(List<Transaction> transactions) {
     final result = <Transaction>[];
     final processedIds = <String>{};
-
 
     for (int i = 0; i < transactions.length; i++) {
       if (processedIds.contains(transactions[i].id)) {
@@ -375,6 +375,41 @@ class WalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits() {
     return _breezWallet.fetchLightningLimits();
+  }
+
+  @override
+  TaskEither<WalletError, PaymentLimits> fetchOnchainLimits() {
+    return _breezWallet.fetchOnchainPaymentLimits().map((limits) => limits.$2);
+  }
+
+  @override
+  TaskEither<WalletError, BigInt> preparePegOut({
+    required BigInt receiverAmountSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  }) {
+    return _breezWallet.preparePegOut(
+      receiverAmountSat: receiverAmountSat,
+      feeRateSatPerVbyte: feeRateSatPerVbyte,
+      drain: drain,
+    );
+  }
+
+  @override
+  TaskEither<WalletError, Transaction> executePegOut({
+    required String btcAddress,
+    required BigInt receiverAmountSat,
+    required BigInt totalFeesSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  }) {
+    return _breezWallet.executePegOut(
+      btcAddress: btcAddress,
+      receiverAmountSat: receiverAmountSat,
+      totalFeesSat: totalFeesSat,
+      feeRateSatPerVbyte: feeRateSatPerVbyte,
+      drain: drain,
+    );
   }
 
   @override

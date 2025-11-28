@@ -59,6 +59,7 @@ class BreezPreparedOnchainTransactionDto {
   final BigInt amount;
   final bool drain;
   final BigInt? claimFeesSat;
+  final int? feeRateSatPerVByte;
 
   BreezPreparedOnchainTransactionDto({
     required this.destination,
@@ -66,6 +67,7 @@ class BreezPreparedOnchainTransactionDto {
     required this.amount,
     this.drain = false,
     this.claimFeesSat,
+    this.feeRateSatPerVByte,
   });
 
   PreparedOnchainBitcoinTransaction toDomain() {
@@ -75,6 +77,7 @@ class BreezPreparedOnchainTransactionDto {
       networkFees: fees,
       drain: drain,
       claimFeesSat: claimFeesSat,
+      feeRateSatPerVByte: feeRateSatPerVByte,
     );
   }
 }

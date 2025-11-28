@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
     hide LightningPaymentLimitsResponse;
 import 'package:fpdart/fpdart.dart';
@@ -73,6 +74,97 @@ class BreezWallet {
         PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
         PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
       )),
+    );
+  }
+
+  TaskEither<WalletError, BigInt> preparePegOut({
+    required BigInt receiverAmountSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  }) {
+    return TaskEither.tryCatch(
+      () async {
+        if (kDebugMode) {
+          print(
+            '✅ [BreezWallet] Preparando peg-out - receiverAmount: $receiverAmountSat sats, drain: $drain, feeRate: $feeRateSatPerVbyte sat/vB',
+          );
+        }
+
+        final payAmount =
+            drain
+                ? PayAmount_Drain()
+                : PayAmount_Bitcoin(receiverAmountSat: receiverAmountSat);
+
+        final prepareReq = PreparePayOnchainRequest(
+          amount: payAmount,
+          feeRateSatPerVbyte: feeRateSatPerVbyte,
+        );
+
+        final prepareRes = await _breez.preparePayOnchain(req: prepareReq);
+
+        if (kDebugMode) {
+          print(
+            '✅ [BreezWallet] Peg-out preparado - Total de taxas: ${prepareRes.totalFeesSat} sats',
+          );
+          print(
+            '✅ [BreezWallet] Detalhes - Claim fee: ${prepareRes.claimFeesSat} sats, Receiver amount: ${prepareRes.receiverAmountSat} sats',
+          );
+        }
+
+        return prepareRes.totalFeesSat;
+      },
+      (err, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao preparar peg-out: $err",
+      ),
+    );
+  }
+
+  TaskEither<WalletError, Transaction> executePegOut({
+    required String btcAddress,
+    required BigInt receiverAmountSat,
+    required BigInt totalFeesSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  }) {
+    return TaskEither.tryCatch(
+      () async {
+        if (kDebugMode) {
+          print(
+            '✅ [BreezWallet] Executando peg-out - address: $btcAddress, amount: $receiverAmountSat sats, drain: $drain, fees: $totalFeesSat sats',
+          );
+        }
+
+        final payAmount =
+            drain
+                ? PayAmount_Drain()
+                : PayAmount_Bitcoin(receiverAmountSat: receiverAmountSat);
+
+        final prepareReq = PreparePayOnchainRequest(
+          amount: payAmount,
+          feeRateSatPerVbyte: feeRateSatPerVbyte,
+        );
+
+        final prepareRes = await _breez.preparePayOnchain(req: prepareReq);
+
+        // Executar o peg-out
+        final payReq = PayOnchainRequest(
+          address: btcAddress,
+          prepareResponse: prepareRes,
+        );
+
+        final result = await _breez.payOnchain(req: payReq);
+
+        if (kDebugMode) {
+          print('✅ [BreezWallet] Peg-out enviado com sucesso!');
+        }
+
+        return BreezTransactionDto.fromSdk(payment: result.payment).toDomain();
+      },
+      (err, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao executar peg-out: $err",
+      ),
     );
   }
 

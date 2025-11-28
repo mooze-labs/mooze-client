@@ -44,8 +44,8 @@ class BreezTransactionDto {
 
     final String txid = _parseTxid(payment);
 
-  // Breez SDK timestamp may come in seconds or milliseconds
-  // Very small timestamps (< 10 billion) are in seconds
+    // Breez SDK timestamp may come in seconds or milliseconds
+    // Very small timestamps (< 10 billion) are in seconds
     final timestamp = payment.timestamp;
     final timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
 
@@ -63,13 +63,17 @@ class BreezTransactionDto {
   }
 
   Transaction toDomain() {
+    final isSubmarineSwap = blockchain == Blockchain.bitcoin;
+
     return Transaction(
       id: id,
       amount: amount,
       blockchain: blockchain,
       asset: asset,
       type:
-          (paymentType == PaymentType.send)
+          isSubmarineSwap
+              ? TransactionType.submarine
+              : (paymentType == PaymentType.send)
               ? TransactionType.send
               : TransactionType.receive,
       status: status,

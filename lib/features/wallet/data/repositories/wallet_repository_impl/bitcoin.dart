@@ -176,6 +176,7 @@ class BitcoinWallet {
                             : DateTime.fromMillisecondsSinceEpoch(
                               tx.confirmationTime!.timestamp.toInt() * 1000,
                             ),
+                    confirmationHeight: tx.confirmationTime?.height,
                   ),
                 )
                 .toList();

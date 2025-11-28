@@ -86,6 +86,21 @@ abstract class WalletRepository {
   // Payment Limits
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits();
+  TaskEither<WalletError, PaymentLimits> fetchOnchainLimits();
+
+  // Peg-out (LBTC → BTC)
+  TaskEither<WalletError, BigInt> preparePegOut({
+    required BigInt receiverAmountSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  });
+  TaskEither<WalletError, Transaction> executePegOut({
+    required String btcAddress,
+    required BigInt receiverAmountSat,
+    required BigInt totalFeesSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  });
 
   // Receive Addresses
   TaskEither<WalletError, String> getBitcoinReceiveAddress();
