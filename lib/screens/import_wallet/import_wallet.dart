@@ -55,7 +55,8 @@ class _ImportWalletScreenState extends State<ImportWalletScreen> {
   }
 
   Widget build(BuildContext context) {
-    InputDecorationTheme currentTheme = Theme.of(context).inputDecorationTheme;
+    InputDecorationThemeData currentTheme =
+        Theme.of(context).inputDecorationTheme;
 
     return Scaffold(
       backgroundColor: Color(0xFF14181B),

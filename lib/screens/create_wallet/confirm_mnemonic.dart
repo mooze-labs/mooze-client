@@ -117,7 +117,7 @@ class ConfirmMnemonicScreenState extends State<ConfirmMnemonicScreen> {
     int position,
     TextEditingController controller,
   ) {
-    InputDecorationTheme currentTextFieldTheme =
+    InputDecorationThemeData currentTextFieldTheme =
         Theme.of(context).inputDecorationTheme;
 
     return Container(
