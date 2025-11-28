@@ -10,9 +10,11 @@ class WebSocketService {
   final StreamController<dynamic> _controller =
       StreamController<dynamic>.broadcast();
   Timer? _reconnectTimer;
+  Timer? _pingTimer;
   bool _isConnected = false;
   bool _isDisposed = false;
   DateTime? _lastConnectAttempt;
+  DateTime? _lastMessageReceived;
   Completer<void>? _connectionCompleter;
 
   // Track connection state
@@ -49,6 +51,7 @@ class WebSocketService {
       _channel!.stream.listen(
         (message) {
           _isConnected = true;
+          _lastMessageReceived = DateTime.now();
           if (!_isDisposed && !_controller.isClosed) {
             _controller.add(message);
           }
@@ -79,11 +82,15 @@ class WebSocketService {
           throw TimeoutException('Connection timeout');
         },
       );
+
+      // Start heartbeat to keep connection alive
+      _startHeartbeat();
     } catch (e, stack) {
       debugPrint("WebSocket connection error: $e");
       debugPrint(stack.toString());
       _handleDisconnect();
-      rethrow;
+      // Não propaga o erro para não travar o app
+      // O sistema de reconexão automática vai tentar novamente
     } finally {
       _connectionCompleter = null;
     }
@@ -92,10 +99,44 @@ class WebSocketService {
   void _handleDisconnect() {
     _isConnected = false;
     _channel = null;
+    _stopHeartbeat();
 
     if (!_isDisposed) {
       _attemptReconnect();
     }
+  }
+
+  void _startHeartbeat() {
+    _stopHeartbeat();
+
+    // Envia ping a cada 30 segundos para manter a conexão ativa
+    _pingTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_isDisposed || !_isConnected) {
+        timer.cancel();
+        return;
+      }
+
+      // Verifica se não recebeu mensagens nos últimos 60 segundos
+      if (_lastMessageReceived != null &&
+          DateTime.now().difference(_lastMessageReceived!).inSeconds > 60) {
+        debugPrint("WebSocket sem resposta há muito tempo, reconectando...");
+        _handleDisconnect();
+        return;
+      }
+
+      // Envia ping (pode ser uma mensagem vazia ou um formato específico do seu protocolo)
+      try {
+        _channel?.sink.add('ping');
+      } catch (e) {
+        debugPrint("Erro ao enviar ping: $e");
+        _handleDisconnect();
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _pingTimer?.cancel();
+    _pingTimer = null;
   }
 
   void _attemptReconnect() {
@@ -156,6 +197,8 @@ class WebSocketService {
 
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+
+    _stopHeartbeat();
 
     try {
       if (_channel != null) {
