@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -9,19 +10,60 @@ import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 
-class TransactionDetailScreen extends StatefulWidget {
+class TransactionDetailScreen extends ConsumerStatefulWidget {
   final Transaction transaction;
 
   const TransactionDetailScreen({super.key, required this.transaction});
 
   @override
-  State<TransactionDetailScreen> createState() =>
+  ConsumerState<TransactionDetailScreen> createState() =>
       _TransactionDetailScreenState();
 }
 
-class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
+class _TransactionDetailScreenState
+    extends ConsumerState<TransactionDetailScreen> {
   bool _isCopied = false;
+  int? _currentBlockHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentBlockHeight();
+  }
+
+  Future<void> _fetchCurrentBlockHeight() async {
+    if (widget.transaction.blockchain == Blockchain.bitcoin &&
+        widget.transaction.confirmationHeight != null) {
+      try {
+        final datasourceResult = await ref.read(bdkDatasourceProvider.future);
+        await datasourceResult.fold(
+          (error) async {
+            // Silently fail
+          },
+          (datasource) async {
+            final height = await datasource.blockchain.getHeight();
+            if (mounted) {
+              setState(() {
+                _currentBlockHeight = height;
+              });
+            }
+          },
+        );
+      } catch (e) {
+        // Silently fail
+      }
+    }
+  }
+
+  int? _getConfirmations() {
+    if (widget.transaction.confirmationHeight == null ||
+        _currentBlockHeight == null) {
+      return null;
+    }
+    return _currentBlockHeight! - widget.transaction.confirmationHeight! + 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,6 +298,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Widget _buildDetailsCard(BuildContext context) {
     final isSwap = widget.transaction.type == TransactionType.swap;
+    final isSubmarineSwap =
+        widget.transaction.type == TransactionType.submarine;
 
     return Container(
       width: double.infinity,
@@ -278,6 +322,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           const SizedBox(height: 20),
 
           _buildDetailRow('Status', _getStatusLabel(), _getStatusColor()),
+
+          // Submarine swap explanation
+          if (isSubmarineSwap) ...[
+            _buildSubmarineSwapExplanation(),
+            const SizedBox(height: 16),
+          ],
+          if (widget.transaction.blockchain == Blockchain.bitcoin &&
+              widget.transaction.status == TransactionStatus.confirmed)
+            _buildConfirmationRow(),
           _buildDetailRow(
             'Data',
             _formatDateTime(widget.transaction.createdAt),
@@ -311,6 +364,114 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
         ),
       ],
+    );
+  }
+
+  Widget _buildSubmarineSwapExplanation() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primaryColor.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 20, color: AppColors.primaryColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Esta transação representa uma troca de rede, assim que a transação for confirmada, você receberá os fundos na rede de destino. Esse processo pode levar algum tempo dependendo da rede.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationRow() {
+    final confirmations = _getConfirmations();
+    final isFullyConfirmed = confirmations != null && confirmations >= 6;
+
+    String displayText;
+    Color displayColor;
+
+    if (confirmations == null) {
+      displayText = 'Verificando...';
+      displayColor = Colors.grey;
+    } else if (confirmations >= 6) {
+      displayText = '6+ confirmações';
+      displayColor = Colors.green;
+    } else {
+      displayText = '$confirmations/6 confirmações';
+      displayColor = Colors.orange;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Confirmações',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: displayColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: displayColor, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isFullyConfirmed
+                            ? Icons.check_circle
+                            : Icons.hourglass_empty,
+                        size: 16,
+                        color: displayColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        displayText,
+                        style: TextStyle(
+                          color: displayColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -379,6 +540,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    final isRefundable =
+        widget.transaction.status == TransactionStatus.refundable;
+
     if (_isCrossChainSwap()) {
       return Column(
         children: [
@@ -401,6 +565,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   blockchain: widget.transaction.receiveBlockchain,
                 ),
           ),
+          if (isRefundable) ...[
+            const SizedBox(height: 12),
+            PrimaryButton(
+              text: 'Pedir Refund',
+              onPressed: () {
+                context.push('/transactions/refund', extra: widget.transaction);
+              },
+            ),
+          ],
           const SizedBox(height: 24),
         ],
       );
@@ -412,6 +585,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           text: 'Ver no Explorer',
           onPressed: () => _openInExplorer(),
         ),
+        if (isRefundable) ...[
+          const SizedBox(height: 12),
+          PrimaryButton(
+            text: 'Pedir Refund',
+            onPressed: () {
+              context.push('/transactions/refund', extra: widget.transaction);
+            },
+          ),
+        ],
         const SizedBox(height: 24),
       ],
     );

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,6 +137,22 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          Consumer(
+            builder: (context, ref, _) {
+              return IconButton(
+                icon: Icon(Icons.refresh, color: AppColors.primaryColor),
+                onPressed: () {
+                  ref.invalidate(transactionHistoryProvider);
+                  if (kDebugMode) {
+                    print(
+                      '[TransactionHistoryScreen] Provider invalidado manualmente',
+                    );
+                  }
+                },
+                tooltip: 'Atualizar (Debug)',
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               Icons.filter_alt_outlined,

@@ -214,4 +214,123 @@ class WalletController {
               });
         });
   }
+
+  TaskEither<String, ({String bitcoinAddress, BigInt feesSat})>
+  preparePegInFees({required BigInt amount, int? feeRateSatPerVByte}) {
+    if (kDebugMode) {
+      print(
+        '✅ [WalletController] Preparando peg-in (apenas taxas) - amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
+      );
+    }
+
+    return _walletRepository
+        .fetchOnchainReceiveLimits()
+        .mapLeft((err) => err.description)
+        .flatMap((limits) {
+          if (amount < limits.minSat) {
+            return TaskEither<
+              String,
+              ({String bitcoinAddress, BigInt feesSat})
+            >.left('Valor insuficiente. Mínimo: ${limits.minSat} sats');
+          }
+
+          if (amount > limits.maxSat) {
+            return TaskEither<
+              String,
+              ({String bitcoinAddress, BigInt feesSat})
+            >.left('Valor inválido. Máximo: ${limits.maxSat} sats');
+          }
+
+          return _walletRepository
+              .preparePegInWithFees(
+                payerAmountSat: amount,
+                feeRateSatPerVByte: feeRateSatPerVByte,
+              )
+              .mapLeft((err) => err.description);
+        });
+  }
+
+  TaskEither<String, ({BigInt breezFeesSat, BigInt bdkFeesSat})>
+  preparePegInFullFees({required BigInt amount, int? feeRateSatPerVByte}) {
+    if (kDebugMode) {
+      print(
+        '✅ [WalletController] Preparando peg-in (taxas completas) - amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
+      );
+    }
+
+    return _walletRepository
+        .fetchOnchainReceiveLimits()
+        .mapLeft((err) => err.description)
+        .flatMap((limits) {
+          if (amount < limits.minSat) {
+            return TaskEither<
+              String,
+              ({BigInt breezFeesSat, BigInt bdkFeesSat})
+            >.left('Valor insuficiente. Mínimo: ${limits.minSat} sats');
+          }
+
+          if (amount > limits.maxSat) {
+            return TaskEither<
+              String,
+              ({BigInt breezFeesSat, BigInt bdkFeesSat})
+            >.left('Valor inválido. Máximo: ${limits.maxSat} sats');
+          }
+
+          return _walletRepository
+              .preparePegInWithFullFees(
+                payerAmountSat: amount,
+                feeRateSatPerVByte: feeRateSatPerVByte,
+              )
+              .mapLeft((err) => err.description)
+              .map((result) {
+                if (kDebugMode) {
+                  print(
+                    '✅ [WalletController] Taxas completas - Breez: ${result.breezFeesSat} sats, BDK: ${result.bdkFeesSat} sats',
+                  );
+                }
+                return result;
+              });
+        });
+  }
+
+  TaskEither<String, Transaction> executePegIn({
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+  }) {
+    if (kDebugMode) {
+      print(
+        '✅ [WalletController] Iniciando peg-in - amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
+      );
+    }
+
+    return _walletRepository
+        .fetchOnchainReceiveLimits()
+        .mapLeft((err) => err.description)
+        .flatMap((limits) {
+          if (kDebugMode) {
+            print(
+              '✅ [PegIn] Limites obtidos - Min: ${limits.minSat} sats, Max: ${limits.maxSat} sats',
+            );
+          }
+
+          if (amount < limits.minSat) {
+            return TaskEither<String, Transaction>.left(
+              'Valor insuficiente. Mínimo: ${limits.minSat} sats',
+            );
+          }
+
+          if (amount > limits.maxSat) {
+            return TaskEither<String, Transaction>.left(
+              'Valor inválido. Máximo: ${limits.maxSat} sats',
+            );
+          }
+
+          return _walletRepository
+              .executePegIn(
+                amount: amount,
+                feeRateSatPerVByte: feeRateSatPerVByte,
+              )
+              .mapLeft((err) => err.description);
+        });
+  }
 }

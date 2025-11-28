@@ -87,6 +87,7 @@ abstract class WalletRepository {
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits();
   TaskEither<WalletError, PaymentLimits> fetchOnchainLimits();
+  TaskEither<WalletError, PaymentLimits> fetchOnchainReceiveLimits();
 
   // Peg-out (LBTC → BTC)
   TaskEither<WalletError, BigInt> preparePegOut({
@@ -100,6 +101,26 @@ abstract class WalletRepository {
     required BigInt totalFeesSat,
     int? feeRateSatPerVbyte,
     bool drain = false,
+  });
+
+  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
+  preparePegIn({required BigInt payerAmountSat});
+
+  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
+  preparePegInWithFees({
+    required BigInt payerAmountSat,
+    int? feeRateSatPerVByte,
+  });
+
+  TaskEither<WalletError, ({BigInt breezFeesSat, BigInt bdkFeesSat})>
+  preparePegInWithFullFees({
+    required BigInt payerAmountSat,
+    int? feeRateSatPerVByte,
+  });
+
+  TaskEither<WalletError, Transaction> executePegIn({
+    required BigInt amount,
+    int? feeRateSatPerVByte,
   });
 
   // Receive Addresses

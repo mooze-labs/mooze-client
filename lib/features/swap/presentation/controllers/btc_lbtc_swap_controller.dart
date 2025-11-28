@@ -41,30 +41,24 @@ class BtcLbtcSwapController {
     }
 
     if (isPegIn) {
-      return _walletController.getLiquidReceiveAddress().flatMap(
-        (liquidAddress) => _walletController
-            .beginNewTransaction(
-              destination: liquidAddress,
-              asset: Asset.btc,
-              blockchain: Blockchain.bitcoin,
-              amount: amount,
-              feeRateSatPerVByte: feeRateSatPerVByte,
-              drain: drain,
-            )
-            .mapLeft((error) => 'Erro ao preparar peg-in: $error')
-            .map((psbt) {
-              if (kDebugMode) {
-                print(
-                  '[PegIn] Network fees: ${psbt.networkFees} sats, feeRate: $feeRateSatPerVByte sat/vB',
-                );
-              }
-              return BtcLbtcFeeEstimate(
-                boltzServiceFeeSat: BigInt.zero,
-                networkFeeSat: psbt.networkFees,
-                totalFeeSat: psbt.networkFees,
+      return _walletController
+          .preparePegInFullFees(
+            amount: amount,
+            feeRateSatPerVByte: feeRateSatPerVByte,
+          )
+          .mapLeft((error) => 'Erro ao preparar peg-in: $error')
+          .map((fees) {
+            if (kDebugMode) {
+              print(
+                '✅ [PegIn] Taxas - Breez (service): ${fees.breezFeesSat} sats, BDK (network): ${fees.bdkFeesSat} sats (${feeRateSatPerVByte ?? 3} sat/vB), Total: ${fees.breezFeesSat + fees.bdkFeesSat} sats',
               );
-            }),
-      );
+            }
+            return BtcLbtcFeeEstimate(
+              boltzServiceFeeSat: fees.breezFeesSat,
+              networkFeeSat: fees.bdkFeesSat,
+              totalFeeSat: fees.breezFeesSat + fees.bdkFeesSat,
+            );
+          });
     } else {
       return _walletController.getBitcoinReceiveAddress().flatMap(
         (bitcoinAddress) => _walletController
@@ -103,28 +97,14 @@ class BtcLbtcSwapController {
   TaskEither<String, Transaction> executePegIn({
     required BigInt amount,
     int? feeRateSatPerVByte,
-    bool drain = false,
   }) {
-    if (!drain && amount < BigInt.from(minSwapAmount)) {
+    if (amount < BigInt.from(minSwapAmount)) {
       return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
     }
 
-    return _walletController.getLiquidReceiveAddress().flatMap(
-      (liquidAddress) => _walletController
-          .beginNewTransaction(
-            destination: liquidAddress,
-            asset: Asset.btc,
-            blockchain: Blockchain.bitcoin,
-            amount: amount,
-            feeRateSatPerVByte: feeRateSatPerVByte,
-            drain: drain,
-          )
-          .mapLeft((error) => 'Erro ao preparar peg-in: $error')
-          .flatMap(
-            (psbt) => _walletController
-                .confirmTransaction(psbt: psbt)
-                .mapLeft((error) => 'Erro ao enviar peg-in: $error'),
-          ),
+    return _walletController.executePegIn(
+      amount: amount,
+      feeRateSatPerVByte: feeRateSatPerVByte,
     );
   }
 

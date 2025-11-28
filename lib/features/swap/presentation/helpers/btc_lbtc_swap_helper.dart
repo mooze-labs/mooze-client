@@ -44,37 +44,55 @@ class BtcLbtcSwapHelper {
           drain: drain,
           onConfirm: (feeRateSatPerVByte) async {
             try {
-              final result =
-                  isPegIn
-                      ? await controller
-                          .executePegIn(
-                            amount: amount,
-                            feeRateSatPerVByte: feeRateSatPerVByte,
-                            drain: drain,
-                          )
-                          .run()
-                      : await controller
-                          .executePegOut(
-                            amount: amount,
-                            feeRateSatPerVByte: feeRateSatPerVByte,
-                            drain: drain,
-                          )
-                          .run();
+              if (isPegIn) {
+                final result =
+                    await controller
+                        .executePegIn(
+                          amount: amount,
+                          feeRateSatPerVByte: feeRateSatPerVByte,
+                        )
+                        .run();
 
-              if (context.mounted) {
-                Navigator.of(context).pop();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
 
-                result.match((error) => _showErrorSnackBar(error), (
-                  transaction,
-                ) {
-                  ref.invalidate(balanceProvider);
-                  _showSuccessScreen(
-                    amount,
-                    fromAsset,
-                    toAsset,
-                    transaction.id,
-                  );
-                });
+                  result.match((error) => _showErrorSnackBar(error), (
+                    transaction,
+                  ) {
+                    ref.invalidate(balanceProvider);
+                    _showSuccessScreen(
+                      amount,
+                      fromAsset, // BTC
+                      toAsset, // LBTC
+                      transaction.id,
+                    );
+                  });
+                }
+              } else {
+                final result =
+                    await controller
+                        .executePegOut(
+                          amount: amount,
+                          feeRateSatPerVByte: feeRateSatPerVByte,
+                          drain: drain,
+                        )
+                        .run();
+
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+
+                  result.match((error) => _showErrorSnackBar(error), (
+                    transaction,
+                  ) {
+                    ref.invalidate(balanceProvider);
+                    _showSuccessScreen(
+                      amount,
+                      fromAsset,
+                      toAsset,
+                      transaction.id,
+                    );
+                  });
+                }
               }
             } catch (e) {
               if (context.mounted) {

@@ -168,6 +168,48 @@ class BreezWallet {
     );
   }
 
+  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
+  preparePegIn({required BigInt payerAmountSat}) {
+    return TaskEither.tryCatch(
+      () async {
+        if (kDebugMode) {
+          print(
+            '✅ [BreezWallet] Preparando peg-in - payerAmount: $payerAmountSat sats',
+          );
+        }
+
+        final prepareReq = PrepareReceiveRequest(
+          paymentMethod: PaymentMethod.bitcoinAddress,
+          amount: ReceiveAmount_Bitcoin(payerAmountSat: payerAmountSat),
+        );
+
+        final prepareRes = await _breez.prepareReceivePayment(req: prepareReq);
+
+        if (kDebugMode) {
+          print(
+            '✅ [BreezWallet] Peg-in preparado - Taxas: ${prepareRes.feesSat} sats',
+          );
+        }
+
+        final receiveRes = await _breez.receivePayment(
+          req: ReceivePaymentRequest(prepareResponse: prepareRes),
+        );
+
+        final bitcoinAddress = receiveRes.destination;
+
+        if (kDebugMode) {
+          print('✅ [BreezWallet] Endereço BTC gerado: $bitcoinAddress');
+        }
+
+        return (bitcoinAddress: bitcoinAddress, feesSat: prepareRes.feesSat);
+      },
+      (err, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        "Falha ao preparar peg-in: $err",
+      ),
+    );
+  }
+
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
     Option<BigInt> amount,
     Option<String> description,
