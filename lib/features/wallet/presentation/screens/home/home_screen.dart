@@ -9,6 +9,7 @@ import 'package:mooze_mobile/shared/infra/sync/sync.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 import '../../widgets/widgets.dart';
 
@@ -46,8 +47,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return AuthInitializerWidget(
       child: Scaffold(
-        body: SafeArea(
-          bottom: false,
+        body: PlatformSafeArea(
+          iosTop: true,
           child: WalletScreenWrapper(
             child: Stack(
               children: [

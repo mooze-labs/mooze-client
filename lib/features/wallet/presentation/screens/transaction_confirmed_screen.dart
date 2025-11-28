@@ -126,7 +126,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: SafeArea(
+      body: PlatformSafeArea(
         child: Container(
           decoration: const BoxDecoration(
             gradient: RadialGradient(

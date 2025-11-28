@@ -8,13 +8,14 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/generate_qr_button.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class ReceiveFundsScreen extends ConsumerWidget {
   const ReceiveFundsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Receber Ativos"),

@@ -31,8 +31,8 @@ class FinalizarVendaButton extends StatelessWidget {
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
+      child: PlatformSafeArea(
+        androidTop: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -10,6 +10,7 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_w
 import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 class MerchantModeScreen extends ConsumerStatefulWidget {
@@ -241,8 +242,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
             colors: [Color(0xFFEA1E63), Color(0xFF841138)],
           ),
         ),
-        child: SafeArea(
-          bottom: false,
+        child: PlatformSafeArea(
+          iosTop: true,
           child: Column(
             children: [
               Padding(

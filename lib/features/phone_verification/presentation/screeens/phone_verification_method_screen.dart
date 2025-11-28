@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/phone_verification/presentation/widgets/se
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 final _phoneFormatter = MaskTextInputFormatter(
   mask: '(##) #####-####',
@@ -57,7 +58,7 @@ class _PhoneVerificationMethodScreenState
         title: const Text('Escolher Método'),
         leading: const Icon(Icons.arrow_back_ios_new_rounded),
       ),
-      body: SafeArea(
+      body: PlatformSafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(

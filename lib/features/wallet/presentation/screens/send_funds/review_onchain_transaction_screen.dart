@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/d
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/fee_speed_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/prepared_psbt_provider.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class ReviewOnchainTransactionScreen extends ConsumerStatefulWidget {
   const ReviewOnchainTransactionScreen({super.key});
@@ -208,7 +209,7 @@ class _ReviewOnchainTransactionScreenState
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
       ),
-      body: SafeArea(
+      body: PlatformSafeArea(
         child:
             psbt == null
                 ? Center(

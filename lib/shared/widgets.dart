@@ -3,5 +3,6 @@ export 'widgets/currency_input_formatter.dart';
 export 'widgets/custom_app_bar.dart';
 export 'widgets/dropdown_button.dart';
 export 'widgets/info_row.dart';
+export 'widgets/platform_safe_area.dart';
 export 'widgets/user_level_card.dart';
 export 'widgets/user_level_display.dart';

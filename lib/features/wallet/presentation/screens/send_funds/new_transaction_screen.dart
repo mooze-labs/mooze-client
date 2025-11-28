@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 import '../../providers/balance_provider.dart';
 import '../../providers/send_funds/selected_asset_balance_provider.dart';
@@ -35,7 +36,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     return AutoValidationListener(
-      child: SafeArea(
+      child: PlatformSafeArea(
         child: Scaffold(
           appBar: AppBar(
             title: const Text("Enviar ativos"),

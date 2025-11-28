@@ -2,15 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 
 class PhoneVerificationCodeScreen extends StatefulWidget {
   final Function() onPinConfirmed;
-  bool forceAuth;
-  bool isAppResuming;
+  final bool forceAuth;
+  final bool isAppResuming;
 
-  PhoneVerificationCodeScreen({
+  const PhoneVerificationCodeScreen({
     super.key,
     required this.onPinConfirmed,
     this.forceAuth = false,
@@ -93,7 +94,7 @@ class _PhoneVerificationCodeScreenState
           title: Text('Confirmar Código'),
           leading: Icon(Icons.arrow_back_ios_new_rounded),
         ),
-        body: SafeArea(
+        body: PlatformSafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(

@@ -140,8 +140,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 colors: [Color(0xFFEA1E63), Color(0xFF841138)],
               ),
             ),
-            child: SafeArea(
-              bottom: false,
+            child: PlatformSafeArea(
+              androidBottom: false,
               child: Column(
                 children: [
                   _buildHeader(),

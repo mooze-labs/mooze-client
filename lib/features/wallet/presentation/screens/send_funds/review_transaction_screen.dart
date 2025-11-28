@@ -171,7 +171,7 @@ class _ReviewTransactionScreenState
         break;
     }
 
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: Text(

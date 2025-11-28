@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class ReceiveQRScreen extends ConsumerStatefulWidget {
   final String qrData;
@@ -51,7 +52,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Receber Pagamento"),

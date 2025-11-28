@@ -14,6 +14,7 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class _MainNavigationScaffold extends StatefulWidget {
   final String currentLocation;
@@ -79,7 +80,7 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   Widget build(BuildContext context) {
     final currentIndex = _getIndexFromLocation(widget.currentLocation);
 
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         body: PageView(
           controller: _pageController,

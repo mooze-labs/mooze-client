@@ -16,7 +16,7 @@ class AddEditItemModal {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder:
-          (context) => SafeArea(
+          (context) => PlatformSafeArea(
             child: Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -206,7 +206,7 @@ class AddEditItemModal {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder:
-          (context) => SafeArea(
+          (context) => PlatformSafeArea(
             child: Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,

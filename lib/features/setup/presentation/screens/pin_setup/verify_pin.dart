@@ -8,6 +8,7 @@ import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
@@ -165,7 +166,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                   : null,
           automaticallyImplyLeading: canGoBack,
         ),
-        body: SafeArea(
+        body: PlatformSafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(

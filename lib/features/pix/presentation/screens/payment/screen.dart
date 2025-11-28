@@ -41,7 +41,7 @@ class ValidPixPaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: Text('Pagamento PIX'),

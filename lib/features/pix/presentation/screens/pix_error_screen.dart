@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class PixErrorScreen extends StatefulWidget {
   final Asset asset;
@@ -125,7 +126,7 @@ class _PixErrorScreenState extends State<PixErrorScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: SafeArea(
+      body: PlatformSafeArea(
         child: Container(
           decoration: const BoxDecoration(
             gradient: RadialGradient(

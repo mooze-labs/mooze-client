@@ -99,9 +99,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         try {
           if (attempts > 1) {
             ref.invalidate(ensureAuthSessionProvider);
-            await Future.delayed(
-              Duration(seconds: attempts),
-            ); 
+            await Future.delayed(Duration(seconds: attempts));
           }
 
           sessionEnsured = await ref.read(ensureAuthSessionProvider.future);
@@ -411,9 +409,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
           hasBdkSyncFailed: bdkFailed,
         );
 
-        debugPrint(
-          '[WalletDataManager] Tentando reinicializar datasources...',
-        );
+        debugPrint('[WalletDataManager] Tentando reinicializar datasources...');
 
         ref.invalidate(liquidDataSourceProvider);
         ref.invalidate(bdkDatasourceProvider);
@@ -441,9 +437,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
           debugPrint('[WalletDataManager] Sincronizando Liquid...');
           syncFutures.add(
             datasource.sync().catchError((e) {
-              debugPrint(
-                '[WalletDataManager] Erro ao sincronizar Liquid: $e',
-              );
+              debugPrint('[WalletDataManager] Erro ao sincronizar Liquid: $e');
               return Future.value();
             }),
           );
@@ -451,8 +445,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       );
 
       bdkResult.fold(
-        (_) =>
-            debugPrint('[WalletDataManager] Pulando sync do BDK (com erro)'),
+        (_) => debugPrint('[WalletDataManager] Pulando sync do BDK (com erro)'),
         (datasource) {
           debugPrint('[WalletDataManager] Sincronizando BDK...');
           syncFutures.add(
@@ -466,6 +459,9 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       await Future.wait(syncFutures);
       debugPrint('[WalletDataManager] Datasources sincronizados');
+
+      // Rescan onchain swaps para detectar fundos adicionais em endereços já usados
+      // await _rescanOnchainSwaps();
 
       await _invalidateAndRefreshAllProviders();
 
@@ -506,6 +502,38 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       debugPrint('[WalletDataManager] Erro ao sincronizar pendentes: $e');
     }
   }
+
+  // /// Rescan de swaps onchain para detectar fundos adicionais enviados para endereços já usados.
+  // /// Isso permite que transações refundable sejam detectadas corretamente.
+  // ///
+  // /// De acordo com a documentação do Breez SDK:
+  // /// "Se usuários inadvertidamente enviam fundos adicionais para um endereço de swap já usado,
+  // /// o SDK não reconhecerá automaticamente. Use este método para escanear manualmente
+  // /// todos os endereços de swap históricos e atualizar seu status onchain."
+  // Future<void> _rescanOnchainSwaps() async {
+  //   try {
+  //     debugPrint('[WalletDataManager] 🔍 Iniciando rescan de onchain swaps...');
+
+  //     final breezClient = await ref.read(breezClientProvider.future);
+
+  //     await breezClient.fold(
+  //       (error) {
+  //         debugPrint('[WalletDataManager] Breez client não disponível para rescan: $error');
+  //         return Future<void>.value();
+  //       },
+  //       (client) async {
+  //         try {
+  //           await client.rescanOnchainSwaps();
+  //           debugPrint('[WalletDataManager] Rescan de swaps onchain completado com sucesso');
+  //         } catch (e) {
+  //           debugPrint('[WalletDataManager] Erro durante rescan de swaps: $e');
+  //         }
+  //       },
+  //     );
+  //   } catch (e) {
+  //     debugPrint('[WalletDataManager] Erro ao tentar rescan de swaps: $e');
+  //   }
+  // }
 
   void _invalidateDataProviders() {
     debugPrint(
@@ -634,6 +662,18 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     _periodicSyncTimer = null;
     debugPrint('[WalletDataManager] Sync periódico parado');
   }
+
+  /// Força um rescan manual de swaps onchain.
+  /// Use isso se suspeitar que fundos foram enviados para um endereço de swap já usado.
+  // Future<void> forceRescanOnchainSwaps() async {
+  //   debugPrint('[WalletDataManager] Rescan manual solicitado pelo usuário');
+  //   await _rescanOnchainSwaps();
+
+  //   // Após rescan, atualiza as transações
+  //   debugPrint('[WalletDataManager] Atualizando cache de transações após rescan...');
+  //   await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+  //   debugPrint('[WalletDataManager] Rescan manual concluído');
+  // }
 
   @override
   void dispose() {

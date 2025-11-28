@@ -8,6 +8,7 @@ import 'package:mooze_mobile/features/transaction_history/presentation/screens/t
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_refund_screen.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 final transactionHistoryRoutes = [
   GoRoute(
@@ -38,7 +39,7 @@ final transactionHistoryRoutes = [
   ShellRoute(
     builder: (context, state, child) {
       final currentLocation = state.uri.toString();
-      return SafeArea(
+      return PlatformSafeArea(
         child: Scaffold(
           body: child,
           extendBody: true,

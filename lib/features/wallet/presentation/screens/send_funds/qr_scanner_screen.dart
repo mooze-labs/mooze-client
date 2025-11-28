@@ -9,6 +9,7 @@ import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/qr_validation_service.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class QRCodeScannerScreen extends ConsumerStatefulWidget {
   const QRCodeScannerScreen({super.key});
@@ -169,7 +170,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(

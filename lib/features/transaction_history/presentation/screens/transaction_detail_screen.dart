@@ -11,6 +11,7 @@ import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 class TransactionDetailScreen extends ConsumerStatefulWidget {
   final Transaction transaction;
@@ -71,7 +72,7 @@ class _TransactionDetailScreenState
     final amountStr =
         "${isReceive ? '+' : ''}${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)}";
 
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Detalhes da Transação'),
