@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/transaction_history/presentation/screens/p
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_refund_screen.dart';
 
 final transactionHistoryRoutes = [
   GoRoute(
@@ -15,6 +16,15 @@ final transactionHistoryRoutes = [
       final transaction = state.extra as Transaction;
       return NoTransitionPage(
         child: TransactionDetailScreen(transaction: transaction),
+      );
+    },
+  ),
+  GoRoute(
+    path: '/transactions/refund',
+    pageBuilder: (context, state) {
+      final transaction = state.extra as Transaction;
+      return NoTransitionPage(
+        child: TransactionRefundScreen(transaction: transaction),
       );
     },
   ),
