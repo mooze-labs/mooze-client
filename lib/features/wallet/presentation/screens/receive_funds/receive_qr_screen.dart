@@ -154,7 +154,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
               ),
             ),
             Text(
-              '${widget.amount} ${widget.asset.ticker}',
+              '${_formatAmount(widget.amount!)} ${widget.asset.ticker}',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -338,25 +338,38 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
     });
   }
 
-  String _getCleanAddress() {
-    if (widget.network == NetworkType.liquid) {
-      String address = widget.displayAddress;
+  String _formatAmount(double amount) {
+    String formatted = amount.toStringAsFixed(8);
 
+    formatted = formatted.replaceAll(RegExp(r'0+$'), '');
+
+    formatted = formatted.replaceAll(RegExp(r'\.$'), '');
+
+    return formatted;
+  }
+
+  String _getCleanAddress() {
+    String address =
+        widget.amount != null ? widget.qrData : widget.displayAddress;
+
+    if (widget.network == NetworkType.liquid) {
       if (address.startsWith('liquidnetwork:')) {
         address = address.substring('liquidnetwork:'.length);
       }
+
+      address = address.replaceFirst('liquidnetwork:', '');
 
       final queryIndex = address.indexOf('?');
       if (queryIndex != -1) {
         address = address.substring(0, queryIndex);
       }
 
+      print('after: $address');
+
       return address;
     }
 
     if (widget.network == NetworkType.bitcoin) {
-      String address = widget.displayAddress;
-
       if (address.startsWith('bitcoin:')) {
         address = address.substring('bitcoin:'.length);
       }
@@ -369,7 +382,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
       return address;
     }
 
-    return widget.displayAddress;
+    return address;
   }
 
   void _shareQRCode() {
