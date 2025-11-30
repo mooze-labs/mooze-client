@@ -139,11 +139,11 @@ class BreezTransactionDto {
     if (payment.txId != null) return payment.txId!;
 
     if (details is PaymentDetails_Lightning) {
-      return details.swapId;
+      return details.invoice ?? details.swapId;
     }
 
     if (details is PaymentDetails_Bitcoin) {
-      return details.swapId;
+      return details.claimTxId ?? details.swapId;
     }
 
     if (details is PaymentDetails_Liquid) {
