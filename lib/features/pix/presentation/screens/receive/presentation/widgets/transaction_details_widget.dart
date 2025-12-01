@@ -53,8 +53,9 @@ class AssetAmountDisplay extends ConsumerWidget {
               (quote) => discountedDepositAmount.when(
                 data: (depositAmount) {
                   final amount = depositAmount / quote;
+                  final decimalPlaces = selectedAsset == Asset.depix ? 2 : 8;
                   return Text(
-                    '=${amount.toStringAsFixed(8)}',
+                    '=${amount.toStringAsFixed(decimalPlaces)}',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

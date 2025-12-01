@@ -196,11 +196,11 @@ Future<String> _getAssetQuantity(
   return futureEitherOptionQuote.then(
     (x) => x.fold(
       (err) => "N/A",
-      (optionQuote) => optionQuote.fold(
-        () => "N/A",
-        (quote) =>
-            "${(amountAfterFees / quote).toStringAsFixed(8)} ${asset.ticker.toUpperCase()}",
-      ),
+      (optionQuote) => optionQuote.fold(() => "N/A", (quote) {
+        final quantity = amountAfterFees / quote;
+        final decimalPlaces = asset == Asset.depix ? 2 : 8;
+        return "${quantity.toStringAsFixed(decimalPlaces)} ${asset.ticker.toUpperCase()}";
+      }),
     ),
   );
 }
