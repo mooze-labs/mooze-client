@@ -12,9 +12,10 @@ class ComponentThemes {
     ColorScheme colorScheme,
   ) => AppBarTheme(
     backgroundColor: AppColors.backgroundColor,
-    foregroundColor: colorScheme.onSurface,
+    foregroundColor: AppColors.backgroundColor,
     elevation: 0,
     centerTitle: true,
+    scrolledUnderElevation: 0,
     systemOverlayStyle: const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
