@@ -704,7 +704,7 @@ class _TransactionDetailScreenState
           explorerUrl = 'https://blockstream.info/tx/$useTxId';
           break;
         case Blockchain.liquid:
-          explorerUrl = 'https://blockstream.info/liquid/tx/$useTxId';
+          explorerUrl = widget.transaction.blockchainUrl ?? 'https://blockstream.info/liquid/tx/$useTxId';
           break;
       }
     }
