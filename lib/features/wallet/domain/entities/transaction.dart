@@ -22,6 +22,7 @@ class Transaction {
   final Blockchain? sendBlockchain;
   final Blockchain? receiveBlockchain;
   final int? confirmationHeight;
+  final String? preimage;
 
   Transaction({
     required this.id,
@@ -40,5 +41,6 @@ class Transaction {
     this.sendBlockchain,
     this.receiveBlockchain,
     this.confirmationHeight,
+    this.preimage,
   });
 }

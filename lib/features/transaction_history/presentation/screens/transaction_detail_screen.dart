@@ -349,6 +349,13 @@ class _TransactionDetailScreenState
               null,
               true,
             ),
+
+          if (widget.transaction.preimage != null)
+            _buildDetailRow(
+              "Preimagem",
+              truncateHashId(widget.transaction.preimage!),
+            ),
+
           _buildDetailRow('Blockchain', _getBlockchainLabel()),
         ],
       ),

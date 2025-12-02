@@ -17,6 +17,7 @@ class BreezTransactionDto {
   final Blockchain blockchain;
   final TransactionStatus status;
   final DateTime createdAt;
+  final String? preimage;
 
   BreezTransactionDto({
     required this.id,
@@ -28,6 +29,7 @@ class BreezTransactionDto {
     required this.blockchain,
     required this.status,
     required this.createdAt,
+    this.preimage,
   });
 
   factory BreezTransactionDto.fromSdk({required Payment payment}) {
@@ -41,8 +43,12 @@ class BreezTransactionDto {
     };
 
     final String destination = _parseDestination(payment);
-
     final String txid = _parseTxid(payment);
+    final String? preimage = switch (payment.details) {
+      PaymentDetails_Lightning() =>
+        (payment.details as PaymentDetails_Lightning).preimage,
+      _ => null,
+    };
 
     // Breez SDK timestamp may come in seconds or milliseconds
     // Very small timestamps (< 10 billion) are in seconds
@@ -59,6 +65,7 @@ class BreezTransactionDto {
       blockchain: _parseBlockchain(payment),
       status: _parseStatus(payment),
       createdAt: DateTime.fromMillisecondsSinceEpoch(timestampMs.toInt()),
+      preimage: preimage,
     );
   }
 
@@ -78,6 +85,7 @@ class BreezTransactionDto {
               : TransactionType.receive,
       status: status,
       createdAt: createdAt,
+      preimage: preimage,
     );
   }
 
@@ -131,11 +139,11 @@ class BreezTransactionDto {
     if (payment.txId != null) return payment.txId!;
 
     if (details is PaymentDetails_Lightning) {
-      return details.swapId;
+      return details.invoice ?? details.swapId;
     }
 
     if (details is PaymentDetails_Bitcoin) {
-      return details.swapId;
+      return details.claimTxId ?? details.swapId;
     }
 
     if (details is PaymentDetails_Liquid) {
