@@ -153,6 +153,7 @@ class LiquidWallet {
       toAsset: toAsset,
       sentAmount: sentAmount,
       receivedAmount: receivedAmount,
+      blockchainUrl: transaction.unblindedUrl
     );
   }
 }
