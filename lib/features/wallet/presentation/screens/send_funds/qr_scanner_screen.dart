@@ -9,6 +9,7 @@ import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/qr_validation_service.dart';
+import '../../providers/send_funds/amount_detection_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 class QRCodeScannerScreen extends ConsumerStatefulWidget {
@@ -131,6 +132,16 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   void _autoSwitchAssetBasedOnNetwork(String address) {
     if (address.isEmpty) return;
 
+    // First, try to detect the asset from the QR code data
+    final detectedResult = AmountDetectionService.detectAmount(address);
+
+    if (detectedResult.asset != null) {
+      // If we detected a specific asset from the QR code, use it
+      ref.read(selectedAssetProvider.notifier).state = detectedResult.asset!;
+      return;
+    }
+
+    // Fallback to network type detection for addresses without asset ID
     final networkType = NetworkDetectionService.detectNetworkType(address);
     final currentAsset = ref.read(selectedAssetProvider);
 
