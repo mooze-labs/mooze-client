@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:mooze_mobile/services/auth.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
@@ -14,12 +13,14 @@ class VerifyPinScreen extends StatefulWidget {
   final Function() onPinConfirmed;
   final bool forceAuth;
   final bool isAppResuming;
+  final bool canGoBack;
 
   const VerifyPinScreen({
     super.key,
     required this.onPinConfirmed,
     this.forceAuth = false,
     this.isAppResuming = false,
+    this.canGoBack = true,
   });
 
   @override
@@ -147,7 +148,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     }
 
     // Determine if back button should be enabled
-    final canGoBack = !widget.forceAuth || widget.isAppResuming;
+    final canGoBack = widget.canGoBack;
 
     return PopScope(
       canPop: canGoBack,

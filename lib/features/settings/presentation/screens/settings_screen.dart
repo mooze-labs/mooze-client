@@ -91,7 +91,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     rota: '/setup/pin/verify',
                     verifyPinArgs: VerifyPinArgs(
                       onPinConfirmed: () {
-                        context.pushReplacement('/setup/pin/new');
+                        context.push('/setup/pin/new', extra: true);
                       },
                       forceAuth: true,
                     ),

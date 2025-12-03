@@ -8,8 +8,13 @@ import 'package:pinput/pinput.dart';
 import '../../../di/providers/pin_setup_repository_provider.dart';
 
 class ConfirmPinSetupScreen extends ConsumerStatefulWidget {
-  const ConfirmPinSetupScreen({super.key, required this.pin});
+  const ConfirmPinSetupScreen({
+    super.key,
+    required this.pin,
+    this.isChangingPin = false,
+  });
   final String pin;
+  final bool isChangingPin;
 
   @override
   ConsumerState<ConfirmPinSetupScreen> createState() =>
@@ -57,7 +62,14 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
       ).showSnackBar(SnackBar(content: Text(failure.toString()))),
       (_) {
         if (context.mounted) {
-          context.go("/setup/wallet-import-loading");
+          if (widget.isChangingPin) {
+            int count = 0;
+            Navigator.of(context).popUntil((route) {
+              return count++ == 3;
+            });
+          } else {
+            context.go("/setup/wallet-import-loading");
+          }
         }
       },
     );

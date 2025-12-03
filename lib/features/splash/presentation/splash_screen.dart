@@ -138,7 +138,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           final sessionCreated = await refCaptured.read(
             ensureAuthSessionProvider.future,
           );
-
         } catch (e) {
           if (kDebugMode) debugPrint("[SplashScreen] Error ensuring auth: $e");
         }
@@ -148,6 +147,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         rootNavigatorKey.currentContext?.go('/home');
       },
       forceAuth: true,
+      canGoBack: false,
     );
 
     context.go('/setup/pin/verify', extra: verifyPinArgs);

@@ -28,19 +28,32 @@ final setupRoutes = [
   ),
   GoRoute(
     path: "/setup/pin/new",
-    builder: (context, state) => const NewPinSetupScreen(),
+    builder: (context, state) {
+      final isChangingPin = state.extra as bool? ?? false;
+      return NewPinSetupScreen(isChangingPin: isChangingPin);
+    },
   ),
   GoRoute(
     path: "/setup/pin/confirm",
     builder: (context, state) {
-      final pin = state.extra as String?;
+      final extra = state.extra;
+      String? pin;
+      bool isChangingPin = false;
+
+      if (extra is Map<String, dynamic>) {
+        pin = extra['pin'] as String?;
+        isChangingPin = extra['isChangingPin'] as bool? ?? false;
+      } else if (extra is String) {
+        pin = extra;
+      }
+
       if (pin == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.go("/setup/pin/new");
         });
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
-      return ConfirmPinSetupScreen(pin: pin);
+      return ConfirmPinSetupScreen(pin: pin, isChangingPin: isChangingPin);
     },
   ),
   GoRoute(
@@ -51,6 +64,7 @@ final setupRoutes = [
         onPinConfirmed: args?.onPinConfirmed ?? () {},
         forceAuth: args?.forceAuth ?? false,
         isAppResuming: args?.isAppResuming ?? false,
+        canGoBack: args?.canGoBack ?? true,
       );
     },
   ),

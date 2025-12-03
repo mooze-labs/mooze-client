@@ -25,6 +25,7 @@ class VerifyPinArgs {
   final Function()? onPinConfirmed;
   final bool? forceAuth;
   final bool? isAppResuming;
+  final bool? canGoBack;
 
-  VerifyPinArgs({this.onPinConfirmed, this.forceAuth, this.isAppResuming});
+  VerifyPinArgs({this.onPinConfirmed, this.forceAuth, this.isAppResuming, this.canGoBack});
 }

@@ -6,7 +6,9 @@ import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:pinput/pinput.dart';
 
 class NewPinSetupScreen extends ConsumerStatefulWidget {
-  const NewPinSetupScreen({super.key});
+  final bool isChangingPin;
+
+  const NewPinSetupScreen({super.key, this.isChangingPin = false});
 
   @override
   ConsumerState<NewPinSetupScreen> createState() => _NewPinSetupScreenState();
@@ -44,7 +46,10 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
       return;
     }
 
-    context.push('/setup/pin/confirm', extra: pin);
+    context.push(
+      '/setup/pin/confirm',
+      extra: {'pin': pin, 'isChangingPin': widget.isChangingPin},
+    );
   }
 
   @override
