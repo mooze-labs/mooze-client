@@ -2118,6 +2118,10 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
     return bip39English;
   }
 
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
+  }
+
   void updateCurrentInput(String input) {
     final trimmed = input.trim().toLowerCase();
 
@@ -2136,8 +2140,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
     state = state.copyWith(
       currentInput: trimmed,
       suggestions: matches,
-      errorMessage:
-          matches.isEmpty ? 'Nenhuma palavra válida encontrada' : null,
+      errorMessage: null,
     );
   }
 
@@ -2289,10 +2292,6 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
 
   void setLoading(bool loading) {
     state = state.copyWith(isLoading: loading);
-  }
-
-  void clearError() {
-    state = state.copyWith(errorMessage: null);
   }
 
   bool importFullPhrase(String phrase) {

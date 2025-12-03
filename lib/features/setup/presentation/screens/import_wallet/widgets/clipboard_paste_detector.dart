@@ -60,7 +60,6 @@ class _ClipboardPasteDetectorState
       setState(() {
         _showBanner = false;
       });
-
     } else {
       if (mounted) {
         final state = ref.read(seedPhraseProvider);
@@ -100,7 +99,7 @@ class _ClipboardPasteDetectorState
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -135,7 +134,7 @@ class _ClipboardPasteDetectorState
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                    ).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                   ),
                 ),
               ],

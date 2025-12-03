@@ -23,19 +23,12 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
   }
 
   void _onTextChanged() {
-    final notifier = ref.read(seedPhraseProvider.notifier);
     final text = _controller.text;
 
-    final state = ref.read(seedPhraseProvider);
-    if (state.errorMessage != null && text.isNotEmpty) {
-      notifier.clearError();
-    }
-
-    final wordCount =
-        text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-
-    if (wordCount >= 12) {
-      final success = notifier.importFullPhrase(text);
+    final words = text.trim().split(RegExp(r'\s+'));
+    if (words.length >= 12) {
+      final notifier = ref.read(seedPhraseProvider.notifier);
+      final success = notifier.importFullPhrase(text.trim());
       if (success) {
         _controller.clear();
         return;
@@ -43,16 +36,24 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
       return;
     }
 
-    if (text.endsWith(' ') || text.endsWith('\n')) {
-      final currentState = ref.read(seedPhraseProvider);
-      if (currentState.suggestions.isNotEmpty) {
-        notifier.confirmFirstSuggestion();
-        _controller.clear();
-        return;
+    if (text.endsWith(' ')) {
+      final trimmedText = text.trim();
+      if (trimmedText.isNotEmpty) {
+        final state = ref.read(seedPhraseProvider);
+        if (state.suggestions.isNotEmpty) {
+          ref.read(seedPhraseProvider.notifier).confirmFirstSuggestion();
+          _controller.clear();
+          return;
+        }
       }
+      _controller.text = trimmedText;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: trimmedText.length),
+      );
+      return;
     }
 
-    notifier.updateCurrentInput(text);
+    ref.read(seedPhraseProvider.notifier).updateCurrentInput(text);
   }
 
   @override
@@ -101,13 +102,17 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
                     : 'Digite uma palavra BIP39...',
             hintStyle: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -124,12 +129,14 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
               color: Theme.of(context).colorScheme.primary,
             ),
             suffixIcon:
-                state.isEditing
+                state.currentInput.isNotEmpty
                     ? IconButton(
-                      icon: Icon(Icons.close),
+                      icon: const Icon(Icons.clear),
                       onPressed: () {
-                        ref.read(seedPhraseProvider.notifier).cancelEditing();
                         _controller.clear();
+                        if (state.isEditing) {
+                          ref.read(seedPhraseProvider.notifier).cancelEditing();
+                        }
                       },
                     )
                     : null,
@@ -139,7 +146,7 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
           autocorrect: false,
           enableSuggestions: false,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')),
+            FilteringTextInputFormatter.allow(RegExp(r'[a-z ]')),
             LowerCaseTextFormatter(),
           ],
         ),
