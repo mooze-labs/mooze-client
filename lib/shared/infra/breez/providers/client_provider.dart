@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:fpdart/fpdart.dart';
@@ -20,7 +21,30 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
       final client = await connect(req: connectRequest);
       return right(client);
     } catch (e) {
-      return left('Failed to connect to Breez SDK: ${e.toString()}');
+      final errorMessage = e.toString();
+
+      if (errorMessage.contains('rusqlite_migrate') ||
+          errorMessage.contains('duplicate column name')) {
+        try {
+          final dbDir = Directory(config.workingDir);
+          if (await dbDir.exists()) {
+            await dbDir.delete(recursive: true);
+          }
+
+          final retryRequest = ConnectRequest(
+            mnemonic: mnemonic,
+            config: config,
+          );
+          final client = await connect(req: retryRequest);
+          return right(client);
+        } catch (retryError) {
+          return left(
+            'Failed to connect to Breez SDK after database cleanup: ${retryError.toString()}',
+          );
+        }
+      }
+
+      return left('Failed to connect to Breez SDK: $errorMessage');
     }
   });
 });
