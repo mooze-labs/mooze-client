@@ -1,15 +1,17 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-const _defaultNodeUrl = String.fromEnvironment(
-  "LIQUID_DEFAULT_NODE",
-  defaultValue: "blockstream.info:995",
-);
+import '../utils/electrum_fallback.dart';
 
 final electrumNodeProvider = Provider<TaskEither<String, String>>((ref) {
   return TaskEither.tryCatch(() async {
     final sharedPrefs = await SharedPreferences.getInstance();
-    return sharedPrefs.getString('liquid_node_url') ?? _defaultNodeUrl;
-  }, (error, stackTrace) => _defaultNodeUrl);
+    final customUrl = sharedPrefs.getString('liquid_node_url');
+
+    if (customUrl != null) {
+      return customUrl;
+    }
+
+    return LiquidElectrumFallback.getCurrentServer();
+  }, (error, stackTrace) => LiquidElectrumFallback.getCurrentServer());
 });
