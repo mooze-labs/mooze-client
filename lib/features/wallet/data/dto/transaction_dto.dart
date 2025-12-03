@@ -72,6 +72,21 @@ class BreezTransactionDto {
   Transaction toDomain() {
     final isSubmarineSwap = blockchain == Blockchain.bitcoin;
 
+    String? blockchainUrl;
+    if (id.isNotEmpty) {
+      switch (blockchain) {
+        case Blockchain.bitcoin:
+          blockchainUrl = 'https://blockstream.info/tx/$id';
+          break;
+        case Blockchain.liquid:
+          blockchainUrl = 'https://blockstream.info/liquid/tx/$id';
+          break;
+        case Blockchain.lightning:
+          blockchainUrl = 'https://blockstream.info/liquid/tx/$id';
+          break;
+      }
+    }
+
     return Transaction(
       id: id,
       amount: amount,
@@ -86,6 +101,7 @@ class BreezTransactionDto {
       status: status,
       createdAt: createdAt,
       preimage: preimage,
+      blockchainUrl: blockchainUrl,
     );
   }
 

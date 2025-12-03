@@ -25,7 +25,7 @@ class TransactionDetailScreen extends ConsumerStatefulWidget {
 
 class _TransactionDetailScreenState
     extends ConsumerState<TransactionDetailScreen> {
-  bool _isCopied = false;
+  final Map<String, bool> _copiedFields = {};
   int? _currentBlockHeight;
 
   @override
@@ -183,43 +183,47 @@ class _TransactionDetailScreenState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Asset FROM
-            Column(
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(35),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
-                      width: 2,
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(35),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: SvgPicture.asset(
+                      widget.transaction.fromAsset!.iconPath,
+                      width: 42,
+                      height: 42,
                     ),
                   ),
-                  child: SvgPicture.asset(
-                    widget.transaction.fromAsset!.iconPath,
-                    width: 42,
-                    height: 42,
+                  const SizedBox(height: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _formatSwapAmount(
+                        widget.transaction.sentAmount!,
+                        widget.transaction.fromAsset!,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatSwapAmount(
-                    widget.transaction.sentAmount!,
-                    widget.transaction.fromAsset!,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                ],
+              ),
             ),
 
-            const SizedBox(width: 20),
+            const SizedBox(width: 10),
 
             Icon(
               Icons.swap_horiz_rounded,
@@ -227,43 +231,47 @@ class _TransactionDetailScreenState
               color: AppColors.primaryColor,
             ),
 
-            const SizedBox(width: 20),
+            const SizedBox(width: 10),
 
             // Asset TO
-            Column(
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(35),
-                    border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.3),
-                      width: 2,
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(35),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: SvgPicture.asset(
+                      widget.transaction.toAsset!.iconPath,
+                      width: 42,
+                      height: 42,
                     ),
                   ),
-                  child: SvgPicture.asset(
-                    widget.transaction.toAsset!.iconPath,
-                    width: 42,
-                    height: 42,
+                  const SizedBox(height: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _formatSwapAmount(
+                        widget.transaction.receivedAmount!,
+                        widget.transaction.toAsset!,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatSwapAmount(
-                    widget.transaction.receivedAmount!,
-                    widget.transaction.toAsset!,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -322,7 +330,11 @@ class _TransactionDetailScreenState
 
           const SizedBox(height: 20),
 
-          _buildDetailRow('Status', _getStatusLabel(), _getStatusColor()),
+          _buildDetailRow(
+            label: 'Status',
+            value: _getStatusLabel(),
+            valueColor: _getStatusColor(),
+          ),
 
           // Submarine swap explanation
           if (isSubmarineSwap) ...[
@@ -333,8 +345,8 @@ class _TransactionDetailScreenState
               widget.transaction.status == TransactionStatus.confirmed)
             _buildConfirmationRow(),
           _buildDetailRow(
-            'Data',
-            _formatDateTime(widget.transaction.createdAt),
+            label: 'Data',
+            value: _formatDateTime(widget.transaction.createdAt),
           ),
 
           ...(isSwap && _hasSwapDetails()
@@ -345,19 +357,27 @@ class _TransactionDetailScreenState
             ..._buildCrossChainSwapIds()
           else
             _buildDetailRow(
-              'ID da Transação',
-              truncateHashId(widget.transaction.id),
-              null,
-              true,
+              label: 'ID da Transação',
+              value: truncateHashId(widget.transaction.id),
+              copyable: true,
+              copyFieldId: 'transaction_id',
+              copyValue: widget.transaction.id,
             ),
 
-          if (widget.transaction.preimage != null)
-            _buildDetailRow(
-              "Preimagem",
-              truncateHashId(widget.transaction.preimage!),
-            ),
+          if (widget.transaction.blockchain == Blockchain.lightning) ...[
+            if (widget.transaction.preimage != null)
+              _buildDetailRow(
+                label: "Preimagem",
+                value: truncateHashId(widget.transaction.preimage!),
+                copyable: true,
+                copyFieldId: 'preimage',
+                copyValue: widget.transaction.preimage!,
+              )
+            else if (widget.transaction.status == TransactionStatus.pending)
+              _buildPreimageWarning(),
+          ],
 
-          _buildDetailRow('Blockchain', _getBlockchainLabel()),
+          _buildDetailRow(label: 'Blockchain', value: _getBlockchainLabel()),
         ],
       ),
     );
@@ -366,10 +386,11 @@ class _TransactionDetailScreenState
   Widget _buildRegularDetailsSection() {
     return Column(
       children: [
-        _buildDetailRow('Moeda', widget.transaction.asset.name),
+        _buildDetailRow(label: 'Moeda', value: widget.transaction.asset.name),
         _buildDetailRow(
-          'Valor',
-          '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
+          label: 'Valor',
+          value:
+              '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
         ),
       ],
     );
@@ -399,6 +420,67 @@ class _TransactionDetailScreenState
                 height: 1.4,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreimageWarning() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Preimagem',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.hourglass_empty,
+                        size: 16,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Assim que sua transação for confirmada, a preimagem aparecerá em breve',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -483,12 +565,18 @@ class _TransactionDetailScreenState
     );
   }
 
-  Widget _buildDetailRow(
-    String label,
-    String value, [
+  Widget _buildDetailRow({
+    required String label,
+    required String value,
     Color? valueColor,
     bool copyable = false,
-  ]) {
+    String? copyFieldId,
+    String? copyValue,
+  }) {
+    final fieldId = copyFieldId ?? label;
+    final isCopied = _copiedFields[fieldId] ?? false;
+    final valueToCopy = copyValue ?? value;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -522,17 +610,16 @@ class _TransactionDetailScreenState
                 if (copyable) ...[
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => _copyToClipboard(value),
+                    onTap: () => _copyToClipboard(valueToCopy, fieldId),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color:
-                            _isCopied ? Colors.green : AppColors.primaryColor,
+                        color: isCopied ? Colors.green : AppColors.primaryColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Icon(
-                        _isCopied ? Icons.check : Icons.copy,
+                        isCopied ? Icons.check : Icons.copy,
                         size: 16,
                         color: Colors.white,
                       ),
@@ -671,43 +758,42 @@ class _TransactionDetailScreenState
     return formatter.format(dateTime);
   }
 
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: widget.transaction.id));
+  void _copyToClipboard(String text, String fieldId) {
+    Clipboard.setData(ClipboardData(text: text));
 
     setState(() {
-      _isCopied = true;
+      _copiedFields[fieldId] = true;
     });
 
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
-          _isCopied = false;
+          _copiedFields[fieldId] = false;
         });
       }
     });
   }
 
   Future<void> _openInExplorer({String? txId, Blockchain? blockchain}) async {
-    final useTxId = txId ?? widget.transaction.id;
-    final useBlockchain = blockchain ?? widget.transaction.blockchain;
+    final String explorerUrl;
 
-    String explorerUrl;
-
-    if (widget.transaction.type == TransactionType.swap ||
-        useBlockchain == Blockchain.liquid) {
-      explorerUrl = 'https://blockstream.info/liquid/tx/$useTxId';
+    if (txId != null && blockchain != null) {
+      explorerUrl = switch (blockchain) {
+        Blockchain.bitcoin => 'https://blockstream.info/tx/$txId',
+        Blockchain.liquid => 'https://blockstream.info/liquid/tx/$txId',
+        Blockchain.lightning => 'https://blockstream.info/liquid/tx/$txId',
+      };
+    } else if (widget.transaction.blockchainUrl != null) {
+      explorerUrl = widget.transaction.blockchainUrl!;
     } else {
-      switch (useBlockchain) {
-        case Blockchain.bitcoin:
-          explorerUrl = 'https://blockstream.info/tx/$useTxId';
-          break;
-        case Blockchain.lightning:
-          explorerUrl = 'https://blockstream.info/tx/$useTxId';
-          break;
-        case Blockchain.liquid:
-          explorerUrl = widget.transaction.blockchainUrl ?? 'https://blockstream.info/liquid/tx/$useTxId';
-          break;
-      }
+      final useTxId = txId ?? widget.transaction.id;
+      final useBlockchain = blockchain ?? widget.transaction.blockchain;
+
+      explorerUrl = switch (useBlockchain) {
+        Blockchain.bitcoin => 'https://blockstream.info/tx/$useTxId',
+        Blockchain.liquid => 'https://blockstream.info/liquid/tx/$useTxId',
+        Blockchain.lightning => 'https://blockstream.info/liquid/tx/$useTxId',
+      };
     }
 
     final Uri url = Uri.parse(explorerUrl);
@@ -748,16 +834,20 @@ class _TransactionDetailScreenState
   List<Widget> _buildCrossChainSwapIds() {
     return [
       _buildDetailRow(
-        'ID Envio (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
-        widget.transaction.sendTxId!,
-        null,
-        true,
+        label:
+            'ID Envio (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
+        value: truncateHashId(widget.transaction.sendTxId!),
+        copyable: true,
+        copyFieldId: 'send_tx_id',
+        copyValue: widget.transaction.sendTxId!,
       ),
       _buildDetailRow(
-        'ID Recebimento (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
-        widget.transaction.receiveTxId!,
-        null,
-        true,
+        label:
+            'ID Recebimento (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
+        value: truncateHashId(widget.transaction.receiveTxId!),
+        copyable: true,
+        copyFieldId: 'receive_tx_id',
+        copyValue: widget.transaction.receiveTxId!,
       ),
     ];
   }
