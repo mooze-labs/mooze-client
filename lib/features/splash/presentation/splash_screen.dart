@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
+import '../../../shared/key_management/providers/has_pin_provider.dart';
 import '../../../shared/authentication/providers/ensure_auth_session_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
 import '../../../routes.dart';
@@ -84,6 +85,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) {
         mnemonic.fold(
           () {
+            // No mnemonic found
             if (kDebugMode)
               debugPrint(
                 "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
@@ -91,15 +93,54 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             context.go('/setup/first-access');
           },
           (mnemonicValue) {
+            // Mnemonic exists, check if PIN exists
             if (kDebugMode)
               debugPrint(
-                "[SplashScreen] Mnemonic exists, attempting authentication...",
+                "[SplashScreen] Mnemonic exists, checking PIN status...",
               );
-            _authenticateAndNavigate(mnemonicValue);
+            _checkPinAndNavigate(mnemonicValue);
           },
         );
       }
     });
+  }
+
+  /// Checks if PIN exists and navigates accordingly
+  void _checkPinAndNavigate(String mnemonic) async {
+    if (kDebugMode)
+      debugPrint("[SplashScreen] Checking PIN status asynchronously...");
+
+    try {
+      final hasPin = await ref.read(hasPinProvider.future);
+
+      if (kDebugMode)
+        debugPrint("[SplashScreen] PIN check completed, hasPin: $hasPin");
+
+      if (!mounted) return;
+
+      if (hasPin) {
+        // Both mnemonic and PIN exist - normal flow: verify PIN
+        if (kDebugMode)
+          debugPrint(
+            "[SplashScreen] Both mnemonic and PIN exist, verifying PIN...",
+          );
+        _authenticateAndNavigate(mnemonic);
+      } else {
+        // Mnemonic exists but PIN doesn't - incomplete setup
+        if (kDebugMode)
+          debugPrint(
+            "[SplashScreen] Mnemonic exists but PIN doesn't, redirecting to create PIN...",
+          );
+        context.go('/setup/pin/new');
+      }
+    } catch (error, stackTrace) {
+      if (kDebugMode) debugPrint("[SplashScreen] Error checking PIN: $error");
+      if (kDebugMode) debugPrint("[SplashScreen] Stack trace: $stackTrace");
+      // On error, redirect to first-access for safety
+      if (mounted) {
+        context.go('/setup/first-access');
+      }
+    }
   }
 
   void _handleError(Object error, StackTrace stackTrace) {
@@ -127,17 +168,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Navigate to PIN verification screen
     if (!mounted) return;
 
-    final refCaptured = ref;
+    final container = ProviderScope.containerOf(context);
 
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
         if (kDebugMode)
           debugPrint("[SplashScreen] PIN confirmed, ensuring auth session...");
 
+        // Invalidate hasPinProvider using container to avoid disposed widget error
+        container.invalidate(hasPinProvider);
+
         try {
-          final sessionCreated = await refCaptured.read(
-            ensureAuthSessionProvider.future,
-          );
+          await container.read(ensureAuthSessionProvider.future);
         } catch (e) {
           if (kDebugMode) debugPrint("[SplashScreen] Error ensuring auth: $e");
         }
@@ -161,6 +203,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         debugPrint(
           "[SplashScreen] Loader is shown, watching mnemonicProvider...",
         );
+
+      final currentLocation = GoRouterState.of(context).uri.toString();
+      if (currentLocation.startsWith('/setup/')) {
+        if (kDebugMode)
+          debugPrint(
+            "[SplashScreen] Already in setup route ($currentLocation), skipping navigation",
+          );
+        return _buildScaffold();
+      }
+
       final mnemonicAsync = ref.watch(mnemonicProvider);
 
       mnemonicAsync.when(
@@ -181,6 +233,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       );
     }
 
+    return _buildScaffold();
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: Color(0xFF1A1A1A),
       body: Center(

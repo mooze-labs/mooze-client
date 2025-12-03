@@ -8,6 +8,7 @@ import '../bdk/providers/datasource_provider.dart';
 import 'wallet_data_manager.dart';
 import 'sync_config.dart';
 import '../../key_management/providers/mnemonic_provider.dart';
+import '../../key_management/providers/has_pin_provider.dart';
 
 /// Extracts useful details from LwkError
 String _extractErrorDetails(dynamic error) {
@@ -64,7 +65,7 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
     }
   }
 
-  // Initialize the wallet data manager listener 
+  // Initialize the wallet data manager listener
   ref.listen(walletDataManagerProvider, (prev, next) {
     if (prev?.state != next.state) {
       debugPrint(
@@ -74,16 +75,37 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
   });
 
   ref.listen<AsyncValue<Option<String>>>(mnemonicProvider, (previous, next) {
-    next.whenData((mnemonicOption) {
+    next.whenData((mnemonicOption) async {
       final hasMnemonic = mnemonicOption.isSome();
 
       if (hasMnemonic) {
-        WalletSyncLogger.info(
-          "[WalletSyncBootstrapProvider] Mnemonic disponível, iniciando datasources",
-        );
+        try {
+          final hasPin = await ref.read(hasPinProvider.future);
 
-        ref.read(liquidDataSourceProvider);
-        ref.read(bdkDatasourceProvider);
+          if (!hasPin) {
+            WalletSyncLogger.info(
+              "[WalletSyncBootstrapProvider] Mnemonic disponível mas PIN não configurado, aguardando setup completo...",
+            );
+            _hasInitialized = false;
+            _liquidReady = false;
+            _bdkReady = false;
+            return;
+          }
+
+          WalletSyncLogger.info(
+            "[WalletSyncBootstrapProvider] Mnemonic e PIN disponíveis, iniciando datasources",
+          );
+
+          ref.read(liquidDataSourceProvider);
+          ref.read(bdkDatasourceProvider);
+        } catch (e) {
+          WalletSyncLogger.error(
+            "[WalletSyncBootstrapProvider] Erro ao verificar PIN: $e",
+          );
+          _hasInitialized = false;
+          _liquidReady = false;
+          _bdkReady = false;
+        }
       } else {
         WalletSyncLogger.info(
           "[WalletSyncBootstrapProvider] Mnemonic não disponível, aguardando...",
@@ -108,35 +130,64 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
     }
 
     next.whenOrNull(
-      data:
-          (either) => either.match(
-            (error) {
-              // Extract specific details from LwkError
-              final errorDetails = _extractErrorDetails(error);
-              debugPrint("Failed to start Liquid sync: $errorDetails");
+      data: (either) async {
+        final mnemonicAsync = ref.read(mnemonicProvider);
+        final hasMnemonic = mnemonicAsync.value?.isSome() ?? false;
 
-              // Notify WalletDataManager about the failure with details
-              ref
-                  .read(walletDataManagerProvider.notifier)
-                  .notifyLiquidSyncFailed(errorDetails);
+        if (!hasMnemonic) {
+          debugPrint(
+            "[WalletSyncBootstrapProvider] Liquid datasource pronto mas sem mnemonic, ignorando",
+          );
+          _liquidReady = false;
+          return;
+        }
 
-              _liquidReady = false;
-            },
-            (datasource) {
-              debugPrint("Liquid datasource ready, starting sync");
-              // Notify datasource recovery
-              ref
-                  .read(walletDataManagerProvider.notifier)
-                  .notifyDataSourceRecovered('liquid');
+        try {
+          final hasPin = await ref.read(hasPinProvider.future);
+          if (!hasPin) {
+            debugPrint(
+              "[WalletSyncBootstrapProvider] Liquid datasource pronto mas sem PIN, ignorando",
+            );
+            _liquidReady = false;
+            return;
+          }
+        } catch (e) {
+          debugPrint(
+            "[WalletSyncBootstrapProvider] Erro ao verificar PIN para Liquid: $e",
+          );
+          _liquidReady = false;
+          return;
+        }
 
-              _liquidReady = true;
-              _tryInitializeWallet();
+        either.match(
+          (error) {
+            // Extract specific details from LwkError
+            final errorDetails = _extractErrorDetails(error);
+            debugPrint("Failed to start Liquid sync: $errorDetails");
 
-              ref.read(
-                liquidSyncEffectProvider,
-              ); // Keep the original sync as well
-            },
-          ),
+            // Notify WalletDataManager about the failure with details
+            ref
+                .read(walletDataManagerProvider.notifier)
+                .notifyLiquidSyncFailed(errorDetails);
+
+            _liquidReady = false;
+          },
+          (datasource) {
+            debugPrint("Liquid datasource ready, starting sync");
+            // Notify datasource recovery
+            ref
+                .read(walletDataManagerProvider.notifier)
+                .notifyDataSourceRecovered('liquid');
+
+            _liquidReady = true;
+            _tryInitializeWallet();
+
+            ref.read(
+              liquidSyncEffectProvider,
+            ); // Keep the original sync as well
+          },
+        );
+      },
     );
   });
 
@@ -151,33 +202,62 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
     }
 
     next.whenOrNull(
-      data:
-          (either) => either.match(
-            (error) {
-              // Extract specific error details
-              final errorDetails = _extractErrorDetails(error);
-              debugPrint("Failed to start BDK sync: $errorDetails");
+      data: (either) async {
+        final mnemonicAsync = ref.read(mnemonicProvider);
+        final hasMnemonic = mnemonicAsync.value?.isSome() ?? false;
 
-              // Notify WalletDataManager about the failure with details
-              ref
-                  .read(walletDataManagerProvider.notifier)
-                  .notifyBdkSyncFailed(errorDetails);
+        if (!hasMnemonic) {
+          debugPrint(
+            "[WalletSyncBootstrapProvider] BDK datasource pronto mas sem mnemonic, ignorando",
+          );
+          _bdkReady = false;
+          return;
+        }
 
-              _bdkReady = false;
-            },
-            (datasource) {
-              debugPrint("BDK datasource ready, starting sync");
-              // Notify datasource recovery
-              ref
-                  .read(walletDataManagerProvider.notifier)
-                  .notifyDataSourceRecovered('bdk');
+        try {
+          final hasPin = await ref.read(hasPinProvider.future);
+          if (!hasPin) {
+            debugPrint(
+              "[WalletSyncBootstrapProvider] BDK datasource pronto mas sem PIN, ignorando",
+            );
+            _bdkReady = false;
+            return;
+          }
+        } catch (e) {
+          debugPrint(
+            "[WalletSyncBootstrapProvider] Erro ao verificar PIN para BDK: $e",
+          );
+          _bdkReady = false;
+          return;
+        }
 
-              _bdkReady = true;
-              _tryInitializeWallet();
+        either.match(
+          (error) {
+            // Extract specific error details
+            final errorDetails = _extractErrorDetails(error);
+            debugPrint("Failed to start BDK sync: $errorDetails");
 
-              ref.read(bdkSyncEffectProvider);
-            },
-          ),
+            // Notify WalletDataManager about the failure with details
+            ref
+                .read(walletDataManagerProvider.notifier)
+                .notifyBdkSyncFailed(errorDetails);
+
+            _bdkReady = false;
+          },
+          (datasource) {
+            debugPrint("BDK datasource ready, starting sync");
+            // Notify datasource recovery
+            ref
+                .read(walletDataManagerProvider.notifier)
+                .notifyDataSourceRecovered('bdk');
+
+            _bdkReady = true;
+            _tryInitializeWallet();
+
+            ref.read(bdkSyncEffectProvider);
+          },
+        );
+      },
     );
   });
 });

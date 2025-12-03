@@ -18,6 +18,8 @@ import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
+import 'package:mooze_mobile/shared/key_management/providers/pin_store_provider.dart';
+import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -106,8 +108,13 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         final mnemonicHandler = MnemonicHandler();
         await mnemonicHandler.deleteMnemonic("mainWallet");
 
+        // Delete PIN
+        final pinStore = ref.read(pinStoreProvider);
+        await pinStore.deletePin().run();
+
         // Invalidate seed/mnemonic providers
         ref.invalidate(mnemonicProvider);
+        ref.invalidate(hasPinProvider);
         ref.invalidate(bdkDatasourceProvider);
         ref.invalidate(liquidDataSourceProvider);
         ref.invalidate(breezClientProvider);

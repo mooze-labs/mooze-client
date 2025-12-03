@@ -47,4 +47,32 @@ class KeyStoreImpl implements KeyStore {
       return unit;
     }, (error, stackTrace) => "Erro ao salvar a frase de recuperação: $error");
   }
+
+  @override
+  TaskEither<String, Unit> deleteKey(String key) {
+    if (kDebugMode)
+      debugPrint("[KeyStoreImpl] Starting deleteKey operation for key: $key");
+    final storage = SecureStorageProvider.instance;
+
+    return TaskEither.tryCatch(
+      () async {
+        if (kDebugMode)
+          debugPrint(
+            "[KeyStoreImpl] Attempting to delete from secure storage for key: $key",
+          );
+        await storage.delete(key: key);
+        if (kDebugMode)
+          debugPrint(
+            "[KeyStoreImpl] Secure storage delete completed for key: $key",
+          );
+        return unit;
+      },
+      (error, stackTrace) {
+        if (kDebugMode)
+          debugPrint("[KeyStoreImpl] Error deleting key $key: $error");
+        if (kDebugMode) debugPrint("[KeyStoreImpl] Stack trace: $stackTrace");
+        return "Erro ao deletar chave: $error";
+      },
+    );
+  }
 }

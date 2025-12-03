@@ -58,6 +58,13 @@ class PinStoreImpl implements PinStore {
         .getOrElse((l) => false);
   }
 
+  @override
+  TaskEither<String, Unit> deletePin() {
+    return _keyStore
+        .deleteKey("pinSalt")
+        .andThen(() => _keyStore.deleteKey("hashedPin"));
+  }
+
   String _generateSalt() {
     final secureRandom = SecureRandom(16);
     return base64Encode(secureRandom.bytes);
