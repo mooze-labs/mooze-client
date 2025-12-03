@@ -70,10 +70,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       if (amount != null && amount > BigInt.zero) {
         final isBtcOrLbtc =
             _fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc;
-        final decimals = isBtcOrLbtc ? 8 : 2;
-        final newValue = (amount.toDouble() / 100000000).toStringAsFixed(
-          decimals,
-        );
+
+        String newValue;
+        if (isBtcOrLbtc) {
+          newValue = amount.toString();
+        } else {
+          newValue = (amount.toDouble() / 100000000).toStringAsFixed(2);
+        }
 
         if (_fromAmountDecimalController.text != newValue) {
           _fromAmountDecimalController.text = newValue;
@@ -446,8 +449,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   FutureBuilder<String>(
                     future: _getBalance(_fromAsset),
                     builder: (context, snapshot) {
+                      final isBtcOrLbtc =
+                          _fromAsset == core.Asset.btc ||
+                          _fromAsset == core.Asset.lbtc;
                       return Text(
-                        '${snapshot.data ?? "..."}',
+                        isBtcOrLbtc
+                            ? '${snapshot.data ?? "..."}'
+                            : '${snapshot.data ?? "..."}',
                         style: Theme.of(context).textTheme.labelLarge!.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -557,9 +565,15 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     Expanded(
                       child: TextField(
                         controller: _fromAmountDecimalController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                        keyboardType:
+                            (_fromAsset == core.Asset.btc ||
+                                    _fromAsset == core.Asset.lbtc)
+                                ? const TextInputType.numberWithOptions(
+                                  decimal: false,
+                                )
+                                : const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
                         textAlign: TextAlign.end,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -592,11 +606,20 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             return;
                           }
 
-                          double parsed =
-                              double.tryParse(value.replaceAll(',', '.')) ?? 0;
-                          BigInt sats = BigInt.from(
-                            (parsed * 100000000).round(),
-                          );
+                          final isBtcOrLbtc =
+                              _fromAsset == core.Asset.btc ||
+                              _fromAsset == core.Asset.lbtc;
+                          BigInt sats;
+
+                          if (isBtcOrLbtc) {
+                            sats = BigInt.tryParse(value) ?? BigInt.zero;
+                          } else {
+                            double parsed =
+                                double.tryParse(value.replaceAll(',', '.')) ??
+                                0;
+                            sats = BigInt.from((parsed * 100000000).round());
+                          }
+
                           if (_fromAmountController.text != sats.toString()) {
                             _fromAmountController.text = sats.toString();
                           }
@@ -726,8 +749,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       FutureBuilder<String>(
                         future: _getBalance(_toAsset),
                         builder: (context, snapshot) {
+                          final isBtcOrLbtc =
+                              _toAsset == core.Asset.btc ||
+                              _toAsset == core.Asset.lbtc;
                           return Text(
-                            snapshot.data ?? "...",
+                            isBtcOrLbtc
+                                ? '${snapshot.data ?? "..."}'
+                                : snapshot.data ?? "...",
                             style: Theme.of(context).textTheme.labelLarge!
                                 .copyWith(color: AppColors.textSecondary),
                           );
