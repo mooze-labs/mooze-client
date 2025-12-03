@@ -54,12 +54,13 @@ class ValidPixPaymentScreen extends StatelessWidget {
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
                   padding: const EdgeInsets.all(contentPadding),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TimerCountdown(
                         expireAt: deposit.createdAt.add(Duration(minutes: 20)),
@@ -86,7 +87,7 @@ class ValidPixPaymentScreen extends StatelessWidget {
                           );
                         },
                       ),
-                      const Spacer(),
+                      SizedBox(height: 20),
                       PixQrCodeDisplay(
                         pixQrData: deposit.pixKey,
                         boxConstraints: constraints,
@@ -99,11 +100,11 @@ class ValidPixPaymentScreen extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      const Spacer(),
+                      SizedBox(height: 20),
                       CopyableAddress(pixKey: deposit.pixKey),
                       SizedBox(height: 20),
                       PaymentDetailsDisplay(deposit: deposit),
-                      const Spacer(),
+                      SizedBox(height: 20),
                     ],
                   ),
                 ),
