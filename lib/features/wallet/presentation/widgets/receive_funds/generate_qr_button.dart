@@ -88,7 +88,10 @@ class GenerateQRButton extends ConsumerWidget {
           context.push(
             '/receive-qr',
             extra: {
-              'qrData': qrState.displayAddress!,
+              'qrData': qrState.displayAddress!.replaceFirst(
+                'liquidnetwork:',
+                '',
+              ),
               'displayAddress': qrState.displayAddress!,
               'asset': selectedAsset,
               'network': selectedNetwork,

@@ -302,6 +302,13 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
   }
 
   Widget _buildQRCode() {
+    String address = widget.qrData;
+
+    if (address.startsWith('liquidnetwork:')) {
+      address = address.substring('liquidnetwork:'.length);
+      address = address.replaceFirst('liquidnetwork:', '');
+    }
+
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -315,7 +322,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
           ),
         ],
       ),
-      child: PrettyQrView.data(data: widget.qrData),
+      child: PrettyQrView.data(data: address),
     );
   }
 
@@ -363,8 +370,6 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
       if (queryIndex != -1) {
         address = address.substring(0, queryIndex);
       }
-
-      print('after: $address');
 
       return address;
     }
