@@ -141,7 +141,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               ),
             ),
             child: PlatformSafeArea(
-              androidBottom: false,
+              iosTop: true,
               child: Column(
                 children: [
                   _buildHeader(),

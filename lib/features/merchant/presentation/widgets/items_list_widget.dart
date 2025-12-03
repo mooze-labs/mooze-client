@@ -9,6 +9,8 @@ class ItemsListWidget extends StatelessWidget {
   final Function(int) onRemoverItem;
   final Function(int, bool) onAtualizarQuantidade;
   final VoidCallback onAdicionarItem;
+  final GlobalKey? addButtonKey;
+  final GlobalKey? firstProductKey;
 
   const ItemsListWidget({
     super.key,
@@ -17,6 +19,8 @@ class ItemsListWidget extends StatelessWidget {
     required this.onRemoverItem,
     required this.onAtualizarQuantidade,
     required this.onAdicionarItem,
+    this.addButtonKey,
+    this.firstProductKey,
   });
 
   @override
@@ -25,6 +29,7 @@ class ItemsListWidget extends StatelessWidget {
       backgroundColor: Colors.black,
       body: produtos.isEmpty ? _buildEmptyState() : _buildProductsList(),
       floatingActionButton: SizedBox(
+        key: addButtonKey,
         width: 56,
         height: 56,
         child: FloatingActionButton(
@@ -73,8 +78,13 @@ class ItemsListWidget extends StatelessWidget {
       separatorBuilder: (context, index) => SizedBox(height: 16),
       itemBuilder: (context, index) {
         final produto = produtos[index];
+        final isFirstProduct = index == 0 && firstProductKey != null;
+
         return Slidable(
-          key: Key(produto.nome + index.toString()),
+          key:
+              isFirstProduct
+                  ? firstProductKey
+                  : Key(produto.nome + index.toString()),
           endActionPane: ActionPane(
             motion: ScrollMotion(),
             children: [

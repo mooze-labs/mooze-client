@@ -6,10 +6,13 @@ import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 class AddEditItemModal {
   static void mostrarBottomSheetAdicionar(
     BuildContext context,
-    Function(Item) onAdicionarItem,
-  ) {
-    final nomeController = TextEditingController();
-    final precoController = TextEditingController();
+    Function(Item) onAdicionarItem, {
+    String? nomePadrao,
+    String? precoPadrao,
+    GlobalKey? adicionarButtonKey,
+  }) {
+    final nomeController = TextEditingController(text: nomePadrao);
+    final precoController = TextEditingController(text: precoPadrao);
 
     showModalBottomSheet(
       context: context,
@@ -158,6 +161,7 @@ class AddEditItemModal {
                           ),
                           SizedBox(width: 16),
                           Expanded(
+                            key: adicionarButtonKey,
                             child: PrimaryButton(
                               text: 'Adicionar',
                               onPressed: () {

@@ -4,11 +4,13 @@ import 'package:mooze_mobile/shared/widgets.dart';
 class FinalizarVendaButton extends StatelessWidget {
   final VoidCallback onPressed;
   final double? cartTotal;
+  final GlobalKey? buttonKey;
 
   const FinalizarVendaButton({
     super.key,
     required this.onPressed,
     this.cartTotal,
+    this.buttonKey,
   });
 
   @override
@@ -37,6 +39,7 @@ class FinalizarVendaButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             PrimaryButton(
+              key: buttonKey,
               text: 'Finalizar Venda',
               onPressed: onPressed,
               isEnabled: cartTotal == null || cartTotal! >= 20.0,

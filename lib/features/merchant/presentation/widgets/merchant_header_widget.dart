@@ -4,11 +4,15 @@ import 'package:go_router/go_router.dart';
 class MerchantHeaderWidget extends StatelessWidget {
   final double valorReais;
   final VoidCallback onLimparCarrinho;
+  final GlobalKey? limparButtonKey;
+  final GlobalKey? valorTotalKey;
 
   const MerchantHeaderWidget({
     super.key,
     required this.valorReais,
     required this.onLimparCarrinho,
+    this.limparButtonKey,
+    this.valorTotalKey,
   });
 
   @override
@@ -40,17 +44,21 @@ class MerchantHeaderWidget extends StatelessWidget {
           ],
         ),
         SizedBox(height: 10),
-        Text(
-          'R\$${valorReais.toStringAsFixed(2)}',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
+        Container(
+          key: valorTotalKey,
+          child: Text(
+            'R\$${valorReais.toStringAsFixed(2)}',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         if (valorReais > 0) ...[
           SizedBox(height: 4),
           GestureDetector(
+            key: limparButtonKey,
             onTap: onLimparCarrinho,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),

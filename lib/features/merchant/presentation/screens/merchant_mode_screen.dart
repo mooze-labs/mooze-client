@@ -10,8 +10,10 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_w
 import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
+import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tutorial_service.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MerchantModeScreen extends ConsumerStatefulWidget {
   @override
@@ -23,16 +25,505 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   late TabController _tabController;
   String valorDigitado = '0.00';
 
+  // GlobalKeys
+  final GlobalKey _headerKey = GlobalKey();
+  final GlobalKey _valorTotalKey = GlobalKey();
+  final GlobalKey _valorInputKey = GlobalKey();
+  final GlobalKey _addButtonKey = GlobalKey();
+  final GlobalKey _itemsTabKey = GlobalKey();
+  final GlobalKey _addProductButtonKey = GlobalKey();
+  final GlobalKey _adicionarModalButtonKey = GlobalKey();
+  final GlobalKey _firstProductKey = GlobalKey();
+  final GlobalKey _finalizarVendaKey = GlobalKey();
+  final GlobalKey _limparKey = GlobalKey();
+
+  TutorialCoachMark? _tutorialCoachMark;
+  final _tutorialService = MerchantTutorialService();
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // _tutorialService.resetTutorial();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final tutorialShown = await _tutorialService.isTutorialShown();
+      if (!tutorialShown && mounted) {
+        _showTutorial();
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _tutorialCoachMark?.finish();
     super.dispose();
+  }
+
+  void _showTutorial() {
+    setState(() {
+      valorDigitado = '20.00';
+    });
+
+    _tutorialCoachMark = TutorialCoachMark(
+      targets: _createTutorialTargets(),
+      colorShadow: Colors.green,
+      paddingFocus: 10,
+      opacityShadow: 0.8,
+      alignSkip: Alignment.topRight,
+      onClickOverlay: (target) {},
+      onClickTarget: (target) async {
+        if (target.identify == "add_button") {
+          _adicionarAoTotal();
+        } else if (target.identify == "items_tab") {
+          _tabController.animateTo(1);
+        } else if (target.identify == "add_product") {
+          final item = Item(nome: 'Produto 01', preco: 21.00, quantidade: 0);
+          await _adicionarItem(item);
+
+          Future.delayed(Duration(milliseconds: 600), () {
+            if (mounted) {
+              _tutorialCoachMark?.next();
+            }
+          });
+        }
+      },
+      onFinish: () async {
+        await _tutorialService.setTutorialShown();
+      },
+      onSkip: () {
+        _tutorialService.setTutorialShown();
+        _limparDadosTutorial();
+        return true;
+      },
+    );
+
+    _tutorialCoachMark?.show(context: context);
+  }
+
+  List<TargetFocus> _createTutorialTargets() {
+    List<TargetFocus> targets = [];
+
+    targets.add(
+      TargetFocus(
+        identify: "welcome",
+        targetPosition: TargetPosition(
+          Size(MediaQuery.of(context).size.width * 0.9, 200),
+          Offset(
+            MediaQuery.of(context).size.width * 1.2,
+            MediaQuery.of(context).size.height * 0.3,
+          ),
+        ),
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            builder: (context, controller) {
+              return Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Bem-vindo ao Modo Comerciante!",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "Aqui você tem um mini PDV: cadastre itens, some valores e cobre seus clientes de forma rápida.",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          controller.next();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFE91E63),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Continuar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "valor_input",
+        keyTarget: _valorInputKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Digite o valor desejado",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Vamos começar inserindo um valor de R\$ 20,00 usando o teclado abaixo.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "add_button",
+        keyTarget: _addButtonKey,
+        shape: ShapeLightFocus.Circle,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            child: Container(
+              padding: EdgeInsets.all(10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Adicionar valor",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Agora toque no botão '+' verde para adicionar o valor à lista de itens.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "items_tab",
+        keyTarget: _itemsTabKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Aba de Itens",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Toque aqui para ver seus produtos cadastrados e criar novos itens.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "add_product",
+        keyTarget: _addProductButtonKey,
+        shape: ShapeLightFocus.Circle,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Criar produto",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Toque no botão '+' para criar automaticamente o produto 'Produto 01' com preço de R\$ 21,00.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "manage_products",
+        keyTarget: _firstProductKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Editar e Deletar produtos",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Arraste este produto da direita para a esquerda para ver as opções de editar ✏️ e excluir 🗑️.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "finalizar_venda",
+        keyTarget: _finalizarVendaKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Finalizar venda",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Quando tiver itens no carrinho (mínimo R\$ 20,00), toque aqui para finalizar a venda.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "limpar",
+        keyTarget: _limparKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            builder: (context, controller) {
+              return Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Limpar carrinho",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "Se quiser começar do zero, toque aqui para limpar todos os itens do carrinho.",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+
+    targets.add(
+      TargetFocus(
+        identify: "conclusion",
+        targetPosition: TargetPosition(
+          Size(MediaQuery.of(context).size.width * 0.9, 200),
+          Offset(
+            MediaQuery.of(context).size.width * 1.5,
+            MediaQuery.of(context).size.height * 0.3,
+          ),
+        ),
+        shape: ShapeLightFocus.RRect,
+        radius: 20,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            builder: (context, controller) {
+              return Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Tutorial Concluído! 🎉",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "Agora você já sabe usar todas as funcionalidades do Modo Comerciante. Pronto para começar?",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              controller.skip();
+                              await _limparDadosTutorial();
+                              await _tutorialService.resetTutorial();
+                              if (mounted) {
+                                _showTutorial();
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: Colors.white, width: 2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Refazer',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await _limparDadosTutorial();
+                              controller.next();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFFE91E63),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Concluir',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+
+    return targets;
   }
 
   void _adicionarNumero(String numero) {
@@ -64,8 +555,39 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   }
 
   void _limparValor() {
-    // Limpa o carrinho completo
     ref.read(cartControllerProvider.notifier).clearCart();
+  }
+
+  Future<void> _limparDadosTutorial() async {
+    try {
+      ref.read(cartControllerProvider.notifier).clearCart();
+
+      final productsAsync = ref.read(productControllerProvider);
+      final products = productsAsync.maybeWhen(
+        data: (data) => data,
+        orElse: () => <ProductEntity>[],
+      );
+
+      for (var product in products) {
+        if (product.name == 'Produto 01' && product.price == 21.00) {
+          if (product.id != null) {
+            await ref
+                .read(productControllerProvider.notifier)
+                .removeProduct(product.id!);
+          }
+        }
+      }
+
+      _tabController.animateTo(0);
+
+      if (mounted) {
+        setState(() {
+          valorDigitado = '0.00';
+        });
+      }
+    } catch (e) {
+      // Silently ignore errors during tutorial data cleanup
+    }
   }
 
   void _adicionarAoTotal() {
@@ -148,12 +670,6 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         await ref
             .read(productControllerProvider.notifier)
             .removeProduct(product.id!);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Produto removido com sucesso!')),
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -186,8 +702,14 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     }
   }
 
-  void _mostrarBottomSheetAdicionar() {
-    AddEditItemModal.mostrarBottomSheetAdicionar(context, _adicionarItem);
+  void _mostrarBottomSheetAdicionar({String? nome, String? preco}) {
+    AddEditItemModal.mostrarBottomSheetAdicionar(
+      context,
+      _adicionarItem,
+      nomePadrao: nome,
+      precoPadrao: preco,
+      adicionarButtonKey: _adicionarModalButtonKey,
+    );
   }
 
   void _finalizarVenda() {
@@ -251,9 +773,14 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 child: Consumer(
                   builder: (context, ref, child) {
                     final valorReais = ref.watch(cartTotalProvider);
-                    return MerchantHeaderWidget(
-                      valorReais: valorReais,
-                      onLimparCarrinho: _limparValor,
+                    return Container(
+                      key: _headerKey,
+                      child: MerchantHeaderWidget(
+                        valorReais: valorReais,
+                        onLimparCarrinho: _limparValor,
+                        limparButtonKey: _limparKey,
+                        valorTotalKey: _valorTotalKey,
+                      ),
                     );
                   },
                 ),
@@ -287,6 +814,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                             ),
                           ),
                           Tab(
+                            key: _itemsTabKey,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -305,6 +833,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                               onAdicionarNumero: _adicionarNumero,
                               onApagarNumero: _apagarNumero,
                               onAdicionarAoTotal: _adicionarAoTotal,
+                              valorInputKey: _valorInputKey,
+                              addButtonKey: _addButtonKey,
                             ),
                             Consumer(
                               builder: (context, ref, child) {
@@ -344,6 +874,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                               _atualizarQuantidade,
                                           onAdicionarItem:
                                               _mostrarBottomSheetAdicionar,
+                                          addButtonKey: _addProductButtonKey,
+                                          firstProductKey: _firstProductKey,
                                         );
                                       },
                                     );
@@ -409,6 +941,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   return FinalizarVendaButton(
                     onPressed: _finalizarVenda,
                     cartTotal: cartTotal,
+                    buttonKey: _finalizarVendaKey,
                   );
                 },
               ),

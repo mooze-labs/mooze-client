@@ -5,6 +5,8 @@ class KeypadWidget extends StatelessWidget {
   final Function(String) onAdicionarNumero;
   final VoidCallback onApagarNumero;
   final VoidCallback onAdicionarAoTotal;
+  final GlobalKey? valorInputKey;
+  final GlobalKey? addButtonKey;
 
   const KeypadWidget({
     super.key,
@@ -12,6 +14,8 @@ class KeypadWidget extends StatelessWidget {
     required this.onAdicionarNumero,
     required this.onApagarNumero,
     required this.onAdicionarAoTotal,
+    this.valorInputKey,
+    this.addButtonKey,
   });
 
   @override
@@ -42,6 +46,7 @@ class KeypadWidget extends StatelessWidget {
         children: [
           // Cabeçalho com valor
           Padding(
+            key: valorInputKey,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Text(
               'R\$$valorDigitado',
@@ -100,6 +105,7 @@ class KeypadWidget extends StatelessWidget {
                         margin: buttonMargin,
                       ),
                       _buildKeypadButton(
+                        key: addButtonKey,
                         icon: Icons.add,
                         onPressed: onAdicionarAoTotal,
                         color: Colors.green,
@@ -119,6 +125,7 @@ class KeypadWidget extends StatelessWidget {
   }
 
   Widget _buildKeypadButton({
+    Key? key,
     String? text,
     IconData? icon,
     required VoidCallback onPressed,
@@ -128,6 +135,7 @@ class KeypadWidget extends StatelessWidget {
     required double margin,
   }) {
     return Container(
+      key: key,
       margin: EdgeInsets.all(margin / 2),
       child: TextButton(
         onPressed: onPressed,
