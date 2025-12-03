@@ -164,12 +164,15 @@ class _TransactionDetailScreenState
 
         const SizedBox(height: 16),
 
-        Text(
-          '$amountStr ${widget.transaction.asset.ticker}',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: isReceive ? Colors.green : Colors.red,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '$amountStr ${widget.transaction.asset.ticker}',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: isReceive ? Colors.green : Colors.red,
+            ),
           ),
         ),
       ],
