@@ -33,6 +33,16 @@ class _AddressFieldState extends ConsumerState<AddressField> {
   void _autoSwitchAssetBasedOnNetwork(String address) {
     if (address.isEmpty) return;
 
+    // First, try to detect the asset from the address/URI data
+    final detectedResult = ref.read(detectedAmountProvider);
+
+    if (detectedResult.asset != null) {
+      // If we detected a specific asset from the data, use it
+      ref.read(selectedAssetProvider.notifier).state = detectedResult.asset!;
+      return;
+    }
+
+    // Fallback to network type detection for addresses without asset ID
     final networkType = NetworkDetectionService.detectNetworkType(address);
     final currentAsset = ref.read(selectedAssetProvider);
 

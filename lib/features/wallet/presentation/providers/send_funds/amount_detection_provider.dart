@@ -31,7 +31,8 @@ class AmountDetectionService {
     }
     if (cleanInput.toLowerCase().startsWith('bitcoin:') ||
         cleanInput.toLowerCase().startsWith('liquidnetwork:') ||
-        cleanInput.toLowerCase().startsWith('liquid:')) {
+        cleanInput.toLowerCase().startsWith('liquid:') ||
+        cleanInput.toLowerCase().startsWith('lq1')) {
       return _extractBip21Amount(cleanInput);
     }
 
@@ -155,7 +156,8 @@ class AmountDetectionService {
       // Check for Liquid Network
       bool isLiquid =
           lowerUri.startsWith('liquidnetwork:') ||
-          lowerUri.startsWith('liquid:');
+          lowerUri.startsWith('liquid:') ||
+          lowerUri.startsWith('lq1');
 
       if (isLiquid) {
         asset = Asset.lbtc; // Default to L-BTC for Liquid Network
@@ -167,6 +169,9 @@ class AmountDetectionService {
         if (assetId ==
             'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2') {
           asset = Asset.usdt; // USDT on Liquid
+        } else if (assetId ==
+            '02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189') {
+          asset = Asset.depix; // DEPIX on Liquid
         } else if (assetId ==
             '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d') {
           asset = Asset.lbtc; // L-BTC on Liquid
@@ -231,6 +236,9 @@ class AmountDetectionService {
         if (assetId ==
             'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2') {
           asset = Asset.usdt; // USDT on Liquid
+        } else if (assetId ==
+            '02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189') {
+          asset = Asset.depix; // DEPIX on Liquid
         } else if (assetId ==
             '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d') {
           asset = Asset.lbtc; // L-BTC on Liquid
