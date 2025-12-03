@@ -11,6 +11,7 @@ import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_l
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 
 class WalletLevelsScreen extends ConsumerStatefulWidget {
   const WalletLevelsScreen({super.key});
@@ -84,6 +85,18 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
         },
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
       ),
+      actions: [
+        Consumer(
+          builder: (context, ref, child) {
+            return ApiDownIndicatorIcon(
+              onRetry: () {
+                ref.invalidate(walletLevelsProvider);
+                ref.invalidate(levelsProvider);
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -116,6 +129,63 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isApiDown = ref.watch(apiDownProvider);
+                      if (isApiDown) {
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.cloud_off_rounded,
+                                    color: Colors.orange[300],
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'API Indisponível',
+                                          style: TextStyle(
+                                            color: Colors.orange[300],
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Os dados podem estar desatualizados. Algumas funcionalidades estão temporariamente indisponíveis.',
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   WalletLevelsHeader(colorScheme: colorScheme),
                   const SizedBox(height: 16),
                   WalletLevelsQuickInfo(colorScheme: colorScheme),

@@ -79,16 +79,16 @@ void _showApiDownDialog(
                   ],
                 ),
               ),
-              if (statusCode != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Código de erro: $statusCode',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[400],
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ],
+              // if (statusCode != null) ...[
+              //   const SizedBox(height: 12),
+              //   Text(
+              //     'Código de erro: $statusCode',
+              //     style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              //       color: Colors.grey[400],
+              //       fontFamily: 'monospace',
+              //     ),
+              //   ),
+              // ],
               const SizedBox(height: 12),
               Text(
                 'Por favor, tente novamente em alguns minutos.',

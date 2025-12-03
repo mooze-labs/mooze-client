@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../providers.dart';
 import '../../widgets.dart';
@@ -110,24 +112,26 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      child: Stack(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Receber PIX'),
+        centerTitle: true,
+        actions: [
+          ApiDownIndicatorIcon(
+            onRetry: () {
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(depositAmountProvider);
+            },
+          ),
+          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+        ],
+      ),
+      resizeToAvoidBottomInset: true,
+      body: Stack(
         children: [
-          Scaffold(
-            appBar: AppBar(
-              title: Text('Receber PIX'),
-              centerTitle: true,
-              actions: [
-                OfflineIndicator(
-                  onTap: () => OfflinePriceInfoOverlay.show(context),
-                ),
-              ],
-            ),
-            resizeToAvoidBottomInset: true,
-            body: GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: SingleChildScrollView(child: _buildBody(context)),
-            ),
+          GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SingleChildScrollView(child: _buildBody(context)),
           ),
           if (_showOverlay)
             LoadingOverlayWidget(
@@ -135,6 +139,14 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
               circleAnimation: _circleAnimation,
               showLoadingText: _showLoadingText,
             ),
+          ApiUnavailableOverlay(
+            onRetry: () {
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(depositAmountProvider);
+            },
+            customMessage:
+                'Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.',
+          ),
         ],
       ),
     );

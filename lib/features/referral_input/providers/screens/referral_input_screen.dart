@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
@@ -89,6 +90,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final state = ref.watch(referralInputControllerProvider);
+    final isApiDown = ref.watch(apiDownProvider);
 
     ref.listen(referralInputControllerProvider, (previous, next) {
       if (next.error != null && previous?.error != next.error) {
@@ -112,6 +114,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
         actions: [
+          ApiDownIndicatorIcon(),
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
         ],
       ),
@@ -343,7 +346,10 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                 ),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: AppColors.primaryColor,
+                                    color:
+                                        isApiDown
+                                            ? Colors.grey
+                                            : AppColors.primaryColor,
                                     width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
@@ -355,6 +361,13 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                       'assets/icons/menu/settings/gift.svg',
                                       width: 24,
                                       height: 24,
+                                      colorFilter:
+                                          isApiDown
+                                              ? ColorFilter.mode(
+                                                Colors.grey,
+                                                BlendMode.srcIn,
+                                              )
+                                              : null,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -363,7 +376,8 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                         child: TextField(
                                           controller: _referralCodeController,
                                           onChanged: (_) => _onTextChanged(),
-                                          enabled: !state.isLoading,
+                                          enabled:
+                                              !state.isLoading && !isApiDown,
                                           inputFormatters: [
                                             UpperCaseTextFormatter(),
                                           ],
@@ -371,9 +385,13 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                             context,
                                           ).textTheme.titleMedium!.copyWith(
                                             fontWeight: FontWeight.bold,
+                                            color:
+                                                isApiDown
+                                                    ? Colors.grey
+                                                    : Colors.white,
                                           ),
                                           cursorColor: Colors.white,
-                                          decoration: const InputDecoration(
+                                          decoration: InputDecoration(
                                             filled: false,
                                             isCollapsed: true,
                                             contentPadding:
@@ -387,9 +405,15 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                             errorBorder: InputBorder.none,
                                             focusedErrorBorder:
                                                 InputBorder.none,
-                                            hintText: 'Ex: MOOZE123',
+                                            hintText:
+                                                isApiDown
+                                                    ? 'Indisponível'
+                                                    : 'Ex: MOOZE123',
                                             hintStyle: TextStyle(
-                                              color: Colors.white54,
+                                              color:
+                                                  isApiDown
+                                                      ? Colors.grey
+                                                      : Colors.white54,
                                             ),
                                           ),
                                         ),
@@ -406,10 +430,13 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                                     horizontal: 4,
                                   ),
                                   color: AppColors.backgroundColor,
-                                  child: const Text(
+                                  child: Text(
                                     'Código de Indicação',
                                     style: TextStyle(
-                                      color: Colors.white70,
+                                      color:
+                                          isApiDown
+                                              ? Colors.grey
+                                              : Colors.white70,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -419,30 +446,61 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
                           ),
                         if (state.existingReferralCode == null) ...[
                           const SizedBox(height: 24),
-                          PrimaryButton(
-                            onPressed:
-                                state.isLoading
-                                    ? null
-                                    : () async {
-                                      final code =
-                                          _referralCodeController.text
-                                              .trim()
-                                              .toUpperCase();
-                                      if (code.isNotEmpty) {
-                                        await ref
-                                            .read(
-                                              referralInputControllerProvider
-                                                  .notifier,
-                                            )
-                                            .validateReferralCode(code);
-                                      }
-                                    },
-                            text:
-                                state.isLoading
-                                    ? 'Validando...'
-                                    : 'Aplicar Código',
-                            isEnabled: !state.isLoading,
-                          ),
+                          if (isApiDown)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_rounded,
+                                    color: Colors.orange[300],
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'A API está indisponível. Não é possível aplicar códigos de indicação no momento.',
+                                      style: TextStyle(
+                                        color: Colors.orange[300],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            PrimaryButton(
+                              onPressed:
+                                  state.isLoading
+                                      ? null
+                                      : () async {
+                                        final code =
+                                            _referralCodeController.text
+                                                .trim()
+                                                .toUpperCase();
+                                        if (code.isNotEmpty) {
+                                          await ref
+                                              .read(
+                                                referralInputControllerProvider
+                                                    .notifier,
+                                              )
+                                              .validateReferralCode(code);
+                                        }
+                                      },
+                              text:
+                                  state.isLoading
+                                      ? 'Validando...'
+                                      : 'Aplicar Código',
+                              isEnabled: !state.isLoading,
+                            ),
                           const SizedBox(height: 25),
                         ],
                       ],

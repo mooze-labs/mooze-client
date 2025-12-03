@@ -6,6 +6,8 @@ import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_v
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
@@ -129,10 +131,10 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          body: Container(
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -203,14 +205,24 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               ),
             ),
           ),
-        ),
-        if (_showOverlay)
-          LoadingOverlayWidget(
-            circleController: _circleController,
-            circleAnimation: _circleAnimation,
-            showLoadingText: _showLoadingText,
+          if (_showOverlay)
+            LoadingOverlayWidget(
+              circleController: _circleController,
+              circleAnimation: _circleAnimation,
+              showLoadingText: _showLoadingText,
+            ),
+          ApiUnavailableOverlay(
+            showBackButton: true,
+            onBack: () => context.pop(),
+            onRetry: () {
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(depositAmountProvider);
+            },
+            customMessage:
+                'Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.',
           ),
-      ],
+        ],
+      ),
     );
   }
 
