@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
@@ -205,7 +206,7 @@ class _BtcLbtcConfirmBottomSheetState
     final totalFeeBtc = totalFeeSat.toDouble() / 100000000;
     final receivedAmount = amountBtc - totalFeeBtc;
 
-    return SafeArea(
+    return PlatformSafeArea(
       child: Container(
         height: MediaQuery.of(context).size.height * 0.85,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
