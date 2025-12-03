@@ -141,6 +141,11 @@ class LiquidWallet {
       }
     }
 
+    final blockchainUrl =
+        transaction.unblindedUrl.isNotEmpty
+            ? 'https://blockstream.info/liquid/${transaction.unblindedUrl}'
+            : 'https://blockstream.info/liquid/tx/${transaction.txid}';
+
     return Transaction(
       id: transaction.txid,
       amount: transaction.amount,
@@ -153,7 +158,7 @@ class LiquidWallet {
       toAsset: toAsset,
       sentAmount: sentAmount,
       receivedAmount: receivedAmount,
-      blockchainUrl: transaction.unblindedUrl
+      blockchainUrl: blockchainUrl,
     );
   }
 }
