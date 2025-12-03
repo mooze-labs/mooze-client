@@ -179,7 +179,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           SizedBox(height: 10),
           PixValueInputWidget(),
           SizedBox(height: 16),
-          SizedBox(height: 200, child: TransactionDisplayWidget()),
+          TransactionDisplayWidget(),
           SizedBox(height: 16),
           PrimaryButton(
             onPressed: isButtonEnabled ? () => _onSlideComplete(context) : null,
