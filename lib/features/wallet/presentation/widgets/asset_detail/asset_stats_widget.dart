@@ -90,8 +90,8 @@ class AssetStatsWidget extends ConsumerWidget {
     return Column(
       children: [
         _buildStatRow('Preço Atual', '$icon ${current.toStringAsFixed(2)}'),
-        _buildStatRow('Máxima 24h', '$icon ${high.toStringAsFixed(2)}'),
-        _buildStatRow('Mínima 24h', '$icon ${low.toStringAsFixed(2)}'),
+        _buildStatRow('Máxima', '$icon ${high.toStringAsFixed(2)}'),
+        _buildStatRow('Mínima', '$icon ${low.toStringAsFixed(2)}'),
       ],
     );
   }
@@ -100,9 +100,9 @@ class AssetStatsWidget extends ConsumerWidget {
     return Column(
       children: [
         _buildStatRow('Preço Atual', 'N/A'),
-        _buildStatRow('Máxima 24h', 'N/A'),
-        _buildStatRow('Mínima 24h', 'N/A'),
-        _buildStatRow('Volume 24h', 'N/A'),
+        _buildStatRow('Máxima', 'N/A'),
+        _buildStatRow('Mínima', 'N/A'),
+        _buildStatRow('Volume', 'N/A'),
       ],
     );
   }
