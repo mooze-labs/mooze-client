@@ -1,3 +1,4 @@
+const btcAssetId = 'btc-native-blockchain';
 const lbtcAssetId =
     '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
 const usdtAssetId =
@@ -14,19 +15,20 @@ enum Asset {
 
   static Asset fromId(String id) {
     return switch (id) {
+      btcAssetId => Asset.btc,
+      lbtcAssetId => Asset.lbtc,
       usdtAssetId => Asset.usdt,
       depixAssetId => Asset.depix,
-      lbtcAssetId => Asset.lbtc,
       _ => Asset.btc,
     };
   }
 
   static String? toId(Asset asset) {
     return switch (asset) {
+      Asset.btc => btcAssetId,
+      Asset.lbtc => lbtcAssetId,
       Asset.usdt => usdtAssetId,
       Asset.depix => depixAssetId,
-      Asset.lbtc => lbtcAssetId,
-      _ => null,
     };
   }
 
@@ -50,10 +52,10 @@ enum Asset {
 
   String get id {
     return switch (this) {
+      Asset.btc => btcAssetId,
+      Asset.lbtc => lbtcAssetId,
       Asset.usdt => usdtAssetId,
       Asset.depix => depixAssetId,
-      Asset.btc => lbtcAssetId,
-      Asset.lbtc => lbtcAssetId,
     };
   }
 
