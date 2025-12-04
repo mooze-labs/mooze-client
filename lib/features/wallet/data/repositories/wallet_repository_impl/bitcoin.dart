@@ -154,32 +154,30 @@ class BitcoinWallet {
         final rawTxs = _datasource.wallet.listTransactions(includeRaw: false);
 
         final transactions =
-            rawTxs
-                .map(
-                  (tx) => Transaction(
-                    id: tx.txid,
-                    amount: (tx.received > BigInt.zero) ? tx.received : tx.sent,
-                    blockchain: Blockchain.bitcoin,
-                    asset: Asset.btc,
-                    type:
-                        (tx.received > BigInt.zero)
-                            ? TransactionType.receive
-                            : TransactionType.send,
-                    status:
-                        (tx.confirmationTime == null)
-                            ? TransactionStatus.pending
-                            : TransactionStatus.confirmed,
+            rawTxs.map((tx) {
+              final isSend = tx.sent > tx.received;
+              final amount = isSend ? (tx.sent - tx.received) : tx.received;
 
-                    createdAt:
-                        (tx.confirmationTime == null)
-                            ? DateTime.now()
-                            : DateTime.fromMillisecondsSinceEpoch(
-                              tx.confirmationTime!.timestamp.toInt() * 1000,
-                            ),
-                    confirmationHeight: tx.confirmationTime?.height,
-                  ),
-                )
-                .toList();
+              return Transaction(
+                id: tx.txid,
+                amount: amount,
+                blockchain: Blockchain.bitcoin,
+                asset: Asset.btc,
+                type: isSend ? TransactionType.send : TransactionType.receive,
+                status:
+                    (tx.confirmationTime == null)
+                        ? TransactionStatus.pending
+                        : TransactionStatus.confirmed,
+
+                createdAt:
+                    (tx.confirmationTime == null)
+                        ? DateTime.now()
+                        : DateTime.fromMillisecondsSinceEpoch(
+                          tx.confirmationTime!.timestamp.toInt() * 1000,
+                        ),
+                confirmationHeight: tx.confirmationTime?.height,
+              );
+            }).toList();
 
         return transactions;
       },
