@@ -84,14 +84,10 @@ class GenerateQRButton extends ConsumerWidget {
           ref.read(receiveSatsValueProvider.notifier).state = '';
           ref.read(receiveFiatValueProvider.notifier).state = '';
           ref.read(receiveDescriptionProvider.notifier).state = '';
-
           context.push(
             '/receive-qr',
             extra: {
-              'qrData': qrState.displayAddress!.replaceFirst(
-                'liquidnetwork:',
-                '',
-              ),
+              'qrData': qrState.displayAddress,
               'displayAddress': qrState.displayAddress!,
               'asset': selectedAsset,
               'network': selectedNetwork,

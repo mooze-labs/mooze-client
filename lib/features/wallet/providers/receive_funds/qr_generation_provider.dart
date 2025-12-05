@@ -203,35 +203,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
           Option.fromNullable(description),
         )
         .map((paymentRequest) {
-          // Construir URI Liquid com amount e description se fornecidos
           String displayAddress = paymentRequest.address;
-
-          if (amount != null || description != null) {
-            final uri = StringBuffer('liquidnetwork:${paymentRequest.address}');
-            final params = <String>[];
-
-            // Adicionar assetid para Liquid Bitcoin (L-BTC)
-            params.add(
-              'assetid=6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
-            );
-
-            if (amount != null) {
-              // Converter satoshis para BTC
-              final btcAmount = amount.toStringAsFixed(8);
-              params.add('amount=$btcAmount');
-            }
-
-            if (description != null && description.isNotEmpty) {
-              final encodedDesc = Uri.encodeComponent(description);
-              params.add('message=$encodedDesc');
-            }
-
-            if (params.isNotEmpty) {
-              uri.write('?${params.join('&')}');
-            }
-
-            displayAddress = uri.toString();
-          }
 
           return QRGenerationState(
             isLoading: false,
@@ -257,56 +229,12 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
           Option.fromNullable(description),
         )
         .map((paymentRequest) {
-          // Construir URI Liquid com amount e description se fornecidos
-          String displayAddress = paymentRequest.address;
-
-          if (amount != null || description != null) {
-            final uri = StringBuffer('liquidnetwork:${paymentRequest.address}');
-            final params = <String>[];
-
-            // Adicionar assetid do stablecoin
-            final assetId = _getAssetId(asset);
-            if (assetId != null) {
-              params.add('assetid=$assetId');
-            }
-
-            if (amount != null) {
-              // Para stablecoins, manter o valor como está (já em unidade do asset)
-              final assetAmount = amount.toStringAsFixed(8);
-              params.add('amount=$assetAmount');
-            }
-
-            if (description != null && description.isNotEmpty) {
-              final encodedDesc = Uri.encodeComponent(description);
-              params.add('message=$encodedDesc');
-            }
-
-            if (params.isNotEmpty) {
-              uri.write('?${params.join('&')}');
-            }
-
-            displayAddress = uri.toString();
-          }
-
           return QRGenerationState(
             isLoading: false,
-            displayAddress: displayAddress,
+            displayAddress: paymentRequest.address,
             error: null,
           );
         });
-  }
-
-  String? _getAssetId(Asset asset) {
-    // Asset IDs para diferentes stablecoins na Liquid Network
-    return switch (asset) {
-      Asset.usdt =>
-        'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2', // Tether USD
-      Asset.depix =>
-        '02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189', // Decentralized Pix
-      Asset.lbtc =>
-        '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d', // L-BTC
-      _ => null,
-    };
   }
 
   Future<WalletError?> _validateAmountLimits(

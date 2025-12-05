@@ -3,12 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final receiveDescriptionProvider = StateProvider<String>((ref) => '');
 
-class DescriptionFieldReceive extends ConsumerWidget {
+class DescriptionFieldReceive extends ConsumerStatefulWidget {
   const DescriptionFieldReceive({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DescriptionFieldReceive> createState() =>
+      _DescriptionFieldReceiveState();
+}
+
+class _DescriptionFieldReceiveState
+    extends ConsumerState<DescriptionFieldReceive> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final description = ref.watch(receiveDescriptionProvider);
+
+    if (description.isEmpty && _controller.text.isNotEmpty) {
+      _controller.clear();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,7 +46,7 @@ class DescriptionFieldReceive extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         TextFormField(
-          initialValue: description,
+          controller: _controller,
           onChanged: (value) {
             ref.read(receiveDescriptionProvider.notifier).state = value;
           },

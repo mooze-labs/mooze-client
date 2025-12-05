@@ -304,10 +304,6 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
   Widget _buildQRCode() {
     String address = widget.qrData;
 
-    if (address.startsWith('liquidnetwork:')) {
-      address = address.substring('liquidnetwork:'.length);
-      address = address.replaceFirst('liquidnetwork:', '');
-    }
 
     return Container(
       padding: const EdgeInsets.all(15),
@@ -359,41 +355,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
     String address =
         widget.amount != null ? widget.qrData : widget.displayAddress;
 
-    if (widget.network == NetworkType.liquid) {
-      if (address.startsWith('liquidnetwork:')) {
-        address = address.substring('liquidnetwork:'.length);
-      }
-
-      address = address.replaceFirst('liquidnetwork:', '');
-
-      final queryIndex = address.indexOf('?');
-      if (queryIndex != -1) {
-        address = address.substring(0, queryIndex);
-      }
-
-      return address;
-    }
-
-    if (widget.network == NetworkType.bitcoin) {
-      if (address.startsWith('bitcoin:')) {
-        address = address.substring('bitcoin:'.length);
-      }
-
-      final queryIndex = address.indexOf('?');
-      if (queryIndex != -1) {
-        address = address.substring(0, queryIndex);
-      }
-
-      return address;
-    }
-
     return address;
-  }
-
-  void _shareQRCode() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Compartilhamento não implementado')),
-    );
   }
 
   String _getNetworkLabel(NetworkType network) {
