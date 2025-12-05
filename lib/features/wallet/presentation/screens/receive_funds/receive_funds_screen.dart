@@ -6,6 +6,8 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/amount_field_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/description_field_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/generate_qr_button.dart';
+import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
+import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_receive_network_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -13,52 +15,72 @@ import 'package:mooze_mobile/shared/widgets.dart';
 class ReceiveFundsScreen extends ConsumerWidget {
   const ReceiveFundsScreen({super.key});
 
+  void _clearProviders(WidgetRef ref) {
+    ref.invalidate(receiveAmountProvider);
+    ref.invalidate(receiveAssetValueProvider);
+    ref.invalidate(receiveSatsValueProvider);
+    ref.invalidate(receiveFiatValueProvider);
+    ref.invalidate(receiveDescriptionProvider);
+    ref.invalidate(selectedReceiveAssetProvider);
+    ref.invalidate(selectedReceiveNetworkProvider);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return PlatformSafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("Receber Ativos"),
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _clearProviders(ref);
+        }
+      },
+      child: PlatformSafeArea(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text("Receber Ativos"),
+            leading: IconButton(
+              onPressed: () {
+                _clearProviders(ref);
+                context.pop();
+              },
+              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            ),
+            actions: [
+              OfflineIndicator(
+                onTap: () => OfflinePriceInfoOverlay.show(context),
+              ),
+              IconButton(
+                onPressed: () => _showInfoOverlay(context),
+                icon: const Icon(Icons.info_outline_rounded),
+              ),
+            ],
           ),
-          actions: [
-            OfflineIndicator(
-              onTap: () => OfflinePriceInfoOverlay.show(context),
-            ),
-            IconButton(
-              onPressed: () => _showInfoOverlay(context),
-              icon: const Icon(Icons.info_outline_rounded),
-            ),
-          ],
-        ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const AssetSelectorReceive(),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const AssetSelectorReceive(),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                const NetworkSelector(),
+                  const NetworkSelector(),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                const AmountFieldReceive(),
+                  const AmountFieldReceive(),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                const DescriptionFieldReceive(),
+                  const DescriptionFieldReceive(),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                const GenerateQRButton(),
+                  const GenerateQRButton(),
 
-                const SizedBox(height: 16),
-              ],
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),

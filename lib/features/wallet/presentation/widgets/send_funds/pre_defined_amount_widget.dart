@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
@@ -63,17 +64,25 @@ class PreDefinedAmountWidget extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${detectedAmount.amountInSats} SATS',
+                      _formatPrimaryAmount(
+                        detectedAmount.amountInSats!,
+                        detectedAmount.asset ?? selectedAsset,
+                      ),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      _formatAmount(detectedAmount.amountInSats!),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                    ),
+                    if (detectedAmount.asset == Asset.btc ||
+                        detectedAmount.asset == Asset.lbtc)
+                      Text(
+                        _formatSecondaryAmount(
+                          detectedAmount.amountInSats!,
+                          detectedAmount.asset ?? selectedAsset,
+                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      ),
                   ],
                 ),
               ),
@@ -81,7 +90,6 @@ class PreDefinedAmountWidget extends ConsumerWidget {
           ),
 
           const SizedBox(height: 8),
-
           Text(
             'Este invoice/endereço possui um valor pré-definido. O campo de quantia foi automaticamente preenchido.',
             style: Theme.of(
@@ -115,18 +123,31 @@ class PreDefinedAmountWidget extends ConsumerWidget {
     );
   }
 
-  String _formatAmount(int satoshis) {
-    if (satoshis >= 100000000) {
-      final btc = satoshis / 100000000;
-      return '${btc.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '')} BTC';
-    } else if (satoshis >= 100000) {
-      final mbtc = satoshis / 100000;
-      return '${mbtc.toStringAsFixed(3)} mBTC';
-    } else if (satoshis >= 100) {
-      final ubtc = satoshis / 100;
-      return '${ubtc.toStringAsFixed(0)} µBTC';
-    } else {
-      return '$satoshis sats';
+  String _formatPrimaryAmount(int satoshis, Asset asset) {
+    if (asset == Asset.btc || asset == Asset.lbtc) {
+      return '$satoshis SATS';
     }
+
+    final amount = satoshis / 100000000;
+    return '${amount.toStringAsFixed(2)} ${asset.ticker}';
+  }
+
+  String _formatSecondaryAmount(int satoshis, dynamic asset) {
+    if (asset == Asset.btc || asset == Asset.lbtc) {
+      if (satoshis >= 100000000) {
+        final btc = satoshis / 100000000;
+        return '${btc.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')} BTC';
+      } else if (satoshis >= 100000) {
+        final mbtc = satoshis / 100000;
+        return '${mbtc.toStringAsFixed(3)} mBTC';
+      } else if (satoshis >= 100) {
+        final ubtc = satoshis / 100;
+        return '${ubtc.toStringAsFixed(0)} µBTC';
+      } else {
+        return '$satoshis sats';
+      }
+    }
+
+    return '$satoshis sats';
   }
 }

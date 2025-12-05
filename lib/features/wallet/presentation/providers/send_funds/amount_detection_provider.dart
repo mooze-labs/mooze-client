@@ -29,12 +29,6 @@ class AmountDetectionService {
     if (cleanInput.toLowerCase().startsWith('lnbc')) {
       return _extractLightningAmount(cleanInput);
     }
-    if (cleanInput.toLowerCase().startsWith('bitcoin:') ||
-        cleanInput.toLowerCase().startsWith('liquidnetwork:') ||
-        cleanInput.toLowerCase().startsWith('liquid:') ||
-        cleanInput.toLowerCase().startsWith('lq1')) {
-      return _extractBip21Amount(cleanInput);
-    }
 
     if (cleanInput.contains('?')) {
       return _extractQueryParameters(cleanInput);
