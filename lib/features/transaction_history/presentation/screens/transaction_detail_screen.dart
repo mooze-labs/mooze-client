@@ -368,6 +368,17 @@ class _TransactionDetailScreenState
             ),
 
           if (widget.transaction.blockchain == Blockchain.lightning) ...[
+            if (widget.transaction.destination != null)
+              _buildDetailRow(
+                label:
+                    widget.transaction.type == TransactionType.send
+                        ? "LNURL"
+                        : "Invoice",
+                value: truncateHashId(widget.transaction.destination!),
+                copyable: true,
+                copyFieldId: 'destination',
+                copyValue: widget.transaction.destination!,
+              ),
             if (widget.transaction.preimage != null)
               _buildDetailRow(
                 label: "Preimagem",
@@ -683,6 +694,15 @@ class _TransactionDetailScreenState
           text: 'Ver no Explorer',
           onPressed: () => _openInExplorer(),
         ),
+        if (widget.transaction.blockchain == Blockchain.lightning &&
+            widget.transaction.destination != null &&
+            widget.transaction.preimage != null) ...[
+          const SizedBox(height: 12),
+          PrimaryButton(
+            text: 'Validar Pagamento',
+            onPressed: () => _openValidationUrl(),
+          ),
+        ],
         if (isRefundable) ...[
           const SizedBox(height: 12),
           PrimaryButton(
@@ -813,6 +833,41 @@ class _TransactionDetailScreenState
     } catch (e) {
       if (mounted) {
         await Clipboard.setData(ClipboardData(text: explorerUrl));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Não foi possível abrir o navegador. Link copiado para área de transferência.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openValidationUrl() async {
+    if (widget.transaction.destination == null ||
+        widget.transaction.preimage == null) {
+      return;
+    }
+
+    final validationUrl =
+        'https://validate-payment.com/?invoice=${widget.transaction.destination!}&preimage=${widget.transaction.preimage!}';
+
+    final Uri url = Uri.parse(validationUrl);
+
+    try {
+      final bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        await Clipboard.setData(ClipboardData(text: validationUrl));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(

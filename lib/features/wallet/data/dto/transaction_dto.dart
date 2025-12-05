@@ -102,6 +102,7 @@ class BreezTransactionDto {
       createdAt: createdAt,
       preimage: preimage,
       blockchainUrl: blockchainUrl,
+      destination: destination,
     );
   }
 
