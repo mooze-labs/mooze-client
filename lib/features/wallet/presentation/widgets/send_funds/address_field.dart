@@ -46,10 +46,6 @@ class _AddressFieldState extends ConsumerState<AddressField> {
     final networkType = NetworkDetectionService.detectNetworkType(address);
     final currentAsset = ref.read(selectedAssetProvider);
 
-    if (currentAsset != Asset.btc && currentAsset != Asset.lbtc) {
-      return;
-    }
-
     Asset? newAsset;
 
     switch (networkType) {

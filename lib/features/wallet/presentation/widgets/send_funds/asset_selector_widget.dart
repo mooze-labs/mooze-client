@@ -9,6 +9,8 @@ import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/amount_provider.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
+import '../../providers/send_funds/address_provider.dart';
+import 'amount_field_send.dart';
 
 void clearAllFields(WidgetRef ref) {
   final addressController = ref.read(addressControllerProvider);
@@ -16,7 +18,12 @@ void clearAllFields(WidgetRef ref) {
 
   ref.read(syncedAddressControllerProvider.notifier).clear();
 
-  ref.invalidate(detectedAmountProvider);
+  ref.read(addressStateProvider.notifier).state = '';
+
+  ref.read(sendAssetValueProvider.notifier).state = '';
+  ref.read(sendSatsValueProvider.notifier).state = '';
+  ref.read(sendFiatValueProvider.notifier).state = '';
+  ref.read(sendConversionLoadingProvider.notifier).state = false;
 }
 
 class AssetSelectorWidget extends ConsumerWidget {

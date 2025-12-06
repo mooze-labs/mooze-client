@@ -85,7 +85,7 @@ class AmountDetectionService {
       String amountSection = remaining.substring(0, separatorIndex);
 
       if (amountSection.isEmpty) {
-        return const AmountDetectionResult(asset: Asset.btc);
+        return const AmountDetectionResult(asset: Asset.lbtc);
       }
 
       double? baseAmount;
@@ -129,13 +129,13 @@ class AmountDetectionService {
       }
 
       if (satoshis > 0) {
-        return AmountDetectionResult(amountInSats: satoshis, asset: Asset.btc);
+        return AmountDetectionResult(amountInSats: satoshis, asset: Asset.lbtc);
       }
     } catch (e) {
       // Ignore parsing errors
     }
 
-    return const AmountDetectionResult(asset: Asset.btc);
+    return const AmountDetectionResult(asset: Asset.lbtc);
   }
 
   static AmountDetectionResult _extractBip21Amount(String uri) {
