@@ -133,15 +133,13 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
 
   Color _getLevelColor(int level) {
     switch (level) {
-      case 1:
+      case 0:
         return const Color(0xFF8B7355);
-      case 2:
+      case 1:
         return const Color(0xFFC0C0C0);
-      case 3:
+      case 2:
         return const Color(0xFFFFD700);
-      case 4:
-        return const Color(0xFF50C878);
-      case 5:
+      case 3:
         return const Color(0xFF4169E1);
       default:
         return Colors.grey;
@@ -266,7 +264,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Do nível ${widget.oldLevel} para o nível ${widget.newLevel}',
+                            'Do nível ${getLevels(widget.oldLevel)} para o nível ${getLevels(widget.newLevel)}',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 18,
@@ -326,7 +324,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 50),
+                    Spacer(),
 
                     FadeTransition(
                       opacity: _fadeAnimation,
@@ -334,7 +332,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                         text: 'Entendi',
                         color: neutralColor,
                         onPressed: () {
-                          context.go('/menu');
+                          context.pop();
                         },
                       ),
                     ),
@@ -346,6 +344,21 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
         ],
       ),
     );
+  }
+
+  String getLevels(level) {
+    switch (level) {
+      case 0:
+        return 'Bronze';
+      case 1:
+        return 'Prata';
+      case 2:
+        return 'Ouro';
+      case 3:
+        return 'Diamante';
+      default:
+        return 'Bronze';
+    }
   }
 
   Widget _buildLevelCircle(
@@ -367,7 +380,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
       ),
       child: Center(
         child: Text(
-          'Nível $level',
+          getLevels(level),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

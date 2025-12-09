@@ -171,15 +171,13 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
 
   Color _getLevelColor(int level) {
     switch (level) {
-      case 1:
+      case 0:
         return const Color(0xFF8B7355);
-      case 2:
+      case 1:
         return const Color(0xFFC0C0C0);
-      case 3:
+      case 2:
         return const Color(0xFFFFD700);
-      case 4:
-        return const Color(0xFF50C878);
-      case 5:
+      case 3:
         return const Color(0xFF4169E1);
       default:
         return Colors.grey;
@@ -326,7 +324,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Do nível ${widget.oldLevel} para o nível ${widget.newLevel}',
+                            'Do nível ${_getLevels(widget.oldLevel)} para o nível ${_getLevels(widget.newLevel)}',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 18,
@@ -350,7 +348,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 60),
+                    Spacer(),
 
                     FadeTransition(
                       opacity: _fadeAnimation,
@@ -358,7 +356,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                         text: 'Continuar',
                         color: levelColor,
                         onPressed: () {
-                          context.go('/menu');
+                          context.pop();
                         },
                       ),
                     ),
@@ -372,6 +370,21 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
     );
   }
 
+  String _getLevels(level) {
+    switch (level) {
+      case 0:
+        return 'Bronze';
+      case 1:
+        return 'Prata';
+      case 2:
+        return 'Ouro';
+      case 3:
+        return 'Diamante';
+      default:
+        return 'Bronze';
+    }
+  }
+
   Widget _buildLevelCircle(int level, Color color) {
     return Container(
       width: 160,
@@ -383,7 +396,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
       ),
       child: Center(
         child: Text(
-          'Nível $level',
+          _getLevels(level),
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
