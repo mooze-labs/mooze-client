@@ -1,6 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:fpdart/fpdart.dart';
 
+import '../../authentication/models.dart';
 import '../../authentication/services.dart';
+import '../../authentication/services/remote_auth_service_impl.dart';
+import '../../key_management/store/mnemonic_store_impl.dart';
+import '../../key_management/store/key_store_impl.dart';
 
 /// Dio interceptor that automatically handles JWT authentication and token refresh
 class AuthInterceptor extends Interceptor {
@@ -86,42 +91,34 @@ class AuthInterceptor extends Interceptor {
       _refreshAttempts++;
 
       try {
-        // Get the current session
-        final currentSessionResult = await _sessionManager.getSession().run();
+        // Try to get mnemonic and create a new session
+        final remoteAuthServiceResult = await _getRemoteAuthService().run();
 
-        await currentSessionResult.fold(
+        await remoteAuthServiceResult.fold(
           (error) async {
             _isRefreshing = false;
+            await _sessionManager.deleteSession().run();
             handler.next(err);
           },
-          (currentSession) async {
-            // Force refresh the session regardless of local expiration status
-            final refreshResult =
-                await _sessionManager.refreshSession(currentSession).run();
+          (remoteAuthService) async {
+            final newSessionResult =
+                await _createNewSession(remoteAuthService).run();
 
-            await refreshResult.fold(
+            await newSessionResult.fold(
               (error) async {
                 _isRefreshing = false;
-
-                // Se refresh token não existe (404), limpar sessão inválida
-                if (error.contains('REFRESH_TOKEN_NOT_FOUND') ||
-                    error.contains('Refresh token inválido')) {
-                  await _sessionManager.deleteSession().run();
-                }
-
+                await _sessionManager.deleteSession().run();
                 handler.next(err);
               },
-              (refreshedSession) async {
-                // Save the refreshed session
-                await _sessionManager.saveSession(refreshedSession).run();
+              (newSession) async {
+                await _sessionManager.saveSession(newSession).run();
 
                 _isRefreshing = false;
                 _refreshAttempts = 0; // Reset counter on success
 
                 // Retry the original request with new token
                 final options = err.requestOptions;
-                options.headers['Authorization'] =
-                    'Bearer ${refreshedSession.jwt}';
+                options.headers['Authorization'] = 'Bearer ${newSession.jwt}';
 
                 try {
                   final response = await _dio.fetch(options);
@@ -151,5 +148,31 @@ class AuthInterceptor extends Interceptor {
     ];
 
     return unauthenticatedPaths.any((unauthPath) => path.contains(unauthPath));
+  }
+
+  /// Get RemoteAuthService by loading mnemonic from storage
+  TaskEither<String, RemoteAuthenticationService> _getRemoteAuthService() {
+    return TaskEither.tryCatch(() async {
+      final keyStore = KeyStoreImpl();
+      final mnemonicStore = MnemonicStoreImpl(keyStore: keyStore);
+      final mnemonicResult = await mnemonicStore.getMnemonic().run();
+
+      return mnemonicResult.fold(
+        (error) => throw Exception('Failed to get mnemonic: $error'),
+        (mnemonicOption) => mnemonicOption.fold(
+          () => throw Exception('Mnemonic not found'),
+          (mnemonic) => RemoteAuthServiceImpl.withEcdsaClient(mnemonic),
+        ),
+      );
+    }, (error, stackTrace) => error.toString());
+  }
+
+  /// Create a new session through complete authentication flow
+  TaskEither<String, Session> _createNewSession(
+    RemoteAuthenticationService remoteAuthService,
+  ) {
+    return remoteAuthService.requestLoginChallenge().flatMap((challenge) {
+      return remoteAuthService.signChallenge(challenge);
+    });
   }
 }

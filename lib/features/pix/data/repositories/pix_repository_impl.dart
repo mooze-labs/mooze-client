@@ -322,10 +322,6 @@ class PixRepositoryImpl implements PixRepository {
       },
       (error, stackTrace) {
         if (error is DioException) {
-          if (error.response?.statusCode == 401) {
-            return "Erro de autenticação. Por favor, faça login novamente.";
-          }
-
           if (error.type == DioExceptionType.connectionError ||
               error.type == DioExceptionType.connectionTimeout) {
             return "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.";
@@ -341,6 +337,8 @@ class PixRepositoryImpl implements PixRepository {
             switch (statusCode) {
               case 400:
                 return "Dados inválidos. Verifique o valor e tente novamente.";
+              case 401:
+                return "Erro ao processar sua solicitação. Tente novamente.";
               case 403:
                 return "Você não tem permissão para realizar esta operação.";
               case 404:

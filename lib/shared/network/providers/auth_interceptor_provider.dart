@@ -10,5 +10,6 @@ final authInterceptorProvider = ProviderFamily<AuthInterceptor, String>((
   url,
 ) {
   final sessionManagerService = ref.watch(sessionManagerServiceProvider);
+
   return AuthInterceptor(sessionManagerService, Dio(BaseOptions(baseUrl: url)));
 });
