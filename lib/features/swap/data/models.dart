@@ -31,6 +31,5 @@ export 'models/pay_join_utxo.dart';
 export 'models/pay_join_start_response.dart';
 
 // State and Data Models
-export 'models/swap_state.dart';
 export 'models/asset_pair.dart';
 export 'models/asset_pair_market_data.dart';
