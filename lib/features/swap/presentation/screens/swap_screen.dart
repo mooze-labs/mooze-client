@@ -34,6 +34,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   bool _isSyncingDecimal = false;
   bool _hasShownNoLiquidityDialog = false;
   bool _useDrain = false;
+  int _swapKey = 0;
 
   static const int _minBtcLbtcSwapSats = 25000;
 
@@ -150,23 +151,37 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
             ),
             width: double.infinity,
             child: Column(
+              key: ValueKey(_swapKey),
               mainAxisSize: MainAxisSize.min,
               children: [
                 _from(context),
                 GestureDetector(
                   onTap: () async {
+                    final oldFromAsset = _fromAsset;
+                    final oldToAsset = _toAsset;
+
+                    _fromAmountController.text = '';
+                    _fromAmountDecimalController.text = '';
+
+                    await ref
+                        .read(swapControllerProvider.notifier)
+                        .resetQuote();
+
+                    if (!mounted) return;
+
                     setState(() {
                       final tmp = _fromAsset;
                       _fromAsset = _toAsset;
                       _toAsset = tmp;
 
-                      _fromAmountController.text = '';
-                      _fromAmountDecimalController.text = '';
+                      _useDrain = false;
+                      _swapKey++;
                     });
-                    if (!mounted) return;
-                    await ref
-                        .read(swapControllerProvider.notifier)
-                        .resetQuote();
+
+                    ref.invalidate(fiatPriceProvider(oldFromAsset));
+                    ref.invalidate(fiatPriceProvider(oldToAsset));
+                    ref.invalidate(fiatPriceProvider(_fromAsset));
+                    ref.invalidate(fiatPriceProvider(_toAsset));
                   },
                   child: const Padding(
                     padding: EdgeInsets.all(10),
@@ -188,7 +203,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       ),
                     ),
                   )
-                else if (!_isBtcLbtcSwap) ...[
+                else if (!_isBtcLbtcSwap &&
+                    _fromAmountController.text.isNotEmpty &&
+                    swapState.currentQuote?.quote != null) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
@@ -446,20 +463,26 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               Text('Você envia', style: Theme.of(context).textTheme.labelLarge),
               Row(
                 children: [
-                  FutureBuilder<String>(
-                    future: _getBalance(_fromAsset),
+                  FutureBuilder<Either<String, double>>(
+                    future: ref.watch(fiatPriceProvider(_fromAsset).future),
                     builder: (context, snapshot) {
-                      final isBtcOrLbtc =
-                          _fromAsset == core.Asset.btc ||
-                          _fromAsset == core.Asset.lbtc;
-                      return Text(
-                        isBtcOrLbtc
-                            ? '${snapshot.data ?? "..."}'
-                            : '${snapshot.data ?? "..."}',
-                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      );
+                      if (snapshot.hasData) {
+                        return snapshot.data!.fold(
+                          (error) => const Text('0.00'),
+                          (price) {
+                            final amount =
+                                BigInt.tryParse(
+                                  _fromAmountController.text.trim(),
+                                ) ??
+                                BigInt.zero;
+                            final usd = _fromAsset.toUsd(amount, price);
+                            return Text(
+                              '${currency.icon}${usd.toStringAsFixed(2)}',
+                            );
+                          },
+                        );
+                      }
+                      return const Text('...');
                     },
                   ),
                   const SizedBox(width: 5),
@@ -636,22 +659,21 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_fromAsset.name),
-              FutureBuilder<Either<String, double>>(
-                future: ref.read(fiatPriceProvider(_fromAsset).future),
+              Text('Saldo disponível:'),
+              FutureBuilder<String>(
+                future: _getBalance(_fromAsset),
                 builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return snapshot.data!.fold((error) => const Text('0.00'), (
-                      price,
-                    ) {
-                      final amount =
-                          BigInt.tryParse(_fromAmountController.text.trim()) ??
-                          BigInt.zero;
-                      final usd = _fromAsset.toUsd(amount, price);
-                      return Text('${currency.icon}${usd.toStringAsFixed(2)}');
-                    });
-                  }
-                  return const Text('...');
+                  final isBtcOrLbtc =
+                      _fromAsset == core.Asset.btc ||
+                      _fromAsset == core.Asset.lbtc;
+                  return Text(
+                    isBtcOrLbtc
+                        ? '${snapshot.data ?? "..."}'
+                        : '${snapshot.data ?? "..."}',
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  );
                 },
               ),
             ],
@@ -746,19 +768,32 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   ),
                   Row(
                     children: [
-                      FutureBuilder<String>(
-                        future: _getBalance(_toAsset),
+                      FutureBuilder<Either<String, double>>(
+                        future: ref.watch(fiatPriceProvider(_toAsset).future),
                         builder: (context, snapshot) {
-                          final isBtcOrLbtc =
-                              _toAsset == core.Asset.btc ||
-                              _toAsset == core.Asset.lbtc;
-                          return Text(
-                            isBtcOrLbtc
-                                ? '${snapshot.data ?? "..."}'
-                                : snapshot.data ?? "...",
-                            style: Theme.of(context).textTheme.labelLarge!
-                                .copyWith(color: AppColors.textSecondary),
-                          );
+                          if (_fromAmountController.text.trim().isEmpty) {
+                            return const Text('0.00');
+                          }
+
+                          if (snapshot.hasData) {
+                            return snapshot.data!.fold(
+                              (error) => const Text('0.00'),
+                              (price) {
+                                final amount = swapState.receiveAmount ?? 0;
+                                if (amount == 0) {
+                                  return const Text('0.00');
+                                }
+                                final usd = _toAsset.toUsd(
+                                  BigInt.from(amount),
+                                  price,
+                                );
+                                return Text(
+                                  '${currency.icon}${usd.toStringAsFixed(2)}',
+                                );
+                              },
+                            );
+                          }
+                          return const Text('...');
                         },
                       ),
                     ],
@@ -857,26 +892,21 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_toAsset.name),
-                  FutureBuilder<Either<String, double>>(
-                    future: ref.read(fiatPriceProvider(_toAsset).future),
+                  Text('Saldo disponível:'),
+                  FutureBuilder<String>(
+                    future: _getBalance(_toAsset),
                     builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return snapshot.data!.fold(
-                          (error) => const Text('0.00'),
-                          (price) {
-                            final amount = swapState.receiveAmount ?? 0;
-                            final usd = _toAsset.toUsd(
-                              BigInt.from(amount),
-                              price,
-                            );
-                            return Text(
-                              '${currency.icon}${usd.toStringAsFixed(2)}',
-                            );
-                          },
-                        );
-                      }
-                      return const Text('...');
+                      final isBtcOrLbtc =
+                          _toAsset == core.Asset.btc ||
+                          _toAsset == core.Asset.lbtc;
+                      return Text(
+                        isBtcOrLbtc
+                            ? '${snapshot.data ?? "..."}'
+                            : snapshot.data ?? "...",
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      );
                     },
                   ),
                 ],
