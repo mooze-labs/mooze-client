@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:dio/dio.dart';
 import 'package:mooze_mobile/features/pix/data/models/pix_transaction_details.dart';
