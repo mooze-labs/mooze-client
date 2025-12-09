@@ -19,23 +19,33 @@ class ReceivePixScreen extends ConsumerStatefulWidget {
 }
 
 class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _circleController;
   late Animation<double> _circleAnimation;
+  OverlayEntry? _overlayEntry;
 
   @override
   void dispose() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
     _circleController.dispose();
     super.dispose();
   }
-
-  bool _showOverlay = false;
-  bool _showLoadingText = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(depositAmountProvider.notifier).state = 0.0;
+        ref.invalidate(feeRateProvider);
+        ref.invalidate(feeAmountProvider);
+        ref.invalidate(discountedFeesDepositProvider);
+        ref.invalidate(assetQuoteProvider);
+      }
+    });
   }
 
   void _initializeControllers() {
@@ -49,10 +59,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   }
 
   void _onSlideComplete(BuildContext context) async {
-    setState(() {
-      _showOverlay = true;
-      _showLoadingText = true;
-    });
+    _showLoadingOverlay();
     _circleController.forward();
 
     final controller = await ref.read(pixDepositControllerProvider.future);
@@ -67,13 +74,10 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
       (err) async {
         await minAnimationTime;
         if (mounted) {
+          _hideLoadingOverlay();
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(err)));
-          setState(() {
-            _showOverlay = false;
-            _showLoadingText = false;
-          });
           _circleController.reset();
         }
       },
@@ -86,28 +90,52 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
         result.fold(
           (err) {
             if (mounted) {
+              _hideLoadingOverlay();
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(err)));
-              setState(() {
-                _showOverlay = false;
-                _showLoadingText = false;
-              });
               _circleController.reset();
             }
           },
           (deposit) {
+            if (!mounted) return;
+
+            _hideLoadingOverlay();
             ref.read(depositAmountProvider.notifier).state = 0.0;
             ref.invalidate(feeRateProvider);
             ref.invalidate(feeAmountProvider);
             ref.invalidate(discountedFeesDepositProvider);
             ref.invalidate(assetQuoteProvider);
 
-            context.go("/pix/payment/${deposit.depositId}");
+            context.push("/pix/payment/${deposit.depositId}").then((_) {
+              if (mounted) {
+                _circleController.reset();
+              }
+            });
           },
         );
       },
     );
+  }
+
+  void _showLoadingOverlay() {
+    if (_overlayEntry != null) return;
+
+    _overlayEntry = OverlayEntry(
+      builder:
+          (context) => LoadingOverlayWidget(
+            circleController: _circleController,
+            circleAnimation: _circleAnimation,
+            showLoadingText: true,
+          ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideLoadingOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   @override
@@ -133,12 +161,6 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
             onTap: () => FocusScope.of(context).unfocus(),
             child: SingleChildScrollView(child: _buildBody(context)),
           ),
-          if (_showOverlay)
-            LoadingOverlayWidget(
-              circleController: _circleController,
-              circleAnimation: _circleAnimation,
-              showLoadingText: _showLoadingText,
-            ),
           ApiUnavailableOverlay(
             onRetry: () {
               ref.invalidate(pixDepositControllerProvider);

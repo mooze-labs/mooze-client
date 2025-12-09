@@ -28,12 +28,10 @@ class MerchantChargeScreen extends ConsumerStatefulWidget {
 }
 
 class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _circleController;
   late Animation<double> _circleAnimation;
-
-  bool _showOverlay = false;
-  bool _showLoadingText = false;
+  OverlayEntry? _overlayEntry;
 
   @override
   void initState() {
@@ -57,15 +55,14 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
   @override
   void dispose() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
     _circleController.dispose();
     super.dispose();
   }
 
   void _onSlideComplete() async {
-    setState(() {
-      _showOverlay = true;
-      _showLoadingText = true;
-    });
+    _showLoadingOverlay();
     _circleController.forward();
 
     final controller = await ref.read(pixDepositControllerProvider.future);
@@ -74,16 +71,15 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
     final amountInCents = (depositAmount * 100).toInt();
 
+    final minAnimationTime = Future.delayed(Duration(milliseconds: 1500));
+
     controller.fold(
-      (err) {
+      (err) async {
+        await minAnimationTime;
         if (mounted) {
-          setState(() {
-            _showOverlay = false;
-            _showLoadingText = false;
-          });
+          _hideLoadingOverlay();
           _circleController.reset();
 
-          // Mostra mensagem de erro amigável
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(err),
@@ -98,35 +94,73 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           );
         }
       },
-      (controller) async => await controller
-          .newDeposit(amountInCents, selectedAsset)
-          .run()
-          .then(
-            (maybeDeposit) => maybeDeposit.fold((err) {
+      (controller) async {
+        final result =
+            await controller.newDeposit(amountInCents, selectedAsset).run();
+
+        await minAnimationTime;
+
+        result.fold(
+          (err) {
+            if (mounted) {
+              _hideLoadingOverlay();
+              _circleController.reset();
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(err),
+                  backgroundColor: Colors.red[700],
+                  duration: Duration(seconds: 5),
+                  action: SnackBarAction(
+                    label: 'OK',
+                    textColor: Colors.white,
+                    onPressed: () {},
+                  ),
+                ),
+              );
+            }
+          },
+          (deposit) {
+            if (!mounted) return;
+
+            _hideLoadingOverlay();
+
+            context.push("/pix/payment/${deposit.depositId}").then((_) {
               if (mounted) {
-                setState(() {
-                  _showOverlay = false;
-                  _showLoadingText = false;
-                });
                 _circleController.reset();
 
-                // Mostra mensagem de erro amigável
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(err),
-                    backgroundColor: Colors.red[700],
-                    duration: Duration(seconds: 5),
-                    action: SnackBarAction(
-                      label: 'OK',
-                      textColor: Colors.white,
-                      onPressed: () {},
-                    ),
-                  ),
-                );
+                ref.read(depositAmountProvider.notifier).state = 0.0;
+                ref.invalidate(pixDepositControllerProvider);
+                ref.invalidate(feeRateProvider);
+                ref.invalidate(feeAmountProvider);
+                ref.invalidate(discountedFeesDepositProvider);
+                ref.invalidate(assetQuoteProvider);
               }
-            }, (deposit) => context.go("/pix/payment/${deposit.depositId}")),
+            });
+          },
+        );
+      },
+    );
+  }
+
+  void _showLoadingOverlay() {
+    if (_overlayEntry != null) return;
+
+    _overlayEntry = OverlayEntry(
+      builder:
+          (context) => LoadingOverlayWidget(
+            circleController: _circleController,
+            circleAnimation: _circleAnimation,
+            showLoadingText: true,
           ),
     );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideLoadingOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   @override
@@ -205,12 +239,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               ),
             ),
           ),
-          if (_showOverlay)
-            LoadingOverlayWidget(
-              circleController: _circleController,
-              circleAnimation: _circleAnimation,
-              showLoadingText: _showLoadingText,
-            ),
           ApiUnavailableOverlay(
             showBackButton: true,
             onBack: () => context.pop(),

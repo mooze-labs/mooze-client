@@ -115,6 +115,19 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
   final FocusNode focusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listenManual(depositAmountProvider, (previous, next) {
+        if (next == 0.0 && controller.text.isNotEmpty) {
+          controller.clear();
+        }
+      });
+    });
+  }
+
+  @override
   void dispose() {
     controller.dispose();
     focusNode.dispose();

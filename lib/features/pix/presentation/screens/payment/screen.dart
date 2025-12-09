@@ -48,7 +48,7 @@ class ValidPixPaymentScreen extends StatelessWidget {
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () {
-              context.go("/pix");
+              context.pop();
             },
           ),
         ),
@@ -78,7 +78,11 @@ class ValidPixPaymentScreen extends StatelessWidget {
                                     TextButton(
                                       onPressed: () {
                                         Navigator.of(dialogContext).pop();
-                                        context.go('/pix');
+                                        if (context.canPop()) {
+                                          context.pop();
+                                        } else {
+                                          context.go('/pix');
+                                        }
                                       },
                                       child: const Text('OK'),
                                     ),
@@ -127,7 +131,13 @@ class ErrorPixPaymentScreen extends StatelessWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: CustomAppBar(
         title: TextSpan(text: ""),
-        onBack: () => context.go("/pix/receive"),
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/pix');
+          }
+        },
       ),
       body: Center(
         child: Text(
@@ -149,7 +159,13 @@ class LoadingPixPaymentScreen extends StatelessWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: CustomAppBar(
         title: TextSpan(text: ""),
-        onBack: () => context.go("/pix"),
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/pix');
+          }
+        },
       ),
       body: Center(
         child: LoadingAnimationWidget.threeRotatingDots(
