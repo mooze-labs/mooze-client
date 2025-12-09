@@ -6,7 +6,7 @@ import '../services/user_level_storage_service.dart';
 
 const String baseUrl = String.fromEnvironment(
   'BACKEND_API_URL',
-  defaultValue: 'https://10.0.2.2:3000',
+  defaultValue: 'https://api.mooze.app',
 );
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
