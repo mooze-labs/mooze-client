@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 
 import '../providers/swap_controller.dart' as sc;
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
@@ -46,7 +47,7 @@ class _ConfirmSwapBottomSheetState
     final millisecondsRemaining =
         state.millisecondsRemaining ?? state.ttlMilliseconds;
 
-    return SafeArea(
+    return PlatformSafeArea(
       child: Container(
         height: MediaQuery.of(context).size.height * 0.55,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
