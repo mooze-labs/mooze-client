@@ -17,6 +17,7 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync.dart';
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -660,19 +661,36 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Saldo disponível:'),
-              FutureBuilder<String>(
-                future: _getBalance(_fromAsset),
-                builder: (context, snapshot) {
-                  final isBtcOrLbtc =
-                      _fromAsset == core.Asset.btc ||
-                      _fromAsset == core.Asset.lbtc;
-                  return Text(
-                    isBtcOrLbtc
-                        ? '${snapshot.data ?? "..."}'
-                        : '${snapshot.data ?? "..."}',
-                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final balanceAsync = ref.watch(balanceProvider(_fromAsset));
+                  return balanceAsync.when(
+                    data: (either) {
+                      return either.fold(
+                        (error) => Text(
+                          '...',
+                          style: Theme.of(context).textTheme.labelLarge!
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                        (balance) => Text(
+                          _fromAsset.formatBalance(balance),
+                          style: Theme.of(context).textTheme.labelLarge!
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      );
+                    },
+                    loading:
+                        () => Text(
+                          '...',
+                          style: Theme.of(context).textTheme.labelLarge!
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                    error:
+                        (err, stack) => Text(
+                          '...',
+                          style: Theme.of(context).textTheme.labelLarge!
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
                   );
                 },
               ),
@@ -893,19 +911,36 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Saldo disponível:'),
-                  FutureBuilder<String>(
-                    future: _getBalance(_toAsset),
-                    builder: (context, snapshot) {
-                      final isBtcOrLbtc =
-                          _toAsset == core.Asset.btc ||
-                          _toAsset == core.Asset.lbtc;
-                      return Text(
-                        isBtcOrLbtc
-                            ? '${snapshot.data ?? "..."}'
-                            : snapshot.data ?? "...",
-                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final balanceAsync = ref.watch(balanceProvider(_toAsset));
+                      return balanceAsync.when(
+                        data: (either) {
+                          return either.fold(
+                            (error) => Text(
+                              '...',
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(color: AppColors.textSecondary),
+                            ),
+                            (balance) => Text(
+                              _toAsset.formatBalance(balance),
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(color: AppColors.textSecondary),
+                            ),
+                          );
+                        },
+                        loading:
+                            () => Text(
+                              '...',
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(color: AppColors.textSecondary),
+                            ),
+                        error:
+                            (err, stack) => Text(
+                              '...',
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(color: AppColors.textSecondary),
+                            ),
                       );
                     },
                   ),
@@ -923,12 +958,33 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     return rate.toStringAsFixed(8);
   }
 
-  void _clearSwapFields() {
-    if (!mounted) return;
+  Future<void> _clearSwapFields() async {
+    final oldFromAsset = _fromAsset;
+    final oldToAsset = _toAsset;
+
     setState(() {
       _fromAmountController.text = '';
       _fromAmountDecimalController.text = '';
     });
+
+    try {
+      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
+      await walletDataManager.refreshWalletData();
+    } catch (e) {
+      debugPrint('[Swap] Erro ao atualizar dados da carteira: $e');
+    }
+
+    ref.invalidate(allBalancesProvider);
+
+    ref.invalidate(fiatPriceProvider(oldFromAsset));
+    ref.invalidate(fiatPriceProvider(oldToAsset));
+    ref.invalidate(fiatPriceProvider(_fromAsset));
+    ref.invalidate(fiatPriceProvider(_toAsset));
+
+    ref.invalidate(balanceProvider(oldFromAsset));
+    ref.invalidate(balanceProvider(oldToAsset));
+    ref.invalidate(balanceProvider(_fromAsset));
+    ref.invalidate(balanceProvider(_toAsset));
   }
 
   Future<String> _getBalance(core.Asset asset) async {
