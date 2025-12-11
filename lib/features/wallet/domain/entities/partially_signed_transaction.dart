@@ -27,7 +27,11 @@ class PreparedStablecoinTransaction implements PartiallySignedTransaction {
 
   final double amount;
   @override
-  BigInt get satoshi => BigInt.from((amount * pow(10, 8)));
+  BigInt get satoshi {
+    final amountString = amount.toStringAsFixed(8);
+    final amountDouble = double.parse(amountString);
+    return BigInt.from((amountDouble * pow(10, 8)).round());
+  }
 
   PreparedStablecoinTransaction({
     required this.destination,
@@ -75,8 +79,7 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
   @override
   final bool drain;
   final BigInt? claimFeesSat;
-  final int?
-  feeRateSatPerVByte;
+  final int? feeRateSatPerVByte;
 
   final BigInt amount;
   @override

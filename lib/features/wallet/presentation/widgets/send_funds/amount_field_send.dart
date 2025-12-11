@@ -163,13 +163,13 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
         switch (inputType) {
           case SendConversionType.asset:
             assetAmount = parsedValue;
-            satsAmount = (parsedValue * 100000000).round();
+            satsAmount = (parsedValue * 100000000).toInt();
             if (priceToUse != null && priceToUse > 0) {
               fiatAmount = parsedValue * priceToUse;
             }
             break;
           case SendConversionType.sats:
-            satsAmount = parsedValue.round();
+            satsAmount = parsedValue.toInt();
             assetAmount = satsAmount / 100000000;
             if (priceToUse != null && priceToUse > 0) {
               fiatAmount = assetAmount * priceToUse;
@@ -179,7 +179,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
             if (priceToUse != null && priceToUse > 0) {
               fiatAmount = parsedValue;
               assetAmount = fiatAmount / priceToUse;
-              satsAmount = (assetAmount * 100000000).round();
+              satsAmount = (assetAmount * 100000000).toInt();
             } else {
               ref.read(sendConversionLoadingProvider.notifier).state = false;
               return;
@@ -190,14 +190,14 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
         switch (inputType) {
           case SendConversionType.asset:
             assetAmount = parsedValue;
-            satsAmount = (parsedValue * 100000000).round();
+            satsAmount = (parsedValue * 100000000).toInt();
             if (priceToUse != null && priceToUse > 0) {
               fiatAmount = parsedValue * priceToUse;
             }
             break;
           case SendConversionType.sats:
             assetAmount = parsedValue;
-            satsAmount = (parsedValue * 100000000).round();
+            satsAmount = (parsedValue * 100000000).toInt();
             if (priceToUse != null && priceToUse > 0) {
               fiatAmount = assetAmount * priceToUse;
             }
@@ -206,7 +206,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
             if (priceToUse != null && priceToUse > 0) {
               fiatAmount = parsedValue;
               assetAmount = fiatAmount / priceToUse;
-              satsAmount = (assetAmount * 100000000).round();
+              satsAmount = (assetAmount * 100000000).toInt();
             } else {
               ref.read(sendConversionLoadingProvider.notifier).state = false;
               return;

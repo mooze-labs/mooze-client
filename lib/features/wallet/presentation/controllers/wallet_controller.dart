@@ -38,8 +38,7 @@ class WalletController {
     }
 
     if (asset != Asset.btc && asset != Asset.lbtc) {
-      final stablecoinAmount =
-          (amount / BigInt.from(pow(10, 8))).roundToDouble();
+      final stablecoinAmount = amount.toDouble() / pow(10, 8);
       final psbt = _walletRepository.buildStablecoinPaymentTransaction(
         destination,
         asset,

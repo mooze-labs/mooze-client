@@ -617,7 +617,11 @@ class _ReviewTransactionScreenState
   ) {
     if (asset != Asset.btc && asset != Asset.lbtc) {
       final value = amountInSats.toDouble() / 100000000;
-      return "${value.toStringAsFixed(2)} ${asset.ticker}";
+      final formattedValue = value
+          .toStringAsFixed(8)
+          .replaceAll(RegExp(r'0+$'), '')
+          .replaceAll(RegExp(r'\.$'), '');
+      return "$formattedValue ${asset.ticker}";
     }
 
     final btcAmount = amountInSats.toDouble() / 100000000;
