@@ -35,6 +35,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
           '${asset.name} só pode ser enviado pela rede Liquid ou Lightning',
         );
       }
+
+      if (asset == Asset.btc &&
+          (networkType == NetworkType.liquid ||
+              networkType == NetworkType.lightning)) {
+        errors.add('Para enviar ativos Liquid use Bitcoin L2, Depix ou USDT');
+      }
     }
 
     if (amount <= 0) {
