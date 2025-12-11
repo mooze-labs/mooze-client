@@ -19,6 +19,7 @@ class PixRepositoryImpl implements PixRepository {
 
   final _statusUpdatesController = StreamController<PixStatusEvent>.broadcast();
 
+  @override
   Stream<PixStatusEvent> get statusUpdates => _statusUpdatesController.stream;
 
   PixRepositoryImpl(Dio dio, PixDepositDatabase database)

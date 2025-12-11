@@ -1,15 +1,18 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class SlideToConfirmButton extends StatefulWidget {
   final VoidCallback onSlideComplete;
   final String text;
   final bool isLoading;
+  final bool isEnabled;
 
   const SlideToConfirmButton({
     super.key,
     required this.onSlideComplete,
     required this.text,
     this.isLoading = false,
+    this.isEnabled = true,
   });
 
   @override
@@ -59,7 +62,7 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
-    if (widget.isLoading) return;
+    if (widget.isLoading || !widget.isEnabled) return;
 
     setState(() {
       _isDragging = true;
@@ -71,7 +74,7 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   }
 
   void _onPanEnd(DragEndDetails details) {
-    if (widget.isLoading) return;
+    if (widget.isLoading || !widget.isEnabled) return;
 
     if (_dragValue > 0.8) {
       _controller.forward().then((_) {
@@ -97,7 +100,10 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: widget.isLoading ? Colors.grey : Color(0xFFE91E63),
+        color:
+            widget.isLoading || !widget.isEnabled
+                ? Colors.grey
+                : Color(0xFFE91E63),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Stack(
@@ -138,7 +144,7 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                     ),
           ),
 
-          if (!widget.isLoading)
+          if (!widget.isLoading && widget.isEnabled)
             AnimatedBuilder(
               animation: Listenable.merge([
                 _slideAnimation,
@@ -159,9 +165,25 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                       slidePosition * (MediaQuery.of(context).size.width - 90) +
                       floatingOffset,
                   top: 6,
-                  child: GestureDetector(
-                    onPanUpdate: _onPanUpdate,
-                    onPanEnd: _onPanEnd,
+                  child: RawGestureDetector(
+                    gestures: {
+                      _AllowMultipleHorizontalDragGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            _AllowMultipleHorizontalDragGestureRecognizer
+                          >(
+                            () =>
+                                _AllowMultipleHorizontalDragGestureRecognizer(),
+                            (
+                              _AllowMultipleHorizontalDragGestureRecognizer
+                              instance,
+                            ) {
+                              instance
+                                ..onStart = (_) {}
+                                ..onUpdate = _onPanUpdate
+                                ..onEnd = _onPanEnd;
+                            },
+                          ),
+                    },
                     child: Container(
                       width: 50,
                       height: 44,
@@ -189,5 +211,13 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
         ],
       ),
     );
+  }
+}
+
+class _AllowMultipleHorizontalDragGestureRecognizer
+    extends HorizontalDragGestureRecognizer {
+  @override
+  void rejectGesture(int pointer) {
+    acceptGesture(pointer);
   }
 }

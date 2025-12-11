@@ -103,7 +103,7 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
 }
 
 class PixDepositAmountInput extends ConsumerStatefulWidget {
-  PixDepositAmountInput({super.key});
+  const PixDepositAmountInput({super.key});
 
   @override
   ConsumerState<PixDepositAmountInput> createState() =>

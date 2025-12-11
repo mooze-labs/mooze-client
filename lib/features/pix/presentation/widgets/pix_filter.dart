@@ -493,7 +493,7 @@ Widget _buildOptimizedGrid<T>({
   required Function(T) onItemSelected,
   required String Function(T) labelBuilder,
 }) {
-  List<List<T>> _distributeItems(List<T> items) {
+  List<List<T>> distributeItems(List<T> items) {
     if (items.isEmpty) return [];
 
     final totalItems = items.length;
@@ -520,7 +520,7 @@ Widget _buildOptimizedGrid<T>({
     return rows;
   }
 
-  final distributedRows = _distributeItems(items);
+  final distributedRows = distributeItems(items);
 
   return Column(
     children:

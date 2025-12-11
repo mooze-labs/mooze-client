@@ -7,11 +7,11 @@ class LoadingOverlayWidget extends StatelessWidget {
   final bool showLoadingText;
 
   const LoadingOverlayWidget({
-    Key? key,
+    super.key,
     required this.circleController,
     required this.circleAnimation,
     required this.showLoadingText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

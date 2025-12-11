@@ -215,10 +215,11 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           SizedBox(height: 16),
           TransactionDisplayWidget(),
           SizedBox(height: 16),
-          PrimaryButton(
-            onPressed: isButtonEnabled ? () => _onSlideComplete(context) : null,
-            isEnabled: isButtonEnabled,
+          SlideToConfirmButton(
+            onSlideComplete: () => _onSlideComplete(context),
             text: 'Gerar QR Code',
+            isLoading: false,
+            isEnabled: isButtonEnabled,
           ),
           SizedBox(height: 120),
         ],

@@ -41,8 +41,9 @@ final feeAmountProvider = FutureProvider.autoDispose.family<double, double>((
 // Family provider that takes deposit amount as parameter
 final discountedFeesDepositProvider = FutureProvider.autoDispose
     .family<double, double>((ref, depositAmount) async {
-      if (depositAmount < fixedFeeRateThreshold)
+      if (depositAmount < fixedFeeRateThreshold) {
         return depositAmount - fixedFeeRate;
+      }
 
       final feeAmount = await ref.read(feeAmountProvider(depositAmount).future);
       return depositAmount - feeAmount;
