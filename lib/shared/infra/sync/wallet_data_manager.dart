@@ -187,7 +187,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
           state = state.copyWith(
             state: WalletDataState.error,
             errorMessage:
-                'Tentando reconectar datasources (${_dataSourceRetryCount}/$_maxDataSourceRetries)...',
+                'Tentando reconectar datasources ($_dataSourceRetryCount/$_maxDataSourceRetries)...',
             isInitialLoad: false,
           );
 
