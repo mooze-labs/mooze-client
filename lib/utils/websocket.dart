@@ -77,7 +77,7 @@ class WebSocketService {
 
       // Wait for the first message to confirm connection
       await _connectionCompleter?.future.timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 5),
         onTimeout: () {
           throw TimeoutException('Connection timeout');
         },
@@ -109,7 +109,6 @@ class WebSocketService {
   void _startHeartbeat() {
     _stopHeartbeat();
 
-    // Envia ping a cada 30 segundos para manter a conexão ativa
     _pingTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (_isDisposed || !_isConnected) {
         timer.cancel();
@@ -124,13 +123,6 @@ class WebSocketService {
         return;
       }
 
-      // Envia ping (pode ser uma mensagem vazia ou um formato específico do seu protocolo)
-      try {
-        _channel?.sink.add('ping');
-      } catch (e) {
-        debugPrint("Erro ao enviar ping: $e");
-        _handleDisconnect();
-      }
     });
   }
 
@@ -142,7 +134,7 @@ class WebSocketService {
   void _attemptReconnect() {
     if (_isDisposed || _reconnectTimer != null) return;
 
-    _reconnectTimer = Timer(const Duration(seconds: 3), () {
+    _reconnectTimer = Timer(const Duration(seconds: 2), () {
       _reconnectTimer = null;
       if (!_isDisposed && !_isConnected) {
         _connect();
@@ -161,6 +153,33 @@ class WebSocketService {
     } catch (e) {
       debugPrint("Failed to ensure connection: $e");
       return false;
+    }
+  }
+
+  Future<void> forceReconnect() async {
+    if (_isDisposed) return;
+
+    debugPrint("[WebSocket] Forcing reconnection...");
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+
+    _isConnected = false;
+    try {
+      if (_channel != null) {
+        await _channel!.sink.close(status.normalClosure);
+      }
+    } catch (e) {
+      debugPrint(
+        "[WebSocket] Error closing channel during force reconnect: $e",
+      );
+    }
+    _channel = null;
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!_isDisposed) {
+      await _connect();
     }
   }
 
