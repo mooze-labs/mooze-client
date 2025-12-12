@@ -6,9 +6,7 @@ import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_v
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
-import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
@@ -32,6 +30,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   late AnimationController _circleController;
   late Animation<double> _circleAnimation;
   OverlayEntry? _overlayEntry;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -45,7 +44,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
   void _initializeControllers() {
     _circleController = AnimationController(
-      duration: Duration(milliseconds: 800),
+      duration: Duration(milliseconds: 1200),
       vsync: this,
     );
     _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
@@ -62,6 +61,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   void _onSlideComplete() async {
+    setState(() => _isLoading = true);
+
     _showLoadingOverlay();
     _circleController.forward();
 
@@ -77,6 +78,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
       (err) async {
         await minAnimationTime;
         if (mounted) {
+          setState(() => _isLoading = false);
           _hideLoadingOverlay();
           _circleController.reset();
 
@@ -103,6 +105,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         result.fold(
           (err) {
             if (mounted) {
+              setState(() => _isLoading = false);
               _hideLoadingOverlay();
               _circleController.reset();
 
@@ -120,16 +123,16 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               );
             }
           },
-          (deposit) {
+          (deposit) async {
             if (!mounted) return;
 
-            _hideLoadingOverlay();
+            setState(() => _isLoading = false);
 
             context.push("/pix/payment/${deposit.depositId}").then((_) {
               if (mounted) {
                 _circleController.reset();
-
-                ref.read(depositAmountProvider.notifier).state = 0.0;
+                ref.read(depositAmountProvider.notifier).state =
+                    widget.totalAmount;
                 ref.invalidate(pixDepositControllerProvider);
                 ref.invalidate(feeRateProvider);
                 ref.invalidate(feeAmountProvider);
@@ -137,6 +140,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 ref.invalidate(assetQuoteProvider);
               }
             });
+
+            await Future.delayed(Duration(milliseconds: 200));
+            if (mounted) {
+              _hideLoadingOverlay();
+            }
           },
         );
       },
@@ -151,6 +159,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           (context) => LoadingOverlayWidget(
             circleController: _circleController,
             circleAnimation: _circleAnimation,
+            loadingText: 'Gerando QR Code...',
             showLoadingText: true,
           ),
     );
@@ -223,6 +232,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                       child: SlideToConfirmButton(
                                         onSlideComplete: _onSlideComplete,
                                         text: 'Gerar QR Code',
+                                        isLoading: _isLoading,
+                                        isEnabled: validation.isValid,
                                       ),
                                     ),
                                   );
@@ -418,7 +429,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           ),
         ),
         SizedBox(height: 12),
-        ...widget.items.map((item) => _buildItemRow(item)).toList(),
+        ...widget.items.map((item) => _buildItemRow(item)),
       ],
     );
   }

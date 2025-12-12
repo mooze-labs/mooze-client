@@ -16,6 +16,8 @@ import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MerchantModeScreen extends ConsumerStatefulWidget {
+  const MerchantModeScreen({super.key});
+
   @override
   ConsumerState<MerchantModeScreen> createState() => MerchantModeScreenState();
 }
