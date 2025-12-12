@@ -2,8 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mooze_mobile/shared/authentication/services.dart';
-import 'package:mooze_mobile/shared/authentication/clients/ecdsa_signature_client.dart';
-import 'package:mooze_mobile/shared/authentication/clients/signature_client.dart';
 import 'package:mooze_mobile/shared/authentication/services/remote_auth_service_impl.dart';
 
 const testMnemonic =
