@@ -129,7 +129,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
               final satText = feesInSats == 1 ? 'sat' : 'sats';
 
               errors.add(
-                'Saldo insuficiente. Você precisa de $totalNeeded sats (${amount} + $feesInSats $satText de taxa), mas tem apenas ${balance} sats disponíveis',
+                'Saldo insuficiente. Você precisa de $totalNeeded sats ($amount + $feesInSats $satText de taxa), mas tem apenas $balance sats disponíveis',
               );
             }
           } else if (feeEstimation.hasError) {

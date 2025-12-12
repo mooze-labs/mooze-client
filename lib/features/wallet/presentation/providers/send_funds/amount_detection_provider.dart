@@ -54,7 +54,7 @@ class AmountDetectionService {
       // Look for known multipliers followed by '1'
       final multipliers = ['m', 'u', 'n', 'p'];
       for (String mult in multipliers) {
-        String pattern = mult + '1';
+        String pattern = '${mult}1';
         int index = remaining.indexOf(pattern);
         if (index > 0) {
           String beforeMult = remaining.substring(0, index);
