@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../entities.dart';
-import '../entities/level_change.dart';
 import 'user_service.dart';
 import 'user_level_storage_service.dart';
 
