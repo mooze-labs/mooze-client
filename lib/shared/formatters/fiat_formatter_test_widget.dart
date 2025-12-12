@@ -97,19 +97,19 @@ class _FiatFormatterTestWidgetState extends State<FiatFormatterTestWidget> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${FiatInputFormatter.formatValue(0.01)}',
+                          FiatInputFormatter.formatValue(0.01),
                           style: const TextStyle(fontSize: 12),
                         ),
                         Text(
-                          '${FiatInputFormatter.formatValue(1.23)}',
+                          FiatInputFormatter.formatValue(1.23),
                           style: const TextStyle(fontSize: 12),
                         ),
                         Text(
-                          '${FiatInputFormatter.formatValue(1234.56)}',
+                          FiatInputFormatter.formatValue(1234.56),
                           style: const TextStyle(fontSize: 12),
                         ),
                         Text(
-                          '${FiatInputFormatter.formatValue(1000000.00)}',
+                          FiatInputFormatter.formatValue(1000000.00),
                           style: const TextStyle(fontSize: 12),
                         ),
                       ],
