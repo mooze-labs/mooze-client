@@ -27,8 +27,12 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   late AnimationController _floatingController;
   late Animation<double> _floatingAnimation;
 
+  late AnimationController _loadingController;
+  late Animation<double> _loadingSlideAnimation;
+
   double _dragValue = 0.0;
   bool _isDragging = false;
+  bool _wasLoading = false;
 
   @override
   void initState() {
@@ -51,6 +55,14 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
       CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
     );
 
+    _loadingController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _loadingSlideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _loadingController, curve: Curves.easeInOut),
+    );
+
     _floatingController.repeat(reverse: true);
   }
 
@@ -58,7 +70,29 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   void dispose() {
     _controller.dispose();
     _floatingController.dispose();
+    _loadingController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(SlideToConfirmButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Quando entra em loading, mantém o botão na direita
+    if (widget.isLoading && !_wasLoading) {
+      _floatingController.stop();
+      _wasLoading = true;
+    }
+
+    // Quando sai do loading, anima o botão de volta para a esquerda
+    if (!widget.isLoading && _wasLoading) {
+      _loadingController.reverse().then((_) {
+        if (!widget.isLoading && mounted) {
+          _floatingController.repeat(reverse: true);
+        }
+      });
+      _wasLoading = false;
+    }
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
@@ -78,13 +112,13 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
 
     if (_dragValue > 0.8) {
       _controller.forward().then((_) {
+        _loadingController.value = 1.0;
         widget.onSlideComplete();
         _controller.reset();
         setState(() {
           _dragValue = 0.0;
           _isDragging = false;
         });
-        _floatingController.repeat(reverse: true);
       });
     } else {
       setState(() {
@@ -110,52 +144,41 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
         children: [
           // Texto de fundo
           Center(
-            child:
-                widget.isLoading
-                    ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          "Processando...",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    )
-                    : Text(
-                      widget.text,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+            child: Text(
+              widget.isLoading ? "Processando..." : widget.text,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
 
-          if (!widget.isLoading && widget.isEnabled)
+          if (widget.isEnabled)
             AnimatedBuilder(
               animation: Listenable.merge([
                 _slideAnimation,
                 _floatingAnimation,
+                _loadingSlideAnimation,
               ]),
               builder: (context, child) {
-                double slidePosition =
-                    _isDragging ? _dragValue : _slideAnimation.value;
+                double slidePosition;
+
+                if (_isDragging) {
+                  slidePosition = _dragValue;
+                } else if (widget.isLoading ||
+                    _loadingSlideAnimation.value > 0) {
+                  // Usa a animação de loading quando está carregando OU quando está animando de volta
+                  slidePosition = _loadingSlideAnimation.value;
+                } else {
+                  slidePosition = _slideAnimation.value;
+                }
 
                 double floatingOffset =
-                    (!_isDragging && slidePosition == 0)
+                    (!_isDragging &&
+                            slidePosition == 0 &&
+                            !widget.isLoading &&
+                            _loadingSlideAnimation.value == 0)
                         ? _floatingAnimation.value
                         : 0;
 
@@ -166,24 +189,27 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                       floatingOffset,
                   top: 6,
                   child: RawGestureDetector(
-                    gestures: {
-                      _AllowMultipleHorizontalDragGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                            _AllowMultipleHorizontalDragGestureRecognizer
-                          >(
-                            () =>
-                                _AllowMultipleHorizontalDragGestureRecognizer(),
-                            (
-                              _AllowMultipleHorizontalDragGestureRecognizer
-                              instance,
-                            ) {
-                              instance
-                                ..onStart = (_) {}
-                                ..onUpdate = _onPanUpdate
-                                ..onEnd = _onPanEnd;
+                    gestures:
+                        widget.isLoading
+                            ? {}
+                            : {
+                              _AllowMultipleHorizontalDragGestureRecognizer:
+                                  GestureRecognizerFactoryWithHandlers<
+                                    _AllowMultipleHorizontalDragGestureRecognizer
+                                  >(
+                                    () =>
+                                        _AllowMultipleHorizontalDragGestureRecognizer(),
+                                    (
+                                      _AllowMultipleHorizontalDragGestureRecognizer
+                                      instance,
+                                    ) {
+                                      instance
+                                        ..onStart = (_) {}
+                                        ..onUpdate = _onPanUpdate
+                                        ..onEnd = _onPanEnd;
+                                    },
+                                  ),
                             },
-                          ),
-                    },
                     child: Container(
                       width: 50,
                       height: 44,
@@ -198,10 +224,25 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        color: Color(0xFFE91E63),
-                        size: 24,
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 200),
+                        child:
+                            widget.isLoading
+                                ? SizedBox(
+                                  key: ValueKey('spinner'),
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFFE91E63),
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                                : Icon(
+                                  key: ValueKey('arrow'),
+                                  Icons.arrow_forward,
+                                  color: Color(0xFFE91E63),
+                                  size: 24,
+                                ),
                       ),
                     ),
                   ),
