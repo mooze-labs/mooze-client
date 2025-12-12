@@ -171,11 +171,11 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: widget.itemIconBuilder(widget.value!),
+                      child: widget.itemIconBuilder(widget.value as T),
                     ),
                     SizedBox(width: 12),
                     Text(
-                      widget.itemLabelBuilder(widget.value!),
+                      widget.itemLabelBuilder(widget.value as T),
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
