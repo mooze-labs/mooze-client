@@ -10,12 +10,6 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart'
-    show
-        ReceivePaymentResponse,
-        ReceiveAmount_Bitcoin,
-        ReceiveAmount_Asset,
-        PaymentMethod;
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
 class BreezPaymentRequestDto {
