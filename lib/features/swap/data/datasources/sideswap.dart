@@ -53,9 +53,20 @@ class SideswapApi {
     _wsService.stream.listen(
       (message) {
         try {
+          if (message is String &&
+              (message.trim() == 'ping' || message.trim() == 'pong')) {
+            return;
+          }
+
           final data = json.decode(message);
           _handleMessage(data);
         } catch (e) {
+          if (e is FormatException &&
+              message is String &&
+              message.length < 10) {
+            debugPrint('Ignoring non-JSON message: $message');
+            return;
+          }
           debugPrint('Error decoding message: $e');
         }
       },
@@ -185,6 +196,13 @@ class SideswapApi {
     if (_isInitialized) return;
     _isInitialized = true;
     _wsService.ensureConnected();
+  }
+
+  Future<void> forceReconnect() async {
+    debugPrint('[SideswapApi] Forcing reconnection...');
+    _isInitialized = false;
+    await _wsService.forceReconnect();
+    _isInitialized = true;
   }
 
   void login(String apiKey) {
@@ -406,10 +424,17 @@ class SideswapService {
   }
 
   bool ensureConnection() {
-    if (_isConnectionActive) return true;
+    if (_isConnectionActive && _api._wsService.isConnected) return true;
 
     try {
       debugPrint("[Sideswap] Connection check - reconnecting");
+
+      if (_isConnectionActive && !_api._wsService.isConnected) {
+        debugPrint("[Sideswap] Resetting stale connection state");
+        _isConnectionActive = false;
+        _isInitialized = false;
+      }
+
       init();
       return true;
     } catch (e) {
@@ -670,6 +695,13 @@ class SideswapService {
   }
 
   /// Start a quote for a swap
+  /// Reset quote progress state (used when recovering from errors)
+  void resetQuoteProgress() {
+    debugPrint('[DEBUG] SideswapService: Resetting quote progress state');
+    _isQuoteInProgress = false;
+    _lastQuoteTime = null;
+  }
+
   void startQuote({
     required String baseAsset,
     required String quoteAsset,
@@ -681,6 +713,17 @@ class SideswapService {
     required String changeAddress,
   }) {
     final now = DateTime.now();
+
+    if (_isQuoteInProgress && _lastQuoteTime != null) {
+      final timeSinceLastQuote = now.difference(_lastQuoteTime!);
+      if (timeSinceLastQuote.inSeconds > 15) {
+        debugPrint(
+          '[DEBUG] SideswapService.startQuote: Quote travado há ${timeSinceLastQuote.inSeconds}s, forçando reset',
+        );
+        resetQuoteProgress();
+      }
+    }
+
     if (_isQuoteInProgress) {
       debugPrint(
         '[DEBUG] SideswapService.startQuote: Quote already in progress, ignoring',
@@ -719,6 +762,26 @@ class SideswapService {
       '[DEBUG] SideswapService: Calling _api.startQuotes with tradeDir=$tradeDir',
     );
 
+    if (!_isConnectionActive) {
+      debugPrint(
+        '[DEBUG] SideswapService.startQuote: Connection not active, attempting to reconnect',
+      );
+      if (!ensureConnection()) {
+        debugPrint(
+          '[DEBUG] SideswapService.startQuote: Failed to reconnect, releasing lock',
+        );
+        _isQuoteInProgress = false;
+        _quoteResponseController.add(
+          QuoteResponse(
+            error: QuoteError(
+              errorMessage: 'Erro de conexão. Tente novamente.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
     _api.startQuotes(
       assetPair: assetPair,
       assetType: assetTypeNorm,
@@ -729,12 +792,20 @@ class SideswapService {
       changeAddress: changeAddress,
     );
 
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 8), () {
       if (_isQuoteInProgress) {
         debugPrint(
           '[DEBUG] SideswapService.startQuote: timeout waiting for quote response, releasing lock',
         );
         _isQuoteInProgress = false;
+
+        _quoteResponseController.add(
+          QuoteResponse(
+            error: QuoteError(
+              errorMessage: 'Tempo limite excedido. Tente novamente.',
+            ),
+          ),
+        );
       }
     });
   }
@@ -839,6 +910,7 @@ class SideswapService {
 
   void stopQuotes() {
     _isQuoteInProgress = false;
+    _lastQuoteTime = null;
     debugPrint('[DEBUG] SideswapService.stopQuotes: Quote finished');
     _api.stopQuotes();
   }
@@ -871,6 +943,15 @@ class SideswapService {
   /// Unsubscribe from price chart data
   void unsubscribeFromAssetPriceStream(String baseAsset, String quoteAsset) {
     _api.unsubscribeFromPriceStream(baseAsset, quoteAsset);
+  }
+
+  Future<void> forceReconnect() async {
+    debugPrint('[SideswapService] Forcing reconnection...');
+    _isConnectionActive = false;
+    _isInitialized = false;
+    resetQuoteProgress();
+    await _api.forceReconnect();
+    init();
   }
 
   /// Clean up resources

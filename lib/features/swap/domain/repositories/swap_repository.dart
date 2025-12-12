@@ -29,6 +29,11 @@ abstract class SwapRepository {
     required String changeAddress,
   });
   void stopQuote();
+
+  Future<void> forceReconnect();
+
+  void resetQuoteProgress();
+
   TaskEither<String, String> getQuotePset(int quoteId);
   TaskEither<String, String> signAndBroadcast({
     required int quoteId,

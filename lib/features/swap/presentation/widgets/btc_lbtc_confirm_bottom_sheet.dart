@@ -6,7 +6,6 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
-import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
@@ -122,7 +121,7 @@ class _BtcLbtcConfirmBottomSheetState
               );
               if (widget.drain) {
                 print(
-                  '[BtcLbtcConfirm] Drain mode - SDK calculated fees with rate: ${feeRate} sat/vB',
+                  '[BtcLbtcConfirm] Drain mode - SDK calculated fees with rate: $feeRate sat/vB',
                 );
               }
             }
@@ -322,7 +321,7 @@ class _BtcLbtcConfirmBottomSheetState
               if (!isLoading && boltzFeeSat > BigInt.zero || isLoading) ...[
                 _FeeRow(
                   label: 'Taxa de serviço da Boltz:',
-                  value: isLoading ? '' : '-${boltzFeeSat} sats',
+                  value: isLoading ? '' : '-$boltzFeeSat sats',
                   valueColor: Colors.grey[400],
                   isBold: false,
                   isLoading: isLoading,
@@ -330,7 +329,7 @@ class _BtcLbtcConfirmBottomSheetState
               ],
               _FeeRow(
                 label: 'Taxa da transação:',
-                value: isLoading ? '' : '-${networkFeeSat} sats',
+                value: isLoading ? '' : '-$networkFeeSat sats',
                 valueColor: Colors.grey[400],
                 isBold: false,
                 isLoading: isLoading,

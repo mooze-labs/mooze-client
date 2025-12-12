@@ -98,6 +98,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   }
 
   @override
+  void deactivate() {
+    debugPrint('[SwapScreen] Deactivating - cleaning up active quote');
+    ref.read(swapControllerProvider.notifier).resetQuote();
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _fromAmountController.removeListener(_syncDecimalFromAmount);
@@ -161,9 +168,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     final oldFromAsset = _fromAsset;
                     final oldToAsset = _toAsset;
 
+                    // Limpa os controladores primeiro
                     _fromAmountController.text = '';
                     _fromAmountDecimalController.text = '';
 
+                    // Reseta o quote e limpa o estado
                     await ref
                         .read(swapControllerProvider.notifier)
                         .resetQuote();
@@ -183,6 +192,15 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     ref.invalidate(fiatPriceProvider(oldToAsset));
                     ref.invalidate(fiatPriceProvider(_fromAsset));
                     ref.invalidate(fiatPriceProvider(_toAsset));
+
+                    ref.invalidate(balanceProvider(oldFromAsset));
+                    ref.invalidate(balanceProvider(oldToAsset));
+                    ref.invalidate(balanceProvider(_fromAsset));
+                    ref.invalidate(balanceProvider(_toAsset));
+
+                    if (mounted) {
+                      setState(() {});
+                    }
                   },
                   child: const Padding(
                     padding: EdgeInsets.all(10),
@@ -347,6 +365,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     final hasInsufficientBalance = snapshot.data ?? false;
                     final hasQuote = swapState.currentQuote?.quote != null;
 
+                    final isQuoteValid =
+                        !hasQuote ||
+                        (swapState.lastSendAssetId == _fromAsset.id &&
+                            swapState.lastReceiveAssetId == _toAsset.id);
+
                     final canProceed =
                         _isBtcLbtcSwap
                             ? _fromAmountController.text.isNotEmpty &&
@@ -355,6 +378,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 _isBtcLbtcSwapAmountValid()
                             : _fromAmountController.text.isNotEmpty &&
                                 hasQuote &&
+                                isQuoteValid &&
                                 !isLoading &&
                                 !hasInsufficientBalance;
 
@@ -401,6 +425,39 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                     if (_isBtcLbtcSwap) {
                                       _handleBtcLbtcSwap();
                                     } else {
+                                      final currentState = ref.read(
+                                        swapControllerProvider,
+                                      );
+                                      final quote = currentState.currentQuote;
+
+                                      if (quote != null) {
+                                        final isSendAssetCorrect =
+                                            currentState.lastSendAssetId ==
+                                            _fromAsset.id;
+                                        final isReceiveAssetCorrect =
+                                            currentState.lastReceiveAssetId ==
+                                            _toAsset.id;
+
+                                        if (!isSendAssetCorrect ||
+                                            !isReceiveAssetCorrect) {
+                                          // Os ativos mudaram, precisa requotar
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Atualizando cotação...',
+                                                ),
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
+                                          _requestQuoteDebounced();
+                                          return;
+                                        }
+                                      }
+
                                       ConfirmSwapBottomSheet.show(
                                         context,
                                         onSuccess: _clearSwapFields,
@@ -490,8 +547,15 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   TransparentTextButton(
                     text: 'MAX',
                     onPressed: () async {
+                      await ref
+                          .read(swapControllerProvider.notifier)
+                          .resetQuote();
+
+                      if (!mounted) return;
+
                       final balance = await _getBalanceRaw(_fromAsset);
                       if (!mounted) return;
+
                       _fromAmountController.text = balance.toString();
                       setState(() {
                         _useDrain = true;
@@ -514,14 +578,17 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    DropdownButton<core.Asset>(
+                    _CustomAssetDropdown(
                       value: _fromAsset,
-                      underline: const SizedBox.shrink(),
-                      icon: SvgPicture.asset(
-                        'assets/icons/menu/arrow_down.svg',
-                      ),
+                      items: fromOptions,
                       onChanged: (core.Asset? newAsset) async {
                         if (newAsset != null) {
+                          await ref
+                              .read(swapControllerProvider.notifier)
+                              .resetQuote();
+
+                          if (!mounted) return;
+
                           setState(() {
                             _fromAsset = newAsset;
                             _useDrain = false;
@@ -541,49 +608,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             _fromAmountController.text = '';
                             _fromAmountDecimalController.text = '';
                           });
-                          if (!mounted) return;
-                          await ref
-                              .read(swapControllerProvider.notifier)
-                              .resetQuote();
+
+                          ref.invalidate(balanceProvider(_fromAsset));
+                          ref.invalidate(balanceProvider(_toAsset));
                         }
-                      },
-                      items:
-                          fromOptions.map<DropdownMenuItem<core.Asset>>((
-                            core.Asset asset,
-                          ) {
-                            return DropdownMenuItem<core.Asset>(
-                              value: asset,
-                              child: Row(
-                                children: [
-                                  SvgPicture.asset(
-                                    asset.iconPath,
-                                    width: 15,
-                                    height: 15,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    asset.ticker,
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                      selectedItemBuilder: (BuildContext context) {
-                        return fromOptions.map<Widget>((core.Asset asset) {
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                asset.ticker,
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall,
-                              ),
-                              const SizedBox(width: 5),
-                            ],
-                          );
-                        }).toList();
                       },
                     ),
                     Expanded(
@@ -744,6 +772,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         }
       }
 
+      final isQuoteValid =
+          swapState.lastSendAssetId == _fromAsset.id &&
+          swapState.lastReceiveAssetId == _toAsset.id;
+
+      if (!isQuoteValid) return '0';
+
       final amount = swapState.receiveAmount;
       if (amount == null) return '0';
 
@@ -793,6 +827,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             return const Text('0.00');
                           }
 
+                          final isQuoteValid =
+                              swapState.lastSendAssetId == _fromAsset.id &&
+                              swapState.lastReceiveAssetId == _toAsset.id;
+
+                          if (!isQuoteValid) {
+                            return const Text('0.00');
+                          }
+
                           if (snapshot.hasData) {
                             return snapshot.data!.fold(
                               (error) => const Text('0.00'),
@@ -826,16 +868,20 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        DropdownButton<core.Asset>(
+                        _CustomAssetDropdown(
                           value: _toAsset,
-                          underline: const SizedBox.shrink(),
-                          icon: SvgPicture.asset(
-                            'assets/icons/menu/arrow_down.svg',
-                          ),
+                          items: toOptions,
                           onChanged: (core.Asset? newAsset) async {
                             if (newAsset != null) {
+                              await ref
+                                  .read(swapControllerProvider.notifier)
+                                  .resetQuote();
+
+                              if (!mounted) return;
+
                               setState(() {
                                 _toAsset = newAsset;
+                                _useDrain = false;
 
                                 if (_toAsset == core.Asset.btc) {
                                   _fromAsset = core.Asset.lbtc;
@@ -844,54 +890,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 _fromAmountController.text = '';
                                 _fromAmountDecimalController.text = '';
                               });
-                              if (!mounted) return;
-                              await ref
-                                  .read(swapControllerProvider.notifier)
-                                  .resetQuote();
+
+                              ref.invalidate(balanceProvider(_fromAsset));
+                              ref.invalidate(balanceProvider(_toAsset));
                             }
-                          },
-                          items:
-                              toOptions.map<DropdownMenuItem<core.Asset>>((
-                                core.Asset asset,
-                              ) {
-                                return DropdownMenuItem<core.Asset>(
-                                  value: asset,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SvgPicture.asset(
-                                        asset.iconPath,
-                                        width: 20,
-                                        height: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        asset.ticker,
-                                        style:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.bodyLarge,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                          selectedItemBuilder: (BuildContext context) {
-                            return toOptions.map<Widget>((core.Asset asset) {
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    asset.ticker,
-                                    style:
-                                        Theme.of(
-                                          context,
-                                        ).textTheme.headlineSmall,
-                                  ),
-                                  const SizedBox(width: 5),
-                                ],
-                              );
-                            }).toList();
                           },
                         ),
                         Padding(
@@ -1165,5 +1167,166 @@ class _SwapIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SvgPicture.asset('assets/icons/menu/swap.svg');
+  }
+}
+
+class _CustomAssetDropdown extends StatefulWidget {
+  final core.Asset value;
+  final List<core.Asset> items;
+  final ValueChanged<core.Asset?> onChanged;
+
+  const _CustomAssetDropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  State<_CustomAssetDropdown> createState() => _CustomAssetDropdownState();
+}
+
+class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
+  bool _isOpen = false;
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+  final GlobalKey _key = GlobalKey();
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() {
+      _isOpen = true;
+    });
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() {
+      _isOpen = false;
+    });
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    final RenderBox renderBox =
+        _key.currentContext!.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+    final Offset position = renderBox.localToGlobal(Offset.zero);
+    final screenSize = MediaQuery.of(context).size;
+
+    final spaceBelow = screenSize.height - position.dy - size.height;
+    final itemHeight = 44.0; 
+    final maxItems = widget.items.length;
+    final idealHeight = maxItems * itemHeight;
+    final maxHeight = idealHeight < spaceBelow ? idealHeight : spaceBelow - 20;
+
+    final spaceRight = screenSize.width - position.dx;
+    final dropdownWidth = spaceRight > 200 ? 200.0 : spaceRight - 20;
+
+    return OverlayEntry(
+      builder:
+          (context) => GestureDetector(
+            onTap: _closeDropdown,
+            behavior: HitTestBehavior.translucent,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: position.dx,
+                  top: position.dy + size.height + 4.0,
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: Material(
+                      elevation: 4.0,
+                      borderRadius: BorderRadius.circular(8),
+                      color: AppColors.backgroundColor,
+                      child: Container(
+                        width: dropdownWidth,
+                        constraints: BoxConstraints(
+                          maxHeight: maxHeight > 0 ? maxHeight : 100,
+                        ),
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          children:
+                              widget.items.map((core.Asset asset) {
+                                return InkWell(
+                                  onTap: () {
+                                    widget.onChanged(asset);
+                                    _closeDropdown();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SvgPicture.asset(
+                                          asset.iconPath,
+                                          width: 20,
+                                          height: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Text(
+                                            asset.ticker,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        key: _key,
+        onTap: _toggleDropdown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.value.ticker,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(width: 5),
+            SvgPicture.asset('assets/icons/menu/arrow_down.svg'),
+          ],
+        ),
+      ),
+    );
   }
 }

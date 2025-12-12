@@ -115,6 +115,16 @@ class SwapRepositoryImpl implements SwapRepository {
   }
 
   @override
+  Future<void> forceReconnect() async {
+    await sideswapService.forceReconnect();
+  }
+
+  @override
+  void resetQuoteProgress() {
+    sideswapService.resetQuoteProgress();
+  }
+
+  @override
   TaskEither<String, String> getQuotePset(int quoteId) => TaskEither.tryCatch(
     () async => await sideswapService.getQuoteDetails(quoteId).then((pset) {
       if (pset == null) throw 'Quote pset não encontrado';

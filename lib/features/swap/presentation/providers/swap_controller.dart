@@ -114,12 +114,43 @@ class SwapController extends StateNotifier<SwapState> {
     );
   }
 
+  Future<void> forceReconnectAndReset() async {
+    debugPrint('[SwapController] Forcing reconnect and reset...');
+    _ttlTimer?.cancel();
+    _quoteSub?.cancel();
+    _ttlDeadline = null;
+
+    final repository = await _repositoryFuture;
+    try {
+      await repository.forceReconnect();
+      repository.resetQuoteProgress();
+    } catch (e) {
+      debugPrint('[SwapController] Error during force reconnect: $e');
+    }
+
+    if (!mounted) return;
+    state = state.copyWith(
+      loading: false,
+      currentQuote: null,
+      activeQuoteId: null,
+      ttlMilliseconds: null,
+      millisecondsRemaining: null,
+      lastSendAssetId: null,
+      lastReceiveAssetId: null,
+      lastAmount: null,
+      isInverseMarket: null,
+      feeAssetId: null,
+      error: null,
+    );
+  }
+
   final Future<SwapRepository> _repositoryFuture;
   StreamSubscription<QuoteResponse>? _quoteSub;
   Timer? _ttlTimer;
   DateTime? _ttlDeadline;
   bool _mounted = true;
 
+  @override
   bool get mounted => _mounted;
 
   SwapController({required Future<SwapRepository> repositoryFuture})
