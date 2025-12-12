@@ -9,14 +9,14 @@ class SeedPhraseOption extends StatelessWidget {
   final VoidCallback onTap;
 
   const SeedPhraseOption({
-    Key? key,
+    super.key,
     required this.words,
     required this.title,
     required this.description,
     required this.isSelected,
     required this.isRecommended,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

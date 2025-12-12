@@ -181,7 +181,7 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
-                        ).colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(

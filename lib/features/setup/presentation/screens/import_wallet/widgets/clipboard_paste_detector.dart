@@ -44,7 +44,6 @@ class _ClipboardPasteDetectorState
           });
         }
       }
-    } catch (e) {
     } finally {
       _isChecking = false;
     }
