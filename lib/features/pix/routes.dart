@@ -10,6 +10,8 @@ final pixRoutes = [
   ),
   GoRoute(
     path: "/pix/payment/:transaction_id",
-    builder: (context, state) => PixPaymentScreen(),
+    pageBuilder: (context, state) {
+      return NoTransitionPage(child: PixPaymentScreen());
+    },
   ),
 ];

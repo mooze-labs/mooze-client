@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mooze_mobile/features/pix/domain/entities.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
 
 import 'consts.dart';
 import 'providers.dart';
@@ -35,9 +36,111 @@ class PixPaymentScreen extends ConsumerWidget {
   }
 }
 
-class ValidPixPaymentScreen extends StatelessWidget {
+class ValidPixPaymentScreen extends StatefulWidget {
   final PixDeposit deposit;
   const ValidPixPaymentScreen({super.key, required this.deposit});
+
+  @override
+  State<ValidPixPaymentScreen> createState() => _ValidPixPaymentScreenState();
+}
+
+class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _reverseCircleController;
+  late Animation<double> _reverseCircleAnimation;
+  OverlayEntry? _overlayEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeReverseAnimation();
+  }
+
+  void _initializeReverseAnimation() {
+    _reverseCircleController = AnimationController(
+      duration: Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    _reverseCircleAnimation = Tween<double>(begin: 3.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _reverseCircleController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showReverseOverlay();
+      _reverseCircleController.forward().then((_) {
+        _hideReverseOverlay();
+      });
+    });
+  }
+
+  void _showReverseOverlay() {
+    if (_overlayEntry != null) return;
+
+    _overlayEntry = OverlayEntry(
+      builder:
+          (context) => AnimatedBuilder(
+            animation: _reverseCircleController,
+            builder: (context, child) {
+              final size = MediaQuery.of(context).size;
+              final progress = _reverseCircleAnimation.value / 3.0;
+
+              return IgnorePointer(
+                ignoring: true,
+                child: Material(
+                  color: Colors.transparent,
+                  child: SizedBox.expand(
+                    child: Stack(
+                      children: [
+                        // Círculo que diminui
+                        Positioned(
+                          left: -size.width * 1.2,
+                          bottom: -size.height * 0.3,
+                          child: Container(
+                            width:
+                                size.width *
+                                _reverseCircleAnimation.value *
+                                1.2,
+                            height:
+                                size.width *
+                                _reverseCircleAnimation.value *
+                                1.2,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primaryColor,
+                            ),
+                          ),
+                        ),
+                        Opacity(
+                          opacity: progress,
+                          child: Container(color: AppColors.primaryColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideReverseOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _reverseCircleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +166,9 @@ class ValidPixPaymentScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TimerCountdown(
-                        expireAt: deposit.createdAt.add(Duration(minutes: 20)),
+                        expireAt: widget.deposit.createdAt.add(
+                          Duration(minutes: 20),
+                        ),
                         onExpired: () {
                           showDialog(
                             context: context,
@@ -93,7 +198,7 @@ class ValidPixPaymentScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 20),
                       PixQrCodeDisplay(
-                        pixQrData: deposit.pixKey,
+                        pixQrData: widget.deposit.pixKey,
                         boxConstraints: constraints,
                       ),
                       SizedBox(height: 20),
@@ -105,9 +210,9 @@ class ValidPixPaymentScreen extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 20),
-                      CopyableAddress(pixKey: deposit.pixKey),
+                      CopyableAddress(pixKey: widget.deposit.pixKey),
                       SizedBox(height: 20),
-                      PaymentDetailsDisplay(deposit: deposit),
+                      PaymentDetailsDisplay(deposit: widget.deposit),
                       SizedBox(height: 20),
                     ],
                   ),

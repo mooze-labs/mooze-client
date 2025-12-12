@@ -5,12 +5,14 @@ class LoadingOverlayWidget extends StatelessWidget {
   final AnimationController circleController;
   final Animation<double> circleAnimation;
   final bool showLoadingText;
+  final String loadingText;
 
   const LoadingOverlayWidget({
     super.key,
     required this.circleController,
     required this.circleAnimation,
     required this.showLoadingText,
+    required this.loadingText,
   });
 
   @override
@@ -26,7 +28,8 @@ class LoadingOverlayWidget extends StatelessWidget {
               child: Stack(
                 children: [
                   _buildExpandingCircle(context),
-                  if (showLoadingText) _buildLoadingText(),
+                  if (showLoadingText && circleAnimation.value >= 2)
+                    _buildLoadingText(loadingText),
                 ],
               ),
             ),
@@ -39,20 +42,20 @@ class LoadingOverlayWidget extends StatelessWidget {
   Widget _buildExpandingCircle(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Positioned(
-      left: -size.width * 0.8,
+      left: -size.width * 1.2,
       bottom: -size.height * 0.3,
       child: Container(
         width: size.width * circleAnimation.value * 1.2,
-        height: size.width * circleAnimation.value * 1.2,
+        height: size.width * circleAnimation.value * 1.5,
         decoration: BoxDecoration(
-          color: AppColors.primaryColor,
           shape: BoxShape.circle,
+          color: AppColors.primaryColor,
         ),
       ),
     );
   }
 
-  Widget _buildLoadingText() {
+  Widget _buildLoadingText(String loadingText) {
     return Center(
       child: Opacity(
         opacity: circleAnimation.value.clamp(1.0, 1.0),
@@ -62,7 +65,7 @@ class LoadingOverlayWidget extends StatelessWidget {
             CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
             SizedBox(height: 24),
             Text(
-              'Gerando QR Code...',
+              loadingText,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,

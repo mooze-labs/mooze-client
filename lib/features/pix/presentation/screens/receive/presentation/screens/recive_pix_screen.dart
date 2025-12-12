@@ -23,6 +23,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   late AnimationController _circleController;
   late Animation<double> _circleAnimation;
   OverlayEntry? _overlayEntry;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -59,6 +60,8 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   }
 
   void _onSlideComplete(BuildContext context) async {
+    setState(() => _isLoading = true);
+
     _showLoadingOverlay();
     _circleController.forward();
 
@@ -74,6 +77,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
       (err) async {
         await minAnimationTime;
         if (mounted) {
+          setState(() => _isLoading = false);
           _hideLoadingOverlay();
           ScaffoldMessenger.of(
             context,
@@ -90,6 +94,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
         result.fold(
           (err) {
             if (mounted) {
+              setState(() => _isLoading = false);
               _hideLoadingOverlay();
               ScaffoldMessenger.of(
                 context,
@@ -97,10 +102,11 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
               _circleController.reset();
             }
           },
-          (deposit) {
+          (deposit) async {
             if (!mounted) return;
 
-            _hideLoadingOverlay();
+            setState(() => _isLoading = false);
+
             ref.read(depositAmountProvider.notifier).state = 0.0;
             ref.invalidate(feeRateProvider);
             ref.invalidate(feeAmountProvider);
@@ -112,6 +118,11 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
                 _circleController.reset();
               }
             });
+
+            await Future.delayed(Duration(milliseconds: 200));
+            if (mounted) {
+              _hideLoadingOverlay();
+            }
           },
         );
       },
@@ -126,6 +137,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           (context) => LoadingOverlayWidget(
             circleController: _circleController,
             circleAnimation: _circleAnimation,
+            loadingText: 'Gerando QR Code...',
             showLoadingText: true,
           ),
     );
@@ -218,7 +230,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           SlideToConfirmButton(
             onSlideComplete: () => _onSlideComplete(context),
             text: 'Gerar QR Code',
-            isLoading: false,
+            isLoading: _isLoading,
             isEnabled: isButtonEnabled,
           ),
           SizedBox(height: 120),
