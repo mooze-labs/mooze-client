@@ -32,18 +32,12 @@ class TransactionFiltersEntity {
 
 class TransactionFilterDto extends TransactionFiltersEntity {
   TransactionFilterDto({
-    String? sort,
-    Map<String, dynamic>? filter,
-    bool? orderByMostRecent,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) : super(
-         sort: sort,
-         filter: filter,
-         orderByMostRecent: orderByMostRecent,
-         startDate: startDate,
-         endDate: endDate,
-       );
+    super.sort,
+    super.filter,
+    super.orderByMostRecent,
+    super.startDate,
+    super.endDate,
+  });
 
   Map<String, dynamic> toMap() {
     final Map<String, dynamic> data = {};

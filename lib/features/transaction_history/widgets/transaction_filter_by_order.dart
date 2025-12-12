@@ -6,10 +6,10 @@ class FilterOrderBy extends StatefulWidget {
   final ValueChanged<bool> onSelectionChanged;
 
   const FilterOrderBy({
-    Key? key,
+    super.key,
     required this.isMostRecentSelected,
     required this.onSelectionChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterOrderBy> createState() => _FilterOrderByState();

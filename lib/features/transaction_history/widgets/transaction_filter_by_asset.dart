@@ -9,11 +9,11 @@ class FilterByAsset extends StatefulWidget {
   final ValueChanged<List<String>> onSelectionChanged;
 
   const FilterByAsset({
-    Key? key,
+    super.key,
     required this.assets,
     required this.selectedAssetIds,
     required this.onSelectionChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterByAsset> createState() => _FilterByAssetState();
