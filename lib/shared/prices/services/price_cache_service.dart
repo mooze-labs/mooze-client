@@ -8,7 +8,7 @@ class PriceCacheService {
   static const String _keyPrefix = 'cached_price_';
 
   String _getCacheKey(Asset asset, Currency currency) {
-    return '${_keyPrefix}${asset.id}_${currency.name}';
+    return '$_keyPrefix${asset.id}_${currency.name}';
   }
 
   TaskEither<String, Unit> cachePrice(
