@@ -15,8 +15,8 @@ class BinancePriceCache {
 
   List<Map<String, dynamic>>? _cachedData;
   DateTime? _lastFetch;
-  Map<String, List<List<dynamic>>> _cachedKlines = {};
-  Map<String, DateTime> _klinesLastFetch = {};
+  final Map<String, List<List<dynamic>>> _cachedKlines = {};
+  final Map<String, DateTime> _klinesLastFetch = {};
   static const Duration _cacheDuration = Duration(seconds: 60);
 
   bool get _shouldRefresh =>
