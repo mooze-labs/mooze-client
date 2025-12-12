@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
