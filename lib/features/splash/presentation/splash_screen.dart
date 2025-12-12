@@ -75,10 +75,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   /// Handles navigation based on mnemonic state
   void _handleNavigation(Option<String> mnemonic) {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint(
         "[SplashScreen] Handling navigation, isSome: ${mnemonic.isSome()}",
       );
+    }
 
     // Use WidgetsBinding to ensure navigation happens after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -86,18 +87,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         mnemonic.fold(
           () {
             // No mnemonic found
-            if (kDebugMode)
+            if (kDebugMode) {
               debugPrint(
                 "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
               );
+            }
             context.go('/setup/first-access');
           },
           (mnemonicValue) {
             // Mnemonic exists, check if PIN exists
-            if (kDebugMode)
+            if (kDebugMode) {
               debugPrint(
                 "[SplashScreen] Mnemonic exists, checking PIN status...",
               );
+            }
             _checkPinAndNavigate(mnemonicValue);
           },
         );
@@ -107,30 +110,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   /// Checks if PIN exists and navigates accordingly
   void _checkPinAndNavigate(String mnemonic) async {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint("[SplashScreen] Checking PIN status asynchronously...");
+    }
 
     try {
       final hasPin = await ref.read(hasPinProvider.future);
 
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint("[SplashScreen] PIN check completed, hasPin: $hasPin");
+      }
 
       if (!mounted) return;
 
       if (hasPin) {
         // Both mnemonic and PIN exist - normal flow: verify PIN
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             "[SplashScreen] Both mnemonic and PIN exist, verifying PIN...",
           );
+        }
         _authenticateAndNavigate(mnemonic);
       } else {
         // Mnemonic exists but PIN doesn't - incomplete setup
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             "[SplashScreen] Mnemonic exists but PIN doesn't, redirecting to create PIN...",
           );
+        }
         context.go('/setup/pin/new');
       }
     } catch (error, stackTrace) {
@@ -144,26 +151,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _handleError(Object error, StackTrace stackTrace) {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint("[SplashScreen] Error from mnemonicProvider: $error");
+    }
     if (kDebugMode) debugPrint("[SplashScreen] Stack trace: $stackTrace");
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             "[SplashScreen] Redirecting to /setup/first-access due to error",
           );
+        }
         context.go('/setup/first-access');
       }
     });
   }
 
   void _authenticateAndNavigate(String mnemonic) async {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint(
         "[SplashScreen] Starting authentication with session manager...",
       );
+    }
 
     // Navigate to PIN verification screen
     if (!mounted) return;
@@ -172,8 +182,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint("[SplashScreen] PIN confirmed, ensuring auth session...");
+        }
 
         // Invalidate hasPinProvider using container to avoid disposed widget error
         container.invalidate(hasPinProvider);
@@ -199,17 +210,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     // Watch the mnemonic provider and handle navigation
     if (_showLoader) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           "[SplashScreen] Loader is shown, watching mnemonicProvider...",
         );
+      }
 
       final currentLocation = GoRouterState.of(context).uri.toString();
       if (currentLocation.startsWith('/setup/')) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             "[SplashScreen] Already in setup route ($currentLocation), skipping navigation",
           );
+        }
         return _buildScaffold();
       }
 
@@ -217,15 +230,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       mnemonicAsync.when(
         data: (mnemonic) {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint(
               "[SplashScreen] Data received from mnemonicProvider, isSome: ${mnemonic.isSome()}",
             );
+          }
           _handleNavigation(mnemonic);
         },
         loading: () {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint("[SplashScreen] mnemonicProvider still loading...");
+          }
         },
         error: (error, stackTrace) {
           _handleError(error, stackTrace);
