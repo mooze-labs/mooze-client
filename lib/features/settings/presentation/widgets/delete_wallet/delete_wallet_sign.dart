@@ -7,12 +7,12 @@ class DeleteWalletSign extends StatelessWidget {
   final VoidCallback onTap;
 
   const DeleteWalletSign({
-    Key? key,
+    super.key,
     required this.title,
     required this.description,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -397,7 +397,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
                             size: 18,
                           )
                           : Text(
-                            '${index}',
+                            '$index',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: colorScheme.onPrimaryContainer,
