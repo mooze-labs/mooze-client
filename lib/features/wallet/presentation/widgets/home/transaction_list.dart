@@ -356,11 +356,9 @@ class HomeTransactionItem extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium!.copyWith(color: Colors.white),
                 ),
                 SizedBox(height: 4),
                 // Subtitle especial para swaps
@@ -405,7 +403,7 @@ class HomeTransactionItem extends StatelessWidget {
   }
 
   Widget _buildSwapIcon() {
-    return Container(
+    return SizedBox(
       width: 50,
       height: 50,
       child: Stack(

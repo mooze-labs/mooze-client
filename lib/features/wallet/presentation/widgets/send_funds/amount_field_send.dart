@@ -235,6 +235,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final selectedNetwork = ref.watch(selectedNetworkProvider);
     final selectedAsset = ref.watch(selectedAssetProvider);

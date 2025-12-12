@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
@@ -225,7 +224,7 @@ class TransactionMonitorService {
           await _storage.savePendingTransactions(pendingList);
         },
       );
-    } catch (e, stack) {
+    } catch (e) {
       // debugPrint('[TransactionMonitor] Erro ao sincronizar: $e');
       // debugPrint('Stack: $stack');
     }
@@ -274,7 +273,7 @@ class TransactionMonitorService {
           // known transaction, no notification needed
         }
       }
-    } catch (e, stack) {
+    } catch (e) {
       // debugPrint('[TransactionMonitor] Erro ao detectar novas transações: $e');
       // debugPrint('Stack: $stack');
     }

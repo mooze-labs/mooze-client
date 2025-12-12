@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';

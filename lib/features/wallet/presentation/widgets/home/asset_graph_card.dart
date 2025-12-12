@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/all_assets/asset_card_with_favorite.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/asset_detail_screen.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
@@ -94,14 +93,14 @@ class SuccessfulAssetCard extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFF2B2D33),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
