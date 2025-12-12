@@ -69,11 +69,13 @@ class LiquidWallet {
       if (status != null && tx.status != status) return false;
       if (startDate != null &&
           tx.createdAt.millisecondsSinceEpoch <=
-              startDate.microsecondsSinceEpoch)
+              startDate.microsecondsSinceEpoch) {
         return false;
+      }
       if (endDate != null &&
-          tx.createdAt.millisecondsSinceEpoch >= endDate.microsecondsSinceEpoch)
+          tx.createdAt.millisecondsSinceEpoch >= endDate.microsecondsSinceEpoch) {
         return false;
+      }
       return true;
     });
   }
