@@ -58,7 +58,7 @@ class _LevelChangeListenerState extends ConsumerState<LevelChangeListener> {
               if (mounted) {
                 _isNavigating = false;
               }
-            } catch (e, stack) {
+            } catch (e) {
               _isNavigating = false;
             }
           });
