@@ -3,8 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/features/phone_verification/presentation/widgets/send_method.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 

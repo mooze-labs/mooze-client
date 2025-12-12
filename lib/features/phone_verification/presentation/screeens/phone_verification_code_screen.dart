@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
