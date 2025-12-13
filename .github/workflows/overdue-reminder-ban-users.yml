@@ -2,18 +2,18 @@ name: Daily Overdue Reminder - Ban Users
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Todo dia às 9h UTC (muda pra '0 12 * * *' se quiser 9h Brasil)
-  workflow_dispatch:
+    - cron: '0 9 * * *'  # Todo dia 9h UTC (6h BR approx, muda pra '0 12 * * *' pra 9h BR)
+  workflow_dispatch:  # Pra testar manual
 
 jobs:
   reminder:
     runs-on: ubuntu-latest
     steps:
-      - name: Issue DueDate Reminder
-        uses: petrandr/duedate_reminders@v1.0.0
+      - name: Check overdue issues and comment
+        uses: petrandr/duedate_reminders@latest
         with:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
           project_number: 5
-          duedate_field_name: "Target date"  # Exato como tá no teu project!
-          notify_for: "expiring_issues"  # Pega overdue + as que vão vencer em breve
-          notification_type: "comment"  # Posta comentário na issue mencionando assignees
+          duedate_field_name: "Target date" 
+          notify_for: "overdue_issues"  # Só overdue (muda pra "expiring_issues" pra incluir as que vão vencer)
+          notification_type: "comment"  # Posta comentário @assignees na issue
