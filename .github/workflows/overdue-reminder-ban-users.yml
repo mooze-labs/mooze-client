@@ -9,13 +9,11 @@ jobs:
   reminder:
     runs-on: ubuntu-latest
     steps:
-      - name: Issue DueDate Reminder
-        uses: k-pax/issue-duedate-reminder@v1
+      - name: Check overdue issues and comment
+        uses: petrandr/duedate_reminders@v1.3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          project_url: https://github.com/orgs/mooze-labs/projects/5
-          duedate_field: "Target date"  # Nome certinho
-          days_before: 0  # 0 pra só overdue (muda pra 3 pra avisar antes tb)
-          notification_type: comment  # Posta comentário com @assignees
-          overdue_only: true  # Só as atrasadas
-          custom_message: "@{{assignees}} Gentlemen, this task has been overdued since {{due-date}}! These bans need to be made, this will affect our payments partner in matters of MED procedures!"
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          project_number: 5
+          duedate_field_name: "Target date"
+          notify_for: "overdue_issues"  # Only late ones
+          notification_type: "comment"  # Post @assignees on issues to ntfy's
