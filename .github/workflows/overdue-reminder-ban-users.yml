@@ -14,6 +14,6 @@ jobs:
         with:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
           project_number: 5
-          duedate_field_name: "Target date" 
-          notify_for: "overdue_issues"  # Só overdue (muda pra "expiring_issues" pra incluir as que vão vencer)
+          duedate_field_name: "Target date"
+          notify_for: "overdue_issues"  # Só overdue 
           notification_type: "comment"  # Posta comentário @assignees na issue
