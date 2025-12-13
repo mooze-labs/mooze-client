@@ -2,18 +2,21 @@ name: Daily Overdue Reminder - Ban Users
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Todo dia 9h UTC (6h BR approx, muda pra '0 12 * * *' pra 9h BR)
-  workflow_dispatch:  # Pra testar manual
+    - cron: '0 9 * * *'  # Everyday 9h UTC 
+  workflow_dispatch:
 
 jobs:
   reminder:
     runs-on: ubuntu-latest
     steps:
-      - name: Check overdue issues and comment
-        uses: petrandr/duedate_reminders@latest
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Due Date Notifications Via Comments
+        uses: peter-evans/due-date-notifications-via-comments@v1  # Essa roda perfeito agora!
         with:
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
-          project_number: 5
-          duedate_field_name: "Target date"
-          notify_for: "overdue_issues"  # Só overdue 
-          notification_type: "comment"  # Posta comentário @assignees na issue
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-number: 5
+          due-date-field: "Target date"
+          days-before-due: 0
+          comment-message: "@{{assignees}} Gentlemen, this task has been overdued since {{due-date}}! These bans need to be made, this will affect our payments partner in matters of MED procedures!"  # Message
