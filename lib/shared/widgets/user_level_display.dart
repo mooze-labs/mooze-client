@@ -5,6 +5,8 @@ import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
+import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:shimmer/shimmer.dart';
 
 class UserLevelDisplay extends ConsumerStatefulWidget {
   final VoidCallback? onTap;
@@ -30,21 +32,93 @@ class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
           onTap: widget.onTap,
         );
       },
-      loading: () => _buildLoadingCard(),
+      loading: () => _buildLoadingCard(Theme.of(context).colorScheme),
       error: (error, stack) {
         return _buildErrorCard(context);
       },
     );
   }
 
-  Widget _buildLoadingCard() {
+  Widget _buildLoadingCard(ColorScheme colorScheme) {
+    final baseColor = AppColors.baseColor;
+    final highlightColor = AppColors.highlightColor;
     return Container(
-      height: 200,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.grey[100],
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
-      child: const Center(child: CircularProgressIndicator()),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              height: 70,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          SizedBox(height: 16),
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              width: 120,
+              height: 20,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+          ),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: 80,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: 80,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              height: 10,
+              decoration: BoxDecoration(
+                color: baseColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

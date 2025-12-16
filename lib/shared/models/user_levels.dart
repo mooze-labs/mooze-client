@@ -33,7 +33,7 @@ class UserLevel {
       case 'bronze':
         description =
             'Comece movimentando pequenos valores e desbloqueie os primeiros benefícios.';
-        icon = Icons.workspace_premium;
+        icon = Icons.military_tech;
         color = const Color(0xFFCD7F32);
         break;
       case 'silver':
@@ -45,7 +45,7 @@ class UserLevel {
       case 'gold':
         description =
             'Nível Gold com limites aumentados para movimentações maiores.';
-        icon = Icons.workspace_premium;
+        icon = Icons.emoji_events;
         color = const Color(0xFFFFD700);
         break;
       case 'diamond':
@@ -79,7 +79,7 @@ class UserLevels {
       name: 'Bronze',
       description:
           'Comece movimentando pequenos valores e desbloqueie os primeiros benefícios.',
-      icon: Icons.workspace_premium,
+      icon: Icons.military_tech,
       color: Color(0xFFCD7F32),
       minAmount: 20,
       maxAmount: 250,
@@ -99,7 +99,7 @@ class UserLevels {
       name: 'Gold',
       description:
           'Nível Gold com limites aumentados para movimentações maiores.',
-      icon: Icons.workspace_premium,
+      icon: Icons.emoji_events,
       color: Color(0xFFFFD700),
       minAmount: 20,
       maxAmount: 1000,

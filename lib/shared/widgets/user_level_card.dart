@@ -77,6 +77,32 @@ class _UserLevelCardState extends State<UserLevelCard>
   }
 
   @override
+  void didUpdateWidget(UserLevelCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.currentProgress != widget.currentProgress) {
+      _progressAnimation = Tween<double>(
+        begin: oldWidget.currentProgress,
+        end: widget.currentProgress,
+      ).animate(
+        CurvedAnimation(
+          parent: _progressAnimationController,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+
+      _progressAnimationController.reset();
+      _progressAnimationController.forward();
+    }
+
+    if (oldWidget.currentLevel != widget.currentLevel) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToCurrentLevel();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _progressAnimationController.dispose();
@@ -165,7 +191,7 @@ class _UserLevelCardState extends State<UserLevelCard>
             ),
           ),
           child: Text(
-            'Nível ${widget.currentLevel}',
+            'Nível ${widget.currentLevel + 1}',
             style: TextStyle(
               fontSize: context.responsiveFont(12),
               fontWeight: FontWeight.w600,

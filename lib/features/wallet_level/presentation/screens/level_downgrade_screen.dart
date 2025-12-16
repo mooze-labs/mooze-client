@@ -54,10 +54,11 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
         ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 1,
       ),
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 1),
     ]).animate(_scaleController);
 
     _newLevelScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 1),
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 2),
       TweenSequenceItem(
         tween: Tween<double>(
           begin: 0.0,
@@ -195,7 +196,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 10),
 
                     SizedBox(
                       height: 200,
@@ -247,7 +248,9 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
+
+                    Spacer(),
 
                     FadeTransition(
                       opacity: _textFadeAnimation,
@@ -361,33 +364,42 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
     }
   }
 
+  IconData _getLevelIcon(int level) {
+    switch (level) {
+      case 0:
+        return Icons.military_tech;
+      case 1:
+        return Icons.workspace_premium;
+      case 2:
+        return Icons.emoji_events;
+      case 3:
+        return Icons.diamond;
+      default:
+        return Icons.military_tech;
+    }
+  }
+
   Widget _buildLevelCircle(
     int level,
     Color color, {
     bool isDowngraded = false,
   }) {
-    return Container(
-      width: 160,
-      height: 160,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isDowngraded ? color.withValues(alpha: 0.6) : color,
-        border: Border.all(
-          color:
-              isDowngraded ? Colors.white.withValues(alpha: 0.6) : Colors.white,
-          width: 4,
-        ),
-      ),
-      child: Center(
-        child: Text(
+    final displayColor = isDowngraded ? color.withValues(alpha: 0.6) : color;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(_getLevelIcon(level), size: 120, color: displayColor),
+        const SizedBox(height: 16),
+        Text(
           getLevels(level),
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white.withValues(alpha: isDowngraded ? 0.8 : 1.0),
+            color: displayColor,
           ),
         ),
-      ),
+      ],
     );
   }
 }

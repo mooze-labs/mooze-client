@@ -68,10 +68,11 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
         ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 1,
       ),
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 2),
     ]).animate(_scaleController);
 
     _newLevelScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 1),
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 2),
       TweenSequenceItem(
         tween: Tween<double>(
           begin: 0.0,
@@ -201,8 +202,8 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                 center: Alignment.center,
                 radius: 1.0,
                 colors: [
+                  levelColor.withValues(alpha: 0.5),
                   levelColor.withValues(alpha: 0.2),
-                  colorScheme.surface,
                 ],
               ),
             ),
@@ -280,24 +281,9 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                                       _newLevelScaleAnimation.value > 0
                                           ? 1.0
                                           : 0.0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: levelColor.withValues(
-                                            alpha: 0.6 * _glowAnimation.value,
-                                          ),
-                                          blurRadius: 40 * _glowAnimation.value,
-                                          spreadRadius:
-                                              10 * _glowAnimation.value,
-                                        ),
-                                      ],
-                                    ),
-                                    child: _buildLevelCircle(
-                                      widget.newLevel,
-                                      levelColor,
-                                    ),
+                                  child: _buildLevelCircle(
+                                    widget.newLevel,
+                                    levelColor,
                                   ),
                                 ),
                               );
@@ -385,25 +371,36 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
     }
   }
 
+  IconData _getLevelIcon(int level) {
+    switch (level) {
+      case 0:
+        return Icons.military_tech;
+      case 1:
+        return Icons.workspace_premium;
+      case 2:
+        return Icons.emoji_events;
+      case 3:
+        return Icons.diamond;
+      default:
+        return Icons.military_tech;
+    }
+  }
+
   Widget _buildLevelCircle(int level, Color color) {
-    return Container(
-      width: 160,
-      height: 160,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        border: Border.all(color: Colors.white, width: 4),
-      ),
-      child: Center(
-        child: Text(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(_getLevelIcon(level), size: 120, color: color),
+        const SizedBox(height: 16),
+        Text(
           _getLevels(level),
-          style: const TextStyle(
-            fontSize: 24,
+          style: TextStyle(
+            fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: color,
           ),
         ),
-      ),
+      ],
     );
   }
 }

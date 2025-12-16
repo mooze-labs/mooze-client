@@ -22,9 +22,8 @@ class UserServiceImpl implements UserService {
     return TaskEither(() async {
       try {
         final response = await _dio.get('/users/me');
-        final user = User.fromJson(response.data);
-
-        await _detectLevelChange(user.verificationLevel);
+        User user = User.fromJson(response.data);
+        await _detectLevelChange(user.spendingLevel);
 
         return Right(user);
       } catch (e) {
