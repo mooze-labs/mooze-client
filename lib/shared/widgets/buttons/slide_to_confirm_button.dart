@@ -33,6 +33,7 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   double _dragValue = 0.0;
   bool _isDragging = false;
   bool _wasLoading = false;
+  ScrollHoldController? _scrollHold;
 
   @override
   void initState() {
@@ -95,6 +96,14 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
     }
   }
 
+  void _onPanStart(DragStartDetails details) {
+    if (widget.isLoading || !widget.isEnabled) return;
+
+    final scrollableState = Scrollable.of(context);
+    _scrollHold?.cancel();
+    _scrollHold = scrollableState?.position.hold(() {});
+  }
+
   void _onPanUpdate(DragUpdateDetails details) {
     if (widget.isLoading || !widget.isEnabled) return;
 
@@ -109,6 +118,9 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
 
   void _onPanEnd(DragEndDetails details) {
     if (widget.isLoading || !widget.isEnabled) return;
+
+    _scrollHold?.cancel();
+    _scrollHold = null;
 
     if (_dragValue > 0.8) {
       _controller.forward().then((_) {
@@ -188,27 +200,53 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                       slidePosition * (MediaQuery.of(context).size.width - 90) +
                       floatingOffset,
                   top: 6,
-                  child: RawGestureDetector(
-                    gestures:
-                        widget.isLoading
-                            ? {}
-                            : {
-                              _AllowMultipleHorizontalDragGestureRecognizer:
-                                  GestureRecognizerFactoryWithHandlers<
-                                    _AllowMultipleHorizontalDragGestureRecognizer
-                                  >(
-                                    () =>
-                                        _AllowMultipleHorizontalDragGestureRecognizer(),
-                                    (
-                                      _AllowMultipleHorizontalDragGestureRecognizer
-                                      instance,
-                                    ) {
-                                      instance
-                                        ..onStart = (_) {}
-                                        ..onUpdate = _onPanUpdate
-                                        ..onEnd = _onPanEnd;
-                                    },
-                                  ),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    dragStartBehavior: DragStartBehavior.down,
+                    onHorizontalDragStart: (details) {
+                      if (!widget.isLoading && widget.isEnabled) {
+                        final scrollableState = Scrollable.of(context);
+                        _scrollHold?.cancel();
+                        _scrollHold = scrollableState?.position.hold(() {});
+                      }
+                    },
+                    onHorizontalDragUpdate:
+                        widget.isLoading || !widget.isEnabled
+                            ? null
+                            : (details) {
+                              setState(() {
+                                _isDragging = true;
+                                _dragValue = (details.localPosition.dx /
+                                        (MediaQuery.of(context).size.width -
+                                            80))
+                                    .clamp(0.0, 1.0);
+                              });
+                              _floatingController.stop();
+                            },
+                    onHorizontalDragEnd:
+                        widget.isLoading || !widget.isEnabled
+                            ? null
+                            : (details) {
+                              _scrollHold?.cancel();
+                              _scrollHold = null;
+
+                              if (_dragValue > 0.8) {
+                                _controller.forward().then((_) {
+                                  _loadingController.value = 1.0;
+                                  widget.onSlideComplete();
+                                  _controller.reset();
+                                  setState(() {
+                                    _dragValue = 0.0;
+                                    _isDragging = false;
+                                  });
+                                });
+                              } else {
+                                setState(() {
+                                  _dragValue = 0.0;
+                                  _isDragging = false;
+                                });
+                                _floatingController.repeat(reverse: true);
+                              }
                             },
                     child: Container(
                       width: 50,
@@ -252,13 +290,5 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
         ],
       ),
     );
-  }
-}
-
-class _AllowMultipleHorizontalDragGestureRecognizer
-    extends HorizontalDragGestureRecognizer {
-  @override
-  void rejectGesture(int pointer) {
-    acceptGesture(pointer);
   }
 }
