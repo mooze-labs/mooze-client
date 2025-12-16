@@ -96,51 +96,6 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
     }
   }
 
-  void _onPanStart(DragStartDetails details) {
-    if (widget.isLoading || !widget.isEnabled) return;
-
-    final scrollableState = Scrollable.of(context);
-    _scrollHold?.cancel();
-    _scrollHold = scrollableState?.position.hold(() {});
-  }
-
-  void _onPanUpdate(DragUpdateDetails details) {
-    if (widget.isLoading || !widget.isEnabled) return;
-
-    setState(() {
-      _isDragging = true;
-      _dragValue = (details.localPosition.dx /
-              (MediaQuery.of(context).size.width - 80))
-          .clamp(0.0, 1.0);
-    });
-    _floatingController.stop();
-  }
-
-  void _onPanEnd(DragEndDetails details) {
-    if (widget.isLoading || !widget.isEnabled) return;
-
-    _scrollHold?.cancel();
-    _scrollHold = null;
-
-    if (_dragValue > 0.8) {
-      _controller.forward().then((_) {
-        _loadingController.value = 1.0;
-        widget.onSlideComplete();
-        _controller.reset();
-        setState(() {
-          _dragValue = 0.0;
-          _isDragging = false;
-        });
-      });
-    } else {
-      setState(() {
-        _dragValue = 0.0;
-        _isDragging = false;
-      });
-      _floatingController.repeat(reverse: true);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
