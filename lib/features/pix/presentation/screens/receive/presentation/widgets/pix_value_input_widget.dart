@@ -55,7 +55,7 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
               : Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16).copyWith(bottom: 5),
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -71,7 +71,6 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 12),
                   UserLevelDisplay(
                     onTap: () {
                       setState(() {
