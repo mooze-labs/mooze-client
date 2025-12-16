@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:dio/dio.dart';
+import 'package:safe_device/safe_device.dart';
 
 import '../models.dart';
 import 'remote_auth_service.dart';
@@ -36,20 +37,28 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
   @override
   TaskEither<String, AuthChallenge> requestLoginChallenge() {
-    return signatureClient.getPublicKey().flatMap(
-      (pubKey) => TaskEither.tryCatch(
-        () async {
-          final response = await dio.post(
-            '/auth/challenge',
-            data: {'public_key': pubKey},
-          );
-          return AuthChallenge.fromJson(response.data);
-        },
-        (error, stackTrace) {
-          return error.toString();
-        },
-      ),
+    final isSafe = TaskEither.tryCatch(
+      () async => await SafeDevice.isSafeDevice,
+      (error, stackTrace) => error.toString(),
     );
+
+    return isSafe.flatMap((safe) {
+      if (!safe) return TaskEither.left("Unsafe device detected");
+      return signatureClient.getPublicKey().flatMap(
+        (pubKey) => TaskEither.tryCatch(
+          () async {
+            final response = await dio.post(
+              '/auth/challenge',
+              data: {'public_key': pubKey},
+            );
+            return AuthChallenge.fromJson(response.data);
+          },
+          (error, stackTrace) {
+            return error.toString();
+          },
+        ),
+      );
+    });
   }
 
   @override
