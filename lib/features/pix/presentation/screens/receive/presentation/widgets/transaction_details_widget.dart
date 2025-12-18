@@ -26,7 +26,7 @@ class AssetAmountDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedAsset = ref.read(selectedAssetProvider);
+    final selectedAsset = ref.watch(selectedAssetProvider);
     final depositAmount = ref.read(depositAmountProvider);
     final assetQuote = ref.watch(assetQuoteProvider(selectedAsset));
     final discountedDepositAmount = ref.watch(
@@ -216,7 +216,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedAsset = ref.read(selectedAssetProvider);
+    final selectedAsset = ref.watch(selectedAssetProvider);
 
     return Container(
       decoration: _buildContainerDecoration(),

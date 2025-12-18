@@ -29,6 +29,7 @@ class AssetSelectorWidget extends ConsumerWidget {
       items: _possibleAssets,
       onChanged: (asset) {
         ref.read(selectedAssetProvider.notifier).state = (asset ?? Asset.depix);
+        ref.invalidate(assetQuoteProvider);
       },
       itemIconBuilder: (asset) => _buildAssetIcon(asset),
       itemLabelBuilder: (asset) => asset.name,
