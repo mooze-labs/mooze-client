@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_validation_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
+import 'package:mooze_mobile/features/pix/presentation/providers/referral_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
@@ -388,10 +389,82 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                     'Limite diário',
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                   ),
-                  SizedBox(height: 8),
-                  _buildLimitRow('Por transação', 'Indisponível'),
-                  SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', 'Indisponível'),
+                  SizedBox(height: 12),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.orange.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Erro ao carregar limites',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                ref.invalidate(levelsProvider);
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.refresh_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Tentar novamente',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          error.toString(),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
         );
@@ -480,6 +553,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     final discountedDeposit = ref.watch(
       discountedFeesDepositProvider(totalAmount),
     );
+    final hasReferral = ref.watch(hasReferralProvider);
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -537,6 +611,21 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 () => _buildTransactionRow('Percentual', 'Carregando...', null),
           ),
           SizedBox(height: 8),
+          hasReferral.when(
+            data: (hasRef) {
+              if (hasRef && totalAmount >= 55) {
+                return Column(
+                  children: [
+                    _buildTransactionRow('Desconto referral', '-15%', null),
+                    SizedBox(height: 8),
+                  ],
+                );
+              }
+              return SizedBox.shrink();
+            },
+            error: (_, __) => SizedBox.shrink(),
+            loading: () => SizedBox.shrink(),
+          ),
           _buildTransactionRow('Taxa da processadora', 'R\$ 1,00', null),
           SizedBox(height: 8),
           discountedDeposit.when(
