@@ -111,6 +111,10 @@ class PixRepositoryImpl implements PixRepository {
             // erro in polling
           },
           (deposits) {
+            if (deposits.isEmpty) {
+              timer.cancel();
+              return;
+            }
             final deposit = deposits.first;
             if (deposit.status != "pending") {
               final statusEvent = PixStatusEvent(
