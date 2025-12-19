@@ -90,7 +90,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                       ),
                     ),
                     ConfigStructure(
-                      title: 'Central de dados',
+                      title: 'Suporte',
                       iconSvgPath: 'assets/icons/menu/settings/data.svg',
                       action: ExternalNavigation(
                         rota: 'https://keepo.io/mooze.app/',
