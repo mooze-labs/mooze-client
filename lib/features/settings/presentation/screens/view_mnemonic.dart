@@ -25,7 +25,9 @@ class _ViewMnemonicScreenState extends ConsumerState<ViewMnemonicScreen> {
 
     // desativa por 3 segundos
     await Future.delayed(const Duration(seconds: 3));
-    setState(() => _copied = false);
+    if (mounted) {
+      setState(() => _copied = false);
+    }
   }
 
   @override
