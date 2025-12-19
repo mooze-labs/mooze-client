@@ -11,6 +11,7 @@ class PixSuccessScreen extends StatefulWidget {
   final double assetAmount;
   final String depositId;
   final String? blockchainTxid;
+  final VoidCallback? onClosed;
 
   const PixSuccessScreen({
     super.key,
@@ -19,6 +20,7 @@ class PixSuccessScreen extends StatefulWidget {
     required this.assetAmount,
     required this.depositId,
     this.blockchainTxid,
+    this.onClosed,
   });
 
   static void show(
@@ -28,6 +30,7 @@ class PixSuccessScreen extends StatefulWidget {
     required double assetAmount,
     required String depositId,
     String? blockchainTxid,
+    VoidCallback? onClosed,
   }) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -38,6 +41,7 @@ class PixSuccessScreen extends StatefulWidget {
               assetAmount: assetAmount,
               depositId: depositId,
               blockchainTxid: blockchainTxid,
+              onClosed: onClosed,
             ),
         transitionDuration: const Duration(milliseconds: 300),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -320,6 +324,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                               Navigator.of(
                                 context,
                               ).popUntil((route) => route.isFirst);
+                              widget.onClosed?.call();
                             },
                           ),
                         ],
