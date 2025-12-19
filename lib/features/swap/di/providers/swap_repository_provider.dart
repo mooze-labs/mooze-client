@@ -16,16 +16,25 @@ const String _sideswapApiKey = String.fromEnvironment(
       '5c85504bf60e13e0d58614cb9ed86cb2c163cfa402fb3a9e63cf76c7a7af46a1',
 );
 
-final sideswapApiProvider = Provider<SideswapApi>((ref) => SideswapApi());
+final sideswapApiProvider = Provider.autoDispose<SideswapApi>((ref) {
+  final api = SideswapApi();
+  ref.onDispose(() {
+    api.dispose();
+  });
+  return api;
+});
 
-final sideswapServiceProvider = Provider<SideswapService>((ref) {
-  final api = ref.read(sideswapApiProvider);
+final sideswapServiceProvider = Provider.autoDispose<SideswapService>((ref) {
+  final api = ref.watch(sideswapApiProvider);
   final service = SideswapService(api: api, apiKey: _sideswapApiKey);
   service.init();
+  ref.onDispose(() {
+    service.dispose();
+  });
   return service;
 });
 
-final swapWalletProvider = FutureProvider<SwapWallet>((ref) async {
+final swapWalletProvider = FutureProvider.autoDispose<SwapWallet>((ref) async {
   final mnemonicStore = ref.read(mnemonicStoreProvider);
   final dsEither = await ref.read(liquidDataSourceProvider.future);
   final syncState = ref.watch(walletSyncControllerProvider.notifier);
@@ -39,7 +48,9 @@ final swapWalletProvider = FutureProvider<SwapWallet>((ref) async {
   );
 });
 
-final swapRepositoryProvider = FutureProvider<SwapRepository>((ref) async {
+final swapRepositoryProvider = FutureProvider.autoDispose<SwapRepository>((
+  ref,
+) async {
   final wallet = await ref.read(swapWalletProvider.future);
   final service = ref.read(sideswapServiceProvider);
   return SwapRepositoryImpl(sideswapService: service, liquidWallet: wallet);
