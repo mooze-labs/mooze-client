@@ -8,6 +8,7 @@ import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart
 import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
 import '../referral_input_provider.dart';
 
@@ -101,6 +102,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
       if (next.isSuccess &&
           previous?.isSuccess != next.isSuccess &&
           next.existingReferralCode != null) {
+        ref.invalidate(userDataProvider);
         _showSuccessMessage(context);
         _referralCodeController.clear();
       }
