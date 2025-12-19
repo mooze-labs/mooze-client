@@ -118,14 +118,12 @@ class SuccessfulAssetCard extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 10),
               child: Text(
                 "$icon ${assetValue.toStringAsFixed(2)}",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             SizedBox(height: 8),
