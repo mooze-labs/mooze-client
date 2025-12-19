@@ -144,8 +144,6 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const SizedBox(height: 40),
-
                 Expanded(
                   flex: 3,
                   child: Center(
