@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:safe_device/safe_device.dart';
 
 import '../models.dart';
@@ -37,10 +38,13 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
   @override
   TaskEither<String, AuthChallenge> requestLoginChallenge() {
-    final isSafe = TaskEither.tryCatch(
-      () async => await SafeDevice.isSafeDevice,
-      (error, stackTrace) => error.toString(),
-    );
+    final isSafe =
+        kReleaseMode
+            ? TaskEither<String, bool>.tryCatch(
+              () async => await SafeDevice.isSafeDevice,
+              (error, stackTrace) => error.toString(),
+            )
+            : TaskEither<String, bool>.right(true);
 
     return isSafe.flatMap((safe) {
       if (!safe) return TaskEither.left("Unsafe device detected");

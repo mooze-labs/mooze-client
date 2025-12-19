@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:safe_device/safe_device.dart';
 
 import '../../authentication/models.dart';
 import '../../authentication/services.dart';
@@ -28,20 +30,49 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
-    // Get a valid session (automatically refreshes if needed)
-    final sessionResult = await _sessionManager.getSession().run();
+    // Check if device is safe
+    final isSafe =
+        kReleaseMode
+            ? TaskEither<String, bool>.tryCatch(
+              () async => await SafeDevice.isSafeDevice,
+              (error, stackTrace) => error.toString(),
+            )
+            : TaskEither<String, bool>.right(true);
 
-    sessionResult.fold(
-      (error) {
-        // If we can't get a valid session, proceed without auth
-        // The API will return 401 and the app can handle accordingly
-        // Note: This can happen if no mnemonic is available yet
+    final isSafeResult = await isSafe.run();
+
+    await isSafeResult.fold(
+      (error) async {
+        // Device safety check failed, proceed without auth
+        options.headers.remove('Authorization');
         handler.next(options);
       },
-      (session) {
-        // Add JWT to Authorization header
-        options.headers['Authorization'] = 'Bearer ${session.jwt}';
-        handler.next(options);
+      (safe) async {
+        if (!safe) {
+          // Device is not safe, proceed without auth
+          options.headers.remove('Authorization');
+          handler.next(options);
+          return;
+        }
+
+        // Device is safe, get a valid session (automatically refreshes if needed)
+        final sessionResult = await _sessionManager.getSession().run();
+
+        sessionResult.fold(
+          (error) {
+            // If we can't get a valid session, proceed without auth
+            // The API will return 401 and the app can handle accordingly
+            // Note: This can happen if no mnemonic is available yet
+            // Make sure to remove any existing Authorization header
+            options.headers.remove('Authorization');
+            handler.next(options);
+          },
+          (session) {
+            // Add JWT to Authorization header
+            options.headers['Authorization'] = 'Bearer ${session.jwt}';
+            handler.next(options);
+          },
+        );
       },
     );
   }
@@ -49,7 +80,7 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // Handle 401 Unauthorized responses
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
       // Check if we've exceeded max refresh attempts
       if (_refreshAttempts >= _maxRefreshAttempts) {
         _refreshAttempts = 0;
