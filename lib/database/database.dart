@@ -64,7 +64,11 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(deposits);
         }
         if (from <= 2 && to >= 3) {
-          await m.addColumn(deposits, deposits.blockchainTxid);
+          try {
+            await m.addColumn(deposits, deposits.blockchainTxid);
+          } catch (e) {
+            // Column already exists, ignore the error
+          }
         }
         if (from <= 3 && to >= 4) {
           await m.alterTable(
