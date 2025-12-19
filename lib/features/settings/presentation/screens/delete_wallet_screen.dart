@@ -5,9 +5,12 @@ import 'package:mooze_mobile/features/settings/presentation/actions/navigation_a
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
+import 'package:mooze_mobile/shared/authentication/providers/session_manager_service_provider.dart';
 import 'package:mooze_mobile/shared/user/services/user_level_storage_service.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/network/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/utils/mnemonic.dart';
+import 'package:mooze_mobile/shared/key_management/store/mnemonic_store_impl.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -21,7 +24,11 @@ import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/pin_store_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
+import 'package:mooze_mobile/shared/storage/secure_storage.dart';
+import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -107,8 +114,42 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   void _verifyAndDeleteWallet(BuildContext context) {
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
-        final mnemonicHandler = MnemonicHandler();
-        await mnemonicHandler.deleteMnemonic("mainWallet");
+        final secureStorage = SecureStorageProvider.instance;
+
+        await secureStorage.delete(key: mnemonicKey);
+
+        ref.invalidate(mnemonicProvider);
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        await secureStorage.delete(key: 'jwt');
+        await secureStorage.delete(key: 'refresh_token');
+
+        ref.invalidate(sessionManagerServiceProvider);
+        ref.invalidate(authenticatedClientProvider);
+        ref.invalidate(ensureAuthSessionProvider);
+        ref.invalidate(userDataProvider);
+
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        try {
+          final workingDir = await getApplicationDocumentsDirectory();
+          final breezDir = Directory("${workingDir.path}/mooze");
+          if (await breezDir.exists()) {
+            await breezDir.delete(recursive: true);
+          }
+        } catch (e) {
+          debugPrint('Error deleting Breez directory: $e');
+        }
+
+        try {
+          final localDir = await getApplicationSupportDirectory();
+          final lwkDir = Directory("${localDir.path}/lwk-db");
+          if (await lwkDir.exists()) {
+            await lwkDir.delete(recursive: true);
+          }
+        } catch (e) {
+          debugPrint('Error deleting LWK directory: $e');
+        }
 
         // Clear user verification level
         final prefs = await SharedPreferences.getInstance();
@@ -119,8 +160,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         final pinStore = ref.read(pinStoreProvider);
         await pinStore.deletePin().run();
 
-        // Invalidate seed/mnemonic providers
-        ref.invalidate(mnemonicProvider);
+        // Invalidate remaining providers (mnemonic already invalidated earlier)
         ref.invalidate(hasPinProvider);
         ref.invalidate(bdkDatasourceProvider);
         ref.invalidate(liquidDataSourceProvider);
@@ -128,6 +168,12 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         ref.invalidate(walletRepositoryProvider);
         ref.invalidate(transactionControllerProvider);
         ref.invalidate(transactionHistoryProvider);
+
+        // Invalidate swap/websocket providers to stop reconnection attempts
+        ref.invalidate(sideswapServiceProvider);
+        ref.invalidate(sideswapApiProvider);
+        ref.invalidate(swapWalletProvider);
+        ref.invalidate(swapRepositoryProvider);
 
         // Invalidate ALL balance-related providers
         ref.invalidate(balanceControllerProvider);
@@ -153,10 +199,8 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         ref.read(assetPriceHistoryCacheProvider.notifier).reset();
         ref.read(transactionHistoryCacheProvider.notifier).reset();
 
-        // Invalidate session provider
-        ref.invalidate(ensureAuthSessionProvider);
-
-        await Future.delayed(const Duration(milliseconds: 100));
+        // Wait before navigation to ensure all invalidations are processed
+        await Future.delayed(const Duration(milliseconds: 200));
 
         if (context.mounted) {
           context.go('/setup/first-access');
