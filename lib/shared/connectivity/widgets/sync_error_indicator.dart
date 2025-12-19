@@ -63,17 +63,7 @@ class SyncErrorIndicator extends ConsumerWidget {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.sync_problem_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                const Text('Erro de Sincronização'),
-              ],
-            ),
+            title: Text('Erro de Sincronização'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
