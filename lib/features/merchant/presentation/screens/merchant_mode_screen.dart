@@ -106,17 +106,18 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
 
   List<TargetFocus> _createTutorialTargets() {
     List<TargetFocus> targets = [];
-
     targets.add(
       TargetFocus(
         identify: "welcome",
         targetPosition: TargetPosition(
           Size(MediaQuery.of(context).size.width * 0.9, 200),
           Offset(
-            MediaQuery.of(context).size.width * 1.2,
-            MediaQuery.of(context).size.height * 0.3,
+            MediaQuery.of(context).size.width * 1.5,
+            MediaQuery.of(context).size.height * 0.2,
           ),
         ),
+        shape: ShapeLightFocus.RRect,
+        radius: 20,
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
