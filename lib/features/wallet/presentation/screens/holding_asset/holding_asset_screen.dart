@@ -91,6 +91,8 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
       final walletDataManager = ref.read(walletDataManagerProvider.notifier);
       await walletDataManager.refreshWalletData();
 
+      ref.invalidate(walletHoldingsProvider);
+
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(
           0,
