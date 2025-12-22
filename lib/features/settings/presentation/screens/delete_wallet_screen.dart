@@ -19,6 +19,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdi
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/features/swap/presentation/providers/swap_controller.dart';
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
@@ -170,6 +171,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         ref.invalidate(transactionHistoryProvider);
 
         // Invalidate swap/websocket providers to stop reconnection attempts
+        ref.invalidate(swapControllerProvider);
         ref.invalidate(sideswapServiceProvider);
         ref.invalidate(sideswapApiProvider);
         ref.invalidate(swapWalletProvider);
@@ -200,7 +202,8 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
         ref.read(transactionHistoryCacheProvider.notifier).reset();
 
         // Wait before navigation to ensure all invalidations are processed
-        await Future.delayed(const Duration(milliseconds: 200));
+        // and WebSocket connections are properly closed
+        await Future.delayed(const Duration(milliseconds: 500));
 
         if (context.mounted) {
           context.go('/setup/first-access');
