@@ -16,7 +16,7 @@ const String _sideswapApiKey = String.fromEnvironment(
       '5c85504bf60e13e0d58614cb9ed86cb2c163cfa402fb3a9e63cf76c7a7af46a1',
 );
 
-final sideswapApiProvider = Provider.autoDispose<SideswapApi>((ref) {
+final sideswapApiProvider = Provider<SideswapApi>((ref) {
   final api = SideswapApi();
   ref.onDispose(() {
     api.dispose();
@@ -24,7 +24,7 @@ final sideswapApiProvider = Provider.autoDispose<SideswapApi>((ref) {
   return api;
 });
 
-final sideswapServiceProvider = Provider.autoDispose<SideswapService>((ref) {
+final sideswapServiceProvider = Provider<SideswapService>((ref) {
   final api = ref.watch(sideswapApiProvider);
   final service = SideswapService(api: api, apiKey: _sideswapApiKey);
   service.init();
