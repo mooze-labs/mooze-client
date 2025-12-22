@@ -49,7 +49,7 @@ class _ConfirmSwapBottomSheetState
 
     return PlatformSafeArea(
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.55,
+        height: MediaQuery.of(context).size.height * 0.65,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         decoration: const BoxDecoration(
           color: Color(0xFF1C1C1C),
