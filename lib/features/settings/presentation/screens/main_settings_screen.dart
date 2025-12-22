@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/settings/presentation/models/settings_stru
 import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class MainSettingsScreen extends StatefulWidget {
   const MainSettingsScreen({super.key});
@@ -14,6 +15,21 @@ class MainSettingsScreen extends StatefulWidget {
 }
 
 class _MainSettingsScreenState extends State<MainSettingsScreen> {
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = 'v.${packageInfo.version}(${packageInfo.buildNumber})';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,8 +126,11 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                 SectionSettings(
                   title: 'VERSÃO',
                   settingsItems: [
-                    ConfigStructure(title: '2025.08.11(1)'),
-                  ], // TODO: ADD version
+                    ConfigStructure(
+                      title:
+                          _appVersion.isEmpty ? 'Carregando...' : _appVersion,
+                    ),
+                  ],
                 ),
                 SizedBox(height: 120),
               ],
