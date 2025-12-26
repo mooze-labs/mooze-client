@@ -89,14 +89,6 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
     return BoxDecoration(
       color: AppColors.pinBackground,
       borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          blurRadius: 10,
-          spreadRadius: 0,
-          offset: Offset(0, 0),
-        ),
-      ],
     );
   }
 }
