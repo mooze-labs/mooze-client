@@ -782,6 +782,10 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           // Clear merchant mode state after PIN is confirmed
           await merchantModeService.setMerchantModeActive(false);
 
+          // Clear cart and invalidate providers
+          ref.read(cartControllerProvider.notifier).clearCart();
+          ref.invalidate(cartControllerProvider);
+
           // Navigate back to origin (home or menu)
           context.go(origin);
         },
