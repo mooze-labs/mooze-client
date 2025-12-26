@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -146,6 +148,20 @@ class AccountLimitsDisplay extends ConsumerWidget {
                             fontSize: context.responsiveFont(12),
                           ),
                         ),
+                        if (error is UserFriendlyException &&
+                            error.getTechnicalMessage() != null &&
+                            kDebugMode)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Detalhes: ${error.getTechnicalMessage()}',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: context.responsiveFont(11),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
