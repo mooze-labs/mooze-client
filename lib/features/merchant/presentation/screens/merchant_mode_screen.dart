@@ -433,7 +433,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           Size(MediaQuery.of(context).size.width * 0.9, 200),
           Offset(
             MediaQuery.of(context).size.width * 1.5,
-            MediaQuery.of(context).size.height * 0.3,
+            MediaQuery.of(context).size.height * 0.2,
           ),
         ),
         shape: ShapeLightFocus.RRect,
