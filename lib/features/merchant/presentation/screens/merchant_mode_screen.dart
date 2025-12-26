@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/models/item.dart';
 import 'package:mooze_mobile/features/merchant/models/product.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/product_controller.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_mode_provider.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_charge_screen.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/add_edit_item_modal.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_widget.dart';
@@ -11,12 +13,15 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widge
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
 import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tutorial_service.dart';
+import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MerchantModeScreen extends ConsumerStatefulWidget {
-  const MerchantModeScreen({super.key});
+  final String? origin;
+
+  const MerchantModeScreen({super.key, this.origin});
 
   @override
   ConsumerState<MerchantModeScreen> createState() => MerchantModeScreenState();
@@ -48,7 +53,16 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     _tabController = TabController(length: 2, vsync: this);
     // _tutorialService.resetTutorial();
 
+    // Mark that we're in merchant mode
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final merchantModeService = ref.read(merchantModeServiceProvider);
+      // Save the origin (where we came from)
+      final originRoute = widget.origin ?? '/home';
+      await merchantModeService.setMerchantModeActive(
+        true,
+        origin: originRoute,
+      );
+
       final tutorialShown = await _tutorialService.isTutorialShown();
       if (!tutorialShown && mounted) {
         _showTutorial();
@@ -756,199 +770,234 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         });
   }
 
+  Future<void> _handleWillPop() async {
+    final merchantModeService = ref.read(merchantModeServiceProvider);
+    final origin = await merchantModeService.getMerchantModeOrigin();
+
+    // Navigate to PIN verification using go (replaces entire stack)
+    context.push(
+      '/setup/pin/verify',
+      extra: VerifyPinArgs(
+        onPinConfirmed: () async {
+          // Clear merchant mode state after PIN is confirmed
+          await merchantModeService.setMerchantModeActive(false);
+
+          // Navigate back to origin (home or menu)
+          context.go(origin);
+        },
+        forceAuth: true,
+        canGoBack: true,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFEA1E63), Color(0xFF841138)],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          await _handleWillPop();
+        }
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFEA1E63), Color(0xFF841138)],
+            ),
           ),
-        ),
-        child: PlatformSafeArea(
-          iosTop: true,
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16).copyWith(top: 10),
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final valorReais = ref.watch(cartTotalProvider);
-                    return Container(
-                      key: _headerKey,
-                      child: MerchantHeaderWidget(
-                        valorReais: valorReais,
-                        onLimparCarrinho: _limparValor,
-                        limparButtonKey: _limparKey,
-                        valorTotalKey: _valorTotalKey,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 16),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.backgroundColor,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(40),
-                      topRight: Radius.circular(40),
-                    ),
+          child: PlatformSafeArea(
+            iosTop: true,
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                  ).copyWith(top: 10),
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final valorReais = ref.watch(cartTotalProvider);
+                      return Container(
+                        key: _headerKey,
+                        child: MerchantHeaderWidget(
+                          valorReais: valorReais,
+                          onLimparCarrinho: _limparValor,
+                          onBack: _handleWillPop,
+                          limparButtonKey: _limparKey,
+                          valorTotalKey: _valorTotalKey,
+                        ),
+                      );
+                    },
                   ),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 16),
-                      TabBar(
-                        controller: _tabController,
-                        indicatorColor: Colors.pink,
-                        dividerColor: Colors.transparent,
-                        labelColor: Colors.white,
-                        unselectedLabelColor: Colors.grey[400],
-                        tabs: [
-                          Tab(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.grid_3x3), Text('Keypad')],
-                            ),
-                          ),
-                          Tab(
-                            key: _itemsTabKey,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.grid_3x3), Text('Itens')],
-                            ),
-                          ),
-                        ],
+                ),
+                SizedBox(height: 16),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
                       ),
-                      Expanded(
-                        child: TabBarView(
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 16),
+                        TabBar(
                           controller: _tabController,
-                          children: [
-                            KeypadWidget(
-                              valorDigitado: valorDigitado,
-                              onAdicionarNumero: _adicionarNumero,
-                              onApagarNumero: _apagarNumero,
-                              onAdicionarAoTotal: _adicionarAoTotal,
-                              valorInputKey: _valorInputKey,
-                              addButtonKey: _addButtonKey,
+                          indicatorColor: Colors.pink,
+                          dividerColor: Colors.transparent,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.grey[400],
+                          tabs: [
+                            Tab(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.grid_3x3),
+                                  Text('Keypad'),
+                                ],
+                              ),
                             ),
-                            Consumer(
-                              builder: (context, ref, child) {
-                                final productsAsync = ref.watch(
-                                  productControllerProvider,
-                                );
-
-                                return productsAsync.when(
-                                  data: (products) {
-                                    return Consumer(
-                                      builder: (context, ref, child) {
-                                        final cart = ref.watch(
-                                          cartControllerProvider,
-                                        );
-
-                                        final items =
-                                            products.map((product) {
-                                              final quantidade =
-                                                  product.id != null
-                                                      ? cart[product.id!]
-                                                              ?.quantidade ??
-                                                          0
-                                                      : 0;
-
-                                              return Item(
-                                                nome: product.name,
-                                                preco: product.price,
-                                                quantidade: quantidade,
-                                              );
-                                            }).toList();
-
-                                        return ItemsListWidget(
-                                          produtos: items,
-                                          onEditarItem: _editarItem,
-                                          onRemoverItem: _removerItem,
-                                          onAtualizarQuantidade:
-                                              _atualizarQuantidade,
-                                          onAdicionarItem:
-                                              _mostrarBottomSheetAdicionar,
-                                          addButtonKey: _addProductButtonKey,
-                                          firstProductKey: _firstProductKey,
-                                        );
-                                      },
-                                    );
-                                  },
-                                  loading:
-                                      () => const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                  error:
-                                      (error, stackTrace) => Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              Icons.error,
-                                              color: Colors.red,
-                                              size: 48,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'Erro ao carregar produtos',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              error.toString(),
-                                              style: TextStyle(
-                                                color: Colors.grey[400],
-                                                fontSize: 12,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                ref.invalidate(
-                                                  productControllerProvider,
-                                                );
-                                              },
-                                              child: const Text(
-                                                'Tentar novamente',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                );
-                              },
+                            Tab(
+                              key: _itemsTabKey,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Icon(Icons.grid_3x3), Text('Itens')],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              KeypadWidget(
+                                valorDigitado: valorDigitado,
+                                onAdicionarNumero: _adicionarNumero,
+                                onApagarNumero: _apagarNumero,
+                                onAdicionarAoTotal: _adicionarAoTotal,
+                                valorInputKey: _valorInputKey,
+                                addButtonKey: _addButtonKey,
+                              ),
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final productsAsync = ref.watch(
+                                    productControllerProvider,
+                                  );
+
+                                  return productsAsync.when(
+                                    data: (products) {
+                                      return Consumer(
+                                        builder: (context, ref, child) {
+                                          final cart = ref.watch(
+                                            cartControllerProvider,
+                                          );
+
+                                          final items =
+                                              products.map((product) {
+                                                final quantidade =
+                                                    product.id != null
+                                                        ? cart[product.id!]
+                                                                ?.quantidade ??
+                                                            0
+                                                        : 0;
+
+                                                return Item(
+                                                  nome: product.name,
+                                                  preco: product.price,
+                                                  quantidade: quantidade,
+                                                );
+                                              }).toList();
+
+                                          return ItemsListWidget(
+                                            produtos: items,
+                                            onEditarItem: _editarItem,
+                                            onRemoverItem: _removerItem,
+                                            onAtualizarQuantidade:
+                                                _atualizarQuantidade,
+                                            onAdicionarItem:
+                                                _mostrarBottomSheetAdicionar,
+                                            addButtonKey: _addProductButtonKey,
+                                            firstProductKey: _firstProductKey,
+                                          );
+                                        },
+                                      );
+                                    },
+                                    loading:
+                                        () => const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                    error:
+                                        (error, stackTrace) => Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(
+                                                Icons.error,
+                                                color: Colors.red,
+                                                size: 48,
+                                              ),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'Erro ao carregar produtos',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                error.toString(),
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: 12,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              const SizedBox(height: 16),
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  ref.invalidate(
+                                                    productControllerProvider,
+                                                  );
+                                                },
+                                                child: const Text(
+                                                  'Tentar novamente',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Consumer(
-                builder: (context, ref, child) {
-                  final cartTotal = ref.watch(cartTotalProvider);
-                  return FinalizarVendaButton(
-                    onPressed: _finalizarVenda,
-                    cartTotal: cartTotal,
-                    buttonKey: _finalizarVendaKey,
-                  );
-                },
-              ),
-            ],
+                Consumer(
+                  builder: (context, ref, child) {
+                    final cartTotal = ref.watch(cartTotalProvider);
+                    return FinalizarVendaButton(
+                      onPressed: _finalizarVenda,
+                      cartTotal: cartTotal,
+                      buttonKey: _finalizarVendaKey,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -51,7 +51,11 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ConfigStructure(
                       title: 'Modo comerciante',
                       iconSvgPath: 'assets/icons/menu/settings/merchant.svg',
-                      action: Navigation(context: context, rota: '/merchant'),
+                      action: Navigation(
+                        context: context,
+                        rota: '/merchant',
+                        args: '/menu',
+                      ),
                       highlight: true,
                     ),
                   ],

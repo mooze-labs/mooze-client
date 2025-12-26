@@ -8,6 +8,8 @@ import '../../../shared/key_management/providers/mnemonic_provider.dart';
 import '../../../shared/key_management/providers/has_pin_provider.dart';
 import '../../../shared/authentication/providers/ensure_auth_session_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
+import '../../setup/presentation/providers/onboarding_provider.dart';
+import '../../merchant/presentation/providers/merchant_mode_provider.dart';
 import '../../../routes.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -74,11 +76,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   /// Handles navigation based on mnemonic state
-  void _handleNavigation(Option<String> mnemonic) {
+  void _handleNavigation(Option<String> mnemonic) async {
     if (kDebugMode) {
       debugPrint(
         "[SplashScreen] Handling navigation, isSome: ${mnemonic.isSome()}",
       );
+    }
+
+    // Check if onboarding has been completed
+    final onboardingService = ref.read(onboardingServiceProvider);
+    final hasCompletedOnboarding =
+        await onboardingService.isOnboardingCompleted();
+
+    // Check if was in merchant mode
+    final merchantModeService = ref.read(merchantModeServiceProvider);
+    final wasInMerchantMode = await merchantModeService.isMerchantModeActive();
+
+    if (kDebugMode) {
+      debugPrint("[SplashScreen] Was in merchant mode: $wasInMerchantMode");
     }
 
     // Use WidgetsBinding to ensure navigation happens after build
@@ -86,22 +101,46 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) {
         mnemonic.fold(
           () {
-            // No mnemonic found
-            if (kDebugMode) {
-              debugPrint(
-                "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
-              );
+            // No mnemonic found - check if needs onboarding
+            if (!hasCompletedOnboarding) {
+              if (kDebugMode) {
+                debugPrint(
+                  "[SplashScreen] First time user, redirecting to /setup/onboarding",
+                );
+              }
+              context.go('/setup/onboarding');
+            } else {
+              if (kDebugMode) {
+                debugPrint(
+                  "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
+                );
+              }
+              context.go('/setup/first-access');
             }
-            context.go('/setup/first-access');
           },
           (mnemonicValue) {
-            // Mnemonic exists, check if PIN exists
+            // Mnemonic exists - user already has wallet, mark onboarding as completed
             if (kDebugMode) {
               debugPrint(
                 "[SplashScreen] Mnemonic exists, checking PIN status...",
               );
             }
-            _checkPinAndNavigate(mnemonicValue);
+            // Mark onboarding as completed for existing users
+            if (!hasCompletedOnboarding) {
+              onboardingService.setOnboardingCompleted();
+            }
+
+            // If was in merchant mode, require PIN before returning to merchant mode
+            if (wasInMerchantMode) {
+              if (kDebugMode) {
+                debugPrint(
+                  "[SplashScreen] Was in merchant mode, requiring PIN...",
+                );
+              }
+              _authenticateForMerchantMode(mnemonicValue);
+            } else {
+              _checkPinAndNavigate(mnemonicValue);
+            }
           },
         );
       }
@@ -198,6 +237,47 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         // Navigation will be handled by the router
         if (kDebugMode) debugPrint("[SplashScreen] Navigating to /home...");
         rootNavigatorKey.currentContext?.go('/home');
+      },
+      forceAuth: true,
+      canGoBack: false,
+    );
+
+    context.go('/setup/pin/verify', extra: verifyPinArgs);
+  }
+
+  void _authenticateForMerchantMode(String mnemonic) async {
+    if (kDebugMode) {
+      debugPrint("[SplashScreen] Authenticating for merchant mode return...");
+    }
+
+    if (!mounted) return;
+
+    final container = ProviderScope.containerOf(context);
+
+    final verifyPinArgs = VerifyPinArgs(
+      onPinConfirmed: () async {
+        if (kDebugMode) {
+          debugPrint(
+            "[SplashScreen] PIN confirmed, navigating to merchant mode...",
+          );
+        }
+
+        // Invalidate hasPinProvider
+        container.invalidate(hasPinProvider);
+
+        try {
+          await container.read(ensureAuthSessionProvider.future);
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint("[SplashScreen] Error ensuring auth: $e");
+          }
+        }
+
+        // Navigate to merchant mode
+        if (kDebugMode) {
+          debugPrint("[SplashScreen] Navigating to merchant mode...");
+        }
+        rootNavigatorKey.currentContext?.go('/merchant');
       },
       forceAuth: true,
       canGoBack: false,
