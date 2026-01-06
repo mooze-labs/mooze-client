@@ -548,6 +548,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
     ref.invalidate(balanceControllerProvider);
     ref.invalidate(allBalancesProvider);
+    ref.invalidate(balanceCacheProvider);
 
     final allAssets = ref.read(allAssetsProvider);
     for (final asset in allAssets) {
@@ -576,25 +577,10 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   Future<void> _loadInitialData() async {
     final favoriteAssets = ref.read(favoriteAssetsProvider);
 
+    final balanceCacheNotifier = ref.read(balanceCacheProvider.notifier);
     final balanceLoadingFutures =
         favoriteAssets.map((asset) {
-          return ref
-              .read(balanceProvider(asset).future)
-              .then((balance) {
-                balance.fold(
-                  (error) => debugPrint(
-                    '[WalletDataManager] Erro ao carregar saldo $asset: $error',
-                  ),
-                  (value) => debugPrint(
-                    '[WalletDataManager] Saldo $asset carregado: $value',
-                  ),
-                );
-              })
-              .catchError((error) {
-                debugPrint(
-                  '[WalletDataManager] Exceção ao carregar saldo $asset: $error',
-                );
-              });
+          return balanceCacheNotifier.fetchBalanceInitial(asset);
         }).toList();
 
     final transactionCacheNotifier = ref.read(
@@ -626,6 +612,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     await Future.wait([
       ref.read(transactionHistoryCacheProvider.notifier).refresh(),
       ref.read(assetPriceHistoryCacheProvider.notifier).refresh(favoriteAssets),
+      ref.read(balanceCacheProvider.notifier).refresh(favoriteAssets),
     ]);
   }
 
