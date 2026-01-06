@@ -11,6 +11,8 @@ class UserFriendlyException implements Exception {
 
   @override
   String toString() => userMessage;
+  String? getTechnicalMessage() => technicalMessage;
+  String getUserMessage() => userMessage;
 
   static UserFriendlyException fromError(Object error) {
     final errorStr = error.toString();
