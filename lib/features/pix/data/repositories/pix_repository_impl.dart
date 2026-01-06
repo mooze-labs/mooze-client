@@ -351,6 +351,7 @@ class PixRepositoryImpl implements PixRepository {
               case 500:
               case 502:
               case 503:
+              case 504:
                 return "O servidor está temporariamente indisponível. Tente novamente em alguns instantes.";
               default:
                 return "Erro $statusCode: ${error.response?.statusMessage ?? 'Falha ao conectar com o servidor'}";
