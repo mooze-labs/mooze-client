@@ -7,6 +7,7 @@ import '../models.dart';
 import 'remote_auth_service.dart';
 import '../clients/signature_client.dart';
 import '../clients/ecdsa_signature_client.dart';
+import 'device_id_service.dart';
 
 const _timeout = Duration(seconds: 10);
 
@@ -27,8 +28,12 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
   );
 
   final SignatureClient signatureClient;
+  final DeviceIdService deviceIdService;
 
-  RemoteAuthServiceImpl({required this.signatureClient});
+  RemoteAuthServiceImpl({
+    required this.signatureClient,
+    DeviceIdService? deviceIdService,
+  }) : deviceIdService = deviceIdService ?? DeviceIdService();
 
   factory RemoteAuthServiceImpl.withEcdsaClient(String userMnemonic) {
     return RemoteAuthServiceImpl(
@@ -48,20 +53,27 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
     return isSafe.flatMap((safe) {
       if (!safe) return TaskEither.left("Unsafe device detected");
-      return signatureClient.getPublicKey().flatMap(
-        (pubKey) => TaskEither.tryCatch(
-          () async {
-            final response = await dio.post(
-              '/auth/challenge',
-              data: {'public_key': pubKey},
-            );
-            return AuthChallenge.fromJson(response.data);
-          },
-          (error, stackTrace) {
-            return error.toString();
-          },
-        ),
-      );
+
+      // Get device ID before making the request
+      return TaskEither.tryCatch(
+        () async => await deviceIdService.getDeviceId(),
+        (error, stackTrace) => "Failed to get device ID: ${error.toString()}",
+      ).flatMap((deviceId) {
+        return signatureClient.getPublicKey().flatMap(
+          (pubKey) => TaskEither.tryCatch(
+            () async {
+              final response = await dio.post(
+                '/auth/challenge',
+                data: {'public_key': pubKey, 'device_id': deviceId},
+              );
+              return AuthChallenge.fromJson(response.data);
+            },
+            (error, stackTrace) {
+              return error.toString();
+            },
+          ),
+        );
+      });
     });
   }
 
