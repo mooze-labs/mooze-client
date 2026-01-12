@@ -119,7 +119,6 @@ class _WalletImportLoadingScreenState
       );
 
       await _showMessage('Processando...');
-      await Future.delayed(const Duration(milliseconds: 500));
 
       await _showMessage('Verificando dados...');
 
@@ -132,21 +131,14 @@ class _WalletImportLoadingScreenState
 
       final walletDataManager = ref.read(walletDataManagerProvider.notifier);
       walletDataManager.invalidateAllWalletProviders();
-      await Future.delayed(const Duration(milliseconds: 800));
 
       await _showMessage('Inicializando carteira...');
       setState(() => _hasInitialized = true);
-      await Future.delayed(const Duration(milliseconds: 600));
 
       debugPrint('[ImportLoading] Iniciando carteira...');
       walletDataManager.initializeWallet();
 
-      await Future.delayed(const Duration(seconds: 20));
-
       if (mounted && _hasInitialized && !_hasError && !_isCompleted) {
-        debugPrint(
-          '[ImportLoading] Timeout atingido, verificando estado manualmente',
-        );
         final currentStatus = ref.read(walletDataManagerProvider);
         if (currentStatus.isSuccess) {
           await _handleWalletSuccess();
@@ -184,7 +176,6 @@ class _WalletImportLoadingScreenState
           hasError: _messages[_currentMessageIndex].hasError,
         );
       });
-      await Future.delayed(const Duration(milliseconds: 200));
     }
 
     setState(() {
@@ -197,7 +188,6 @@ class _WalletImportLoadingScreenState
     _fadeController.reset();
     _slideController.reset();
     await Future.wait([_fadeController.forward(), _slideController.forward()]);
-    await Future.delayed(const Duration(milliseconds: 300));
   }
 
   String _getErrorMessage(dynamic error) {
@@ -267,14 +257,12 @@ class _WalletImportLoadingScreenState
     debugPrint('[ImportLoading] Iniciando _handleWalletSuccess');
 
     await _showMessage('Carregando saldo...');
-    await Future.delayed(Duration(seconds: 1));
     await _showMessage('Carregando Transações...');
 
     final maxWaitTime = DateTime.now().add(const Duration(seconds: 5));
     bool dataLoaded = false;
 
     while (DateTime.now().isBefore(maxWaitTime) && !dataLoaded) {
-      await Future.delayed(const Duration(milliseconds: 300));
       final status = ref.read(walletDataManagerProvider);
 
       if (status.lastSync != null) {
@@ -298,11 +286,9 @@ class _WalletImportLoadingScreenState
     final transactionMonitor = ref.read(transactionMonitorServiceProvider);
     await transactionMonitor.markExistingTransactionsAsKnown();
 
-    await Future.delayed(const Duration(milliseconds: 800));
 
     await _showMessage('Importação concluída ✓', isCompleted: true);
     await _checkBounceController.forward();
-    await Future.delayed(const Duration(milliseconds: 1200));
 
     transactionMonitor.finishImporting();
     debugPrint(
@@ -310,7 +296,6 @@ class _WalletImportLoadingScreenState
     );
 
     setState(() => _isCompleted = true);
-    await Future.delayed(const Duration(milliseconds: 800));
 
     if (mounted) {
       debugPrint('[ImportLoading] Navegando para /home');
