@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_provi
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/fee_speed_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/prepared_psbt_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'transaction_sent_screen.dart';
 
 class ReviewOnchainTransactionScreen extends ConsumerStatefulWidget {
   const ReviewOnchainTransactionScreen({super.key});
@@ -81,99 +82,11 @@ class _ReviewOnchainTransactionScreenState
             },
             (transaction) async {
               if (mounted) {
-                await showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder:
-                      (context) => AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 64,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Transação Enviada!',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Sua transação foi transmitida com sucesso para a rede Bitcoin.',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: Colors.grey[400]),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[900],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'TXID:',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall?.copyWith(
-                                      color: Colors.grey[500],
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    transaction.id,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall?.copyWith(
-                                      fontFamily: 'monospace',
-                                      fontSize: 11,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                  context.go('/home');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text('Concluir'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                TransactionSentScreen.show(
+                  context,
+                  asset: psbt.asset,
+                  amount: psbt.satoshi,
+                  destinationAddress: psbt.destination,
                 );
               }
             },
