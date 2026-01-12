@@ -5,3 +5,4 @@ export 'wallet_data_helpers.dart';
 export 'sync_bootstrap.dart';
 export 'sync_failure_widgets.dart';
 export 'sync_config.dart';
+export 'isolate_sync_service.dart';
