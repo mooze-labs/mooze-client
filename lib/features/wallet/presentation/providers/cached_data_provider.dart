@@ -86,16 +86,21 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
   AssetPriceHistoryNotifier(this.ref) : super(const AssetPriceHistoryState());
 
   Future<void> fetchAssetPriceHistory(Asset asset) async {
+    if (!mounted) return;
+
     if (state.priceHistory.containsKey(asset) &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 5) {
       return;
     }
 
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(assetPriceHistoryProvider(asset).future);
+
+      if (!mounted) return;
 
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
@@ -108,6 +113,8 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
+
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
       );
@@ -121,10 +128,13 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
   }
 
   Future<void> fetchAssetPriceHistoryInitial(Asset asset) async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(assetPriceHistoryProvider(asset).future);
+
+      if (!mounted) return;
 
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
@@ -137,6 +147,8 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
+
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
       );
@@ -150,6 +162,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
   }
 
   Future<void> fetchMultipleAssets(List<Asset> assets) async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
@@ -158,6 +171,8 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
       );
 
       final results = await Future.wait(futures);
+
+      if (!mounted) return;
 
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
@@ -173,11 +188,13 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(isLoading: false);
     }
   }
 
   Future<void> refresh(List<Asset> assets) async {
+    if (!mounted) return;
     state = state.copyWith(priceHistory: {}, lastUpdated: null);
 
     await fetchMultipleAssets(assets);
@@ -188,6 +205,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
   }
 
   void reset() {
+    if (!mounted) return;
     state = const AssetPriceHistoryState();
   }
 }
@@ -199,22 +217,28 @@ class TransactionHistoryNotifier
   TransactionHistoryNotifier(this.ref) : super(const TransactionHistoryState());
 
   Future<void> fetchTransactions() async {
+    if (!mounted) return;
+
     if (state.transactions != null &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 2) {
       return;
     }
+
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(transactionHistoryProvider.future);
 
+      if (!mounted) return;
       state = state.copyWith(
         transactions: result,
         isLoading: false,
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         transactions: Left(
           WalletError(
@@ -228,17 +252,20 @@ class TransactionHistoryNotifier
   }
 
   Future<void> fetchTransactionsInitial() async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(transactionHistoryProvider.future);
 
+      if (!mounted) return;
       state = state.copyWith(
         transactions: result,
         isLoading: false,
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         transactions: Left(
           WalletError(
@@ -252,12 +279,14 @@ class TransactionHistoryNotifier
   }
 
   Future<void> refresh() async {
+    if (!mounted) return;
     state = state.copyWith(transactions: null, lastUpdated: null);
 
     await fetchTransactions();
   }
 
   void reset() {
+    if (!mounted) return;
     state = const TransactionHistoryState();
   }
 }
@@ -268,17 +297,21 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
   BalanceNotifier(this.ref) : super(const BalanceState());
 
   Future<void> fetchBalance(Asset asset) async {
+    if (!mounted) return;
+
     if (state.balances.containsKey(asset) &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 1) {
       return;
     }
 
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(balanceProvider(asset).future);
 
+      if (!mounted) return;
       final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
         state.balances,
       );
@@ -290,6 +323,7 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
       final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
         state.balances,
       );
@@ -302,11 +336,13 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
   }
 
   Future<void> fetchBalanceInitial(Asset asset) async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(balanceProvider(asset).future);
 
+      if (!mounted) return;
       final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
         state.balances,
       );
@@ -318,6 +354,7 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
       final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
         state.balances,
       );
@@ -330,6 +367,7 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
   }
 
   Future<void> fetchMultipleBalances(List<Asset> assets) async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
@@ -339,6 +377,7 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
 
       final results = await Future.wait(futures);
 
+      if (!mounted) return;
       final updatedBalances = Map<Asset, Either<WalletError, BigInt>>.from(
         state.balances,
       );
@@ -353,11 +392,13 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(isLoading: false);
     }
   }
 
   Future<void> refresh(List<Asset> assets) async {
+    if (!mounted) return;
     state = state.copyWith(balances: {}, lastUpdated: null);
     await fetchMultipleBalances(assets);
   }
@@ -367,6 +408,7 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
   }
 
   void reset() {
+    if (!mounted) return;
     state = const BalanceState();
   }
 }
