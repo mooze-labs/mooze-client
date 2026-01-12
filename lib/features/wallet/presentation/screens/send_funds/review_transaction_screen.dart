@@ -9,8 +9,6 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
-import '../../providers/send_funds/address_provider.dart';
-import '../../providers/send_funds/amount_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/partially_signed_transaction_provider.dart';
@@ -19,6 +17,7 @@ import '../../providers/send_funds/drain_provider.dart';
 import '../../providers/balance_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../widgets/send_funds/network_indicator_widget.dart';
+import 'transaction_sent_screen.dart';
 
 class ReviewTransactionScreen extends ConsumerStatefulWidget {
   const ReviewTransactionScreen({super.key});
@@ -680,7 +679,7 @@ class _ReviewTransactionScreenState
 
       result.fold(
         (error) => _showErrorDialog(context, error),
-        (transaction) => _showSuccessDialog(context, ref, psbt.destination),
+        (transaction) => _showSuccessScreen(context, psbt),
       );
     } catch (e) {
       if (context.mounted) {
@@ -757,89 +756,15 @@ class _ReviewTransactionScreenState
     );
   }
 
-  void _showSuccessDialog(
+  void _showSuccessScreen(
     BuildContext context,
-    WidgetRef ref,
-    String destinationAddress,
+    PartiallySignedTransaction psbt,
   ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.check_circle_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                const Text('Transação Enviada'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sua transação foi enviada com sucesso!',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Endereço de destino:',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 4),
-                      CopyButton(
-                        textToCopy: destinationAddress,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        borderRadius: 6,
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        iconSize: 12,
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Você pode acompanhar o status na seção de histórico.',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  ref.read(addressStateProvider.notifier).state = '';
-                  ref.read(amountStateProvider.notifier).state = 0;
-                  ref
-                      .read(sendValidationControllerProvider.notifier)
-                      .clearValidation();
-                  context.go('/home');
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    TransactionSentScreen.show(
+      context,
+      asset: psbt.asset,
+      amount: psbt.satoshi,
+      destinationAddress: psbt.destination,
     );
   }
 }
