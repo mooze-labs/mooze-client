@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../boot/boot_orchestrator.dart';
 import '../lwk/providers/datasource_provider.dart';
 import 'sync_service_provider.dart';
 import '../bdk/providers/datasource_provider.dart';
@@ -54,13 +55,13 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
   void tryInitializeWallet() {
     if (!hasInitialized && liquidReady && bdkReady) {
       WalletSyncLogger.info(
-        "[WalletSyncBootstrapProvider] Ambos datasources prontos (Liquid: $liquidReady, BDK: $bdkReady), inicializando wallet",
+        "[WalletSyncBootstrapProvider] Both datasources ready (Liquid: $liquidReady, BDK: $bdkReady), initializing wallet",
       );
       hasInitialized = true;
       ref.read(walletDataManagerProvider.notifier).initializeWallet();
     } else if (!hasInitialized) {
       WalletSyncLogger.debug(
-        "[WalletSyncBootstrapProvider] Aguardando datasources (Liquid: $liquidReady, BDK: $bdkReady)",
+        "[WalletSyncBootstrapProvider] Waiting for datasources (Liquid: $liquidReady, BDK: $bdkReady)",
       );
     }
   }
@@ -259,5 +260,67 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
         );
       },
     );
+  });
+});
+
+/// Alternative provider that uses the new BootOrchestrator
+///
+/// This provider can be used as a replacement for walletSyncBootstrapProvider
+/// for a more organized initialization with better phase management.
+final walletBootOrchestratorProvider = Provider<void>((ref) {
+  WalletSyncLogger.info("[WalletBootOrchestratorProvider] Initializing");
+
+  // Observe mnemonic changes to start boot
+  ref.listen<AsyncValue<Option<String>>>(mnemonicProvider, (previous, next) {
+    next.whenData((mnemonicOption) async {
+      final hasMnemonic = mnemonicOption.isSome();
+
+      if (hasMnemonic) {
+        try {
+          final hasPin = await ref.read(hasPinProvider.future);
+
+          if (!hasPin) {
+            WalletSyncLogger.info(
+              "[WalletBootOrchestratorProvider] Mnemonic disponível mas PIN não configurado",
+            );
+            return;
+          }
+
+          // Inicia o boot via novo orquestrador
+          final bootState = ref.read(bootOrchestratorProvider);
+          if (!bootState.isBooting && !bootState.isCompleted) {
+            WalletSyncLogger.info(
+              "[WalletBootOrchestratorProvider] Iniciando boot via orquestrador",
+            );
+            ref.read(bootOrchestratorProvider.notifier).startBoot();
+          }
+        } catch (e) {
+          WalletSyncLogger.error(
+            "[WalletBootOrchestratorProvider] Erro ao verificar PIN: $e",
+          );
+        }
+      }
+    });
+  });
+
+  // Observe boot state and sync with WalletDataManager
+  ref.listen(bootOrchestratorProvider, (prev, next) {
+    if (prev?.phase != next.phase) {
+      WalletSyncLogger.debug(
+        "[WalletBootOrchestratorProvider] Boot phase: ${prev?.phase} → ${next.phase}",
+      );
+    }
+
+    // When boot completes, initialize WalletDataManager
+    if (next.isCompleted && prev?.phase != BootPhase.completed) {
+      WalletSyncLogger.info(
+        "[WalletBootOrchestratorProvider] Boot completo, sincronizando WalletDataManager",
+      );
+      ref.read(walletDataManagerProvider.notifier).initializeWallet();
+    }
+  });
+
+  ref.onDispose(() {
+    WalletSyncLogger.debug("[WalletBootOrchestratorProvider] Disposing");
   });
 });
