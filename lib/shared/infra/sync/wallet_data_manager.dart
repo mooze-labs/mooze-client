@@ -74,106 +74,56 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   Future<void> initializeWallet() async {
     if (state.isLoadingOrRefreshing) {
       debugPrint(
-        '[WalletDataManager] Inicialização já em andamento, ignorando',
+        '[WalletDataManager] Initialization already in progress, ignoring',
       );
       return;
     }
 
-    debugPrint('[WalletDataManager] Inicializando carteira...');
+    debugPrint('[WalletDataManager] Initializing wallet...');
 
     state = state.copyWith(state: WalletDataState.loading, isInitialLoad: true);
 
     try {
-      debugPrint('[WalletDataManager] Garantindo sessão de autenticação...');
-
-      bool sessionEnsured = false;
-      int attempts = 0;
-      const maxAttempts = 3;
-
-      while (!sessionEnsured && attempts < maxAttempts) {
-        attempts++;
-        debugPrint(
-          '[WalletDataManager] Tentativa $attempts/$maxAttempts de garantir sessão...',
-        );
-
-        try {
-          if (attempts > 1) {
-            ref.invalidate(ensureAuthSessionProvider);
-            await Future.delayed(Duration(seconds: attempts));
-          }
-
-          sessionEnsured = await ref.read(ensureAuthSessionProvider.future);
-
-          if (sessionEnsured) {
-            debugPrint(
-              '[WalletDataManager] Sessão JWT garantida na tentativa $attempts',
-            );
-            break;
-          } else {
-            debugPrint(
-              '[WalletDataManager] Sessão não garantida na tentativa $attempts',
-            );
-          }
-        } catch (authError) {
-          debugPrint(
-            '[WalletDataManager] Erro na tentativa $attempts: $authError',
-          );
-
-          await Future.delayed(Duration(seconds: 2));
-
-          if (attempts >= maxAttempts) {
-            debugPrint(
-              '[WalletDataManager] Máximo de tentativas atingido, continuando sem sessão...',
-            );
-            debugPrint(
-              '[WalletDataManager]  Verifique os badges de status no topo da tela para mais informações',
-            );
-          }
-        }
-      }
-
-      if (!sessionEnsured) {
-        debugPrint(
-          '[WalletDataManager] Inicializando sem sessão autenticada - algumas funcionalidades podem não funcionar',
-        );
-      }
-
       await Future.delayed(const Duration(milliseconds: 500));
 
       final liquidResult = await ref.read(liquidDataSourceProvider.future);
       final bdkResult = await ref.read(bdkDatasourceProvider.future);
 
       bool hasValidDataSource = false;
+      bool liquidAvailable = false;
+      bool bdkAvailable = false;
 
       liquidResult.fold(
         (error) {
           debugPrint(
-            '[WalletDataManager] Liquid datasource não disponível: $error',
+            '[WalletDataManager] Liquid datasource not available: $error',
           );
           state = state.copyWith(hasLiquidSyncFailed: true);
         },
         (success) {
-          debugPrint('[WalletDataManager] Liquid datasource disponível');
+          debugPrint('[WalletDataManager] Liquid datasource available');
           hasValidDataSource = true;
+          liquidAvailable = true;
         },
       );
 
       bdkResult.fold(
         (error) {
           debugPrint(
-            '[WalletDataManager] BDK datasource não disponível: $error',
+            '[WalletDataManager] BDK datasource not available: $error',
           );
           state = state.copyWith(hasBdkSyncFailed: true);
         },
         (success) {
-          debugPrint('[WalletDataManager] BDK datasource disponível');
+          debugPrint('[WalletDataManager] BDK datasource available');
           hasValidDataSource = true;
+          bdkAvailable = true;
         },
       );
 
       if (!hasValidDataSource) {
         debugPrint(
-          '[WalletDataManager] Nenhum datasource disponível (tentativa ${_dataSourceRetryCount + 1}/$_maxDataSourceRetries)',
+          '[WalletDataManager] No datasource available (attempt ${_dataSourceRetryCount + 1}/$_maxDataSourceRetries)',
         );
 
         if (_dataSourceRetryCount < _maxDataSourceRetries) {
@@ -181,13 +131,13 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
           final retryDelay = _initialRetryDelay * _dataSourceRetryCount;
 
           debugPrint(
-            '[WalletDataManager] Tentando recriar datasources em ${retryDelay.inSeconds}s...',
+            '[WalletDataManager] Trying to recreate datasources in ${retryDelay.inSeconds}s...',
           );
 
           state = state.copyWith(
             state: WalletDataState.error,
             errorMessage:
-                'Tentando reconectar datasources ($_dataSourceRetryCount/$_maxDataSourceRetries)...',
+                'Trying to reconnect datasources ($_dataSourceRetryCount/$_maxDataSourceRetries)...',
             isInitialLoad: false,
           );
 
@@ -200,19 +150,75 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         } else {
           _dataSourceRetryCount = 0;
           throw Exception(
-            'Nenhum datasource disponível após $_maxDataSourceRetries tentativas. '
-            'Verifique sua conexão e tente novamente.',
+            'No datasource available after $_maxDataSourceRetries attempts. '
+            'Check your connection and try again.',
           );
         }
       }
 
       _dataSourceRetryCount = 0;
 
-      if (hasValidDataSource) {
-        await _loadInitialData();
-      } else {
-        await _loadPartialData();
+      await Future.delayed(Duration.zero);
+
+      final syncFutures = <Future<void>>[];
+
+      if (liquidAvailable) {
+        liquidResult.fold((_) {}, (datasource) {
+          syncFutures.add(
+            Future.delayed(Duration.zero).then(
+              (_) => datasource
+                  .sync()
+                  .then((_) {
+                    debugPrint(
+                      '[WalletDataManager] Sync Liquid inicial concluído',
+                    );
+                  })
+                  .catchError((e) {
+                    debugPrint(
+                      '[WalletDataManager] Erro no sync Liquid inicial: $e',
+                    );
+                  }),
+            ),
+          );
+        });
       }
+
+      // Sync BDK
+      if (bdkAvailable) {
+        bdkResult.fold((_) {}, (datasource) {
+          debugPrint('[WalletDataManager] Sincronizando BDK (inicial)...');
+          syncFutures.add(
+            Future.delayed(Duration.zero).then(
+              (_) => datasource
+                  .sync()
+                  .then((_) {
+                    debugPrint(
+                      '[WalletDataManager] Sync BDK inicial concluído',
+                    );
+                  })
+                  .catchError((e) {
+                    debugPrint(
+                      '[WalletDataManager] Erro no sync BDK inicial: $e',
+                    );
+                  }),
+            ),
+          );
+        });
+      }
+
+      if (syncFutures.isNotEmpty) {
+        debugPrint(
+          '[WalletDataManager] Aguardando ${syncFutures.length} sync(s) concluir...',
+        );
+        await Future.wait(syncFutures);
+        debugPrint('[WalletDataManager] Todos os syncs iniciais concluídos!');
+      }
+
+      debugPrint('[WalletDataManager] Invalidating providers after sync...');
+      _invalidateDataProviders();
+
+      debugPrint('[WalletDataManager] Fetching balances after sync...');
+      await _loadInitialData();
 
       _startPeriodicSync();
 
@@ -222,7 +228,26 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         isInitialLoad: false,
       );
 
-      debugPrint('[WalletDataManager] Carteira inicializada com sucesso');
+      debugPrint('[WalletDataManager] Wallet initialized successfully');
+
+      // Async auth check (non-blocking) - moved to end as per priority restructure
+      Future.delayed(Duration.zero, () {
+        debugPrint('[WalletDataManager] Starting background auth check...');
+        ref
+            .read(ensureAuthSessionProvider.future)
+            .then((ensured) {
+              if (ensured) {
+                debugPrint(
+                  '[WalletDataManager] Authentication session ensured',
+                );
+              }
+            })
+            .catchError((e) {
+              debugPrint(
+                '[WalletDataManager] Warning: Auth background failed (not critical for wallet): $e',
+              );
+            });
+      });
     } catch (error) {
       debugPrint('[WalletDataManager] Erro na inicialização: $error');
 
@@ -235,7 +260,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   void resetState() {
-    WalletSyncLogger.debug('[WalletDataManager] Resetando estado completo...');
+    WalletSyncLogger.debug('[WalletDataManager] Resetting full state...');
     state = const WalletDataStatus(state: WalletDataState.idle);
     _periodicSyncTimer?.cancel();
     _currentSyncCompleter?.complete();
@@ -245,7 +270,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
   void notifyDataSourceRecovered(String dataSourceType) {
     WalletSyncLogger.debug(
-      '[WalletDataManager] Datasource $dataSourceType recuperado',
+      '[WalletDataManager] Datasource $dataSourceType recovered',
     );
 
     if (dataSourceType == 'liquid') {
@@ -264,14 +289,14 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         !state.hasBdkSyncFailed &&
         state.hasError) {
       WalletSyncLogger.info(
-        '[WalletDataManager] Todos os datasources recuperados, reinicializando...',
+        '[WalletDataManager] All datasources recovered, reinitializing...',
       );
       initializeWallet();
     }
   }
 
   void notifyLiquidSyncFailed(String error) {
-    WalletSyncLogger.error('[WalletDataManager] Liquid sync falhou: $error');
+    WalletSyncLogger.error('[WalletDataManager] Liquid sync failed: $error');
 
     state = state.copyWith(
       hasLiquidSyncFailed: true,
@@ -280,7 +305,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   void notifyBdkSyncFailed(String error) {
-    debugPrint('[WalletDataManager] BDK sync falhou: $error');
+    debugPrint('[WalletDataManager] BDK sync failed: $error');
 
     state = state.copyWith(
       hasBdkSyncFailed: true,
@@ -290,7 +315,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
   Future<void> retryDataSourceConnection() async {
     debugPrint(
-      '[WalletDataManager] Tentativa manual de reconexão de datasources...',
+      '[WalletDataManager] Manual attempt to reconnect datasources...',
     );
 
     _dataSourceRetryCount = 0;
@@ -304,56 +329,9 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     await initializeWallet();
   }
 
-  Future<void> _loadPartialData() async {
-    debugPrint('[WalletDataManager] Carregando dados parciais...');
-
-    try {
-      final favoriteAssets = ref.read(favoriteAssetsProvider);
-
-      final availableBalances = <String>[];
-
-      for (final asset in favoriteAssets) {
-        try {
-          final balanceResult = await ref.read(balanceProvider(asset).future);
-          balanceResult.fold(
-            (error) => debugPrint(
-              '[WalletDataManager] Ativo ${asset.ticker} indisponível: $error',
-            ),
-            (value) {
-              availableBalances.add(asset.ticker);
-              debugPrint(
-                '[WalletDataManager] Ativo ${asset.ticker} disponível: $value',
-              );
-            },
-          );
-        } catch (e) {
-          debugPrint(
-            '[WalletDataManager] Erro ao testar ativo ${asset.ticker}: $e',
-          );
-        }
-      }
-
-      try {
-        await ref
-            .read(transactionHistoryCacheProvider.notifier)
-            .fetchTransactionsInitial();
-        debugPrint('[WalletDataManager] Transações carregadas com sucesso');
-      } catch (e) {
-        debugPrint('[WalletDataManager] Erro ao carregar transações: $e');
-      }
-
-      debugPrint(
-        '[WalletDataManager] Dados parciais carregados: ${availableBalances.length} ativos disponíveis',
-      );
-    } catch (error) {
-      debugPrint('[WalletDataManager] Erro ao carregar dados parciais: $error');
-      rethrow;
-    }
-  }
-
   Future<void> refreshWalletData() async {
     if (_currentSyncCompleter != null) {
-      debugPrint('[WalletDataManager] Sync já em progresso, aguardando...');
+      debugPrint('[WalletDataManager] Sync already in progress, waiting...');
       await _currentSyncCompleter!.future;
       return;
     }
@@ -361,7 +339,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     _currentSyncCompleter = Completer<void>();
 
     try {
-      debugPrint('[WalletDataManager] Iniciando refresh manual...');
+      debugPrint('[WalletDataManager] Starting manual refresh...');
       state = state.copyWith(state: WalletDataState.refreshing);
 
       final liquidResult = await ref.read(liquidDataSourceProvider.future);
@@ -374,12 +352,12 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       liquidResult.fold(
         (error) {
           debugPrint(
-            '[WalletDataManager] ⚠️ Liquid datasource com erro durante refresh: $error',
+            '[WalletDataManager] ⚠️ Liquid datasource error during refresh: $error',
           );
           liquidFailed = true;
         },
         (success) {
-          debugPrint('[WalletDataManager] ✅ Liquid datasource disponível');
+          debugPrint('[WalletDataManager] Liquid datasource available');
           hasValidDataSource = true;
         },
       );
@@ -387,38 +365,36 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       bdkResult.fold(
         (error) {
           debugPrint(
-            '[WalletDataManager] ⚠️ BDK datasource com erro durante refresh: $error',
+            '[WalletDataManager] ⚠️ BDK datasource error during refresh: $error',
           );
           bdkFailed = true;
         },
         (success) {
-          debugPrint('[WalletDataManager] ✅ BDK datasource disponível');
+          debugPrint('[WalletDataManager] BDK datasource available');
           hasValidDataSource = true;
         },
       );
 
       if (!hasValidDataSource) {
         debugPrint(
-          '[WalletDataManager] Nenhum datasource disponível durante refresh',
+          '[WalletDataManager] No datasource available during refresh',
         );
 
         state = state.copyWith(
           state: WalletDataState.error,
-          errorMessage: 'Datasources não disponíveis. Tentando reconectar...',
+          errorMessage: 'Datasources not available. Trying to reconnect...',
           hasLiquidSyncFailed: liquidFailed,
           hasBdkSyncFailed: bdkFailed,
         );
 
-        debugPrint('[WalletDataManager] Tentando reinicializar datasources...');
+        debugPrint('[WalletDataManager] Trying to reinitialize datasources...');
 
         ref.invalidate(liquidDataSourceProvider);
         ref.invalidate(bdkDatasourceProvider);
 
         Future.delayed(const Duration(seconds: 3), () {
           if (mounted) {
-            debugPrint(
-              '[WalletDataManager] Tentando reinicialização completa...',
-            );
+            debugPrint('[WalletDataManager] Trying full reinitialization...');
             initializeWallet();
           }
         });
@@ -431,27 +407,26 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       liquidResult.fold(
         (_) => debugPrint(
-          '[WalletDataManager] ⏭Pulando sync do Liquid (com erro)',
+          '[WalletDataManager] ⏭Skipping Liquid sync (with error)',
         ),
         (datasource) {
           debugPrint('[WalletDataManager] Sincronizando Liquid...');
+
           syncFutures.add(
             datasource.sync().catchError((e) {
               debugPrint('[WalletDataManager] Erro ao sincronizar Liquid: $e');
-              return Future.value();
             }),
           );
         },
       );
 
       bdkResult.fold(
-        (_) => debugPrint('[WalletDataManager] Pulando sync do BDK (com erro)'),
+        (_) => debugPrint('[WalletDataManager] Skipping BDK sync (with error)'),
         (datasource) {
           debugPrint('[WalletDataManager] Sincronizando BDK...');
           syncFutures.add(
             datasource.sync().catchError((e) {
               debugPrint('[WalletDataManager] Erro ao sincronizar BDK: $e');
-              return Future.value();
             }),
           );
         },
@@ -460,7 +435,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       await Future.wait(syncFutures);
       debugPrint('[WalletDataManager] Datasources sincronizados');
 
-      // Rescan onchain swaps para detectar fundos adicionais em endereços já usados
+      // Rescan onchain swaps to detect additional funds sent to already used addresses
       // await _rescanOnchainSwaps();
 
       await _invalidateAndRefreshAllProviders();
@@ -468,7 +443,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       await _syncPendingTransactions();
 
       debugPrint(
-        '[WalletDataManager] Forçando refresh do cache após sync de pendentes',
+        '[WalletDataManager] Forcing cache refresh after pending sync',
       );
       await ref.read(transactionHistoryCacheProvider.notifier).refresh();
 
@@ -479,7 +454,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         hasBdkSyncFailed: bdkFailed,
       );
 
-      debugPrint('[WalletDataManager] Refresh manual concluído');
+      debugPrint('[WalletDataManager] Manual refresh completed');
     } catch (error) {
       debugPrint('[WalletDataManager] Erro no refresh manual: $error');
       state = state.copyWith(
@@ -494,50 +469,50 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
   Future<void> _syncPendingTransactions() async {
     try {
-      debugPrint('[WalletDataManager] Sincronização de pendentes disparada');
+      debugPrint('[WalletDataManager] Pending sync triggered');
       final monitorService = ref.read(transactionMonitorServiceProvider);
       await monitorService.syncPendingTransactions();
-      debugPrint('[WalletDataManager] Sincronização de pendentes concluída');
+      debugPrint('[WalletDataManager] Pending sync completed');
     } catch (e) {
-      debugPrint('[WalletDataManager] Erro ao sincronizar pendentes: $e');
+      debugPrint('[WalletDataManager] Error syncing pending: $e');
     }
   }
 
-  // /// Rescan de swaps onchain para detectar fundos adicionais enviados para endereços já usados.
-  // /// Isso permite que transações refundable sejam detectadas corretamente.
+  // /// Onchain swap rescan to detect additional funds sent to already used addresses.
+  // /// This allows refundable transactions to be correctly detected.
   // ///
-  // /// De acordo com a documentação do Breez SDK:
-  // /// "Se usuários inadvertidamente enviam fundos adicionais para um endereço de swap já usado,
-  // /// o SDK não reconhecerá automaticamente. Use este método para escanear manualmente
-  // /// todos os endereços de swap históricos e atualizar seu status onchain."
+  // /// According to Breez SDK documentation:
+  // /// "If users inadvertently send additional funds to a previously used swap address,
+  // /// the SDK will not automatically recognize it. Use this method to manually scan
+  // /// all historical swap addresses and update their onchain status."
   // Future<void> _rescanOnchainSwaps() async {
   //   try {
-  //     debugPrint('[WalletDataManager] 🔍 Iniciando rescan de onchain swaps...');
+  //     debugPrint('[WalletDataManager] 🔍 Starting onchain swaps rescan...');
 
   //     final breezClient = await ref.read(breezClientProvider.future);
 
   //     await breezClient.fold(
   //       (error) {
-  //         debugPrint('[WalletDataManager] Breez client não disponível para rescan: $error');
+  //         debugPrint('[WalletDataManager] Breez client not available for rescan: $error');
   //         return Future<void>.value();
   //       },
   //       (client) async {
   //         try {
   //           await client.rescanOnchainSwaps();
-  //           debugPrint('[WalletDataManager] Rescan de swaps onchain completado com sucesso');
+  //           debugPrint('[WalletDataManager] Onchain swaps rescan completed successfully');
   //         } catch (e) {
-  //           debugPrint('[WalletDataManager] Erro durante rescan de swaps: $e');
+  //           debugPrint('[WalletDataManager] Error during swaps rescan: $e');
   //         }
   //       },
   //     );
   //   } catch (e) {
-  //     debugPrint('[WalletDataManager] Erro ao tentar rescan de swaps: $e');
+  //     debugPrint('[WalletDataManager] Error trying to rescan swaps: $e');
   //   }
   // }
 
   void _invalidateDataProviders() {
     debugPrint(
-      '[WalletDataManager] Invalidando providers de dados (mantendo datasources)...',
+      '[WalletDataManager] Invalidating data providers (keeping datasources)...',
     );
 
     ref.invalidate(walletRepositoryProvider);
@@ -577,17 +552,34 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   Future<void> _loadInitialData() async {
     final favoriteAssets = ref.read(favoriteAssetsProvider);
 
+    // NOTE: Breez SDK already syncs automatically when connecting (in breezClientProvider)
+    // So we no longer need to call sync() here
+
+    // NOTE: Providers have already been invalidated by _invalidateDataProviders() before calling this method
+    // No need to invalidate again here
+
+    // Give the UI a breather before starting heavy operations
+    await Future.delayed(Duration.zero);
+
+    // Fetch transactions (to populate history)
+    final transactionCacheNotifier = ref.read(
+      transactionHistoryCacheProvider.notifier,
+    );
+
+    debugPrint('[WalletDataManager] Fetching transactions...');
+    await transactionCacheNotifier.fetchTransactionsInitial();
+    debugPrint('[WalletDataManager] Transactions loaded');
+
+    // Give the UI another breather before fetching balances
+    await Future.delayed(Duration.zero);
+
+    // Fetch balances (Breez already synced at connection time)
+    debugPrint('[WalletDataManager] Fetching balances...');
     final balanceCacheNotifier = ref.read(balanceCacheProvider.notifier);
     final balanceLoadingFutures =
         favoriteAssets.map((asset) {
           return balanceCacheNotifier.fetchBalanceInitial(asset);
         }).toList();
-
-    final transactionCacheNotifier = ref.read(
-      transactionHistoryCacheProvider.notifier,
-    );
-    final transactionFuture =
-        transactionCacheNotifier.fetchTransactionsInitial();
 
     final assetCacheNotifier = ref.read(
       assetPriceHistoryCacheProvider.notifier,
@@ -597,11 +589,9 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
           return assetCacheNotifier.fetchAssetPriceHistoryInitial(asset);
         }).toList();
 
-    await Future.wait([
-      ...balanceLoadingFutures,
-      transactionFuture,
-      ...priceFutures,
-    ]);
+    await Future.wait([...balanceLoadingFutures, ...priceFutures]);
+
+    debugPrint('[WalletDataManager] Balances and prices loaded successfully!');
   }
 
   Future<void> _invalidateAndRefreshAllProviders() async {
@@ -625,41 +615,41 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     });
 
     debugPrint(
-      '[WalletDataManager] Sync periódico iniciado (${syncInterval.inMinutes} min) - próximo sync em ${syncInterval.inMinutes} minuto(s)',
+      '[WalletDataManager] Periodic sync started (${syncInterval.inMinutes} min) - next sync in ${syncInterval.inMinutes} minute(s)',
     );
   }
 
   Future<void> _performPeriodicSync() async {
     if (state.isLoadingOrRefreshing) {
       debugPrint(
-        '[WalletDataManager] Sync já em andamento, pulando sync periódico',
+        '[WalletDataManager] Sync already in progress, skipping periodic sync',
       );
       return;
     }
 
-    debugPrint('[WalletDataManager] Executando sync periódico...');
+    debugPrint('[WalletDataManager] Running periodic sync...');
 
     await refreshWalletData();
 
-    debugPrint('[WalletDataManager] Sync periódico concluído');
+    debugPrint('[WalletDataManager] Periodic sync completed');
   }
 
   void stopPeriodicSync() {
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = null;
-    debugPrint('[WalletDataManager] Sync periódico parado');
+    debugPrint('[WalletDataManager] Periodic sync stopped');
   }
 
-  /// Força um rescan manual de swaps onchain.
-  /// Use isso se suspeitar que fundos foram enviados para um endereço de swap já usado.
+  /// Forces a manual onchain swaps rescan.
+  /// Use this if you suspect funds were sent to a previously used swap address.
   // Future<void> forceRescanOnchainSwaps() async {
-  //   debugPrint('[WalletDataManager] Rescan manual solicitado pelo usuário');
+  //   debugPrint('[WalletDataManager] Manual rescan requested by user');
   //   await _rescanOnchainSwaps();
 
-  //   // Após rescan, atualiza as transações
-  //   debugPrint('[WalletDataManager] Atualizando cache de transações após rescan...');
+  //   // After rescan, update transactions
+  //   debugPrint('[WalletDataManager] Updating transaction cache after rescan...');
   //   await ref.read(transactionHistoryCacheProvider.notifier).refresh();
-  //   debugPrint('[WalletDataManager] Rescan manual concluído');
+  //   debugPrint('[WalletDataManager] Manual rescan completed');
   // }
 
   @override
@@ -670,22 +660,20 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 }
 
-final walletDataManagerProvider = StateNotifierProvider<
-  WalletDataManager,
-  WalletDataStatus
->((ref) {
-  final manager = WalletDataManager(ref);
+final walletDataManagerProvider =
+    StateNotifierProvider<WalletDataManager, WalletDataStatus>((ref) {
+      final manager = WalletDataManager(ref);
 
-  if (WalletSyncConfig.isAutoResetEnabled) {
-    ref.onDispose(() {
-      WalletSyncLogger.debug(
-        '[WalletDataManagerProvider] Hot reload detectado - resetando estado',
-      );
+      if (WalletSyncConfig.isAutoResetEnabled) {
+        ref.onDispose(() {
+          WalletSyncLogger.debug(
+            '[WalletDataManagerProvider] Hot reload detected - resetting state',
+          );
+        });
+      }
+
+      return manager;
     });
-  }
-
-  return manager;
-});
 
 final isLoadingDataProvider = Provider<bool>((ref) {
   return ref.watch(walletDataManagerProvider).isLoading;
@@ -720,7 +708,7 @@ final forceResetWalletDataProvider = Provider<void>((ref) {
   Timer(const Duration(milliseconds: 1000), () {
     final currentState = ref.read(walletDataManagerProvider);
     if (currentState.state == WalletDataState.idle) {
-      WalletSyncLogger.debug('[ForceReset] Reinicializando após reset...');
+      WalletSyncLogger.debug('[ForceReset] Reinitializing after reset...');
       ref.read(walletDataManagerProvider.notifier).initializeWallet();
     }
   });
