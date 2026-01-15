@@ -8,6 +8,7 @@ import 'remote_auth_service.dart';
 import '../clients/signature_client.dart';
 import '../clients/ecdsa_signature_client.dart';
 import 'device_id_service.dart';
+import 'device_info_service.dart';
 
 const _timeout = Duration(seconds: 10);
 
@@ -29,11 +30,14 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
 
   final SignatureClient signatureClient;
   final DeviceIdService deviceIdService;
+  final DeviceInfoService deviceInfoService;
 
   RemoteAuthServiceImpl({
     required this.signatureClient,
     DeviceIdService? deviceIdService,
-  }) : deviceIdService = deviceIdService ?? DeviceIdService();
+    DeviceInfoService? deviceInfoService,
+  }) : deviceIdService = deviceIdService ?? DeviceIdService(),
+       deviceInfoService = deviceInfoService ?? DeviceInfoService();
 
   factory RemoteAuthServiceImpl.withEcdsaClient(String userMnemonic) {
     return RemoteAuthServiceImpl(
@@ -54,25 +58,38 @@ class RemoteAuthServiceImpl implements RemoteAuthenticationService {
     return isSafe.flatMap((safe) {
       if (!safe) return TaskEither.left("Unsafe device detected");
 
-      // Get device ID before making the request
+      // Get device ID and device info before making the request
       return TaskEither.tryCatch(
         () async => await deviceIdService.getDeviceId(),
         (error, stackTrace) => "Failed to get device ID: ${error.toString()}",
       ).flatMap((deviceId) {
-        return signatureClient.getPublicKey().flatMap(
-          (pubKey) => TaskEither.tryCatch(
-            () async {
-              final response = await dio.post(
-                '/auth/challenge',
-                data: {'public_key': pubKey, 'device_id': deviceId},
-              );
-              return AuthChallenge.fromJson(response.data);
-            },
-            (error, stackTrace) {
-              return error.toString();
-            },
-          ),
-        );
+        return TaskEither.tryCatch(
+          () async => await deviceInfoService.getDeviceInfo(),
+          (error, stackTrace) =>
+              "Failed to get device info: ${error.toString()}",
+        ).flatMap((deviceInfo) {
+          return signatureClient.getPublicKey().flatMap(
+            (pubKey) => TaskEither.tryCatch(
+              () async {
+                final requestData = {
+                  'public_key': pubKey,
+                  'device_id': deviceId,
+                  ...deviceInfo.toJson(),
+                };
+
+
+                final response = await dio.post(
+                  '/auth/challenge',
+                  data: requestData,
+                );
+                return AuthChallenge.fromJson(response.data);
+              },
+              (error, stackTrace) {
+                return error.toString();
+              },
+            ),
+          );
+        });
       });
     });
   }
