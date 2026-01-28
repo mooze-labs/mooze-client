@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_validation_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
-import 'package:mooze_mobile/features/pix/presentation/providers/referral_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
@@ -217,7 +216,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                               SizedBox(height: 20),
                               _buildItemsList(),
                               SizedBox(height: 20),
-                              _buildTransactionData(),
+                              TransactionDisplayWidget(),
                               SizedBox(height: 20),
                               Builder(
                                 builder: (context) {
@@ -319,7 +318,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 textAlign: TextAlign.center,
               ),
             ),
-          // TODO: Put BTC value here
         ],
       ),
     );
@@ -542,194 +540,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTransactionData() {
-    final totalAmount = widget.totalAmount;
-    ref.watch(selectedAssetProvider);
-    final feeAmount = ref.watch(feeAmountProvider(totalAmount));
-    final feeRate = ref.watch(feeRateProvider(totalAmount));
-    final discountedDeposit = ref.watch(
-      discountedFeesDepositProvider(totalAmount),
-    );
-    final hasReferral = ref.watch(hasReferralProvider);
-
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dados da transação',
-            style: TextStyle(
-              color: Color(0xFFE91E63),
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8),
-          feeAmount.when(
-            data: (data) {
-              return (totalAmount < 55)
-                  ? _buildTransactionRow(
-                    'Taxa Mooze',
-                    'R\$ 1,00 + taxas de rede',
-                    null,
-                  )
-                  : _buildTransactionRow(
-                    'Taxa Mooze',
-                    'R\$ ${data.toStringAsFixed(2)}',
-                    null,
-                  );
-            },
-            error:
-                (error, stackTrace) =>
-                    _buildTransactionRow('Taxa Mooze', 'Erro', null),
-            loading:
-                () => _buildTransactionRow('Taxa Mooze', 'Carregando...', null),
-          ),
-          SizedBox(height: 8),
-          feeRate.when(
-            data: (data) {
-              return (totalAmount < 55)
-                  ? _buildTransactionRow('Percentual', 'R\$ 1,00 (FIXO)', null)
-                  : _buildTransactionRow(
-                    'Percentual',
-                    '${data.toStringAsFixed(2)}%',
-                    null,
-                  );
-            },
-            error:
-                (error, stackTrace) =>
-                    _buildTransactionRow('Percentual', 'Erro', null),
-            loading:
-                () => _buildTransactionRow('Percentual', 'Carregando...', null),
-          ),
-          SizedBox(height: 8),
-          hasReferral.when(
-            data: (hasRef) {
-              if (hasRef && totalAmount >= 55) {
-                return Column(
-                  children: [
-                    _buildTransactionRow('Desconto referral', '-15%', null),
-                    SizedBox(height: 8),
-                  ],
-                );
-              }
-              return SizedBox.shrink();
-            },
-            error: (_, __) => SizedBox.shrink(),
-            loading: () => SizedBox.shrink(),
-          ),
-          _buildTransactionRow('Taxa da processadora', 'R\$ 1,00', null),
-          SizedBox(height: 8),
-          discountedDeposit.when(
-            data:
-                (data) => _buildTransactionRow(
-                  'Valor final',
-                  'R\$ ${data.toStringAsFixed(2)}',
-                  null,
-                ),
-            error:
-                (error, stackTrace) =>
-                    _buildTransactionRow('Valor final', 'Erro', null),
-            loading:
-                () =>
-                    _buildTransactionRow('Valor final', 'Carregando...', null),
-          ),
-          SizedBox(height: 8),
-          Consumer(
-            builder: (context, ref, child) {
-              final selectedAsset = ref.watch(selectedAssetProvider);
-              final assetQuote = ref.watch(assetQuoteProvider(selectedAsset));
-
-              return assetQuote.when(
-                data:
-                    (data) => data.fold(
-                      (error) => _buildTransactionRow(
-                        'Valor em ${selectedAsset.ticker}',
-                        'Erro na cotação',
-                        null,
-                      ),
-                      (val) => val.fold(
-                        () => _buildTransactionRow(
-                          'Valor em ${selectedAsset.ticker}',
-                          'Cotação indisponível',
-                          null,
-                        ),
-                        (quote) => discountedDeposit.when(
-                          data: (finalAmount) {
-                            final cryptoAmount = finalAmount / quote;
-                            return _buildTransactionRow(
-                              'Valor em ${selectedAsset.ticker}',
-                              '${cryptoAmount.toStringAsFixed(8)} ${selectedAsset.ticker}',
-                              null,
-                            );
-                          },
-                          error:
-                              (error, stackTrace) => _buildTransactionRow(
-                                'Valor em ${selectedAsset.ticker}',
-                                'Erro no cálculo',
-                                null,
-                              ),
-                          loading:
-                              () => _buildTransactionRow(
-                                'Valor em ${selectedAsset.ticker}',
-                                'Calculando...',
-                                null,
-                              ),
-                        ),
-                      ),
-                    ),
-                error:
-                    (error, stackTrace) => _buildTransactionRow(
-                      'Valor em ${selectedAsset.ticker}',
-                      'Erro na cotação',
-                      null,
-                    ),
-                loading:
-                    () => _buildTransactionRow(
-                      'Valor em ${selectedAsset.ticker}',
-                      'Carregando cotação...',
-                      null,
-                    ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionRow(String label, String value, String? subtitle) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: TextStyle(color: Colors.white, fontSize: 14)),
-            if (subtitle != null)
-              Text(
-                subtitle,
-                style: TextStyle(color: Color(0xFFE91E63), fontSize: 12),
-              ),
-          ],
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }
