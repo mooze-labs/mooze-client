@@ -473,6 +473,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
 
     return Container(
       padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
         color: Theme.of(
           context,

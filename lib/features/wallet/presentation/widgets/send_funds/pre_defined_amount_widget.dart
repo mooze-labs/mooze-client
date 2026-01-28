@@ -20,6 +20,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.pinBackground,
         borderRadius: BorderRadius.circular(12),

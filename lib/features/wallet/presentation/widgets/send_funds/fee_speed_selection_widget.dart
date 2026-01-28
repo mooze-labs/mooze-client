@@ -62,6 +62,7 @@ class _FeeSpeedSelectionWidgetState
     if (_isLoadingFees) {
       return Container(
         padding: const EdgeInsets.all(16),
+        margin: EdgeInsets.symmetric(vertical: 7),
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(12),

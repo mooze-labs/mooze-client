@@ -214,9 +214,8 @@ class ReviewButton extends ConsumerWidget {
       }
 
       return 'Fundos insuficientes.\n\n'
-          'O valor que você está tentando enviar mais as taxas da rede '
-          'excedem o saldo disponível. Tente reduzir o valor ou use a opção '
-          '"Enviar Tudo" para enviar o máximo possível com as taxas deduzidas automaticamente.';
+          'O envio não pôde ser realizado. Isso pode ocorrer por falta de saldo no ativo '
+          'ou por não haver BTC L2 (Liquid Bitcoin) suficiente para pagar as taxas da rede.';
     }
 
     return 'Erro ao preparar transação: $error';
