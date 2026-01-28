@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart' hide State;
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
+import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -22,6 +24,7 @@ class WalletHeaderWidget extends ConsumerWidget {
     final totalBitcoinValue = ref.watch(totalWalletBitcoinProvider);
     final totalSatoshisValue = ref.watch(totalWalletSatoshisProvider);
     final totalVariation = ref.watch(totalWalletVariationProvider);
+    final valuesToReceiveAsync = ref.watch(valuesToReceiveProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,21 +62,45 @@ class WalletHeaderWidget extends ConsumerWidget {
             _buildVariationPercentage(totalVariation),
             Spacer(),
             const SizedBox(height: 12),
-            _buildPendingTransactionsBadge(),
+            _buildPendingTransactionsBadge(context, valuesToReceiveAsync),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildPendingTransactionsBadge() {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(width: 1),
-      ),
-      child: _AnimatedPixIcon(),
+  Widget _buildPendingTransactionsBadge(
+    BuildContext context,
+    AsyncValue<Either<String, List<AssetToReceive>>> valuesToReceiveAsync,
+  ) {
+    final currentLocation = GoRouterState.of(context).matchedLocation;
+    if (currentLocation.startsWith('/asset')) {
+      return const SizedBox.shrink();
+    }
+
+    return valuesToReceiveAsync.when(
+      data:
+          (result) =>
+              result.fold((error) => const SizedBox.shrink(), (toReceiveList) {
+                if (toReceiveList.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                return GestureDetector(
+                  onTap: () {
+                    context.go('/asset');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _AnimatedPixIcon(),
+                  ),
+                );
+              }),
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -259,13 +286,16 @@ class _AnimatedPixIconState extends State<_AnimatedPixIcon>
         Positioned(
           right: -4,
           top: -4,
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: Colors.orange,
-              shape: BoxShape.circle,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.search, size: 10, color: Colors.white),
             ),
-            child: Icon(Icons.search, size: 10, color: Colors.white),
           ),
         ),
       ],
