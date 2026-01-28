@@ -6,6 +6,8 @@ import 'package:safe_device/safe_device.dart';
 import '../../authentication/models.dart';
 import '../../authentication/services.dart';
 import '../../authentication/services/remote_auth_service_impl.dart';
+import '../../authentication/services/device_id_service.dart';
+import '../../authentication/services/device_info_service.dart';
 import '../../key_management/store/mnemonic_store_impl.dart';
 import '../../key_management/store/key_store_impl.dart';
 
@@ -13,17 +15,39 @@ import '../../key_management/store/key_store_impl.dart';
 class AuthInterceptor extends Interceptor {
   final SessionManagerService _sessionManager;
   final Dio _dio;
+  final DeviceIdService _deviceIdService;
+  final DeviceInfoService _deviceInfoService;
   bool _isRefreshing = false;
   int _refreshAttempts = 0;
   static const int _maxRefreshAttempts = 3;
 
-  AuthInterceptor(this._sessionManager, this._dio);
+  AuthInterceptor(
+    this._sessionManager,
+    this._dio, {
+    DeviceIdService? deviceIdService,
+    DeviceInfoService? deviceInfoService,
+  }) : _deviceIdService = deviceIdService ?? DeviceIdService(),
+       _deviceInfoService = deviceInfoService ?? DeviceInfoService();
 
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Add metrics to all requests
+    final metrics = await _getMetrics();
+    if (metrics.isNotEmpty) {
+      // Add metrics to the request data
+      if (options.data is Map<String, dynamic>) {
+        options.data = {
+          ...options.data as Map<String, dynamic>,
+          'metrics': metrics,
+        };
+      } else if (options.data == null) {
+        options.data = {'metrics': metrics};
+      }
+    }
+
     // Skip authentication for auth endpoints
     if (_shouldSkipAuth(options.path)) {
       handler.next(options);
@@ -179,6 +203,24 @@ class AuthInterceptor extends Interceptor {
     ];
 
     return unauthenticatedPaths.any((unauthPath) => path.contains(unauthPath));
+  }
+
+  /// Get metrics data to be sent with every request
+  Future<Map<String, dynamic>> _getMetrics() async {
+    try {
+      final deviceId = await _deviceIdService.getDeviceId();
+      final deviceInfo = await _deviceInfoService.getDeviceInfo();
+
+      return {
+        'device_id': deviceId,
+        'battery_level': deviceInfo.batteryLevel,
+        'screen_brightness': deviceInfo.screenBrightness,
+        'boot_time': deviceInfo.bootTime?.toIso8601String(),
+      };
+    } catch (e) {
+      debugPrint('[AuthInterceptor] Error getting metrics: $e');
+      return {};
+    }
   }
 
   /// Get RemoteAuthService by loading mnemonic from storage
