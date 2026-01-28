@@ -79,13 +79,11 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
   void didUpdateWidget(SlideToConfirmButton oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Quando entra em loading, mantém o botão na direita
     if (widget.isLoading && !_wasLoading) {
       _floatingController.stop();
       _wasLoading = true;
     }
 
-    // Quando sai do loading, anima o botão de volta para a esquerda
     if (!widget.isLoading && _wasLoading) {
       _loadingController.reverse().then((_) {
         if (!widget.isLoading && mounted) {
@@ -135,7 +133,6 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                   slidePosition = _dragValue;
                 } else if (widget.isLoading ||
                     _loadingSlideAnimation.value > 0) {
-                  // Usa a animação de loading quando está carregando OU quando está animando de volta
                   slidePosition = _loadingSlideAnimation.value;
                 } else {
                   slidePosition = _slideAnimation.value;
@@ -160,7 +157,7 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
                     dragStartBehavior: DragStartBehavior.down,
                     onHorizontalDragStart: (details) {
                       if (!widget.isLoading && widget.isEnabled) {
-                        final scrollableState = Scrollable.of(context);
+                        final scrollableState = Scrollable.maybeOf(context);
                         _scrollHold?.cancel();
                         _scrollHold = scrollableState?.position.hold(() {});
                       }
