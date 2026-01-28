@@ -95,6 +95,15 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                         rota: '/wallet-levels',
                       ),
                     ),
+                    // TODO: Add this back when the feature is ready
+                    // ConfigStructure(
+                    //   title: 'Verificação de Humanidade',
+                    //   iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                    //   action: Navigation(
+                    //     context: context,
+                    //     rota: '/human-verification',
+                    //   ),
+                    // ),
                   ],
                 ),
                 SectionSettings(
@@ -128,6 +137,16 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   ],
                 ),
                 SectionSettings(
+                  title: 'TAXAS',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Taxas do PIX',
+                      iconSvgPath: 'assets/icons/menu/settings/fee.svg',
+                      action: Navigation(context: context, rota: '/pix/fees'),
+                    ),
+                  ],
+                ),
+                SectionSettings(
                   title: 'VERSÃO',
                   settingsItems: [
                     ConfigStructure(
@@ -136,7 +155,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 120),
+                SizedBox(height: 140),
               ],
             ),
           ],
