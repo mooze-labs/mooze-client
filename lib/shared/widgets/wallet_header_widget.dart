@@ -265,11 +265,7 @@ class _AnimatedPixIconState extends State<_AnimatedPixIcon>
               color: Colors.orange,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.search,
-              size: 10,
-              color: Colors.white,
-            ),
+            child: Icon(Icons.search, size: 10, color: Colors.white),
           ),
         ),
       ],
