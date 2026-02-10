@@ -84,7 +84,6 @@ class _PhoneVerificationMethodScreenState
               ),
               const SizedBox(height: 50),
 
-              // Campo de telefone
               Stack(
                 children: [
                   Container(
