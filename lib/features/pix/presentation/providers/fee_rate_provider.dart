@@ -17,10 +17,8 @@ final feeRateProvider = FutureProvider.autoDispose.family<double, double>((
 
   if (depositAmount < 500) {
     feeRate = 3.5;
-  } else if (depositAmount < 3000) {
-    feeRate = 3.25;
   } else {
-    feeRate = 2.75;
+    feeRate = 3;
   }
 
   if (hasReferral) feeRate *= 0.85;
