@@ -17,7 +17,6 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
   @override
   void initState() {
     super.initState();
-    // Limpa o estado quando a tela é montada
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(seedPhraseProvider.notifier).reset();
     });
@@ -34,7 +33,6 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () {
-              // Limpa o estado ao sair
               ref.read(seedPhraseProvider.notifier).reset();
               context.pop();
             },
@@ -52,14 +50,12 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
         ),
         body: Column(
           children: [
-            // Conteúdo scrollável
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Cabeçalho informativo
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -114,24 +110,19 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Detector de área de transferência
                     ClipboardPasteDetector(),
 
-                    // Indicador de progresso
                     if (state.wordCount > 0) ...[
                       SeedPhraseProgressIndicator(),
                       const SizedBox(height: 20),
                     ],
 
-                    // Display de palavras confirmadas
                     ConfirmedWordsDisplay(),
                     const SizedBox(height: 20),
 
-                    // Campo de input
                     MnemonicInputField(),
                     const SizedBox(height: 20),
 
-                    // Status de validação
                     if (state.canComplete) ...[
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -175,11 +166,9 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                       const SizedBox(height: 20),
                     ],
 
-                    // Botão de importação
                     ImportButton(),
                     const SizedBox(height: 20),
 
-                    // Dica de uso
                     if (state.wordCount == 0)
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -217,7 +206,6 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
               ),
             ),
 
-            // Barra de sugestões fixada acima do teclado
             Bip39SuggestionsBar(),
           ],
         ),
