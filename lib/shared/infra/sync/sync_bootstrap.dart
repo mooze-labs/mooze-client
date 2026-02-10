@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 
 import '../boot/boot_orchestrator.dart';
 import '../lwk/providers/datasource_provider.dart';
@@ -39,13 +40,12 @@ String _extractErrorDetails(dynamic error) {
 }
 
 final walletSyncBootstrapProvider = Provider<void>((ref) {
-  WalletSyncLogger.info("[WalletSyncBootstrapProvider] Initializing");
+  final logger = ref.read(appLoggerProvider);
+  logger.info('WalletSyncBootstrap', 'Initializing wallet sync bootstrap...');
 
   // Automatic reset on hot reload (development)
   ref.onDispose(() {
-    WalletSyncLogger.debug(
-      "[WalletSyncBootstrapProvider] Disposing - resetting state",
-    );
+    logger.debug('WalletSyncBootstrap', 'Disposing - resetting state');
   });
 
   bool hasInitialized = false;
@@ -54,14 +54,16 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
 
   void tryInitializeWallet() {
     if (!hasInitialized && liquidReady && bdkReady) {
-      WalletSyncLogger.info(
-        "[WalletSyncBootstrapProvider] Both datasources ready (Liquid: $liquidReady, BDK: $bdkReady), initializing wallet",
+      logger.info(
+        'WalletSyncBootstrap',
+        'Both datasources ready (Liquid: $liquidReady, BDK: $bdkReady), initializing wallet',
       );
       hasInitialized = true;
       ref.read(walletDataManagerProvider.notifier).initializeWallet();
     } else if (!hasInitialized) {
-      WalletSyncLogger.debug(
-        "[WalletSyncBootstrapProvider] Waiting for datasources (Liquid: $liquidReady, BDK: $bdkReady)",
+      logger.debug(
+        'WalletSyncBootstrap',
+        'Waiting for datasources (Liquid: $liquidReady, BDK: $bdkReady)',
       );
     }
   }
@@ -69,8 +71,9 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
   // Initialize the wallet data manager listener
   ref.listen(walletDataManagerProvider, (prev, next) {
     if (prev?.state != next.state) {
-      debugPrint(
-        "[WalletSyncBootstrapProvider] Wallet data state changed: ${prev?.state} → ${next.state}",
+      logger.debug(
+        'WalletSyncBootstrap',
+        'Wallet data state changed: ${prev?.state} → ${next.state}',
       );
     }
   });
@@ -84,8 +87,9 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
           final hasPin = await ref.read(hasPinProvider.future);
 
           if (!hasPin) {
-            WalletSyncLogger.info(
-              "[WalletSyncBootstrapProvider] Mnemonic disponível mas PIN não configurado, aguardando setup completo...",
+            logger.warning(
+              'WalletSyncBootstrap',
+              'Mnemonic available but PIN not configured, waiting for complete setup...',
             );
             hasInitialized = false;
             liquidReady = false;
@@ -93,8 +97,9 @@ final walletSyncBootstrapProvider = Provider<void>((ref) {
             return;
           }
 
-          WalletSyncLogger.info(
-            "[WalletSyncBootstrapProvider] Mnemonic e PIN disponíveis, iniciando datasources",
+          logger.info(
+            'WalletSyncBootstrap',
+            'Mnemonic and PIN available, starting datasources',
           );
 
           ref.read(liquidDataSourceProvider);
@@ -303,7 +308,7 @@ final walletBootOrchestratorProvider = Provider<void>((ref) {
     });
   });
 
-  // Observe boot state and sync with WalletDataManager
+  // Observe boot state
   ref.listen(bootOrchestratorProvider, (prev, next) {
     if (prev?.phase != next.phase) {
       WalletSyncLogger.debug(
@@ -311,12 +316,12 @@ final walletBootOrchestratorProvider = Provider<void>((ref) {
       );
     }
 
-    // When boot completes, initialize WalletDataManager
+    // Boot completo - apenas log, não precisa chamar initializeWallet novamente
+    // pois o BootOrchestrator já chamou durante a fase showingUI
     if (next.isCompleted && prev?.phase != BootPhase.completed) {
       WalletSyncLogger.info(
-        "[WalletBootOrchestratorProvider] Boot completo, sincronizando WalletDataManager",
+        "[WalletBootOrchestratorProvider] Boot completo! Todas as sincronizações finalizadas.",
       );
-      ref.read(walletDataManagerProvider.notifier).initializeWallet();
     }
   });
 
