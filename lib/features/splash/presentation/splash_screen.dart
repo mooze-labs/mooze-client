@@ -134,10 +134,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             if (wasInMerchantMode) {
               if (kDebugMode) {
                 debugPrint(
-                  "[SplashScreen] Was in merchant mode, requiring PIN...",
+                  "[SplashScreen] Was in merchant mode, navigating to exit screen...",
                 );
               }
-              _authenticateForMerchantMode(mnemonicValue);
+              context.go('/merchant/exit');
             } else {
               _checkPinAndNavigate(mnemonicValue);
             }
