@@ -26,7 +26,6 @@ class KeypadWidget extends StatelessWidget {
     final isVerySmallScreen = screenHeight < 650;
     final isSmallScreen = screenHeight < 700 && screenHeight >= 650;
 
-    // Verificações para telas estreitas (como iPhone SE, iPhone 12 mini, etc.)
     final isVeryNarrowScreen = screenWidth < 360;
     final isNarrowScreen = screenWidth < 380 && screenWidth >= 360;
 
@@ -67,7 +66,6 @@ class KeypadWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Cabeçalho com valor
           Padding(
             key: valorInputKey,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
