@@ -5,10 +5,18 @@ import 'package:restart_app/restart_app.dart';
 
 class LwkCacheManager {
   static bool _hasAttemptedCleanup = false;
+  static bool _cacheWasCleared = false;
 
   static void resetCleanupFlag() {
     _hasAttemptedCleanup = false;
     debugPrint('[LwkCacheManager] Flag de limpeza resetada');
+  }
+
+  static bool get cacheWasCleared => _cacheWasCleared;
+
+  static void resetCacheClearedFlag() {
+    _cacheWasCleared = false;
+    debugPrint('[LwkCacheManager] Flag de cache limpo resetada');
   }
 
   static Future<void> clearLwkDatabase() async {
@@ -31,6 +39,7 @@ class LwkCacheManager {
 
       debugPrint('[LwkCacheManager] Recriando diretório limpo...');
       await dir.create(recursive: true);
+      _cacheWasCleared = true;
       debugPrint('[LwkCacheManager] Banco de dados LWK limpo com sucesso');
     } catch (e) {
       debugPrint('[LwkCacheManager] Erro ao limpar banco de dados: $e');

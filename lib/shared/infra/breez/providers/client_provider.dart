@@ -1,8 +1,11 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
 
 import '../../../key_management/providers/mnemonic_provider.dart';
 import 'config_provider.dart';
@@ -25,90 +28,184 @@ bool _isRetryableError(String errorMessage) {
 final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
   ref,
 ) async {
+  final logger = ref.read(appLoggerProvider);
   final config = await ref.read(configProvider.future);
   final mnemonicOption = await ref.watch(mnemonicProvider.future);
+  final syncStream = ref.read(syncStreamProvider);
 
-  return await mnemonicOption.fold(() async => left('Mnemonic not available'), (
-    mnemonic,
-  ) async {
-    const maxRetries = 3;
-    const initialDelay = Duration(seconds: 2);
+  return await mnemonicOption.fold(
+    () async {
+      logger.error(
+        'BreezClient',
+        'Mnemonic not available - wallet may not be initialized or mnemonic cache is stale',
+      );
+      return left('Mnemonic not available');
+    },
+    (mnemonic) async {
+      const maxRetries = 3;
+      const initialDelay = Duration(seconds: 2);
 
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        final connectRequest = ConnectRequest(
-          mnemonic: mnemonic,
-          config: config,
-        );
+      logger.info(
+        'BreezClient',
+        'Starting Breez SDK connection (max retries: $maxRetries)',
+      );
 
-        debugPrint(
-          '[BreezClientProvider] Connecting to Breez SDK... (attempt $attempt/$maxRetries)',
-        );
-        final client = await connect(req: connectRequest);
-        debugPrint('[BreezClientProvider] ✅ Breez SDK connected');
-
-        // IMPORTANT: Sync immediately after connecting
-        // This ensures balances will be available when any provider fetches them
-        debugPrint('[BreezClientProvider] Syncing Breez SDK...');
-        await client.sync();
-        debugPrint('[BreezClientProvider] ✅ Breez SDK synced');
-
-        return right(client);
-      } catch (e) {
-        final errorMessage = e.toString();
-
-        // Handle database migration error
-        if (errorMessage.contains('rusqlite_migrate') ||
-            errorMessage.contains('duplicate column name')) {
-          try {
-            final dbDir = Directory(config.workingDir);
-            if (await dbDir.exists()) {
-              await dbDir.delete(recursive: true);
-            }
-
-            final retryRequest = ConnectRequest(
-              mnemonic: mnemonic,
-              config: config,
-            );
-            debugPrint(
-              '[BreezClientProvider] Reconnecting to Breez SDK after cleanup...',
-            );
-            final client = await connect(req: retryRequest);
-            debugPrint('[BreezClientProvider] ✅ Breez SDK reconnected');
-
-            // Sync after reconnection as well
-            debugPrint('[BreezClientProvider] Syncing Breez SDK...');
-            await client.sync();
-            debugPrint('[BreezClientProvider] ✅ Breez SDK synced');
-
-            return right(client);
-          } catch (retryError) {
-            debugPrint(
-              '[BreezClientProvider] ❌ Failed to reconnect: $retryError',
-            );
-            return left(
-              'Failed to connect to Breez SDK after database cleanup: ${retryError.toString()}',
-            );
-          }
-        }
-
-        // For temporary errors, retry with exponential backoff
-        if (_isRetryableError(errorMessage) && attempt < maxRetries) {
-          final delay = initialDelay * (1 << (attempt - 1)); // 2s, 4s, 8s
-          debugPrint(
-            '[BreezClientProvider] ⚠️ Temporary error: $errorMessage. Retrying in ${delay.inSeconds}s...',
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          final connectRequest = ConnectRequest(
+            mnemonic: mnemonic,
+            config: config,
           );
-          await Future.delayed(delay);
-          continue;
+
+          logger.info(
+            'BreezClient',
+            'Connecting to Breez SDK... (attempt $attempt/$maxRetries)',
+          );
+          final client = await connect(req: connectRequest);
+          logger.info('BreezClient', 'Breez SDK connected successfully');
+
+          // Sync em background (fire and forget)
+          _syncBreezInBackground(client, syncStream, logger, ref);
+
+          return right(client);
+        } catch (e) {
+          final errorMessage = e.toString();
+
+          // Handle database migration error
+          if (errorMessage.contains('rusqlite_migrate') ||
+              errorMessage.contains('duplicate column name')) {
+            logger.warning(
+              'BreezClient',
+              'Database migration error detected, attempting cleanup',
+              error: e,
+            );
+            try {
+              final dbDir = Directory(config.workingDir);
+              if (await dbDir.exists()) {
+                logger.info(
+                  'BreezClient',
+                  'Deleting corrupted database directory',
+                );
+                await dbDir.delete(recursive: true);
+              }
+
+              final retryRequest = ConnectRequest(
+                mnemonic: mnemonic,
+                config: config,
+              );
+              logger.info(
+                'BreezClient',
+                'Reconnecting to Breez SDK after cleanup...',
+              );
+              final client = await connect(req: retryRequest);
+              logger.info('BreezClient', 'Breez SDK reconnected successfully');
+
+              // Sync after reconnection as well
+              logger.info('BreezClient', 'Syncing after reconnection...');
+              await client.sync();
+              logger.info('BreezClient', 'Breez SDK synced after reconnection');
+
+              return right(client);
+            } catch (retryError) {
+              logger.error(
+                'BreezClient',
+                'Failed to reconnect after database cleanup',
+                error: retryError,
+              );
+              return left(
+                'Failed to connect to Breez SDK after database cleanup: ${retryError.toString()}',
+              );
+            }
+          }
+
+          // For temporary errors, retry with exponential backoff
+          if (_isRetryableError(errorMessage) && attempt < maxRetries) {
+            final delay = initialDelay * (1 << (attempt - 1)); // 2s, 4s, 8s
+            logger.warning(
+              'BreezClient',
+              'Temporary error detected. Retrying in ${delay.inSeconds}s...',
+              error: e,
+            );
+            await Future.delayed(delay);
+            continue;
+          }
+
+          // Unrecoverable error or last attempt
+          logger.error(
+            'BreezClient',
+            'Failed to connect to Breez SDK',
+            error: e,
+          );
+          return left('Failed to connect to Breez SDK: $errorMessage');
         }
-
-        // Unrecoverable error or last attempt
-        debugPrint('[BreezClientProvider] ❌ Failed to connect: $errorMessage');
-        return left('Failed to connect to Breez SDK: $errorMessage');
       }
-    }
 
-    // Should not reach here, but for safety
-    return left('Failed to connect to Breez SDK after $maxRetries attempts');
-  });
+      // Should not reach here, but for safety
+      final stackTrace = StackTrace.current;
+      logger.critical(
+        'BreezClient',
+        'Exhausted all retry attempts without success',
+        stackTrace: stackTrace,
+      );
+      return left('Failed to connect to Breez SDK after $maxRetries attempts');
+    },
+  );
 });
+
+/// Função auxiliar para sync não-bloqueante do Breez
+void _syncBreezInBackground(
+  BreezSdkLiquid client,
+  SyncStreamController syncStream,
+  AppLoggerService logger,
+  Ref ref, // Adiciona ref como parâmetro
+) {
+  syncStream.updateProgress(
+    SyncProgress(
+      datasource: 'Breez',
+      status: SyncStatus.syncing,
+      timestamp: DateTime.now(),
+    ),
+  );
+
+  // Emite evento de início
+  final syncEventController = ref.read(syncEventControllerProvider);
+  syncEventController.emitStarted('breez');
+
+  logger.info('BreezClient', 'Starting background sync...');
+
+  // Fire and forget - usa then/catchError em vez de await
+  client
+      .sync()
+      .then((_) {
+        logger.info('BreezClient', 'Background sync completed successfully');
+        syncStream.updateProgress(
+          SyncProgress(
+            datasource: 'Breez',
+            status: SyncStatus.completed,
+            timestamp: DateTime.now(),
+          ),
+        );
+
+        // Emite evento de conclusão
+        syncEventController.emitCompleted('breez');
+      })
+      .catchError((e, stack) {
+        logger.error(
+          'BreezClient',
+          'Background sync failed: $e',
+          error: e,
+          stackTrace: stack,
+        );
+        syncStream.updateProgress(
+          SyncProgress(
+            datasource: 'Breez',
+            status: SyncStatus.error,
+            errorMessage: e.toString(),
+            timestamp: DateTime.now(),
+          ),
+        );
+
+        // Emite evento de falha
+        syncEventController.emitFailed('breez', e.toString());
+      });
+}

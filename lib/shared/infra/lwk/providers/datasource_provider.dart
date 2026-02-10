@@ -3,6 +3,8 @@ import 'package:fpdart/fpdart.dart';
 import 'dart:io';
 
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
+import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
 
 import '../wallet/datasource.dart';
 import '../utils/cache_manager.dart';
@@ -17,6 +19,8 @@ final liquidDataSourceProvider = FutureProvider<
   final electrumNodeUrl = ref.read(electrumNodeProvider);
   final network = ref.read(networkProvider);
   final mnemonic = ref.read(mnemonicStoreProvider).getMnemonic();
+  final syncStream = ref.read(syncStreamProvider);
+  final database = ref.read(appDatabaseProvider);
 
   final TaskEither<String, String> descriptor = mnemonic.flatMap(
     (mnemonicOption) => mnemonicOption.fold(
@@ -111,6 +115,9 @@ final liquidDataSourceProvider = FutureProvider<
                 validateDomain: true,
                 descriptor: descriptorStr,
                 dbPath: dbpath,
+                syncStream: syncStream,
+                database: database,
+                ref: ref, // Adiciona ref aqui
               ),
             ),
           ),

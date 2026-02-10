@@ -4,6 +4,8 @@ import 'dart:isolate';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwk/lwk.dart';
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 
 import '../wallet/datasource.dart';
 
@@ -83,7 +85,10 @@ class WalletSyncController extends StateNotifier<WalletSyncState> {
     _receivePort = ReceivePort();
     final sendPort = _receivePort!.sendPort;
     _receivePort!.listen((dynamic message) {
+      final logger = ref.read(appLoggerProvider);
+
       if (message is _SyncSuccess) {
+        logger.info('WalletSyncController', 'Sync completed successfully');
         state = state.copyWith(
           status: WalletSyncStatus.success,
           message: 'Synced',
@@ -92,11 +97,18 @@ class WalletSyncController extends StateNotifier<WalletSyncState> {
         _currentSyncCompleter?.complete();
         _disposeIsolate();
       } else if (message is _SyncError) {
+        final stackTrace = message.stackTrace ?? StackTrace.current;
+        logger.critical(
+          'WalletSyncController',
+          'LWK Sync error - Type: ${message.errorType}, Details: ${message.error}',
+          error: message.error,
+          stackTrace: stackTrace,
+        );
         state = state.copyWith(
           status: WalletSyncStatus.error,
           message: message.error,
         );
-        _currentSyncCompleter?.completeError(message.error);
+        _currentSyncCompleter?.completeError(message.error, stackTrace);
         _disposeIsolate();
       }
     });
@@ -118,12 +130,19 @@ class WalletSyncController extends StateNotifier<WalletSyncState> {
         errorsAreFatal: true,
         onExit: sendPort,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final logger = ref.read(appLoggerProvider);
+      logger.critical(
+        'WalletSyncController',
+        'Failed to spawn sync isolate - Type: ${e.runtimeType}, Details: $e',
+        error: e,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(
         status: WalletSyncStatus.error,
         message: 'Failed to spawn isolate: $e',
       );
-      _currentSyncCompleter?.completeError(e);
+      _currentSyncCompleter?.completeError(e, stackTrace);
       _disposeIsolate();
     }
 
@@ -147,7 +166,10 @@ class _SyncSuccess {}
 
 class _SyncError {
   final String error;
-  _SyncError(this.error);
+  final String errorType;
+  final StackTrace? stackTrace;
+
+  _SyncError(this.error, this.errorType, [this.stackTrace]);
 }
 
 class _IsolateSyncArgs {
@@ -182,44 +204,111 @@ Future<void> _syncIsolateEntry(_IsolateSyncArgs args) async {
       validateDomain: args.validateDomain,
     );
     args.sendPort.send(_SyncSuccess());
-  } catch (e) {
-    args.sendPort.send(_SyncError(e.toString()));
+  } catch (e, stackTrace) {
+    final errorType = e.runtimeType.toString();
+    final errorDetails = e.toString();
+
+    String detailedError = 'LWK Error [$errorType]: $errorDetails';
+
+    if (e is LwkError) {
+      detailedError = 'LwkError [$errorType]: ${e.msg}';
+    }
+
+    args.sendPort.send(_SyncError(detailedError, errorType, stackTrace));
   }
 }
 
 final walletSyncControllerProvider =
     StateNotifierProvider<WalletSyncController, WalletSyncState>((ref) {
       final dataSourceEither = ref.watch(liquidDataSourceProvider);
+      final syncStream = ref.read(syncStreamProvider);
+
       return dataSourceEither.maybeWhen(
         data:
             (either) => either.match(
-              (l) => WalletSyncController(
-                ref: ref,
-                dataSource: _NullLiquidDataSource(),
-              ),
+              (l) {
+                return _createDummyController(ref, syncStream);
+              },
               (dataSource) =>
                   WalletSyncController(ref: ref, dataSource: dataSource),
             ),
-        orElse:
-            () => WalletSyncController(
-              ref: ref,
-              dataSource: _NullLiquidDataSource(),
-            ),
+        orElse: () => _createDummyController(ref, syncStream),
       );
     });
 
-class _NullLiquidDataSource extends LiquidDataSource {
-  _NullLiquidDataSource()
-    : super(
-        wallet: _uninitializedWallet(),
-        network: Network.testnet,
-        electrumUrl: '',
-        validateDomain: true,
-        descriptor: '',
-        dbPath: '',
+WalletSyncController _createDummyController(
+  Ref ref,
+  SyncStreamController syncStream,
+) {
+  final dataSourceEither = ref.read(liquidDataSourceProvider);
+
+  return dataSourceEither.maybeWhen(
+    data:
+        (either) => either.match((_) {
+          return WalletSyncController(
+            ref: ref,
+            dataSource: _NullLiquidDataSource(syncStream, ref),
+          );
+        }, (ds) => WalletSyncController(ref: ref, dataSource: ds)),
+    orElse: () {
+      return WalletSyncController(
+        ref: ref,
+        dataSource: _NullLiquidDataSource(syncStream, ref),
       );
+    },
+  );
 }
 
-Wallet _uninitializedWallet() {
-  throw Exception('Wallet not ready');
+class _NullLiquidDataSource implements LiquidDataSource {
+  _NullLiquidDataSource(this.syncStream, this.ref);
+
+  @override
+  final SyncStreamController syncStream;
+
+  @override
+  final Ref ref;
+
+  @override
+  final String electrumUrl = '';
+
+  @override
+  final bool validateDomain = false;
+
+  @override
+  final Network network = Network.testnet;
+
+  @override
+  final String descriptor = '';
+
+  @override
+  final String dbPath = '';
+
+  @override
+  get database => null;
+
+  @override
+  Wallet get wallet =>
+      throw UnimplementedError(
+        'Null datasource should never have wallet accessed',
+      );
+
+  @override
+  Future<void> sync() async {
+    // No-op for null datasource
+  }
+
+  @override
+  void syncInBackground() {
+    // No-op for null datasource
+  }
+
+  @override
+  Future<String> getAddress() async {
+    return '';
+  }
+
+  @override
+  Future<String> signPset(String pset) async {
+    throw UnimplementedError('Null datasource cannot sign');
+  }
 }
