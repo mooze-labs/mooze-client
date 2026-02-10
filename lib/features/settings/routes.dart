@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/referral_input/providers/screens/referral_input_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/currency_selector_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/delete_wallet_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/license_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
 import 'package:mooze_mobile/features/support/presentations/srcreens/support_screen.dart';
@@ -38,5 +39,10 @@ final settingsRoutes = [
   GoRoute(
     path: '/settings/currency-selector',
     builder: (context, state) => CurrencySelectorScreen(),
+  ),
+
+  GoRoute(
+    path: '/settings/developer-mode',
+    builder: (context, state) => DeveloperScreen(),
   ),
 ];
