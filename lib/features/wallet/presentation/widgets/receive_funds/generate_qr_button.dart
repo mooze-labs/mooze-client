@@ -26,7 +26,7 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
 
     final isProviderLoading = qrAsyncState.when(
       loading: () => true,
-      error: (_, __) => false,
+      error: (_, _) => false,
       data: (qrState) => qrState.isLoading,
     );
 
