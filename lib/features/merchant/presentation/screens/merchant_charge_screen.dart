@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_validation_provider.dart';
+import 'package:mooze_mobile/features/pix/di/providers/pix_onboarding_service_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/pix_limits_info_dialog.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
@@ -38,7 +41,10 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     _initializeControllers();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(depositAmountProvider.notifier).state = widget.totalAmount;
+      _checkFirstTimeAccess();
+      if (mounted) {
+        ref.read(depositAmountProvider.notifier).state = widget.totalAmount;
+      }
     });
   }
 
@@ -50,6 +56,25 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
       CurvedAnimation(parent: _circleController, curve: Curves.easeOutCubic),
     );
+  }
+
+  Future<void> _checkFirstTimeAccess() async {
+    final onboardingService = ref.read(pixOnboardingServiceProvider);
+
+    if (!onboardingService.hasSeenMerchantFirstTimeDialog() && mounted) {
+      final accepted = await FirstTimePixDialog.show(context);
+
+      if (accepted == true && mounted) {
+        await onboardingService.markMerchantFirstTimeDialogAsSeen();
+
+        if (mounted) {
+          await PixLimitsInfoDialog.show(context);
+        }
+
+        // TODO: When there is an API, uncomment to sync with the backend
+        // await onboardingService.submitTermsAcceptance();
+      }
+    }
   }
 
   @override
