@@ -16,7 +16,21 @@ final router = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/splash',
   routes: [
-    GoRoute(path: '/splash', builder: (context, state) => SplashScreen()),
+    GoRoute(
+      path: '/splash',
+      pageBuilder:
+          (context, state) => CustomTransitionPage(
+            child: SplashScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+    ),
     ...setupRoutes,
     ...walletRoutes,
     ...phoneVerificationRoutes,
