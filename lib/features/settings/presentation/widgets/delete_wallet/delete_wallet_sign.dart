@@ -68,7 +68,6 @@ class DeleteWalletSign extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Descrição
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
