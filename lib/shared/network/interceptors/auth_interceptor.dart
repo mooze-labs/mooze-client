@@ -6,7 +6,6 @@ import 'package:safe_device/safe_device.dart';
 import '../../authentication/models.dart';
 import '../../authentication/services.dart';
 import '../../authentication/services/remote_auth_service_impl.dart';
-import '../../authentication/services/device_id_service.dart';
 import '../../authentication/services/device_info_service.dart';
 import '../../key_management/store/mnemonic_store_impl.dart';
 import '../../key_management/store/key_store_impl.dart';
@@ -36,6 +35,9 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // Add metrics to all requests
     final metrics = await _getMetrics();
+    print('[AuthInterceptor] Adding metrics to request: $metrics');
+
+    // OPTION 1: Send metrics in the request body
     if (metrics.isNotEmpty) {
       // Add metrics to the request data
       if (options.data is Map<String, dynamic>) {
@@ -47,6 +49,11 @@ class AuthInterceptor extends Interceptor {
         options.data = {'metrics': metrics};
       }
     }
+
+    // // OPTION 2: Send metrics as query parameters
+    // if (metrics.isNotEmpty) {
+    //   options.queryParameters = {...options.queryParameters, ...metrics};
+    // }
 
     // Skip authentication for auth endpoints
     if (_shouldSkipAuth(options.path)) {
