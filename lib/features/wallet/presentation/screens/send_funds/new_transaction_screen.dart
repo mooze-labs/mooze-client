@@ -20,34 +20,30 @@ class NewTransactionScreen extends ConsumerWidget {
   const NewTransactionScreen({super.key});
 
   void _clearProviders(WidgetRef ref) {
-    // Limpar endereço
-    final addressController = ref.read(addressControllerProvider);
-    addressController.clear();
-    ref.invalidate(addressStateProvider);
-    ref.invalidate(syncedAddressControllerProvider);
+    Future.microtask(() {
+      final addressController = ref.read(addressControllerProvider);
+      addressController.clear();
+      ref.invalidate(addressStateProvider);
+      ref.invalidate(syncedAddressControllerProvider);
 
-    // Limpar valores e conversões
-    ref.invalidate(amountStateProvider);
-    ref.invalidate(sendAssetValueProvider);
-    ref.invalidate(sendSatsValueProvider);
-    ref.invalidate(sendFiatValueProvider);
-    ref.invalidate(sendConversionTypeProvider);
-    ref.invalidate(sendConversionLoadingProvider);
+      ref.invalidate(amountStateProvider);
+      ref.invalidate(sendAssetValueProvider);
+      ref.invalidate(sendSatsValueProvider);
+      ref.invalidate(sendFiatValueProvider);
+      ref.invalidate(sendConversionTypeProvider);
+      ref.invalidate(sendConversionLoadingProvider);
 
-    // Limpar seleções de asset e network
-    ref.invalidate(selectedAssetProvider);
-    ref.invalidate(selectedNetworkProvider);
+      ref.invalidate(selectedAssetProvider);
+      ref.invalidate(selectedNetworkProvider);
 
-    // Limpar detecções
-    ref.invalidate(detectedAmountProvider);
+      ref.invalidate(detectedAmountProvider);
 
-    // Limpar velocidade de taxa
-    ref.invalidate(feeSpeedProvider);
+      ref.invalidate(feeSpeedProvider);
 
-    // Limpar balances
-    ref.invalidate(balanceProvider);
-    ref.invalidate(selectedAssetBalanceProvider);
-    ref.invalidate(selectedAssetBalanceRawProvider);
+      ref.invalidate(balanceProvider);
+      ref.invalidate(selectedAssetBalanceProvider);
+      ref.invalidate(selectedAssetBalanceRawProvider);
+    });
   }
 
   @override
@@ -90,18 +86,14 @@ class NewTransactionScreen extends ConsumerWidget {
                   BalanceCard(),
                   const SizedBox(height: 20),
                   AddressField(),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
                   NetworkIndicatorWidget(),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
                   ConditionalAmountField(),
-                  const SizedBox(height: 15),
                   DrainInfoWidget(),
-                  const SizedBox(height: 20),
                   FeeSpeedSelectionWidget(),
-                  const SizedBox(height: 20),
                   ValidationErrorsWidget(),
                   FeeEstimationWidget(),
-                  const SizedBox(height: 20),
                   ReviewButton(),
                 ],
               ),

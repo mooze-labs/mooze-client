@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/refund_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 class TransactionRefundScreen extends ConsumerStatefulWidget {
@@ -134,7 +134,7 @@ class _TransactionRefundScreenState
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -370,18 +370,27 @@ class _TransactionRefundScreenState
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
+              color: AppColors.primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              border: Border.all(
+                color: AppColors.primaryColor.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.orange[400]),
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: AppColors.primaryColor,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Usando taxas estimadas (API temporariamente indisponível)',
-                    style: TextStyle(fontSize: 12, color: Colors.orange[400]),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primaryColor,
+                    ),
                   ),
                 ),
               ],
@@ -437,7 +446,7 @@ class _TransactionRefundScreenState
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? AppColors.primaryColor.withOpacity(0.1)
+                  ? AppColors.primaryColor.withValues(alpha: 0.1)
                   : AppColors.backgroundCard,
           border: Border.all(
             color: isSelected ? AppColors.primaryColor : Colors.transparent,
@@ -498,20 +507,25 @@ class _TransactionRefundScreenState
       child: ElevatedButton(
         onPressed:
             canProcess && !state.isLoading
-                ? () {
-                  // Update address if user changed it manually
-                  if (_addressController.text.trim().isNotEmpty) {
-                    ref
-                        .read(refundProvider.notifier)
-                        .setBitcoinAddress(_addressController.text.trim());
-                  }
-                  ref.read(refundProvider.notifier).processRefund();
+                ? () async {
+                  // This screen is deprecated. Use GetRefundScreen instead.
+                  // For backward compatibility, we'll show an error message.
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Esta tela está obsoleta. Por favor, use o novo fluxo de estorno.',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
                 }
                 : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
           foregroundColor: AppColors.backgroundColor,
-          disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.3),
+          disabledBackgroundColor: AppColors.textSecondary.withValues(
+            alpha: 0.3,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child:
