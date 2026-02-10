@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/di/providers/pix_onboarding_service_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
-import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
-import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../providers.dart';
 import '../../widgets.dart';
@@ -39,6 +41,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
     _initializeControllers();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTimeAccess();
       if (mounted) {
         ref.read(depositAmountProvider.notifier).state = 0.0;
         ref.invalidate(feeRateProvider);
@@ -47,6 +50,24 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
         ref.invalidate(assetQuoteProvider);
       }
     });
+  }
+
+  Future<void> _checkFirstTimeAccess() async {
+    final onboardingService = ref.read(pixOnboardingServiceProvider);
+
+    if (!onboardingService.hasSeenFirstTimeDialog() && mounted) {
+      final accepted = await FirstTimePixDialog.show(context);
+
+      if (accepted == true && mounted) {
+        await onboardingService.markFirstTimeDialogAsSeen();
+
+        if (mounted) {
+          await PixLimitsInfoDialog.show(context);
+        }
+
+        // await onboardingService.submitTermsAcceptance();
+      }
+    }
   }
 
   void _initializeControllers() {
@@ -153,20 +174,17 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text('Receber PIX'),
-        centerTitle: true,
         actions: [
-          ApiDownIndicatorIcon(
-            onRetry: () {
-              ref.invalidate(pixDepositControllerProvider);
-              ref.invalidate(depositAmountProvider);
-            },
-          ),
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+          IconButton(
+            onPressed: () => _showPixInfo(context),
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
         ],
       ),
-      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           GestureDetector(
@@ -183,6 +201,41 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showPixInfo(BuildContext context) {
+    InfoOverlay.show(
+      context,
+      title: 'Informações sobre PIX',
+      steps: [
+        InfoStep(
+          icon: Icons.schedule,
+          title: 'Prazo de processamento',
+          description:
+              'Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.',
+        ),
+        InfoStep(
+          icon: Icons.currency_bitcoin,
+          title: 'Variação de câmbio (LBTC)',
+          description:
+              'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.',
+        ),
+        InfoStep(
+          icon: Icons.receipt_long,
+          title: 'Sobre as taxas',
+          description:
+              'As taxas variam conforme o valor da transação. Valores menores têm taxas fixas, valores maiores têm taxas percentuais decrescentes.',
+        ),
+      ],
+      footerBuilder:
+          (closeOverlay) => SecondaryButton(
+            text: 'Ver detalhes das taxas',
+            onPressed: () {
+              closeOverlay();
+              context.push('/pix/fees');
+            },
+          ),
     );
   }
 

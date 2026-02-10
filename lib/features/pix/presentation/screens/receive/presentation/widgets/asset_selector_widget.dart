@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 import '../../../../providers.dart';
 import '../../providers/lbtc_warning_provider.dart';
 
@@ -22,8 +21,11 @@ class AssetSelectorWidget extends ConsumerWidget {
     );
   }
 
-  void _showLbtcFluctuationDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
+  Future<bool?> _showLbtcFluctuationDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    return await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -68,28 +70,17 @@ class AssetSelectorWidget extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Entendi',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                PrimaryButton(
+                  text: 'Entendi',
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  child: Text('Não exibir novamente'),
                 ),
               ],
             ),
@@ -111,8 +102,13 @@ class AssetSelectorWidget extends ConsumerWidget {
           final warningService = ref.read(lbtcWarningServiceProvider);
           final hasSeenWarning = await warningService.isWarningShown();
           if (!hasSeenWarning && context.mounted) {
-            _showLbtcFluctuationDialog(context, ref);
-            await warningService.setWarningShown();
+            final dontShowAgain = await _showLbtcFluctuationDialog(
+              context,
+              ref,
+            );
+            if (dontShowAgain == true) {
+              await warningService.setWarningShown();
+            }
           }
         }
 
