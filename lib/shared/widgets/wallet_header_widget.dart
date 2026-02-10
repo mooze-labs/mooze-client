@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -74,7 +75,7 @@ class WalletHeaderWidget extends ConsumerWidget {
     AsyncValue<Either<String, List<AssetToReceive>>> valuesToReceiveAsync,
   ) {
     final currentLocation = GoRouterState.of(context).matchedLocation;
-    if (currentLocation.startsWith('/asset')) {
+    if (currentLocation != '/home') {
       return const SizedBox.shrink();
     }
 
@@ -100,7 +101,7 @@ class WalletHeaderWidget extends ConsumerWidget {
                 );
               }),
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -117,10 +118,12 @@ class WalletHeaderWidget extends ConsumerWidget {
     late AsyncValue value;
     late String Function(dynamic) formatter;
 
+    final numberFormat = NumberFormat('#,##0.00', 'pt_BR');
+
     switch (displayMode) {
       case WalletDisplayMode.fiat:
         value = totalFiatValue;
-        formatter = (val) => '$currencyIcon ${val.toStringAsFixed(2)}';
+        formatter = (val) => '$currencyIcon ${numberFormat.format(val)}';
         break;
       case WalletDisplayMode.bitcoin:
         value = totalBitcoinValue;
