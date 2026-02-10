@@ -6,10 +6,15 @@ import 'package:mooze_mobile/features/pix/data/repositories/pix_repository_impl.
 import 'package:mooze_mobile/shared/infra/db/providers.dart';
 
 import 'package:mooze_mobile/shared/network/providers.dart';
+import 'package:mooze_mobile/shared/authentication/providers.dart';
 
 final pixRepositoryProvider = Provider<PixRepository>((ref) {
-  final authenticatedDioClient = ref.read(authenticatedClientProvider);
-  final pixDatabase = PixDepositDatabase(ref.read(appDatabaseProvider));
+  final authenticatedDioClient = ref.watch(authenticatedClientProvider);
+  final pixDatabase = PixDepositDatabase(ref.watch(appDatabaseProvider));
+  final sessionManager = ref.watch(sessionManagerServiceProvider);
 
-  return PixRepositoryImpl(authenticatedDioClient, pixDatabase);
+  return PixRepositoryImpl(
+    authenticatedDioClient,
+    pixDatabase,
+  ); // TODO: Session
 });
