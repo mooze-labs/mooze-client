@@ -50,7 +50,7 @@ class AssetStatsWidget extends ConsumerWidget {
                   (err) => _buildErrorStats(),
                   (klines) => _buildSuccessStats(klines, ref),
                 ),
-            error: (_, __) => _buildErrorStats(),
+            error: (_, _) => _buildErrorStats(),
             loading: () => _buildLoadingStats(),
           ),
         ],

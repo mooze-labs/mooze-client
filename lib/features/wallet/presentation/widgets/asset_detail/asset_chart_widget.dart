@@ -38,7 +38,7 @@ class AssetChartWidget extends ConsumerWidget {
               (err) => _buildErrorChart(),
               (klines) => _buildSuccessChart(klines),
             ),
-        error: (_, __) => _buildErrorChart(),
+        error: (_, _) => _buildErrorChart(),
         loading: () => _buildLoadingChart(),
       ),
     );
