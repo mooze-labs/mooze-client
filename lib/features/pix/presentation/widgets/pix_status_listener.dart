@@ -38,7 +38,8 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
       }
 
       if (statusEvent.status == "under_review" ||
-          statusEvent.status == "depix_sent" && mounted) {
+          statusEvent.status == "depix_sent" ||
+          statusEvent.status == "paid" && mounted) {
         _processedDeposits.add(statusEvent.depositId);
 
         Future.delayed(const Duration(milliseconds: 300), () {

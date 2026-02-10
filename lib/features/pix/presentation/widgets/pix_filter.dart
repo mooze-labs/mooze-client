@@ -605,6 +605,7 @@ String _getStatusLabel(String status) {
     case 'funds_prepared':
       return DepositStatus.fundsPrepared.label;
     case 'depix_sent':
+    case "paid":
       return DepositStatus.depixSent.label;
     case 'broadcasted':
       return DepositStatus.broadcasted.label;
