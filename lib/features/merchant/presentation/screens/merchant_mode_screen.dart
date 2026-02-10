@@ -13,7 +13,6 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widge
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
 import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tutorial_service.dart';
-import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -771,28 +770,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   }
 
   Future<void> _handleWillPop() async {
-    final merchantModeService = ref.read(merchantModeServiceProvider);
-    final origin = await merchantModeService.getMerchantModeOrigin();
-
-    // Navigate to PIN verification using go (replaces entire stack)
-    context.push(
-      '/setup/pin/verify',
-      extra: VerifyPinArgs(
-        onPinConfirmed: () async {
-          // Clear merchant mode state after PIN is confirmed
-          await merchantModeService.setMerchantModeActive(false);
-
-          // Clear cart and invalidate providers
-          ref.read(cartControllerProvider.notifier).clearCart();
-          ref.invalidate(cartControllerProvider);
-
-          // Navigate back to origin (home or menu)
-          context.go(origin);
-        },
-        forceAuth: true,
-        canGoBack: true,
-      ),
-    );
+    // Navigate to exit screen instead of PIN verification
+    context.push('/merchant/exit');
   }
 
   @override
