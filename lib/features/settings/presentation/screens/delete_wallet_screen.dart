@@ -4,32 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
-import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
-import 'package:mooze_mobile/shared/authentication/providers/session_manager_service_provider.dart';
-import 'package:mooze_mobile/shared/user/services/user_level_storage_service.dart';
-import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
-import 'package:mooze_mobile/shared/network/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/shared/key_management/store/mnemonic_store_impl.dart';
-import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
-import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/features/swap/presentation/providers/swap_controller.dart';
-import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
-import 'package:mooze_mobile/shared/key_management/providers/pin_store_provider.dart';
-import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
-import 'package:mooze_mobile/shared/storage/secure_storage.dart';
-import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -115,98 +91,58 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   void _verifyAndDeleteWallet(BuildContext context) {
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
-        final secureStorage = SecureStorageProvider.instance;
-
-        await secureStorage.delete(key: mnemonicKey);
-
-        ref.invalidate(mnemonicProvider);
-        await Future.delayed(const Duration(milliseconds: 300));
-
-        await secureStorage.delete(key: 'jwt');
-        await secureStorage.delete(key: 'refresh_token');
-
-        ref.invalidate(sessionManagerServiceProvider);
-        ref.invalidate(authenticatedClientProvider);
-        ref.invalidate(ensureAuthSessionProvider);
-        ref.invalidate(userDataProvider);
-
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Capture navigator and scaffold messenger before async operations
+        final navigator = Navigator.of(context);
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
 
         try {
-          final workingDir = await getApplicationDocumentsDirectory();
-          final breezDir = Directory("${workingDir.path}/mooze");
-          if (await breezDir.exists()) {
-            await breezDir.delete(recursive: true);
+          // Show loading indicator using captured navigator
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder:
+                (dialogContext) => WillPopScope(
+                  onWillPop: () async => false,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+          );
+
+          // Call centralized delete method from WalletDataManager
+          final success =
+              await ref.read(walletDataManagerProvider.notifier).deleteWallet();
+
+          // Close loading dialog using captured navigator
+          navigator.pop();
+
+          if (success) {
+            // Navigate to first access screen
+            if (context.mounted) {
+              context.go('/setup/first-access');
+            }
+          } else {
+            // Show error message using captured scaffold messenger
+            scaffoldMessenger.showSnackBar(
+              const SnackBar(
+                content: Text('Erro ao deletar carteira. Tente novamente.'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
         } catch (e) {
-          debugPrint('Error deleting Breez directory: $e');
-        }
-
-        try {
-          final localDir = await getApplicationSupportDirectory();
-          final lwkDir = Directory("${localDir.path}/lwk-db");
-          if (await lwkDir.exists()) {
-            await lwkDir.delete(recursive: true);
+          // Close loading dialog if it's open
+          try {
+            navigator.pop();
+          } catch (_) {
+            // Dialog may already be closed
           }
-        } catch (e) {
-          debugPrint('Error deleting LWK directory: $e');
-        }
 
-        // Clear user verification level
-        final prefs = await SharedPreferences.getInstance();
-        final userLevelStorage = UserLevelStorageService(prefs);
-        await userLevelStorage.clearVerificationLevel();
-
-        // Delete PIN
-        final pinStore = ref.read(pinStoreProvider);
-        await pinStore.deletePin().run();
-
-        // Invalidate remaining providers (mnemonic already invalidated earlier)
-        ref.invalidate(hasPinProvider);
-        ref.invalidate(bdkDatasourceProvider);
-        ref.invalidate(liquidDataSourceProvider);
-        ref.invalidate(breezClientProvider);
-        ref.invalidate(walletRepositoryProvider);
-        ref.invalidate(transactionControllerProvider);
-        ref.invalidate(transactionHistoryProvider);
-
-        // Invalidate swap/websocket providers to stop reconnection attempts
-        ref.invalidate(swapControllerProvider);
-        ref.invalidate(sideswapServiceProvider);
-        ref.invalidate(sideswapApiProvider);
-        ref.invalidate(swapWalletProvider);
-        ref.invalidate(swapRepositoryProvider);
-
-        // Invalidate ALL balance-related providers
-        ref.invalidate(balanceControllerProvider);
-        ref.invalidate(
-          allBalancesProvider,
-        ); // Invalida o provider que busca os saldos
-
-        // Invalidate balance providers for each asset individually
-        final allAssets = ref.read(allAssetsProvider);
-        for (final asset in allAssets) {
-          ref.invalidate(balanceProvider(asset));
-        }
-
-        // Invalidate wallet providers
-        ref.invalidate(walletHoldingsProvider);
-        ref.invalidate(walletHoldingsWithBalanceProvider);
-        ref.invalidate(totalWalletValueProvider);
-        ref.invalidate(totalWalletBitcoinProvider);
-        ref.invalidate(totalWalletSatoshisProvider);
-        ref.invalidate(totalWalletVariationProvider);
-
-        // Clear caches of transactions and price history
-        ref.read(assetPriceHistoryCacheProvider.notifier).reset();
-        ref.read(transactionHistoryCacheProvider.notifier).reset();
-
-        // Wait before navigation to ensure all invalidations are processed
-        // and WebSocket connections are properly closed
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (context.mounted) {
-          context.go('/setup/first-access');
+          // Show error message using captured scaffold messenger
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('Erro inesperado: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       },
       forceAuth: true,
