@@ -252,12 +252,12 @@ class PixRepositoryImpl implements PixRepository {
 
     await sessionResult.fold(
       (error) async {
-        print("❌ Failed to get session: $error");
+        print("Failed to get session: $error");
         controller.add(Left("Authentication failed: $error"));
         controller.close();
       },
       (session) async {
-        print("✅ Got JWT token, connecting...");
+        print("Got JWT token, connecting...");
 
         final eventChannel = EventFlux.spawn();
         eventChannel.connect(
@@ -276,7 +276,7 @@ class PixRepositoryImpl implements PixRepository {
             );
           },
           onError: (error) {
-            print("❌ SSE Connection error: $error");
+            print("SSE Connection error: $error");
             controller.add(Left(error.toString()));
             controller.close();
           },
