@@ -65,6 +65,7 @@ PixDeposit _mapDepositToPixDeposit(Deposit deposit) {
       status = DepositStatus.fundsPrepared;
       break;
     case 'depix_sent':
+    case "paid":
       status = DepositStatus.depixSent;
       break;
     case 'broadcasted':
@@ -75,6 +76,9 @@ PixDeposit _mapDepositToPixDeposit(Deposit deposit) {
       break;
     case 'failed':
       status = DepositStatus.failed;
+      break;
+    case 'refunded':
+      status = DepositStatus.refunded;
       break;
     default:
       status = DepositStatus.unknown;
