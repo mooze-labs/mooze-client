@@ -429,9 +429,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                           PrimaryButton(
                             text: 'Voltar para Dashboard',
                             onPressed: () {
-                              Navigator.of(
-                                context,
-                              ).popUntil((route) => route.isFirst);
+                              Navigator.of(context).pop();
                             },
                           ),
                         ],

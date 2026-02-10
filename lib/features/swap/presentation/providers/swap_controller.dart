@@ -496,10 +496,20 @@ class SwapController extends StateNotifier<SwapState> {
 
   @override
   void dispose() {
+    debugPrint('[SwapController] Disposing controller');
     _mounted = false;
     _quoteSub?.cancel();
     _ttlTimer?.cancel();
-    _repositoryFuture.then((r) => r.stopQuote());
+
+    _repositoryFuture
+        .then((r) {
+          r.stopQuote();
+          debugPrint('[SwapController] Quote stopped on dispose');
+        })
+        .catchError((e) {
+          debugPrint('[SwapController] Error stopping quote on dispose: $e');
+        });
+
     _ttlDeadline = null;
     super.dispose();
   }

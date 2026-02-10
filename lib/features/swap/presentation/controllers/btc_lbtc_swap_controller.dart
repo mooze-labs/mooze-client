@@ -50,7 +50,7 @@ class BtcLbtcSwapController {
           .map((fees) {
             if (kDebugMode) {
               print(
-                '✅ [PegIn] Taxas - Breez (service): ${fees.breezFeesSat} sats, BDK (network): ${fees.bdkFeesSat} sats (${feeRateSatPerVByte ?? 3} sat/vB), Total: ${fees.breezFeesSat + fees.bdkFeesSat} sats',
+                '[PegIn] Taxas - Breez (service): ${fees.breezFeesSat} sats, BDK (network): ${fees.bdkFeesSat} sats (${feeRateSatPerVByte ?? 3} sat/vB), Total: ${fees.breezFeesSat + fees.bdkFeesSat} sats',
               );
             }
             return BtcLbtcFeeEstimate(
