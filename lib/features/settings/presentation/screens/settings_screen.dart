@@ -153,6 +153,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
+              title: 'DESENVOLVEDOR',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Logs',
+                  iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/developer-mode',
+                  ),
+                ),
+              ],
+            ),
+            SectionSettings(
               title: 'AJUDA',
               settingsItems: [
                 ConfigStructure(

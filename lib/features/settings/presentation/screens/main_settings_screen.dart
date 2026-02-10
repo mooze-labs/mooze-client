@@ -110,11 +110,11 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   title: 'LINKS EXTERNOS',
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Saque de Depix',
+                      title: 'Serviços via Bitcoin',
                       iconSvgPath:
                           'assets/icons/menu/settings/pix_out_line.svg',
                       action: ExternalNavigation(
-                        rota: 'https://tally.so/r/w5EMVb',
+                        rota: 'https://pagbitcoin.com/?ref=0099',
                         context: context,
                       ),
                     ),
