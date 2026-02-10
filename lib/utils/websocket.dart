@@ -31,7 +31,12 @@ class WebSocketService {
   Stream<dynamic> get stream => _controller.stream;
 
   Future<void> _connect() async {
-    if (_isDisposed || _isConnected) return;
+    if (_isDisposed) {
+      debugPrint('[WebSocket] Service disposed, aborting connection');
+      return;
+    }
+
+    if (_isConnected) return;
 
     // Prevent connection attempts too close together
     final now = DateTime.now();
@@ -50,6 +55,8 @@ class WebSocketService {
 
       _channel!.stream.listen(
         (message) {
+          if (_isDisposed) return;
+
           _isConnected = true;
           _lastMessageReceived = DateTime.now();
           if (!_isDisposed && !_controller.isClosed) {
@@ -61,6 +68,8 @@ class WebSocketService {
           }
         },
         onError: (error) {
+          if (_isDisposed) return;
+
           debugPrint("WebSocket error: $error");
           _handleDisconnect();
           final completer = _connectionCompleter;
@@ -69,6 +78,8 @@ class WebSocketService {
           }
         },
         onDone: () {
+          if (_isDisposed) return;
+
           debugPrint("WebSocket connection closed");
           _handleDisconnect();
         },
@@ -79,13 +90,23 @@ class WebSocketService {
       await _connectionCompleter?.future.timeout(
         const Duration(seconds: 5),
         onTimeout: () {
+          if (_isDisposed) {
+            throw Exception('Service disposed during connection');
+          }
           throw TimeoutException('Connection timeout');
         },
       );
 
       // Start heartbeat to keep connection alive
-      _startHeartbeat();
+      if (!_isDisposed) {
+        _startHeartbeat();
+      }
     } catch (e, stack) {
+      if (_isDisposed) {
+        debugPrint('[WebSocket] Connection aborted - service disposed');
+        return;
+      }
+
       debugPrint("WebSocket connection error: $e");
       debugPrint(stack.toString());
       _handleDisconnect();
@@ -100,6 +121,10 @@ class WebSocketService {
     _isConnected = false;
     _channel = null;
     _stopHeartbeat();
+
+    // Cancelar qualquer tentativa de reconexão pendente
+    _connectionCompleter?.completeError('Disconnected');
+    _connectionCompleter = null;
 
     if (!_isDisposed) {
       _attemptReconnect();
@@ -122,7 +147,6 @@ class WebSocketService {
         _handleDisconnect();
         return;
       }
-
     });
   }
 
@@ -132,7 +156,12 @@ class WebSocketService {
   }
 
   void _attemptReconnect() {
-    if (_isDisposed || _reconnectTimer != null) return;
+    if (_isDisposed) {
+      debugPrint('[WebSocket] Service disposed, skipping reconnect');
+      return;
+    }
+
+    if (_reconnectTimer != null) return;
 
     _reconnectTimer = Timer(const Duration(seconds: 2), () {
       _reconnectTimer = null;
@@ -144,7 +173,11 @@ class WebSocketService {
 
   // Add method to check and ensure connection
   Future<bool> ensureConnected() async {
-    if (_isDisposed) return false;
+    if (_isDisposed) {
+      debugPrint('[WebSocket] Service disposed, cannot connect');
+      return false;
+    }
+
     if (_isConnected && _channel != null) return true;
 
     try {
@@ -157,7 +190,10 @@ class WebSocketService {
   }
 
   Future<void> forceReconnect() async {
-    if (_isDisposed) return;
+    if (_isDisposed) {
+      debugPrint('[WebSocket] Service disposed, skipping force reconnect');
+      return;
+    }
 
     debugPrint("[WebSocket] Forcing reconnection...");
 
