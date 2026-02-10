@@ -35,8 +35,8 @@ class MockUserService implements UserService {
             valuesToReceive: {
               '02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189':
                   15000000000,
-              // '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d':
-              //     25000,
+              '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d':
+                  25000,
             },
           );
 

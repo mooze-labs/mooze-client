@@ -3,6 +3,7 @@ import 'package:mooze_mobile/shared/network/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services.dart';
 import '../services/user_level_storage_service.dart';
+import '../services/mock_user_service.dart';
 
 const String baseUrl = String.fromEnvironment(
   'BACKEND_API_URL',
@@ -21,6 +22,8 @@ final userLevelStorageServiceProvider = Provider<UserLevelStorageService>((
 });
 
 final userServiceProvider = Provider<UserService>((ref) {
+  // return MockUserService();
+
   final authHttpClient = ref.watch(authenticatedClientProvider);
   final levelStorageService = ref.watch(userLevelStorageServiceProvider);
   return UserServiceImpl(authHttpClient, levelStorageService);
