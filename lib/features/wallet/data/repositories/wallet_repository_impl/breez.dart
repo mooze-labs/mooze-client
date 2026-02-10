@@ -86,7 +86,7 @@ class BreezWallet {
       () async {
         if (kDebugMode) {
           print(
-            '✅ [BreezWallet] Preparando peg-out - receiverAmount: $receiverAmountSat sats, drain: $drain, feeRate: $feeRateSatPerVbyte sat/vB',
+            '[BreezWallet] Preparando peg-out - receiverAmount: $receiverAmountSat sats, drain: $drain, feeRate: $feeRateSatPerVbyte sat/vB',
           );
         }
 
@@ -104,10 +104,10 @@ class BreezWallet {
 
         if (kDebugMode) {
           print(
-            '✅ [BreezWallet] Peg-out preparado - Total de taxas: ${prepareRes.totalFeesSat} sats',
+            '[BreezWallet] Peg-out preparado - Total de taxas: ${prepareRes.totalFeesSat} sats',
           );
           print(
-            '✅ [BreezWallet] Detalhes - Claim fee: ${prepareRes.claimFeesSat} sats, Receiver amount: ${prepareRes.receiverAmountSat} sats',
+            '[BreezWallet] Detalhes - Claim fee: ${prepareRes.claimFeesSat} sats, Receiver amount: ${prepareRes.receiverAmountSat} sats',
           );
         }
 
@@ -131,7 +131,7 @@ class BreezWallet {
       () async {
         if (kDebugMode) {
           print(
-            '✅ [BreezWallet] Executando peg-out - address: $btcAddress, amount: $receiverAmountSat sats, drain: $drain, fees: $totalFeesSat sats',
+            '[BreezWallet] Executando peg-out - address: $btcAddress, amount: $receiverAmountSat sats, drain: $drain, fees: $totalFeesSat sats',
           );
         }
 
@@ -156,7 +156,7 @@ class BreezWallet {
         final result = await _breez.payOnchain(req: payReq);
 
         if (kDebugMode) {
-          print('✅ [BreezWallet] Peg-out enviado com sucesso!');
+          print('[BreezWallet] Peg-out enviado com sucesso!');
         }
 
         return BreezTransactionDto.fromSdk(payment: result.payment).toDomain();
@@ -174,7 +174,7 @@ class BreezWallet {
       () async {
         if (kDebugMode) {
           print(
-            '✅ [BreezWallet] Preparando peg-in - payerAmount: $payerAmountSat sats',
+            '[BreezWallet] Preparando peg-in - payerAmount: $payerAmountSat sats',
           );
         }
 
@@ -187,7 +187,7 @@ class BreezWallet {
 
         if (kDebugMode) {
           print(
-            '✅ [BreezWallet] Peg-in preparado - Taxas: ${prepareRes.feesSat} sats',
+            '[BreezWallet] Peg-in preparado - Taxas: ${prepareRes.feesSat} sats',
           );
         }
 
@@ -198,7 +198,7 @@ class BreezWallet {
         final bitcoinAddress = receiveRes.destination;
 
         if (kDebugMode) {
-          print('✅ [BreezWallet] Endereço BTC gerado: $bitcoinAddress');
+          print('[BreezWallet] Endereço BTC gerado: $bitcoinAddress');
         }
 
         return (bitcoinAddress: bitcoinAddress, feesSat: prepareRes.feesSat);
@@ -1225,8 +1225,6 @@ TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
   return TaskEither.tryCatch(
     () async {
       // For drain transactions, use PayAmount_Drain to send all available funds
-      // IMPORTANTE: Mesmo em drain mode, o feeRateSatPerVbyte afeta o cálculo
-      // O SDK Breez recalcula o máximo enviável baseado na taxa especificada
       final prepareResponse = await breez.preparePayOnchain(
         req: PreparePayOnchainRequest(
           amount: PayAmount_Drain(),

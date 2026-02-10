@@ -8,6 +8,9 @@ import '../../presentation/providers/transaction_provider.dart';
 import '../models/pending_transaction.dart';
 import '../models/transaction_status_event.dart';
 import '../storage/pending_transaction_storage.dart';
+import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 
 class TransactionMonitorService {
   final Ref _ref;
@@ -27,6 +30,17 @@ class TransactionMonitorService {
   }
 
   Stream<TransactionStatusEvent> get statusUpdates => _statusController.stream;
+
+  void _invalidateUserProviders() {
+    try {
+      _ref.invalidate(userInfoProvider);
+      _ref.invalidate(userDataProvider);
+      _ref.invalidate(valuesToReceiveProvider);
+      _ref.invalidate(totalValueToReceiveProvider);
+    } catch (e) {
+      // Ignore invalidation errors
+    }
+  }
 
   void startImporting() {
     _isImporting = true;
@@ -154,6 +168,9 @@ class TransactionMonitorService {
 
         _statusController.add(event);
 
+        // uptate user providers to refresh values to receive
+        _invalidateUserProviders();
+
         await _storage.removePendingTransaction(pending.id);
       } else {
         // Transaction still pending
@@ -225,7 +242,7 @@ class TransactionMonitorService {
         },
       );
     } catch (e) {
-      // debugPrint('[TransactionMonitor] Erro ao sincronizar: $e');
+      // debugPrint('[TransactionMonitor] Error syncing: $e');
       // debugPrint('Stack: $stack');
     }
   }
@@ -269,12 +286,15 @@ class TransactionMonitorService {
           );
 
           _statusController.add(event);
+
+          // Update user providers to refresh values to receive
+          _invalidateUserProviders();
         } else if (!isNew) {
           // known transaction, no notification needed
         }
       }
     } catch (e) {
-      // debugPrint('[TransactionMonitor] Erro ao detectar novas transações: $e');
+      // debugPrint('[TransactionMonitor] Error detecting new transactions: $e');
       // debugPrint('Stack: $stack');
     }
   }

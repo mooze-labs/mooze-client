@@ -1,4 +1,3 @@
-// Modelos de dados
 import 'dart:ui';
 
 class AssetPageData {

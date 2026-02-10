@@ -47,4 +47,9 @@ class Transaction {
     this.blockchainUrl,
     this.destination,
   });
+
+  @override
+  String toString() {
+    return 'Transaction{id: $id, amount: $amount, blockchain: $blockchain, asset: $asset, type: $type, status: $status, createdAt: $createdAt, fromAsset: $fromAsset, toAsset: $toAsset, sentAmount: $sentAmount, receivedAmount: $receivedAmount, sendTxId: $sendTxId, receiveTxId: $receiveTxId, sendBlockchain: $sendBlockchain, receiveBlockchain: $receiveBlockchain, confirmationHeight: $confirmationHeight, preimage: $preimage, blockchainUrl: $blockchainUrl, destination: $destination}';
+  }
 }

@@ -22,6 +22,11 @@ class WalletError {
     return _getDefaultDescription(type);
   }
 
+  @override
+  String toString() {
+    return 'WalletError(type: $type, description: $description, customDescription: $customDescription)';
+  }
+
   String _getDefaultDescription(WalletErrorType type) {
     switch (type) {
       case WalletErrorType.insufficientFunds:
