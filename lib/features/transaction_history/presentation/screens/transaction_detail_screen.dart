@@ -8,6 +8,7 @@ import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -102,7 +103,9 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildTransactionHeader(String amountStr, bool isReceive) {
-    final isSwap = widget.transaction.type == TransactionType.swap;
+    final isSwap =
+        widget.transaction.type == TransactionType.swap ||
+        widget.transaction.type == TransactionType.submarine;
 
     return Container(
       width: double.infinity,
@@ -312,6 +315,8 @@ class _TransactionDetailScreenState
     final isSubmarineSwap =
         widget.transaction.type == TransactionType.submarine;
 
+    final confirmed = widget.transaction.status == TransactionStatus.confirmed;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -339,12 +344,12 @@ class _TransactionDetailScreenState
           ),
 
           // Submarine swap explanation
-          if (isSubmarineSwap) ...[
+          if (isSubmarineSwap && !confirmed) ...[
             _buildSubmarineSwapExplanation(),
             const SizedBox(height: 16),
           ],
           if (widget.transaction.blockchain == Blockchain.bitcoin &&
-              widget.transaction.status == TransactionStatus.confirmed)
+              widget.transaction.status != TransactionStatus.confirmed)
             _buildConfirmationRow(),
           _buildDetailRow(
             label: 'Data',
@@ -410,6 +415,28 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildSubmarineSwapExplanation() {
+    final fromAsset = widget.transaction.fromAsset;
+    final toAsset = widget.transaction.toAsset;
+
+    String explanation;
+    if (fromAsset != null && toAsset != null) {
+      if (fromAsset == Asset.btc && toAsset == Asset.lbtc) {
+        // Peg In: Bitcoin onchain → Liquid Network
+        explanation =
+            'Swap de rede: Você enviou ${fromAsset.ticker} e receberá ${toAsset.ticker}. Assim que a transação onchain for confirmada, os fundos aparecerão automaticamente na Liquid Network.';
+      } else if (fromAsset == Asset.lbtc && toAsset == Asset.btc) {
+        // Peg Out: Liquid Network → Bitcoin onchain
+        explanation =
+            'Swap de rede: Você enviou ${fromAsset.ticker} e receberá ${toAsset.ticker}. Assim que processado, a transação será enviada para a blockchain Bitcoin.';
+      } else {
+        explanation =
+            'Swap de rede: Transação entre diferentes redes. Aguarde a confirmação.';
+      }
+    } else {
+      explanation =
+          'Esta transação representa uma troca de rede. Assim que confirmada, você receberá os fundos na rede de destino.';
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -426,7 +453,7 @@ class _TransactionDetailScreenState
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Esta transação representa uma troca de rede, assim que a transação for confirmada, você receberá os fundos na rede de destino. Esse processo pode levar algum tempo dependendo da rede.',
+              explanation,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 12,
@@ -727,7 +754,7 @@ class _TransactionDetailScreenState
       case TransactionType.redeposit:
         return "Auto-redepósito";
       case TransactionType.submarine:
-        return "Troca de rede";
+        return "Swap";
       case TransactionType.unknown:
         return "Desconhecido";
     }

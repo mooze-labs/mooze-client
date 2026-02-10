@@ -264,6 +264,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
           descriptions.add(DepositStatus.fundsPrepared.labelPlural);
           break;
         case 'depix_sent':
+        case "paid":
           descriptions.add(DepositStatus.depixSent.labelPlural);
           break;
         case 'broadcasted':
@@ -277,6 +278,9 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
           break;
         case 'expired':
           descriptions.add(DepositStatus.expired.labelPlural);
+          break;
+        case 'refunded':
+          descriptions.add(DepositStatus.refunded.labelPlural);
           break;
       }
     }
