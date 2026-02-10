@@ -4,9 +4,42 @@ import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
 import 'package:mooze_mobile/shared/infra/breez/providers/client_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 
+/// A class that encapsulates refund request parameters
+class RefundParams {
+  /// The refund amount
+  final int refundAmountSat;
+
+  /// The swap address for the refund
+  final String swapAddress;
+
+  /// The destination address for the refund
+  final String toAddress;
+
+  /// Constructor for RefundParams
+  const RefundParams({
+    required this.refundAmountSat,
+    required this.swapAddress,
+    required this.toAddress,
+  });
+}
+
+/// Represents a fee option for refund with associated cost details
+class RefundFeeOption {
+  final BigInt feeRateSatPerVbyte;
+  final BigInt txFeeSat;
+
+  RefundFeeOption({required this.feeRateSatPerVbyte, required this.txFeeSat});
+
+  /// Check if this fee option is affordable given the refund amount
+  bool isAffordable({required int feeCoverageSat}) {
+    return txFeeSat <= BigInt.from(feeCoverageSat);
+  }
+}
+
 class RefundState {
   final List<RefundableSwap>? refundableSwaps;
   final RecommendedFees? recommendedFees;
+  final List<RefundFeeOption>? refundFeeOptions;
   final String? bitcoinAddress;
   final BigInt? selectedFeeRate;
   final bool isLoading;
@@ -17,6 +50,7 @@ class RefundState {
   RefundState({
     this.refundableSwaps,
     this.recommendedFees,
+    this.refundFeeOptions,
     this.bitcoinAddress,
     this.selectedFeeRate,
     this.isLoading = false,
@@ -28,6 +62,7 @@ class RefundState {
   RefundState copyWith({
     List<RefundableSwap>? refundableSwaps,
     RecommendedFees? recommendedFees,
+    List<RefundFeeOption>? refundFeeOptions,
     String? bitcoinAddress,
     BigInt? selectedFeeRate,
     bool? isLoading,
@@ -38,6 +73,7 @@ class RefundState {
     return RefundState(
       refundableSwaps: refundableSwaps ?? this.refundableSwaps,
       recommendedFees: recommendedFees ?? this.recommendedFees,
+      refundFeeOptions: refundFeeOptions ?? this.refundFeeOptions,
       bitcoinAddress: bitcoinAddress ?? this.bitcoinAddress,
       selectedFeeRate: selectedFeeRate ?? this.selectedFeeRate,
       isLoading: isLoading ?? this.isLoading,
@@ -111,6 +147,8 @@ class RefundNotifier extends StateNotifier<RefundState> {
               // Error getting address
             }
 
+            if (!mounted) return;
+
             state = state.copyWith(
               refundableSwaps: refundables,
               recommendedFees: fees,
@@ -120,6 +158,8 @@ class RefundNotifier extends StateNotifier<RefundState> {
               lastFeeUpdate: DateTime.now(),
             );
           } catch (e) {
+            if (!mounted) return;
+
             state = state.copyWith(
               isLoading: false,
               error: 'Erro ao carregar dados de reembolso: $e',
@@ -128,6 +168,8 @@ class RefundNotifier extends StateNotifier<RefundState> {
         },
       );
     } catch (e) {
+      if (!mounted) return;
+
       state = state.copyWith(isLoading: false, error: 'Erro inesperado: $e');
     }
   }
@@ -135,10 +177,13 @@ class RefundNotifier extends StateNotifier<RefundState> {
   Future<RecommendedFees> _loadRecommendedFeesWithFallback(
     BreezSdkLiquid client,
   ) async {
-    if (state.recommendedFees != null && state.lastFeeUpdate != null) {
-      final timeSinceUpdate = DateTime.now().difference(state.lastFeeUpdate!);
-      if (timeSinceUpdate < _cacheDuration) {
-        return state.recommendedFees!;
+    // Check if mounted before accessing state
+    if (mounted) {
+      if (state.recommendedFees != null && state.lastFeeUpdate != null) {
+        final timeSinceUpdate = DateTime.now().difference(state.lastFeeUpdate!);
+        if (timeSinceUpdate < _cacheDuration) {
+          return state.recommendedFees!;
+        }
       }
     }
 
@@ -163,59 +208,192 @@ class RefundNotifier extends StateNotifier<RefundState> {
     state = state.copyWith(bitcoinAddress: address);
   }
 
-  Future<void> processRefund() async {
-    if (state.bitcoinAddress == null || state.bitcoinAddress!.trim().isEmpty) {
-      state = state.copyWith(
-        error: 'Por favor, insira um endereço Bitcoin válido',
+  /// Fetches refund fee options for a given [params].
+  ///
+  /// Returns a list of [RefundFeeOption] representing different fee rates.
+  /// Estimates transaction fees based on typical refund transaction size (~150 vBytes).
+  Future<List<RefundFeeOption>> fetchRefundFeeOptions({
+    required RefundParams params,
+  }) async {
+    try {
+      final breezClientResult = await ref.read(breezClientProvider.future);
+
+      return await breezClientResult.fold(
+        (error) {
+          throw Exception('Erro ao conectar com Breez SDK: $error');
+        },
+        (client) async {
+          final recommendedFees = await _loadRecommendedFeesWithFallback(
+            client,
+          );
+
+          // Estimated transaction size for a typical refund transaction
+          // Refunds are usually ~150-200 vBytes
+          const estimatedTxVsize = 150;
+
+          // Build fee options list with all fee rates
+          final feeOptions = <RefundFeeOption>[
+            RefundFeeOption(
+              feeRateSatPerVbyte: recommendedFees.economyFee,
+              txFeeSat:
+                  recommendedFees.economyFee * BigInt.from(estimatedTxVsize),
+            ),
+            RefundFeeOption(
+              feeRateSatPerVbyte: recommendedFees.hourFee,
+              txFeeSat: recommendedFees.hourFee * BigInt.from(estimatedTxVsize),
+            ),
+            RefundFeeOption(
+              feeRateSatPerVbyte: recommendedFees.halfHourFee,
+              txFeeSat:
+                  recommendedFees.halfHourFee * BigInt.from(estimatedTxVsize),
+            ),
+            RefundFeeOption(
+              feeRateSatPerVbyte: recommendedFees.fastestFee,
+              txFeeSat:
+                  recommendedFees.fastestFee * BigInt.from(estimatedTxVsize),
+            ),
+          ];
+
+          // Optionally try to get exact fees using prepareRefund (non-blocking)
+          // This will update the estimates if successful, but won't fail if it doesn't work
+          try {
+            final prepareResponse = await client.prepareRefund(
+              req: PrepareRefundRequest(
+                swapAddress: params.swapAddress,
+                refundAddress: params.toAddress,
+                feeRateSatPerVbyte: recommendedFees.hourFee.toInt(),
+              ),
+            );
+
+            // If prepareRefund succeeds, we can use the actual vsize
+            final actualVsize = prepareResponse.txVsize;
+
+            // Update all fee options with actual transaction size
+            return [
+              RefundFeeOption(
+                feeRateSatPerVbyte: recommendedFees.economyFee,
+                txFeeSat: recommendedFees.economyFee * BigInt.from(actualVsize),
+              ),
+              RefundFeeOption(
+                feeRateSatPerVbyte: recommendedFees.hourFee,
+                txFeeSat: recommendedFees.hourFee * BigInt.from(actualVsize),
+              ),
+              RefundFeeOption(
+                feeRateSatPerVbyte: recommendedFees.halfHourFee,
+                txFeeSat:
+                    recommendedFees.halfHourFee * BigInt.from(actualVsize),
+              ),
+              RefundFeeOption(
+                feeRateSatPerVbyte: recommendedFees.fastestFee,
+                txFeeSat: recommendedFees.fastestFee * BigInt.from(actualVsize),
+              ),
+            ];
+          } catch (e) {
+            // prepareRefund failed, but that's ok - use estimated fees
+            // This can happen if the swap is not ready yet or other temporary issues
+          }
+
+          return feeOptions;
+        },
       );
-      return;
+    } catch (e) {
+      rethrow;
     }
+  }
 
-    if (state.refundableSwaps == null || state.refundableSwaps!.isEmpty) {
-      state = state.copyWith(error: 'Nenhum swap reembolsável encontrado');
-      return;
+  /// Prepares a refund transaction for a failed or expired swap.
+  ///
+  /// Returns a [PrepareRefundResponse] with transaction details.
+  Future<PrepareRefundResponse> prepareRefund({
+    required PrepareRefundRequest req,
+  }) async {
+    try {
+      final breezClientResult = await ref.read(breezClientProvider.future);
+
+      return await breezClientResult.fold(
+        (error) {
+          throw Exception('Erro ao conectar com Breez SDK: $error');
+        },
+        (client) async {
+          final response = await client.prepareRefund(req: req);
+          return response;
+        },
+      );
+    } catch (e) {
+      rethrow;
     }
+  }
 
-    if (state.selectedFeeRate == null) {
-      state = state.copyWith(error: 'Por favor, selecione uma taxa');
-      return;
-    }
+  /// Validates a Bitcoin address format
+  bool _isValidBitcoinAddress(String address) {
+    // Basic validation for Bitcoin addresses
+    // Legacy (P2PKH): starts with 1, 26-35 chars
+    // SegWit (P2SH): starts with 3, 26-35 chars
+    // Native SegWit (Bech32): starts with bc1, 42-62 chars
+    // Testnet: starts with tb1, m, n, or 2
 
+    if (address.isEmpty) return false;
+
+    // Check for valid Bitcoin address patterns
+    final legacyPattern = RegExp(r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$');
+    final segwitPattern = RegExp(r'^bc1[a-z0-9]{39,59}$');
+    final testnetPattern = RegExp(r'^(tb1|[mn2])[a-z0-9]{25,59}$');
+
+    return legacyPattern.hasMatch(address) ||
+        segwitPattern.hasMatch(address) ||
+        testnetPattern.hasMatch(address);
+  }
+
+  /// Broadcasts a refund transaction for a failed or expired swap.
+  ///
+  /// Returns the refund transaction ID upon success.
+  Future<RefundResponse> processRefund({required RefundRequest req}) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final breezClientResult = await ref.read(breezClientProvider.future);
+    try {
+      // Validate address format before sending to Breez SDK
+      if (!_isValidBitcoinAddress(req.refundAddress)) {
+        throw Exception(
+          'Endereço Bitcoin inválido. Use um endereço Bitcoin válido (Legacy, SegWit ou Native SegWit).',
+        );
+      }
 
-    await breezClientResult.fold(
-      (error) {
+      final breezClientResult = await ref.read(breezClientProvider.future);
+
+      final response = await breezClientResult.fold(
+        (error) {
+          throw Exception('Erro ao conectar com Breez SDK: $error');
+        },
+        (client) async {
+          final refundResponse = await client.refund(req: req);
+
+          if (!mounted) return refundResponse;
+
+          state = state.copyWith(
+            isLoading: false,
+            refundTxId: refundResponse.refundTxId,
+          );
+
+          // Refresh refundables list after successful refund
+          // Only if still mounted to avoid dispose errors
+          if (mounted) {
+            await loadRefundData();
+          }
+
+          return refundResponse;
+        },
+      );
+
+      return response;
+    } catch (e) {
+      if (mounted) {
         state = state.copyWith(
           isLoading: false,
-          error: 'Erro ao conectar com Breez SDK: $error',
+          error: 'Erro ao processar reembolso: $e',
         );
-      },
-      (client) async {
-        try {
-          final swap = state.refundableSwaps!.first;
-
-          final refundRequest = RefundRequest(
-            swapAddress: swap.swapAddress,
-            refundAddress: state.bitcoinAddress!.trim(),
-            feeRateSatPerVbyte: state.selectedFeeRate!.toInt(),
-          );
-
-          final response = await client.refund(req: refundRequest);
-
-          state = state.copyWith(
-            isLoading: false,
-            refundTxId: response.refundTxId,
-          );
-        } catch (e) {
-          state = state.copyWith(
-            isLoading: false,
-            error: 'Erro ao processar reembolso: $e',
-          );
-        }
-      },
-    );
+      }
+      rethrow;
+    }
   }
 }
 

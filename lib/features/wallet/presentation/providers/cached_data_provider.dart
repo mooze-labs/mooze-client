@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 
 import 'fiat_price_provider.dart';
 import 'transaction_provider.dart';
@@ -71,11 +72,14 @@ class TransactionHistoryState {
     Either<WalletError, List<Transaction>>? transactions,
     bool? isLoading,
     DateTime? lastUpdated,
+    bool clearTransactions = false,
+    bool clearLastUpdated = false,
   }) {
     return TransactionHistoryState(
-      transactions: transactions ?? this.transactions,
+      transactions:
+          clearTransactions ? null : (transactions ?? this.transactions),
       isLoading: isLoading ?? this.isLoading,
-      lastUpdated: lastUpdated ?? this.lastUpdated,
+      lastUpdated: clearLastUpdated ? null : (lastUpdated ?? this.lastUpdated),
     );
   }
 }
@@ -214,31 +218,81 @@ class TransactionHistoryNotifier
     extends StateNotifier<TransactionHistoryState> {
   final Ref ref;
 
-  TransactionHistoryNotifier(this.ref) : super(const TransactionHistoryState());
+  TransactionHistoryNotifier(this.ref)
+    : super(const TransactionHistoryState()) {
+    final logger = ref.read(appLoggerProvider);
+    logger.info(
+      'TransactionHistoryNotifier',
+      'Instance created - Will fetch on demand',
+    );
+  }
 
   Future<void> fetchTransactions() async {
-    if (!mounted) return;
+    final logger = ref.read(appLoggerProvider);
 
+    if (!mounted) {
+      logger.warning(
+        'TransactionHistoryNotifier',
+        'Not mounted, skipping fetch',
+      );
+      return;
+    }
+
+    // Check if we have valid cached data
     if (state.transactions != null &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 2) {
+      logger.info(
+        'TransactionHistoryNotifier',
+        'Using cached transactions (age: ${DateTime.now().difference(state.lastUpdated!).inSeconds}s)',
+      );
       return;
     }
 
     if (!mounted) return;
+
+    logger.info(
+      'TransactionHistoryNotifier',
+      'Fetching transactions from repository (cache expired or empty)...',
+    );
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(transactionHistoryProvider.future);
 
       if (!mounted) return;
+
+      result.fold(
+        (error) {
+          logger.error(
+            'TransactionHistoryNotifier',
+            'Failed to fetch transactions',
+            error: error,
+          );
+        },
+        (transactions) {
+          logger.info(
+            'TransactionHistoryNotifier',
+            'Loaded ${transactions.length} transactions, caching for 2 minutes',
+          );
+        },
+      );
+
       state = state.copyWith(
         transactions: result,
         isLoading: false,
         lastUpdated: DateTime.now(),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+
+      logger.critical(
+        'TransactionHistoryNotifier',
+        'Exception while fetching transactions',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       state = state.copyWith(
         transactions: Left(
           WalletError(
@@ -252,20 +306,58 @@ class TransactionHistoryNotifier
   }
 
   Future<void> fetchTransactionsInitial() async {
-    if (!mounted) return;
+    final logger = ref.read(appLoggerProvider);
+
+    if (!mounted) {
+      logger.warning(
+        'TransactionHistoryNotifier',
+        'Not mounted, skipping initial fetch',
+      );
+      return;
+    }
+
+    logger.info(
+      'TransactionHistoryNotifier',
+      'Initial fetch - Loading transactions...',
+    );
     state = state.copyWith(isLoading: true);
 
     try {
       final result = await ref.read(transactionHistoryProvider.future);
 
       if (!mounted) return;
+
+      result.fold(
+        (error) {
+          logger.error(
+            'TransactionHistoryNotifier',
+            'Initial fetch failed',
+            error: error,
+          );
+        },
+        (transactions) {
+          logger.info(
+            'TransactionHistoryNotifier',
+            'Initial load: ${transactions.length} transactions cached',
+          );
+        },
+      );
+
       state = state.copyWith(
         transactions: result,
         isLoading: false,
         lastUpdated: DateTime.now(),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+
+      logger.critical(
+        'TransactionHistoryNotifier',
+        'Exception during initial fetch',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       state = state.copyWith(
         transactions: Left(
           WalletError(
@@ -279,14 +371,28 @@ class TransactionHistoryNotifier
   }
 
   Future<void> refresh() async {
+    final logger = ref.read(appLoggerProvider);
+
     if (!mounted) return;
-    state = state.copyWith(transactions: null, lastUpdated: null);
+
+    logger.info(
+      'TransactionHistoryNotifier',
+      'Manual refresh requested, clearing cache',
+    );
+    state = state.copyWith(clearTransactions: true, clearLastUpdated: true);
 
     await fetchTransactions();
   }
 
   void reset() {
+    final logger = ref.read(appLoggerProvider);
+
     if (!mounted) return;
+
+    logger.info(
+      'TransactionHistoryNotifier',
+      'Resetting cache to initial state',
+    );
     state = const TransactionHistoryState();
   }
 }

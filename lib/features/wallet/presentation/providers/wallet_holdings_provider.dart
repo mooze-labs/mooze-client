@@ -85,74 +85,69 @@ class WalletHolding {
   }
 }
 
-final walletHoldingsProvider = FutureProvider<
+final walletHoldingsProvider = FutureProvider.autoDispose<
   Either<String, List<WalletHolding>>
 >((ref) async {
   final allAssets = ref.watch(allAssetsProvider);
   ref.watch(currencyControllerProvider);
 
+  // IMPORTANT: Wait for all balances to load first
+  // This ensures we stay in loading state until data is ready
+  final allBalances = await ref.watch(allBalancesProvider.future);
+
   final List<WalletHolding> holdings = [];
 
   try {
-    final currency = ref.read(currencyControllerProvider.notifier);
+    final currency = ref.watch(currencyControllerProvider.notifier);
 
     for (final asset in allAssets) {
-      // Use watch to be notified when balances change
-      final balanceResult = await ref.watch(balanceProvider(asset).future);
+      final balance = allBalances[asset] ?? BigInt.zero;
       final priceResult = await ref.watch(fiatPriceProvider(asset).future);
 
       debugPrint(
-        '[WalletHoldingsProvider] ${asset.ticker}: balance=$balanceResult, price=$priceResult',
+        '[WalletHoldingsProvider] ${asset.ticker}: balance=$balance, price=$priceResult',
       );
 
-      final holding = balanceResult.fold(
+      final holding = priceResult.fold(
         (error) {
           debugPrint(
-            '[WalletHoldingsProvider] ${asset.ticker}: Balance error: $error',
+            '[WalletHoldingsProvider] ${asset.ticker}: Price error: $error. Using balance without price.',
           );
-          return WalletHolding.empty(asset);
+          // Even without price, we show the balance if available
+          return WalletHolding(
+            asset: asset,
+            balance: balance,
+            fiatPrice: null,
+            fiatValue: null,
+            formattedBalance: WalletHolding._formatBalance(balance, asset),
+            formattedFiatValue: 'Preço indisponível',
+            hasBalance: balance > BigInt.zero,
+          );
         },
-        (balance) => priceResult.fold(
-          (error) {
+        (price) {
+          if (price == 0) {
             debugPrint(
-              '[WalletHoldingsProvider] ${asset.ticker}: Price error: $error. Using balance without price.',
+              '[WalletHoldingsProvider] ${asset.ticker}: Price is zero. Using balance without price.',
             );
-            // Even without price, we show the balance if available
+            // Even with zero price, we show the balance
             return WalletHolding(
               asset: asset,
               balance: balance,
-              fiatPrice: null,
-              fiatValue: null,
+              fiatPrice: 0,
+              fiatValue: 0,
               formattedBalance: WalletHolding._formatBalance(balance, asset),
-              formattedFiatValue: 'Preço indisponível',
+              formattedFiatValue: '${currency.icon} 0,00',
               hasBalance: balance > BigInt.zero,
             );
-          },
-          (price) {
-            if (price == 0) {
-              debugPrint(
-                '[WalletHoldingsProvider] ${asset.ticker}: Price is zero. Using balance without price.',
-              );
-              // Even with zero price, we show the balance
-              return WalletHolding(
-                asset: asset,
-                balance: balance,
-                fiatPrice: 0,
-                fiatValue: 0,
-                formattedBalance: WalletHolding._formatBalance(balance, asset),
-                formattedFiatValue: '${currency.icon} 0,00',
-                hasBalance: balance > BigInt.zero,
-              );
-            }
+          }
 
-            return WalletHolding.fromData(
-              asset: asset,
-              balance: balance,
-              fiatPrice: price,
-              currencySymbol: currency.icon,
-            );
-          },
-        ),
+          return WalletHolding.fromData(
+            asset: asset,
+            balance: balance,
+            fiatPrice: price,
+            currencySymbol: currency.icon,
+          );
+        },
       );
 
       holdings.add(holding);
@@ -175,7 +170,9 @@ final walletHoldingsProvider = FutureProvider<
 });
 
 final walletHoldingsWithBalanceProvider =
-    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
+    FutureProvider.autoDispose<Either<String, List<WalletHolding>>>((
+      ref,
+    ) async {
       final allHoldingsResult = await ref.read(walletHoldingsProvider.future);
 
       return allHoldingsResult.map(
