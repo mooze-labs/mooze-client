@@ -388,6 +388,7 @@ Either<String, DepositStatus> parseDepositStatus(String status) {
     case "funds_prepared":
       return right(DepositStatus.fundsPrepared);
     case "depix_sent":
+    case "paid":
       return right(DepositStatus.depixSent);
     case "broadcasted":
       return right(DepositStatus.broadcasted);
