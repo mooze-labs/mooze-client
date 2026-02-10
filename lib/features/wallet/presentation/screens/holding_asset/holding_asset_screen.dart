@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/action_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_loading.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -55,6 +56,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                     SizedBox(height: 15),
                     _buildActionButtons(context),
                     SizedBox(height: 15),
+                    ValuesToReceiveCard(),
                     _buildAssetsLabel(),
                     SizedBox(height: 10),
                     SizedBox(
