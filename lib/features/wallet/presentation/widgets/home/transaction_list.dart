@@ -82,6 +82,8 @@ class SuccessfulTransactionList extends ConsumerWidget {
   }
 
   String _getTransactionTitle(Transaction transaction) {
+    // Check if it's any kind of swap (including submarine swaps)
+    // print(transaction.toString());
     if (transaction.fromAsset != null &&
         transaction.toAsset != null &&
         transaction.sentAmount != null &&
@@ -105,9 +107,10 @@ class SuccessfulTransactionList extends ConsumerWidget {
       case TransactionType.receive:
         return "Recebeu ${transaction.asset.ticker}";
       case TransactionType.swap:
-        return "Swap: ${transaction.asset.ticker}";
+        return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
       case TransactionType.submarine:
-        return "Swap de rede: ${transaction.asset.ticker}";
+        // Submarine swaps should have fromAsset/toAsset, but if not, fallback
+        return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
       case TransactionType.redeposit:
         return "Autodepositou ${transaction.asset.ticker}";
       case TransactionType.unknown:
@@ -329,6 +332,7 @@ class HomeTransactionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSwapByType = transaction?.type == TransactionType.swap;
+    final isSubmarineSwap = transaction?.type == TransactionType.submarine;
     final isSwapByData =
         transaction?.fromAsset != null &&
         transaction?.toAsset != null &&
@@ -337,7 +341,7 @@ class HomeTransactionItem extends StatelessWidget {
 
     final isSwap = isSwapByType || isSwapByData;
     final hasSwapDetails =
-        isSwap &&
+        (isSwap || isSubmarineSwap) &&
         transaction?.fromAsset != null &&
         transaction?.toAsset != null;
 
