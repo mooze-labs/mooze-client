@@ -1072,7 +1072,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
   void _startPeriodicSync() {
     _periodicSyncTimer?.cancel();
-    const syncInterval = Duration(minutes: 1);
+    const syncInterval = Duration(minutes: 2);
 
     _periodicSyncTimer = Timer.periodic(syncInterval, (timer) {
       debugPrint(
