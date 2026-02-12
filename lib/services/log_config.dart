@@ -35,15 +35,10 @@ class LogConfig {
   /// Default configuration for production
   /// Saves INFO, WARNING, ERROR and CRITICAL for 7 days
   static const LogConfig production = LogConfig(
-    savedLevels: {
-      LogLevel.info,
-      LogLevel.warning,
-      LogLevel.error,
-      LogLevel.critical,
-    },
+    savedLevels: {LogLevel.warning, LogLevel.error, LogLevel.critical},
     retentionDays: 7,
     includeDebug: false,
-    includeInfo: true,
+    includeInfo: false,
   );
 
   /// Development configuration
