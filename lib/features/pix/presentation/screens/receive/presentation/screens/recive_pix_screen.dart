@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/pix/di/providers/pix_onboarding_service_pr
 import 'package:mooze_mobile/features/pix/presentation/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/first_time_pix_dialog.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/wallet/routes.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
@@ -26,6 +27,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   late Animation<double> _circleAnimation;
   OverlayEntry? _overlayEntry;
   bool _isLoading = false;
+  bool _hasShownFirstTimeDialog = false;
 
   @override
   void dispose() {
@@ -39,9 +41,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
   void initState() {
     super.initState();
     _initializeControllers();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkFirstTimeAccess();
       if (mounted) {
         ref.read(depositAmountProvider.notifier).state = 0.0;
         ref.invalidate(feeRateProvider);
@@ -50,6 +50,21 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
         ref.invalidate(assetQuoteProvider);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentPage = PageVisibilityProvider.of(context);
+    if (!_hasShownFirstTimeDialog && currentPage == 2) {
+      _hasShownFirstTimeDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _checkFirstTimeAccess();
+      });
+    }
+    if (_hasShownFirstTimeDialog && currentPage != 2) {
+      _hasShownFirstTimeDialog = false;
+    }
   }
 
   Future<void> _checkFirstTimeAccess() async {
