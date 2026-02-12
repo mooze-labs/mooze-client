@@ -87,7 +87,7 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
 
   BoxDecoration _buildContainerDecoration(BuildContext context) {
     return BoxDecoration(
-      color: AppColors.pinBackground,
+      color: AppColors.surfaceLow,
       borderRadius: BorderRadius.circular(12),
     );
   }

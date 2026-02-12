@@ -457,7 +457,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
 
   BoxDecoration _buildContainerDecoration() {
     return BoxDecoration(
-      color: AppColors.pinBackground,
+      color: AppColors.surfaceLow,
       borderRadius: BorderRadius.circular(12),
     );
   }

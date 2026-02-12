@@ -22,7 +22,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       margin: EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.pinBackground,
+        color: AppColors.surfaceLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),

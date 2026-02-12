@@ -29,7 +29,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.pinBackground,
+        color: AppColors.surfaceLow,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(

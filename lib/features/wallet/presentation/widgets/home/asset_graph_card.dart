@@ -93,7 +93,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF2B2D33),
+          color: AppColors.surfaceLow,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(

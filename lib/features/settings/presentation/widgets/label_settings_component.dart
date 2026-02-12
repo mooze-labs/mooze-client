@@ -37,7 +37,7 @@ class _LabelSettingsState extends State<LabelSettings> {
                   colors: [AppColors.primaryColor, AppColors.backgroundCard],
                 )
                 : null,
-        color: widget.highlight ? null : AppColors.backgroundCard,
+        color: widget.highlight ? null : AppColors.surfaceLow,
       ),
       child: Material(
         color: Colors.transparent,
