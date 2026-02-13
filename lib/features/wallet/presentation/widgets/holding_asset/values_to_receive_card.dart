@@ -259,28 +259,8 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
               ),
             );
           }),
-      loading:
-          () => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            height: 60,
-            decoration: BoxDecoration(
-              color: Color(0xFF2B2D33),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryColor,
-                  ),
-                ),
-              ),
-            ),
-          ),
+      loading: () => const SizedBox.shrink(),
+
       error: (_, _) => const SizedBox.shrink(),
     );
   }
