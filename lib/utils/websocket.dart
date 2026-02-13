@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -16,6 +17,8 @@ class WebSocketService {
   DateTime? _lastConnectAttempt;
   DateTime? _lastMessageReceived;
   Completer<void>? _connectionCompleter;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectDelay = 60;
 
   // Track connection state
   bool get isConnected => _isConnected && _channel != null;
@@ -70,8 +73,9 @@ class WebSocketService {
         onError: (error) {
           if (_isDisposed) return;
 
-          debugPrint("WebSocket error: $error");
-          _handleDisconnect();
+          debugPrint("WebSocket stream error: $error");
+          final shouldRetry = _handleConnectionError(error);
+          _handleDisconnect(shouldRetry: shouldRetry);
           final completer = _connectionCompleter;
           if (completer != null && !completer.isCompleted) {
             completer.completeError(error);
@@ -88,7 +92,7 @@ class WebSocketService {
 
       // Wait for the first message to confirm connection
       await _connectionCompleter?.future.timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 10),
         onTimeout: () {
           if (_isDisposed) {
             throw Exception('Service disposed during connection');
@@ -96,6 +100,8 @@ class WebSocketService {
           throw TimeoutException('Connection timeout');
         },
       );
+
+      _reconnectAttempts = 0;
 
       // Start heartbeat to keep connection alive
       if (!_isDisposed) {
@@ -107,28 +113,61 @@ class WebSocketService {
         return;
       }
 
-      debugPrint("WebSocket connection error: $e");
-      debugPrint(stack.toString());
-      _handleDisconnect();
-      // Não propaga o erro para não travar o app
-      // O sistema de reconexão automática vai tentar novamente
+      final shouldRetry = _handleConnectionError(e);
+      debugPrint("WebSocket connection error: $e (willRetry: $shouldRetry)");
+
+      if (kDebugMode) {
+        debugPrint(stack.toString());
+      }
+
+      _handleDisconnect(shouldRetry: shouldRetry);
     } finally {
       _connectionCompleter = null;
     }
   }
 
-  void _handleDisconnect() {
+  void _handleDisconnect({bool shouldRetry = true}) {
     _isConnected = false;
     _channel = null;
     _stopHeartbeat();
 
-    // Cancelar qualquer tentativa de reconexão pendente
     _connectionCompleter?.completeError('Disconnected');
     _connectionCompleter = null;
 
-    if (!_isDisposed) {
+    if (!_isDisposed && shouldRetry) {
       _attemptReconnect();
+    } else if (!shouldRetry) {
+      debugPrint('[WebSocket] Não tentando reconectar devido ao tipo de erro');
+      _reconnectAttempts = 0;
     }
+  }
+
+  bool _handleConnectionError(dynamic error) {
+    if (error is SocketException) {
+      final errno = error.osError?.errorCode;
+
+      if (errno == 8 || // nodename nor servname provided
+          errno == 35 || // Resource temporarily unavailable
+          errno == 61 || // Connection refused
+          errno == 64 || // Host is down
+          errno == 65) {
+        // No route to host
+        debugPrint('[WebSocket] Erro de rede temporário (errno: $errno)');
+        return true;
+      }
+    }
+
+    if (error is TimeoutException) {
+      debugPrint('[WebSocket] Timeout - erro temporário');
+      return true;
+    }
+
+    if (error.toString().contains('WebSocketChannelException')) {
+      debugPrint('[WebSocket] WebSocketChannelException - erro temporário');
+      return true;
+    }
+
+    return true;
   }
 
   void _startHeartbeat() {
@@ -140,7 +179,6 @@ class WebSocketService {
         return;
       }
 
-      // Verifica se não recebeu mensagens nos últimos 60 segundos
       if (_lastMessageReceived != null &&
           DateTime.now().difference(_lastMessageReceived!).inSeconds > 60) {
         debugPrint("WebSocket sem resposta há muito tempo, reconectando...");
@@ -163,7 +201,16 @@ class WebSocketService {
 
     if (_reconnectTimer != null) return;
 
-    _reconnectTimer = Timer(const Duration(seconds: 2), () {
+    _reconnectAttempts++;
+
+    final delaySeconds = (2 * (1 << (_reconnectAttempts - 1).clamp(0, 5)))
+        .clamp(2, _maxReconnectDelay);
+
+    debugPrint(
+      '[WebSocket] Tentando reconectar em ${delaySeconds}s (tentativa $_reconnectAttempts)',
+    );
+
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
       _reconnectTimer = null;
       if (!_isDisposed && !_isConnected) {
         _connect();
