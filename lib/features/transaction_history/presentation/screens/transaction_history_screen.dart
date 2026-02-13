@@ -307,6 +307,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         case 'swap':
           descriptions.add('Swaps');
           break;
+        case 'refund':
+          descriptions.add('Reembolsos');
+          break;
       }
     }
 
