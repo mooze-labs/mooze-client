@@ -112,12 +112,14 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'R\$ 50,00',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.primary,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'R\$ 50,00',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.primary,
+                          ),
                         ),
                       ),
                     ],
@@ -144,12 +146,14 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'R\$ 3.000,00',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.green,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'R\$ 3.000,00',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green,
+                          ),
                         ),
                       ),
                     ],
