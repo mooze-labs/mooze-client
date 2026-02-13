@@ -152,13 +152,14 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
   );
 });
 
-/// Função auxiliar para sync não-bloqueante do Breez
 void _syncBreezInBackground(
   BreezSdkLiquid client,
   SyncStreamController syncStream,
   AppLoggerService logger,
-  Ref ref, // Adiciona ref como parâmetro
-) {
+  Ref ref, {
+  int attempt = 1,
+  int maxRetries = 3,
+}) {
   syncStream.updateProgress(
     SyncProgress(
       datasource: 'Breez',
@@ -167,11 +168,16 @@ void _syncBreezInBackground(
     ),
   );
 
-  // Emite evento de início
-  final syncEventController = ref.read(syncEventControllerProvider);
-  syncEventController.emitStarted('breez');
-
-  logger.info('BreezClient', 'Starting background sync...');
+  if (attempt == 1) {
+    final syncEventController = ref.read(syncEventControllerProvider);
+    syncEventController.emitStarted('breez');
+    logger.info('BreezClient', 'Starting background sync...');
+  } else {
+    logger.debug(
+      'BreezClient',
+      'Retrying background sync (attempt $attempt/$maxRetries)...',
+    );
+  }
 
   // Fire and forget - usa then/catchError em vez de await
   client
@@ -186,26 +192,65 @@ void _syncBreezInBackground(
           ),
         );
 
-        // Emite evento de conclusão
+        final syncEventController = ref.read(syncEventControllerProvider);
         syncEventController.emitCompleted('breez');
       })
       .catchError((e, stack) {
-        logger.error(
-          'BreezClient',
-          'Background sync failed: $e',
-          error: e,
-          stackTrace: stack,
-        );
-        syncStream.updateProgress(
-          SyncProgress(
-            datasource: 'Breez',
-            status: SyncStatus.error,
-            errorMessage: e.toString(),
-            timestamp: DateTime.now(),
-          ),
-        );
+        final errorMessage = e.toString();
+        final isRetryable = _isRetryableError(errorMessage);
 
-        // Emite evento de falha
-        syncEventController.emitFailed('breez', e.toString());
+        if (isRetryable && attempt < maxRetries) {
+          final delaySeconds = 2 * attempt; // 2s, 4s, 6s
+          logger.debug(
+            'BreezClient',
+            'Background sync failed with temporary error: $e. Retrying in ${delaySeconds}s... (attempt $attempt/$maxRetries)',
+          );
+
+          Future.delayed(Duration(seconds: delaySeconds), () {
+            _syncBreezInBackground(
+              client,
+              syncStream,
+              logger,
+              ref,
+              attempt: attempt + 1,
+              maxRetries: maxRetries,
+            );
+          });
+        } else if (isRetryable && attempt >= maxRetries) {
+          logger.warning(
+            'BreezClient',
+            'Background sync skipped after $maxRetries attempts due to temporary condition: $e',
+          );
+
+          syncStream.updateProgress(
+            SyncProgress(
+              datasource: 'Breez',
+              status: SyncStatus.completed,
+              timestamp: DateTime.now(),
+            ),
+          );
+
+          final syncEventController = ref.read(syncEventControllerProvider);
+          syncEventController.emitCompleted('breez');
+        } else {
+          logger.error(
+            'BreezClient',
+            'Background sync failed: $e',
+            error: e,
+            stackTrace: stack,
+          );
+
+          syncStream.updateProgress(
+            SyncProgress(
+              datasource: 'Breez',
+              status: SyncStatus.error,
+              errorMessage: errorMessage,
+              timestamp: DateTime.now(),
+            ),
+          );
+
+          final syncEventController = ref.read(syncEventControllerProvider);
+          syncEventController.emitFailed('breez', errorMessage);
+        }
       });
 }
