@@ -346,6 +346,7 @@ class HomeTransactionItem extends StatelessWidget {
         transaction?.toAsset != null;
 
     return Container(
+      color: Colors.transparent,
       padding: EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
