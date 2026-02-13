@@ -121,32 +121,28 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
 
                           _buildFilterSection(
                             title: 'Tipo de transação',
-                            child: Row(
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
                               children:
                                   TransactionTypeEntity.values.map((type) {
                                     final isSelected = selectedType == type;
-                                    final index = TransactionTypeEntity.values
-                                        .indexOf(type);
 
-                                    return Expanded(
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                          right:
-                                              index <
-                                                      TransactionTypeEntity
-                                                              .values
-                                                              .length -
-                                                          1
-                                                  ? 8
-                                                  : 0,
-                                        ),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              selectedType = type;
-                                            });
-                                          },
-                                          child: Container(
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          selectedType = type;
+                                        });
+                                      },
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final double totalWidth =
+                                              constraints.maxWidth;
+                                          const double totalSpacing = 2 * 10;
+                                          final double itemWidth =
+                                              (totalWidth - totalSpacing) / 3;
+                                          return Container(
+                                            width: itemWidth,
                                             height: 47,
                                             decoration: BoxDecoration(
                                               borderRadius:
@@ -169,17 +165,29 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                       : null,
                                             ),
                                             child: Center(
-                                              child: Text(
-                                                _getTransactionTypeLabel(type),
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5.0,
+                                                    ),
+                                                child: Text(
+                                                  _getTransactionTypeLabel(
+                                                    type,
+                                                  ),
+                                                  maxLines: 2,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                        ),
+                                          );
+                                        },
                                       ),
                                     );
                                   }).toList(),
@@ -490,6 +498,8 @@ String _getTransactionTypeLabel(TransactionTypeEntity type) {
       return 'Recebimento';
     case TransactionTypeEntity.swap:
       return 'Swap';
+    case TransactionTypeEntity.refund:
+      return 'Reembolso';
   }
 }
 
