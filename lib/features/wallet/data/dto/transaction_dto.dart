@@ -116,7 +116,7 @@ class BreezTransactionDto {
         // Handle refund case
         if (status == TransactionStatus.refundable &&
             details?.refundTxId != null) {
-          sendTxId = details?.claimTxId; // Original Liquid transaction
+          sendTxId = details?.lockupTxId; // Original Liquid transaction
           receiveTxId =
               details?.refundTxId; // Refund transaction (back to Liquid)
           // In refund case, funds go back to origin
@@ -124,9 +124,9 @@ class BreezTransactionDto {
           toAsset = Asset.lbtc; // Funds return to Liquid
           receivedAmount = details?.refundTxAmountSat ?? (amount - fees);
         } else {
-          sendTxId = details?.claimTxId; // Liquid transaction
+          sendTxId = details?.lockupTxId; // Liquid transaction
           receiveTxId =
-              details?.lockupTxId; // Bitcoin transaction (where funds arrive)
+              details?.claimTxId; // Bitcoin transaction (where funds arrive)
         }
       } else {
         // Peg In: Bitcoin onchain → Liquid
@@ -140,7 +140,7 @@ class BreezTransactionDto {
         // Handle refund case
         if (status == TransactionStatus.refundable &&
             details?.refundTxId != null) {
-          sendTxId = details?.lockupTxId; // Original Bitcoin transaction
+          sendTxId = details?.claimTxId; // Original Bitcoin transaction
           receiveTxId =
               details?.refundTxId; // Refund transaction (back to Bitcoin)
           // In refund case, funds go back to origin
@@ -148,9 +148,9 @@ class BreezTransactionDto {
           toAsset = Asset.btc; // Funds return to Bitcoin
           receivedAmount = details?.refundTxAmountSat ?? (amount + fees);
         } else {
-          sendTxId = details?.lockupTxId; // Bitcoin transaction
+          sendTxId = details?.claimTxId; // Bitcoin transaction
           receiveTxId =
-              details?.claimTxId; // Liquid transaction (where funds arrive)
+              details?.lockupTxId; // Liquid transaction (where funds arrive)
         }
       }
     }
