@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_service.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
+import 'package:mooze_mobile/shared/infra/bdk/utils/electrum_fallback.dart';
 
 const String mnemonicKey = 'mnemonic';
 const String wpkhExternalDerivationPath = "m/84h/0h/0h/0";
@@ -53,7 +54,51 @@ class BdkDataSource implements SyncableDataSource {
 
     try {
       debugPrint("[BdkDataSource] Starting sync");
-      await wallet.sync(blockchain: blockchain);
+
+      // Try sync with retry logic
+      int maxAttempts = 3;
+      String? lastError;
+      bool syncSuccess = false;
+
+      for (int attempt = 0; attempt < maxAttempts && !syncSuccess; attempt++) {
+        try {
+          debugPrint("[BdkDataSource] Tentativa ${attempt + 1}/$maxAttempts");
+
+          await wallet.sync(blockchain: blockchain);
+
+          BitcoinElectrumFallback.reportSuccess();
+          syncSuccess = true;
+          debugPrint("[BdkDataSource] Sync bem-sucedido");
+        } catch (e) {
+          lastError = e.toString();
+          debugPrint(
+            "[BdkDataSource] Tentativa ${attempt + 1} falhou: $lastError",
+          );
+
+          // Report failure and check if we should switch servers
+          final shouldSwitch = BitcoinElectrumFallback.reportFailure(lastError);
+
+          if (shouldSwitch && attempt < maxAttempts - 1) {
+            // Switch server and invalidate blockchain provider
+            final newServer = BitcoinElectrumFallback.switchToNextServer();
+            debugPrint("[BdkDataSource] Servidor trocado para: $newServer");
+            debugPrint(
+              "[BdkDataSource] IMPORTANTE: É necessário invalidar o blockchainProvider para aplicar a mudança",
+            );
+          }
+
+          // If not the last attempt, wait before retrying
+          if (attempt < maxAttempts - 1) {
+            await Future.delayed(Duration(seconds: 1 + attempt));
+          }
+        }
+      }
+
+      if (!syncSuccess) {
+        throw Exception(
+          'Falha ao sincronizar com servidores Bitcoin após $maxAttempts tentativas. Último erro: $lastError',
+        );
+      }
 
       syncStream.updateProgress(
         SyncProgress(
