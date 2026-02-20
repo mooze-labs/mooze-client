@@ -15,6 +15,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
   required TransactionFiltersEntity filters,
 }) async {
   TransactionTypeEntity selectedType = TransactionTypeEntity.all;
+  TransactionStatusEntity selectedStatus = TransactionStatusEntity.all;
   List<String> selectedAssetIds = [];
   bool isMostRecentSelected = filters.orderByMostRecent ?? true;
   DateTime? startDate = filters.startDate;
@@ -29,6 +30,13 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
       selectedType = TransactionTypeEntity.values.firstWhere(
         (t) => t.name == type,
         orElse: () => TransactionTypeEntity.all,
+      );
+    }
+    final status = filters.filter!['status'] as String?;
+    if (status != null) {
+      selectedStatus = TransactionStatusEntity.values.firstWhere(
+        (s) => s.name == status,
+        orElse: () => TransactionStatusEntity.all,
       );
     }
     final assetIds = filters.filter!['assets'] as List<String>?;
@@ -173,6 +181,82 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                 child: Text(
                                                   _getTransactionTypeLabel(
                                                     type,
+                                                  ),
+                                                  maxLines: 2,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                            context: context,
+                          ),
+
+                          _buildFilterSection(
+                            title: 'Status',
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children:
+                                  TransactionStatusEntity.values.map((status) {
+                                    final isSelected = selectedStatus == status;
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          selectedStatus = status;
+                                        });
+                                      },
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final double totalWidth =
+                                              constraints.maxWidth;
+                                          const double totalSpacing = 2 * 10;
+                                          final double itemWidth =
+                                              (totalWidth - totalSpacing) / 3;
+                                          return Container(
+                                            width: itemWidth,
+                                            height: 47,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                              color:
+                                                  isSelected
+                                                      ? AppColors.primaryColor
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          )
+                                                      : Colors.grey,
+                                              border:
+                                                  isSelected
+                                                      ? Border.all(
+                                                        color:
+                                                            AppColors
+                                                                .primaryColor,
+                                                        width: 2,
+                                                      )
+                                                      : null,
+                                            ),
+                                            child: Center(
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5.0,
+                                                    ),
+                                                child: Text(
+                                                  _getTransactionStatusLabel(
+                                                    status,
                                                   ),
                                                   maxLines: 2,
                                                   textAlign: TextAlign.center,
@@ -431,6 +515,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                   onPressed: () {
                                     final filterMap = <String, dynamic>{};
                                     filterMap['type'] = selectedType.name;
+                                    filterMap['status'] = selectedStatus.name;
                                     if (selectedAssetIds.isNotEmpty) {
                                       filterMap['assets'] = selectedAssetIds;
                                     }
@@ -498,8 +583,21 @@ String _getTransactionTypeLabel(TransactionTypeEntity type) {
       return 'Recebimento';
     case TransactionTypeEntity.swap:
       return 'Swap';
-    case TransactionTypeEntity.refund:
-      return 'Reembolso';
+  }
+}
+
+String _getTransactionStatusLabel(TransactionStatusEntity status) {
+  switch (status) {
+    case TransactionStatusEntity.all:
+      return 'Todos';
+    case TransactionStatusEntity.pending:
+      return 'Pendente';
+    case TransactionStatusEntity.confirmed:
+      return 'Confirmado';
+    case TransactionStatusEntity.failed:
+      return 'Falhou';
+    case TransactionStatusEntity.refundable:
+      return 'Reembolsável';
   }
 }
 
