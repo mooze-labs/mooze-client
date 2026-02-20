@@ -115,7 +115,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'R\$ 50,00',
+                          'R\$ 20,00',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             color: colorScheme.primary,
