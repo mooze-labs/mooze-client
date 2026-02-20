@@ -101,22 +101,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) {
         mnemonic.fold(
           () {
-            // No mnemonic found - check if needs onboarding
-            if (!hasCompletedOnboarding) {
-              if (kDebugMode) {
-                debugPrint(
-                  "[SplashScreen] First time user, redirecting to /setup/onboarding",
-                );
-              }
-              context.go('/setup/onboarding');
-            } else {
-              if (kDebugMode) {
-                debugPrint(
-                  "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
-                );
-              }
-              context.go('/setup/first-access');
+            // // No mnemonic found - check if needs onboarding
+            // if (!hasCompletedOnboarding) {
+            //   if (kDebugMode) {
+            //     debugPrint(
+            //       "[SplashScreen] First time user, redirecting to /setup/onboarding",
+            //     );
+            //   }
+            //   context.go('/setup/onboarding');
+            // } else {
+            if (kDebugMode) {
+              debugPrint(
+                "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
+              );
             }
+            context.go('/setup/first-access');
+            // }
           },
           (mnemonicValue) {
             // Mnemonic exists - user already has wallet, mark onboarding as completed
