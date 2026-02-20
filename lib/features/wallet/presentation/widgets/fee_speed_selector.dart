@@ -6,6 +6,7 @@ enum FeeSpeed { low, medium, fast }
 
 class FeeSpeedSelector extends StatefulWidget {
   final FeeSpeed selectedSpeed;
+  final bool lowFeeLoading;
   final ValueChanged<FeeSpeed> onSpeedChanged;
   final int? lowFeeSatPerVByte;
   final int? mediumFeeSatPerVByte;
@@ -14,6 +15,7 @@ class FeeSpeedSelector extends StatefulWidget {
   const FeeSpeedSelector({
     super.key,
     required this.selectedSpeed,
+    required this.lowFeeLoading,
     required this.onSpeedChanged,
     this.lowFeeSatPerVByte,
     this.mediumFeeSatPerVByte,
@@ -39,17 +41,19 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
         const SizedBox(height: 12),
         Row(
           children: [
-            // Expanded(
-            //   child: _FeeSpeedOption(
-            //     title: 'Econômica',
-            //     subtitle: '~60+ min',
-            //     feeRate: widget.lowFeeSatPerVByte ?? 1,
-            //     isSelected: widget.selectedSpeed == FeeSpeed.low,
-            //     onTap: () => widget.onSpeedChanged(FeeSpeed.low),
-            //     isLoading: widget.lowFeeSatPerVByte == null,
-            //   ),
-            // ),
-            // const SizedBox(width: 8),
+            if (widget.lowFeeLoading) ...[
+              Expanded(
+                child: _FeeSpeedOption(
+                  title: 'Econômica',
+                  subtitle: '~60+ min',
+                  feeRate: widget.lowFeeSatPerVByte ?? 1,
+                  isSelected: widget.selectedSpeed == FeeSpeed.low,
+                  onTap: () => widget.onSpeedChanged(FeeSpeed.low),
+                  isLoading: widget.lowFeeSatPerVByte == null,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: _FeeSpeedOption(
                 title: 'Normal',
@@ -73,6 +77,7 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
       ],
     );
   }
