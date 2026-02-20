@@ -108,6 +108,9 @@ class _TransactionDetailScreenState
     final isSwap =
         widget.transaction.type == TransactionType.swap ||
         widget.transaction.type == TransactionType.submarine;
+    final isRefundableOrFailed =
+        widget.transaction.status == TransactionStatus.refundable ||
+        widget.transaction.status == TransactionStatus.failed;
 
     return Container(
       width: double.infinity,
@@ -118,7 +121,9 @@ class _TransactionDetailScreenState
       ),
       child: Column(
         children: [
-          if (isSwap && _hasSwapDetails())
+          if (isRefundableOrFailed && _hasSwapDetails())
+            _buildRefundableHeader()
+          else if (isSwap && _hasSwapDetails())
             _buildSwapHeader()
           else
             _buildRegularHeader(amountStr, isReceive),
@@ -130,29 +135,38 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildStatusBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: _getStatusColor().withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _getStatusColor().withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getStatusIcon(), size: 16, color: _getStatusColor()),
-          const SizedBox(width: 6),
-          Text(
-            _getStatusLabel(),
-            style: TextStyle(
-              color: _getStatusColor(),
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              letterSpacing: 0.3,
-            ),
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: _getStatusColor().withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _getStatusColor().withValues(alpha: 0.3)),
           ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_getStatusIcon(), size: 16, color: _getStatusColor()),
+              const SizedBox(width: 6),
+              Text(
+                _getStatusLabel(),
+                style: TextStyle(
+                  color: _getStatusColor(),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.transaction.status == TransactionStatus.refundable ||
+            widget.transaction.status == TransactionStatus.failed) ...[
+          const SizedBox(height: 12),
+          _buildStatusExplanation(),
         ],
-      ),
+      ],
     );
   }
 
@@ -163,10 +177,50 @@ class _TransactionDetailScreenState
       case TransactionStatus.confirmed:
         return Icons.check_circle;
       case TransactionStatus.failed:
-        return Icons.error;
+        return Icons.check_circle_outline;
       case TransactionStatus.refundable:
-        return Icons.refresh;
+        return Icons.warning_amber_rounded;
     }
+  }
+
+  Widget _buildStatusExplanation() {
+    String explanation;
+
+    if (widget.transaction.status == TransactionStatus.refundable) {
+      explanation =
+          'Esta transação não foi concluída com sucesso. Seus fundos estão seguros e disponíveis para reembolso. Use o botão abaixo para solicitar o reembolso.';
+    } else {
+      // failed
+      explanation =
+          'O reembolso desta transação já foi processado ou está sendo enviado. Seus fundos foram ou serão devolvidos em breve.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _getStatusColor().withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _getStatusColor().withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: _getStatusColor()),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              explanation,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 12,
+                height: 1.5,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildRegularHeader(String amountStr, bool isReceive) {
@@ -210,6 +264,69 @@ class _TransactionDetailScreenState
               letterSpacing: -0.5,
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRefundableHeader() {
+    return Column(
+      children: [
+        Text(
+          widget.transaction.status == TransactionStatus.refundable
+              ? 'Swap não concluído'
+              : 'Swap reembolsado',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: SvgPicture.asset(
+                widget.transaction.fromAsset!.iconPath,
+                width: 32,
+                height: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.close, size: 24, color: Colors.grey),
+            const SizedBox(width: 16),
+            Container(
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: SvgPicture.asset(
+                widget.transaction.toAsset!.iconPath,
+                width: 32,
+                height: 32,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -344,6 +461,65 @@ class _TransactionDetailScreenState
     final isSubmarineSwap =
         widget.transaction.type == TransactionType.submarine;
     final confirmed = widget.transaction.status == TransactionStatus.confirmed;
+    final isRefundableOrFailed =
+        widget.transaction.status == TransactionStatus.refundable ||
+        widget.transaction.status == TransactionStatus.failed;
+
+    if (isRefundableOrFailed) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Informações',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              icon: Icons.access_time,
+              label: 'Data',
+              value: _formatDateTime(widget.transaction.createdAt),
+            ),
+            if (_hasSwapDetails()) ...[
+              _buildInfoRow(
+                icon: Icons.swap_horiz,
+                label: 'Enviado',
+                value: widget.transaction.fromAsset!.ticker,
+              ),
+              _buildInfoRow(
+                icon: Icons.swap_horiz,
+                label: 'Esperado',
+                value: widget.transaction.toAsset!.ticker,
+              ),
+            ],
+            _buildInfoRow(
+              icon: Icons.link,
+              label: 'Blockchain',
+              value: _getBlockchainLabel(),
+            ),
+            if (widget.transaction.id.isNotEmpty)
+              _buildInfoRow(
+                icon: Icons.tag,
+                label: 'ID da Transação',
+                value: truncateHashId(widget.transaction.id),
+                copyable: true,
+                copyFieldId: 'transaction_id',
+                copyValue: widget.transaction.id,
+              ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,
@@ -706,6 +882,24 @@ class _TransactionDetailScreenState
   Widget _buildActionButtons(BuildContext context) {
     final isRefundable =
         widget.transaction.status == TransactionStatus.refundable;
+    final isFailed = widget.transaction.status == TransactionStatus.failed;
+
+    if (isRefundable) {
+      return _buildActionButton(
+        context: context,
+        label: 'Solicitar Reembolso',
+        subtitle: 'Recuperar seus fundos agora',
+        icon: Icons.refresh,
+        onPressed: () {
+          context.push('/transactions/refund', extra: widget.transaction);
+        },
+        isDestructive: false,
+      );
+    }
+
+    // if (isFailed ) {
+    //   return const SizedBox.shrink();
+    // }
 
     if (_isCrossChainSwap()) {
       return Column(
@@ -733,19 +927,6 @@ class _TransactionDetailScreenState
                   blockchain: widget.transaction.receiveBlockchain,
                 ),
           ),
-          if (isRefundable) ...[
-            const SizedBox(height: 12),
-            _buildActionButton(
-              context: context,
-              label: 'Solicitar Reembolso',
-              subtitle: 'Recuperar seus fundos',
-              icon: Icons.refresh,
-              onPressed: () {
-                context.push('/transactions/refund', extra: widget.transaction);
-              },
-              isDestructive: true,
-            ),
-          ],
         ],
       );
     }
@@ -769,19 +950,6 @@ class _TransactionDetailScreenState
             subtitle: 'Verificar preimagem',
             icon: Icons.verified,
             onPressed: () => _openValidationUrl(),
-          ),
-        ],
-        if (isRefundable) ...[
-          const SizedBox(height: 12),
-          _buildActionButton(
-            context: context,
-            label: 'Solicitar Reembolso',
-            subtitle: 'Recuperar seus fundos',
-            icon: Icons.refresh,
-            onPressed: () {
-              context.push('/transactions/refund', extra: widget.transaction);
-            },
-            isDestructive: true,
           ),
         ],
       ],
@@ -903,9 +1071,9 @@ class _TransactionDetailScreenState
       case TransactionStatus.confirmed:
         return 'Confirmada';
       case TransactionStatus.failed:
-        return 'Em Análise';
+        return 'Reembolso Processado';
       case TransactionStatus.refundable:
-        return 'Reembolsável';
+        return 'Aguardando Reembolso';
     }
   }
 
@@ -975,8 +1143,8 @@ class _TransactionDetailScreenState
       final useBlockchain = blockchain ?? widget.transaction.blockchain;
 
       explorerUrl = switch (useBlockchain) {
-        Blockchain.bitcoin => 'https://blockstream.info/tx/$useTxId',
-        Blockchain.liquid => 'https://blockstream.info/liquid/tx/$useTxId',
+        Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$useTxId',
+        Blockchain.liquid => 'https://liquid.network/pt/tx/$useTxId',
         Blockchain.lightning => 'https://blockstream.info/liquid/tx/$useTxId',
       };
     }
