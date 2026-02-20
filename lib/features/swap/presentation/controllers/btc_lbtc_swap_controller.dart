@@ -37,7 +37,9 @@ class BtcLbtcSwapController {
     }
 
     if (!drain && amount < BigInt.from(minSwapAmount)) {
-      return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
+      return TaskEither.left(
+        'Quantidade mínima é ${(minSwapAmount / 1000).toStringAsFixed(0)}k sats devido às taxas',
+      );
     }
 
     if (isPegIn) {
