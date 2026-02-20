@@ -6,19 +6,24 @@ import 'package:mooze_mobile/themes/app_colors.dart';
 class DeveloperActionGrid extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onSync;
+  final VoidCallback onFullSync;
   final VoidCallback onRescan;
   final VoidCallback onViewLogs;
   final VoidCallback onExportLogs;
   final VoidCallback onClearLogs;
+  final VoidCallback onRefund;
+
 
   const DeveloperActionGrid({
     super.key,
     required this.isLoading,
     required this.onSync,
+    required this.onFullSync,
     required this.onRescan,
     required this.onViewLogs,
     required this.onExportLogs,
     required this.onClearLogs,
+    required this.onRefund,
   });
 
   @override
@@ -51,10 +56,18 @@ class DeveloperActionGrid extends StatelessWidget {
           children: [
             GridActionButton(
               icon: Icons.sync,
-              label: 'Sync',
-              tooltip: 'Synchronize wallet',
+              label: 'Light Sync',
+              tooltip: 'Fast sync (transactions, balances, prices)',
               onPressed: onSync,
               enabled: !isLoading,
+            ),
+            GridActionButton(
+              icon: Icons.sync_alt,
+              label: 'Full Sync',
+              tooltip: 'Complete blockchain sync',
+              onPressed: onFullSync,
+              enabled: !isLoading,
+              iconColor: Colors.orange[400],
             ),
             GridActionButton(
               icon: Icons.radar,
@@ -62,6 +75,14 @@ class DeveloperActionGrid extends StatelessWidget {
               tooltip: 'Rescan onchain swaps',
               onPressed: onRescan,
               enabled: !isLoading,
+            ),
+            GridActionButton(
+              icon: Icons.task_alt_rounded,
+              label: 'Reembolso',
+              tooltip: 'Complete blockchain sync',
+              onPressed: onRefund,
+              enabled: !isLoading,
+              iconColor: Colors.orange[700],
             ),
             GridActionButton(
               icon: Icons.article,
