@@ -100,6 +100,7 @@ dependencies:
   share_plus: ^12.0.1
   mailto: ^2.0.0
   flutter_email_sender: ^6.0.3
+  mutex: ^3.1.0
 
 dependency_overrides:
 
