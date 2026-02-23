@@ -80,6 +80,10 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         if (feeEstimation.hasError) {
           if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
             errors.add('Endereço inválido ou não reconhecido');
+          } else if (feeEstimation.errorMessage == 'PENDING_PAYMENTS') {
+            errors.add(
+              'Não é possível enviar o saldo total enquanto há pagamentos pendentes. Aguarde a conclusão dos pagamentos e tente novamente.',
+            );
           } else if (feeEstimation.errorMessage != 'INSUFFICIENT_FUNDS') {
             errors.add(
               'Não foi possível validar a transação: ${feeEstimation.errorMessage}',
@@ -136,6 +140,10 @@ class SendValidationController extends StateNotifier<SendValidationState> {
             if (feeEstimation.errorMessage == 'INSUFFICIENT_FUNDS') {
             } else if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
               errors.add('Endereço inválido ou não reconhecido');
+            } else if (feeEstimation.errorMessage == 'PENDING_PAYMENTS') {
+              errors.add(
+                'Não é possível enviar o saldo total enquanto há pagamentos pendentes. Aguarde a conclusão dos pagamentos e tente novamente.',
+              );
             } else {
               errors.add(
                 'Não foi possível calcular as taxas: ${feeEstimation.errorMessage}',

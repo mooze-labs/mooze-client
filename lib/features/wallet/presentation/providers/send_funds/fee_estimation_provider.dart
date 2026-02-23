@@ -117,6 +117,11 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
             return FeeEstimation.error('INVALID_ADDRESS');
           }
 
+          if (errorLower.contains('cannot drain while') ||
+              errorLower.contains('pending payments')) {
+            return FeeEstimation.error('PENDING_PAYMENTS');
+          }
+
           return FeeEstimation.error(error);
         }, (psbt) => FeeEstimation(fees: psbt.networkFees));
       } catch (e) {
