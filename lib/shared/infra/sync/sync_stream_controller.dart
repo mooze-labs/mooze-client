@@ -12,7 +12,7 @@ enum TransactionEventType {
 class TransactionEvent {
   final String txId;
   final TransactionEventType eventType;
-  final String blockchain; // "liquid", "bitcoin", "lightning"
+  final String blockchain;
   final String? oldStatus;
   final String? newStatus;
   final int? oldConfirmations;
@@ -37,7 +37,7 @@ class TransactionEvent {
 }
 
 class SyncProgress {
-  final String datasource; // "BDK", "LWK", "Breez"
+  final String datasource;
   final SyncStatus status;
   final int? totalItems;
   final int? processedItems;
@@ -71,16 +71,23 @@ class SyncStreamController {
   final _controller = StreamController<SyncProgress>.broadcast();
   final _transactionController = StreamController<TransactionEvent>.broadcast();
 
+  SyncStreamController();
+
   Stream<SyncProgress> get stream => _controller.stream;
+
   Stream<TransactionEvent> get transactionStream =>
       _transactionController.stream;
+
+  int get transactionListenerCount {
+    return _transactionController.hasListener ? 1 : 0;
+  }
 
   void updateProgress(SyncProgress progress) {
     if (!_controller.isClosed) {
       _controller.add(progress);
 
-      // Se tiver eventos de transações, emite no stream separado também
-      if (progress.transactionEvents != null) {
+      if (progress.transactionEvents != null &&
+          progress.transactionEvents!.isNotEmpty) {
         for (final event in progress.transactionEvents!) {
           emitTransactionEvent(event);
         }
@@ -100,25 +107,21 @@ class SyncStreamController {
   }
 }
 
-// Provider global para o stream controller
 final syncStreamProvider = Provider<SyncStreamController>((ref) {
   final controller = SyncStreamController();
   ref.onDispose(() => controller.dispose());
   return controller;
 });
 
-// Provider para escutar progresso de um datasource específico
 final datasourceSyncProgressProvider =
     StreamProvider.family<SyncProgress, String>((ref, datasource) {
       final syncStream = ref.watch(syncStreamProvider);
       return syncStream.stream.where((p) => p.datasource == datasource);
     });
 
-// Provider para status geral de sync (true se qualquer datasource está sincronizando)
 final anySyncInProgressProvider = StreamProvider<bool>((ref) {
   final syncStream = ref.watch(syncStreamProvider);
 
-  // Mantém o último estado conhecido
   bool lastState = false;
 
   return syncStream.stream.map((p) {
@@ -126,15 +129,12 @@ final anySyncInProgressProvider = StreamProvider<bool>((ref) {
       lastState = true;
     } else if (p.status == SyncStatus.completed ||
         p.status == SyncStatus.error) {
-      // Verifica se há outros datasources ainda sincronizando
-      // Por simplicidade, assumimos que se recebemos completed/error, esse datasource terminou
       lastState = false;
     }
     return lastState;
   });
 });
 
-// Provider para obter todos os status de sync
 final allSyncStatusProvider = StreamProvider<Map<String, SyncStatus>>((ref) {
   final syncStream = ref.watch(syncStreamProvider);
   final statusMap = <String, SyncStatus>{};
