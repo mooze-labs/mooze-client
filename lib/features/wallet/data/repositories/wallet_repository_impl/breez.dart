@@ -469,14 +469,19 @@ class BreezWallet {
       return _prepareDrainLightningResponse(_breez, destination).flatMap((
         response,
       ) {
+        final BigInt resolvedAmount = switch (response.amount) {
+          PayAmount_Bitcoin(receiverAmountSat: final sats) => sats,
+          _ =>
+            (balance[Asset.lbtc] ?? BigInt.zero) -
+                response.feesSat, // balance - fees = receiver amount
+        };
+
         return TaskEither.right(
           BreezPreparedLayer2TransactionDto(
             destination: destination,
             blockchain: Blockchain.lightning,
             fees: response.feesSat,
-            amount:
-                BigInt
-                    .zero, // For drain transactions, amount is determined by the prepare response
+            amount: resolvedAmount,
             drain: true,
           ).toDomain(),
         );
@@ -493,12 +498,27 @@ class BreezWallet {
         normalizedDestination,
         Blockchain.liquid,
       ).flatMap((response) {
+        final BigInt resolvedAmount;
+        if (response.exchangeAmountSat != null &&
+            response.exchangeAmountSat! > BigInt.zero) {
+          resolvedAmount = response.exchangeAmountSat!;
+        } else {
+          final payAmount = response.amount;
+          if (payAmount is PayAmount_Bitcoin) {
+            resolvedAmount = payAmount.receiverAmountSat;
+          } else {
+            resolvedAmount =
+                (balance[Asset.lbtc] ?? BigInt.zero) -
+                (response.feesSat ?? BigInt.zero);
+          }
+        }
+
         return TaskEither.right(
           BreezPreparedLayer2TransactionDto(
             destination: destination,
             blockchain: Blockchain.liquid,
             fees: response.feesSat ?? BigInt.zero,
-            amount: response.exchangeAmountSat ?? BigInt.zero,
+            amount: resolvedAmount,
             drain: true,
           ).toDomain(),
         );
@@ -514,17 +534,23 @@ class BreezWallet {
         _breez,
         normalizedDestination,
         asset,
-      ).flatMap(
-        (response) => TaskEither.right(
+      ).flatMap((response) {
+        double resolvedAmount = _extractAssetAmount(response.amount);
+        if (resolvedAmount <= 0) {
+          resolvedAmount =
+              (balance[asset] ?? BigInt.zero).toDouble() / 100000000;
+        }
+
+        return TaskEither.right(
           BreezPreparedStablecoinTransactionDto(
             destination: destination,
-            amount: _extractAssetAmount(response.amount),
+            amount: resolvedAmount,
             fees: response.feesSat ?? BigInt.zero,
             asset: asset.id,
             drain: true,
           ).toDomain(),
-        ),
-      );
+        );
+      });
     });
   }
 
