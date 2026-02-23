@@ -6,9 +6,118 @@ import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../key_management/providers/mnemonic_provider.dart';
 import 'config_provider.dart';
+
+/// Global reference to the current Breez client for cleanup purposes
+/// This is necessary because Riverpod's invalidate() doesn't call disconnect()
+BreezSdkLiquid? _currentBreezClient;
+
+/// Provider to explicitly disconnect the Breez client before invalidating
+/// IMPORTANT: Call this BEFORE invalidating breezClientProvider
+/// Returns true if disconnection was successful or no client was connected
+final disconnectBreezClientProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  final logger = ref.read(appLoggerProvider);
+
+  if (_currentBreezClient == null) {
+    logger.debug('BreezClient', 'No active client to disconnect');
+    return true;
+  }
+
+  try {
+    logger.info('BreezClient', 'Explicitly disconnecting Breez SDK...');
+    await _currentBreezClient!.disconnect();
+    _currentBreezClient = null;
+    logger.info('BreezClient', '✅ Breez SDK disconnected successfully');
+
+    // Wait for file handles to be released
+    await Future.delayed(const Duration(milliseconds: 500));
+    return true;
+  } catch (e) {
+    logger.warning(
+      'BreezClient',
+      'Error disconnecting Breez SDK: $e',
+      error: e,
+    );
+    _currentBreezClient = null;
+    // Even if disconnect fails, clear the reference
+    return false;
+  }
+});
+
+/// Provider to clean Breez data directory
+/// Call this AFTER disconnecting and BEFORE importing a new wallet
+final cleanBreezDataDirectoryProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  final logger = ref.read(appLoggerProvider);
+
+  try {
+    final workingDir = await getApplicationDocumentsDirectory();
+    final breezDir = Directory("${workingDir.path}/mooze");
+
+    if (!await breezDir.exists()) {
+      logger.debug(
+        'BreezClient',
+        'Breez directory does not exist, nothing to clean',
+      );
+      return true;
+    }
+
+    logger.info(
+      'BreezClient',
+      'Cleaning Breez data directory: ${breezDir.path}',
+    );
+
+    const maxAttempts = 5;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await breezDir.delete(recursive: true);
+        logger.info('BreezClient', '✅ Breez directory deleted successfully');
+        return true;
+      } catch (e) {
+        if (attempt < maxAttempts) {
+          final delay = Duration(milliseconds: 500 * attempt);
+          logger.debug(
+            'BreezClient',
+            'Delete attempt $attempt/$maxAttempts failed, retrying in ${delay.inMilliseconds}ms: $e',
+          );
+          await Future.delayed(delay);
+        } else {
+          logger.error(
+            'BreezClient',
+            'Failed to delete Breez directory after $maxAttempts attempts',
+            error: e,
+          );
+        }
+      }
+    }
+
+    return false;
+  } catch (e) {
+    logger.error('BreezClient', 'Error cleaning Breez directory', error: e);
+    return false;
+  }
+});
+
+/// Global flag to indicate wallet deletion is in progress
+/// This prevents any new Breez connections during wallet deletion
+bool _isWalletBeingDeleted = false;
+
+/// Provider to set the wallet deletion flag
+/// Call this BEFORE starting wallet deletion, and reset after deletion completes
+final setWalletDeletionFlagProvider = Provider.family<void, bool>((
+  ref,
+  isDeleting,
+) {
+  _isWalletBeingDeleted = isDeleting;
+  final logger = ref.read(appLoggerProvider);
+  logger.debug('BreezClient', 'Wallet deletion flag set to: $isDeleting');
+});
 
 /// Temporary errors that can be resolved with retry
 const _retryableErrors = [
@@ -32,19 +141,38 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
   ref,
 ) async {
   final logger = ref.read(appLoggerProvider);
+
+  // Check if wallet deletion is in progress - don't connect during deletion
+  if (_isWalletBeingDeleted) {
+    logger.warning(
+      'BreezClient',
+      'Wallet deletion in progress - skipping Breez connection',
+    );
+    return left('Wallet deletion in progress');
+  }
+
   final config = await ref.read(configProvider.future);
   final mnemonicOption = await ref.watch(mnemonicProvider.future);
   final syncStream = ref.read(syncStreamProvider);
 
   return await mnemonicOption.fold(
     () async {
-      logger.error(
+      logger.warning(
         'BreezClient',
-        'Mnemonic not available - wallet may not be initialized or mnemonic cache is stale',
+        'Mnemonic not available - wallet may not be initialized or was deleted',
       );
       return left('Mnemonic not available');
     },
     (mnemonic) async {
+      // Double-check deletion flag after mnemonic check (race condition protection)
+      if (_isWalletBeingDeleted) {
+        logger.warning(
+          'BreezClient',
+          'Wallet deletion started after mnemonic read - aborting connection',
+        );
+        return left('Wallet deletion in progress');
+      }
+
       const maxRetries = 3;
       const initialDelay = Duration(seconds: 2);
 
@@ -76,6 +204,9 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
 
           final client = await connect(req: connectRequest);
           logger.info('BreezClient', '✅ Breez SDK connected successfully');
+
+          // Save global reference for cleanup
+          _currentBreezClient = client;
 
           // Sync em background (fire and forget)
           _syncBreezInBackground(client, syncStream, logger, ref);
@@ -174,6 +305,8 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
                 );
               }
 
+              // Save global reference for cleanup
+              _currentBreezClient = client;
               return right(client);
             } catch (retryError) {
               logger.error(
@@ -226,7 +359,26 @@ void _syncBreezInBackground(
   SyncStreamController syncStream,
   AppLoggerService logger,
   Ref ref,
-) {
+) async {
+  // Check mnemonic availability before starting sync
+  final mnemonicOption = await ref.read(mnemonicProvider.future);
+  if (mnemonicOption.isNone()) {
+    logger.warning(
+      'BreezClient',
+      'Mnemonic not available - skipping background sync silently (wallet may have been deleted)',
+    );
+    // Emit completed (not error) so the boot orchestrator can proceed normally
+    // and no error is shown to the user during wallet import flow
+    syncStream.updateProgress(
+      SyncProgress(
+        datasource: 'Breez',
+        status: SyncStatus.completed,
+        timestamp: DateTime.now(),
+      ),
+    );
+    return;
+  }
+
   syncStream.updateProgress(
     SyncProgress(
       datasource: 'Breez',
@@ -244,7 +396,7 @@ void _syncBreezInBackground(
         client: client,
         logger: logger,
         maxAttempts: 4, // Try up to 4 times
-        initialDelay: Duration(seconds: 3),
+        initialDelay: Duration(seconds: 4),
       )
       .then((_) {
         logger.info('BreezClient', 'Background sync completed successfully');
@@ -260,7 +412,37 @@ void _syncBreezInBackground(
       .catchError((e, stack) {
         final errorMsg = e.toString();
 
-        // Log differently based on error type
+        // Detect errors caused by wallet deletion / SDK disconnection
+        // These are expected during the wallet import flow and must NOT be shown to the user
+        final isWalletDeletedError =
+            errorMsg.contains('Mnemonic not available') ||
+            errorMsg.contains('Wallet deletion in progress') ||
+            errorMsg.contains('Breez client disconnected') ||
+            errorMsg.contains('Breez SDK not started') ||
+            errorMsg.contains('sync aborted') ||
+            errorMsg.contains('notStarted') ||
+            errorMsg.contains('SdkError.notStarted');
+
+        if (isWalletDeletedError) {
+          // Log as warning only - this is expected when the user deletes a wallet
+          logger.warning(
+            'BreezClient',
+            'Background sync skipped (wallet deleted or SDK disconnected): $errorMsg',
+          );
+          // Emit completed so the boot orchestrator can finish normally
+          // and the user can proceed to import a new seed without seeing errors
+          syncStream.updateProgress(
+            SyncProgress(
+              datasource: 'Breez',
+              status: SyncStatus.completed,
+              timestamp: DateTime.now(),
+            ),
+          );
+          syncEventController.emitCompleted('breez');
+          return;
+        }
+
+        // Real sync error - log and propagate normally
         if (_isRetryableError(errorMsg)) {
           logger.warning(
             'BreezClient',
@@ -298,6 +480,24 @@ Future<void> _syncBreezWithRetry({
   String? lastError;
 
   for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Check if wallet deletion is in progress - abort sync
+    if (_isWalletBeingDeleted) {
+      logger.warning(
+        'BreezClient',
+        'Wallet deletion in progress - aborting sync attempt $attempt',
+      );
+      throw Exception('Wallet deletion in progress - sync aborted');
+    }
+
+    // Check if Breez client was disconnected (e.g. wallet deleted) - abort sync
+    if (_currentBreezClient == null) {
+      logger.warning(
+        'BreezClient',
+        'Breez client is null (disconnected) - aborting sync attempt $attempt',
+      );
+      throw Exception('Breez client disconnected - sync aborted');
+    }
+
     try {
       logger.info('BreezClient', 'Sync attempt $attempt/$maxAttempts...');
 
@@ -319,6 +519,19 @@ Future<void> _syncBreezWithRetry({
         'BreezClient',
         'Sync attempt $attempt/$maxAttempts failed: $lastError',
       );
+
+      // If SDK is not started (wallet deleted / disconnected), abort immediately
+      if (lastError.contains('notStarted') ||
+          lastError.contains('not_started') ||
+          lastError.contains('SdkError.notStarted')) {
+        logger.warning(
+          'BreezClient',
+          'SDK not started (client disconnected) - aborting sync immediately',
+        );
+        throw Exception(
+          'Breez SDK not started - sync aborted (wallet may have been deleted)',
+        );
+      }
 
       // Check if this is a database-related error that needs directory cleanup
       final isDatabaseError =
