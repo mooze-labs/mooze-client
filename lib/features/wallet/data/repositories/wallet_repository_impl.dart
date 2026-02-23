@@ -521,7 +521,15 @@ class WalletRepositoryImpl extends WalletRepository {
         }
 
         // If Breez failed or not available, try LWK for Liquid assets
-        if (_liquidWallet != null && !balance.containsKey(Asset.lbtc)) {
+        // Only call LWK if no Liquid assets were loaded from Breez
+        final hasAnyLiquidAsset = balance.keys.any(
+          (asset) =>
+              asset == Asset.lbtc ||
+              asset == Asset.usdt ||
+              asset == Asset.depix,
+        );
+
+        if (_liquidWallet != null && !hasAnyLiquidAsset) {
           try {
             final liquidResult = await _liquidWallet!.getBalance().run();
             liquidResult.fold(
@@ -532,7 +540,10 @@ class WalletRepositoryImpl extends WalletRepository {
               },
               (liquidBal) {
                 // Add L-BTC and other Liquid assets from LWK
-                balance.addAll(liquidBal);
+                // Use putIfAbsent to avoid overwriting existing balances
+                for (final entry in liquidBal.entries) {
+                  balance.putIfAbsent(entry.key, () => entry.value);
+                }
                 if (kDebugMode) {
                   debugPrint(
                     '[getBalance] Liquid (LWK) balance loaded: ${liquidBal.keys.map((a) => a.ticker).join(", ")}',
