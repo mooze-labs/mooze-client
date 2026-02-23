@@ -4,24 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
-import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
-import 'package:mooze_mobile/shared/user/services/user_level_storage_service.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/utils/mnemonic.dart';
-import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
-import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
-import 'package:mooze_mobile/shared/key_management/providers/pin_store_provider.dart';
-import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -107,59 +91,58 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   void _verifyAndDeleteWallet(BuildContext context) {
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
-        final mnemonicHandler = MnemonicHandler();
-        await mnemonicHandler.deleteMnemonic("mainWallet");
+        // Capture navigator and scaffold messenger before async operations
+        final navigator = Navigator.of(context);
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-        // Clear user verification level
-        final prefs = await SharedPreferences.getInstance();
-        final userLevelStorage = UserLevelStorageService(prefs);
-        await userLevelStorage.clearVerificationLevel();
+        try {
+          // Show loading indicator using captured navigator
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder:
+                (dialogContext) => WillPopScope(
+                  onWillPop: () async => false,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+          );
 
-        // Delete PIN
-        final pinStore = ref.read(pinStoreProvider);
-        await pinStore.deletePin().run();
+          // Call centralized delete method from WalletDataManager
+          final success =
+              await ref.read(walletDataManagerProvider.notifier).deleteWallet();
 
-        // Invalidate seed/mnemonic providers
-        ref.invalidate(mnemonicProvider);
-        ref.invalidate(hasPinProvider);
-        ref.invalidate(bdkDatasourceProvider);
-        ref.invalidate(liquidDataSourceProvider);
-        ref.invalidate(breezClientProvider);
-        ref.invalidate(walletRepositoryProvider);
-        ref.invalidate(transactionControllerProvider);
-        ref.invalidate(transactionHistoryProvider);
+          // Close loading dialog using captured navigator
+          navigator.pop();
 
-        // Invalidate ALL balance-related providers
-        ref.invalidate(balanceControllerProvider);
-        ref.invalidate(
-          allBalancesProvider,
-        ); // Invalida o provider que busca os saldos
+          if (success) {
+            // Navigate to first access screen
+            if (context.mounted) {
+              context.go('/setup/first-access');
+            }
+          } else {
+            // Show error message using captured scaffold messenger
+            scaffoldMessenger.showSnackBar(
+              const SnackBar(
+                content: Text('Erro ao deletar carteira. Tente novamente.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } catch (e) {
+          // Close loading dialog if it's open
+          try {
+            navigator.pop();
+          } catch (_) {
+            // Dialog may already be closed
+          }
 
-        // Invalidate balance providers for each asset individually
-        final allAssets = ref.read(allAssetsProvider);
-        for (final asset in allAssets) {
-          ref.invalidate(balanceProvider(asset));
-        }
-
-        // Invalidate wallet providers
-        ref.invalidate(walletHoldingsProvider);
-        ref.invalidate(walletHoldingsWithBalanceProvider);
-        ref.invalidate(totalWalletValueProvider);
-        ref.invalidate(totalWalletBitcoinProvider);
-        ref.invalidate(totalWalletSatoshisProvider);
-        ref.invalidate(totalWalletVariationProvider);
-
-        // Clear caches of transactions and price history
-        ref.read(assetPriceHistoryCacheProvider.notifier).reset();
-        ref.read(transactionHistoryCacheProvider.notifier).reset();
-
-        // Invalidate session provider
-        ref.invalidate(ensureAuthSessionProvider);
-
-        await Future.delayed(const Duration(milliseconds: 100));
-
-        if (context.mounted) {
-          context.go('/setup/first-access');
+          // Show error message using captured scaffold messenger
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('Erro inesperado: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       },
       forceAuth: true,

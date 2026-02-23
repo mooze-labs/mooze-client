@@ -115,7 +115,6 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
             ),
             SizedBox(height: 40),
 
-            // Grid de palavras disponíveis
             Expanded(
               child: WordSelectionGrid(
                 shuffledWords: shuffledWords,
@@ -184,8 +183,6 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     if (_checkInputs()) {
       await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
 
-      // A inicialização da wallet será feita após confirmar o PIN
-      // Apenas invalida o mnemonicProvider aqui para garantir que o novo valor seja lido
       ref.invalidate(mnemonicProvider);
 
       if (mounted) {

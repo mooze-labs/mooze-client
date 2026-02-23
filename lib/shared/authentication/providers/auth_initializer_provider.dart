@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/authentication/providers/session_manager_service_provider.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 
-
 class AuthInitializer extends StateNotifier<AsyncValue<bool>> {
   final Ref _ref;
 
@@ -21,18 +20,18 @@ class AuthInitializer extends StateNotifier<AsyncValue<bool>> {
 
       if (sessionEnsured) {
         if (kDebugMode) {
-          debugPrint('[AuthInitializer] ✅ Sessão JWT garantida');
+          debugPrint('[AuthInitializer] Sessão JWT garantida');
         }
         state = const AsyncValue.data(true);
       } else {
         if (kDebugMode) {
-          debugPrint('[AuthInitializer] ⚠️  Não foi possível garantir sessão');
+          debugPrint('[AuthInitializer]  Não foi possível garantir sessão');
         }
         state = const AsyncValue.data(false);
       }
     } catch (e, stack) {
       if (kDebugMode) {
-        debugPrint('[AuthInitializer] ❌ Erro ao inicializar auth: $e');
+        debugPrint('[AuthInitializer] Erro ao inicializar auth: $e');
       }
       state = AsyncValue.error(e, stack);
     }
@@ -70,7 +69,7 @@ class AuthInitializer extends StateNotifier<AsyncValue<bool>> {
             (refreshedSession) async {
               await sessionManager.saveSession(refreshedSession).run();
               if (kDebugMode) {
-                debugPrint('[AuthInitializer] ✅ Sessão refreshada com sucesso');
+                debugPrint('[AuthInitializer] Sessão refreshada com sucesso');
               }
               state = const AsyncValue.data(true);
             },
@@ -79,7 +78,7 @@ class AuthInitializer extends StateNotifier<AsyncValue<bool>> {
       );
     } catch (e, stack) {
       if (kDebugMode) {
-        debugPrint('[AuthInitializer] ❌ Erro ao refresh: $e');
+        debugPrint('[AuthInitializer] Erro ao refresh: $e');
       }
       state = AsyncValue.error(e, stack);
     }

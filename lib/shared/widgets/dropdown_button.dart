@@ -68,11 +68,6 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
     final RenderBox renderBox =
         _key.currentContext!.findRenderObject() as RenderBox;
     final size = renderBox.size;
-    final Offset position = renderBox.localToGlobal(Offset.zero);
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    final spaceBelow = screenHeight - position.dy - size.height;
-    final maxHeight = spaceBelow > 180 ? 180.0 : spaceBelow - 20;
 
     return OverlayEntry(
       builder:

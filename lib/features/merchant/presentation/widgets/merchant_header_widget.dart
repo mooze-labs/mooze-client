@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class MerchantHeaderWidget extends StatelessWidget {
   final double valorReais;
   final VoidCallback onLimparCarrinho;
+  final VoidCallback? onBack;
   final GlobalKey? limparButtonKey;
   final GlobalKey? valorTotalKey;
 
@@ -11,6 +11,7 @@ class MerchantHeaderWidget extends StatelessWidget {
     super.key,
     required this.valorReais,
     required this.onLimparCarrinho,
+    this.onBack,
     this.limparButtonKey,
     this.valorTotalKey,
   });
@@ -23,9 +24,7 @@ class MerchantHeaderWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
-              onPressed: () {
-                context.pop();
-              },
+              onPressed: onBack,
               icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/data/onboarding/onboarding_data.dart';
+import 'package:mooze_mobile/features/setup/presentation/providers/onboarding_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // Controllers
   final PageController _pageController = PageController();
 
@@ -50,9 +53,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _navigateToNextScreen();
   }
 
-  // TODO: Add navigation route
-  void _navigateToNextScreen() {
-    Navigator.pushReplacementNamed(context, '/');
+  void _navigateToNextScreen() async {
+    // Mark onboarding as completed
+    final onboardingService = ref.read(onboardingServiceProvider);
+    await onboardingService.setOnboardingCompleted();
+
+    // Navigate to first access screen
+    if (mounted) {
+      context.go('/setup/first-access');
+    }
   }
 
   void _onPageChanged(int index) {

@@ -1,36 +1,39 @@
 PODS:
+  - battery_plus (1.0.0):
+    - Flutter
   - bdk_flutter (0.31.3):
     - Flutter
   - connectivity_plus (0.0.1):
     - Flutter
   - device_info_plus (0.0.1):
     - Flutter
-  - Firebase/CoreOnly (12.4.0):
-    - FirebaseCore (~> 12.4.0)
-  - Firebase/Messaging (12.4.0):
+  - DTTJailbreakDetection (0.4.0)
+  - Firebase/CoreOnly (12.8.0):
+    - FirebaseCore (~> 12.8.0)
+  - Firebase/Messaging (12.8.0):
     - Firebase/CoreOnly
-    - FirebaseMessaging (~> 12.4.0)
-  - firebase_core (4.2.1):
-    - Firebase/CoreOnly (= 12.4.0)
+    - FirebaseMessaging (~> 12.8.0)
+  - firebase_core (4.4.0):
+    - Firebase/CoreOnly (= 12.8.0)
     - Flutter
-  - firebase_messaging (16.0.4):
-    - Firebase/Messaging (= 12.4.0)
+  - firebase_messaging (16.1.1):
+    - Firebase/Messaging (= 12.8.0)
     - firebase_core
     - Flutter
-  - FirebaseCore (12.4.0):
-    - FirebaseCoreInternal (~> 12.4.0)
+  - FirebaseCore (12.8.0):
+    - FirebaseCoreInternal (~> 12.8.0)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/Logger (~> 8.1)
-  - FirebaseCoreInternal (12.4.0):
+  - FirebaseCoreInternal (12.8.0):
     - "GoogleUtilities/NSData+zlib (~> 8.1)"
-  - FirebaseInstallations (12.4.0):
-    - FirebaseCore (~> 12.4.0)
+  - FirebaseInstallations (12.8.0):
+    - FirebaseCore (~> 12.8.0)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - PromisesObjC (~> 2.4)
-  - FirebaseMessaging (12.4.0):
-    - FirebaseCore (~> 12.4.0)
-    - FirebaseInstallations (~> 12.4.0)
+  - FirebaseMessaging (12.8.0):
+    - FirebaseCore (~> 12.8.0)
+    - FirebaseInstallations (~> 12.8.0)
     - GoogleDataTransport (~> 10.1)
     - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
     - GoogleUtilities/Environment (~> 8.1)
@@ -39,6 +42,8 @@ PODS:
     - nanopb (~> 3.30910.0)
   - Flutter (1.0.0)
   - flutter_breez_liquid (0.11.9):
+    - Flutter
+  - flutter_email_sender (0.0.1):
     - Flutter
   - flutter_local_notifications (0.0.1):
     - Flutter
@@ -96,7 +101,14 @@ PODS:
   - PromisesObjC (2.4.0)
   - restart_app (0.0.1):
     - Flutter
+  - safe_device (1.0.0):
+    - DTTJailbreakDetection
+    - Flutter
+  - screen_brightness_ios (0.1.0):
+    - Flutter
   - ScreenProtectorKit (1.3.1)
+  - share_plus (0.0.1):
+    - Flutter
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -131,6 +143,7 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
+  - battery_plus (from `.symlinks/plugins/battery_plus/ios`)
   - bdk_flutter (from `.symlinks/plugins/bdk_flutter/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -138,6 +151,7 @@ DEPENDENCIES:
   - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
   - Flutter (from `Flutter`)
   - flutter_breez_liquid (from `.symlinks/plugins/flutter_breez_liquid/ios`)
+  - flutter_email_sender (from `.symlinks/plugins/flutter_email_sender/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
@@ -148,6 +162,9 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - restart_app (from `.symlinks/plugins/restart_app/ios`)
+  - safe_device (from `.symlinks/plugins/safe_device/ios`)
+  - screen_brightness_ios (from `.symlinks/plugins/screen_brightness_ios/ios`)
+  - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
   - sqlite3_flutter_libs (from `.symlinks/plugins/sqlite3_flutter_libs/darwin`)
@@ -156,6 +173,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - DTTJailbreakDetection
     - Firebase
     - FirebaseCore
     - FirebaseCoreInternal
@@ -169,6 +187,8 @@ SPEC REPOS:
     - sqlite3
 
 EXTERNAL SOURCES:
+  battery_plus:
+    :path: ".symlinks/plugins/battery_plus/ios"
   bdk_flutter:
     :path: ".symlinks/plugins/bdk_flutter/ios"
   connectivity_plus:
@@ -183,6 +203,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_breez_liquid:
     :path: ".symlinks/plugins/flutter_breez_liquid/ios"
+  flutter_email_sender:
+    :path: ".symlinks/plugins/flutter_email_sender/ios"
   flutter_local_notifications:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_secure_storage:
@@ -203,6 +225,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   restart_app:
     :path: ".symlinks/plugins/restart_app/ios"
+  safe_device:
+    :path: ".symlinks/plugins/safe_device/ios"
+  screen_brightness_ios:
+    :path: ".symlinks/plugins/screen_brightness_ios/ios"
+  share_plus:
+    :path: ".symlinks/plugins/share_plus/ios"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sqflite_darwin:
@@ -215,18 +243,21 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
+  battery_plus: 34f72fa2afeeea83bbae306c72a25828d3ec727a
   bdk_flutter: 86c9ba59ee282dee08c3a29599abe867d10a8b10
   connectivity_plus: 2a701ffec2c0ae28a48cf7540e279787e77c447d
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
-  Firebase: f07b15ae5a6ec0f93713e30b923d9970d144af3e
-  firebase_core: e6b8bb503b7d1d9856e698d4f193f7b414e6bf1f
-  firebase_messaging: fc7b6af84f4cd885a4999f51ea69ef20f380d70d
-  FirebaseCore: bb595f3114953664e3c1dc032f008a244147cfd3
-  FirebaseCoreInternal: d7f5a043c2cd01a08103ab586587c1468047bca6
-  FirebaseInstallations: ae9f4902cb5bf1d0c5eaa31ec1f4e5495a0714e2
-  FirebaseMessaging: d33971b7bb252745ea6cd31ab190d1a1df4b8ed5
+  DTTJailbreakDetection: 5e356c5badc17995f65a83ed9483f787a0057b71
+  Firebase: 9a58fdbc9d8655ed7b79a19cf9690bb007d3d46d
+  firebase_core: 8d5e24676350f15dd111aa59a88a1ae26605f9ba
+  firebase_messaging: 834cfc0887393d3108cdb19da8e57655c54fd0e4
+  FirebaseCore: 0dbad74bda10b8fb9ca34ad8f375fb9dd3ebef7c
+  FirebaseCoreInternal: fe5fa466aeb314787093a7dce9f0beeaad5a2a21
+  FirebaseInstallations: 6a14ab3d694ebd9f839c48d330da5547e9ca9dc0
+  FirebaseMessaging: 7f42cfd10ec64181db4e01b305a613791c8e782c
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_breez_liquid: 1f55af984a6dc09db65c5f466acef614f1c36b87
+  flutter_email_sender: 10a22605f92809a11ef52b2f412db806c6082d40
   flutter_local_notifications: ff50f8405aaa0ccdc7dcfb9022ca192e8ad9688f
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
@@ -241,7 +272,10 @@ SPEC CHECKSUMS:
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   restart_app: 806659942bf932f6ce51c5372f91ce5e81c8c14a
+  safe_device: 0f4e0d1529c29b5e8250de01f5ef687d55937082
+  screen_brightness_ios: 6a6f7794b67f07c4f1e24f6374b2d8ad367ffb39
   ScreenProtectorKit: 83a6281b02c7a5902ee6eac4f5045f674e902ae4
+  share_plus: 8b6f8b3447e494cca5317c8c3073de39b3600d1f
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
   sqlite3: 73513155ec6979715d3904ef53a8d68892d4032b

@@ -160,10 +160,10 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
       decoration: BoxDecoration(
         color: widget.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -177,7 +177,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -204,7 +204,9 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                       'Tente novamente mais tarde ou contate o suporte.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: widget.colorScheme.onSurface.withOpacity(0.7),
+                        color: widget.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],

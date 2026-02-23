@@ -7,7 +7,9 @@ import 'package:fpdart/fpdart.dart' show Either;
 
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
+import '../widgets/btc_lbtc_swap_warning_dialog.dart';
 import '../helpers/btc_lbtc_swap_helper.dart';
+import '../providers/swap_onboarding_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
@@ -29,13 +31,14 @@ class SwapScreen extends ConsumerStatefulWidget {
 class _SwapScreenState extends ConsumerState<SwapScreen> {
   final TextEditingController _fromAmountController = TextEditingController();
   late final TextEditingController _fromAmountDecimalController;
-  core.Asset _fromAsset = core.Asset.lbtc;
-  core.Asset _toAsset = core.Asset.usdt;
+  core.Asset _fromAsset = core.Asset.depix;
+  core.Asset _toAsset = core.Asset.lbtc;
   Timer? _debounce;
   bool _isSyncingDecimal = false;
   bool _hasShownNoLiquidityDialog = false;
   bool _useDrain = false;
   int _swapKey = 0;
+  bool _hasCheckedBtcLbtcWarning = false;
 
   static const int _minBtcLbtcSwapSats = 25000;
 
@@ -138,18 +141,20 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     final exchangeRate = swapState.exchangeRate;
 
-    return Scaffold(
-      extendBody: true,
-      appBar: AppBar(
-        title: const Text('Swap'),
-        actions: [
-          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Padding(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        extendBody: true,
+        appBar: AppBar(
+          title: const Text('Swap'),
+          actions: [
+            OfflineIndicator(
+              onTap: () => OfflinePriceInfoOverlay.show(context),
+            ),
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
             padding: const EdgeInsets.all(15),
@@ -168,11 +173,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     final oldFromAsset = _fromAsset;
                     final oldToAsset = _toAsset;
 
-                    // Limpa os controladores primeiro
                     _fromAmountController.text = '';
                     _fromAmountDecimalController.text = '';
 
-                    // Reseta o quote e limpa o estado
                     await ref
                         .read(swapControllerProvider.notifier)
                         .resetQuote();
@@ -440,7 +443,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
                                         if (!isSendAssetCorrect ||
                                             !isReceiveAssetCorrect) {
-                                          // Os ativos mudaram, precisa requotar
                                           if (mounted) {
                                             ScaffoldMessenger.of(
                                               context,
@@ -592,6 +594,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           setState(() {
                             _fromAsset = newAsset;
                             _useDrain = false;
+                            _hasCheckedBtcLbtcWarning = false;
 
                             if (_fromAsset == core.Asset.btc) {
                               _toAsset = core.Asset.lbtc;
@@ -611,6 +614,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
                           ref.invalidate(balanceProvider(_fromAsset));
                           ref.invalidate(balanceProvider(_toAsset));
+
+                          await _checkAndShowBtcLbtcWarning();
                         }
                       },
                     ),
@@ -882,6 +887,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                               setState(() {
                                 _toAsset = newAsset;
                                 _useDrain = false;
+                                _hasCheckedBtcLbtcWarning = false;
 
                                 if (_toAsset == core.Asset.btc) {
                                   _fromAsset = core.Asset.lbtc;
@@ -893,6 +899,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
                               ref.invalidate(balanceProvider(_fromAsset));
                               ref.invalidate(balanceProvider(_toAsset));
+
+                              await _checkAndShowBtcLbtcWarning();
                             }
                           },
                         ),
@@ -961,6 +969,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   }
 
   Future<void> _clearSwapFields() async {
+    if (!mounted) {
+      debugPrint('[Swap] Widget não montado, cancelando _clearSwapFields');
+      return;
+    }
+
     final oldFromAsset = _fromAsset;
     final oldToAsset = _toAsset;
 
@@ -970,23 +983,36 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     });
 
     try {
+      if (!mounted) return;
+
       final walletDataManager = ref.read(walletDataManagerProvider.notifier);
       await walletDataManager.refreshWalletData();
     } catch (e) {
       debugPrint('[Swap] Erro ao atualizar dados da carteira: $e');
     }
 
-    ref.invalidate(allBalancesProvider);
+    if (!mounted) {
+      debugPrint(
+        '[Swap] Widget não montado após refresh, cancelando invalidações',
+      );
+      return;
+    }
 
-    ref.invalidate(fiatPriceProvider(oldFromAsset));
-    ref.invalidate(fiatPriceProvider(oldToAsset));
-    ref.invalidate(fiatPriceProvider(_fromAsset));
-    ref.invalidate(fiatPriceProvider(_toAsset));
+    try {
+      ref.invalidate(allBalancesProvider);
 
-    ref.invalidate(balanceProvider(oldFromAsset));
-    ref.invalidate(balanceProvider(oldToAsset));
-    ref.invalidate(balanceProvider(_fromAsset));
-    ref.invalidate(balanceProvider(_toAsset));
+      ref.invalidate(fiatPriceProvider(oldFromAsset));
+      ref.invalidate(fiatPriceProvider(oldToAsset));
+      ref.invalidate(fiatPriceProvider(_fromAsset));
+      ref.invalidate(fiatPriceProvider(_toAsset));
+
+      ref.invalidate(balanceProvider(oldFromAsset));
+      ref.invalidate(balanceProvider(oldToAsset));
+      ref.invalidate(balanceProvider(_fromAsset));
+      ref.invalidate(balanceProvider(_toAsset));
+    } catch (e) {
+      debugPrint('[Swap] Erro ao invalidar providers: $e');
+    }
   }
 
   Future<String> _getBalance(core.Asset asset) async {
@@ -1043,6 +1069,28 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     return error.toLowerCase().contains('no matching orders') ||
         error.toLowerCase().contains('matching orders') ||
         error.toLowerCase().contains('liquidez');
+  }
+
+  Future<void> _checkAndShowBtcLbtcWarning() async {
+    if (_hasCheckedBtcLbtcWarning) return;
+    if (!_isBtcLbtcSwap) return;
+
+    _hasCheckedBtcLbtcWarning = true;
+
+    try {
+      final service = await ref.read(
+        swapOnboardingServiceFutureProvider.future,
+      );
+
+      if (!service.hasSeenBtcLbtcSwapWarning()) {
+        if (!mounted) return;
+        await BtcLbtcSwapWarningDialog.show(context);
+        await service.markBtcLbtcSwapWarningAsSeen();
+      }
+    } catch (e) {
+      // Silently fail if onboarding service is not available
+      debugPrint('Error checking BTC/LBTC swap warning: $e');
+    }
   }
 
   void _showNoLiquidityDialog(BuildContext context) {
@@ -1229,7 +1277,7 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
     final screenSize = MediaQuery.of(context).size;
 
     final spaceBelow = screenSize.height - position.dy - size.height;
-    final itemHeight = 44.0; 
+    final itemHeight = 44.0;
     final maxItems = widget.items.length;
     final idealHeight = maxItems * itemHeight;
     final maxHeight = idealHeight < spaceBelow ? idealHeight : spaceBelow - 20;

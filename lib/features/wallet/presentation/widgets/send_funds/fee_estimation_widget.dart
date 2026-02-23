@@ -20,7 +20,7 @@ class FeeEstimationWidget extends ConsumerWidget {
     if (isDrainTransaction) {
       return const SizedBox.shrink();
     }
-    
+
     if (asset == Asset.btc) {
       return const SizedBox.shrink();
     }
@@ -49,6 +49,7 @@ class FeeEstimationWidget extends ConsumerWidget {
 
         return Container(
           padding: const EdgeInsets.all(12),
+          margin: EdgeInsets.symmetric(vertical: 7),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),

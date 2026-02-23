@@ -1,9 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/infra/boot/boot_orchestrator.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
+import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/infra/lwk/utils/cache_manager.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'dart:math' as math;
 
 class ImportMessage {
@@ -36,6 +44,11 @@ class _WalletImportLoadingScreenState
   String? _errorMessage;
   bool _hasInitialized = false;
   bool _isHandlingSuccess = false;
+
+  final _requiredDatasources = {'liquid', 'bdk', 'breez'};
+  final _completedDatasources = <String>{};
+  bool _allSyncsCompleted = false;
+  StreamSubscription<SyncEvent>? _syncEventSubscription;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -97,6 +110,7 @@ class _WalletImportLoadingScreenState
 
   @override
   void dispose() {
+    _syncEventSubscription?.cancel();
     _fadeController.dispose();
     _slideController.dispose();
     _checkBounceController.dispose();
@@ -108,60 +122,197 @@ class _WalletImportLoadingScreenState
     super.dispose();
   }
 
+  void _listenToSyncEvents() {
+    final controller = ref.read(syncEventControllerProvider);
+
+    final alreadyCompleted = controller.completedDatasources;
+
+    if (alreadyCompleted.isNotEmpty) {
+      for (final datasource in alreadyCompleted) {
+        if (_requiredDatasources.contains(datasource)) {
+          _completedDatasources.add(datasource);
+        }
+      }
+
+      if (_completedDatasources.containsAll(_requiredDatasources)) {
+        _allSyncsCompleted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _handleAllSyncsCompleted();
+          }
+        });
+      }
+    }
+
+    _syncEventSubscription = controller.stream.listen((event) {
+      if (event.isCompleted) {
+        if (!_completedDatasources.contains(event.datasource)) {
+          _completedDatasources.add(event.datasource);
+
+          _showMessage(
+            '${_getDatasourceName(event.datasource)} sincronizado ✓',
+          ).then((_) {
+            if (_completedDatasources.containsAll(_requiredDatasources)) {
+              _allSyncsCompleted = true;
+              _handleAllSyncsCompleted();
+            }
+          });
+        }
+      } else if (event.isFailed) {
+        if (!_completedDatasources.contains(event.datasource)) {
+          _completedDatasources.add(event.datasource);
+          _showMessage(
+            '${_getDatasourceName(event.datasource)} - erro, continuando...',
+          ).then((_) {
+            if (_completedDatasources.containsAll(_requiredDatasources)) {
+              _allSyncsCompleted = true;
+              _handleAllSyncsCompleted();
+            }
+          });
+        }
+      }
+    }, onError: (_) {});
+  }
+
+  String _getDatasourceName(String datasource) {
+    switch (datasource) {
+      case 'liquid':
+        return 'Liquid Network';
+      case 'bdk':
+        return 'Bitcoin';
+      case 'breez':
+        return 'Lightning';
+      default:
+        return datasource;
+    }
+  }
+
+  Future<void> _handleAllSyncsCompleted() async {
+    if (_isCompleted || _isHandlingSuccess) return;
+
+    setState(() => _isHandlingSuccess = true);
+
+    await _showMessage('Carregando saldos...');
+
+    await _refreshBalances();
+
+    await _showMessage('Carregando transações...');
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final transactionMonitor = ref.read(transactionMonitorServiceProvider);
+    await transactionMonitor.markExistingTransactionsAsKnown();
+
+    await _showMessage('Importação concluída ✓', isCompleted: true);
+    await _checkBounceController.forward();
+
+    transactionMonitor.finishImporting();
+
+    setState(() => _isCompleted = true);
+
+    if (mounted) {
+      context.go("/home");
+    }
+  }
+
+  Future<void> _refreshBalances() async {
+    try {
+      ref.read(balanceCacheProvider.notifier).reset();
+    } catch (_) {}
+
+    try {
+      final breezResult = await ref.read(breezClientProvider.future);
+      breezResult.fold((error) {
+        ref.invalidate(breezClientProvider);
+      }, (client) {});
+    } catch (_) {
+      ref.invalidate(breezClientProvider);
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    ref.invalidate(walletRepositoryProvider);
+
+    ref.invalidate(allBalancesProvider);
+
+    final assetsToRefresh = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
+    for (final asset in assetsToRefresh) {
+      ref.invalidate(balanceProvider(asset));
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    try {
+      await ref.read(allBalancesProvider.future);
+    } catch (_) {}
+  }
+
   Future<void> _startImportProcess() async {
     try {
       _progressController.forward();
 
       final transactionMonitor = ref.read(transactionMonitorServiceProvider);
       transactionMonitor.startImporting();
-      debugPrint(
-        '[ImportLoading] Modo importação ativado no TransactionMonitor',
-      );
 
       await _showMessage('Processando...');
-      await Future.delayed(const Duration(milliseconds: 500));
 
       await _showMessage('Verificando dados...');
 
       try {
         await LwkCacheManager.clearLwkDatabase();
-        debugPrint('✅ LWK database cleared before import');
-      } catch (e) {
-        debugPrint('⚠️ Failed to clear LWK database: $e');
-      }
+      } catch (_) {}
 
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      walletDataManager.invalidateAllWalletProviders();
-      await Future.delayed(const Duration(milliseconds: 800));
+      _completedDatasources.clear();
+      _allSyncsCompleted = false;
+
+      await _syncEventSubscription?.cancel();
+      _syncEventSubscription = null;
+
+      final syncController = ref.read(syncEventControllerProvider);
+      syncController.reset();
+
+      ref.invalidate(walletDataManagerProvider);
+
+      try {
+        ref.invalidate(bootOrchestratorProvider);
+      } catch (_) {}
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final freshWalletDataManager = ref.read(
+        walletDataManagerProvider.notifier,
+      );
+
+      freshWalletDataManager.invalidateAllWalletProviders();
+
+      _listenToSyncEvents();
 
       await _showMessage('Inicializando carteira...');
       setState(() => _hasInitialized = true);
-      await Future.delayed(const Duration(milliseconds: 600));
 
-      debugPrint('[ImportLoading] Iniciando carteira...');
-      walletDataManager.initializeWallet();
+      await freshWalletDataManager.initializeWallet(
+        skipInitialSync: false,
+        runSyncInBackground: true,
+      );
 
-      await Future.delayed(const Duration(seconds: 20));
+      final alreadyCompleted = syncController.completedDatasources;
 
-      if (mounted && _hasInitialized && !_hasError && !_isCompleted) {
-        debugPrint(
-          '[ImportLoading] Timeout atingido, verificando estado manualmente',
-        );
-        final currentStatus = ref.read(walletDataManagerProvider);
-        if (currentStatus.isSuccess) {
-          await _handleWalletSuccess();
-        } else if (currentStatus.hasError) {
-          final errorMsg =
-              currentStatus.errorMessage ?? 'Timeout na inicialização';
-          await _showMessage(errorMsg, hasError: true);
-          setState(() {
-            _hasError = true;
-            _errorMessage = errorMsg;
-          });
+      if (alreadyCompleted.isNotEmpty) {
+        for (final datasource in alreadyCompleted) {
+          if (_requiredDatasources.contains(datasource) &&
+              !_completedDatasources.contains(datasource)) {
+            _completedDatasources.add(datasource);
+            await _showMessage(
+              '${_getDatasourceName(datasource)} sincronizado ✓',
+            );
+          }
+        }
+
+        if (_completedDatasources.containsAll(_requiredDatasources)) {
+          _allSyncsCompleted = true;
+          await _handleAllSyncsCompleted();
         }
       }
     } catch (e) {
-      debugPrint('[ImportLoading] Erro capturado: $e');
       final errorMsg = _getErrorMessage(e);
       await _showMessage(errorMsg, hasError: true);
       setState(() {
@@ -184,7 +335,6 @@ class _WalletImportLoadingScreenState
           hasError: _messages[_currentMessageIndex].hasError,
         );
       });
-      await Future.delayed(const Duration(milliseconds: 200));
     }
 
     setState(() {
@@ -197,7 +347,6 @@ class _WalletImportLoadingScreenState
     _fadeController.reset();
     _slideController.reset();
     await Future.wait([_fadeController.forward(), _slideController.forward()]);
-    await Future.delayed(const Duration(milliseconds: 300));
   }
 
   String _getErrorMessage(dynamic error) {
@@ -260,100 +409,27 @@ class _WalletImportLoadingScreenState
     _startImportProcess();
   }
 
-  Future<void> _handleWalletSuccess() async {
-    if (_isCompleted || _isHandlingSuccess) return;
-
-    setState(() => _isHandlingSuccess = true);
-    debugPrint('[ImportLoading] Iniciando _handleWalletSuccess');
-
-    await _showMessage('Carregando saldo...');
-    await Future.delayed(Duration(seconds: 1));
-    await _showMessage('Carregando Transações...');
-
-    final maxWaitTime = DateTime.now().add(const Duration(seconds: 5));
-    bool dataLoaded = false;
-
-    while (DateTime.now().isBefore(maxWaitTime) && !dataLoaded) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      final status = ref.read(walletDataManagerProvider);
-
-      if (status.lastSync != null) {
-        debugPrint(
-          '[ImportLoading] Dados carregados, lastSync: ${status.lastSync}',
-        );
-        dataLoaded = true;
-        break;
-      }
-    }
-
-    if (!dataLoaded) {
-      debugPrint(
-        '[ImportLoading] Timeout aguardando carregamento de dados, prosseguindo...',
-      );
-    }
-
-    debugPrint(
-      '[ImportLoading] Marcando transações existentes como conhecidas...',
-    );
-    final transactionMonitor = ref.read(transactionMonitorServiceProvider);
-    await transactionMonitor.markExistingTransactionsAsKnown();
-
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    await _showMessage('Importação concluída ✓', isCompleted: true);
-    await _checkBounceController.forward();
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    transactionMonitor.finishImporting();
-    debugPrint(
-      '[ImportLoading] Modo importação desativado no TransactionMonitor',
-    );
-
-    setState(() => _isCompleted = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    if (mounted) {
-      debugPrint('[ImportLoading] Navegando para /home');
-      context.go("/home");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listen<WalletDataStatus>(walletDataManagerProvider, (
       previous,
       next,
     ) async {
-      debugPrint(
-        '[ImportLoading] Estado mudou - hasInitialized: $_hasInitialized, hasError: $_hasError, isCompleted: $_isCompleted',
-      );
-      debugPrint(
-        '[ImportLoading] WalletState: ${next.state}, isSuccess: ${next.isSuccess}, hasError: ${next.hasError}',
-      );
+      if (_hasInitialized && !_hasError && !_isCompleted && next.hasError) {
+        final errorMsg = next.errorMessage ?? 'Erro desconhecido';
 
-      if (_hasInitialized && !_hasError && !_isCompleted) {
-        if (next.isSuccess) {
-          debugPrint(
-            '[ImportLoading] Sucesso detectado, chamando _handleWalletSuccess',
-          );
-          await _handleWalletSuccess();
-        } else if (next.hasError) {
-          debugPrint('[ImportLoading] Erro detectado: ${next.errorMessage}');
-          final errorMsg = next.errorMessage ?? 'Erro desconhecido';
+        final isRetrying =
+            errorMsg.toLowerCase().contains('tentando reconectar') ||
+            errorMsg.toLowerCase().contains('tentativas');
 
-          final isRetrying =
-              errorMsg.toLowerCase().contains('tentando reconectar') ||
-              errorMsg.toLowerCase().contains('tentativas');
-
-          if (isRetrying) {
-            await _showMessage(_getErrorMessage(errorMsg), hasError: false);
-          } else {
-            await _showMessage(_getErrorMessage(errorMsg), hasError: true);
-            setState(() {
-              _hasError = true;
-              _errorMessage = _getUserFriendlyErrorMessage(errorMsg);
-            });
-          }
+        if (isRetrying) {
+          await _showMessage(_getErrorMessage(errorMsg), hasError: false);
+        } else {
+          await _showMessage(_getErrorMessage(errorMsg), hasError: true);
+          setState(() {
+            _hasError = true;
+            _errorMessage = _getUserFriendlyErrorMessage(errorMsg);
+          });
         }
       }
     });

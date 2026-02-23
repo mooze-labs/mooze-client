@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
@@ -32,7 +34,7 @@ class WalletHolding {
       fiatPrice: null,
       fiatValue: null,
       formattedBalance: '0 ${asset.ticker}',
-      formattedFiatValue: 'Indisponível',
+      formattedFiatValue: 'Carregando...',
       hasBalance: false,
     );
   }
@@ -64,95 +66,113 @@ class WalletHolding {
 
   static String _formatBalance(BigInt balance, Asset asset) {
     if (balance == BigInt.zero) {
+      if (asset == Asset.btc || asset == Asset.lbtc) {
+        return '0 sat';
+      }
       return '0 ${asset.ticker}';
     }
 
     if (asset == Asset.btc || asset == Asset.lbtc) {
-      final btcAmount = balance.toDouble() / satsPerBtc;
-      if (btcAmount < 0.001) {
-        final satoshis = balance.toInt();
-        return satoshis == 1 ? '1 sat' : '$satoshis sats';
-      } else {
-        final formatted = btcAmount
-            .toStringAsFixed(8)
-            .replaceAll(RegExp(r'0+$'), '')
-            .replaceAll(RegExp(r'\.$'), '');
-        return '$formatted ${asset.ticker}';
-      }
+      final satoshis = balance.toInt();
+      if (satoshis == 1) return '1 sat';
+
+      final formatter = NumberFormat('#,##0', 'pt_BR');
+      return '${formatter.format(satoshis)} sats';
     }
 
-    // Outros ativos → 2 casas decimais
     final amount = balance.toDouble() / satsPerBtc;
     return '${amount.toStringAsFixed(2)} ${asset.ticker}';
   }
 }
 
-final walletHoldingsProvider =
-    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
-      final allAssets = ref.watch(allAssetsProvider);
-      ref.watch(currencyControllerProvider);
+final walletHoldingsProvider = FutureProvider.autoDispose<
+  Either<String, List<WalletHolding>>
+>((ref) async {
+  final allAssets = ref.watch(allAssetsProvider);
+  ref.watch(currencyControllerProvider);
 
-      final List<WalletHolding> holdings = [];
+  // IMPORTANT: Wait for all balances to load first
+  // This ensures we stay in loading state until data is ready
+  final allBalances = await ref.watch(allBalancesProvider.future);
 
-      try {
-        final currency = ref.read(currencyControllerProvider.notifier);
+  final List<WalletHolding> holdings = [];
 
-        for (final asset in allAssets) {
-          final balanceAsync = ref.watch(balanceProvider(asset));
+  try {
+    final currency = ref.watch(currencyControllerProvider.notifier);
 
-          final balanceResult = await balanceAsync.when(
-            data: (data) async => data,
-            loading: () async {
-              return await ref.read(balanceProvider(asset).future);
-            },
-            error: (error, stack) async => throw error,
+    for (final asset in allAssets) {
+      final balance = allBalances[asset] ?? BigInt.zero;
+      final priceResult = await ref.watch(fiatPriceProvider(asset).future);
+
+      debugPrint(
+        '[WalletHoldingsProvider] ${asset.ticker}: balance=$balance, price=$priceResult',
+      );
+
+      final holding = priceResult.fold(
+        (error) {
+          debugPrint(
+            '[WalletHoldingsProvider] ${asset.ticker}: Price error: $error. Using balance without price.',
           );
-          final priceResult = await ref.read(fiatPriceProvider(asset).future);
-
-          final holding = balanceResult.fold(
-            (error) {
-              return WalletHolding.empty(asset);
-            },
-            (balance) => priceResult.fold(
-              (error) {
-                return WalletHolding.empty(asset);
-              },
-              (price) {
-                if (price == 0) {
-                  return WalletHolding.empty(asset);
-                }
-
-                return WalletHolding.fromData(
-                  asset: asset,
-                  balance: balance,
-                  fiatPrice: price,
-                  currencySymbol: currency.icon,
-                );
-              },
-            ),
+          // Even without price, we show the balance if available
+          return WalletHolding(
+            asset: asset,
+            balance: balance,
+            fiatPrice: null,
+            fiatValue: null,
+            formattedBalance: WalletHolding._formatBalance(balance, asset),
+            formattedFiatValue: 'Preço indisponível',
+            hasBalance: balance > BigInt.zero,
           );
+        },
+        (price) {
+          if (price == 0) {
+            debugPrint(
+              '[WalletHoldingsProvider] ${asset.ticker}: Price is zero. Using balance without price.',
+            );
+            // Even with zero price, we show the balance
+            return WalletHolding(
+              asset: asset,
+              balance: balance,
+              fiatPrice: 0,
+              fiatValue: 0,
+              formattedBalance: WalletHolding._formatBalance(balance, asset),
+              formattedFiatValue: '${currency.icon} 0,00',
+              hasBalance: balance > BigInt.zero,
+            );
+          }
 
-          holdings.add(holding);
-        }
+          return WalletHolding.fromData(
+            asset: asset,
+            balance: balance,
+            fiatPrice: price,
+            currencySymbol: currency.icon,
+          );
+        },
+      );
 
-        holdings.sort((a, b) {
-          if (a.hasBalance && !b.hasBalance) return -1;
-          if (!a.hasBalance && b.hasBalance) return 1;
-          if (!a.hasBalance && !b.hasBalance) return 0;
+      holdings.add(holding);
+    }
 
-          final aValue = a.fiatValue ?? 0.0;
-          final bValue = b.fiatValue ?? 0.0;
-          return bValue.compareTo(aValue);
-        });
+    holdings.sort((a, b) {
+      if (a.hasBalance && !b.hasBalance) return -1;
+      if (!a.hasBalance && b.hasBalance) return 1;
+      if (!a.hasBalance && !b.hasBalance) return 0;
 
-        return Either.right(holdings);
-      } catch (e) {
-        return Either.left('Erro ao carregar ativos da carteira: $e');
-      }
+      final aValue = a.fiatValue ?? 0.0;
+      final bValue = b.fiatValue ?? 0.0;
+      return bValue.compareTo(aValue);
     });
 
+    return Either.right(holdings);
+  } catch (e) {
+    return Either.left('Error loading wallet assets: $e');
+  }
+});
+
 final walletHoldingsWithBalanceProvider =
-    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
+    FutureProvider.autoDispose<Either<String, List<WalletHolding>>>((
+      ref,
+    ) async {
       final allHoldingsResult = await ref.read(walletHoldingsProvider.future);
 
       return allHoldingsResult.map(

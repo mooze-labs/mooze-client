@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/settings/presentation/models/settings_stru
 import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class MainSettingsScreen extends StatefulWidget {
   const MainSettingsScreen({super.key});
@@ -14,6 +15,21 @@ class MainSettingsScreen extends StatefulWidget {
 }
 
 class _MainSettingsScreenState extends State<MainSettingsScreen> {
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = 'v.${packageInfo.version}(${packageInfo.buildNumber})';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +51,11 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                     ConfigStructure(
                       title: 'Modo comerciante',
                       iconSvgPath: 'assets/icons/menu/settings/merchant.svg',
-                      action: Navigation(context: context, rota: '/merchant'),
+                      action: Navigation(
+                        context: context,
+                        rota: '/merchant',
+                        args: '/menu',
+                      ),
                       highlight: true,
                     ),
                   ],
@@ -75,22 +95,31 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                         rota: '/wallet-levels',
                       ),
                     ),
+                    // TODO: Add this back when the feature is ready
+                    // ConfigStructure(
+                    //   title: 'Verificação de Humanidade',
+                    //   iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                    //   action: Navigation(
+                    //     context: context,
+                    //     rota: '/human-verification',
+                    //   ),
+                    // ),
                   ],
                 ),
                 SectionSettings(
                   title: 'LINKS EXTERNOS',
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Saque de Depix',
+                      title: 'Serviços via Bitcoin',
                       iconSvgPath:
                           'assets/icons/menu/settings/pix_out_line.svg',
                       action: ExternalNavigation(
-                        rota: 'https://tally.so/r/w5EMVb',
+                        rota: 'https://pagbitcoin.com/?ref=0099',
                         context: context,
                       ),
                     ),
                     ConfigStructure(
-                      title: 'Central de dados',
+                      title: 'Suporte',
                       iconSvgPath: 'assets/icons/menu/settings/data.svg',
                       action: ExternalNavigation(
                         rota: 'https://keepo.io/mooze.app/',
@@ -108,12 +137,25 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   ],
                 ),
                 SectionSettings(
+                  title: 'TAXAS',
+                  settingsItems: [
+                    ConfigStructure(
+                      title: 'Taxas do PIX',
+                      iconSvgPath: 'assets/icons/menu/settings/fee.svg',
+                      action: Navigation(context: context, rota: '/pix/fees'),
+                    ),
+                  ],
+                ),
+                SectionSettings(
                   title: 'VERSÃO',
                   settingsItems: [
-                    ConfigStructure(title: '2025.08.11(1)'),
-                  ], // TODO: ADD version
+                    ConfigStructure(
+                      title:
+                          _appVersion.isEmpty ? 'Carregando...' : _appVersion,
+                    ),
+                  ],
                 ),
-                SizedBox(height: 120),
+                SizedBox(height: 140),
               ],
             ),
           ],

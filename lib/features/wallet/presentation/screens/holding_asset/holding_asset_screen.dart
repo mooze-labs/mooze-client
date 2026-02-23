@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/action_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_loading.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -38,6 +39,9 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   Widget build(BuildContext context) {
     final isLoadingData = ref.watch(isLoadingDataProvider);
 
+    // Watch the refresh trigger to re-render without loading state
+    ref.watch(dataRefreshTriggerProvider);
+
     return Scaffold(
       appBar: _buildAppBar(),
       body: Stack(
@@ -55,6 +59,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                     SizedBox(height: 15),
                     _buildActionButtons(context),
                     SizedBox(height: 15),
+                    ValuesToReceiveCard(),
                     _buildAssetsLabel(),
                     SizedBox(height: 10),
                     SizedBox(
@@ -89,7 +94,8 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   Future<void> _refreshData() async {
     try {
       final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.refreshWalletData();
+
+      await walletDataManager.fullSyncWalletData();
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(

@@ -54,32 +54,36 @@ class ReceiveFundsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const AssetSelectorReceive(),
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const AssetSelectorReceive(),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  const NetworkSelector(),
+                    const NetworkSelector(),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  const AmountFieldReceive(),
+                    const AmountFieldReceive(),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  const DescriptionFieldReceive(),
+                    const DescriptionFieldReceive(),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  const GenerateQRButton(),
+                    const GenerateQRButton(),
 
-                  const SizedBox(height: 16),
-                ],
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
           ),

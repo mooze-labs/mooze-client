@@ -41,15 +41,15 @@ class AuthInitializerWidget extends ConsumerWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.85),
+                    color: Colors.black.withValues(alpha: 0.85),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                         spreadRadius: 1,

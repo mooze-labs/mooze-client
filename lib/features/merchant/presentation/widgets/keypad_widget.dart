@@ -21,22 +21,44 @@ class KeypadWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     final isVerySmallScreen = screenHeight < 650;
     final isSmallScreen = screenHeight < 700 && screenHeight >= 650;
 
-    final topPadding = isVerySmallScreen ? 8.0 : (isSmallScreen ? 12.0 : 30.0);
+    final isVeryNarrowScreen = screenWidth < 360;
+    final isNarrowScreen = screenWidth < 380 && screenWidth >= 360;
+
+    final topPadding =
+        isVerySmallScreen || isVeryNarrowScreen
+            ? 4.0
+            : (isSmallScreen || isNarrowScreen ? 8.0 : 30.0);
     final titleFontSize =
-        isVerySmallScreen ? 28.0 : (isSmallScreen ? 32.0 : 40.0);
+        isVerySmallScreen || isVeryNarrowScreen
+            ? 20.0
+            : (isSmallScreen || isNarrowScreen ? 24.0 : 40.0);
     final verticalSpacing =
-        isVerySmallScreen ? 8.0 : (isSmallScreen ? 10.0 : 20.0);
+        isVerySmallScreen || isVeryNarrowScreen
+            ? 4.0
+            : (isSmallScreen || isNarrowScreen ? 6.0 : 20.0);
     final buttonFontSize =
-        isVerySmallScreen ? 18.0 : (isSmallScreen ? 20.0 : 24.0);
+        isVerySmallScreen || isVeryNarrowScreen
+            ? 14.0
+            : (isSmallScreen || isNarrowScreen ? 16.0 : 24.0);
     final buttonIconSize =
-        isVerySmallScreen ? 18.0 : (isSmallScreen ? 20.0 : 24.0);
+        isVerySmallScreen || isVeryNarrowScreen
+            ? 14.0
+            : (isSmallScreen || isNarrowScreen ? 16.0 : 24.0);
     final horizontalPadding =
-        isVerySmallScreen ? 20.0 : (isSmallScreen ? 30.0 : 40.0);
-    final buttonMargin = isVerySmallScreen ? 2.0 : 4.0;
+        isVeryNarrowScreen
+            ? 8.0
+            : (isNarrowScreen
+                ? 12.0
+                : (isVerySmallScreen ? 16.0 : (isSmallScreen ? 30.0 : 40.0)));
+    final buttonMargin =
+        isVerySmallScreen || isVeryNarrowScreen
+            ? 1.0
+            : (isSmallScreen || isNarrowScreen ? 1.5 : 4.0);
 
     return Container(
       color: Colors.black,
@@ -44,7 +66,6 @@ class KeypadWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Cabeçalho com valor
           Padding(
             key: valorInputKey,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -67,7 +88,9 @@ class KeypadWidget extends StatelessWidget {
                 final buttonSize =
                     (constraints.maxWidth - (buttonMargin * 6)) / 3;
                 final aspectRatio =
-                    isVerySmallScreen ? 0.9 : (isSmallScreen ? 1.0 : 1.2);
+                    isVerySmallScreen || isVeryNarrowScreen
+                        ? 2.8
+                        : (isSmallScreen || isNarrowScreen ? 1.8 : 1.2);
                 final gridHeight =
                     (buttonSize / aspectRatio) * 4 + (buttonMargin * 8);
 

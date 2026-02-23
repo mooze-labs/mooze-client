@@ -207,7 +207,7 @@ class _BtcLbtcConfirmBottomSheetState
 
     return PlatformSafeArea(
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.85,
+        height: MediaQuery.of(context).size.height * 0.9,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         decoration: const BoxDecoration(
           color: Color(0xFF1C1C1C),
@@ -243,6 +243,7 @@ class _BtcLbtcConfirmBottomSheetState
                     if (_feeEstimate != null) ...[
                       FeeSpeedSelector(
                         selectedSpeed: _selectedFeeSpeed,
+                        lowFeeLoading: false,
                         onSpeedChanged: _onFeeSpeedChanged,
                         lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
                         mediumFeeSatPerVByte:

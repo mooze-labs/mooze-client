@@ -205,7 +205,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
-                  text: "Continuar",
+                  text: _isVerifying ? "Carregando" : "Continuar",
                   onPressed: _onContinuePressed,
                   isEnabled: _isPinValid && !_isVerifying,
                 ),

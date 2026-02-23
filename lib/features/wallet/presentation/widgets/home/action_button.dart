@@ -14,20 +14,8 @@ class ReceiveButton extends StatefulWidget {
 }
 
 class _ReceiveButtonState extends State<ReceiveButton> {
-  bool _isLoading = false;
-
   Future<void> _handlePress(BuildContext context) async {
-    if (_isLoading) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await context.push('/receive-asset');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    await context.push('/receive-asset');
   }
 
   @override
@@ -35,8 +23,6 @@ class _ReceiveButtonState extends State<ReceiveButton> {
     return SecondaryButton(
       text: "RECEBER",
       onPressed: () => _handlePress(context),
-      isEnabled: !_isLoading,
-      isLoading: _isLoading,
     );
   }
 }
@@ -49,20 +35,8 @@ class SendButton extends StatefulWidget {
 }
 
 class _SendButtonState extends State<SendButton> {
-  bool _isLoading = false;
-
   Future<void> _handlePress(BuildContext context) async {
-    if (_isLoading) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await context.push("/send-asset");
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    await context.push("/send-asset");
   }
 
   @override
@@ -70,8 +44,6 @@ class _SendButtonState extends State<SendButton> {
     return PrimaryButton(
       text: "ENVIAR",
       onPressed: () => _handlePress(context),
-      isEnabled: !_isLoading,
-      isLoading: _isLoading,
     );
   }
 }

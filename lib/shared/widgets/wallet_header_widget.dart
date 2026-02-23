@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fpdart/fpdart.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fpdart/fpdart.dart' hide State;
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
+import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class WalletHeaderWidget extends ConsumerWidget {
   const WalletHeaderWidget({super.key});
@@ -17,10 +22,14 @@ class WalletHeaderWidget extends ConsumerWidget {
     final isVisible = ref.watch(isVisibleProvider);
     final displayMode = ref.watch(walletDisplayModeProvider);
 
+    // Watch the refresh trigger to re-render without loading state
+    ref.watch(dataRefreshTriggerProvider);
+
     final totalFiatValue = ref.watch(totalWalletValueProvider);
     final totalBitcoinValue = ref.watch(totalWalletBitcoinProvider);
     final totalSatoshisValue = ref.watch(totalWalletSatoshisProvider);
     final totalVariation = ref.watch(totalWalletVariationProvider);
+    final valuesToReceiveAsync = ref.watch(valuesToReceiveProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,11 +63,49 @@ class WalletHeaderWidget extends ConsumerWidget {
               totalSatoshisValue,
               isVisible,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _buildVariationPercentage(totalVariation),
+            Spacer(),
+            const SizedBox(height: 12),
+            _buildPendingTransactionsBadge(context, valuesToReceiveAsync),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildPendingTransactionsBadge(
+    BuildContext context,
+    AsyncValue<Either<String, List<AssetToReceive>>> valuesToReceiveAsync,
+  ) {
+    final currentLocation = GoRouterState.of(context).matchedLocation;
+    if (currentLocation != '/home') {
+      return const SizedBox.shrink();
+    }
+
+    return valuesToReceiveAsync.when(
+      data:
+          (result) =>
+              result.fold((error) => const SizedBox.shrink(), (toReceiveList) {
+                if (toReceiveList.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                return GestureDetector(
+                  onTap: () {
+                    context.go('/asset');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _AnimatedPixIcon(),
+                  ),
+                );
+              }),
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -75,10 +122,12 @@ class WalletHeaderWidget extends ConsumerWidget {
     late AsyncValue value;
     late String Function(dynamic) formatter;
 
+    final numberFormat = NumberFormat('#,##0.00', 'pt_BR');
+
     switch (displayMode) {
       case WalletDisplayMode.fiat:
         value = totalFiatValue;
-        formatter = (val) => '$currencyIcon ${val.toStringAsFixed(2)}';
+        formatter = (val) => '$currencyIcon ${numberFormat.format(val)}';
         break;
       case WalletDisplayMode.bitcoin:
         value = totalBitcoinValue;
@@ -191,6 +240,72 @@ class WalletHeaderWidget extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
+    );
+  }
+}
+
+class _AnimatedPixIcon extends StatefulWidget {
+  const _AnimatedPixIcon();
+
+  @override
+  State<_AnimatedPixIcon> createState() => _AnimatedPixIconState();
+}
+
+class _AnimatedPixIconState extends State<_AnimatedPixIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ScaleTransition(
+          scale: _scaleAnimation,
+          child: SvgPicture.asset(
+            'assets/icons/menu/navigation/pix.svg',
+            width: 20,
+            height: 20,
+            colorFilter: ColorFilter.mode(Colors.orange, BlendMode.srcIn),
+          ),
+        ),
+        Positioned(
+          right: -4,
+          top: -4,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.search, size: 10, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

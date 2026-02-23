@@ -35,6 +35,9 @@ class AppColors {
   static const Color secondaryColor = Color(0xFF212121);
   static const Color greyShade500 = Color(0xFF9E9E9E);
 
+  // Settigns Colors
+  static const Color surfaceLow = Color(0xFF111111);
+
   // PIN Color
   static const Color pinBackground = Color(0xFF191818);
 

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
-/// Widget que exibe as palavras confirmadas em chips
 class ConfirmedWordsDisplay extends ConsumerWidget {
   const ConfirmedWordsDisplay({super.key});
 
@@ -54,9 +53,8 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              // Calcular largura de cada item (3 por linha)
               final itemWidth =
-                  (constraints.maxWidth - 16) / 3; // 16 = 2 gaps de 8px
+                  (constraints.maxWidth - 16) / 3; // 16 = 2 gaps 8px
 
               return Wrap(
                 spacing: 8,
@@ -86,7 +84,6 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
   }
 }
 
-/// Chip individual para palavra confirmada
 class _WordChip extends StatelessWidget {
   final int number;
   final String word;

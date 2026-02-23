@@ -43,6 +43,6 @@ final isInitialDataLoadedProvider = Provider<bool>((ref) {
   return dataLoader.when(
     data: (result) => result.fold((error) => false, (success) => success),
     loading: () => false,
-    error: (_, __) => false,
+    error: (_, _) => false,
   );
 });

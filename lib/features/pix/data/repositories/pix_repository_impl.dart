@@ -111,6 +111,10 @@ class PixRepositoryImpl implements PixRepository {
             // erro in polling
           },
           (deposits) {
+            if (deposits.isEmpty) {
+              timer.cancel();
+              return;
+            }
             final deposit = deposits.first;
             if (deposit.status != "pending") {
               final statusEvent = PixStatusEvent(
@@ -248,12 +252,12 @@ class PixRepositoryImpl implements PixRepository {
 
     await sessionResult.fold(
       (error) async {
-        print("❌ Failed to get session: $error");
+        print("Failed to get session: $error");
         controller.add(Left("Authentication failed: $error"));
         controller.close();
       },
       (session) async {
-        print("✅ Got JWT token, connecting...");
+        print("Got JWT token, connecting...");
 
         final eventChannel = EventFlux.spawn();
         eventChannel.connect(
@@ -272,7 +276,7 @@ class PixRepositoryImpl implements PixRepository {
             );
           },
           onError: (error) {
-            print("❌ SSE Connection error: $error");
+            print("SSE Connection error: $error");
             controller.add(Left(error.toString()));
             controller.close();
           },
@@ -347,6 +351,7 @@ class PixRepositoryImpl implements PixRepository {
               case 500:
               case 502:
               case 503:
+              case 504:
                 return "O servidor está temporariamente indisponível. Tente novamente em alguns instantes.";
               default:
                 return "Erro $statusCode: ${error.response?.statusMessage ?? 'Falha ao conectar com o servidor'}";
@@ -383,6 +388,7 @@ Either<String, DepositStatus> parseDepositStatus(String status) {
     case "funds_prepared":
       return right(DepositStatus.fundsPrepared);
     case "depix_sent":
+    case "paid":
       return right(DepositStatus.depixSent);
     case "broadcasted":
       return right(DepositStatus.broadcasted);

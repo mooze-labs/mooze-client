@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 
 import 'sync_service.dart';
 import '../lwk/providers/datasource_provider.dart';
@@ -9,6 +10,9 @@ const syncDuration = 2;
 
 final syncServiceProvider = Provider<SyncService>((ref) {
   final service = SyncService();
+  final logger = ref.read(appLoggerProvider);
+  service.setLogger(logger);
+
   ref.onDispose(() => service.dispose());
 
   return service;

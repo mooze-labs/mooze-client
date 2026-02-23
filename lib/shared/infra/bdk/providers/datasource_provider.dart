@@ -4,6 +4,7 @@ import 'package:mooze_mobile/shared/infra/bdk/providers/blockchain_provider.dart
 import 'package:mooze_mobile/shared/infra/bdk/providers/network_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/wallet.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 
 final bdkDatasourceProvider = FutureProvider<Either<String, BdkDataSource>>((
   ref,
@@ -11,6 +12,7 @@ final bdkDatasourceProvider = FutureProvider<Either<String, BdkDataSource>>((
   final blockchain = ref.read(blockchainProvider);
   final maybeMnemonic = ref.read(mnemonicStoreProvider).getMnemonic();
   final network = ref.read(networkProvider);
+  final syncStream = ref.read(syncStreamProvider);
 
   final mnemonic = maybeMnemonic.flatMap(
     (opt) => opt.fold(
@@ -22,7 +24,14 @@ final bdkDatasourceProvider = FutureProvider<Either<String, BdkDataSource>>((
   final wallet = mnemonic.flatMap((m) => setupWallet(m, network));
   final dataSource = wallet.flatMap(
     (w) => blockchain.flatMap(
-      (b) => TaskEither.right(BdkDataSource(wallet: w, blockchain: b)),
+      (b) => TaskEither.right(
+        BdkDataSource(
+          wallet: w,
+          blockchain: b,
+          syncStream: syncStream,
+          ref: ref,
+        ),
+      ),
     ),
   );
 

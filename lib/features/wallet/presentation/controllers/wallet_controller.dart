@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter/foundation.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
@@ -21,12 +20,6 @@ class WalletController {
     int? feeRateSatPerVByte,
     bool drain = false,
   }) {
-    if (kDebugMode) {
-      print(
-        '[WalletController] beginNewTransaction - drain: $drain, asset: $asset, blockchain: $blockchain, amount: $amount, feeRate: $feeRateSatPerVByte sat/vB',
-      );
-    }
-
     if (drain) {
       return beginDrainTransaction(
         destination: destination,
@@ -157,22 +150,10 @@ class WalletController {
     int? feeRateSatPerVByte,
     bool drain = false,
   }) {
-    if (kDebugMode) {
-      print(
-        '✅ [WalletController] Iniciando peg-out - amount: $amount sats, drain: $drain, feeRate: $feeRateSatPerVByte sat/vB',
-      );
-    }
-
     return _walletRepository
         .fetchOnchainLimits()
         .mapLeft((err) => err.description)
         .flatMap((limits) {
-          if (kDebugMode) {
-            print(
-              '✅ [PegOut] Limites obtidos - Min: ${limits.minSat} sats, Max: ${limits.maxSat} sats',
-            );
-          }
-
           if (!drain) {
             if (amount < limits.minSat) {
               return TaskEither<String, Transaction>.left(
@@ -195,12 +176,6 @@ class WalletController {
               )
               .mapLeft((err) => err.description)
               .flatMap((totalFeesSat) {
-                if (kDebugMode) {
-                  print(
-                    '✅ [PegOut] Peg-out preparado - Total de taxas: $totalFeesSat sats',
-                  );
-                }
-
                 return _walletRepository
                     .executePegOut(
                       btcAddress: btcAddress,
@@ -216,12 +191,6 @@ class WalletController {
 
   TaskEither<String, ({String bitcoinAddress, BigInt feesSat})>
   preparePegInFees({required BigInt amount, int? feeRateSatPerVByte}) {
-    if (kDebugMode) {
-      print(
-        '✅ [WalletController] Preparando peg-in (apenas taxas) - amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
-      );
-    }
-
     return _walletRepository
         .fetchOnchainReceiveLimits()
         .mapLeft((err) => err.description)
@@ -251,12 +220,6 @@ class WalletController {
 
   TaskEither<String, ({BigInt breezFeesSat, BigInt bdkFeesSat})>
   preparePegInFullFees({required BigInt amount, int? feeRateSatPerVByte}) {
-    if (kDebugMode) {
-      print(
-        '✅ [WalletController] Preparando peg-in (taxas completas) - amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
-      );
-    }
-
     return _walletRepository
         .fetchOnchainReceiveLimits()
         .mapLeft((err) => err.description)
@@ -282,11 +245,6 @@ class WalletController {
               )
               .mapLeft((err) => err.description)
               .map((result) {
-                if (kDebugMode) {
-                  print(
-                    '✅ [WalletController] Taxas completas - Breez: ${result.breezFeesSat} sats, BDK: ${result.bdkFeesSat} sats',
-                  );
-                }
                 return result;
               });
         });
@@ -296,22 +254,10 @@ class WalletController {
     required BigInt amount,
     int? feeRateSatPerVByte,
   }) {
-    if (kDebugMode) {
-      print(
-        '✅ [WalletController] Iniciando peg-in - amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
-      );
-    }
-
     return _walletRepository
         .fetchOnchainReceiveLimits()
         .mapLeft((err) => err.description)
         .flatMap((limits) {
-          if (kDebugMode) {
-            print(
-              '✅ [PegIn] Limites obtidos - Min: ${limits.minSat} sats, Max: ${limits.maxSat} sats',
-            );
-          }
-
           if (amount < limits.minSat) {
             return TaskEither<String, Transaction>.left(
               'Valor insuficiente. Mínimo: ${limits.minSat} sats',

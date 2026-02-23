@@ -5,7 +5,10 @@ import 'package:mooze_mobile/features/pix/data/models/pix_status_event.dart';
 import 'package:mooze_mobile/features/pix/di/providers/pix_repository_provider.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/pix_success_screen.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/pix_error_screen.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/routes.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
 class PixStatusListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -30,13 +33,13 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
     final repository = ref.read(pixRepositoryProvider);
 
     _subscription = repository.statusUpdates.listen((statusEvent) {
-
       if (_processedDeposits.contains(statusEvent.depositId)) {
         return;
       }
 
       if (statusEvent.status == "under_review" ||
-          statusEvent.status == "depix_sent" && mounted) {
+          statusEvent.status == "depix_sent" ||
+          statusEvent.status == "paid" && mounted) {
         _processedDeposits.add(statusEvent.depositId);
 
         Future.delayed(const Duration(milliseconds: 300), () {
@@ -70,14 +73,17 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
                                   : 0.0,
                           depositId: deposit.depositId,
                           blockchainTxid: deposit.blockchainTxid,
+                          onClosed: () {
+                            ref.invalidate(walletLevelsProvider);
+                            ref.invalidate(levelsProvider);
+                            ref.invalidate(userDataProvider);
+                          },
                         );
                       } catch (e, stack) {
                         debugPrint('Stack: $stack');
                       }
                     } else {
-                      debugPrint(
-                        'Navigator context não disponível',
-                      );
+                      debugPrint('Navigator context não disponível');
                     }
                   },
                 );
@@ -120,9 +126,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
                         debugPrint('Stack: $stack');
                       }
                     } else {
-                      debugPrint(
-                        'Navigator context não disponível',
-                      );
+                      debugPrint('Navigator context não disponível');
                     }
                   },
                 );
@@ -131,9 +135,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
           });
         });
       } else {
-        debugPrint(
-          'Notification not sent for status ${statusEvent.status}',
-        );
+        debugPrint('Notification not sent for status ${statusEvent.status}');
       }
     });
   }

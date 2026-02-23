@@ -9,12 +9,16 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class AssetCardList extends ConsumerWidget {
   const AssetCardList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the refresh trigger to re-render without loading state
+    ref.watch(dataRefreshTriggerProvider);
+
     final favoriteAssets = ref.watch(favoriteAssetsProvider);
 
     return Row(
@@ -93,7 +97,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF2B2D33),
+          color: AppColors.surfaceLow,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -118,14 +122,12 @@ class SuccessfulAssetCard extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 10),
               child: Text(
                 "$icon ${assetValue.toStringAsFixed(2)}",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             SizedBox(height: 8),

@@ -8,6 +8,7 @@ import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -73,26 +74,28 @@ class _TransactionDetailScreenState
 
     return PlatformSafeArea(
       child: Scaffold(
+        backgroundColor: AppColors.backgroundColor,
         appBar: AppBar(
-          title: const Text('Detalhes da Transação'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            'Detalhes da Transação',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
           leading: IconButton(
             onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTransactionHeader(amountStr, isReceive),
-
-              const SizedBox(height: 32),
-
+              const SizedBox(height: 20),
               _buildDetailsCard(context),
-
-              const SizedBox(height: 24),
-
+              const SizedBox(height: 20),
               _buildActionButtons(context),
             ],
           ),
@@ -102,39 +105,116 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildTransactionHeader(String amountStr, bool isReceive) {
-    final isSwap = widget.transaction.type == TransactionType.swap;
+    final isSwap =
+        widget.transaction.type == TransactionType.swap ||
+        widget.transaction.type == TransactionType.submarine;
+    final isRefundableOrFailed =
+        widget.transaction.status == TransactionStatus.refundable ||
+        widget.transaction.status == TransactionStatus.failed;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primaryColor.withValues(alpha: 0.3),
-        ),
+        color: AppColors.surfaceLow,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
-          if (isSwap && _hasSwapDetails())
+          if (isRefundableOrFailed && _hasSwapDetails())
+            _buildRefundableHeader()
+          else if (isSwap && _hasSwapDetails())
             _buildSwapHeader()
           else
             _buildRegularHeader(amountStr, isReceive),
-
           const SizedBox(height: 16),
+          _buildStatusBadge(),
+        ],
+      ),
+    );
+  }
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getStatusColor().withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
+  Widget _buildStatusBadge() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: _getStatusColor().withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _getStatusColor().withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_getStatusIcon(), size: 16, color: _getStatusColor()),
+              const SizedBox(width: 6),
+              Text(
+                _getStatusLabel(),
+                style: TextStyle(
+                  color: _getStatusColor(),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.transaction.status == TransactionStatus.refundable ||
+            widget.transaction.status == TransactionStatus.failed) ...[
+          const SizedBox(height: 12),
+          _buildStatusExplanation(),
+        ],
+      ],
+    );
+  }
+
+  IconData _getStatusIcon() {
+    switch (widget.transaction.status) {
+      case TransactionStatus.pending:
+        return Icons.schedule;
+      case TransactionStatus.confirmed:
+        return Icons.check_circle;
+      case TransactionStatus.failed:
+        return Icons.check_circle_outline;
+      case TransactionStatus.refundable:
+        return Icons.warning_amber_rounded;
+    }
+  }
+
+  Widget _buildStatusExplanation() {
+    String explanation;
+
+    if (widget.transaction.status == TransactionStatus.refundable) {
+      explanation =
+          'Esta transação não foi concluída com sucesso. Seus fundos estão seguros e disponíveis para reembolso. Use o botão abaixo para solicitar o reembolso.';
+    } else {
+      // failed
+      explanation =
+          'O reembolso desta transação já foi processado ou está sendo enviado. Seus fundos foram ou serão devolvidos em breve.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _getStatusColor().withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _getStatusColor().withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: _getStatusColor()),
+          const SizedBox(width: 10),
+          Expanded(
             child: Text(
-              _getTransactionTypeLabel(),
+              explanation,
               style: TextStyle(
-                color: _getStatusColor(),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 12,
+                height: 1.5,
+                letterSpacing: 0.2,
               ),
             ),
           ),
@@ -147,32 +227,106 @@ class _TransactionDetailScreenState
     return Column(
       children: [
         Container(
-          width: 80,
-          height: 80,
-          padding: const EdgeInsets.all(16),
+          width: 64,
+          height: 64,
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(40),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: SvgPicture.asset(
             widget.transaction.asset.iconPath,
-            width: 48,
-            height: 48,
+            width: 36,
+            height: 36,
           ),
         ),
-
         const SizedBox(height: 16),
-
+        Text(
+          _getTransactionTypeLabel(),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
             '$amountStr ${widget.transaction.asset.ticker}',
             style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
               color: isReceive ? Colors.green : Colors.red,
+              letterSpacing: -0.5,
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRefundableHeader() {
+    return Column(
+      children: [
+        Text(
+          widget.transaction.status == TransactionStatus.refundable
+              ? 'Swap não concluído'
+              : 'Swap reembolsado',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: SvgPicture.asset(
+                widget.transaction.fromAsset!.iconPath,
+                width: 32,
+                height: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.close, size: 24, color: Colors.grey),
+            const SizedBox(width: 16),
+            Container(
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: SvgPicture.asset(
+                widget.transaction.toAsset!.iconPath,
+                width: 32,
+                height: 32,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -181,6 +335,16 @@ class _TransactionDetailScreenState
   Widget _buildSwapHeader() {
     return Column(
       children: [
+        Text(
+          'Troca entre ativos',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -189,12 +353,12 @@ class _TransactionDetailScreenState
               child: Column(
                 children: [
                   Container(
-                    width: 70,
-                    height: 70,
-                    padding: const EdgeInsets.all(14),
+                    width: 56,
+                    height: 56,
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(35),
+                      color: Colors.red.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Colors.red.withValues(alpha: 0.3),
                         width: 2,
@@ -202,8 +366,8 @@ class _TransactionDetailScreenState
                     ),
                     child: SvgPicture.asset(
                       widget.transaction.fromAsset!.iconPath,
-                      width: 42,
-                      height: 42,
+                      width: 32,
+                      height: 32,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -215,8 +379,8 @@ class _TransactionDetailScreenState
                         widget.transaction.fromAsset!,
                       ),
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: Colors.red,
                       ),
                     ),
@@ -224,28 +388,24 @@ class _TransactionDetailScreenState
                 ],
               ),
             ),
-
-            const SizedBox(width: 10),
-
+            const SizedBox(width: 12),
             Icon(
               Icons.swap_horiz_rounded,
-              size: 32,
-              color: AppColors.primaryColor,
+              size: 28,
+              color: Theme.of(context).colorScheme.primary,
             ),
-
-            const SizedBox(width: 10),
-
+            const SizedBox(width: 12),
             // Asset TO
             Expanded(
               child: Column(
                 children: [
                   Container(
-                    width: 70,
-                    height: 70,
-                    padding: const EdgeInsets.all(14),
+                    width: 56,
+                    height: 56,
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(35),
+                      color: Colors.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Colors.green.withValues(alpha: 0.3),
                         width: 2,
@@ -253,8 +413,8 @@ class _TransactionDetailScreenState
                     ),
                     child: SvgPicture.asset(
                       widget.transaction.toAsset!.iconPath,
-                      width: 42,
-                      height: 42,
+                      width: 32,
+                      height: 32,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -266,8 +426,8 @@ class _TransactionDetailScreenState
                         widget.transaction.toAsset!,
                       ),
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: Colors.green,
                       ),
                     ),
@@ -276,17 +436,6 @@ class _TransactionDetailScreenState
               ),
             ),
           ],
-        ),
-
-        const SizedBox(height: 16),
-
-        Text(
-          'Swap realizado',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
         ),
       ],
     );
@@ -311,54 +460,131 @@ class _TransactionDetailScreenState
     final isSwap = widget.transaction.type == TransactionType.swap;
     final isSubmarineSwap =
         widget.transaction.type == TransactionType.submarine;
+    final confirmed = widget.transaction.status == TransactionStatus.confirmed;
+    final isRefundableOrFailed =
+        widget.transaction.status == TransactionStatus.refundable ||
+        widget.transaction.status == TransactionStatus.failed;
+
+    if (isRefundableOrFailed) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Informações',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              icon: Icons.access_time,
+              label: 'Data',
+              value: _formatDateTime(widget.transaction.createdAt),
+            ),
+            if (_hasSwapDetails()) ...[
+              _buildInfoRow(
+                icon: Icons.swap_horiz,
+                label: 'Enviado',
+                value: widget.transaction.fromAsset!.ticker,
+              ),
+              _buildInfoRow(
+                icon: Icons.swap_horiz,
+                label: 'Esperado',
+                value: widget.transaction.toAsset!.ticker,
+              ),
+            ],
+            _buildInfoRow(
+              icon: Icons.link,
+              label: 'Blockchain',
+              value: _getBlockchainLabel(),
+            ),
+            if (widget.transaction.id.isNotEmpty)
+              _buildInfoRow(
+                icon: Icons.tag,
+                label: 'ID da Transação',
+                value: truncateHashId(widget.transaction.id),
+                copyable: true,
+                copyFieldId: 'transaction_id',
+                copyValue: widget.transaction.id,
+              ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        color: AppColors.surfaceLow,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informações da Transação',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            'Informações',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-
-          const SizedBox(height: 20),
-
-          _buildDetailRow(
-            label: 'Status',
-            value: _getStatusLabel(),
-            valueColor: _getStatusColor(),
-          ),
+          const SizedBox(height: 16),
 
           // Submarine swap explanation
-          if (isSubmarineSwap) ...[
+          if (isSubmarineSwap && !confirmed) ...[
             _buildSubmarineSwapExplanation(),
             const SizedBox(height: 16),
           ],
+
+          // Confirmations for Bitcoin
           if (widget.transaction.blockchain == Blockchain.bitcoin &&
-              widget.transaction.status == TransactionStatus.confirmed)
+              widget.transaction.status != TransactionStatus.confirmed)
             _buildConfirmationRow(),
-          _buildDetailRow(
+
+          _buildInfoRow(
+            icon: Icons.access_time,
             label: 'Data',
             value: _formatDateTime(widget.transaction.createdAt),
           ),
 
           ...(isSwap && _hasSwapDetails()
               ? [const SizedBox.shrink()]
-              : [_buildRegularDetailsSection()]),
+              : [
+                _buildInfoRow(
+                  icon: Icons.monetization_on,
+                  label: 'Moeda',
+                  value: widget.transaction.asset.name,
+                ),
+                _buildInfoRow(
+                  icon: Icons.account_balance_wallet,
+                  label: 'Valor',
+                  value:
+                      '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
+                ),
+              ]),
+
+          _buildInfoRow(
+            icon: Icons.link,
+            label: 'Blockchain',
+            value: _getBlockchainLabel(),
+          ),
 
           if (isSwap && _isCrossChainSwap())
             ..._buildCrossChainSwapIds()
           else
-            _buildDetailRow(
+            _buildInfoRow(
+              icon: Icons.tag,
               label: 'ID da Transação',
               value: truncateHashId(widget.transaction.id),
               copyable: true,
@@ -368,7 +594,8 @@ class _TransactionDetailScreenState
 
           if (widget.transaction.blockchain == Blockchain.lightning) ...[
             if (widget.transaction.destination != null)
-              _buildDetailRow(
+              _buildInfoRow(
+                icon: Icons.qr_code,
                 label:
                     widget.transaction.type == TransactionType.send
                         ? "LNURL"
@@ -379,58 +606,69 @@ class _TransactionDetailScreenState
                 copyValue: widget.transaction.destination!,
               ),
             if (widget.transaction.preimage != null)
-              _buildDetailRow(
+              _buildInfoRow(
+                icon: Icons.key,
                 label: "Preimagem",
                 value: truncateHashId(widget.transaction.preimage!),
                 copyable: true,
-                copyFieldId: 'preimage',
+                copyFieldId: 'preimagem',
                 copyValue: widget.transaction.preimage!,
               )
             else if (widget.transaction.status == TransactionStatus.pending)
               _buildPreimageWarning(),
           ],
-
-          _buildDetailRow(label: 'Blockchain', value: _getBlockchainLabel()),
         ],
       ),
     );
   }
 
-  Widget _buildRegularDetailsSection() {
-    return Column(
-      children: [
-        _buildDetailRow(label: 'Moeda', value: widget.transaction.asset.name),
-        _buildDetailRow(
-          label: 'Valor',
-          value:
-              '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
-        ),
-      ],
-    );
-  }
-
   Widget _buildSubmarineSwapExplanation() {
+    final fromAsset = widget.transaction.fromAsset;
+    final toAsset = widget.transaction.toAsset;
+
+    String explanation;
+    if (fromAsset != null && toAsset != null) {
+      if (fromAsset == Asset.btc && toAsset == Asset.lbtc) {
+        explanation =
+            'Swap de rede: Você enviou ${fromAsset.ticker} e receberá ${toAsset.ticker}. Assim que a transação onchain for confirmada, os fundos aparecerão automaticamente na Liquid Network.';
+      } else if (fromAsset == Asset.lbtc && toAsset == Asset.btc) {
+        explanation =
+            'Swap de rede: Você enviou ${fromAsset.ticker} e receberá ${toAsset.ticker}. Assim que processado, a transação será enviada para a blockchain Bitcoin.';
+      } else {
+        explanation =
+            'Swap de rede: Transação entre diferentes redes. Aguarde a confirmação.';
+      }
+    } else {
+      explanation =
+          'Esta transação representa uma troca de rede. Assim que confirmada, você receberá os fundos na rede de destino.';
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: 0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.primaryColor.withValues(alpha: 0.3),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 20, color: AppColors.primaryColor),
-          const SizedBox(width: 8),
+          Icon(
+            Icons.info_outline,
+            size: 18,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Esta transação representa uma troca de rede, assim que a transação for confirmada, você receberá os fundos na rede de destino. Esse processo pode levar algum tempo dependendo da rede.',
+              explanation,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 12,
-                height: 1.4,
+                height: 1.5,
+                letterSpacing: 0.2,
               ),
             ),
           ),
@@ -441,61 +679,32 @@ class _TransactionDetailScreenState
 
   Widget _buildPreimageWarning() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'Preimagem',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.schedule, size: 18, color: Colors.orange),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Preimagem pendente: Assim que sua transação for confirmada, a preimagem aparecerá aqui',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 12,
+                  height: 1.5,
+                  letterSpacing: 0.2,
                 ),
               ),
-              Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.hourglass_empty,
-                        size: 16,
-                        color: Colors.orange,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Assim que sua transação for confirmada, a preimagem aparecerá em breve',
-                          style: TextStyle(
-                            color: Colors.orange,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -519,69 +728,64 @@ class _TransactionDetailScreenState
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Confirmações',
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: displayColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: displayColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: displayColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isFullyConfirmed ? Icons.check_circle : Icons.schedule,
+                size: 18,
+                color: displayColor,
               ),
             ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Confirmações',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: displayColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: displayColor, width: 1),
+                  const SizedBox(height: 2),
+                  Text(
+                    displayText,
+                    style: TextStyle(
+                      color: displayColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isFullyConfirmed
-                            ? Icons.check_circle
-                            : Icons.hourglass_empty,
-                        size: 16,
-                        color: displayColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        displayText,
-                        style: TextStyle(
-                          color: displayColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDetailRow({
+  Widget _buildInfoRow({
+    required IconData icon,
     required String label,
     required String value,
-    Color? valueColor,
     bool copyable = false,
     String? copyFieldId,
     String? copyValue,
@@ -591,58 +795,86 @@ class _TransactionDetailScreenState
     final valueToCopy = copyValue ?? value;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     value,
                     style: TextStyle(
-                      color: valueColor ?? Colors.white,
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                if (copyable) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _copyToClipboard(valueToCopy, fieldId),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isCopied ? Colors.green : AppColors.primaryColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Icon(
-                        isCopied ? Icons.check : Icons.copy,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+            if (copyable) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _copyToClipboard(valueToCopy, fieldId),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color:
+                        isCopied
+                            ? Colors.green.withValues(alpha: 0.2)
+                            : Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    isCopied ? Icons.check : Icons.copy,
+                    size: 16,
+                    color:
+                        isCopied
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -650,13 +882,33 @@ class _TransactionDetailScreenState
   Widget _buildActionButtons(BuildContext context) {
     final isRefundable =
         widget.transaction.status == TransactionStatus.refundable;
+    final isFailed = widget.transaction.status == TransactionStatus.failed;
+
+    if (isRefundable) {
+      return _buildActionButton(
+        context: context,
+        label: 'Solicitar Reembolso',
+        subtitle: 'Recuperar seus fundos agora',
+        icon: Icons.refresh,
+        onPressed: () {
+          context.push('/transactions/refund', extra: widget.transaction);
+        },
+        isDestructive: false,
+      );
+    }
+
+    // if (isFailed ) {
+    //   return const SizedBox.shrink();
+    // }
 
     if (_isCrossChainSwap()) {
       return Column(
         children: [
-          PrimaryButton(
-            text:
-                'Ver Envio no Explorer (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
+          _buildActionButton(
+            context: context,
+            label: 'Ver Envio',
+            subtitle: _getBlockchainName(widget.transaction.sendBlockchain!),
+            icon: Icons.call_made,
             onPressed:
                 () => _openInExplorer(
                   txId: widget.transaction.sendTxId,
@@ -664,55 +916,134 @@ class _TransactionDetailScreenState
                 ),
           ),
           const SizedBox(height: 12),
-          PrimaryButton(
-            text:
-                'Ver Recebimento no Explorer (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
+          _buildActionButton(
+            context: context,
+            label: 'Ver Recebimento',
+            subtitle: _getBlockchainName(widget.transaction.receiveBlockchain!),
+            icon: Icons.call_received,
             onPressed:
                 () => _openInExplorer(
                   txId: widget.transaction.receiveTxId,
                   blockchain: widget.transaction.receiveBlockchain,
                 ),
           ),
-          if (isRefundable) ...[
-            const SizedBox(height: 12),
-            PrimaryButton(
-              text: 'Pedir Refund',
-              onPressed: () {
-                context.push('/transactions/refund', extra: widget.transaction);
-              },
-            ),
-          ],
-          const SizedBox(height: 24),
         ],
       );
     }
 
     return Column(
       children: [
-        PrimaryButton(
-          text: 'Ver no Explorer',
+        _buildActionButton(
+          context: context,
+          label: 'Ver no Explorer',
+          subtitle: 'Visualizar na blockchain',
+          icon: Icons.open_in_new,
           onPressed: () => _openInExplorer(),
         ),
         if (widget.transaction.blockchain == Blockchain.lightning &&
             widget.transaction.destination != null &&
             widget.transaction.preimage != null) ...[
           const SizedBox(height: 12),
-          PrimaryButton(
-            text: 'Validar Pagamento',
+          _buildActionButton(
+            context: context,
+            label: 'Validar Pagamento',
+            subtitle: 'Verificar preimagem',
+            icon: Icons.verified,
             onPressed: () => _openValidationUrl(),
           ),
         ],
-        if (isRefundable) ...[
-          const SizedBox(height: 12),
-          PrimaryButton(
-            text: 'Pedir Refund',
-            onPressed: () {
-              context.push('/transactions/refund', extra: widget.transaction);
-            },
-          ),
-        ],
-        const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required BuildContext context,
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onPressed,
+    bool isDestructive = false,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color:
+              isDestructive
+                  ? Colors.red.withValues(alpha: 0.15)
+                  : Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isDestructive
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color:
+                    isDestructive
+                        ? Colors.red.withValues(alpha: 0.2)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color:
+                    isDestructive
+                        ? Colors.red
+                        : Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.white.withValues(alpha: 0.5),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -727,7 +1058,7 @@ class _TransactionDetailScreenState
       case TransactionType.redeposit:
         return "Auto-redepósito";
       case TransactionType.submarine:
-        return "Troca de rede";
+        return "Swap";
       case TransactionType.unknown:
         return "Desconhecido";
     }
@@ -740,9 +1071,9 @@ class _TransactionDetailScreenState
       case TransactionStatus.confirmed:
         return 'Confirmada';
       case TransactionStatus.failed:
-        return 'Em Análise';
+        return 'Reembolso Processado';
       case TransactionStatus.refundable:
-        return 'Reembolsável';
+        return 'Aguardando Reembolso';
     }
   }
 
@@ -801,8 +1132,8 @@ class _TransactionDetailScreenState
 
     if (txId != null && blockchain != null) {
       explorerUrl = switch (blockchain) {
-        Blockchain.bitcoin => 'https://blockstream.info/tx/$txId',
-        Blockchain.liquid => 'https://blockstream.info/liquid/tx/$txId',
+        Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$txId',
+        Blockchain.liquid => 'https://liquid.network/pt/tx/$txId',
         Blockchain.lightning => 'https://blockstream.info/liquid/tx/$txId',
       };
     } else if (widget.transaction.blockchainUrl != null) {
@@ -812,8 +1143,8 @@ class _TransactionDetailScreenState
       final useBlockchain = blockchain ?? widget.transaction.blockchain;
 
       explorerUrl = switch (useBlockchain) {
-        Blockchain.bitcoin => 'https://blockstream.info/tx/$useTxId',
-        Blockchain.liquid => 'https://blockstream.info/liquid/tx/$useTxId',
+        Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$useTxId',
+        Blockchain.liquid => 'https://liquid.network/pt/tx/$useTxId',
         Blockchain.lightning => 'https://blockstream.info/liquid/tx/$useTxId',
       };
     }
@@ -890,7 +1221,8 @@ class _TransactionDetailScreenState
 
   List<Widget> _buildCrossChainSwapIds() {
     return [
-      _buildDetailRow(
+      _buildInfoRow(
+        icon: Icons.call_made,
         label:
             'ID Envio (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
         value: truncateHashId(widget.transaction.sendTxId!),
@@ -898,7 +1230,8 @@ class _TransactionDetailScreenState
         copyFieldId: 'send_tx_id',
         copyValue: widget.transaction.sendTxId!,
       ),
-      _buildDetailRow(
+      _buildInfoRow(
+        icon: Icons.call_received,
         label:
             'ID Recebimento (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
         value: truncateHashId(widget.transaction.receiveTxId!),

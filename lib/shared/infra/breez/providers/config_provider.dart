@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 
 final configProvider = FutureProvider<Config>((ref) async {
+  final logger = ref.read(appLoggerProvider);
+  logger.info('BreezConfig', 'Initializing Breez SDK configuration');
+
   const breezApiKey = String.fromEnvironment("BREEZ_API_KEY");
   final workingDir = await getApplicationDocumentsDirectory();
   final network = switch (String.fromEnvironment(
@@ -14,6 +18,11 @@ final configProvider = FutureProvider<Config>((ref) async {
     "regtest" => LiquidNetwork.regtest,
     _ => throw ArgumentError("Invalid network specified"),
   };
+
+  logger.debug(
+    'BreezConfig',
+    'Network: ${network.name}, WorkingDir: ${workingDir.path}',
+  );
 
   final defaultBreezConfig = defaultConfig(network: network);
 
@@ -36,6 +45,12 @@ final configProvider = FutureProvider<Config>((ref) async {
       ),
     ],
     useMagicRoutingHints: true,
+  );
+
+  logger.info('BreezConfig', 'Breez SDK configuration created successfully');
+  logger.debug(
+    'BreezConfig',
+    'Custom assets configured: ${config.assetMetadata}',
   );
 
   return config;

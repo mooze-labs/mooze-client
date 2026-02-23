@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import '../wallet_provider.dart';
 import 'clean_address_provider.dart';
@@ -50,7 +51,10 @@ class FeeEstimation {
   bool get isValid => !hasError && fees > BigInt.zero;
 }
 
+const _tag = 'FeeEstimation';
+
 final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
+  final log = AppLoggerService();
   final destination = ref.watch(cleanAddressProvider);
   final asset = ref.watch(selectedAssetProvider);
   final blockchain = ref.watch(selectedNetworkProvider);
@@ -59,6 +63,11 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
   final isDrainTransaction = ref.watch(isDrainTransactionProvider);
 
   if (destination.isEmpty || amount <= BigInt.zero) {
+    log.debug(
+      _tag,
+      'Skipping fee estimation: destination empty or amount zero '
+      '(destination empty: ${destination.isEmpty}, amount: $amount)',
+    );
     return FeeEstimation.initial();
   }
 
@@ -69,17 +78,34 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
     );
 
     if (!hasOnlyBalanceErrors) {
+      log.debug(
+        _tag,
+        'Skipping fee estimation: validation not ready — errors: ${validationState.errors}',
+      );
       return FeeEstimation.initial();
     }
   }
+
+  log.debug(
+    _tag,
+    'Estimating fees — asset: ${asset.ticker}, amount: $amount sats, '
+    'blockchain: ${blockchain.name}, isDrain: $isDrainTransaction',
+  );
 
   final walletControllerResult = await ref.watch(
     walletControllerProvider.future,
   );
 
   return walletControllerResult.fold(
-    (error) =>
-        FeeEstimation.error("Erro ao acessar carteira: ${error.description}"),
+    (error) {
+      log.error(
+        _tag,
+        'Wallet controller unavailable for fee estimation: ${error.description}',
+      );
+      return FeeEstimation.error(
+        "Erro ao acessar carteira: ${error.description}",
+      );
+    },
     (controller) async {
       try {
         final psbtResult =
@@ -101,25 +127,59 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
                     )
                     .run();
 
-        return psbtResult.fold((error) {
-          final errorLower = error.toLowerCase();
-          if (errorLower.contains('insufficient') ||
-              errorLower.contains('insuficient') ||
-              errorLower.contains('not enough')) {
-            return FeeEstimation.error('INSUFFICIENT_FUNDS');
-          }
+        return psbtResult.fold(
+          (error) {
+            final errorLower = error.toLowerCase();
+            if (errorLower.contains('insufficient') ||
+                errorLower.contains('insuficient') ||
+                errorLower.contains('not enough')) {
+              log.warning(
+                _tag,
+                'Fee estimation failed: insufficient funds — raw: $error',
+              );
+              return FeeEstimation.error('INSUFFICIENT_FUNDS');
+            }
 
-          if (errorLower.contains('unrecognized input type') ||
-              errorLower.contains('invalid address') ||
-              errorLower.contains('invalid input') ||
-              errorLower.contains('destination is not valid') ||
-              errorLower.contains('invalid destination')) {
-            return FeeEstimation.error('INVALID_ADDRESS');
-          }
+            if (errorLower.contains('unrecognized input type') ||
+                errorLower.contains('invalid address') ||
+                errorLower.contains('invalid input') ||
+                errorLower.contains('destination is not valid') ||
+                errorLower.contains('invalid destination')) {
+              log.warning(
+                _tag,
+                'Fee estimation failed: invalid address — raw: $error',
+              );
+              return FeeEstimation.error('INVALID_ADDRESS');
+            }
 
-          return FeeEstimation.error(error);
-        }, (psbt) => FeeEstimation(fees: psbt.networkFees));
-      } catch (e) {
+            if (errorLower.contains('cannot drain while') ||
+                errorLower.contains('pending payments')) {
+              log.warning(
+                _tag,
+                'Fee estimation failed: pending payments — raw: $error',
+              );
+              return FeeEstimation.error('PENDING_PAYMENTS');
+            }
+
+            log.error(_tag, 'Fee estimation failed with unknown error: $error');
+            return FeeEstimation.error(error);
+          },
+          (psbt) {
+            log.info(
+              _tag,
+              'Fee estimation successful — fees: ${psbt.networkFees} sats, '
+              'asset: ${asset.ticker}, amount: $amount sats',
+            );
+            return FeeEstimation(fees: psbt.networkFees);
+          },
+        );
+      } catch (e, stackTrace) {
+        log.critical(
+          _tag,
+          'Unexpected error during fee estimation',
+          error: e,
+          stackTrace: stackTrace,
+        );
         return FeeEstimation.error("Erro ao calcular taxas: $e");
       }
     },

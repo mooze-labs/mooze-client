@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/presentation/screens/pix_main_screen.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/presentation/screens/recive_pix_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
@@ -15,6 +16,21 @@ import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+
+class PageVisibilityProvider extends InheritedNotifier<ValueNotifier<int>> {
+  PageVisibilityProvider({
+    required ValueNotifier<int> currentPage,
+    required super.child,
+    super.key,
+  }) : super(notifier: currentPage);
+
+  static int? of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<PageVisibilityProvider>()
+        ?.notifier
+        ?.value;
+  }
+}
 
 class _MainNavigationScaffold extends StatefulWidget {
   final String currentLocation;
@@ -32,19 +48,37 @@ class _MainNavigationScaffold extends StatefulWidget {
 
 class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   late final PageController _pageController;
+  late final ValueNotifier<int> _currentPageNotifier;
   bool _isPageChanging = false;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: _getIndexFromLocation(widget.currentLocation),
-    );
+    final initialPage = _getIndexFromLocation(widget.currentLocation);
+    _pageController = PageController(initialPage: initialPage);
+    _currentPageNotifier = ValueNotifier<int>(initialPage);
+    _pageController.addListener(_onPageScroll);
+  }
+
+  void _onPageScroll() {
+    if (_pageController.position.isScrollingNotifier.value) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+
+    if (_pageController.hasClients && _pageController.page != null) {
+      final currentPage = _pageController.page!.round();
+      if (_currentPageNotifier.value != currentPage &&
+          (_pageController.page! - currentPage).abs() < 0.1) {
+        _currentPageNotifier.value = currentPage;
+      }
+    }
   }
 
   @override
   void dispose() {
+    _pageController.removeListener(_onPageScroll);
     _pageController.dispose();
+    _currentPageNotifier.dispose();
     super.dispose();
   }
 
@@ -80,28 +114,32 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   Widget build(BuildContext context) {
     final currentIndex = _getIndexFromLocation(widget.currentLocation);
 
-    return PlatformSafeArea(
-      child: Scaffold(
-        body: PageView(
-          controller: _pageController,
-          onPageChanged: _onPageChanged,
-          children: [
-            const HomeScreen(),
-            const HoldingsAsseetScreen(),
-            const ReceivePixScreen(),
-            const SwapScreen(),
-            const MainSettingsScreen(),
-          ],
-        ),
-        extendBody: true,
-        resizeToAvoidBottomInset: false,
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: currentIndex,
-          onTap: (index) {
-            if (_pageController.hasClients) {
-              _pageController.jumpToPage(index);
-            }
-          },
+    return PageVisibilityProvider(
+      currentPage: _currentPageNotifier,
+      child: PlatformSafeArea(
+        child: Scaffold(
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              const HomeScreen(),
+              const HoldingsAsseetScreen(),
+              // const PixMainScreen(),
+              const ReceivePixScreen(),
+              const SwapScreen(),
+              const MainSettingsScreen(),
+            ],
+          ),
+          extendBody: true,
+          resizeToAvoidBottomInset: false,
+          bottomNavigationBar: CustomBottomNavBar(
+            currentIndex: currentIndex,
+            onTap: (index) {
+              if (_pageController.hasClients) {
+                _pageController.jumpToPage(index);
+              }
+            },
+          ),
         ),
       ),
     );
@@ -168,7 +206,7 @@ final walletRoutes = [
       GoRoute(
         path: '/pix',
         pageBuilder:
-            (context, state) => NoTransitionPage(child: ReceivePixScreen()),
+            (context, state) => NoTransitionPage(child: PixMainScreen()),
       ),
       GoRoute(
         path: '/swap',

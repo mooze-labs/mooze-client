@@ -18,6 +18,7 @@ class BreezTransactionDto {
   final TransactionStatus status;
   final DateTime createdAt;
   final String? preimage;
+  final Payment payment; // Keep original payment for detailed info
 
   BreezTransactionDto({
     required this.id,
@@ -29,6 +30,7 @@ class BreezTransactionDto {
     required this.blockchain,
     required this.status,
     required this.createdAt,
+    required this.payment,
     this.preimage,
   });
 
@@ -65,6 +67,7 @@ class BreezTransactionDto {
       blockchain: _parseBlockchain(payment),
       status: _parseStatus(payment),
       createdAt: DateTime.fromMillisecondsSinceEpoch(timestampMs.toInt()),
+      payment: payment,
       preimage: preimage,
     );
   }
@@ -87,6 +90,71 @@ class BreezTransactionDto {
       }
     }
 
+    // For submarine swaps, determine fromAsset and toAsset based on direction
+    Asset? fromAsset;
+    Asset? toAsset;
+    BigInt? sentAmount;
+    BigInt? receivedAmount;
+    String? sendTxId;
+    String? receiveTxId;
+    Blockchain? sendBlockchain;
+    Blockchain? receiveBlockchain;
+
+    if (isSubmarineSwap) {
+      // Get submarine swap details from payment
+      final details = _getSubmarineSwapDetails();
+
+      if (paymentType == PaymentType.send) {
+        // Peg Out: Liquid → Bitcoin onchain
+        fromAsset = Asset.lbtc;
+        toAsset = Asset.btc;
+        sentAmount = amount;
+        receivedAmount = amount - fees; // Amount received after fees
+        sendBlockchain = Blockchain.liquid;
+        receiveBlockchain = Blockchain.bitcoin;
+
+        // Handle refund case
+        if (status == TransactionStatus.refundable &&
+            details?.refundTxId != null) {
+          sendTxId = details?.lockupTxId; // Original Liquid transaction
+          receiveTxId =
+              details?.refundTxId; // Refund transaction (back to Liquid)
+          // In refund case, funds go back to origin
+          receiveBlockchain = Blockchain.liquid;
+          toAsset = Asset.lbtc; // Funds return to Liquid
+          receivedAmount = details?.refundTxAmountSat ?? (amount - fees);
+        } else {
+          sendTxId = details?.lockupTxId; // Liquid transaction
+          receiveTxId =
+              details?.claimTxId; // Bitcoin transaction (where funds arrive)
+        }
+      } else {
+        // Peg In: Bitcoin onchain → Liquid
+        fromAsset = Asset.btc;
+        toAsset = Asset.lbtc;
+        sentAmount = amount + fees; // Original amount sent including fees
+        receivedAmount = amount; // Amount received (already deducted fees)
+        sendBlockchain = Blockchain.bitcoin;
+        receiveBlockchain = Blockchain.liquid;
+
+        // Handle refund case
+        if (status == TransactionStatus.refundable &&
+            details?.refundTxId != null) {
+          sendTxId = details?.claimTxId; // Original Bitcoin transaction
+          receiveTxId =
+              details?.refundTxId; // Refund transaction (back to Bitcoin)
+          // In refund case, funds go back to origin
+          receiveBlockchain = Blockchain.bitcoin;
+          toAsset = Asset.btc; // Funds return to Bitcoin
+          receivedAmount = details?.refundTxAmountSat ?? (amount + fees);
+        } else {
+          sendTxId = details?.claimTxId; // Bitcoin transaction
+          receiveTxId =
+              details?.lockupTxId; // Liquid transaction (where funds arrive)
+        }
+      }
+    }
+
     return Transaction(
       id: id,
       amount: amount,
@@ -103,7 +171,24 @@ class BreezTransactionDto {
       preimage: preimage,
       blockchainUrl: blockchainUrl,
       destination: destination,
+      fromAsset: fromAsset,
+      toAsset: toAsset,
+      sentAmount: sentAmount,
+      receivedAmount: receivedAmount,
+      sendTxId: sendTxId,
+      receiveTxId: receiveTxId,
+      sendBlockchain: sendBlockchain,
+      receiveBlockchain: receiveBlockchain,
     );
+  }
+
+  // Helper to get submarine swap details
+  PaymentDetails_Bitcoin? _getSubmarineSwapDetails() {
+    final details = payment.details;
+    if (details is PaymentDetails_Bitcoin) {
+      return details;
+    }
+    return null;
   }
 
   static TransactionStatus _parseStatus(Payment payment) {

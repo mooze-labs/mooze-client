@@ -1,5 +1,5 @@
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter/foundation.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/controllers/wallet_controller.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
@@ -19,6 +19,8 @@ class BtcLbtcFeeEstimate {
 
 class BtcLbtcSwapController {
   final WalletController _walletController;
+  final _log = AppLoggerService();
+  static const _tag = 'Swap';
 
   BtcLbtcSwapController(this._walletController);
 
@@ -30,14 +32,20 @@ class BtcLbtcSwapController {
     int? feeRateSatPerVByte,
     bool drain = false,
   }) {
-    if (kDebugMode) {
-      print(
-        '[BtcLbtcSwapController] prepareFeeEstimate - amount: $amount, isPegIn: $isPegIn, drain: $drain, feeRate: $feeRateSatPerVByte',
-      );
-    }
+    _log.debug(
+      _tag,
+      'prepareFeeEstimate — amount: $amount sats, isPegIn: $isPegIn, '
+      'drain: $drain, feeRate: $feeRateSatPerVByte sat/vB',
+    );
 
     if (!drain && amount < BigInt.from(minSwapAmount)) {
-      return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
+      _log.warning(
+        _tag,
+        'prepareFeeEstimate rejected: amount $amount is below minimum $minSwapAmount sats',
+      );
+      return TaskEither.left(
+        'Quantidade mínima é ${(minSwapAmount / 1000).toStringAsFixed(0)}k sats devido às taxas',
+      );
     }
 
     if (isPegIn) {
@@ -46,13 +54,18 @@ class BtcLbtcSwapController {
             amount: amount,
             feeRateSatPerVByte: feeRateSatPerVByte,
           )
-          .mapLeft((error) => 'Erro ao preparar peg-in: $error')
+          .mapLeft((error) {
+            _log.error(_tag, 'preparePegInFullFees failed: $error');
+            return 'Erro ao preparar peg-in: $error';
+          })
           .map((fees) {
-            if (kDebugMode) {
-              print(
-                '✅ [PegIn] Taxas - Breez (service): ${fees.breezFeesSat} sats, BDK (network): ${fees.bdkFeesSat} sats (${feeRateSatPerVByte ?? 3} sat/vB), Total: ${fees.breezFeesSat + fees.bdkFeesSat} sats',
-              );
-            }
+            _log.info(
+              _tag,
+              '[PegIn] Fee estimate — service (Breez): ${fees.breezFeesSat} sats, '
+              'network (BDK): ${fees.bdkFeesSat} sats '
+              '(${feeRateSatPerVByte ?? 3} sat/vB), '
+              'total: ${fees.breezFeesSat + fees.bdkFeesSat} sats',
+            );
             return BtcLbtcFeeEstimate(
               boltzServiceFeeSat: fees.breezFeesSat,
               networkFeeSat: fees.bdkFeesSat,
@@ -60,8 +73,15 @@ class BtcLbtcSwapController {
             );
           });
     } else {
-      return _walletController.getBitcoinReceiveAddress().flatMap(
-        (bitcoinAddress) => _walletController
+      return _walletController.getBitcoinReceiveAddress().flatMap((
+        bitcoinAddress,
+      ) {
+        _log.debug(
+          _tag,
+          '[PegOut] Preparing fee estimate for address: '
+          '${bitcoinAddress.substring(0, bitcoinAddress.length.clamp(0, 14))}...',
+        );
+        return _walletController
             .beginNewTransaction(
               destination: bitcoinAddress,
               asset: Asset.lbtc,
@@ -70,7 +90,10 @@ class BtcLbtcSwapController {
               feeRateSatPerVByte: feeRateSatPerVByte,
               drain: drain,
             )
-            .mapLeft((error) => 'Erro ao preparar peg-out: $error')
+            .mapLeft((error) {
+              _log.error(_tag, '[PegOut] beginNewTransaction failed: $error');
+              return 'Erro ao preparar peg-out: $error';
+            })
             .map((psbt) {
               final claimFee =
                   (psbt is PreparedOnchainBitcoinTransaction)
@@ -78,19 +101,20 @@ class BtcLbtcSwapController {
                       : BigInt.zero;
               final serviceFee = psbt.networkFees - claimFee;
 
-              if (kDebugMode) {
-                print(
-                  '[PegOut] Total fees: ${psbt.networkFees} sats, Claim (network): $claimFee sats, Service (Boltz): $serviceFee sats',
-                );
-              }
+              _log.info(
+                _tag,
+                '[PegOut] Fee estimate — total: ${psbt.networkFees} sats, '
+                'network (claim): $claimFee sats, '
+                'service (Boltz): $serviceFee sats',
+              );
 
               return BtcLbtcFeeEstimate(
                 boltzServiceFeeSat: serviceFee,
                 networkFeeSat: claimFee,
                 totalFeeSat: psbt.networkFees,
               );
-            }),
-      );
+            });
+      });
     }
   }
 
@@ -99,8 +123,17 @@ class BtcLbtcSwapController {
     int? feeRateSatPerVByte,
   }) {
     if (amount < BigInt.from(minSwapAmount)) {
+      _log.warning(
+        _tag,
+        '[PegIn] executePegIn rejected: amount $amount is below minimum $minSwapAmount sats',
+      );
       return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
     }
+
+    _log.info(
+      _tag,
+      '[PegIn] Executing peg-in — amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
+    );
 
     return _walletController.executePegIn(
       amount: amount,
@@ -114,17 +147,34 @@ class BtcLbtcSwapController {
     bool drain = false,
   }) {
     if (!drain && amount < BigInt.from(minSwapAmount)) {
+      _log.warning(
+        _tag,
+        '[PegOut] executePegOut rejected: amount $amount is below minimum $minSwapAmount sats',
+      );
       return TaskEither.left('Quantidade mínima é $minSwapAmount sats');
     }
 
-    return _walletController.getBitcoinReceiveAddress().flatMap(
-      (bitcoinAddress) => _walletController.executePegOut(
+    _log.info(
+      _tag,
+      '[PegOut] Executing peg-out — amount: $amount sats, '
+      'drain: $drain, feeRate: $feeRateSatPerVByte sat/vB',
+    );
+
+    return _walletController.getBitcoinReceiveAddress().flatMap((
+      bitcoinAddress,
+    ) {
+      _log.debug(
+        _tag,
+        '[PegOut] Got Bitcoin address for peg-out: '
+        '${bitcoinAddress.substring(0, bitcoinAddress.length.clamp(0, 14))}...',
+      );
+      return _walletController.executePegOut(
         btcAddress: bitcoinAddress,
         amount: amount,
         feeRateSatPerVByte: feeRateSatPerVByte,
         drain: drain,
-      ),
-    );
+      );
+    });
   }
 
   bool isValidAmount(BigInt? amount) {

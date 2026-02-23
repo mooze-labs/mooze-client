@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import '../../providers/balance_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/drain_provider.dart';
 import '../../providers/send_funds/transaction_loading_provider.dart';
@@ -112,8 +113,8 @@ class ReviewButton extends ConsumerWidget {
         final psbtResult = await ref.read(psbtProvider.future);
 
         psbtResult.fold(
-          (error) {
-            final errorMessage = _parseInsufficientFundsError(error);
+          (error) async {
+            final errorMessage = await _parseInsufficientFundsError(error, ref);
             preparationController.setError(errorMessage);
           },
           (psbt) {
@@ -125,7 +126,10 @@ class ReviewButton extends ConsumerWidget {
           },
         );
       } catch (e) {
-        final errorMessage = _parseInsufficientFundsError(e.toString());
+        final errorMessage = await _parseInsufficientFundsError(
+          e.toString(),
+          ref,
+        );
         preparationController.setError(errorMessage);
       }
       return;
@@ -155,8 +159,8 @@ class ReviewButton extends ConsumerWidget {
       final psbtResult = await ref.read(psbtProvider.future);
 
       psbtResult.fold(
-        (error) {
-          final errorMessage = _parseInsufficientFundsError(error);
+        (error) async {
+          final errorMessage = await _parseInsufficientFundsError(error, ref);
           preparationController.setError(errorMessage);
         },
         (psbt) {
@@ -165,12 +169,18 @@ class ReviewButton extends ConsumerWidget {
         },
       );
     } catch (e) {
-      final errorMessage = _parseInsufficientFundsError(e.toString());
+      final errorMessage = await _parseInsufficientFundsError(
+        e.toString(),
+        ref,
+      );
       preparationController.setError(errorMessage);
     }
   }
 
-  String _parseInsufficientFundsError(String error) {
+  Future<String> _parseInsufficientFundsError(
+    String error,
+    WidgetRef ref,
+  ) async {
     final errorLower = error.toLowerCase();
 
     if (errorLower.contains('not enough funds') ||
@@ -178,10 +188,34 @@ class ReviewButton extends ConsumerWidget {
         errorLower.contains('insuficient') ||
         errorLower.contains('insufficientfunds') ||
         errorLower.contains('cannot pay')) {
+      final asset = ref.read(selectedAssetProvider);
+      final blockchain = ref.read(selectedNetworkProvider);
+
+      // Check if user has L-BTC balance for fees when sending DePIX or USDT
+      if ((asset == Asset.depix || asset == Asset.usdt) &&
+          blockchain == Blockchain.liquid) {
+        try {
+          final lbtcBalanceResult = await ref.read(
+            balanceProvider(Asset.lbtc).future,
+          );
+
+          final hasLbtcBalance = lbtcBalanceResult.fold(
+            (error) => false,
+            (balance) => balance > BigInt.zero,
+          );
+
+          if (!hasLbtcBalance) {
+            return 'Saldo de BTC L2 insuficiente para taxas.\n\n'
+                'Para enviar ${asset == Asset.depix ? 'DePIX' : 'USDT'}, você precisa ter BTC L2 '
+                '(Bitcoin Liquid) disponível para pagar as taxas da transação. '
+                'Adicione BTC L2 à sua carteira e tente novamente.';
+          }
+        } catch (e) {} // Ignore errors fetching balance
+      }
+
       return 'Fundos insuficientes.\n\n'
-          'O valor que você está tentando enviar mais as taxas da rede '
-          'excedem o saldo disponível. Tente reduzir o valor ou use a opção '
-          '"Enviar Tudo" para enviar o máximo possível com as taxas deduzidas automaticamente.';
+          'O envio não pôde ser realizado. Isso pode ocorrer por falta de saldo no ativo '
+          'ou por não haver BTC L2 (Liquid Bitcoin) suficiente para pagar as taxas da rede.';
     }
 
     return 'Erro ao preparar transação: $error';

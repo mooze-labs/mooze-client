@@ -117,3 +117,5 @@ class AssetEntity {
 }
 
 enum TransactionTypeEntity { all, send, receive, swap }
+
+enum TransactionStatusEntity { all, pending, confirmed, failed, refundable }

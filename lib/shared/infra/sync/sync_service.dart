@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:stream_transform/stream_transform.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 sealed class SyncState {}
 
@@ -46,51 +46,100 @@ class SyncService {
   final StreamController<SyncState> _stateController =
       StreamController.broadcast();
   StreamSubscription? _syncSubscription;
+  AppLoggerService? _logger;
 
   Stream<SyncState> get syncState => _stateController.stream;
+
+  /// Sets the logger instance for this service
+  void setLogger(AppLoggerService logger) {
+    _logger = logger;
+  }
 
   TaskEither<String, Unit> startPeriodicSync(
     SyncableDataSource dataSource,
     Duration interval,
   ) {
-    debugPrint("[SyncService] Initializing");
-    return TaskEither.tryCatch(() async {
-      await stopPeriodicSync().run();
+    _logger?.info(
+      'SyncService',
+      'Initializing sync service with interval: ${interval.inMinutes}min',
+    );
+    return TaskEither.tryCatch(
+      () async {
+        await stopPeriodicSync().run();
 
-      // Trigger immediate sync on startup
-      debugPrint("[SyncService] Triggering immediate initial sync");
-      _stateController.add(SyncInProgress());
-      final initialSync = await syncDataSource(dataSource).run();
-      final initialState = reduceSyncState(SyncIdle(), initialSync);
-      _stateController.add(initialState);
-      debugPrint("[SyncService] Initial sync completed: ${initialState.runtimeType}");
+        // Trigger immediate sync on startup
+        _logger?.info('SyncService', 'Triggering immediate initial sync...');
+        _stateController.add(SyncInProgress());
+        final initialSync = await syncDataSource(dataSource).run();
+        final initialState = reduceSyncState(SyncIdle(), initialSync);
+        _stateController.add(initialState);
+        _logger?.info(
+          'SyncService',
+          'Initial sync completed: ${initialState.runtimeType}',
+        );
 
-      // Set up periodic syncs
-      final ticker = createPeriodicTicker(interval);
-      final syncCommands = createSyncCommands(ticker, dataSource);
+        // Set up periodic syncs
+        final ticker = createPeriodicTicker(interval);
+        final syncCommands = createSyncCommands(ticker, dataSource);
 
-      _syncSubscription = syncCommands
-          .throttle(interval)
-          .asyncMap((syncTask) async {
-            debugPrint("[SyncService] Periodic sync triggered");
-            _stateController.add(SyncInProgress());
-            final result = await syncTask.run();
-            final newState = reduceSyncState(SyncIdle(), result);
-            _stateController.add(newState);
-            return result;
-          })
-          .listen(null);
-      return unit;
-    }, (err, _) => "Failed to start sync service: ${err.toString()}");
+        _syncSubscription = syncCommands
+            .throttle(interval)
+            .asyncMap((syncTask) async {
+              _logger?.debug('SyncService', 'Periodic sync triggered');
+              _stateController.add(SyncInProgress());
+              final result = await syncTask.run();
+              final newState = reduceSyncState(SyncIdle(), result);
+              _stateController.add(newState);
+
+              if (newState is SyncFailed) {
+                _logger?.error(
+                  'SyncService',
+                  'Periodic sync failed',
+                  error: newState.error,
+                );
+              } else {
+                _logger?.debug(
+                  'SyncService',
+                  'Periodic sync completed successfully',
+                );
+              }
+
+              return result;
+            })
+            .listen(null);
+        return unit;
+      },
+      (err, _) {
+        _logger?.error(
+          'SyncService',
+          'Failed to start sync service',
+          error: err,
+        );
+        return "Failed to start sync service: ${err.toString()}";
+      },
+    );
   }
 
-  TaskEither<String, Unit> stopPeriodicSync() => TaskEither.tryCatch(() async {
-    await _syncSubscription?.cancel();
-    _syncSubscription = null;
-    return unit;
-  }, (error, _) => "Failed to stop sync service: ${error.toString()}");
+  TaskEither<String, Unit> stopPeriodicSync() => TaskEither.tryCatch(
+    () async {
+      _logger?.info('SyncService', 'Stopping periodic sync...');
+      await _syncSubscription?.cancel();
+      _syncSubscription = null;
+      _logger?.debug('SyncService', 'Periodic sync stopped');
+      return unit;
+    },
+    (error, _) {
+      _logger?.error(
+        'SyncService',
+        'Failed to stop sync service',
+        error: error,
+      );
+      return "Failed to stop sync service: ${error.toString()}";
+    },
+  );
 
   void dispose() {
+    _logger?.debug('SyncService', 'Disposing sync service');
     _syncSubscription?.cancel();
     _stateController.close();
   }

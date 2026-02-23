@@ -17,6 +17,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
         color: Theme.of(
           context,
@@ -78,16 +79,20 @@ class ValidationErrorsWidget extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          if (validationState.errors.any((error) => 
-              error.contains('mínimo') || 
-              error.contains('máximo') || 
-              error.contains('inválido'))) ...[
+          if (validationState.errors.any(
+            (error) =>
+                error.contains('mínimo') ||
+                error.contains('máximo') ||
+                error.contains('inválido'),
+          )) ...[
             const SizedBox(height: 4),
             Row(
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.error.withValues(alpha: 0.7),
                   size: 16,
                 ),
                 const SizedBox(width: 8),
@@ -95,7 +100,9 @@ class ValidationErrorsWidget extends ConsumerWidget {
                   child: Text(
                     'As validações são verificadas automaticamente conforme você digita.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.8),
                       fontStyle: FontStyle.italic,
                     ),
                   ),

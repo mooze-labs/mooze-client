@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_config.dart';
 
+/// Widget de alerta de falha de sincronização
 class SyncFailureAlert extends ConsumerWidget {
   const SyncFailureAlert({super.key});
 
@@ -25,14 +26,14 @@ class SyncFailureAlert extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.warning, color: Colors.red, size: 20),
+          const Icon(Icons.warning, color: Colors.red, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                const Text(
                   'Problema de Sincronização',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -54,50 +55,6 @@ class SyncFailureAlert extends ConsumerWidget {
         ],
       ),
     );
-  }
-}
-
-class SyncStatusIndicator extends ConsumerWidget {
-  const SyncStatusIndicator({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hasSyncFailures = ref.watch(hasSyncFailuresProvider);
-    final isLoading = ref.watch(isLoadingDataProvider);
-
-    if (hasSyncFailures) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.warning, color: Colors.red, size: 16),
-          const SizedBox(width: 4),
-          Text('Sync Error', style: TextStyle(color: Colors.red, fontSize: 12)),
-        ],
-      );
-    }
-
-    if (isLoading) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            'Sincronizando...',
-            style: TextStyle(color: Colors.green, fontSize: 12),
-          ),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
   }
 }
 

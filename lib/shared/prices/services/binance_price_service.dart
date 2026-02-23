@@ -37,7 +37,7 @@ class BinancePriceService extends PriceService {
       ).flatMap((opt) => TaskEither.right(opt.map((f) => 1.0 / f)));
     }
 
-    if (asset == Asset.btc) {
+    if (asset == Asset.btc || asset == Asset.lbtc) {
       switch (currency) {
         case Currency.brl:
           return _extractBidPrice("BTCBRL");

@@ -41,7 +41,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.read(walletSyncBootstrapProvider);
+    ref.read(walletBootOrchestratorProvider);
     ref.read(connectivityProvider);
     return LevelChangeListener(
       child: TransactionStatusListener(

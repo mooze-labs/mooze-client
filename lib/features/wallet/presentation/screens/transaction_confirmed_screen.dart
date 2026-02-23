@@ -143,7 +143,6 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const SizedBox(height: 40),
                 Expanded(
                   flex: 3,
                   child: Center(
@@ -254,12 +253,15 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                                   ],
                                 ),
                                 const SizedBox(height: 10),
-                                Text(
-                                  _formatAmount(),
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _formatAmount(),
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
@@ -278,9 +280,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                           PrimaryButton(
                             text: 'Voltar para Dashboard',
                             onPressed: () {
-                              Navigator.of(
-                                context,
-                              ).popUntil((route) => route.isFirst);
+                              Navigator.of(context).pop();
                             },
                           ),
                         ],

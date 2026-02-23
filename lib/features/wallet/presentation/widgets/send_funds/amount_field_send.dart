@@ -80,8 +80,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     Asset? selectedAsset,
     SendConversionType conversionType,
   ) {
-    if (conversionType == SendConversionType.asset &&
-        (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)) {
+    if (conversionType == SendConversionType.asset) {
       return [BtcInputFormatter()];
     }
 
@@ -473,6 +472,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
 
     return Container(
       padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
         color: Theme.of(
           context,

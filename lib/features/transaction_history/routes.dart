@@ -7,7 +7,9 @@ import 'package:mooze_mobile/features/transaction_history/presentation/screens/p
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_refund_screen.dart';
+// Deprecated: Use GetRefundScreen instead
+// import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_refund_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 final transactionHistoryRoutes = [
@@ -23,10 +25,9 @@ final transactionHistoryRoutes = [
   GoRoute(
     path: '/transactions/refund',
     pageBuilder: (context, state) {
-      final transaction = state.extra as Transaction;
-      return NoTransitionPage(
-        child: TransactionRefundScreen(transaction: transaction),
-      );
+      // Navigate to the new refund flow instead
+      // The old TransactionRefundScreen is deprecated
+      return const NoTransitionPage(child: GetRefundScreen());
     },
   ),
   GoRoute(

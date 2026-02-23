@@ -23,7 +23,6 @@ class ConfigureSeedsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Título principal
               TitleAndSubtitleCreateWallet(
                 title: 'Selecione o tamanho da ',
                 highlighted: 'frase-semente',

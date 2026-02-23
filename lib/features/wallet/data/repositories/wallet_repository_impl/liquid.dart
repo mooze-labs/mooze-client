@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
 import 'package:lwk/lwk.dart' as lwk;
@@ -12,6 +14,45 @@ class LiquidWallet {
   LiquidWallet(LiquidDataSource datasource) : _datasource = datasource;
 
   LiquidDataSource get datasource => _datasource;
+
+  /// Get balance from LWK directly (without needing Breez SDK)
+  TaskEither<WalletError, Balance> getBalance() {
+    return TaskEither.tryCatch(
+      () async {
+        final Balance balance = {};
+
+        final balances = await _datasource.wallet.balances();
+
+        if (kDebugMode) {
+          debugPrint(
+            '[LiquidWallet.getBalance] Raw balances: ${balances.length} items',
+          );
+        }
+
+        for (final bal in balances) {
+          final asset = Asset.fromId(bal.assetId);
+          balance[asset] = BigInt.from(bal.value);
+
+          if (kDebugMode) {
+            debugPrint(
+              '[LiquidWallet.getBalance] ${asset.ticker}: ${bal.value} sats',
+            );
+          }
+        }
+
+        return balance;
+      },
+      (err, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('[LiquidWallet.getBalance] Error: $err');
+        }
+        return WalletError(
+          WalletErrorType.sdkError,
+          'Failed to get Liquid balance: $err',
+        );
+      },
+    );
+  }
 
   TaskEither<WalletError, List<Transaction>> getTransactions({
     TransactionType? type,
@@ -73,7 +114,8 @@ class LiquidWallet {
         return false;
       }
       if (endDate != null &&
-          tx.createdAt.millisecondsSinceEpoch >= endDate.microsecondsSinceEpoch) {
+          tx.createdAt.millisecondsSinceEpoch >=
+              endDate.microsecondsSinceEpoch) {
         return false;
       }
       return true;

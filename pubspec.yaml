@@ -4,7 +4,7 @@ description: "Wallet with on-chain Bitcoin and Liquid Network support."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.3.0+1
+version: 1.4.0+1
 
 environment:
   sdk: ^3.7.0
@@ -58,6 +58,7 @@ dependencies:
   ffigen: ^18.0.0
   restart_app: ^1.3.1
   mobile_scanner: ^7.0.0
+  archive: ^4.0.2
   no_screenshot: ^0.3.1
   flutter_local_notifications: ^19.0.0
   unique_identifier: ^0.4.0
@@ -94,6 +95,12 @@ dependencies:
   bdk_flutter:
     path: ./packages/bdk-flutter
   safe_device: ^1.3.8
+  battery_plus: ^6.0.3
+  screen_brightness: ^2.1.7
+  share_plus: ^12.0.1
+  mailto: ^2.0.0
+  flutter_email_sender: ^6.0.3
+  mutex: ^3.1.0
 
 dependency_overrides:
 

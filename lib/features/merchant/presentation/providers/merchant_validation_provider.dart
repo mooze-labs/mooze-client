@@ -65,6 +65,6 @@ final merchantValidationProvider = Provider.family<MerchantValidation, double>((
       return const MerchantValidation.valid();
     },
     loading: () => const MerchantValidation.valid(),
-    error: (_, __) => const MerchantValidation.valid(),
+    error: (_, _) => const MerchantValidation.valid(),
   );
 });

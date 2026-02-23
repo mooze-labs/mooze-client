@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'user_service_provider.dart';
 import 'package:mooze_mobile/features/wallet_level/data/datasources/wallet_levels_remote_data_source.dart';
 import 'package:mooze_mobile/features/wallet_level/data/models/wallet_levels_response_model.dart';
+import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 import 'package:dio/dio.dart';
 
 class UserLevelsData {
@@ -82,82 +83,87 @@ final _walletLevelsRemoteProvider = FutureProvider<WalletLevelsResponseModel>((
 
 /// Centralized provider that combines user data with level limits
 final levelsProvider = FutureProvider.autoDispose<UserLevelsData>((ref) async {
-  // Fetch user data
-  final userService = ref.watch(userServiceProvider);
-  final userResult = await userService.getUser().run();
+  try {
+    // Fetch user data
+    final userService = ref.watch(userServiceProvider);
+    final userResult = await userService.getUser().run();
 
-  final user = userResult.fold(
-    (error) => throw Exception('Error fetching user data: $error'),
-    (user) => user,
-  );
+    final user = userResult.fold(
+      (error) => throw Exception('Error fetching user data: $error'),
+      (user) => user,
+    );
 
-  // Fetch level limits from S3
-  final walletLevelsResponse = await ref.read(
-    _walletLevelsRemoteProvider.future,
-  );
+    // Fetch level limits from S3
+    final walletLevelsResponse = await ref.read(
+      _walletLevelsRemoteProvider.future,
+    );
 
-  // Convert values from cents to currency (divide by 100)
-  final allowedSpending = user.allowedSpending / 100.0;
-  final dailySpending = user.dailySpending / 100.0;
+    // Convert values from cents to currency (divide by 100)
+    final allowedSpending = user.allowedSpending / 100.0;
+    final dailySpending = user.dailySpending / 100.0;
 
-  // Determine current level limits
-  String currentLevelKey;
-  switch (user.spendingLevel) {
-    case 0:
-      currentLevelKey = 'bronze';
-      break;
-    case 1:
-      currentLevelKey = 'silver';
-      break;
-    case 2:
-      currentLevelKey = 'gold';
-      break;
-    case 3:
-      currentLevelKey = 'diamond';
-      break;
-    default:
-      currentLevelKey = 'bronze';
+    // Determine current level limits
+    String currentLevelKey;
+    switch (user.spendingLevel) {
+      case 0:
+        currentLevelKey = 'bronze';
+        break;
+      case 1:
+        currentLevelKey = 'silver';
+        break;
+      case 2:
+        currentLevelKey = 'gold';
+        break;
+      case 3:
+        currentLevelKey = 'diamond';
+        break;
+      default:
+        currentLevelKey = 'bronze';
+    }
+
+    final currentLevelData = walletLevelsResponse.data[currentLevelKey];
+    if (currentLevelData == null) {
+      throw Exception('Data for level $currentLevelKey not found');
+    }
+
+    final currentLevelMinLimit = currentLevelData.minLimit / 100.0;
+    final currentLevelMaxLimit = currentLevelData.maxLimit / 100.0;
+
+    // Fetch absolute maximum limit (diamond)
+    final diamondData = walletLevelsResponse.data['diamond'];
+    if (diamondData == null) {
+      throw Exception('Data for diamond level not found');
+    }
+    final absoluteMaxLimit = diamondData.maxLimit / 100.0;
+
+    // Fetch absolute minimum limit (bronze)
+    final bronzeData = walletLevelsResponse.data['bronze'];
+    if (bronzeData == null) {
+      throw Exception('Data for bronze level not found');
+    }
+    final absoluteMinLimit = bronzeData.minLimit / 100.0;
+
+    // Calculate remaining limit based on the fixed daily limit
+    final remainingLimit = (UserLevelsData.dailyLimit - dailySpending).clamp(
+      0.0,
+      UserLevelsData.dailyLimit,
+    );
+
+    return UserLevelsData(
+      spendingLevel: user.spendingLevel,
+      levelProgress: user.levelProgress,
+      allowedSpending: allowedSpending,
+      dailySpending: dailySpending,
+      currentLevelMinLimit: currentLevelMinLimit,
+      currentLevelMaxLimit: currentLevelMaxLimit,
+      absoluteMinLimit: absoluteMinLimit,
+      absoluteMaxLimit: absoluteMaxLimit,
+      remainingLimit: remainingLimit,
+    );
+  } catch (error) {
+    // Converts any error into a user-friendly exception
+    throw UserFriendlyException.fromError(error);
   }
-
-  final currentLevelData = walletLevelsResponse.data[currentLevelKey];
-  if (currentLevelData == null) {
-    throw Exception('Data for level $currentLevelKey not found');
-  }
-
-  final currentLevelMinLimit = currentLevelData.minLimit / 100.0;
-  final currentLevelMaxLimit = currentLevelData.maxLimit / 100.0;
-
-  // Fetch absolute maximum limit (diamond)
-  final diamondData = walletLevelsResponse.data['diamond'];
-  if (diamondData == null) {
-    throw Exception('Data for diamond level not found');
-  }
-  final absoluteMaxLimit = diamondData.maxLimit / 100.0;
-
-  // Fetch absolute minimum limit (bronze)
-  final bronzeData = walletLevelsResponse.data['bronze'];
-  if (bronzeData == null) {
-    throw Exception('Data for bronze level not found');
-  }
-  final absoluteMinLimit = bronzeData.minLimit / 100.0;
-
-  // Calculate remaining limit based on the fixed daily limit
-  final remainingLimit = (UserLevelsData.dailyLimit - dailySpending).clamp(
-    0.0,
-    UserLevelsData.dailyLimit,
-  );
-
-  return UserLevelsData(
-    spendingLevel: user.spendingLevel,
-    levelProgress: user.levelProgress,
-    allowedSpending: allowedSpending,
-    dailySpending: dailySpending,
-    currentLevelMinLimit: currentLevelMinLimit,
-    currentLevelMaxLimit: currentLevelMaxLimit,
-    absoluteMinLimit: absoluteMinLimit,
-    absoluteMaxLimit: absoluteMaxLimit,
-    remainingLimit: remainingLimit,
-  );
 });
 
 /// Provider that returns only the spending level

@@ -201,6 +201,10 @@ class BitcoinWallet {
           final builder =
               bdk.TxBuilder().addRecipient(scriptBuf, amount).enableRbf();
 
+          // Custom fee
+          // final testFeeRate = 0.1;
+          // builder.feeRate(testFeeRate);
+
           if (feeRateSatPerVByte != null) {
             builder.feeRate(feeRateSatPerVByte.toDouble());
           }

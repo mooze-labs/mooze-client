@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
-import '../../providers/send_funds/address_provider.dart';
-import '../../providers/send_funds/amount_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/partially_signed_transaction_provider.dart';
@@ -19,6 +19,7 @@ import '../../providers/send_funds/drain_provider.dart';
 import '../../providers/balance_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../widgets/send_funds/network_indicator_widget.dart';
+import 'transaction_sent_screen.dart';
 
 class ReviewTransactionScreen extends ConsumerStatefulWidget {
   const ReviewTransactionScreen({super.key});
@@ -31,6 +32,8 @@ class ReviewTransactionScreen extends ConsumerStatefulWidget {
 class _ReviewTransactionScreenState
     extends ConsumerState<ReviewTransactionScreen> {
   bool _isConfirming = false;
+  final _log = AppLoggerService();
+  static const _tag = 'ReviewTransaction';
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +47,18 @@ class _ReviewTransactionScreenState
       data:
           (psbtEither) => psbtEither.fold(
             (error) {
+              _log.error(_tag, 'PSBT preparation returned an error: $error');
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 context.pop();
               });
               return _buildErrorScreen(context, error);
             },
             (psbt) {
+              _log.debug(
+                _tag,
+                'PSBT ready for review \u2014 asset: ${psbt.asset.ticker}, '
+                'amount: ${psbt.satoshi} sats, fees: ${psbt.networkFees} sats',
+              );
               return _buildSuccessScreen(
                 context,
                 psbt,
@@ -61,12 +70,19 @@ class _ReviewTransactionScreenState
             },
           ),
       loading: () {
+        _log.debug(_tag, 'Waiting for PSBT to be prepared...');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.pop();
         });
         return _buildLoadingScreen(context, isDrainTransaction);
       },
       error: (error, stackTrace) {
+        _log.critical(
+          _tag,
+          'PSBT provider threw an unhandled exception',
+          error: error,
+          stackTrace: stackTrace,
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.pop();
         });
@@ -659,30 +675,67 @@ class _ReviewTransactionScreenState
     WidgetRef ref,
     PartiallySignedTransaction psbt,
   ) async {
-    if (_isConfirming) return;
+    if (_isConfirming) {
+      _log.debug(_tag, 'Confirm transaction ignored: already confirming');
+      return;
+    }
+
+    _log.info(
+      _tag,
+      'User confirmed transaction — asset: ${psbt.asset.ticker}, '
+      'amount: ${psbt.satoshi} sats, network: ${psbt.blockchain.name}, '
+      'destination: ${psbt.destination.substring(0, psbt.destination.length.clamp(0, 14))}...',
+    );
 
     setState(() {
       _isConfirming = true;
     });
 
     try {
+      _log.debug(_tag, 'Fetching wallet controller to broadcast transaction');
       final walletControllerResult = await ref.read(
         walletControllerProvider.future,
       );
 
       final result = await walletControllerResult.fold(
-        (error) async => left<String, dynamic>(
-          "Erro ao acessar carteira: ${error.description}",
-        ),
+        (error) async {
+          _log.error(
+            _tag,
+            'Wallet controller unavailable: ${error.description}',
+          );
+          return left<String, dynamic>(
+            "Erro ao acessar carteira: ${error.description}",
+          );
+        },
         (controller) async =>
             await controller.confirmTransaction(psbt: psbt).run(),
       );
 
       result.fold(
-        (error) => _showErrorDialog(context, error),
-        (transaction) => _showSuccessDialog(context, ref, psbt.destination),
+        (error) {
+          _log.error(_tag, 'Transaction broadcast failed: $error');
+          _showErrorDialog(context, error);
+        },
+        (transaction) {
+          _log.info(
+            _tag,
+            'Transaction broadcast successful — asset: ${psbt.asset.ticker}, '
+            'amount: ${psbt.satoshi} sats, network: ${psbt.blockchain.name}',
+          );
+          // Refresh UI immediately after transaction is sent
+          ref
+              .read(walletDataManagerProvider.notifier)
+              .refreshAfterTransaction();
+          _showSuccessScreen(context, psbt);
+        },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _log.critical(
+        _tag,
+        'Unexpected error during transaction confirmation',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         _showErrorDialog(context, "Erro inesperado: $e");
       }
@@ -757,89 +810,15 @@ class _ReviewTransactionScreenState
     );
   }
 
-  void _showSuccessDialog(
+  void _showSuccessScreen(
     BuildContext context,
-    WidgetRef ref,
-    String destinationAddress,
+    PartiallySignedTransaction psbt,
   ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.check_circle_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                const Text('Transação Enviada'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sua transação foi enviada com sucesso!',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Endereço de destino:',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 4),
-                      CopyButton(
-                        textToCopy: destinationAddress,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        borderRadius: 6,
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        iconSize: 12,
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Você pode acompanhar o status na seção de histórico.',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  ref.read(addressStateProvider.notifier).state = '';
-                  ref.read(amountStateProvider.notifier).state = 0;
-                  ref
-                      .read(sendValidationControllerProvider.notifier)
-                      .clearValidation();
-                  context.go('/home');
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    TransactionSentScreen.show(
+      context,
+      asset: psbt.asset,
+      amount: psbt.satoshi,
+      destinationAddress: psbt.destination,
     );
   }
 }

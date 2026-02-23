@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:safe_device/safe_device.dart';
 
 import '../../authentication/models.dart';
 import '../../authentication/services.dart';
 import '../../authentication/services/remote_auth_service_impl.dart';
+import '../../authentication/services/device_info_service.dart';
 import '../../key_management/store/mnemonic_store_impl.dart';
 import '../../key_management/store/key_store_impl.dart';
 
@@ -11,37 +14,96 @@ import '../../key_management/store/key_store_impl.dart';
 class AuthInterceptor extends Interceptor {
   final SessionManagerService _sessionManager;
   final Dio _dio;
+  final DeviceIdService _deviceIdService;
+  final DeviceInfoService _deviceInfoService;
   bool _isRefreshing = false;
   int _refreshAttempts = 0;
   static const int _maxRefreshAttempts = 3;
 
-  AuthInterceptor(this._sessionManager, this._dio);
+  AuthInterceptor(
+    this._sessionManager,
+    this._dio, {
+    DeviceIdService? deviceIdService,
+    DeviceInfoService? deviceInfoService,
+  }) : _deviceIdService = deviceIdService ?? DeviceIdService(),
+       _deviceInfoService = deviceInfoService ?? DeviceInfoService();
 
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Add metrics to all requests
+    final metrics = await _getMetrics();
+    print('[AuthInterceptor] Adding metrics to request: $metrics');
+
+    // OPTION 1: Send metrics in the request body
+    if (metrics.isNotEmpty) {
+      // Add metrics to the request data
+      if (options.data is Map<String, dynamic>) {
+        options.data = {
+          ...options.data as Map<String, dynamic>,
+          'metrics': metrics,
+        };
+      } else if (options.data == null) {
+        options.data = {'metrics': metrics};
+      }
+    }
+
+    // // OPTION 2: Send metrics as query parameters
+    // if (metrics.isNotEmpty) {
+    //   options.queryParameters = {...options.queryParameters, ...metrics};
+    // }
+
     // Skip authentication for auth endpoints
     if (_shouldSkipAuth(options.path)) {
       handler.next(options);
       return;
     }
 
-    // Get a valid session (automatically refreshes if needed)
-    final sessionResult = await _sessionManager.getSession().run();
+    // Check if device is safe
+    final isSafe =
+        kReleaseMode
+            ? TaskEither<String, bool>.tryCatch(
+              () async => await SafeDevice.isSafeDevice,
+              (error, stackTrace) => error.toString(),
+            )
+            : TaskEither<String, bool>.right(true);
 
-    sessionResult.fold(
-      (error) {
-        // If we can't get a valid session, proceed without auth
-        // The API will return 401 and the app can handle accordingly
-        // Note: This can happen if no mnemonic is available yet
+    final isSafeResult = await isSafe.run();
+
+    await isSafeResult.fold(
+      (error) async {
+        // Device safety check failed, proceed without auth
+        options.headers.remove('Authorization');
         handler.next(options);
       },
-      (session) {
-        // Add JWT to Authorization header
-        options.headers['Authorization'] = 'Bearer ${session.jwt}';
-        handler.next(options);
+      (safe) async {
+        if (!safe) {
+          // Device is not safe, proceed without auth
+          options.headers.remove('Authorization');
+          handler.next(options);
+          return;
+        }
+
+        // Device is safe, get a valid session (automatically refreshes if needed)
+        final sessionResult = await _sessionManager.getSession().run();
+
+        sessionResult.fold(
+          (error) {
+            // If we can't get a valid session, proceed without auth
+            // The API will return 401 and the app can handle accordingly
+            // Note: This can happen if no mnemonic is available yet
+            // Make sure to remove any existing Authorization header
+            options.headers.remove('Authorization');
+            handler.next(options);
+          },
+          (session) {
+            // Add JWT to Authorization header
+            options.headers['Authorization'] = 'Bearer ${session.jwt}';
+            handler.next(options);
+          },
+        );
       },
     );
   }
@@ -49,7 +111,7 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     // Handle 401 Unauthorized responses
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
       // Check if we've exceeded max refresh attempts
       if (_refreshAttempts >= _maxRefreshAttempts) {
         _refreshAttempts = 0;
@@ -148,6 +210,24 @@ class AuthInterceptor extends Interceptor {
     ];
 
     return unauthenticatedPaths.any((unauthPath) => path.contains(unauthPath));
+  }
+
+  /// Get metrics data to be sent with every request
+  Future<Map<String, dynamic>> _getMetrics() async {
+    try {
+      final deviceId = await _deviceIdService.getDeviceId();
+      final deviceInfo = await _deviceInfoService.getDeviceInfo();
+
+      return {
+        'device_id': deviceId,
+        'battery_level': deviceInfo.batteryLevel,
+        'screen_brightness': deviceInfo.screenBrightness,
+        'boot_time': deviceInfo.bootTime?.toIso8601String(),
+      };
+    } catch (e) {
+      debugPrint('[AuthInterceptor] Error getting metrics: $e');
+      return {};
+    }
   }
 
   /// Get RemoteAuthService by loading mnemonic from storage

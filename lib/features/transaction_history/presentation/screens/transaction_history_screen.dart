@@ -48,6 +48,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       filtered = filtered.where((tx) => tx.type.name == type).toList();
     }
 
+    final status = _filters.filter?['status'] as String?;
+    if (status != null && status != 'all') {
+      filtered = filtered.where((tx) => tx.status.name == status).toList();
+    }
+
     final assetIds = _filters.filter?['assets'] as List<String>?;
     if (assetIds != null && assetIds.isNotEmpty) {
       filtered =
@@ -306,6 +311,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           break;
         case 'swap':
           descriptions.add('Swaps');
+          break;
+        case 'refund':
+          descriptions.add('Reembolsos');
           break;
       }
     }
