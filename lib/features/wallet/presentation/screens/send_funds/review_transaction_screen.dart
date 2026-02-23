@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -31,6 +32,8 @@ class ReviewTransactionScreen extends ConsumerStatefulWidget {
 class _ReviewTransactionScreenState
     extends ConsumerState<ReviewTransactionScreen> {
   bool _isConfirming = false;
+  final _log = AppLoggerService();
+  static const _tag = 'ReviewTransaction';
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +47,18 @@ class _ReviewTransactionScreenState
       data:
           (psbtEither) => psbtEither.fold(
             (error) {
+              _log.error(_tag, 'PSBT preparation returned an error: $error');
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 context.pop();
               });
               return _buildErrorScreen(context, error);
             },
             (psbt) {
+              _log.debug(
+                _tag,
+                'PSBT ready for review \u2014 asset: ${psbt.asset.ticker}, '
+                'amount: ${psbt.satoshi} sats, fees: ${psbt.networkFees} sats',
+              );
               return _buildSuccessScreen(
                 context,
                 psbt,
@@ -61,12 +70,19 @@ class _ReviewTransactionScreenState
             },
           ),
       loading: () {
+        _log.debug(_tag, 'Waiting for PSBT to be prepared...');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.pop();
         });
         return _buildLoadingScreen(context, isDrainTransaction);
       },
       error: (error, stackTrace) {
+        _log.critical(
+          _tag,
+          'PSBT provider threw an unhandled exception',
+          error: error,
+          stackTrace: stackTrace,
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           context.pop();
         });
@@ -659,31 +675,67 @@ class _ReviewTransactionScreenState
     WidgetRef ref,
     PartiallySignedTransaction psbt,
   ) async {
-    if (_isConfirming) return;
+    if (_isConfirming) {
+      _log.debug(_tag, 'Confirm transaction ignored: already confirming');
+      return;
+    }
+
+    _log.info(
+      _tag,
+      'User confirmed transaction — asset: ${psbt.asset.ticker}, '
+      'amount: ${psbt.satoshi} sats, network: ${psbt.blockchain.name}, '
+      'destination: ${psbt.destination.substring(0, psbt.destination.length.clamp(0, 14))}...',
+    );
 
     setState(() {
       _isConfirming = true;
     });
 
     try {
+      _log.debug(_tag, 'Fetching wallet controller to broadcast transaction');
       final walletControllerResult = await ref.read(
         walletControllerProvider.future,
       );
 
       final result = await walletControllerResult.fold(
-        (error) async => left<String, dynamic>(
-          "Erro ao acessar carteira: ${error.description}",
-        ),
+        (error) async {
+          _log.error(
+            _tag,
+            'Wallet controller unavailable: ${error.description}',
+          );
+          return left<String, dynamic>(
+            "Erro ao acessar carteira: ${error.description}",
+          );
+        },
         (controller) async =>
             await controller.confirmTransaction(psbt: psbt).run(),
       );
 
-      result.fold((error) => _showErrorDialog(context, error), (transaction) {
-        // Refresh UI immediately after transaction is sent
-        ref.read(walletDataManagerProvider.notifier).refreshAfterTransaction();
-        _showSuccessScreen(context, psbt);
-      });
-    } catch (e) {
+      result.fold(
+        (error) {
+          _log.error(_tag, 'Transaction broadcast failed: $error');
+          _showErrorDialog(context, error);
+        },
+        (transaction) {
+          _log.info(
+            _tag,
+            'Transaction broadcast successful — asset: ${psbt.asset.ticker}, '
+            'amount: ${psbt.satoshi} sats, network: ${psbt.blockchain.name}',
+          );
+          // Refresh UI immediately after transaction is sent
+          ref
+              .read(walletDataManagerProvider.notifier)
+              .refreshAfterTransaction();
+          _showSuccessScreen(context, psbt);
+        },
+      );
+    } catch (e, stackTrace) {
+      _log.critical(
+        _tag,
+        'Unexpected error during transaction confirmation',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         _showErrorDialog(context, "Erro inesperado: $e");
       }

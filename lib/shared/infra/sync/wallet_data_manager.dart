@@ -111,7 +111,7 @@ class WalletSynchronizer {
   /// - Current balances
   /// - Asset prices
   Future<void> performLightSync() async {
-    _logger.info('WalletSynchronizer', '⚡⚡⚡ STARTING LIGHT SYNC ⚡⚡⚡');
+    _logger.info('WalletSynchronizer', ' STARTING LIGHT SYNC ');
 
     try {
       // Ensure transaction listener is active
@@ -125,7 +125,7 @@ class WalletSynchronizer {
       // Step 1: Sync blockchains to fetch new transactions
       _logger.info(
         'WalletSynchronizer',
-        '📡 Step 1: Syncing blockchains for new transactions...',
+        'Step 1: Syncing blockchains for new transactions...',
       );
 
       final liquidResult = await ref.read(liquidDataSourceProvider.future);
@@ -197,10 +197,7 @@ class WalletSynchronizer {
       // Step 4: Trigger UI refresh
       ref.read(dataRefreshTriggerProvider.notifier).triggerRefresh();
 
-      _logger.info(
-        'WalletSynchronizer',
-        'LIGHT SYNC COMPLETED SUCCESSFULLY',
-      );
+      _logger.info('WalletSynchronizer', 'LIGHT SYNC COMPLETED SUCCESSFULLY');
     } catch (error, stackTrace) {
       _logger.error(
         'WalletSynchronizer',
@@ -467,9 +464,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         _handleTransactionEvent(event);
       },
       onError: (error, stackTrace) {
-        debugPrint(
-          '[WalletDataManager] Error in transaction listener: $error',
-        );
+        debugPrint('[WalletDataManager] Error in transaction listener: $error');
         _logger.error(
           'WalletDataManager',
           'Error in transaction event listener',
@@ -572,7 +567,6 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   // Does NOT do blockchain sync (already done), just updates caches and UI
   void _refreshAfterTransactionEvent() {
     const String _refreshTag = '[REFRESH AFTER TRANSACTION]';
-    debugPrint('$_refreshTag _refreshAfterTransactionEvent() CHAMADO!');
 
     Future.microtask(() async {
       try {
@@ -580,36 +574,19 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
         _logger.info(
           'WalletDataManager',
-          '$_refreshTag ⚡ Refreshing caches after transaction event...',
+          '$_refreshTag  Refreshing caches after transaction event...',
         );
-        debugPrint('$_refreshTag ⚡ INICIANDO refresh dos caches...');
 
-        debugPrint(
-          '$_refreshTag ⏳ Aguardando 300ms para garantir que TX foi salva no DB...',
-        );
-        // await Future.delayed(const Duration(milliseconds: 300));
-        debugPrint('$_refreshTag Delay completado, iniciando refresh...');
-
-        debugPrint('$_refreshTag Refreshing transaction history cache...');
         await ref.read(transactionHistoryCacheProvider.notifier).refresh();
-        debugPrint('$_refreshTag Transaction history refreshed!');
 
-        debugPrint('$_refreshTag Refreshing balances...');
         final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
 
-        // CRITICAL: Invalidate allBalancesProvider FIRST to force fresh data fetch from blockchain
-        // Without this, balanceProvider just returns cached data from allBalancesProvider
-        debugPrint(
-          '$_refreshTag Invalidating allBalancesProvider to force fresh fetch...',
-        );
         ref.invalidate(allBalancesProvider);
 
         await ref.read(balanceCacheProvider.notifier).refresh(mainAssets);
         debugPrint('$_refreshTag Balances refreshed!');
 
-        debugPrint(
-          '$_refreshTag Invalidating providers to force UI update...',
-        );
+        debugPrint('$_refreshTag Invalidating providers to force UI update...');
         ref.invalidate(cachedTransactionHistoryProvider);
         ref.invalidate(cachedBalanceProvider);
         ref.invalidate(walletHoldingsProvider);
@@ -625,7 +602,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         );
         await Future.delayed(const Duration(milliseconds: 100));
 
-        debugPrint('$_refreshTag 🔍 Syncing pending transactions...');
+        debugPrint('$_refreshTag Syncing pending transactions...');
         await _syncPendingTransactions();
         debugPrint('$_refreshTag Pending transactions synced!');
 
@@ -633,7 +610,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
           'WalletDataManager',
           '$_refreshTag Event-triggered refresh completed',
         );
-        debugPrint('$_refreshTag 🎉 EVENT-TRIGGERED REFRESH COMPLETO!');
+        debugPrint('$_refreshTag EVENT-TRIGGERED REFRESH COMPLETO!');
       } catch (e, stack) {
         debugPrint('$_refreshTag ERRO no event-triggered refresh: $e');
         _logger.error(
@@ -962,13 +939,13 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         } else {
           _logger.debug(
             'WalletDataManager',
-            'BDK não disponível - pulando sync',
+            'BDK not available - skipping sync',
           );
         }
 
         _logger.debug(
           'WalletDataManager',
-          'Total de syncs agendados: ${syncFutures.length}',
+          'Total syncs : ${syncFutures.length}',
         );
 
         if (syncFutures.isNotEmpty) {
@@ -1213,7 +1190,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   /// identifies transactions that can be refunded.
   Future<void> _rescanOnchainSwapsAndCheckRefundables() async {
     try {
-      _logger.info('WalletDataManager', '🔍 Starting onchain swaps rescan...');
+      _logger.info('WalletDataManager', 'Starting onchain swaps rescan...');
 
       final breezClient = await ref.read(breezClientProvider.future);
 
@@ -1239,13 +1216,13 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
             final refundables = await client.listRefundables();
             _logger.info(
               'WalletDataManager',
-              '📋 Found ${refundables.length} refundable swap(s)',
+              'Found ${refundables.length} refundable swap(s)',
             );
 
             if (refundables.isNotEmpty) {
               _logger.warning(
                 'WalletDataManager',
-                '⚠️ Refundable swaps detected:',
+                'Refundable swaps detected:',
               );
               for (var refundable in refundables) {
                 _logger.warning(
@@ -1418,18 +1395,18 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   Future<void> _performPeriodicSync() async {
-    _logger.info('WalletDataManager', '⚡ Iniciando light sync periódico...');
+    _logger.info('WalletDataManager', ' Starting light periodic sync...');
 
     _logger.debug(
       'WalletDataManager',
-      'Estado atual: ${state.state}, isLoading: ${state.isLoading}, isRefreshing: ${state.isRefreshing}, isSyncing: $isSyncing',
+      'Current state: ${state.state}, isLoading: ${state.isLoading}, isRefreshing: ${state.isRefreshing}, isSyncing: $isSyncing',
     );
 
     // Check if there's actually a sync in progress using the mutex
     if (isSyncing) {
       _logger.debug(
         'WalletDataManager',
-        'Sync em progresso (mutex locked), pulando sync periódico',
+        'Sync in progress (mutex locked), skipping periodic sync',
       );
       return;
     }
@@ -1438,16 +1415,16 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     if (state.isLoadingOrRefreshing) {
       _logger.warning(
         'WalletDataManager',
-        'Estado preso em ${state.state} sem sync ativo, resetando para success',
+        'State stuck in ${state.state} without active sync, resetting to success',
       );
       state = state.copyWith(state: WalletDataState.success);
     }
 
-    _logger.info('WalletDataManager', '⚡ Executando light sync periódico...');
+    _logger.info('WalletDataManager', 'Starting light periodic sync...');
 
     await lightSync();
 
-    debugPrint('[WalletDataManager] ⚡ Periodic light sync completed');
+    debugPrint('[WalletDataManager] Periodic light sync completed');
   }
 
   void stopPeriodicSync() {
@@ -1793,7 +1770,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     try {
       _logger.info(
         'WalletDataManager',
-        '🧹 Cleaning blockchain directories for wallet import...',
+        'Cleaning blockchain directories for wallet import...',
       );
 
       bool breezCleaned = true;
@@ -1937,7 +1914,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       } else {
         _logger.warning(
           'WalletDataManager',
-          '⚠️ Partial cleanup - Breez: $breezCleaned, LWK: $lwkCleaned',
+          'Partial cleanup - Breez: $breezCleaned, LWK: $lwkCleaned',
         );
       }
 
