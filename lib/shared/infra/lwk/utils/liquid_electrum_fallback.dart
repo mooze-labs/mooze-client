@@ -2,10 +2,10 @@ import 'package:flutter/foundation.dart';
 
 class LiquidElectrumFallback {
   static final List<String> _servers = [
-    'ssl://electrum.blockstream.info:465',
-    'ssl://blockstream.info:465',
-    'ssl://liquid.taxi:51002',
-    'ssl://blockstream.info:995',
+    'electrs.sideswap.io:12001',
+    'electrs.sideswap.io:12002',
+    'blockstream.info:995',
+    'blockstream.info:465',
   ];
 
   static int _currentServerIndex = 0;
@@ -90,10 +90,21 @@ class LiquidElectrumFallback {
     };
   }
 
-  @visibleForTesting
+  /// Resets the fallback state to start from the first server
+  /// Useful when reinitializing the datasource provider
   static void reset() {
+    if (_currentServerIndex != 0 || _consecutiveFailures != 0) {
+      debugPrint(
+        '[LiquidElectrumFallback] Resetting to first server (was at ${getCurrentServer()})',
+      );
+    }
     _currentServerIndex = 0;
     _consecutiveFailures = 0;
     _lastFailure = null;
+  }
+
+  @visibleForTesting
+  static void resetForTest() {
+    reset();
   }
 }

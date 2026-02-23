@@ -10,7 +10,8 @@ final balanceControllerProvider =
     FutureProvider.autoDispose<Either<WalletError, BalanceController>>((
       ref,
     ) async {
-      final wallet = await ref.read(walletRepositoryProvider.future);
+      // Use watch to ensure we get updated when wallet repository changes
+      final wallet = await ref.watch(walletRepositoryProvider.future);
       return wallet.flatMap((w) => Either.right(BalanceController(w)));
     });
 

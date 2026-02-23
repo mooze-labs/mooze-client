@@ -130,6 +130,29 @@ class AppDatabase extends _$AppDatabase {
     return result?.read(countExp) ?? 0;
   }
 
+  /// Get logs with pagination (newest first)
+  Future<List<AppLog>> getLogsPaginated({
+    required int limit,
+    required int offset,
+    String? level,
+  }) {
+    final query =
+        select(appLogs)
+          ..orderBy([
+            (log) => OrderingTerm(
+              expression: log.timestamp,
+              mode: OrderingMode.desc,
+            ),
+          ])
+          ..limit(limit, offset: offset);
+
+    if (level != null) {
+      query.where((log) => log.level.equals(level));
+    }
+
+    return query.get();
+  }
+
   // ==================== Transaction Operations ====================
 
   /// Get all transactions

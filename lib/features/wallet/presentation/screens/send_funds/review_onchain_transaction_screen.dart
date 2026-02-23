@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/amount_provider.dart';
@@ -81,6 +82,11 @@ class _ReviewOnchainTransactionScreenState
               }
             },
             (transaction) async {
+              // Refresh UI immediately after transaction is sent
+              ref
+                  .read(walletDataManagerProvider.notifier)
+                  .refreshAfterTransaction();
+
               if (mounted) {
                 TransactionSentScreen.show(
                   context,

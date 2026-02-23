@@ -12,6 +12,7 @@ import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class WalletHeaderWidget extends ConsumerWidget {
   const WalletHeaderWidget({super.key});
@@ -20,6 +21,9 @@ class WalletHeaderWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isVisible = ref.watch(isVisibleProvider);
     final displayMode = ref.watch(walletDisplayModeProvider);
+
+    // Watch the refresh trigger to re-render without loading state
+    ref.watch(dataRefreshTriggerProvider);
 
     final totalFiatValue = ref.watch(totalWalletValueProvider);
     final totalBitcoinValue = ref.watch(totalWalletBitcoinProvider);

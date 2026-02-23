@@ -243,6 +243,7 @@ class _BtcLbtcConfirmBottomSheetState
                     if (_feeEstimate != null) ...[
                       FeeSpeedSelector(
                         selectedSpeed: _selectedFeeSpeed,
+                        lowFeeLoading: false,
                         onSpeedChanged: _onFeeSpeedChanged,
                         lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
                         mediumFeeSatPerVByte:

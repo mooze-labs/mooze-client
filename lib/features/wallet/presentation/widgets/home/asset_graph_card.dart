@@ -9,12 +9,16 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class AssetCardList extends ConsumerWidget {
   const AssetCardList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the refresh trigger to re-render without loading state
+    ref.watch(dataRefreshTriggerProvider);
+
     final favoriteAssets = ref.watch(favoriteAssetsProvider);
 
     return Row(

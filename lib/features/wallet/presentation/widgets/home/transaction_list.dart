@@ -10,32 +10,37 @@ import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/utils/transaction_formatters.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cachedTransactionHistory = ref.watch(
-      cachedTransactionHistoryProvider,
-    );
+    ref.watch(dataRefreshTriggerProvider);
+    final transactionState = ref.watch(transactionHistoryCacheProvider);
     final isVisible = ref.watch(isVisibleProvider);
 
-    if (cachedTransactionHistory == null) {
+    if (transactionState.transactions == null && !transactionState.isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(transactionHistoryCacheProvider.notifier)
             .fetchTransactionsInitial();
       });
+    }
+
+    if (transactionState.transactions == null) {
       return LoadingTransactionList();
     }
 
-    return cachedTransactionHistory.fold(
+    return transactionState.transactions!.fold(
       (err) => ErrorTransactionList(),
-      (transactions) => SuccessfulTransactionList(
-        transactions: transactions,
-        isVisible: isVisible,
-      ),
+      (transactions) {
+        return SuccessfulTransactionList(
+          transactions: transactions,
+          isVisible: isVisible,
+        );
+      },
     );
   }
 }
@@ -82,8 +87,6 @@ class SuccessfulTransactionList extends ConsumerWidget {
   }
 
   String _getTransactionTitle(Transaction transaction) {
-    // Check if it's any kind of swap (including submarine swaps)
-    // print(transaction.toString());
     if (transaction.fromAsset != null &&
         transaction.toAsset != null &&
         transaction.sentAmount != null &&
@@ -109,7 +112,6 @@ class SuccessfulTransactionList extends ConsumerWidget {
       case TransactionType.swap:
         return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
       case TransactionType.submarine:
-        // Submarine swaps should have fromAsset/toAsset, but if not, fallback
         return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
       case TransactionType.redeposit:
         return "Autodepositou ${transaction.asset.ticker}";
@@ -345,6 +347,11 @@ class HomeTransactionItem extends StatelessWidget {
         transaction?.fromAsset != null &&
         transaction?.toAsset != null;
 
+    final shouldHideValue =
+        isSwap &&
+        (transaction?.status == TransactionStatus.refundable ||
+            transaction?.status == TransactionStatus.failed);
+
     return Container(
       color: Colors.transparent,
       padding: EdgeInsets.symmetric(vertical: 5),
@@ -366,7 +373,6 @@ class HomeTransactionItem extends StatelessWidget {
                   ).textTheme.bodyMedium!.copyWith(color: Colors.white),
                 ),
                 SizedBox(height: 4),
-                // Subtitle especial para swaps
                 if (hasSwapDetails)
                   _buildSwapSubtitle()
                 else
@@ -381,7 +387,9 @@ class HomeTransactionItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                isSwap
+                shouldHideValue
+                    ? ''
+                    : isSwap
                     ? ''
                     : isVisible
                     ? '•••••••'
@@ -429,7 +437,6 @@ class HomeTransactionItem extends StatelessWidget {
               ),
             ),
           ),
-          // Asset TO (frente, maior)
           Positioned(
             right: 0,
             bottom: 5,
@@ -452,6 +459,13 @@ class HomeTransactionItem extends StatelessWidget {
   }
 
   Widget _buildSwapSubtitle() {
+    if (transaction?.status == TransactionStatus.refundable ||
+        transaction?.status == TransactionStatus.failed) {
+      return Text(
+        subtitle,
+        style: TextStyle(color: Colors.grey[400], fontSize: 14),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -6,7 +6,12 @@ import 'package:mooze_mobile/shared/infra/boot/boot_orchestrator.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
+import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/shared/infra/lwk/utils/cache_manager.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'dart:math' as math;
 
 class ImportMessage {
@@ -40,7 +45,6 @@ class _WalletImportLoadingScreenState
   bool _hasInitialized = false;
   bool _isHandlingSuccess = false;
 
-  // Sync event tracking
   final _requiredDatasources = {'liquid', 'bdk', 'breez'};
   final _completedDatasources = <String>{};
   bool _allSyncsCompleted = false;
@@ -119,14 +123,9 @@ class _WalletImportLoadingScreenState
   }
 
   void _listenToSyncEvents() {
-    debugPrint('[ImportLoading] Configurando listener de eventos de sync...');
     final controller = ref.read(syncEventControllerProvider);
-    debugPrint(
-      '[ImportLoading] SyncEventController hashCode: ${controller.hashCode}',
-    );
 
     final alreadyCompleted = controller.completedDatasources;
-    debugPrint('[ImportLoading] Datasources já completados: $alreadyCompleted');
 
     if (alreadyCompleted.isNotEmpty) {
       for (final datasource in alreadyCompleted) {
@@ -137,7 +136,6 @@ class _WalletImportLoadingScreenState
 
       if (_completedDatasources.containsAll(_requiredDatasources)) {
         _allSyncsCompleted = true;
-        debugPrint('[ImportLoading] Todos os syncs já estavam completados!');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             _handleAllSyncsCompleted();
@@ -146,81 +144,34 @@ class _WalletImportLoadingScreenState
       }
     }
 
-    _syncEventSubscription = controller.stream.listen(
-      (event) {
-        debugPrint(
-          '[ImportLoading] SyncEvent: ${event.datasource} - ${event.type}',
-        );
+    _syncEventSubscription = controller.stream.listen((event) {
+      if (event.isCompleted) {
+        if (!_completedDatasources.contains(event.datasource)) {
+          _completedDatasources.add(event.datasource);
 
-        if (event.isCompleted) {
-          debugPrint(
-            '[ImportLoading] Datasource ${event.datasource} completou',
-          );
-          debugPrint(
-            '[ImportLoading] _completedDatasources antes: $_completedDatasources',
-          );
-          debugPrint(
-            '[ImportLoading] Já contém ${event.datasource}? ${_completedDatasources.contains(event.datasource)}',
-          );
-
-          if (!_completedDatasources.contains(event.datasource)) {
-            _completedDatasources.add(event.datasource);
-            debugPrint(
-              '[ImportLoading] Adicionado ${event.datasource} aos completados',
-            );
-            debugPrint(
-              '[ImportLoading] _completedDatasources depois: $_completedDatasources',
-            );
-
-            _showMessage(
-              '${_getDatasourceName(event.datasource)} sincronizado ✓',
-            ).then((_) {
-              debugPrint('[ImportLoading] Verificando se todos completaram...');
-              debugPrint(
-                '[ImportLoading] _completedDatasources: $_completedDatasources',
-              );
-              debugPrint(
-                '[ImportLoading] _requiredDatasources: $_requiredDatasources',
-              );
-              debugPrint(
-                '[ImportLoading] containsAll: ${_completedDatasources.containsAll(_requiredDatasources)}',
-              );
-
-              if (_completedDatasources.containsAll(_requiredDatasources)) {
-                _allSyncsCompleted = true;
-                debugPrint(
-                  '[ImportLoading] Todos os syncs completaram! Chamando _handleAllSyncsCompleted',
-                );
-                _handleAllSyncsCompleted();
-              }
-            });
-          } else {
-            debugPrint(
-              '[ImportLoading] ${event.datasource} já estava completado, ignorando evento duplicado',
-            );
-          }
-        } else if (event.isFailed) {
-          debugPrint(
-            '[ImportLoading] Erro no sync de ${event.datasource}: ${event.error}',
-          );
-
-          if (!_completedDatasources.contains(event.datasource)) {
-            _completedDatasources.add(event.datasource);
-            _showMessage(
-              '${_getDatasourceName(event.datasource)} - erro, continuando...',
-            ).then((_) {
-              if (_completedDatasources.containsAll(_requiredDatasources)) {
-                _allSyncsCompleted = true;
-                _handleAllSyncsCompleted();
-              }
-            });
-          }
+          _showMessage(
+            '${_getDatasourceName(event.datasource)} sincronizado ✓',
+          ).then((_) {
+            if (_completedDatasources.containsAll(_requiredDatasources)) {
+              _allSyncsCompleted = true;
+              _handleAllSyncsCompleted();
+            }
+          });
         }
-      },
-      onError: (error) {
-        debugPrint('[ImportLoading] Erro no stream de sync: $error');
-      },
-    );
+      } else if (event.isFailed) {
+        if (!_completedDatasources.contains(event.datasource)) {
+          _completedDatasources.add(event.datasource);
+          _showMessage(
+            '${_getDatasourceName(event.datasource)} - erro, continuando...',
+          ).then((_) {
+            if (_completedDatasources.containsAll(_requiredDatasources)) {
+              _allSyncsCompleted = true;
+              _handleAllSyncsCompleted();
+            }
+          });
+        }
+      }
+    }, onError: (_) {});
   }
 
   String _getDatasourceName(String datasource) {
@@ -240,18 +191,14 @@ class _WalletImportLoadingScreenState
     if (_isCompleted || _isHandlingSuccess) return;
 
     setState(() => _isHandlingSuccess = true);
-    debugPrint('[ImportLoading] Aguardando dados carregarem...');
 
     await _showMessage('Carregando saldos...');
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _refreshBalances();
 
     await _showMessage('Carregando transações...');
     await Future.delayed(const Duration(milliseconds: 500));
 
-    debugPrint(
-      '[ImportLoading] Marcando transações existentes como conhecidas...',
-    );
     final transactionMonitor = ref.read(transactionMonitorServiceProvider);
     await transactionMonitor.markExistingTransactionsAsKnown();
 
@@ -259,16 +206,44 @@ class _WalletImportLoadingScreenState
     await _checkBounceController.forward();
 
     transactionMonitor.finishImporting();
-    debugPrint(
-      '[ImportLoading] Modo importação desativado no TransactionMonitor',
-    );
 
     setState(() => _isCompleted = true);
 
     if (mounted) {
-      debugPrint('[ImportLoading] Navegando para /home');
       context.go("/home");
     }
+  }
+
+  Future<void> _refreshBalances() async {
+    try {
+      ref.read(balanceCacheProvider.notifier).reset();
+    } catch (_) {}
+
+    try {
+      final breezResult = await ref.read(breezClientProvider.future);
+      breezResult.fold((error) {
+        ref.invalidate(breezClientProvider);
+      }, (client) {});
+    } catch (_) {
+      ref.invalidate(breezClientProvider);
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    ref.invalidate(walletRepositoryProvider);
+
+    ref.invalidate(allBalancesProvider);
+
+    final assetsToRefresh = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
+    for (final asset in assetsToRefresh) {
+      ref.invalidate(balanceProvider(asset));
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    try {
+      await ref.read(allBalancesProvider.future);
+    } catch (_) {}
   }
 
   Future<void> _startImportProcess() async {
@@ -277,9 +252,6 @@ class _WalletImportLoadingScreenState
 
       final transactionMonitor = ref.read(transactionMonitorServiceProvider);
       transactionMonitor.startImporting();
-      debugPrint(
-        '[ImportLoading] Modo importação ativado no TransactionMonitor',
-      );
 
       await _showMessage('Processando...');
 
@@ -287,10 +259,7 @@ class _WalletImportLoadingScreenState
 
       try {
         await LwkCacheManager.clearLwkDatabase();
-        debugPrint('LWK database cleared before import');
-      } catch (e) {
-        debugPrint('Failed to clear LWK database: $e');
-      }
+      } catch (_) {}
 
       _completedDatasources.clear();
       _allSyncsCompleted = false;
@@ -300,19 +269,12 @@ class _WalletImportLoadingScreenState
 
       final syncController = ref.read(syncEventControllerProvider);
       syncController.reset();
-      debugPrint(
-        '[ImportLoading] SyncEventController resetado: ${syncController.completedDatasources}',
-      );
 
       ref.invalidate(walletDataManagerProvider);
-      debugPrint('[ImportLoading] WalletDataManager invalidado');
 
       try {
         ref.invalidate(bootOrchestratorProvider);
-        debugPrint('[ImportLoading] BootOrchestrator invalidado');
-      } catch (e) {
-        debugPrint('[ImportLoading] Erro ao invalidar BootOrchestrator: $e');
-      }
+      } catch (_) {}
 
       await Future.delayed(const Duration(milliseconds: 200));
 
@@ -321,27 +283,18 @@ class _WalletImportLoadingScreenState
       );
 
       freshWalletDataManager.invalidateAllWalletProviders();
-      debugPrint('[ImportLoading] Wallet providers invalidados');
 
       _listenToSyncEvents();
-      debugPrint('[ImportLoading] Listener configurado');
 
       await _showMessage('Inicializando carteira...');
       setState(() => _hasInitialized = true);
-
-      debugPrint('[ImportLoading] Iniciando carteira...');
 
       await freshWalletDataManager.initializeWallet(
         skipInitialSync: false,
         runSyncInBackground: true,
       );
 
-      debugPrint('[ImportLoading] initializeWallet() completou');
-
       final alreadyCompleted = syncController.completedDatasources;
-      debugPrint(
-        '[ImportLoading] Após initializeWallet, datasources completados: $alreadyCompleted',
-      );
 
       if (alreadyCompleted.isNotEmpty) {
         for (final datasource in alreadyCompleted) {
@@ -356,14 +309,10 @@ class _WalletImportLoadingScreenState
 
         if (_completedDatasources.containsAll(_requiredDatasources)) {
           _allSyncsCompleted = true;
-          debugPrint(
-            '[ImportLoading] Todos os syncs já completaram durante initializeWallet!',
-          );
           await _handleAllSyncsCompleted();
         }
       }
     } catch (e) {
-      debugPrint('[ImportLoading] Erro capturado: $e');
       final errorMsg = _getErrorMessage(e);
       await _showMessage(errorMsg, hasError: true);
       setState(() {
@@ -466,15 +415,7 @@ class _WalletImportLoadingScreenState
       previous,
       next,
     ) async {
-      debugPrint(
-        '[ImportLoading] Estado mudou - hasInitialized: $_hasInitialized, hasError: $_hasError, isCompleted: $_isCompleted',
-      );
-      debugPrint(
-        '[ImportLoading] WalletState: ${next.state}, isSuccess: ${next.isSuccess}, hasError: ${next.hasError}, lastSync: ${next.lastSync}',
-      );
-
       if (_hasInitialized && !_hasError && !_isCompleted && next.hasError) {
-        debugPrint('[ImportLoading] Erro detectado: ${next.errorMessage}');
         final errorMsg = next.errorMessage ?? 'Erro desconhecido';
 
         final isRetrying =

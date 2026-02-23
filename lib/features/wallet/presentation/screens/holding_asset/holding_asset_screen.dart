@@ -39,6 +39,9 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   Widget build(BuildContext context) {
     final isLoadingData = ref.watch(isLoadingDataProvider);
 
+    // Watch the refresh trigger to re-render without loading state
+    ref.watch(dataRefreshTriggerProvider);
+
     return Scaffold(
       appBar: _buildAppBar(),
       body: Stack(
@@ -91,9 +94,8 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   Future<void> _refreshData() async {
     try {
       final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.refreshWalletData();
 
-      ref.invalidate(walletHoldingsProvider);
+      await walletDataManager.fullSyncWalletData();
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(

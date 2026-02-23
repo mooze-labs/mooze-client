@@ -12,7 +12,7 @@ import 'package:mooze_mobile/shared/key_management/providers.dart';
 final seedProvider = FutureProvider<Either<String, Option<String>>>((
   ref,
 ) async {
-  final MnemonicStore mnemonicStore = ref.read(mnemonicStoreProvider);
+  final MnemonicStore mnemonicStore = ref.watch(mnemonicStoreProvider);
   return mnemonicStore.getMnemonic().run();
 });
 

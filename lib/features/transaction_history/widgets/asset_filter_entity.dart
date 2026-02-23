@@ -116,4 +116,6 @@ class AssetEntity {
   AssetEntity({required this.id, required this.name, required this.iconPath});
 }
 
-enum TransactionTypeEntity { all, send, receive, swap, refund }
+enum TransactionTypeEntity { all, send, receive, swap }
+
+enum TransactionStatusEntity { all, pending, confirmed, failed, refundable }

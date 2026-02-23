@@ -89,16 +89,26 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
 
   AssetPriceHistoryNotifier(this.ref) : super(const AssetPriceHistoryState());
 
-  Future<void> fetchAssetPriceHistory(Asset asset) async {
+  Future<void> fetchAssetPriceHistory(
+    Asset asset, {
+    bool forceRefresh = false,
+  }) async {
     if (!mounted) return;
 
-    if (state.priceHistory.containsKey(asset) &&
+    if (!forceRefresh &&
+        state.priceHistory.containsKey(asset) &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 5) {
       return;
     }
 
     if (!mounted) return;
+
+    // CRITICAL: Invalidate the FutureProvider to force fresh data fetch
+    if (forceRefresh) {
+      ref.invalidate(assetPriceHistoryProvider(asset));
+    }
+
     state = state.copyWith(isLoading: true);
 
     try {
@@ -165,12 +175,35 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
     }
   }
 
-  Future<void> fetchMultipleAssets(List<Asset> assets) async {
+  Future<void> fetchMultipleAssets(
+    List<Asset> assets, {
+    bool forceRefresh = false,
+  }) async {
     if (!mounted) return;
+
+    // If forceRefresh, fetch all assets. Otherwise filter cached ones.
+    final assetsToFetch =
+        forceRefresh
+            ? assets
+            : assets.where((asset) {
+              return !state.priceHistory.containsKey(asset) ||
+                  state.lastUpdated == null ||
+                  DateTime.now().difference(state.lastUpdated!).inMinutes >= 5;
+            }).toList();
+
+    if (assetsToFetch.isEmpty) return;
+
+    // CRITICAL: Invalidate all FutureProviders to force fresh data fetch
+    if (forceRefresh) {
+      for (final asset in assetsToFetch) {
+        ref.invalidate(assetPriceHistoryProvider(asset));
+      }
+    }
+
     state = state.copyWith(isLoading: true);
 
     try {
-      final futures = assets.map(
+      final futures = assetsToFetch.map(
         (asset) => ref.read(assetPriceHistoryProvider(asset).future),
       );
 
@@ -182,8 +215,8 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
         state.priceHistory,
       );
 
-      for (int i = 0; i < assets.length; i++) {
-        updatedPriceHistory[assets[i]] = results[i];
+      for (int i = 0; i < assetsToFetch.length; i++) {
+        updatedPriceHistory[assetsToFetch[i]] = results[i];
       }
 
       state = state.copyWith(
@@ -199,9 +232,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
 
   Future<void> refresh(List<Asset> assets) async {
     if (!mounted) return;
-    state = state.copyWith(priceHistory: {}, lastUpdated: null);
-
-    await fetchMultipleAssets(assets);
+    await fetchMultipleAssets(assets, forceRefresh: true);
   }
 
   Either<String, List<double>>? getAssetData(Asset asset) {
@@ -227,7 +258,7 @@ class TransactionHistoryNotifier
     );
   }
 
-  Future<void> fetchTransactions() async {
+  Future<void> fetchTransactions({bool forceRefresh = false}) async {
     final logger = ref.read(appLoggerProvider);
 
     if (!mounted) {
@@ -238,8 +269,9 @@ class TransactionHistoryNotifier
       return;
     }
 
-    // Check if we have valid cached data
-    if (state.transactions != null &&
+    // Check if we have valid cached data (skip check if forceRefresh is true)
+    if (!forceRefresh &&
+        state.transactions != null &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 2) {
       logger.info(
@@ -255,6 +287,16 @@ class TransactionHistoryNotifier
       'TransactionHistoryNotifier',
       'Fetching transactions from repository (cache expired or empty)...',
     );
+
+    // CRITICAL: Invalidate the FutureProvider to force fresh data fetch
+    if (forceRefresh) {
+      logger.debug(
+        'TransactionHistoryNotifier',
+        '🔄 Force refresh - invalidating transactionHistoryProvider',
+      );
+      ref.invalidate(transactionHistoryProvider);
+    }
+
     state = state.copyWith(isLoading: true);
 
     try {
@@ -377,11 +419,10 @@ class TransactionHistoryNotifier
 
     logger.info(
       'TransactionHistoryNotifier',
-      'Manual refresh requested, clearing cache',
+      'Manual refresh requested, forcing fresh data fetch',
     );
-    state = state.copyWith(clearTransactions: true, clearLastUpdated: true);
 
-    await fetchTransactions();
+    await fetchTransactions(forceRefresh: true);
   }
 
   void reset() {
@@ -402,16 +443,23 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
 
   BalanceNotifier(this.ref) : super(const BalanceState());
 
-  Future<void> fetchBalance(Asset asset) async {
+  Future<void> fetchBalance(Asset asset, {bool forceRefresh = false}) async {
     if (!mounted) return;
 
-    if (state.balances.containsKey(asset) &&
+    if (!forceRefresh &&
+        state.balances.containsKey(asset) &&
         state.lastUpdated != null &&
         DateTime.now().difference(state.lastUpdated!).inMinutes < 1) {
       return;
     }
 
     if (!mounted) return;
+
+    // CRITICAL: Invalidate the FutureProvider to force fresh data fetch
+    if (forceRefresh) {
+      ref.invalidate(balanceProvider(asset));
+    }
+
     state = state.copyWith(isLoading: true);
 
     try {
@@ -472,12 +520,35 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
     }
   }
 
-  Future<void> fetchMultipleBalances(List<Asset> assets) async {
+  Future<void> fetchMultipleBalances(
+    List<Asset> assets, {
+    bool forceRefresh = false,
+  }) async {
     if (!mounted) return;
+
+    // If forceRefresh, fetch all assets. Otherwise filter cached ones.
+    final assetsToFetch =
+        forceRefresh
+            ? assets
+            : assets.where((asset) {
+              return !state.balances.containsKey(asset) ||
+                  state.lastUpdated == null ||
+                  DateTime.now().difference(state.lastUpdated!).inMinutes >= 1;
+            }).toList();
+
+    if (assetsToFetch.isEmpty) return;
+
+    // CRITICAL: Invalidate FutureProviders to force fresh data fetch
+    if (forceRefresh) {
+      for (final asset in assetsToFetch) {
+        ref.invalidate(balanceProvider(asset));
+      }
+    }
+
     state = state.copyWith(isLoading: true);
 
     try {
-      final futures = assets.map(
+      final futures = assetsToFetch.map(
         (asset) => ref.read(balanceProvider(asset).future),
       );
 
@@ -488,8 +559,8 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
         state.balances,
       );
 
-      for (int i = 0; i < assets.length; i++) {
-        updatedBalances[assets[i]] = results[i];
+      for (int i = 0; i < assetsToFetch.length; i++) {
+        updatedBalances[assetsToFetch[i]] = results[i];
       }
 
       state = state.copyWith(
@@ -505,8 +576,7 @@ class BalanceNotifier extends StateNotifier<BalanceState> {
 
   Future<void> refresh(List<Asset> assets) async {
     if (!mounted) return;
-    state = state.copyWith(balances: {}, lastUpdated: null);
-    await fetchMultipleBalances(assets);
+    await fetchMultipleBalances(assets, forceRefresh: true);
   }
 
   Either<WalletError, BigInt>? getAssetBalance(Asset asset) {

@@ -373,6 +373,30 @@ class AppLoggerService {
     }
   }
 
+  /// Get logs from database with pagination (newest first)
+  Future<List<AppLog>> getLogsFromDatabasePaginated({
+    required int limit,
+    required int offset,
+    LogLevel? level,
+  }) async {
+    try {
+      if (_database == null) return [];
+
+      return await _database!.getLogsPaginated(
+        limit: limit,
+        offset: offset,
+        level: level?.name,
+      );
+    } catch (e) {
+      error(
+        'AppLogger',
+        'Error getting paginated logs from database',
+        error: e,
+      );
+      return [];
+    }
+  }
+
   Future<List<AppLog>> getLogsFromDatabaseByTimeRange(
     DateTime start,
     DateTime end,

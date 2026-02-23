@@ -4,10 +4,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
@@ -21,6 +21,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 enum ExportMethod { email, share }
 
@@ -49,6 +50,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   // Logger instance and stream subscription
   late final AppLoggerService _logger;
   StreamSubscription<LogEntry>? _logStreamSubscription;
+  Timer? _dbStatsDebounceTimer;
 
   @override
   void initState() {
@@ -57,16 +59,34 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
     // Initialize logger once in initState to avoid accessing ref after dispose
     _logger = ref.read(appLoggerProvider);
 
-    _loadAppInfo();
-    _loadWalletInfo();
-    _updateLogCount();
-    _updateDbLogStats();
+    // Load data after frame is built to avoid blocking navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadAppInfo();
+        _updateLogCount();
+
+        // Load heavy operations with a slight delay
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _loadWalletInfo();
+            _updateDbLogStats();
+          }
+        });
+      }
+    });
 
     // Listen to log changes with proper subscription management
     _logStreamSubscription = _logger.logStream.listen((_) {
       if (mounted) {
         _updateLogCount();
-        _updateDbLogStats();
+
+        // Debounce DB stats update to avoid too many queries
+        _dbStatsDebounceTimer?.cancel();
+        _dbStatsDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _updateDbLogStats();
+          }
+        });
       }
     });
   }
@@ -75,10 +95,13 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   void dispose() {
     // Cancel stream subscription to prevent memory leaks
     _logStreamSubscription?.cancel();
+    _dbStatsDebounceTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _loadAppInfo() async {
+    if (!mounted) return;
+
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       if (mounted) {
@@ -93,12 +116,22 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       );
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error loading app info', error: e);
+      if (mounted) {
+        setState(() {
+          _appVersion = 'Error';
+          _buildNumber = 'N/A';
+        });
+      }
     }
   }
 
   Future<void> _loadWalletInfo() async {
+    if (!mounted) return;
+
     try {
       final breezClientResult = await ref.read(breezClientProvider.future);
+
+      if (!mounted) return;
 
       await breezClientResult.fold(
         (error) async {
@@ -137,11 +170,25 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
               'Error getting wallet info',
               error: e,
             );
+            if (mounted) {
+              setState(() {
+                _sdkVersion = 'Error loading SDK';
+                _walletBalance = 'N/A';
+                _pendingBalance = 'N/A';
+              });
+            }
           }
         },
       );
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error loading wallet info', error: e);
+      if (mounted) {
+        setState(() {
+          _sdkVersion = 'Error';
+          _walletBalance = 'N/A';
+          _pendingBalance = 'N/A';
+        });
+      }
     }
   }
 
@@ -154,6 +201,8 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<void> _updateDbLogStats() async {
+    if (!mounted) return;
+
     try {
       final stats = await _logger.getDatabaseStats();
       if (mounted) {
@@ -164,50 +213,73 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       }
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error loading DB log stats', error: e);
+      if (mounted) {
+        setState(() {
+          _dbLogs = 0;
+          _logRetention = 'N/A';
+        });
+      }
     }
   }
 
   Future<void> _syncWallet() async {
     _setLoading(true);
-    _logger.info('DeveloperScreen', 'Starting wallet sync...');
+    _logger.info('DeveloperScreen', 'Starting light wallet sync...');
 
     try {
-      final breezClientResult = await ref.read(breezClientProvider.future);
+      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
+      await walletDataManager.lightSync();
 
-      await breezClientResult.fold(
-        (error) async {
-          throw Exception('Breez client not available: $error');
-        },
-        (breezSdk) async {
-          await breezSdk.sync();
+      // Wait a bit to allow the state to propagate
+      await Future.delayed(const Duration(milliseconds: 500));
 
-          // Check if still mounted before invalidating providers
-          if (!mounted) return;
-
-          // Invalidate providers to force refresh
-          _invalidateWalletProviders();
-
-          // Reload wallet info after sync
-          await _loadWalletInfo();
-
-          if (mounted) {
-            _showSuccessMessage('Wallet synced successfully!');
-            _logger.info(
-              'DeveloperScreen',
-              'Wallet sync completed successfully',
-            );
-          }
-        },
-      );
+      if (mounted) {
+        _showSuccessMessage('Light sync completed!');
+        await _loadWalletInfo();
+        _logger.info('DeveloperScreen', 'Light sync completed successfully');
+      }
     } catch (e, stackTrace) {
       _logger.error(
         'DeveloperScreen',
-        'Failed to sync wallet',
+        'Failed to light sync wallet',
         error: e,
         stackTrace: stackTrace,
       );
       if (mounted) {
-        _showErrorMessage('Failed to sync wallet: $e');
+        _showErrorMessage('Failed to light sync: $e');
+      }
+    } finally {
+      if (mounted) {
+        _setLoading(false);
+      }
+    }
+  }
+
+  Future<void> _fullSyncWallet() async {
+    _setLoading(true);
+    _logger.info('DeveloperScreen', 'Starting FULL wallet sync...');
+
+    try {
+      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
+      await walletDataManager.fullSyncWalletData();
+
+      // Wait a bit to allow the state to propagate
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (mounted) {
+        _showSuccessMessage('Full sync completed!');
+        await _loadWalletInfo();
+        _logger.info('DeveloperScreen', 'Full sync completed successfully');
+      }
+    } catch (e, stackTrace) {
+      _logger.error(
+        'DeveloperScreen',
+        'Failed to full sync wallet',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        _showErrorMessage('Failed to full sync: $e');
       }
     } finally {
       if (mounted) {
@@ -598,6 +670,10 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
     }
   }
 
+  Future<void> _onRefund() async {
+    context.push('/transactions/refund');
+  }
+
   Future<void> _clearLogs() async {
     final clearOption = await _showClearLogsDialog();
 
@@ -864,10 +940,12 @@ Generated: ${DateTime.now().toIso8601String()}
                       DeveloperActionGrid(
                         isLoading: _isLoading,
                         onSync: _syncWallet,
+                        onFullSync: _fullSyncWallet,
                         onRescan: _rescanSwaps,
                         onViewLogs: _viewLogs,
                         onExportLogs: _exportLogs,
                         onClearLogs: _clearLogs,
+                        onRefund: _onRefund,
                       ),
                     ],
                   ),

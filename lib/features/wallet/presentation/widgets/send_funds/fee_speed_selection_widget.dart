@@ -81,6 +81,7 @@ class _FeeSpeedSelectionWidgetState
       children: [
         FeeSpeedSelector(
           selectedSpeed: selectedSpeed,
+          lowFeeLoading: true,
           onSpeedChanged: (speed) {
             ref.read(feeSpeedProvider.notifier).state = speed;
           },

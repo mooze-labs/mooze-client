@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/features/swap/domain/repositories/swap_repository.dart';
 import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider.dart';
@@ -93,7 +93,11 @@ class SwapState {
 }
 
 class SwapController extends StateNotifier<SwapState> {
+  final _log = AppLoggerService();
+  static const _tag = 'Swap';
+
   Future<void> resetQuote() async {
+    _log.debug(_tag, 'Resetting quote state');
     _ttlTimer?.cancel();
     _quoteSub?.cancel();
     _ttlDeadline = null;
@@ -115,7 +119,10 @@ class SwapController extends StateNotifier<SwapState> {
   }
 
   Future<void> forceReconnectAndReset() async {
-    debugPrint('[SwapController] Forcing reconnect and reset...');
+    _log.warning(
+      _tag,
+      'Forcing WebSocket reconnect and resetting all swap state',
+    );
     _ttlTimer?.cancel();
     _quoteSub?.cancel();
     _ttlDeadline = null;
@@ -124,8 +131,14 @@ class SwapController extends StateNotifier<SwapState> {
     try {
       await repository.forceReconnect();
       repository.resetQuoteProgress();
-    } catch (e) {
-      debugPrint('[SwapController] Error during force reconnect: $e');
+      _log.info(_tag, 'Force reconnect succeeded');
+    } catch (e, stackTrace) {
+      _log.error(
+        _tag,
+        'Error during force reconnect',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
 
     if (!mounted) return;
@@ -158,12 +171,23 @@ class SwapController extends StateNotifier<SwapState> {
       super(SwapState.initial);
 
   Future<void> loadMetadata() async {
+    _log.debug(_tag, 'Loading swap metadata (assets and markets)');
     final repository = await _repositoryFuture;
     if (!mounted) return;
     state = state.copyWith(loading: true, error: null);
     final assetsRes = await repository.getAssets().run();
     final marketsRes = await repository.getMarkets().run();
     if (!mounted) return;
+
+    assetsRes.match(
+      (err) => _log.error(_tag, 'Failed to load assets: $err'),
+      (assets) => _log.info(_tag, 'Loaded ${assets.length} swap assets'),
+    );
+    marketsRes.match(
+      (err) => _log.error(_tag, 'Failed to load markets: $err'),
+      (markets) => _log.info(_tag, 'Loaded ${markets.length} swap markets'),
+    );
+
     state = state.copyWith(
       loading: false,
       assets: assetsRes.getOrElse((_) => []),
@@ -183,6 +207,10 @@ class SwapController extends StateNotifier<SwapState> {
     String? explicitReceiveAddress,
     String? explicitChangeAddress,
   }) async {
+    _log.info(
+      _tag,
+      'Starting quote — send: $sendAsset, receive: $receiveAsset, amount: $amount sats',
+    );
     final repository = await _repositoryFuture;
     if (!mounted) return;
     _quoteSub?.cancel();
@@ -197,16 +225,33 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlTimer?.cancel();
     _ttlDeadline = null;
 
-    final normalizedParams = repository.normalizeSwapParams(
+    var normalizedParams = repository.normalizeSwapParams(
       sendAsset: sendAsset,
       receiveAsset: receiveAsset,
     );
 
     if (normalizedParams == null) {
-      final errMsg =
-          'Par de ativos não suportado para swap. Selecione um par válido.';
+      _log.warning(
+        _tag,
+        'normalizeSwapParams returned null — reloading markets for send=$sendAsset, receive=$receiveAsset',
+      );
+      final marketsRes = await repository.getMarkets().run();
       if (!mounted) return;
-      state = state.copyWith(loading: false, error: errMsg);
+      if (marketsRes.isRight()) {
+        normalizedParams = repository.normalizeSwapParams(
+          sendAsset: sendAsset,
+          receiveAsset: receiveAsset,
+        );
+      }
+    }
+
+    if (normalizedParams == null) {
+      _log.error(
+        _tag,
+        'Trading pair not found even after reloading markets — send=$sendAsset, receive=$receiveAsset',
+      );
+      if (!mounted) return;
+      state = state.copyWith(loading: false, error: null);
       return;
     }
 
@@ -224,11 +269,19 @@ class SwapController extends StateNotifier<SwapState> {
     if (utxoAsset != sendAsset) {
       final errMsg =
           'Erro interno: normalização incorreta (utxo=$utxoAsset, send=$sendAsset)';
+      _log.error(
+        _tag,
+        'Internal normalization mismatch: utxoAsset=$utxoAsset != sendAsset=$sendAsset',
+      );
       if (!mounted) return;
       state = state.copyWith(loading: false, error: errMsg);
       return;
     }
 
+    _log.debug(
+      _tag,
+      'Fetching new receive address and selecting UTXOs for asset=$utxoAsset, amount=$amount sats',
+    );
     final addrRes = await repository.getNewAddress().run();
     final utxosRes =
         await repository.selectUtxos(assetId: utxoAsset, amount: amount).run();
@@ -238,6 +291,7 @@ class SwapController extends StateNotifier<SwapState> {
         (l) => l,
         (_) => utxosRes.match((l2) => l2, (_) => 'Erro inesperado'),
       );
+      _log.error(_tag, 'Failed to get address or UTXOs: $err');
       if (!mounted) return;
       state = state.copyWith(loading: false, error: err);
       return;
@@ -256,8 +310,14 @@ class SwapController extends StateNotifier<SwapState> {
       receiveAddress: receiveAddress,
       changeAddress: changeAddress,
     );
+    _log.debug(
+      _tag,
+      'Quote request sent — baseAsset=$baseAsset, quoteAsset=$quoteAsset, '
+      'assetType=$assetType, direction=$direction, isInverse=$isInverse',
+    );
     result.match(
       (err) {
+        _log.error(_tag, 'Failed to start quote stream: $err');
         if (!mounted) return;
         state = state.copyWith(loading: false, error: err);
       },
@@ -288,6 +348,18 @@ class SwapController extends StateNotifier<SwapState> {
             _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
           }
 
+          if (msg != null) {
+            _log.warning(_tag, 'Quote stream received error message: $msg');
+          } else if (quote.quote != null) {
+            _log.info(
+              _tag,
+              'Quote received — id: ${quote.quote!.quoteId}, '
+              'baseAmount: ${quote.quote!.baseAmount} sats, '
+              'quoteAmount: ${quote.quote!.quoteAmount} sats, '
+              'ttl: ${ttlMs}ms',
+            );
+          }
+
           if (!mounted) return;
           state = state.copyWith(
             loading: false,
@@ -314,6 +386,7 @@ class SwapController extends StateNotifier<SwapState> {
   void _startTtlCountdown() {
     _ttlTimer?.cancel();
     if (_ttlDeadline == null) return;
+    _log.debug(_tag, 'TTL countdown started');
     _ttlTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) {
         t.cancel();
@@ -324,6 +397,11 @@ class SwapController extends StateNotifier<SwapState> {
       if (remainingMs <= 0) {
         t.cancel();
         _ttlDeadline = null;
+        _log.info(
+          _tag,
+          'Quote TTL expired — auto-renewing quote for '
+          'send=${state.lastSendAssetId}, receive=${state.lastReceiveAssetId}, amount=${state.lastAmount}',
+        );
         if (!mounted) return;
         state = state.copyWith(millisecondsRemaining: 0);
         final paramsOk =
@@ -345,6 +423,7 @@ class SwapController extends StateNotifier<SwapState> {
   }
 
   void cancelQuote() {
+    _log.info(_tag, 'Quote cancelled by user');
     _ttlTimer?.cancel();
     _repositoryFuture.then((r) => r.stopQuote());
     _quoteSub?.cancel();
@@ -359,9 +438,11 @@ class SwapController extends StateNotifier<SwapState> {
   }
 
   Future<Either<String, String>> confirmSwap() async {
-    debugPrint('[SwapController] Iniciando confirmação do swap...');
+    _log.info(
+      _tag,
+      'User confirmed swap — stopping quote stream and proceeding',
+    );
 
-    debugPrint('[SwapController] Parando quotes antes de confirmar');
     _ttlTimer?.cancel();
     _quoteSub?.cancel();
     _ttlDeadline = null;
@@ -370,25 +451,29 @@ class SwapController extends StateNotifier<SwapState> {
     repository.stopQuote();
 
     if (!mounted) {
-      debugPrint('[SwapController] Controller disposed antes de iniciar');
+      _log.warning(_tag, 'confirmSwap: controller disposed before starting');
       return Either.left('Controller disposed');
     }
     final quote = state.currentQuote?.quote;
     if (quote == null) {
-      debugPrint('[SwapController] Nenhum quote ativo');
+      _log.warning(_tag, 'confirmSwap: no active quote found');
       return Either.left('Nenhum quote ativo');
     }
-    debugPrint('[SwapController] Quote ID: ${quote.quoteId}');
+    _log.debug(_tag, 'Confirming swap with quote id=${quote.quoteId}');
     state = state.copyWith(loading: true, error: null);
 
     try {
-      debugPrint(
-        '[SwapController] Iniciando processo de swap com timeout de 60s',
+      _log.debug(
+        _tag,
+        'Executing swap with 60s timeout — quoteId=${quote.quoteId}',
       );
       final result = await Future.any([
         _performSwap(repository, quote.quoteId),
         Future.delayed(const Duration(seconds: 60), () {
-          debugPrint('[SwapController] TIMEOUT: Operação excedeu 60 segundos');
+          _log.error(
+            _tag,
+            'Swap confirmation timed out after 60s — quoteId=${quote.quoteId}',
+          );
           return Either.left(
                 'Timeout: A operação demorou muito. Tente novamente.',
               )
@@ -397,13 +482,16 @@ class SwapController extends StateNotifier<SwapState> {
       ]);
 
       if (!mounted) {
-        debugPrint('[SwapController] Controller disposed após swap');
+        _log.warning(
+          _tag,
+          'confirmSwap: controller disposed after swap execution',
+        );
         return Either.left('Controller disposed');
       }
 
       return result.match(
         (err) {
-          debugPrint('[SwapController] Erro no swap: $err');
+          _log.error(_tag, 'Swap confirmation failed: $err');
           if (!mounted) return Either.left(err);
           state = state.copyWith(
             loading: false,
@@ -421,8 +509,7 @@ class SwapController extends StateNotifier<SwapState> {
           return Either.left(err);
         },
         (txid) {
-          debugPrint('[SwapController] Swap bem-sucedido! TXID: $txid');
-          debugPrint('[SwapController] Limpando estado após sucesso');
+          _log.info(_tag, 'Swap completed successfully — txid: $txid');
           if (!mounted) return Either.right(txid);
           state = state.copyWith(
             loading: false,
@@ -440,8 +527,13 @@ class SwapController extends StateNotifier<SwapState> {
           return Either.right(txid);
         },
       );
-    } catch (e) {
-      debugPrint('[SwapController] Exceção não tratada: $e');
+    } catch (e, stackTrace) {
+      _log.critical(
+        _tag,
+        'Unhandled exception during swap confirmation',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return Either.left('Erro inesperado: ${e.toString()}');
       state = state.copyWith(
         loading: false,
@@ -464,31 +556,45 @@ class SwapController extends StateNotifier<SwapState> {
     SwapRepository repository,
     int quoteId,
   ) async {
-    debugPrint('[SwapController] Obtendo PSET para quote $quoteId');
+    _log.debug(_tag, 'Fetching PSET for quoteId=$quoteId');
     final psetRes = await repository.getQuotePset(quoteId).run();
     if (!mounted) {
-      debugPrint('[SwapController] Controller disposed após obter PSET');
+      _log.warning(
+        _tag,
+        '_performSwap: controller disposed after fetching PSET',
+      );
       return Either.left('Controller disposed');
     }
 
     return await psetRes.match(
       (err) async {
-        debugPrint('[SwapController] Erro ao obter PSET: $err');
+        _log.error(_tag, 'Failed to get PSET for quoteId=$quoteId: $err');
         if (!mounted) return Either.left(err);
         return Either.left(err);
       },
       (pset) async {
-        debugPrint('[SwapController] PSET obtido, assinando e transmitindo...');
+        _log.debug(
+          _tag,
+          'PSET obtained for quoteId=$quoteId — signing and broadcasting',
+        );
         final txidRes =
             await repository
                 .signAndBroadcast(quoteId: quoteId, pset: pset)
                 .run();
         if (!mounted) {
-          debugPrint(
-            '[SwapController] Controller disposed após signAndBroadcast',
+          _log.warning(
+            _tag,
+            '_performSwap: controller disposed after signAndBroadcast',
           );
           return Either.left('Controller disposed');
         }
+        txidRes.match(
+          (err) => _log.error(
+            _tag,
+            'signAndBroadcast failed for quoteId=$quoteId: $err',
+          ),
+          (txid) => _log.info(_tag, 'signAndBroadcast succeeded — txid: $txid'),
+        );
         return txidRes;
       },
     );
@@ -496,7 +602,10 @@ class SwapController extends StateNotifier<SwapState> {
 
   @override
   void dispose() {
-    debugPrint('[SwapController] Disposing controller');
+    _log.debug(
+      _tag,
+      'SwapController disposing — cancelling timers and subscriptions',
+    );
     _mounted = false;
     _quoteSub?.cancel();
     _ttlTimer?.cancel();
@@ -504,10 +613,10 @@ class SwapController extends StateNotifier<SwapState> {
     _repositoryFuture
         .then((r) {
           r.stopQuote();
-          debugPrint('[SwapController] Quote stopped on dispose');
+          _log.debug(_tag, 'Quote stopped on controller dispose');
         })
         .catchError((e) {
-          debugPrint('[SwapController] Error stopping quote on dispose: $e');
+          _log.warning(_tag, 'Error stopping quote on dispose: $e');
         });
 
     _ttlDeadline = null;

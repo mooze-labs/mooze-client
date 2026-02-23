@@ -5,6 +5,9 @@ class BitcoinElectrumFallback {
     'ssl://electrum.blockstream.info:50002',
     'ssl://bitcoin.lu.ke:50002',
     'ssl://electrum.emzy.de:50002',
+    'ssl://btc.sethforprivacy.com:50002',
+    'ssl://fulcrum.sethforprivacy.com:50002',
+    'ssl://blockstream.info:700',
   ];
 
   static int _currentServerIndex = 0;
@@ -19,13 +22,23 @@ class BitcoinElectrumFallback {
     _consecutiveFailures++;
     _lastFailure = DateTime.now();
 
+    final errorLower = errorMsg.toLowerCase();
     final isServerIssue =
-        errorMsg.contains('TLS') ||
-        errorMsg.contains('close_notify') ||
-        errorMsg.contains('UnexpectedEof') ||
-        errorMsg.contains('peer closed connection') ||
-        errorMsg.contains('timeout') ||
-        errorMsg.contains('AllAttemptsErrored');
+        errorLower.contains('tls') ||
+        errorLower.contains('close_notify') ||
+        errorLower.contains('unexpectedeof') ||
+        errorLower.contains('peer closed connection') ||
+        errorLower.contains('timeout') ||
+        errorLower.contains('allattempterserror') ||
+        errorLower.contains('broken pipe') ||
+        errorLower.contains('failed to lookup') ||
+        errorLower.contains('no address associated') ||
+        errorLower.contains('connection refused') ||
+        errorLower.contains('connection reset') ||
+        errorLower.contains('network unreachable') ||
+        errorLower.contains('os error 32') ||
+        errorLower.contains('os error 54') ||
+        errorLower.contains('os error 61');
 
     if (isServerIssue && _consecutiveFailures >= 2) {
       debugPrint(
