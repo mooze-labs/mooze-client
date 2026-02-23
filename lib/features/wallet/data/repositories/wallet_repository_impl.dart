@@ -520,16 +520,10 @@ class WalletRepositoryImpl extends WalletRepository {
           }
         }
 
-        // If Breez failed or not available, try LWK for Liquid assets
-        // Only call LWK if no Liquid assets were loaded from Breez
-        final hasAnyLiquidAsset = balance.keys.any(
-          (asset) =>
-              asset == Asset.lbtc ||
-              asset == Asset.usdt ||
-              asset == Asset.depix,
-        );
-
-        if (_liquidWallet != null && !hasAnyLiquidAsset) {
+        // Try LWK for Liquid assets (independent from Breez)
+        // LWK manages on-chain Liquid assets, while Breez manages Lightning/Liquid channels
+        // Both sources can have balances simultaneously
+        if (_liquidWallet != null) {
           try {
             final liquidResult = await _liquidWallet!.getBalance().run();
             liquidResult.fold(
@@ -540,7 +534,7 @@ class WalletRepositoryImpl extends WalletRepository {
               },
               (liquidBal) {
                 // Add L-BTC and other Liquid assets from LWK
-                // Use putIfAbsent to avoid overwriting existing balances
+                // Use putIfAbsent to avoid overwriting Breez balances
                 for (final entry in liquidBal.entries) {
                   balance.putIfAbsent(entry.key, () => entry.value);
                 }
