@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import '../providers/btc_lbtc_swap_controller_provider.dart';
 import '../widgets/btc_lbtc_confirm_bottom_sheet.dart';
@@ -153,7 +153,10 @@ class BtcLbtcSwapHelper {
                       }
                     },
                     (transaction) {
-                      ref.invalidate(balanceProvider);
+                      // Refresh UI immediately after peg-in is confirmed
+                      ref
+                          .read(walletDataManagerProvider.notifier)
+                          .refreshAfterTransaction();
                       _showSuccessScreen(
                         amount,
                         fromAsset, // BTC
@@ -185,7 +188,10 @@ class BtcLbtcSwapHelper {
                       }
                     },
                     (transaction) {
-                      ref.invalidate(balanceProvider);
+                      // Refresh UI immediately after peg-out is confirmed
+                      ref
+                          .read(walletDataManagerProvider.notifier)
+                          .refreshAfterTransaction();
                       _showSuccessScreen(
                         amount,
                         fromAsset,

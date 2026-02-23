@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 
@@ -677,10 +678,11 @@ class _ReviewTransactionScreenState
             await controller.confirmTransaction(psbt: psbt).run(),
       );
 
-      result.fold(
-        (error) => _showErrorDialog(context, error),
-        (transaction) => _showSuccessScreen(context, psbt),
-      );
+      result.fold((error) => _showErrorDialog(context, error), (transaction) {
+        // Refresh UI immediately after transaction is sent
+        ref.read(walletDataManagerProvider.notifier).refreshAfterTransaction();
+        _showSuccessScreen(context, psbt);
+      });
     } catch (e) {
       if (context.mounted) {
         _showErrorDialog(context, "Erro inesperado: $e");
