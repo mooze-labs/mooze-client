@@ -8,11 +8,14 @@ import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
 import 'package:mooze_mobile/providers/update_provider.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync.dart'
+    hide isLoadingDataProvider;
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../widgets/widgets.dart';
 
@@ -32,6 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _scrollController = ScrollController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialDataFromCache();
       _loadInitialData();
     });
   }
@@ -42,11 +46,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
+  void _loadInitialDataFromCache() {
+    if (!mounted) return;
+
+    final transactionCache = ref.read(transactionHistoryCacheProvider.notifier);
+    final balanceCache = ref.read(balanceCacheProvider.notifier);
+    final assetPriceCache = ref.read(assetPriceHistoryCacheProvider.notifier);
+
+    if (ref.read(transactionHistoryCacheProvider).transactions == null) {
+      transactionCache.fetchTransactionsInitial();
+    }
+
+    final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt];
+    for (final asset in mainAssets) {
+      if (ref.read(balanceCacheProvider).balances[asset] == null) {
+        balanceCache.fetchBalanceInitial(asset);
+      }
+    }
+
+    for (final asset in mainAssets) {
+      if (ref.read(assetPriceHistoryCacheProvider).priceHistory[asset] ==
+          null) {
+        assetPriceCache.fetchAssetPriceHistoryInitial(asset);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     _configureSystemUi();
 
     final isLoadingData = ref.watch(isLoadingDataProvider);
+
+    ref.watch(dataRefreshTriggerProvider);
 
     return AuthInitializerWidget(
       child: Scaffold(
@@ -118,7 +150,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _refreshData() async {
     try {
       final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.refreshWalletData();
+
+      if (walletDataManager.isSyncing) {
+        return;
+      }
+
+      await walletDataManager.fullSyncWalletData();
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(
@@ -127,9 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           curve: Curves.easeOutCubic,
         );
       }
-    } catch (e) {
-      debugPrint('Erro durante refresh: $e');
-    }
+    } catch (_) {}
   }
 }
 
