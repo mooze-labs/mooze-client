@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
+import 'package:mutex/mutex.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -12,10 +16,8 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdi
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/boot/boot_orchestrator.dart';
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/pin_store_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
@@ -79,10 +81,302 @@ class WalletDataStatus {
   }
 }
 
+/// Encapsulates all wallet synchronization logic
+/// Protected by a Mutex to ensure only one sync operation runs at a time
+///
+/// ## Architecture Pattern (Mutex as Guard)
+///
+/// This class acts as a **synchronized resource** protected by `WalletDataManager._syncMutex`.
+///
+/// The pattern follows this model:
+/// 1. `WalletSynchronizer` contains all sync operations (`performLightSync`, `performFullSync`)
+/// 2. `WalletDataManager` protects access to the synchronizer using `Mutex.protect()`
+/// 3. The Mutex ensures only ONE sync operation executes globally at any time
+
+class WalletSynchronizer {
+  final Ref ref;
+  WalletDataManager? _manager;
+
+  WalletSynchronizer(this.ref);
+
+  void setManager(WalletDataManager manager) {
+    _manager = manager;
+  }
+
+  AppLoggerService get _logger => ref.read(appLoggerProvider);
+  WalletDataManager get _stateManager => _manager!;
+
+  /// Performs a lightweight sync that only updates:
+  /// - New transactions
+  /// - Current balances
+  /// - Asset prices
+  Future<void> performLightSync() async {
+    _logger.info('WalletSynchronizer', '⚡⚡⚡ STARTING LIGHT SYNC ⚡⚡⚡');
+
+    try {
+      // Ensure transaction listener is active
+      if (_stateManager._transactionSubscription == null) {
+        debugPrint(
+          '[WalletSynchronizer] Transaction listener was null, reconfiguring...',
+        );
+        _stateManager._listenToTransactionEvents();
+      }
+
+      // Step 1: Sync blockchains to fetch new transactions
+      _logger.info(
+        'WalletSynchronizer',
+        '📡 Step 1: Syncing blockchains for new transactions...',
+      );
+
+      final liquidResult = await ref.read(liquidDataSourceProvider.future);
+      final bdkResult = await ref.read(bdkDatasourceProvider.future);
+
+      final syncFutures = <Future<void>>[];
+
+      liquidResult.fold(
+        (_) => _logger.debug(
+          'WalletSynchronizer',
+          'Skipping Liquid sync (datasource unavailable)',
+        ),
+        (datasource) {
+          _logger.debug('WalletSynchronizer', 'Syncing Liquid...');
+          syncFutures.add(
+            datasource.sync().catchError((e) {
+              _logger.warning(
+                'WalletSynchronizer',
+                'Liquid sync failed during light sync',
+                error: e,
+              );
+            }),
+          );
+        },
+      );
+
+      bdkResult.fold(
+        (_) => _logger.debug(
+          'WalletSynchronizer',
+          'Skipping BDK sync (datasource unavailable)',
+        ),
+        (datasource) {
+          _logger.debug('WalletSynchronizer', 'Syncing BDK...');
+          syncFutures.add(
+            datasource.sync().catchError((e) {
+              _logger.warning(
+                'WalletSynchronizer',
+                'BDK sync failed during light sync',
+                error: e,
+              );
+            }),
+          );
+        },
+      );
+
+      await Future.wait(syncFutures);
+
+      // Step 2: Refresh cache providers
+      _logger.info(
+        'WalletSynchronizer',
+        'Step 2: Refreshing cache providers...',
+      );
+
+      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+
+      final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
+
+      // CRITICAL: Invalidate allBalancesProvider FIRST to force fresh data fetch from blockchain
+      ref.invalidate(allBalancesProvider);
+
+      await ref.read(balanceCacheProvider.notifier).refresh(mainAssets);
+
+      // Step 3: Invalidate computed providers
+      ref.invalidate(cachedTransactionHistoryProvider);
+      ref.invalidate(cachedBalanceProvider);
+      ref.invalidate(walletHoldingsProvider);
+      ref.invalidate(walletHoldingsWithBalanceProvider);
+
+      // Step 4: Trigger UI refresh
+      ref.read(dataRefreshTriggerProvider.notifier).triggerRefresh();
+
+      _logger.info(
+        'WalletSynchronizer',
+        'LIGHT SYNC COMPLETED SUCCESSFULLY',
+      );
+    } catch (error, stackTrace) {
+      _logger.error(
+        'WalletSynchronizer',
+        'Lightweight sync failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      throw error;
+    }
+  }
+
+  /// Performs a complete wallet synchronization including:
+  /// - Full blockchain sync for all datasources
+  /// - Onchain swaps rescan
+  /// - All provider invalidation and refresh
+  /// - Pending transactions sync
+  Future<void> performFullSync() async {
+    _logger.info(
+      'WalletSynchronizer',
+      'Starting full wallet synchronization...',
+    );
+
+    _stateManager.updateState(
+      _stateManager.getCurrentState().copyWith(
+        state: WalletDataState.refreshing,
+      ),
+    );
+
+    final liquidResult = await ref.read(liquidDataSourceProvider.future);
+    final bdkResult = await ref.read(bdkDatasourceProvider.future);
+
+    bool hasValidDataSource = false;
+    bool liquidFailed = false;
+    bool bdkFailed = false;
+
+    liquidResult.fold(
+      (error) {
+        _logger.warning(
+          'WalletSynchronizer',
+          'Liquid datasource error during refresh',
+          error: error,
+        );
+        liquidFailed = true;
+      },
+      (success) {
+        _logger.debug(
+          'WalletSynchronizer',
+          'Liquid datasource available for refresh',
+        );
+        hasValidDataSource = true;
+      },
+    );
+
+    bdkResult.fold(
+      (error) {
+        _logger.warning(
+          'WalletSynchronizer',
+          'BDK datasource error during refresh',
+          error: error,
+        );
+        bdkFailed = true;
+      },
+      (success) {
+        _logger.debug(
+          'WalletSynchronizer',
+          'BDK datasource available for refresh',
+        );
+        hasValidDataSource = true;
+      },
+    );
+
+    if (!hasValidDataSource) {
+      _logger.error(
+        'WalletSynchronizer',
+        'No datasource available during refresh',
+      );
+
+      _stateManager.updateState(
+        _stateManager.getCurrentState().copyWith(
+          state: WalletDataState.error,
+          errorMessage: 'Datasources not available. Trying to reconnect...',
+          hasLiquidSyncFailed: liquidFailed,
+          hasBdkSyncFailed: bdkFailed,
+        ),
+      );
+
+      _logger.info(
+        'WalletSynchronizer',
+        'Attempting to reinitialize datasources...',
+      );
+
+      ref.invalidate(liquidDataSourceProvider);
+      ref.invalidate(bdkDatasourceProvider);
+
+      Future.delayed(const Duration(seconds: 3), () {
+        if (_stateManager.mounted) {
+          debugPrint('[WalletSynchronizer] Trying full reinitialization...');
+          _stateManager.initializeWallet();
+        }
+      });
+
+      return;
+    }
+
+    debugPrint('[WalletSynchronizer] Sincronizando datasources...');
+    final syncFutures = <Future<void>>[];
+
+    liquidResult.fold(
+      (_) =>
+          debugPrint('[WalletSynchronizer] ⏭Skipping Liquid sync (with error)'),
+      (datasource) {
+        _logger.info('WalletSynchronizer', 'Syncing Liquid during refresh...');
+
+        syncFutures.add(
+          datasource.sync().catchError((e) {
+            _logger.error(
+              'WalletSynchronizer',
+              'Error syncing Liquid during refresh',
+              error: e,
+            );
+          }),
+        );
+      },
+    );
+
+    bdkResult.fold(
+      (_) =>
+          _logger.debug('WalletSynchronizer', 'Skipping BDK sync (with error)'),
+      (datasource) {
+        _logger.info('WalletSynchronizer', 'Syncing BDK during refresh...');
+        syncFutures.add(
+          datasource.sync().catchError((e) {
+            _logger.error(
+              'WalletSynchronizer',
+              'Error syncing BDK during refresh',
+              error: e,
+            );
+          }),
+        );
+      },
+    );
+
+    await Future.wait(syncFutures);
+    _logger.info('WalletSynchronizer', 'Datasources synced successfully');
+
+    // Rescan onchain swaps to detect additional funds
+    await _stateManager._rescanOnchainSwapsAndCheckRefundables();
+
+    await _stateManager._invalidateAndRefreshAllProviders();
+
+    await _stateManager._syncPendingTransactions();
+
+    _logger.debug(
+      'WalletSynchronizer',
+      'Forcing cache refresh after pending sync',
+    );
+    await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+
+    _stateManager.updateState(
+      _stateManager.getCurrentState().copyWith(
+        state: WalletDataState.success,
+        lastSync: DateTime.now(),
+        hasLiquidSyncFailed: liquidFailed,
+        hasBdkSyncFailed: bdkFailed,
+      ),
+    );
+
+    _logger.info('WalletSynchronizer', 'Full sync completed successfully');
+  }
+}
+
 class WalletDataManager extends StateNotifier<WalletDataStatus> {
   final Ref ref;
   Timer? _periodicSyncTimer;
-  Completer<void>? _currentSyncCompleter;
+  late final WalletSynchronizer _synchronizer;
+  final _syncMutex = Mutex();
   StreamSubscription<SyncProgress>? _syncSubscription;
   int _dataSourceRetryCount = 0;
   static const int _maxDataSourceRetries = 5;
@@ -90,10 +384,38 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
   AppLoggerService get _logger => ref.read(appLoggerProvider);
 
+  /// Returns true if there's a sync operation in progress
+  bool get isSyncing => _syncMutex.isLocked;
+
+  /// Public method to refresh UI after a transaction is sent or swapped.
+  /// This should be called by repositories after broadcasting a transaction
+  /// to immediately update balances and transaction history.
+  void refreshAfterTransaction() {
+    _logger.info(
+      'WalletDataManager',
+      'Manual refresh triggered after transaction sent/swapped',
+    );
+    _refreshAfterTransactionEvent();
+  }
+
+  /// Updates the state - callable by WalletSynchronizer
+  void updateState(WalletDataStatus newState) {
+    state = newState;
+  }
+
+  /// Gets current state - callable by WalletSynchronizer
+  WalletDataStatus getCurrentState() {
+    return state;
+  }
+
   WalletDataManager(this.ref)
     : super(const WalletDataStatus(state: WalletDataState.idle)) {
+    _synchronizer = WalletSynchronizer(ref);
+    _synchronizer.setManager(this);
+    debugPrint('[WalletDataManager] Constructor called, setting up listeners');
     _listenToSyncProgress();
     _listenToTransactionEvents();
+    debugPrint('[WalletDataManager] Constructor completed');
   }
 
   @override
@@ -101,40 +423,121 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     _syncSubscription?.cancel();
     _transactionSubscription?.cancel();
     _periodicSyncTimer?.cancel();
-    _currentSyncCompleter?.complete();
     super.dispose();
   }
 
   StreamSubscription<TransactionEvent>? _transactionSubscription;
+  int _transactionEventCount = 0;
 
   void _listenToTransactionEvents() {
+    // Cancel any existing subscription first
+    _transactionSubscription?.cancel();
+    _transactionEventCount = 0;
+
     final syncStream = ref.read(syncStreamProvider);
 
-    _transactionSubscription = syncStream.transactionStream.listen((event) {
-      _logger.info(
-        'WalletDataManager',
-        'Transaction event: ${event.eventType} for ${event.txId} on ${event.blockchain}',
-      );
+    debugPrint('[WalletDataManager] Setting up transaction event listener');
+    debugPrint(
+      '[WalletDataManager] SyncStreamController hashCode: ${syncStream.hashCode}',
+    );
+    debugPrint('[WalletDataManager] Instance ID should match emission logs');
+    debugPrint('[WalletDataManager] Creating subscription...');
 
-      _handleTransactionEvent(event);
+    _transactionSubscription = syncStream.transactionStream.listen(
+      (event) {
+        _transactionEventCount++;
+        debugPrint(
+          '[WalletDataManager] LISTENER CALLED #$_transactionEventCount! Event: ${event.txId}',
+        );
+        debugPrint(
+          '[WalletDataManager] Received transaction event in listener! (controller: ${syncStream.hashCode})',
+        );
+
+        // Ignore test events
+        if (event.txId == 'test-event') {
+          debugPrint('[WalletDataManager] Test event received and ignored');
+          return;
+        }
+
+        _logger.info(
+          'WalletDataManager',
+          'Transaction event: ${event.eventType} for ${event.txId} on ${event.blockchain}',
+        );
+
+        _handleTransactionEvent(event);
+      },
+      onError: (error, stackTrace) {
+        debugPrint(
+          '[WalletDataManager] Error in transaction listener: $error',
+        );
+        _logger.error(
+          'WalletDataManager',
+          'Error in transaction event listener',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      },
+      onDone: () {
+        debugPrint(
+          '[WalletDataManager] Transaction event stream closed (controller: ${syncStream.hashCode})',
+        );
+      },
+      cancelOnError: false,
+    );
+
+    debugPrint(
+      '[WalletDataManager] Subscription object created: ${_transactionSubscription != null}',
+    );
+    debugPrint(
+      '[WalletDataManager] Transaction event listener configured successfully',
+    );
+    debugPrint(
+      '[WalletDataManager] Subscription is active: ${_transactionSubscription != null && !_transactionSubscription!.isPaused}',
+    );
+    debugPrint(
+      '[WalletDataManager] Ready to receive events on controller ${syncStream.hashCode}',
+    );
+
+    // Test emission to verify listener is working - with delay to ensure listener is ready
+    Future.delayed(const Duration(milliseconds: 100), () {
+      debugPrint(
+        '[WalletDataManager] Emitting test event to verify listener...',
+      );
+      syncStream.emitTransactionEvent(
+        TransactionEvent(
+          txId: 'test-event',
+          eventType: TransactionEventType.statusChanged,
+          blockchain: 'test',
+          timestamp: DateTime.now(),
+        ),
+      );
     });
   }
 
   void _handleTransactionEvent(TransactionEvent event) {
+    // Ignore test events
+    if (event.txId == 'test-event' || event.blockchain == 'test') {
+      debugPrint('[WalletDataManager] Test event received and ignored');
+      return;
+    }
+
     try {
+      // Log the event for monitoring purposes
+      _logger.info(
+        'WalletDataManager',
+        'Transaction event received: ${event.eventType} for ${event.txId} (${event.blockchain})',
+      );
+
       switch (event.eventType) {
         case TransactionEventType.newTransaction:
           _logger.info(
             'WalletDataManager',
-            'New transaction received: ${event.txId} (${event.blockchain})',
+            'NEW TRANSACTION DETECTED: ${event.txId}',
           );
 
-          ref.invalidate(transactionHistoryProvider);
-
-          // TODO: Mostrar notificação de nova transação
-          // if (event.newStatus == 'receive') {
-          //   showNewTransactionNotification(event.txId);
-          // }
+          // Trigger immediate refresh for new transactions
+          // This ensures UI updates as soon as transaction is detected
+          _refreshAfterTransactionEvent();
           break;
 
         case TransactionEventType.statusChanged:
@@ -143,12 +546,8 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
             'Transaction status changed: ${event.txId} (${event.oldStatus} -> ${event.newStatus})',
           );
 
-          ref.invalidate(transactionHistoryProvider);
-
-          // TODO: Mostrar notificação de mudança de status
-          // if (event.newStatus == 'confirmed') {
-          //   showTransactionConfirmedNotification(event.txId);
-          // }
+          // Also refresh on status changes (e.g., pending -> confirmed)
+          _refreshAfterTransactionEvent();
           break;
 
         case TransactionEventType.confirmationsChanged:
@@ -156,10 +555,7 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
             'WalletDataManager',
             'Transaction confirmations changed: ${event.txId} (${event.oldConfirmations} -> ${event.newConfirmations})',
           );
-
-          if ((event.newConfirmations ?? 0) >= 6) {
-            ref.invalidate(transactionHistoryProvider);
-          }
+          // No need to refresh on every confirmation count change
           break;
       }
     } catch (e, stack) {
@@ -170,6 +566,84 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         stackTrace: stack,
       );
     }
+  }
+
+  // Lightweight refresh triggered by transaction events
+  // Does NOT do blockchain sync (already done), just updates caches and UI
+  void _refreshAfterTransactionEvent() {
+    const String _refreshTag = '[REFRESH AFTER TRANSACTION]';
+    debugPrint('$_refreshTag _refreshAfterTransactionEvent() CHAMADO!');
+
+    Future.microtask(() async {
+      try {
+        debugPrint('$_refreshTag Microtask INICIADA!');
+
+        _logger.info(
+          'WalletDataManager',
+          '$_refreshTag ⚡ Refreshing caches after transaction event...',
+        );
+        debugPrint('$_refreshTag ⚡ INICIANDO refresh dos caches...');
+
+        debugPrint(
+          '$_refreshTag ⏳ Aguardando 300ms para garantir que TX foi salva no DB...',
+        );
+        // await Future.delayed(const Duration(milliseconds: 300));
+        debugPrint('$_refreshTag Delay completado, iniciando refresh...');
+
+        debugPrint('$_refreshTag Refreshing transaction history cache...');
+        await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+        debugPrint('$_refreshTag Transaction history refreshed!');
+
+        debugPrint('$_refreshTag Refreshing balances...');
+        final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
+
+        // CRITICAL: Invalidate allBalancesProvider FIRST to force fresh data fetch from blockchain
+        // Without this, balanceProvider just returns cached data from allBalancesProvider
+        debugPrint(
+          '$_refreshTag Invalidating allBalancesProvider to force fresh fetch...',
+        );
+        ref.invalidate(allBalancesProvider);
+
+        await ref.read(balanceCacheProvider.notifier).refresh(mainAssets);
+        debugPrint('$_refreshTag Balances refreshed!');
+
+        debugPrint(
+          '$_refreshTag Invalidating providers to force UI update...',
+        );
+        ref.invalidate(cachedTransactionHistoryProvider);
+        ref.invalidate(cachedBalanceProvider);
+        ref.invalidate(walletHoldingsProvider);
+        ref.invalidate(walletHoldingsWithBalanceProvider);
+        debugPrint('$_refreshTag Providers invalidated!');
+
+        debugPrint('$_refreshTag Triggering refresh notifier...');
+        ref.read(dataRefreshTriggerProvider.notifier).triggerRefresh();
+        debugPrint('$_refreshTag Refresh notifier triggered!');
+
+        debugPrint(
+          '$_refreshTag ⏳ Waiting 100ms before checking pending transactions...',
+        );
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        debugPrint('$_refreshTag 🔍 Syncing pending transactions...');
+        await _syncPendingTransactions();
+        debugPrint('$_refreshTag Pending transactions synced!');
+
+        _logger.info(
+          'WalletDataManager',
+          '$_refreshTag Event-triggered refresh completed',
+        );
+        debugPrint('$_refreshTag 🎉 EVENT-TRIGGERED REFRESH COMPLETO!');
+      } catch (e, stack) {
+        debugPrint('$_refreshTag ERRO no event-triggered refresh: $e');
+        _logger.error(
+          'WalletDataManager',
+          '$_refreshTag Error in event-triggered refresh: $e',
+          error: e,
+          stackTrace: stack,
+        );
+      }
+    });
   }
 
   void _listenToSyncProgress() {
@@ -616,8 +1090,6 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     _logger.info('WalletDataManager', 'Resetting wallet data manager state...');
     state = const WalletDataStatus(state: WalletDataState.idle);
     _periodicSyncTimer?.cancel();
-    _currentSyncCompleter?.complete();
-    _currentSyncCompleter = null;
     _dataSourceRetryCount = 0;
 
     // Invalidate mnemonic to ensure fresh data on next initialization
@@ -691,186 +1163,32 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     await initializeWallet();
   }
 
+  /// Performs a lightweight sync that only updates:
+  /// - New transactions
+  /// - Current balances
+  /// - Asset prices
+  ///
+  /// This is much faster than a full sync and should be used for periodic updates.
+  Future<void> lightSync() async {
+    return _syncMutex.protect(() => _synchronizer.performLightSync());
+  }
+
+  /// Performs a complete wallet synchronization including:
+  /// - Full blockchain sync for all datasources
+  /// - Onchain swaps rescan
+  /// - All provider invalidation and refresh
+  /// - Pending transactions sync
+  ///
+  /// This is a heavy operation and should only be called manually by the user.
+  Future<void> fullSyncWalletData() async {
+    return _syncMutex.protect(() => _synchronizer.performFullSync());
+  }
+
+  /// Alias for backward compatibility - uses light sync by default
+  /// For pull-to-refresh and similar user interactions.
+  /// For full blockchain sync, use fullSyncWalletData() instead.
   Future<void> refreshWalletData() async {
-    if (_currentSyncCompleter != null) {
-      _logger.debug(
-        'WalletDataManager',
-        'Sync already in progress, waiting...',
-      );
-      await _currentSyncCompleter!.future;
-      return;
-    }
-
-    _currentSyncCompleter = Completer<void>();
-
-    try {
-      _logger.info(
-        'WalletDataManager',
-        'Starting manual wallet data refresh...',
-      );
-      state = state.copyWith(state: WalletDataState.refreshing);
-
-      final liquidResult = await ref.read(liquidDataSourceProvider.future);
-      final bdkResult = await ref.read(bdkDatasourceProvider.future);
-
-      bool hasValidDataSource = false;
-      bool liquidFailed = false;
-      bool bdkFailed = false;
-
-      liquidResult.fold(
-        (error) {
-          _logger.warning(
-            'WalletDataManager',
-            '⚠️ Liquid datasource error during refresh',
-            error: error,
-          );
-          liquidFailed = true;
-        },
-        (success) {
-          _logger.debug(
-            'WalletDataManager',
-            'Liquid datasource available for refresh',
-          );
-          hasValidDataSource = true;
-        },
-      );
-
-      bdkResult.fold(
-        (error) {
-          _logger.warning(
-            'WalletDataManager',
-            'BDK datasource error during refresh',
-            error: error,
-          );
-          bdkFailed = true;
-        },
-        (success) {
-          _logger.debug(
-            'WalletDataManager',
-            'BDK datasource available for refresh',
-          );
-          hasValidDataSource = true;
-        },
-      );
-
-      if (!hasValidDataSource) {
-        _logger.error(
-          'WalletDataManager',
-          'No datasource available during refresh',
-        );
-
-        state = state.copyWith(
-          state: WalletDataState.error,
-          errorMessage: 'Datasources not available. Trying to reconnect...',
-          hasLiquidSyncFailed: liquidFailed,
-          hasBdkSyncFailed: bdkFailed,
-        );
-
-        _logger.info(
-          'WalletDataManager',
-          'Attempting to reinitialize datasources...',
-        );
-
-        ref.invalidate(liquidDataSourceProvider);
-        ref.invalidate(bdkDatasourceProvider);
-
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            debugPrint('[WalletDataManager] Trying full reinitialization...');
-            initializeWallet();
-          }
-        });
-
-        // Complete the sync completer before returning
-        _currentSyncCompleter?.complete();
-        _currentSyncCompleter = null;
-
-        return;
-      }
-
-      debugPrint('[WalletDataManager] Sincronizando datasources...');
-      final syncFutures = <Future<void>>[];
-
-      liquidResult.fold(
-        (_) => debugPrint(
-          '[WalletDataManager] ⏭Skipping Liquid sync (with error)',
-        ),
-        (datasource) {
-          _logger.info('WalletDataManager', 'Syncing Liquid during refresh...');
-
-          syncFutures.add(
-            datasource.sync().catchError((e) {
-              _logger.error(
-                'WalletDataManager',
-                'Error syncing Liquid during refresh',
-                error: e,
-              );
-            }),
-          );
-        },
-      );
-
-      bdkResult.fold(
-        (_) => _logger.debug(
-          'WalletDataManager',
-          'Skipping BDK sync (with error)',
-        ),
-        (datasource) {
-          _logger.info('WalletDataManager', 'Syncing BDK during refresh...');
-          syncFutures.add(
-            datasource.sync().catchError((e) {
-              _logger.error(
-                'WalletDataManager',
-                'Error syncing BDK during refresh',
-                error: e,
-              );
-            }),
-          );
-        },
-      );
-
-      await Future.wait(syncFutures);
-      _logger.info('WalletDataManager', 'Datasources synced successfully');
-
-      // Rescan onchain swaps to detect additional funds sent to already used addresses
-      await _rescanOnchainSwapsAndCheckRefundables();
-
-      await _invalidateAndRefreshAllProviders();
-
-      await _syncPendingTransactions();
-
-      _logger.debug(
-        'WalletDataManager',
-        'Forcing cache refresh after pending sync',
-      );
-      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
-
-      state = state.copyWith(
-        state: WalletDataState.success,
-        lastSync: DateTime.now(),
-        hasLiquidSyncFailed: liquidFailed,
-        hasBdkSyncFailed: bdkFailed,
-      );
-
-      _logger.info(
-        'WalletDataManager',
-        'Manual refresh completed successfully',
-      );
-    } catch (error, stackTrace) {
-      _logger.error(
-        'WalletDataManager',
-        'Manual refresh failed',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      state = state.copyWith(
-        state: WalletDataState.error,
-        errorMessage: error.toString(),
-      );
-    } finally {
-      _currentSyncCompleter?.complete();
-      _currentSyncCompleter = null;
-    }
+    return lightSync();
   }
 
   Future<void> _syncPendingTransactions() async {
@@ -1071,12 +1389,21 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   }
 
   void _startPeriodicSync() {
+    // Validate that there's no sync currently in progress before starting periodic sync
+    if (isSyncing) {
+      _logger.warning(
+        'WalletDataManager',
+        'Cannot start periodic sync: sync already in progress',
+      );
+      return;
+    }
+
     _periodicSyncTimer?.cancel();
-    const syncInterval = Duration(minutes: 2);
+    const syncInterval = Duration(seconds: 40);
 
     _periodicSyncTimer = Timer.periodic(syncInterval, (timer) {
       debugPrint(
-        '[WalletDataManager] ⏰ Timer disparou - chamando _performPeriodicSync()',
+        '[WalletDataManager] Timer disparou - chamando _performPeriodicSync()',
       );
       _performPeriodicSync();
     });
@@ -1086,23 +1413,23 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       'Periodic sync started (${syncInterval.inMinutes} min) - next sync in ${syncInterval.inMinutes} minute(s)',
     );
     debugPrint(
-      '[WalletDataManager] ✅ Periodic sync Timer configurado (${syncInterval.inMinutes} min)',
+      '[WalletDataManager] Periodic sync Timer configurado (${syncInterval.inMinutes} min)',
     );
   }
 
   Future<void> _performPeriodicSync() async {
-    _logger.info('WalletDataManager', '🔄 Iniciando sync periódico...');
+    _logger.info('WalletDataManager', '⚡ Iniciando light sync periódico...');
 
     _logger.debug(
       'WalletDataManager',
-      'Estado atual: ${state.state}, isLoading: ${state.isLoading}, isRefreshing: ${state.isRefreshing}, _currentSyncCompleter: ${_currentSyncCompleter != null}',
+      'Estado atual: ${state.state}, isLoading: ${state.isLoading}, isRefreshing: ${state.isRefreshing}, isSyncing: $isSyncing',
     );
 
-    // Check if there's actually a sync in progress using the completer
-    if (_currentSyncCompleter != null) {
+    // Check if there's actually a sync in progress using the mutex
+    if (isSyncing) {
       _logger.debug(
         'WalletDataManager',
-        'Sync em progresso (_currentSyncCompleter ativo), pulando sync periódico',
+        'Sync em progresso (mutex locked), pulando sync periódico',
       );
       return;
     }
@@ -1116,11 +1443,11 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       state = state.copyWith(state: WalletDataState.success);
     }
 
-    _logger.info('WalletDataManager', '🔄 Executando sync periódico...');
+    _logger.info('WalletDataManager', '⚡ Executando light sync periódico...');
 
-    await refreshWalletData();
+    await lightSync();
 
-    debugPrint('[WalletDataManager] Periodic sync completed');
+    debugPrint('[WalletDataManager] ⚡ Periodic light sync completed');
   }
 
   void stopPeriodicSync() {
@@ -1142,41 +1469,86 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   /// Returns true if deletion was successful, false otherwise.
   Future<bool> deleteWallet() async {
     try {
-      // 1. FIRST: Reset wallet data manager state to stop all operations
-      _logger.info('WalletDataManager', 'Step 1: Resetting wallet state...');
-      resetState();
-      await Future.delayed(const Duration(milliseconds: 300));
+      // Set wallet deletion flag to prevent any new Breez connections
+      ref.read(setWalletDeletionFlagProvider(true));
 
-      // 2. SECOND: Invalidate all wallet-related providers BEFORE deleting data
+      // 1. FIRST: Reset wallet data manager state and stop periodic sync
       _logger.info(
         'WalletDataManager',
-        'Step 2: Invalidating all wallet providers...',
+        'Step 1: Resetting wallet state and stopping periodic sync...',
+      );
+      resetState();
+      stopPeriodicSync(); // Stop any ongoing periodic sync
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // 2. SECOND: Explicitly disconnect Breez SDK BEFORE invalidating providers
+      // This is CRITICAL to release file locks on the database
+      _logger.info(
+        'WalletDataManager',
+        'Step 2: Explicitly disconnecting Breez SDK...',
+      );
+      try {
+        await ref.read(disconnectBreezClientProvider.future);
+        _logger.info('WalletDataManager', 'Breez SDK disconnected');
+      } catch (e) {
+        _logger.warning(
+          'WalletDataManager',
+          'Error disconnecting Breez SDK (continuing anyway): $e',
+        );
+      }
+
+      // Wait for disconnect to fully complete and release file locks
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      // 3. THIRD: Delete mnemonic FIRST - this prevents providers from reconnecting
+      // when they are invalidated (Riverpod auto-recreates providers with active listeners)
+      _logger.info(
+        'WalletDataManager',
+        'Step 3: Deleting mnemonic from secure storage FIRST...',
+      );
+      final secureStorage = SecureStorageProvider.instance;
+      await secureStorage.delete(key: mnemonicKey);
+      _logger.info('WalletDataManager', 'Mnemonic deleted');
+
+      // Small delay to ensure secure storage write is complete
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // 4. FOURTH: Invalidate all wallet-related providers AFTER deleting mnemonic
+      // When these providers try to recreate, they will fail because mnemonic is gone
+      _logger.info(
+        'WalletDataManager',
+        'Step 4: Invalidating all wallet providers...',
       );
 
-      // Invalidate mnemonic FIRST - this is critical
       ref.invalidate(mnemonicProvider);
+      ref.invalidate(seedProvider);
 
       // Invalidate datasources that depend on mnemonic
       ref.invalidate(bdkDatasourceProvider);
       ref.invalidate(liquidDataSourceProvider);
+
+      // Invalidate Breez provider (should already be disconnected, and won't reconnect without mnemonic)
       ref.invalidate(breezClientProvider);
 
+      // Wait for providers to fully invalidate
+      _logger.debug(
+        'WalletDataManager',
+        'Waiting 500ms for providers to invalidate...',
+      );
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // 3. THIRD: Delete mnemonic and auth data from secure storage
+      // 5. FIFTH: Delete auth data from secure storage
       _logger.info(
         'WalletDataManager',
-        'Step 3: Deleting secure storage data...',
+        'Step 5: Deleting auth data from secure storage...',
       );
-      final secureStorage = SecureStorageProvider.instance;
-      await secureStorage.delete(key: mnemonicKey);
       await secureStorage.delete(key: 'jwt');
       await secureStorage.delete(key: 'refresh_token');
 
-      // 4. FOURTH: Invalidate auth-related providers
+      // 6. SIXTH: Invalidate auth-related providers
       _logger.info(
         'WalletDataManager',
-        'Step 4: Invalidating auth providers...',
+        'Step 6: Invalidating auth providers...',
       );
       ref.invalidate(sessionManagerServiceProvider);
       ref.invalidate(authenticatedClientProvider);
@@ -1185,59 +1557,156 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // 5. FIFTH: Delete blockchain data directories
+      // 7. SEVENTH: Delete blockchain data directories with retry logic
       _logger.info(
         'WalletDataManager',
-        'Step 5: Deleting blockchain directories...',
+        'Step 7: Deleting blockchain directories...',
       );
+
+      // Delete Breez directory with multiple retry attempts
       try {
         final workingDir = await getApplicationDocumentsDirectory();
         final breezDir = Directory("${workingDir.path}/mooze");
+
         if (await breezDir.exists()) {
-          await breezDir.delete(recursive: true);
-          _logger.info('WalletDataManager', 'Breez directory deleted');
+          _logger.debug(
+            'WalletDataManager',
+            'Breez directory exists at: ${breezDir.path}',
+          );
+
+          bool deleted = false;
+          const maxAttempts = 4;
+
+          for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              _logger.debug(
+                'WalletDataManager',
+                'Deleting Breez directory (attempt $attempt/$maxAttempts)...',
+              );
+
+              await breezDir.delete(recursive: true);
+
+              _logger.info(
+                'WalletDataManager',
+                'Breez directory deleted successfully',
+              );
+              deleted = true;
+              break;
+            } catch (e) {
+              if (attempt < maxAttempts) {
+                final delay = Duration(milliseconds: 500 * attempt);
+                _logger.debug(
+                  'WalletDataManager',
+                  'Delete attempt $attempt failed, retrying in ${delay.inMilliseconds}ms: $e',
+                );
+                await Future.delayed(delay);
+              } else {
+                _logger.warning(
+                  'WalletDataManager',
+                  'Failed to delete Breez directory after $maxAttempts attempts: $e',
+                );
+              }
+            }
+          }
+
+          if (!deleted) {
+            _logger.warning(
+              'WalletDataManager',
+              'Could not delete Breez directory - may need manual cleanup',
+            );
+          }
+        } else {
+          _logger.debug('WalletDataManager', 'Breez directory does not exist');
         }
       } catch (e) {
-        _logger.warning(
+        _logger.error(
           'WalletDataManager',
-          'Error deleting Breez directory',
+          'Error accessing Breez directory',
           error: e,
         );
       }
 
+      // Delete LWK directory with retry logic (similar to Breez)
       try {
         final localDir = await getApplicationSupportDirectory();
         final lwkDir = Directory("${localDir.path}/lwk-db");
+
         if (await lwkDir.exists()) {
-          await lwkDir.delete(recursive: true);
-          _logger.info('WalletDataManager', 'LWK directory deleted');
+          _logger.debug(
+            'WalletDataManager',
+            'LWK directory exists at: ${lwkDir.path}',
+          );
+
+          bool deleted = false;
+          const maxAttempts = 4;
+
+          for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              _logger.debug(
+                'WalletDataManager',
+                'Deleting LWK directory (attempt $attempt/$maxAttempts)...',
+              );
+
+              await lwkDir.delete(recursive: true);
+
+              _logger.info(
+                'WalletDataManager',
+                'LWK directory deleted successfully',
+              );
+              deleted = true;
+              break;
+            } catch (e) {
+              if (attempt < maxAttempts) {
+                final delay = Duration(milliseconds: 500 * attempt);
+                _logger.debug(
+                  'WalletDataManager',
+                  'LWK delete attempt $attempt failed, retrying in ${delay.inMilliseconds}ms: $e',
+                );
+                await Future.delayed(delay);
+              } else {
+                _logger.warning(
+                  'WalletDataManager',
+                  'Failed to delete LWK directory after $maxAttempts attempts: $e',
+                );
+              }
+            }
+          }
+
+          if (!deleted) {
+            _logger.warning(
+              'WalletDataManager',
+              'Could not delete LWK directory - may need manual cleanup',
+            );
+          }
+        } else {
+          _logger.debug('WalletDataManager', 'LWK directory does not exist');
         }
       } catch (e) {
-        _logger.warning(
+        _logger.error(
           'WalletDataManager',
-          'Error deleting LWK directory',
+          'Error accessing LWK directory',
           error: e,
         );
       }
 
-      // 6. SIXTH: Clear user verification level
+      // 8. EIGHTH: Clear user verification level
       _logger.info(
         'WalletDataManager',
-        'Step 6: Clearing user verification...',
+        'Step 8: Clearing user verification...',
       );
       final prefs = await SharedPreferences.getInstance();
       final userLevelStorage = UserLevelStorageService(prefs);
       await userLevelStorage.clearVerificationLevel();
 
-      // 7. SEVENTH: Delete PIN
-      _logger.info('WalletDataManager', 'Step 7: Deleting PIN...');
+      // 9. NINTH: Delete PIN
+      _logger.info('WalletDataManager', 'Step 9: Deleting PIN...');
       final pinStore = ref.read(pinStoreProvider);
       await pinStore.deletePin().run();
 
-      // 8. EIGHTH: Invalidate remaining providers
+      // 10. TENTH: Invalidate remaining providers
       _logger.info(
         'WalletDataManager',
-        'Step 8: Invalidating remaining providers...',
+        'Step 10: Invalidating remaining providers...',
       );
 
       // Wrap all invalidations in a single try-catch to prevent cascade errors
@@ -1275,14 +1744,19 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         );
       }
 
-      // 9. FINAL: Wait for cleanup to complete
-      _logger.info('WalletDataManager', 'Step 9: Finalizing cleanup...');
+      // 11. FINAL: Wait for cleanup to complete
+      _logger.info('WalletDataManager', 'Step 11: Finalizing cleanup...');
       await Future.delayed(const Duration(milliseconds: 500));
 
       _logger.info(
         'WalletDataManager',
-        '✅ Wallet deletion completed successfully',
+        'Wallet deletion completed successfully',
       );
+
+      // Reset wallet deletion flag (not strictly needed since mnemonic is gone,
+      // but good for cleanup in case app doesn't restart)
+      ref.read(setWalletDeletionFlagProvider(false));
+
       return true;
     } catch (e, stackTrace) {
       _logger.error(
@@ -1291,6 +1765,10 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         error: e,
         stackTrace: stackTrace,
       );
+
+      // Reset wallet deletion flag on error
+      ref.read(setWalletDeletionFlagProvider(false));
+
       return false;
     }
   }
@@ -1306,6 +1784,174 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   //   await ref.read(transactionHistoryCacheProvider.notifier).refresh();
   //   debugPrint('[WalletDataManager] Manual rescan completed');
   // }
+
+  /// Cleans blockchain directories (Breez and LWK) to prepare for wallet import or recovery
+  /// This should be called BEFORE importing a new wallet to avoid database conflicts
+  ///
+  /// Returns true if cleanup was successful, false otherwise
+  Future<bool> cleanBreezDirectory() async {
+    try {
+      _logger.info(
+        'WalletDataManager',
+        '🧹 Cleaning blockchain directories for wallet import...',
+      );
+
+      bool breezCleaned = true;
+      bool lwkCleaned = true;
+
+      // Clean Breez directory
+      try {
+        final workingDir = await getApplicationDocumentsDirectory();
+        final breezDir = Directory("${workingDir.path}/mooze");
+
+        if (await breezDir.exists()) {
+          _logger.debug(
+            'WalletDataManager',
+            'Breez directory exists at: ${breezDir.path}',
+          );
+
+          const maxAttempts = 5;
+          bool deleted = false;
+
+          for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              _logger.debug(
+                'WalletDataManager',
+                'Deleting Breez directory (attempt $attempt/$maxAttempts)...',
+              );
+
+              await breezDir.delete(recursive: true);
+
+              _logger.info(
+                'WalletDataManager',
+                'Breez directory deleted successfully',
+              );
+              deleted = true;
+              break;
+            } catch (e) {
+              if (attempt < maxAttempts) {
+                final delay = Duration(milliseconds: 500 * attempt);
+                _logger.debug(
+                  'WalletDataManager',
+                  'Breez delete attempt $attempt failed, retrying in ${delay.inMilliseconds}ms: $e',
+                );
+                await Future.delayed(delay);
+              } else {
+                _logger.error(
+                  'WalletDataManager',
+                  'Failed to delete Breez directory after $maxAttempts attempts: $e',
+                );
+              }
+            }
+          }
+
+          breezCleaned = deleted;
+        } else {
+          _logger.debug(
+            'WalletDataManager',
+            'Breez directory does not exist, nothing to clean',
+          );
+        }
+      } catch (e) {
+        _logger.error(
+          'WalletDataManager',
+          'Error cleaning Breez directory',
+          error: e,
+        );
+        breezCleaned = false;
+      }
+
+      // Clean LWK directory
+      try {
+        final localDir = await getApplicationSupportDirectory();
+        final lwkDir = Directory("${localDir.path}/lwk-db");
+
+        if (await lwkDir.exists()) {
+          _logger.debug(
+            'WalletDataManager',
+            'LWK directory exists at: ${lwkDir.path}',
+          );
+
+          const maxAttempts = 5;
+          bool deleted = false;
+
+          for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              _logger.debug(
+                'WalletDataManager',
+                'Deleting LWK directory (attempt $attempt/$maxAttempts)...',
+              );
+
+              await lwkDir.delete(recursive: true);
+
+              _logger.info(
+                'WalletDataManager',
+                'LWK directory deleted successfully',
+              );
+              deleted = true;
+              break;
+            } catch (e) {
+              if (attempt < maxAttempts) {
+                final delay = Duration(milliseconds: 500 * attempt);
+                _logger.debug(
+                  'WalletDataManager',
+                  'LWK delete attempt $attempt failed, retrying in ${delay.inMilliseconds}ms: $e',
+                );
+                await Future.delayed(delay);
+              } else {
+                _logger.error(
+                  'WalletDataManager',
+                  'Failed to delete LWK directory after $maxAttempts attempts: $e',
+                );
+              }
+            }
+          }
+
+          lwkCleaned = deleted;
+        } else {
+          _logger.debug(
+            'WalletDataManager',
+            'LWK directory does not exist, nothing to clean',
+          );
+        }
+      } catch (e) {
+        _logger.error(
+          'WalletDataManager',
+          'Error cleaning LWK directory',
+          error: e,
+        );
+        lwkCleaned = false;
+      }
+
+      // Wait for filesystem to sync if any directory was deleted
+      if (breezCleaned || lwkCleaned) {
+        await Future.delayed(Duration(milliseconds: 500));
+      }
+
+      final success = breezCleaned && lwkCleaned;
+      if (success) {
+        _logger.info(
+          'WalletDataManager',
+          'All blockchain directories cleaned successfully',
+        );
+      } else {
+        _logger.warning(
+          'WalletDataManager',
+          '⚠️ Partial cleanup - Breez: $breezCleaned, LWK: $lwkCleaned',
+        );
+      }
+
+      return success;
+    } catch (e, stackTrace) {
+      _logger.error(
+        'WalletDataManager',
+        'Error cleaning blockchain directories',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
 }
 
 final walletDataManagerProvider =
@@ -1331,6 +1977,10 @@ final isRefreshingDataProvider = Provider<bool>((ref) {
   return ref.watch(walletDataManagerProvider).isRefreshing;
 });
 
+final isSyncingProvider = Provider<bool>((ref) {
+  return ref.watch(walletDataManagerProvider.notifier).isSyncing;
+});
+
 final hasSyncFailuresProvider = Provider<bool>((ref) {
   final status = ref.watch(walletDataManagerProvider);
   return status.hasLiquidSyncFailed ||
@@ -1344,6 +1994,15 @@ final syncFailureDetailsProvider = Provider<String?>((ref) {
 
 final lastSyncTimeProvider = Provider<DateTime?>((ref) {
   return ref.watch(walletDataManagerProvider).lastSync;
+});
+
+/// Provider to clean Breez directory before importing a new wallet
+/// This should be called BEFORE saving a new mnemonic to avoid database conflicts
+final cleanBreezDirectoryProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  final manager = ref.read(walletDataManagerProvider.notifier);
+  return await manager.cleanBreezDirectory();
 });
 
 final forceResetWalletDataProvider = Provider<void>((ref) {
@@ -1361,3 +2020,23 @@ final forceResetWalletDataProvider = Provider<void>((ref) {
     }
   });
 });
+
+/// Notifier for triggering UI updates without showing loading state
+/// This is used when new data is available and we want the UI to refresh
+/// without going through the loading phase
+class DataRefreshNotifier extends StateNotifier<int> {
+  DataRefreshNotifier() : super(0);
+
+  /// Triggers a UI update by incrementing the counter
+  void triggerRefresh() {
+    state = state + 1;
+    debugPrint('[DataRefreshNotifier] Trigger fired: state = $state');
+  }
+}
+
+/// Provider that notifies UI components when data should be refreshed
+/// without showing loading indicators
+final dataRefreshTriggerProvider =
+    StateNotifierProvider<DataRefreshNotifier, int>((ref) {
+      return DataRefreshNotifier();
+    });
