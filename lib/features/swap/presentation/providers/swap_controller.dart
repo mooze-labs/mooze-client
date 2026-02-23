@@ -197,16 +197,31 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlTimer?.cancel();
     _ttlDeadline = null;
 
-    final normalizedParams = repository.normalizeSwapParams(
+    var normalizedParams = repository.normalizeSwapParams(
       sendAsset: sendAsset,
       receiveAsset: receiveAsset,
     );
 
     if (normalizedParams == null) {
-      final errMsg =
-          'Par de ativos não suportado para swap. Selecione um par válido.';
+      debugPrint(
+        '[SwapController] normalizeSwapParams retornou null, recarregando mercados...',
+      );
+      final marketsRes = await repository.getMarkets().run();
       if (!mounted) return;
-      state = state.copyWith(loading: false, error: errMsg);
+      if (marketsRes.isRight()) {
+        normalizedParams = repository.normalizeSwapParams(
+          sendAsset: sendAsset,
+          receiveAsset: receiveAsset,
+        );
+      }
+    }
+
+    if (normalizedParams == null) {
+      debugPrint(
+        '[SwapController] Par não encontrado mesmo após recarregar mercados: send=$sendAsset, receive=$receiveAsset',
+      );
+      if (!mounted) return;
+      state = state.copyWith(loading: false, error: null);
       return;
     }
 
