@@ -46,6 +46,8 @@ class RefundState {
   final String? error;
   final String? refundTxId;
   final DateTime? lastFeeUpdate;
+  final int? currentRetry;
+  final int? maxRetries;
 
   RefundState({
     this.refundableSwaps,
@@ -57,6 +59,8 @@ class RefundState {
     this.error,
     this.refundTxId,
     this.lastFeeUpdate,
+    this.currentRetry,
+    this.maxRetries,
   });
 
   RefundState copyWith({
@@ -69,6 +73,8 @@ class RefundState {
     String? error,
     String? refundTxId,
     DateTime? lastFeeUpdate,
+    int? currentRetry,
+    int? maxRetries,
   }) {
     return RefundState(
       refundableSwaps: refundableSwaps ?? this.refundableSwaps,
@@ -80,6 +86,8 @@ class RefundState {
       error: error,
       refundTxId: refundTxId ?? this.refundTxId,
       lastFeeUpdate: lastFeeUpdate ?? this.lastFeeUpdate,
+      currentRetry: currentRetry,
+      maxRetries: maxRetries,
     );
   }
 }
@@ -106,8 +114,72 @@ class RefundNotifier extends StateNotifier<RefundState> {
   final Ref ref;
 
   static const Duration _cacheDuration = Duration(minutes: 5);
+  // Aumentado para internet lenta: 5 tentativas com delays maiores
+  static const int _maxRetries = 5;
+  static const Duration _initialRetryDelay = Duration(seconds: 3);
 
   RefundNotifier(this.ref) : super(RefundState());
+
+  /// Executes an async function with retry logic and exponential backoff
+  Future<T> _retryWithBackoff<T>(Future<T> Function() operation) async {
+    int attempts = 0;
+    Duration delay = _initialRetryDelay;
+
+    while (attempts < _maxRetries) {
+      try {
+        // Update state with current retry attempt
+        if (mounted && attempts > 0) {
+          state = state.copyWith(
+            currentRetry: attempts,
+            maxRetries: _maxRetries,
+          );
+        }
+
+        return await operation();
+      } catch (e) {
+        attempts++;
+        final errorString = e.toString().toLowerCase();
+
+        // Check if it's a timeout or network error that can be retried
+        final isRetryable =
+            errorString.contains('timedout') ||
+            errorString.contains('timeout') ||
+            errorString.contains('connection') ||
+            errorString.contains('network');
+
+        if (!isRetryable || attempts >= _maxRetries) {
+          rethrow;
+        }
+
+        // Wait before retrying with exponential backoff
+        await Future.delayed(delay);
+        delay *= 2; // Double the delay for next attempt (3s, 6s, 12s, 24s, 48s)
+      }
+    }
+
+    throw Exception('Retry limit exceeded');
+  }
+
+  /// Formats error messages for better user experience
+  String _formatErrorMessage(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('timedout') || errorString.contains('timeout')) {
+      return 'Tempo esgotado ao conectar com o servidor. Verifique sua conexão com a internet e tente novamente.';
+    }
+
+    if (errorString.contains('connection') || errorString.contains('network')) {
+      return 'Erro de conexão. Verifique sua internet e tente novamente.';
+    }
+
+    if (errorString.contains('429') ||
+        errorString.contains('too many requests') ||
+        errorString.contains('rate limit')) {
+      return 'Muitas requisições. Aguarde alguns minutos e tente novamente.';
+    }
+
+    return 'Erro ao carregar dados de reembolso: $error';
+  }
 
   Future<void> loadRefundData() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -124,8 +196,9 @@ class RefundNotifier extends StateNotifier<RefundState> {
         },
         (client) async {
           try {
+            // Use retry logic for listRefundables which accesses external APIs
             final results = await Future.wait([
-              client.listRefundables(),
+              _retryWithBackoff(() => client.listRefundables()),
               _loadRecommendedFeesWithFallback(client),
             ]);
 
@@ -156,13 +229,15 @@ class RefundNotifier extends StateNotifier<RefundState> {
               selectedFeeRate: fees.hourFee,
               isLoading: false,
               lastFeeUpdate: DateTime.now(),
+              currentRetry: null,
+              maxRetries: null,
             );
           } catch (e) {
             if (!mounted) return;
 
             state = state.copyWith(
               isLoading: false,
-              error: 'Erro ao carregar dados de reembolso: $e',
+              error: _formatErrorMessage(e),
             );
           }
         },
@@ -170,7 +245,7 @@ class RefundNotifier extends StateNotifier<RefundState> {
     } catch (e) {
       if (!mounted) return;
 
-      state = state.copyWith(isLoading: false, error: 'Erro inesperado: $e');
+      state = state.copyWith(isLoading: false, error: _formatErrorMessage(e));
     }
   }
 
