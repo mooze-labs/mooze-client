@@ -91,6 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onRefresh: () => _refreshData(),
                   child: SingleChildScrollView(
                     controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
