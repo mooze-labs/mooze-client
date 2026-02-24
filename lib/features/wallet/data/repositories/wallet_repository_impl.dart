@@ -974,6 +974,8 @@ class WalletRepositoryImpl extends WalletRepository {
       );
     }
 
+    final effectiveFeeRate = feeRateSatPerVByte ?? 3;
+
     return TaskEither.tryCatch(
       () async {
         final dummyAddress = _bitcoinWallet!.datasource.wallet.getAddress(
