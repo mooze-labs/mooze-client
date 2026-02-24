@@ -441,51 +441,74 @@ class FakeWalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, String> getLiquidReceiveAddress() {
     return TaskEither.right("tlq1abcdef");
   }
-  
+
   @override
-  TaskEither<WalletError, Transaction> executePegIn({required BigInt amount, int? feeRateSatPerVByte}) {
+  TaskEither<WalletError, Transaction> executePegIn({
+    required BigInt amount,
+    int? feeRateSatPerVByte,
+    bool drain = false,
+  }) {
     // TODO: implement executePegIn
     throw UnimplementedError();
   }
-  
+
   @override
-  TaskEither<WalletError, Transaction> executePegOut({required String btcAddress, required BigInt receiverAmountSat, required BigInt totalFeesSat, int? feeRateSatPerVbyte, bool drain = false}) {
+  TaskEither<WalletError, Transaction> executePegOut({
+    required String btcAddress,
+    required BigInt receiverAmountSat,
+    required BigInt totalFeesSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  }) {
     // TODO: implement executePegOut
     throw UnimplementedError();
   }
-  
+
   @override
   TaskEither<WalletError, PaymentLimits> fetchOnchainLimits() {
     // TODO: implement fetchOnchainLimits
     throw UnimplementedError();
   }
-  
+
   @override
   TaskEither<WalletError, PaymentLimits> fetchOnchainReceiveLimits() {
     // TODO: implement fetchOnchainReceiveLimits
     throw UnimplementedError();
   }
-  
+
   @override
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})> preparePegIn({required BigInt payerAmountSat}) {
+  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
+  preparePegIn({required BigInt payerAmountSat}) {
     // TODO: implement preparePegIn
     throw UnimplementedError();
   }
-  
+
   @override
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})> preparePegInWithFees({required BigInt payerAmountSat, int? feeRateSatPerVByte}) {
+  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
+  preparePegInWithFees({
+    required BigInt payerAmountSat,
+    int? feeRateSatPerVByte,
+  }) {
     // TODO: implement preparePegInWithFees
     throw UnimplementedError();
   }
-  
+
   @override
-  TaskEither<WalletError, ({BigInt bdkFeesSat, BigInt breezFeesSat})> preparePegInWithFullFees({required BigInt payerAmountSat, int? feeRateSatPerVByte}) {
+  TaskEither<WalletError, ({BigInt bdkFeesSat, BigInt breezFeesSat})>
+  preparePegInWithFullFees({
+    required BigInt payerAmountSat,
+    int? feeRateSatPerVByte,
+  }) {
     // TODO: implement preparePegInWithFullFees
     throw UnimplementedError();
   }
-  
+
   @override
-  TaskEither<WalletError, BigInt> preparePegOut({required BigInt receiverAmountSat, int? feeRateSatPerVbyte, bool drain = false}) {
+  TaskEither<WalletError, BigInt> preparePegOut({
+    required BigInt receiverAmountSat,
+    int? feeRateSatPerVbyte,
+    bool drain = false,
+  }) {
     // TODO: implement preparePegOut
     throw UnimplementedError();
   }
