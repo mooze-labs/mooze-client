@@ -121,6 +121,7 @@ abstract class WalletRepository {
   TaskEither<WalletError, Transaction> executePegIn({
     required BigInt amount,
     int? feeRateSatPerVByte,
+    bool drain = false,
   });
 
   // Receive Addresses

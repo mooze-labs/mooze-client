@@ -121,8 +121,9 @@ class BtcLbtcSwapController {
   TaskEither<String, Transaction> executePegIn({
     required BigInt amount,
     int? feeRateSatPerVByte,
+    bool drain = false,
   }) {
-    if (amount < BigInt.from(minSwapAmount)) {
+    if (!drain && amount < BigInt.from(minSwapAmount)) {
       _log.warning(
         _tag,
         '[PegIn] executePegIn rejected: amount $amount is below minimum $minSwapAmount sats',
@@ -132,12 +133,13 @@ class BtcLbtcSwapController {
 
     _log.info(
       _tag,
-      '[PegIn] Executing peg-in — amount: $amount sats, feeRate: $feeRateSatPerVByte sat/vB',
+      '[PegIn] Executing peg-in — amount: $amount sats, drain: $drain, feeRate: $feeRateSatPerVByte sat/vB',
     );
 
     return _walletController.executePegIn(
       amount: amount,
       feeRateSatPerVByte: feeRateSatPerVByte,
+      drain: drain,
     );
   }
 

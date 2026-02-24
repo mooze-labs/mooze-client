@@ -916,16 +916,8 @@ class WalletRepositoryImpl extends WalletRepository {
           .flatMap((estimatedTx) {
             final bdkFees = estimatedTx.networkFees;
 
-            // Adiciona as taxas BDK ao valor desejado para garantir que
-            // o Breez receba pelo menos o valor especificado pelo usuário
-            final adjustedAmount = payerAmountSat;
-            final totalAmountWithFees = payerAmountSat + bdkFees;
+            final adjustedAmount = payerAmountSat - bdkFees;
 
-            if (kDebugMode) {
-              print(
-                '[WalletRepoImpl] PegIn - valor desejado: $payerAmountSat sats, taxas BDK: $bdkFees sats, total a enviar: $totalAmountWithFees sats',
-              );
-            }
 
             if (adjustedAmount <= BigInt.zero) {
               return TaskEither<
@@ -934,7 +926,7 @@ class WalletRepositoryImpl extends WalletRepository {
               >.left(
                 WalletError(
                   WalletErrorType.insufficientFunds,
-                  'Saldo insuficiente ($bdkFees sats)',
+                  'Saldo insuficiente para cobrir as taxas de rede ($bdkFees sats)',
                 ),
               );
             }
@@ -955,10 +947,30 @@ class WalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, Transaction> executePegIn({
     required BigInt amount,
     int? feeRateSatPerVByte,
+    bool drain = false,
   }) {
     if (_bitcoinWallet == null || _breezWallet == null) {
       return TaskEither.left(
         WalletError(WalletErrorType.sdkError, 'Wallet not available'),
+      );
+    }
+
+    final effectiveFeeRate = feeRateSatPerVByte ?? 3;
+
+    if (drain) {
+      return _executeDrainPegIn(effectiveFeeRate);
+    }
+
+    return _executeNormalPegIn(amount, effectiveFeeRate);
+  }
+
+  TaskEither<WalletError, Transaction> _executeNormalPegIn(
+    BigInt amount,
+    int effectiveFeeRate,
+  ) {
+    if (kDebugMode) {
+      print(
+        '[WalletRepoImpl] ExecutePegIn (normal) - amount total: $amount sats, feeRate: $effectiveFeeRate sat/vB',
       );
     }
 
@@ -973,14 +985,14 @@ class WalletRepositoryImpl extends WalletRepository {
       },
       (error, stackTrace) => WalletError(
         WalletErrorType.transactionFailed,
-        'Erro ao obter endereço: $error',
+        'Erro ao obter endereço dummy: $error',
       ),
     ).flatMap((dummyAddressStr) {
-      final balance = _bitcoinWallet!.datasource.wallet.getBalance();
+      final balance = _bitcoinWallet!.datasource.wallet.getBalance().spendable;
       final estimateAmount =
-          amount < balance.spendable ~/ BigInt.from(2)
+          amount < balance ~/ BigInt.from(2)
               ? amount
-              : balance.spendable ~/ BigInt.from(2);
+              : balance ~/ BigInt.from(2);
 
       return _bitcoinWallet!
           .buildOnchainBitcoinPaymentTransaction(
@@ -989,44 +1001,31 @@ class WalletRepositoryImpl extends WalletRepository {
             effectiveFeeRate,
           )
           .flatMap((estimatedTx) {
-            final bdkFees = estimatedTx.networkFees;
+            final bdkFee = estimatedTx.networkFees;
+            final payerAmountSat = amount - bdkFee;
 
-            // Adiciona as taxas BDK ao valor desejado para garantir que
-            // o Breez receba pelo menos o valor especificado pelo usuário
-            final adjustedAmount = amount;
-            final totalAmountWithFees = amount + bdkFees;
 
-            if (kDebugMode) {
-              print(
-                '[WalletRepoImpl] ExecutePegIn - valor desejado: $amount sats, taxas BDK: $bdkFees sats, total a enviar: $totalAmountWithFees sats',
-              );
-            }
-
-            if (adjustedAmount <= BigInt.zero) {
+            if (payerAmountSat <= BigInt.zero) {
               return TaskEither<WalletError, Transaction>.left(
                 WalletError(
                   WalletErrorType.insufficientFunds,
-                  'Saldo insuficiente para cobrir as taxas de rede ($bdkFees sats)',
+                  'Saldo insuficiente para cobrir as taxas de rede '
+                  '($bdkFee sats)',
                 ),
               );
             }
 
             return _breezWallet!
-                .preparePegIn(payerAmountSat: adjustedAmount)
+                .preparePegIn(payerAmountSat: payerAmountSat)
                 .flatMap((pegInResult) {
-                  String cleanAddress = pegInResult.bitcoinAddress;
-                  if (cleanAddress.startsWith('bitcoin:')) {
-                    cleanAddress = cleanAddress.substring(8);
-                    final queryIndex = cleanAddress.indexOf('?');
-                    if (queryIndex != -1) {
-                      cleanAddress = cleanAddress.substring(0, queryIndex);
-                    }
-                  }
+                  final cleanAddress = _cleanBitcoinAddress(
+                    pegInResult.bitcoinAddress,
+                  );
 
                   return _bitcoinWallet!
                       .buildOnchainBitcoinPaymentTransaction(
                         cleanAddress,
-                        totalAmountWithFees,
+                        payerAmountSat,
                         effectiveFeeRate,
                       )
                       .flatMap((preparedTx) {
@@ -1037,6 +1036,75 @@ class WalletRepositoryImpl extends WalletRepository {
                 });
           });
     });
+  }
+
+  TaskEither<WalletError, Transaction> _executeDrainPegIn(
+    int effectiveFeeRate,
+  ) {
+    final balance = _bitcoinWallet!.datasource.wallet.getBalance().spendable;
+
+    if (balance <= BigInt.zero) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.insufficientFunds, 'Saldo insuficiente'),
+      );
+    }
+
+    return _breezWallet!.preparePegIn(payerAmountSat: balance).flatMap((
+      provisionalSwap,
+    ) {
+      final provisionalAddress = _cleanBitcoinAddress(
+        provisionalSwap.bitcoinAddress,
+      );
+
+      return _bitcoinWallet!
+          .buildDrainOnchainBitcoinTransaction(
+            provisionalAddress,
+            feeRateSatPerVbyte: effectiveFeeRate,
+          )
+          .flatMap((drainEstimate) {
+            final networkFee = drainEstimate.networkFees;
+            final exactOutput = balance - networkFee;
+
+            if (exactOutput <= BigInt.zero) {
+              return TaskEither<WalletError, Transaction>.left(
+                WalletError(
+                  WalletErrorType.insufficientFunds,
+                  'Saldo insuficiente para cobrir as taxas de rede '
+                  '($networkFee sats)',
+                ),
+              );
+            }
+
+            return _breezWallet!.preparePegIn(payerAmountSat: exactOutput).flatMap((
+              definitivePegIn,
+            ) {
+              final swapAddress = _cleanBitcoinAddress(
+                definitivePegIn.bitcoinAddress,
+              );
+
+              return _bitcoinWallet!
+                  .buildDrainOnchainBitcoinTransaction(
+                    swapAddress,
+                    feeRateSatPerVbyte: effectiveFeeRate,
+                  )
+                  .flatMap((drainTx) {
+                    return _bitcoinWallet!.sendOnchainBitcoinPayment(drainTx);
+                  });
+            });
+          });
+    });
+  }
+
+  String _cleanBitcoinAddress(String address) {
+    String clean = address;
+    if (clean.startsWith('bitcoin:')) {
+      clean = clean.substring(8);
+      final queryIndex = clean.indexOf('?');
+      if (queryIndex != -1) {
+        clean = clean.substring(0, queryIndex);
+      }
+    }
+    return clean;
   }
 
   @override
