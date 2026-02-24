@@ -253,27 +253,31 @@ class WalletController {
   TaskEither<String, Transaction> executePegIn({
     required BigInt amount,
     int? feeRateSatPerVByte,
+    bool drain = false,
   }) {
     return _walletRepository
         .fetchOnchainReceiveLimits()
         .mapLeft((err) => err.description)
         .flatMap((limits) {
-          if (amount < limits.minSat) {
-            return TaskEither<String, Transaction>.left(
-              'Valor insuficiente. Mínimo: ${limits.minSat} sats',
-            );
-          }
+          if (!drain) {
+            if (amount < limits.minSat) {
+              return TaskEither<String, Transaction>.left(
+                'Valor insuficiente. Mínimo: ${limits.minSat} sats',
+              );
+            }
 
-          if (amount > limits.maxSat) {
-            return TaskEither<String, Transaction>.left(
-              'Valor inválido. Máximo: ${limits.maxSat} sats',
-            );
+            if (amount > limits.maxSat) {
+              return TaskEither<String, Transaction>.left(
+                'Valor inválido. Máximo: ${limits.maxSat} sats',
+              );
+            }
           }
 
           return _walletRepository
               .executePegIn(
                 amount: amount,
                 feeRateSatPerVByte: feeRateSatPerVByte,
+                drain: drain,
               )
               .mapLeft((err) => err.description);
         });
