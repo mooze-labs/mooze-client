@@ -8,12 +8,14 @@ final updateServiceProvider = Provider<UpdateService>((ref) {
 class UpdateState {
   final bool hasUpdate;
   final String? newVersion;
+  final String? localVersion;
   final bool isLoading;
   final String? error;
 
   const UpdateState({
     this.hasUpdate = false,
     this.newVersion,
+    this.localVersion,
     this.isLoading = false,
     this.error,
   });
@@ -21,12 +23,14 @@ class UpdateState {
   UpdateState copyWith({
     bool? hasUpdate,
     String? newVersion,
+    String? localVersion,
     bool? isLoading,
     String? error,
   }) {
     return UpdateState(
       hasUpdate: hasUpdate ?? this.hasUpdate,
       newVersion: newVersion ?? this.newVersion,
+      localVersion: localVersion ?? this.localVersion,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );
@@ -42,15 +46,21 @@ class UpdateNotifier extends StateNotifier<UpdateState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final updateData = await _updateService.getUpdateData();
+      final results = await Future.wait([
+        _updateService.getUpdateData(),
+        _updateService.getCurrentVersion(),
+      ]);
+      final updateData = results[0] as UpdateData;
+      final localVersion = results[1] as String;
       final hasUpdate = _isNewerVersion(
         updateData.currentVersion,
-        currentVersion,
+        localVersion,
       );
 
       state = state.copyWith(
         hasUpdate: hasUpdate,
         newVersion: hasUpdate ? updateData.currentVersion : null,
+        localVersion: localVersion,
         isLoading: false,
       );
     } catch (e) {

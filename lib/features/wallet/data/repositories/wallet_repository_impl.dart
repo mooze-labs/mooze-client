@@ -918,7 +918,6 @@ class WalletRepositoryImpl extends WalletRepository {
 
             final adjustedAmount = payerAmountSat - bdkFees;
 
-
             if (adjustedAmount <= BigInt.zero) {
               return TaskEither<
                 WalletError,
@@ -974,8 +973,6 @@ class WalletRepositoryImpl extends WalletRepository {
       );
     }
 
-    final effectiveFeeRate = feeRateSatPerVByte ?? 3;
-
     return TaskEither.tryCatch(
       () async {
         final dummyAddress = _bitcoinWallet!.datasource.wallet.getAddress(
@@ -1003,7 +1000,6 @@ class WalletRepositoryImpl extends WalletRepository {
           .flatMap((estimatedTx) {
             final bdkFee = estimatedTx.networkFees;
             final payerAmountSat = amount - bdkFee;
-
 
             if (payerAmountSat <= BigInt.zero) {
               return TaskEither<WalletError, Transaction>.left(
@@ -1075,22 +1071,24 @@ class WalletRepositoryImpl extends WalletRepository {
               );
             }
 
-            return _breezWallet!.preparePegIn(payerAmountSat: exactOutput).flatMap((
-              definitivePegIn,
-            ) {
-              final swapAddress = _cleanBitcoinAddress(
-                definitivePegIn.bitcoinAddress,
-              );
+            return _breezWallet!
+                .preparePegIn(payerAmountSat: exactOutput)
+                .flatMap((definitivePegIn) {
+                  final swapAddress = _cleanBitcoinAddress(
+                    definitivePegIn.bitcoinAddress,
+                  );
 
-              return _bitcoinWallet!
-                  .buildDrainOnchainBitcoinTransaction(
-                    swapAddress,
-                    feeRateSatPerVbyte: effectiveFeeRate,
-                  )
-                  .flatMap((drainTx) {
-                    return _bitcoinWallet!.sendOnchainBitcoinPayment(drainTx);
-                  });
-            });
+                  return _bitcoinWallet!
+                      .buildDrainOnchainBitcoinTransaction(
+                        swapAddress,
+                        feeRateSatPerVbyte: effectiveFeeRate,
+                      )
+                      .flatMap((drainTx) {
+                        return _bitcoinWallet!.sendOnchainBitcoinPayment(
+                          drainTx,
+                        );
+                      });
+                });
           });
     });
   }

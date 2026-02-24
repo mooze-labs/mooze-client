@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/providers/update_provider.dart';
-import 'package:mooze_mobile/services/update_service.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -201,7 +200,11 @@ class _UpdateNotificationWidgetState
                   text: 'ATUALIZAR',
                   height: 44,
                   onPressed: () {
-                    _showUpdateDialog(context, updateState.newVersion ?? '');
+                    _showUpdateDialog(
+                      context,
+                      updateState.newVersion ?? '',
+                      updateState.localVersion ?? '',
+                    );
                   },
                 ),
               ],
@@ -212,7 +215,11 @@ class _UpdateNotificationWidgetState
     );
   }
 
-  void _showUpdateDialog(BuildContext context, String newVersion) {
+  void _showUpdateDialog(
+    BuildContext context,
+    String newVersion,
+    String localVersion,
+  ) {
     showGeneralDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -283,7 +290,7 @@ class _UpdateNotificationWidgetState
                             ),
                           ),
                           Text(
-                            currentVersion,
+                            localVersion,
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 14,
