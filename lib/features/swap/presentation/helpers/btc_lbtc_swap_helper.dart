@@ -138,6 +138,7 @@ class BtcLbtcSwapHelper {
                         .executePegIn(
                           amount: amount,
                           feeRateSatPerVByte: feeRateSatPerVByte,
+                          drain: drain,
                         )
                         .run();
 
