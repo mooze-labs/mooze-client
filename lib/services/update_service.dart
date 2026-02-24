@@ -1,15 +1,11 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 
 const String versionDataUrl = String.fromEnvironment(
   "UPDATE_DATA_URL",
   defaultValue: "mooze-public.s3.us-east-1.amazonaws.com",
-);
-
-const String currentVersion = String.fromEnvironment(
-  "CURRENT_BUILD_VERSION",
-  defaultValue: "1.2.3-beta",
 );
 
 class UpdateData {
@@ -39,5 +35,10 @@ class UpdateService {
     final Map<String, dynamic> data = jsonDecode(response.body);
 
     return UpdateData.fromJson(data);
+  }
+
+  Future<String> getCurrentVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return packageInfo.version;
   }
 }
