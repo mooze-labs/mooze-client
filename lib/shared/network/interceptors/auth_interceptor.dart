@@ -35,7 +35,6 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // Add metrics to all requests
     final metrics = await _getMetrics();
-    print('[AuthInterceptor] Adding metrics to request: $metrics');
 
     // OPTION 1: Send metrics in the request body
     if (metrics.isNotEmpty) {
