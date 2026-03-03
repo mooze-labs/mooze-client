@@ -4,11 +4,11 @@ import 'package:mooze_mobile/features/merchant/infra/datasources/product_datasou
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Product Repository Implementation (Infrastructure Layer)
-/// 
+///
 /// Adapts data from the DataSource (database) to the format expected by the Domain layer.
 /// This layer acts as a bridge between the domain and external data sources,
 /// handling data transformation and error handling.
-/// 
+///
 /// Responsibilities:
 /// - Convert database operations to domain Results
 /// - Handle exceptions and convert them to Failure results
