@@ -1,5 +1,5 @@
 /// Product Entity (Domain Layer)
-/// 
+///
 /// Properties:
 /// - [id]: Optional unique identifier (null for new products)
 /// - [name]: Product name
@@ -23,7 +23,7 @@ class ProductEntity {
   bool get isValid => name.isNotEmpty && price > 0;
 
   /// Validates the product and returns an error message if invalid
-  /// 
+  ///
   /// Returns:
   /// - null if valid
   /// - Error message string if validation fails

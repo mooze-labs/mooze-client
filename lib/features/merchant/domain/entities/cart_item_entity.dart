@@ -1,5 +1,5 @@
 /// Cart Item Entity (Domain Layer)
-/// 
+///
 /// Properties:
 /// - [productId]: Unique identifier for the product
 /// - [name]: Product name
@@ -27,7 +27,7 @@ class CartItemEntity {
   bool get isValid => quantity > 0 && price > 0 && name.isNotEmpty;
 
   /// Validates the cart item and returns an error message if invalid
-  /// 
+  ///
   /// Returns:
   /// - null if valid
   /// - Error message string if validation fails
@@ -45,7 +45,7 @@ class CartItemEntity {
   }
 
   /// Creates a copy of this cart item with the given fields replaced
-  /// 
+  ///
   /// This method is useful for immutability - instead of modifying the object,
   /// we create a new one with updated values
   CartItemEntity copyWith({
