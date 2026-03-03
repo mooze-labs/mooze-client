@@ -1,10 +1,6 @@
 /// Cart Item Entity (Domain Layer)
-///
-/// Properties:
-/// - [productId]: Unique identifier for the product
-/// - [name]: Product name
-/// - [price]: Product price
-/// - [quantity]: Quantity in cart
+library;
+
 class CartItemEntity {
   final int productId;
   final String name;
@@ -19,11 +15,9 @@ class CartItemEntity {
   });
 
   /// Business rule: Calculate the total price for this item
-  /// Returns: [price] * [quantity]
   double get total => price * quantity;
 
   /// Validates if the cart item meets business rules
-  /// Returns true if quantity > 0, price > 0, and name is not empty
   bool get isValid => quantity > 0 && price > 0 && name.isNotEmpty;
 
   /// Validates the cart item and returns an error message if invalid
