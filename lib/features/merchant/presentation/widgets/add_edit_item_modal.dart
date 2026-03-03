@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/merchant/models/item.dart';
+import 'package:mooze_mobile/features/merchant/presentation/models/item_compat.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
+
+/// Add/Edit Item Modal (Presentation Layer)
+///
+/// A static class that provides bottom sheet modals for adding and editing products.
+/// These modals are used in the merchant mode to:
+/// - Create new products with name and price
+/// - Edit existing products
+///
+/// The modal includes:
+/// - Text field for product name
+/// - Formatted text field for price (currency format)
+/// - Cancel and Save buttons
+/// - Input validation
 
 class AddEditItemModal {
   static void mostrarBottomSheetAdicionar(
@@ -172,9 +185,9 @@ class AddEditItemModal {
                                   );
                                   if (preco > 0) {
                                     final novoItem = Item(
-                                      nome: nomeController.text.trim(),
-                                      preco: preco,
-                                      quantidade: 0,
+                                      name: nomeController.text.trim(),
+                                      price: preco,
+                                      quantity: 0,
                                     );
                                     onAdicionarItem(novoItem);
                                     Navigator.pop(context);
@@ -200,9 +213,9 @@ class AddEditItemModal {
     Item produto,
     Function(Item) onEditarItem,
   ) {
-    final nomeController = TextEditingController(text: produto.nome);
+    final nomeController = TextEditingController(text: produto.name);
     final precoController = TextEditingController(
-      text: FiatInputFormatter.formatValue(produto.preco),
+      text: FiatInputFormatter.formatValue(produto.price),
     );
 
     showModalBottomSheet(
@@ -345,7 +358,7 @@ class AddEditItemModal {
                       Row(
                         children: [
                           Expanded(
-                            child: Container(
+                            child: SizedBox(
                               height: 50,
                               child: OutlinedButton(
                                 onPressed: () => Navigator.pop(context),
@@ -392,8 +405,8 @@ class AddEditItemModal {
                                       precoController.text,
                                     );
                                     if (preco > 0) {
-                                      produto.nome = nomeController.text.trim();
-                                      produto.preco = preco;
+                                      produto.name = nomeController.text.trim();
+                                      produto.price = preco;
                                       onEditarItem(produto);
                                       Navigator.pop(context);
                                     }
