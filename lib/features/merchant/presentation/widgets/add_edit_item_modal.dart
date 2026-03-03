@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/merchant/presentation/models/item_compat.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 
@@ -17,9 +17,10 @@ import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 /// - Input validation
 
 class AddEditItemModal {
+  /// Shows a bottom sheet to add a new product
   static void mostrarBottomSheetAdicionar(
     BuildContext context,
-    Function(Item) onAdicionarItem, {
+    Function(ProductEntity) onAdicionarItem, {
     String? nomePadrao,
     String? precoPadrao,
     GlobalKey? adicionarButtonKey,
@@ -184,12 +185,12 @@ class AddEditItemModal {
                                     precoController.text,
                                   );
                                   if (preco > 0) {
-                                    final novoItem = Item(
+                                    final novoProduct = ProductEntity(
                                       name: nomeController.text.trim(),
                                       price: preco,
-                                      quantity: 0,
+                                      createdAt: DateTime.now(),
                                     );
-                                    onAdicionarItem(novoItem);
+                                    onAdicionarItem(novoProduct);
                                     Navigator.pop(context);
                                   }
                                 }
@@ -208,10 +209,12 @@ class AddEditItemModal {
     );
   }
 
+  /// Shows a bottom sheet to edit an existing product
+
   static void mostrarBottomSheetEditar(
     BuildContext context,
-    Item produto,
-    Function(Item) onEditarItem,
+    ProductEntity produto,
+    Function(ProductEntity) onEditarItem,
   ) {
     final nomeController = TextEditingController(text: produto.name);
     final precoController = TextEditingController(
@@ -405,9 +408,13 @@ class AddEditItemModal {
                                       precoController.text,
                                     );
                                     if (preco > 0) {
-                                      produto.name = nomeController.text.trim();
-                                      produto.price = preco;
-                                      onEditarItem(produto);
+                                      final updatedProduct = ProductEntity(
+                                        id: produto.id,
+                                        name: nomeController.text.trim(),
+                                        price: preco,
+                                        createdAt: produto.createdAt,
+                                      );
+                                      onEditarItem(updatedProduct);
                                       Navigator.pop(context);
                                     }
                                   }
