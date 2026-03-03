@@ -3,15 +3,15 @@ import 'package:mooze_mobile/features/merchant/domain/repositories/product_repos
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Use Case: Create Product
-/// 
+///
 /// Encapsulates the business logic for creating a new product.
 /// Validates the product before persisting to ensure data integrity.
-/// 
+///
 /// Business Rules:
 /// - Product name cannot be empty
 /// - Product price must be greater than zero
 /// - Validation occurs before database insertion
-/// 
+///
 /// Returns the generated product ID on success.
 class CreateProductUseCase {
   final ProductRepository _repository;
@@ -19,7 +19,7 @@ class CreateProductUseCase {
   const CreateProductUseCase(this._repository);
 
   /// Creates a new product after validation
-  /// 
+  ///
   /// Parameters:
   ///   - product: ProductEntity to create (without ID)
   /// Returns: Result<int> - the generated product ID, or Failure with error message
