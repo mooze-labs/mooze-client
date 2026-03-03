@@ -57,13 +57,10 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
 
     // Mark that we're in merchant mode
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final merchantModeService = ref.read(merchantModeServiceProvider);
-      // Save the origin (where we came from)
+      // Activate merchant mode using Clean Architecture use case
+      final activateUseCase = ref.read(activateMerchantModeUseCaseProvider);
       final originRoute = widget.origin ?? '/home';
-      await merchantModeService.setMerchantModeActive(
-        true,
-        origin: originRoute,
-      );
+      await activateUseCase(origin: originRoute);
 
       final tutorialShown = await _tutorialService.isTutorialShown();
       if (!tutorialShown && mounted) {

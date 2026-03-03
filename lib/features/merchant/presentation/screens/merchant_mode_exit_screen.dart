@@ -167,7 +167,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                               getMerchantModeOriginUseCaseProvider,
                             );
                             final originResult = await getOriginUseCase();
-                            
+
                             // Extract origin from Result using pattern matching
                             String origin = '/home';
                             if (originResult is Success<String>) {
@@ -183,7 +183,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                                     deactivateMerchantModeUseCaseProvider,
                                   );
                                   await deactivateUseCase();
-                                  
+
                                   // Clear cart
                                   ref
                                       .read(cartControllerProvider.notifier)
