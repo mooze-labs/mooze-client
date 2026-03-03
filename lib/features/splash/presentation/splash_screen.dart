@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
 import '../../../shared/key_management/providers/has_pin_provider.dart';
 import '../../../shared/authentication/providers/ensure_auth_session_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
 import '../../setup/presentation/providers/onboarding_provider.dart';
-import '../../merchant/presentation/providers/merchant_mode_provider.dart';
 import '../../../routes.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
