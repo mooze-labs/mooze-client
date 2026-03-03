@@ -8,22 +8,22 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 /// Merchant Mode Exit Screen (Presentation Layer)
-/// 
+///
 /// Confirmation screen displayed when exiting merchant mode.
 /// Provides a polished exit experience with animations.
-/// 
+///
 /// Features:
 /// - Animated logo with scale, pulse, and slide effects
 /// - "Merchant Mode Off" message
 /// - "Return to Home" button
 /// - Automatically deactivates merchant mode
 /// - Navigates to the origin route (where user came from) or home
-/// 
+///
 /// Animations:
 /// - Scale: Logo grows from small to full size with elastic effect
 /// - Pulse: Logo continuously pulses to draw attention
 /// - Slide: Content slides up from bottom
-/// 
+///
 /// State Management:
 /// - Uses merchant mode controller to deactivate mode
 /// - Reads origin route to navigate back correctly
