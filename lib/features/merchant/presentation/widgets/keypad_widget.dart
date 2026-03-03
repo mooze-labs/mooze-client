@@ -1,20 +1,44 @@
 import 'package:flutter/material.dart';
 
+/// Keypad Widget (Presentation Layer)
+///
+/// A numeric keypad widget for entering monetary values in the merchant mode.
+/// This widget provides a calculator-style interface with:
+/// - Number buttons (0-9)
+/// - Backspace button to delete last digit
+/// - Add button to add the entered amount to the cart
+///
+/// The widget is responsive and adapts to different screen sizes,
+/// adjusting font sizes, button sizes, and spacing accordingly.
+///
+/// Used in: Merchant Mode screen for quick product price entry
 class KeypadWidget extends StatelessWidget {
-  final String valorDigitado;
-  final Function(String) onAdicionarNumero;
-  final VoidCallback onApagarNumero;
-  final VoidCallback onAdicionarAoTotal;
-  final GlobalKey? valorInputKey;
+  /// The current value being typed (displayed as R$ amount)
+  final String typedValue;
+
+  /// Callback when a number button is pressed
+  /// Parameter: the digit pressed ('0'-'9')
+  final Function(String) onAddDigit;
+
+  /// Callback when backspace button is pressed
+  final VoidCallback onDeleteDigit;
+
+  /// Callback when 'Add to Total' button is pressed
+  final VoidCallback onAddToTotal;
+
+  /// Global key for the value display (used for tutorials)
+  final GlobalKey? valueInputKey;
+
+  /// Global key for the add button (used for tutorials)
   final GlobalKey? addButtonKey;
 
   const KeypadWidget({
     super.key,
-    required this.valorDigitado,
-    required this.onAdicionarNumero,
-    required this.onApagarNumero,
-    required this.onAdicionarAoTotal,
-    this.valorInputKey,
+    required this.typedValue,
+    required this.onAddDigit,
+    required this.onDeleteDigit,
+    required this.onAddToTotal,
+    this.valueInputKey,
     this.addButtonKey,
   });
 
@@ -33,28 +57,34 @@ class KeypadWidget extends StatelessWidget {
         isVerySmallScreen || isVeryNarrowScreen
             ? 4.0
             : (isSmallScreen || isNarrowScreen ? 8.0 : 30.0);
+
     final titleFontSize =
         isVerySmallScreen || isVeryNarrowScreen
             ? 20.0
             : (isSmallScreen || isNarrowScreen ? 24.0 : 40.0);
+
     final verticalSpacing =
         isVerySmallScreen || isVeryNarrowScreen
             ? 4.0
             : (isSmallScreen || isNarrowScreen ? 6.0 : 20.0);
+
     final buttonFontSize =
         isVerySmallScreen || isVeryNarrowScreen
             ? 14.0
             : (isSmallScreen || isNarrowScreen ? 16.0 : 24.0);
+
     final buttonIconSize =
         isVerySmallScreen || isVeryNarrowScreen
             ? 14.0
             : (isSmallScreen || isNarrowScreen ? 16.0 : 24.0);
+
     final horizontalPadding =
         isVeryNarrowScreen
             ? 8.0
             : (isNarrowScreen
                 ? 12.0
                 : (isVerySmallScreen ? 16.0 : (isSmallScreen ? 30.0 : 40.0)));
+
     final buttonMargin =
         isVerySmallScreen || isVeryNarrowScreen
             ? 1.0
@@ -67,10 +97,10 @@ class KeypadWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Padding(
-            key: valorInputKey,
+            key: valueInputKey,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Text(
-              'R\$$valorDigitado',
+              'R\$$typedValue',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: titleFontSize,
@@ -80,17 +110,18 @@ class KeypadWidget extends StatelessWidget {
             ),
           ),
           SizedBox(height: verticalSpacing),
-
           Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final buttonSize =
                     (constraints.maxWidth - (buttonMargin * 6)) / 3;
+
                 final aspectRatio =
                     isVerySmallScreen || isVeryNarrowScreen
                         ? 2.8
                         : (isSmallScreen || isNarrowScreen ? 1.8 : 1.2);
+
                 final gridHeight =
                     (buttonSize / aspectRatio) * 4 + (buttonMargin * 8);
 
@@ -107,14 +138,14 @@ class KeypadWidget extends StatelessWidget {
                       for (int i = 1; i <= 9; i++)
                         _buildKeypadButton(
                           text: i.toString(),
-                          onPressed: () => onAdicionarNumero(i.toString()),
+                          onPressed: () => onAddDigit(i.toString()),
                           fontSize: buttonFontSize,
                           iconSize: buttonIconSize,
                           margin: buttonMargin,
                         ),
                       _buildKeypadButton(
                         icon: Icons.backspace_outlined,
-                        onPressed: onApagarNumero,
+                        onPressed: onDeleteDigit,
                         color: Colors.pink,
                         fontSize: buttonFontSize,
                         iconSize: buttonIconSize,
@@ -122,7 +153,7 @@ class KeypadWidget extends StatelessWidget {
                       ),
                       _buildKeypadButton(
                         text: '0',
-                        onPressed: () => onAdicionarNumero('0'),
+                        onPressed: () => onAddDigit('0'),
                         fontSize: buttonFontSize,
                         iconSize: buttonIconSize,
                         margin: buttonMargin,
@@ -130,7 +161,7 @@ class KeypadWidget extends StatelessWidget {
                       _buildKeypadButton(
                         key: addButtonKey,
                         icon: Icons.add,
-                        onPressed: onAdicionarAoTotal,
+                        onPressed: onAddToTotal,
                         color: Colors.green,
                         fontSize: buttonFontSize,
                         iconSize: buttonIconSize,
