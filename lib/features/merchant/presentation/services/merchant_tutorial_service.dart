@@ -1,19 +1,19 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Merchant Tutorial Service (Presentation Layer)
-/// 
+///
 /// Manages the tutorial state for merchant mode.
 /// Tracks whether the user has seen the interactive tutorial
 /// that guides them through using merchant mode features.
-/// 
+///
 /// Storage: Uses SharedPreferences for persistent storage
 /// Key: 'merchant_tutorial_shown' (boolean)
-/// 
+///
 /// Usage:
 /// - On merchant mode entry: Check if tutorial has been shown
 /// - If not shown: Display tutorial, then mark as shown
 /// - Reset: Available for testing/debugging (clears tutorial state)
-/// 
+///
 /// Note: This is a UI-specific service that doesn't follow Clean Architecture
 /// (doesn't use use cases). Consider moving to a ui_services/ folder to make
 /// this distinction clearer.
@@ -42,4 +42,3 @@ class MerchantTutorialService {
     await prefs.remove(_tutorialShownKey);
   }
 }
-
