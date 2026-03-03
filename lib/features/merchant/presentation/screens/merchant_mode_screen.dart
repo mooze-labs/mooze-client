@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/merchant/models/item.dart';
-import 'package:mooze_mobile/features/merchant/models/product.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/product_controller.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_mode_provider.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
+import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
+import 'package:mooze_mobile/features/merchant/presentation/models/item_compat.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_charge_screen.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/add_edit_item_modal.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_widget.dart';
@@ -16,6 +14,12 @@ import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tu
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+
+/// Merchant Mode Screen (Presentation Layer)
+///
+/// The main screen for merchant mode - allows businesses to create charges
+/// and accept payments from customers.
+///
 
 class MerchantModeScreen extends ConsumerStatefulWidget {
   final String? origin;
@@ -94,7 +98,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         } else if (target.identify == "items_tab") {
           _tabController.animateTo(1);
         } else if (target.identify == "add_product") {
-          final item = Item(nome: 'Produto 01', preco: 21.00, quantidade: 0);
+          final item = Item(name: 'Produto 01', price: 21.00, quantity: 0);
           await _adicionarItem(item);
 
           Future.delayed(Duration(milliseconds: 600), () {
@@ -622,8 +626,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   Future<void> _adicionarItem(Item item) async {
     try {
       final product = ProductEntity(
-        name: item.nome,
-        price: item.preco,
+        name: item.name,
+        price: item.price,
         createdAt: DateTime.now(),
       );
 
@@ -647,15 +651,15 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     if (index >= products.length) return;
 
     final product = products[index];
-    final item = Item(nome: product.name, preco: product.price, quantidade: 0);
+    final item = Item(name: product.name, price: product.price, quantity: 0);
 
     AddEditItemModal.mostrarBottomSheetEditar(context, item, (
       Item itemEditado,
     ) async {
       try {
         final updatedProduct = product.copyWith(
-          name: itemEditado.nome,
-          price: itemEditado.preco,
+          name: itemEditado.name,
+          price: itemEditado.price,
         );
 
         await ref
@@ -806,11 +810,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                       return Container(
                         key: _headerKey,
                         child: MerchantHeaderWidget(
-                          valorReais: valorReais,
-                          onLimparCarrinho: _limparValor,
+                          totalAmountInBRL: valorReais,
+                          onClearCart: _limparValor,
                           onBack: _handleWillPop,
-                          limparButtonKey: _limparKey,
-                          valorTotalKey: _valorTotalKey,
+                          clearButtonKey: _limparKey,
+                          totalAmountKey: _valorTotalKey,
                         ),
                       );
                     },
@@ -863,11 +867,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                             controller: _tabController,
                             children: [
                               KeypadWidget(
-                                valorDigitado: valorDigitado,
-                                onAdicionarNumero: _adicionarNumero,
-                                onApagarNumero: _apagarNumero,
-                                onAdicionarAoTotal: _adicionarAoTotal,
-                                valorInputKey: _valorInputKey,
+                                typedValue: valorDigitado,
+                                onAddDigit: _adicionarNumero,
+                                onDeleteDigit: _apagarNumero,
+                                onAddToTotal: _adicionarAoTotal,
+                                valueInputKey: _valorInputKey,
                                 addButtonKey: _addButtonKey,
                               ),
                               Consumer(
@@ -889,27 +893,27 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                                 final quantidade =
                                                     product.id != null
                                                         ? cart[product.id!]
-                                                                ?.quantidade ??
+                                                                ?.quantity ??
                                                             0
                                                         : 0;
 
                                                 return Item(
-                                                  nome: product.name,
-                                                  preco: product.price,
-                                                  quantidade: quantidade,
+                                                  name: product.name,
+                                                  price: product.price,
+                                                  quantity: quantidade,
                                                 );
                                               }).toList();
 
                                           return ItemsListWidget(
-                                            produtos: items,
-                                            onEditarItem: _editarItem,
-                                            onRemoverItem: _removerItem,
-                                            onAtualizarQuantidade:
+                                            items: items,
+                                            onEditItem: _editarItem,
+                                            onRemoveItem: _removerItem,
+                                            onUpdateQuantity:
                                                 _atualizarQuantidade,
-                                            onAdicionarItem:
+                                            onAddItem:
                                                 _mostrarBottomSheetAdicionar,
                                             addButtonKey: _addProductButtonKey,
-                                            firstProductKey: _firstProductKey,
+                                            firstItemKey: _firstProductKey,
                                           );
                                         },
                                       );
@@ -974,7 +978,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                     final cartTotal = ref.watch(cartTotalProvider);
                     return FinalizarVendaButton(
                       onPressed: _finalizarVenda,
-                      cartTotal: cartTotal,
+                      totalOrderAmount: cartTotal,
                       buttonKey: _finalizarVendaKey,
                     );
                   },
