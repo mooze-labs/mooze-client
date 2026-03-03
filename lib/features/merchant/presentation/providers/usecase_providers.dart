@@ -65,24 +65,25 @@ final deleteProductUseCaseProvider = Provider<DeleteProductUseCase>((ref) {
 // Merchant Mode Use Cases
 final activateMerchantModeUseCaseProvider =
     Provider<ActivateMerchantModeUseCase>((ref) {
-  final repository = ref.watch(merchantModeRepositoryProvider);
-  return ActivateMerchantModeUseCase(repository);
-});
+      final repository = ref.watch(merchantModeRepositoryProvider);
+      return ActivateMerchantModeUseCase(repository);
+    });
 
 final deactivateMerchantModeUseCaseProvider =
     Provider<DeactivateMerchantModeUseCase>((ref) {
-  final repository = ref.watch(merchantModeRepositoryProvider);
-  return DeactivateMerchantModeUseCase(repository);
-});
+      final repository = ref.watch(merchantModeRepositoryProvider);
+      return DeactivateMerchantModeUseCase(repository);
+    });
 
-final checkMerchantModeUseCaseProvider =
-    Provider<CheckMerchantModeUseCase>((ref) {
+final checkMerchantModeUseCaseProvider = Provider<CheckMerchantModeUseCase>((
+  ref,
+) {
   final repository = ref.watch(merchantModeRepositoryProvider);
   return CheckMerchantModeUseCase(repository);
 });
 
 final getMerchantModeOriginUseCaseProvider =
     Provider<GetMerchantModeOriginUseCase>((ref) {
-  final repository = ref.watch(merchantModeRepositoryProvider);
-  return GetMerchantModeOriginUseCase(repository);
-});
+      final repository = ref.watch(merchantModeRepositoryProvider);
+      return GetMerchantModeOriginUseCase(repository);
+    });
