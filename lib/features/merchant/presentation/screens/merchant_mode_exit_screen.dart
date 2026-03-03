@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Merchant Mode Exit Screen (Presentation Layer)
 ///
@@ -160,25 +162,36 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final merchantModeService = ref.read(
-                              merchantModeServiceProvider,
+                            // Get origin route using Clean Architecture use case
+                            final getOriginUseCase = ref.read(
+                              getMerchantModeOriginUseCaseProvider,
                             );
-                            final origin =
-                                await merchantModeService
-                                    .getMerchantModeOrigin();
+                            final originResult = await getOriginUseCase();
+                            
+                            // Extract origin from Result using pattern matching
+                            String origin = '/home';
+                            if (originResult is Success<String>) {
+                              origin = originResult.data;
+                            }
 
                             context.push(
                               '/setup/pin/verify',
                               extra: VerifyPinArgs(
                                 onPinConfirmed: () async {
-                                  await merchantModeService
-                                      .setMerchantModeActive(false);
+                                  // Deactivate merchant mode using Clean Architecture use case
+                                  final deactivateUseCase = ref.read(
+                                    deactivateMerchantModeUseCaseProvider,
+                                  );
+                                  await deactivateUseCase();
+                                  
+                                  // Clear cart
                                   ref
                                       .read(cartControllerProvider.notifier)
                                       .clearCart();
                                   ref.invalidate(cartControllerProvider);
                                   context.go(origin);
                                 },
+
                                 forceAuth: true,
                                 canGoBack: true,
                               ),
