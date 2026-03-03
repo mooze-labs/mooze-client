@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
-import 'package:mooze_mobile/features/merchant/presentation/models/item_compat.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_charge_screen.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/add_edit_item_modal.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_widget.dart';
@@ -98,8 +97,13 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         } else if (target.identify == "items_tab") {
           _tabController.animateTo(1);
         } else if (target.identify == "add_product") {
-          final item = Item(name: 'Produto 01', price: 21.00, quantity: 0);
-          await _adicionarItem(item);
+          // Add tutorial product
+          final product = ProductEntity(
+            name: 'Produto 01',
+            price: 21.00,
+            createdAt: DateTime.now(),
+          );
+          await _adicionarItem(product);
 
           Future.delayed(Duration(milliseconds: 600), () {
             if (mounted) {
@@ -623,14 +627,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     });
   }
 
-  Future<void> _adicionarItem(Item item) async {
+  /// Adds a product to the database
+  Future<void> _adicionarItem(ProductEntity product) async {
     try {
-      final product = ProductEntity(
-        name: item.name,
-        price: item.price,
-        createdAt: DateTime.now(),
-      );
-
       await ref.read(productControllerProvider.notifier).addProduct(product);
     } catch (e) {
       if (mounted) {
@@ -641,6 +640,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     }
   }
 
+  /// Opens edit modal for a product at the given index
   Future<void> _editarItem(int index) async {
     final productsAsync = ref.read(productControllerProvider);
     final products = productsAsync.maybeWhen(
@@ -651,17 +651,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     if (index >= products.length) return;
 
     final product = products[index];
-    final item = Item(name: product.name, price: product.price, quantity: 0);
 
-    AddEditItemModal.mostrarBottomSheetEditar(context, item, (
-      Item itemEditado,
+    AddEditItemModal.mostrarBottomSheetEditar(context, product, (
+      ProductEntity updatedProduct,
     ) async {
       try {
-        final updatedProduct = product.copyWith(
-          name: itemEditado.name,
-          price: itemEditado.price,
-        );
-
         await ref
             .read(productControllerProvider.notifier)
             .updateProduct(updatedProduct);
@@ -722,6 +716,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     }
   }
 
+  /// Shows the add product modal
   void _mostrarBottomSheetAdicionar({String? nome, String? preco}) {
     AddEditItemModal.mostrarBottomSheetAdicionar(
       context,
@@ -888,24 +883,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                             cartControllerProvider,
                                           );
 
-                                          final items =
-                                              products.map((product) {
-                                                final quantidade =
-                                                    product.id != null
-                                                        ? cart[product.id!]
-                                                                ?.quantity ??
-                                                            0
-                                                        : 0;
-
-                                                return Item(
-                                                  name: product.name,
-                                                  price: product.price,
-                                                  quantity: quantidade,
-                                                );
-                                              }).toList();
-
                                           return ItemsListWidget(
-                                            items: items,
+                                            products: products,
+                                            cart: cart,
                                             onEditItem: _editarItem,
                                             onRemoveItem: _removerItem,
                                             onUpdateQuantity:
