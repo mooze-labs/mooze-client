@@ -3,7 +3,7 @@ import 'package:mooze_mobile/features/merchant/infra/datasources/merchant_mode_d
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Merchant Mode Local Data Source Implementation (External Layer)
-/// 
+///
 /// Storage Keys:
 /// - 'merchant_mode_active': boolean flag for activation status
 /// - 'merchant_mode_origin': string storing the return route
@@ -14,7 +14,7 @@ import 'package:mooze_mobile/shared/utils/result.dart';
 class MerchantModeLocalDataSource implements MerchantModeDataSource {
   /// Key for storing merchant mode activation status
   static const String _merchantModeActiveKey = 'merchant_mode_active';
-  
+
   /// Key for storing the origin route
   static const String _merchantModeOriginKey = 'merchant_mode_origin';
 
@@ -25,10 +25,7 @@ class MerchantModeLocalDataSource implements MerchantModeDataSource {
       final isActive = prefs.getBool(_merchantModeActiveKey) ?? false;
       return Success(isActive);
     } catch (e) {
-      return Failure(
-        'Error checking status: ${e.toString()}',
-        e as Exception?,
-      );
+      return Failure('Error checking status: ${e.toString()}', e as Exception?);
     }
   }
 
@@ -43,10 +40,7 @@ class MerchantModeLocalDataSource implements MerchantModeDataSource {
       }
       return const Success(null);
     } catch (e) {
-      return Failure(
-        'Error setting status: ${e.toString()}',
-        e as Exception?,
-      );
+      return Failure('Error setting status: ${e.toString()}', e as Exception?);
     }
   }
 
@@ -57,10 +51,7 @@ class MerchantModeLocalDataSource implements MerchantModeDataSource {
       final origin = prefs.getString(_merchantModeOriginKey) ?? '/home';
       return Success(origin);
     } catch (e) {
-      return Failure(
-        'Error getting origin: ${e.toString()}',
-        e as Exception?,
-      );
+      return Failure('Error getting origin: ${e.toString()}', e as Exception?);
     }
   }
 

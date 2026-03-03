@@ -5,14 +5,14 @@ import 'package:mooze_mobile/features/merchant/infra/datasources/product_datasou
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Product Drift Data Source Implementation (External Layer)
-/// 
+///
 /// Concrete implementation using Drift ORM for local database storage.
 /// Manages product persistence in a type-safe SQLite database.
-/// 
+///
 /// To switch storage (e.g., to Firebase, Hive, or REST API),
 /// simply create a new implementation of ProductDataSource
 /// and update the provider - no other layers need to change.
-/// 
+///
 class ProductDriftDataSource implements ProductDataSource {
   final AppDatabase _database;
 
@@ -32,7 +32,10 @@ class ProductDriftDataSource implements ProductDataSource {
       final id = await _database.into(_database.products).insert(companion);
       return Success(id);
     } catch (e) {
-      return Failure('Error creating product: ${e.toString()}', e as Exception?);
+      return Failure(
+        'Error creating product: ${e.toString()}',
+        e as Exception?,
+      );
     }
   }
 
@@ -43,14 +46,17 @@ class ProductDriftDataSource implements ProductDataSource {
       final productsData = await _database.select(_database.products).get();
 
       // Convert Drift data models to domain entities
-      final products = productsData
-          .map((productData) => ProductEntity(
-                id: productData.id,
-                name: productData.name,
-                price: productData.price,
-                createdAt: productData.createdAt,
-              ))
-          .toList();
+      final products =
+          productsData
+              .map(
+                (productData) => ProductEntity(
+                  id: productData.id,
+                  name: productData.name,
+                  price: productData.price,
+                  createdAt: productData.createdAt,
+                ),
+              )
+              .toList();
 
       return Success(products);
     } catch (e) {
@@ -108,8 +114,9 @@ class ProductDriftDataSource implements ProductDataSource {
       );
 
       // Replace existing row (returns true if successful)
-      final success =
-          await _database.update(_database.products).replace(companion);
+      final success = await _database
+          .update(_database.products)
+          .replace(companion);
       return Success(success);
     } catch (e) {
       return Failure(
@@ -123,9 +130,9 @@ class ProductDriftDataSource implements ProductDataSource {
   Future<Result<bool>> delete(int id) async {
     try {
       // Delete with WHERE clause and get affected rows count
-      final rowsAffected = await (_database.delete(_database.products)
-            ..where((p) => p.id.equals(id)))
-          .go();
+      final rowsAffected =
+          await (_database.delete(_database.products)
+            ..where((p) => p.id.equals(id))).go();
 
       // Returns true if at least one row was deleted
       return Success(rowsAffected > 0);
