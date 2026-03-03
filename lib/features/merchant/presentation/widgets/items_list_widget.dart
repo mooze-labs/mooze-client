@@ -1,14 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:mooze_mobile/features/merchant/presentation/models/item_compat.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 /// Items List Widget (Presentation Layer)
 ///
 /// Displays a list of products/items in the merchant mode.
+/// Shows products with their current quantities from the cart.
+///
+/// Features:
+/// - Empty state when no products are available
+/// - Slidable list items with swipe actions (edit/delete)
+/// - Quantity increment/decrement buttons
+/// - Floating action button to add new products
+///
+/// Each list item shows:
+/// - Product name and price
+/// - Current quantity in cart
+/// - Total price for that item (price × quantity)
+///
+/// Uses flutter_slidable for swipe-to-edit/delete functionality.
 class ItemsListWidget extends StatelessWidget {
   /// List of products to display
-  final List<Item> items;
+  final List<ProductEntity> products;
+
+  /// Cart state mapping product ID to cart items (for quantity display)
+  final Map<int, CartItemEntity> cart;
 
   /// Callback when user taps edit button for an item
   /// Parameter: product index to edit
@@ -33,7 +51,8 @@ class ItemsListWidget extends StatelessWidget {
 
   const ItemsListWidget({
     super.key,
-    required this.items,
+    required this.products,
+    required this.cart,
     required this.onEditItem,
     required this.onRemoveItem,
     required this.onUpdateQuantity,
@@ -46,7 +65,7 @@ class ItemsListWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: items.isEmpty ? _buildEmptyState() : _buildItemsList(),
+      body: products.isEmpty ? _buildEmptyState() : _buildItemsList(),
       floatingActionButton: SizedBox(
         key: addButtonKey,
         width: 56,
@@ -93,14 +112,18 @@ class ItemsListWidget extends StatelessWidget {
   Widget _buildItemsList() {
     return ListView.separated(
       padding: const EdgeInsets.all(20).copyWith(bottom: 100),
-      itemCount: items.length,
+      itemCount: products.length,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        final item = items[index];
+        final product = products[index];
         final isFirstItem = index == 0 && firstItemKey != null;
 
+        // Get quantity from cart (0 if product not in cart)
+        final quantity =
+            product.id != null ? (cart[product.id!]?.quantity ?? 0) : 0;
+
         return Slidable(
-          key: isFirstItem ? firstItemKey : Key(item.name + index.toString()),
+          key: isFirstItem ? firstItemKey : Key('${product.name}_$index'),
           endActionPane: ActionPane(
             motion: const ScrollMotion(),
             children: [
@@ -122,7 +145,7 @@ class ItemsListWidget extends StatelessWidget {
                             style: TextStyle(color: Colors.white),
                           ),
                           content: Text(
-                            'Deseja realmente deletar "${item.name}"?',
+                            'Deseja realmente deletar "${product.name}"?',
                             style: const TextStyle(color: Colors.white70),
                           ),
                           actions: [
@@ -158,7 +181,7 @@ class ItemsListWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.name,
+                      product.name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -167,7 +190,7 @@ class ItemsListWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'R\$ ${item.price.toStringAsFixed(2)}',
+                      'R\$ ${product.price.toStringAsFixed(2)}',
                       style: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 14,
@@ -182,14 +205,14 @@ class ItemsListWidget extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: () {
-                      if (item.quantity > 0) {
+                      if (quantity > 0) {
                         onUpdateQuantity(index, false);
                       }
                     },
                     icon: Icon(
                       Icons.remove,
                       color:
-                          item.quantity < 1
+                          quantity < 1
                               ? AppColors.errorColor.withValues(alpha: 0.3)
                               : AppColors.errorColor,
                       size: 20,
@@ -197,7 +220,7 @@ class ItemsListWidget extends StatelessWidget {
                     padding: EdgeInsets.zero,
                   ),
                   Text(
-                    item.quantity.toString(),
+                    quantity.toString(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
