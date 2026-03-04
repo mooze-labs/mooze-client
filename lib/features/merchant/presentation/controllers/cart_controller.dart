@@ -62,7 +62,6 @@ class CartController extends StateNotifier<Map<int, CartItemEntity>> {
 /// Cart Controller Provider
 ///
 /// Provides a single instance of CartController to the widget tree.
-/// The state (Map<int, CartItemEntity>) is automatically managed by Riverpod.
 final cartControllerProvider =
     StateNotifierProvider<CartController, Map<int, CartItemEntity>>((ref) {
       final manageCartUseCase = ManageCartUseCase();
