@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/merchant/models/item.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 
+/// Add/Edit Item Modal (Presentation Layer)
+///
+/// A static class that provides bottom sheet modals for adding and editing products.
+/// These modals are used in the merchant mode to:
+/// - Create new products with name and price
+/// - Edit existing products
+///
+/// The modal includes:
+/// - Text field for product name
+/// - Formatted text field for price (currency format)
+/// - Cancel and Save buttons
+/// - Input validation
+
 class AddEditItemModal {
+  /// Shows a bottom sheet to add a new product
   static void mostrarBottomSheetAdicionar(
     BuildContext context,
-    Function(Item) onAdicionarItem, {
+    Function(ProductEntity) onAdicionarItem, {
     String? nomePadrao,
     String? precoPadrao,
     GlobalKey? adicionarButtonKey,
@@ -171,12 +185,12 @@ class AddEditItemModal {
                                     precoController.text,
                                   );
                                   if (preco > 0) {
-                                    final novoItem = Item(
-                                      nome: nomeController.text.trim(),
-                                      preco: preco,
-                                      quantidade: 0,
+                                    final novoProduct = ProductEntity(
+                                      name: nomeController.text.trim(),
+                                      price: preco,
+                                      createdAt: DateTime.now(),
                                     );
-                                    onAdicionarItem(novoItem);
+                                    onAdicionarItem(novoProduct);
                                     Navigator.pop(context);
                                   }
                                 }
@@ -195,14 +209,16 @@ class AddEditItemModal {
     );
   }
 
+  /// Shows a bottom sheet to edit an existing product
+
   static void mostrarBottomSheetEditar(
     BuildContext context,
-    Item produto,
-    Function(Item) onEditarItem,
+    ProductEntity produto,
+    Function(ProductEntity) onEditarItem,
   ) {
-    final nomeController = TextEditingController(text: produto.nome);
+    final nomeController = TextEditingController(text: produto.name);
     final precoController = TextEditingController(
-      text: FiatInputFormatter.formatValue(produto.preco),
+      text: FiatInputFormatter.formatValue(produto.price),
     );
 
     showModalBottomSheet(
@@ -345,7 +361,7 @@ class AddEditItemModal {
                       Row(
                         children: [
                           Expanded(
-                            child: Container(
+                            child: SizedBox(
                               height: 50,
                               child: OutlinedButton(
                                 onPressed: () => Navigator.pop(context),
@@ -392,9 +408,13 @@ class AddEditItemModal {
                                       precoController.text,
                                     );
                                     if (preco > 0) {
-                                      produto.nome = nomeController.text.trim();
-                                      produto.preco = preco;
-                                      onEditarItem(produto);
+                                      final updatedProduct = ProductEntity(
+                                        id: produto.id,
+                                        name: nomeController.text.trim(),
+                                        price: preco,
+                                        createdAt: produto.createdAt,
+                                      );
+                                      onEditarItem(updatedProduct);
                                       Navigator.pop(context);
                                     }
                                   }

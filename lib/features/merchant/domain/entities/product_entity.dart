@@ -1,3 +1,10 @@
+/// Product Entity (Domain Layer)
+///
+/// Properties:
+/// - [id]: Optional unique identifier (null for new products)
+/// - [name]: Product name
+/// - [price]: Product price in Brazilian Reais (BRL)
+/// - [createdAt]: Timestamp when the product was created
 class ProductEntity {
   final int? id;
   final String name;
@@ -11,22 +18,23 @@ class ProductEntity {
     required this.createdAt,
   });
 
-  factory ProductEntity.fromMap(Map<String, dynamic> map) {
-    return ProductEntity(
-      id: map['id'] as int?,
-      name: map['name'] as String,
-      price: (map['price'] as num).toDouble(),
-      createdAt: DateTime.parse(map['createdAt'] as String),
-    );
-  }
+  /// Validates if the product meets business rules
+  /// Returns true if name is not empty and price > 0
+  bool get isValid => name.isNotEmpty && price > 0;
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'price': price,
-      'createdAt': createdAt.toIso8601String(),
-    };
+  /// Validates the product and returns an error message if invalid
+  ///
+  /// Returns:
+  /// - null if valid
+  /// - Error message string if validation fails
+  String? validate() {
+    if (name.isEmpty) {
+      return 'Nome do produto não pode ser vazio'; // Product name cannot be empty
+    }
+    if (price <= 0) {
+      return 'Preço deve ser maior que zero'; // Price must be greater than zero
+    }
+    return null;
   }
 
   ProductEntity copyWith({

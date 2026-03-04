@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:mooze_mobile/features/merchant/models/product.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/product_repository_provider.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 part 'product_controller.g.dart';
@@ -13,8 +13,8 @@ class ProductController extends _$ProductController {
   }
 
   Future<List<ProductEntity>> _fetchProducts() async {
-    final repository = ref.read(productRepositoryProvider);
-    final result = await repository.getAllProducts();
+    final getAllProductsUseCase = ref.read(getAllProductsUseCaseProvider);
+    final result = await getAllProductsUseCase();
 
     return result.fold((products) => products, (error) {
       return [];
@@ -22,8 +22,8 @@ class ProductController extends _$ProductController {
   }
 
   Future<void> addProduct(ProductEntity product) async {
-    final repository = ref.read(productRepositoryProvider);
-    final result = await repository.createProduct(product);
+    final createProductUseCase = ref.read(createProductUseCaseProvider);
+    final result = await createProductUseCase(product);
 
     result.fold(
       (id) {
@@ -36,8 +36,8 @@ class ProductController extends _$ProductController {
   }
 
   Future<void> updateProduct(ProductEntity product) async {
-    final repository = ref.read(productRepositoryProvider);
-    final result = await repository.updateProduct(product);
+    final updateProductUseCase = ref.read(updateProductUseCaseProvider);
+    final result = await updateProductUseCase(product);
 
     result.fold(
       (success) {
@@ -52,8 +52,8 @@ class ProductController extends _$ProductController {
   }
 
   Future<void> removeProduct(int id) async {
-    final repository = ref.read(productRepositoryProvider);
-    final result = await repository.deleteProduct(id);
+    final deleteProductUseCase = ref.read(deleteProductUseCaseProvider);
+    final result = await deleteProductUseCase(id);
 
     result.fold(
       (success) {

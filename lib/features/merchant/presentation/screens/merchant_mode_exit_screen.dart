@@ -2,11 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_mode_provider.dart';
+import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/utils/result.dart';
+
+/// Merchant Mode Exit Screen (Presentation Layer)
+///
+/// Confirmation screen displayed when exiting merchant mode.
+/// Provides a polished exit experience with animations.
+///
+/// Features:
+/// - Animated logo with scale, pulse, and slide effects
+/// - "Merchant Mode Off" message
+/// - "Return to Home" button
+/// - Automatically deactivates merchant mode
+/// - Navigates to the origin route (where user came from) or home
+///
+/// Animations:
+/// - Scale: Logo grows from small to full size with elastic effect
+/// - Pulse: Logo continuously pulses to draw attention
+/// - Slide: Content slides up from bottom
+///
+/// State Management:
+/// - Uses merchant mode controller to deactivate mode
+/// - Reads origin route to navigate back correctly
 
 class MerchantModeExitScreen extends ConsumerStatefulWidget {
   const MerchantModeExitScreen({super.key});
@@ -140,25 +161,36 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final merchantModeService = ref.read(
-                              merchantModeServiceProvider,
+                            // Get origin route using Clean Architecture use case
+                            final getOriginUseCase = ref.read(
+                              getMerchantModeOriginUseCaseProvider,
                             );
-                            final origin =
-                                await merchantModeService
-                                    .getMerchantModeOrigin();
+                            final originResult = await getOriginUseCase();
+
+                            // Extract origin from Result using pattern matching
+                            String origin = '/home';
+                            if (originResult is Success<String>) {
+                              origin = originResult.data;
+                            }
 
                             context.push(
                               '/setup/pin/verify',
                               extra: VerifyPinArgs(
                                 onPinConfirmed: () async {
-                                  await merchantModeService
-                                      .setMerchantModeActive(false);
+                                  // Deactivate merchant mode using Clean Architecture use case
+                                  final deactivateUseCase = ref.read(
+                                    deactivateMerchantModeUseCaseProvider,
+                                  );
+                                  await deactivateUseCase();
+
+                                  // Clear cart
                                   ref
                                       .read(cartControllerProvider.notifier)
                                       .clearCart();
                                   ref.invalidate(cartControllerProvider);
                                   context.go(origin);
                                 },
+
                                 forceAuth: true,
                                 canGoBack: true,
                               ),
