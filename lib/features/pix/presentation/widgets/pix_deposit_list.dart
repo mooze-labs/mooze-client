@@ -79,7 +79,7 @@ class PixDepositListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _getPixDepositTitle(),
+                    deposit.asset.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -125,10 +125,6 @@ class PixDepositListItem extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _getPixDepositTitle() {
-    return "Recebido ${deposit.asset.name}";
   }
 
   String _getPixDepositSubtitle() {
