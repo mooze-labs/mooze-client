@@ -13,41 +13,31 @@ class PixHistoryController {
     int? offset,
   }) {
     return _repo.getDeposits(limit: limit, offset: offset).flatMap((deposits) {
+      const terminalStatuses = {DepositStatus.expired, DepositStatus.refunded};
+
       final pendingDeposits =
           deposits
-              .filter(
-                (t) =>
-                    t.status != DepositStatus.finished &&
-                    t.status != DepositStatus.failed,
-              )
+              .filter((t) => !terminalStatuses.contains(t.status))
               .map((d) => d.depositId)
               .toList();
 
-      if (pendingDeposits.isNotEmpty) {
-        _repo
-            .updateDepositDetails(pendingDeposits)
-            .run()
-            .then(
-              (result) => result.fold(
-                (error) {
-                  if (kDebugMode) {
-                    debugPrint(
-                      "[PixHistoryController] Error updating deposits: $error",
-                    );
-                  }
-                },
-                (updatedDeposits) {
-                  if (kDebugMode) {
-                    debugPrint(
-                      "[PixHistoryController] ${updatedDeposits.length} deposits updated successfully",
-                    );
-                  }
-                },
-              ),
-            );
+      if (pendingDeposits.isEmpty) {
+        return TaskEither.right(deposits);
       }
 
-      return TaskEither.right(deposits);
+      return _repo
+          .updateDepositDetails(pendingDeposits)
+          .flatMap((_) {
+            return _repo.getDeposits(limit: limit, offset: offset);
+          })
+          .orElse((error) {
+            if (kDebugMode) {
+              debugPrint(
+                "[PixHistoryController] Error updating deposits: $error",
+              );
+            }
+            return TaskEither.right(deposits);
+          });
     });
   }
 
