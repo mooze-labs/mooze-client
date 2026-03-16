@@ -106,4 +106,11 @@ class PixDepositDatabase {
       return await (query.get());
     }, (error, stackTrace) => error.toString());
   }
+
+  TaskEither<String, Unit> clearAllDeposits() {
+    return TaskEither.tryCatch(() async {
+      await _database.deleteAllDeposits();
+      return unit;
+    }, (error, stackTrace) => error.toString());
+  }
 }
