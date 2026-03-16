@@ -615,6 +615,10 @@ String _getStatusLabel(String status) {
       return DepositStatus.failed.label;
     case 'expired':
       return DepositStatus.expired.label;
+    case 'refunded':
+      return DepositStatus.refunded.label;
+    case 'med':
+      return DepositStatus.med.label;
     default:
       return 'Todos';
   }

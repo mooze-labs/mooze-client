@@ -80,6 +80,9 @@ PixDeposit _mapDepositToPixDeposit(Deposit deposit) {
     case 'refunded':
       status = DepositStatus.refunded;
       break;
+    case 'med':
+      status = DepositStatus.med;
+      break;
     default:
       status = DepositStatus.unknown;
   }

@@ -281,6 +281,8 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
           break;
         case 'refunded':
           descriptions.add(DepositStatus.refunded.labelPlural);
+        case 'med':
+          descriptions.add(DepositStatus.med.labelPlural);
           break;
       }
     }
