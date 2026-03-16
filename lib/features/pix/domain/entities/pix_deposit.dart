@@ -12,6 +12,7 @@ enum DepositStatus {
   failed,
   expired,
   refunded,
+  med,
   unknown,
 }
 
@@ -31,13 +32,15 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.broadcasted:
         return 'Transmitido';
       case DepositStatus.finished:
-        return 'Enviado';
+        return 'Em Análise';
       case DepositStatus.failed:
         return 'Em Análise';
       case DepositStatus.expired:
         return 'Expirado';
       case DepositStatus.refunded:
         return 'Reembolso efetuado';
+      case DepositStatus.med:
+        return 'Estornado';
       case DepositStatus.unknown:
         return 'Desconhecido';
     }
@@ -54,7 +57,7 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.fundsPrepared:
         return 'Fundos Preparados';
       case DepositStatus.depixSent:
-        return 'Enviados';
+        return 'Em Análise';
       case DepositStatus.broadcasted:
         return 'Transmitidos';
       case DepositStatus.finished:
@@ -65,6 +68,8 @@ extension DepositStatusExtension on DepositStatus {
         return 'Expirados';
       case DepositStatus.refunded:
         return 'Devolvidos';
+      case DepositStatus.med:
+        return 'Estornados';
       case DepositStatus.unknown:
         return 'Desconhecidos';
     }
@@ -92,6 +97,8 @@ extension DepositStatusExtension on DepositStatus {
         return Colors.red;
       case DepositStatus.refunded:
         return Colors.amber;
+      case DepositStatus.med:
+        return Colors.purple;
       case DepositStatus.unknown:
         return Colors.grey;
     }
