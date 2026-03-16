@@ -96,7 +96,6 @@ class PixRepositoryImpl implements PixRepository {
       final elapsed = DateTime.now().difference(startTime);
 
       if (elapsed > maxDuration) {
-
         timer.cancel();
 
         final expiredEvent = PixStatusEvent(
@@ -401,6 +400,10 @@ Either<String, DepositStatus> parseDepositStatus(String status) {
       return right(DepositStatus.failed);
     case "expired":
       return right(DepositStatus.expired);
+    case "refunded":
+      return right(DepositStatus.refunded);
+    case "med":
+      return right(DepositStatus.med);
     default:
       return right(DepositStatus.unknown);
   }

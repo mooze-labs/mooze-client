@@ -209,6 +209,9 @@ class AppDatabase extends _$AppDatabase {
   /// Delete all transactions
   Future<int> deleteAllTransactions() => delete(transactions).go();
 
+  /// Delete all PIX deposits
+  Future<int> deleteAllDeposits() => delete(deposits).go();
+
   /// Get transaction count
   Future<int> getTransactionCount() async {
     final countExp = transactions.id.count();
