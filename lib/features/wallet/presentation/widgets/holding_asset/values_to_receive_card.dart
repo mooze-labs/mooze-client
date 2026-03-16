@@ -93,7 +93,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Valores a Receber',
+                              'Pagamentos em análise',
                               style: TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 14,
@@ -170,63 +170,6 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                       ),
                     ),
                   ),
-
-                  // Previsão de saldo após recebimento
-                  if (totalValueAsync.hasValue && currentBalanceAsync.hasValue)
-                    currentBalanceAsync.when(
-                      data:
-                          (balanceResult) => balanceResult.fold(
-                            (error) => const SizedBox.shrink(),
-                            (currentBalance) => totalValueAsync.when(
-                              data: (pendingTotal) {
-                                final futureBalance =
-                                    currentBalance + pendingTotal;
-                                return Container(
-                                  margin: const EdgeInsets.only(top: 8),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.08,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.trending_up,
-                                        color: AppColors.primaryColor,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Saldo após recebimento',
-                                          style: TextStyle(
-                                            color: AppColors.textSecondary,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      Text(
-                                        '$currencyIcon ${futureBalance.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          color: AppColors.primaryColor,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                              loading: () => const SizedBox.shrink(),
-                              error: (_, _) => const SizedBox.shrink(),
-                            ),
-                          ),
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, _) => const SizedBox.shrink(),
-                    ),
                 ],
               ),
             );
