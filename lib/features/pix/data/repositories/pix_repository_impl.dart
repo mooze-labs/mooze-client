@@ -93,7 +93,10 @@ class PixRepositoryImpl implements PixRepository {
     final startTime = DateTime.now();
 
     Timer.periodic(pollingInterval, (timer) {
-      if (DateTime.now().difference(startTime) > maxDuration) {
+      final elapsed = DateTime.now().difference(startTime);
+
+      if (elapsed > maxDuration) {
+
         timer.cancel();
 
         final expiredEvent = PixStatusEvent(
@@ -108,7 +111,7 @@ class PixRepositoryImpl implements PixRepository {
       _api.getDeposits([depositId]).run().then((result) {
         result.fold(
           (error) {
-            // erro in polling
+            // error in polling
           },
           (deposits) {
             if (deposits.isEmpty) {
