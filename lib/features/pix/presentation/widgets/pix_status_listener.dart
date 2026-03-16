@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/data/models/pix_status_event.dart';
 import 'package:mooze_mobile/features/pix/di/providers/pix_repository_provider.dart';
+import 'package:mooze_mobile/features/pix/domain/repositories/pix_repository.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/pix_success_screen.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/pix_error_screen.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/routes.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 
 class PixStatusListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -21,26 +23,35 @@ class PixStatusListener extends ConsumerStatefulWidget {
 
 class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
   StreamSubscription<PixStatusEvent>? _subscription;
+  ProviderSubscription<PixRepository>? _repositorySubscription;
   final Set<String> _processedDeposits = {};
 
   @override
   void initState() {
     super.initState();
-    _setupListener();
+    _subscribeToRepository(ref.read(pixRepositoryProvider));
+    _repositorySubscription = ref.listenManual(pixRepositoryProvider, (
+      previous,
+      next,
+    ) {
+      _subscription?.cancel();
+      _subscribeToRepository(next);
+    });
   }
 
-  void _setupListener() {
-    final repository = ref.read(pixRepositoryProvider);
-
+  void _subscribeToRepository(PixRepository repository) {
     _subscription = repository.statusUpdates.listen((statusEvent) {
       if (_processedDeposits.contains(statusEvent.depositId)) {
         return;
       }
 
-      if (statusEvent.status == "under_review" ||
-          statusEvent.status == "depix_sent" ||
-          statusEvent.status == "paid" && mounted) {
+      if ((statusEvent.status == "under_review" ||
+              statusEvent.status == "depix_sent" ||
+              statusEvent.status == "paid") &&
+          mounted) {
         _processedDeposits.add(statusEvent.depositId);
+
+        ref.invalidate(userInfoProvider);
 
         Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) return;
@@ -93,6 +104,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
         });
       } else if (statusEvent.status == "failed" && mounted) {
         _processedDeposits.add(statusEvent.depositId);
+        ref.invalidate(userInfoProvider);
 
         Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) return;
@@ -143,6 +155,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _repositorySubscription?.close();
     super.dispose();
   }
 
