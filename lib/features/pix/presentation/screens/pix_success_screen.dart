@@ -319,10 +319,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                           PrimaryButton(
                             text: 'Voltar para Dashboard',
                             onPressed: () {
-                              Navigator.of(
-                                context,
-                              ).popUntil((route) => route.isFirst);
-                              widget.onClosed?.call();
+                              Navigator.pop(context);
                             },
                           ),
                         ],
