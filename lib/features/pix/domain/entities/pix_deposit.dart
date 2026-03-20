@@ -9,11 +9,53 @@ enum DepositStatus {
   depixSent,
   broadcasted,
   finished,
+  completed,
   failed,
   expired,
   refunded,
   med,
-  unknown,
+  processingRefund,
+  broadcastedRefund,
+  timeout,
+  unknown;
+
+  static DepositStatus fromString(String status) {
+    switch (status) {
+      case 'pending':
+        return DepositStatus.pending;
+      case 'under_review':
+        return DepositStatus.underReview;
+      case 'processing':
+        return DepositStatus.processing;
+      case 'funds_prepared':
+        return DepositStatus.fundsPrepared;
+      case 'depix_sent':
+      case 'paid':
+        return DepositStatus.depixSent;
+      case 'broadcasted':
+        return DepositStatus.broadcasted;
+      case 'finished':
+        return DepositStatus.finished;
+      case 'completed':
+        return DepositStatus.completed;
+      case 'failed':
+        return DepositStatus.failed;
+      case 'expired':
+        return DepositStatus.expired;
+      case 'refunded':
+        return DepositStatus.refunded;
+      case 'med':
+        return DepositStatus.med;
+      case 'processing_refund':
+        return DepositStatus.processingRefund;
+      case 'broadcasted_refund':
+        return DepositStatus.broadcastedRefund;
+      case 'timeout':
+        return DepositStatus.timeout;
+      default:
+        return DepositStatus.unknown;
+    }
+  }
 }
 
 extension DepositStatusExtension on DepositStatus {
@@ -28,11 +70,11 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.fundsPrepared:
         return 'Fundos Preparados';
       case DepositStatus.depixSent:
-        return 'Em análise';
+        return 'Enviado';
       case DepositStatus.broadcasted:
         return 'Transmitido';
       case DepositStatus.finished:
-        return 'Em Análise';
+        return 'Enviado';
       case DepositStatus.failed:
         return 'Em Análise';
       case DepositStatus.expired:
@@ -41,6 +83,14 @@ extension DepositStatusExtension on DepositStatus {
         return 'Reembolso efetuado';
       case DepositStatus.med:
         return 'Estornado';
+      case DepositStatus.processingRefund:
+        return 'Processando estorno';
+      case DepositStatus.broadcastedRefund:
+        return 'Processando estorno';
+      case DepositStatus.completed:
+        return 'Concluído';
+      case DepositStatus.timeout:
+        return 'Tempo esgotado';
       case DepositStatus.unknown:
         return 'Desconhecido';
     }
@@ -57,7 +107,7 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.fundsPrepared:
         return 'Fundos Preparados';
       case DepositStatus.depixSent:
-        return 'Em Análise';
+        return 'Enviados';
       case DepositStatus.broadcasted:
         return 'Transmitidos';
       case DepositStatus.finished:
@@ -70,8 +120,53 @@ extension DepositStatusExtension on DepositStatus {
         return 'Devolvidos';
       case DepositStatus.med:
         return 'Estornados';
+      case DepositStatus.processingRefund:
+        return 'Processando estorno';
+      case DepositStatus.broadcastedRefund:
+        return 'Processando estorno';
+      case DepositStatus.completed:
+        return 'Concluídos';
+      case DepositStatus.timeout:
+        return 'Tempo esgotado';
       case DepositStatus.unknown:
         return 'Desconhecidos';
+    }
+  }
+
+  String get toApiString {
+    switch (this) {
+      case DepositStatus.pending:
+        return 'pending';
+      case DepositStatus.underReview:
+        return 'under_review';
+      case DepositStatus.processing:
+        return 'processing';
+      case DepositStatus.fundsPrepared:
+        return 'funds_prepared';
+      case DepositStatus.depixSent:
+        return 'depix_sent';
+      case DepositStatus.broadcasted:
+        return 'broadcasted';
+      case DepositStatus.finished:
+        return 'finished';
+      case DepositStatus.completed:
+        return 'completed';
+      case DepositStatus.failed:
+        return 'failed';
+      case DepositStatus.expired:
+        return 'expired';
+      case DepositStatus.refunded:
+        return 'refunded';
+      case DepositStatus.med:
+        return 'med';
+      case DepositStatus.processingRefund:
+        return 'processing_refund';
+      case DepositStatus.broadcastedRefund:
+        return 'broadcasted_refund';
+      case DepositStatus.timeout:
+        return 'timeout';
+      case DepositStatus.unknown:
+        return 'unknown';
     }
   }
 
@@ -99,6 +194,14 @@ extension DepositStatusExtension on DepositStatus {
         return Colors.amber;
       case DepositStatus.med:
         return Colors.purple;
+      case DepositStatus.processingRefund:
+        return Colors.orange;
+      case DepositStatus.broadcastedRefund:
+        return Colors.orange;
+      case DepositStatus.completed:
+        return Colors.green;
+      case DepositStatus.timeout:
+        return Colors.red;
       case DepositStatus.unknown:
         return Colors.grey;
     }
