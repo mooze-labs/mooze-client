@@ -47,7 +47,8 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
       }
 
       if ((statusEvent.status == DepositStatus.underReview ||
-              statusEvent.status == DepositStatus.depixSent) &&
+              statusEvent.status == DepositStatus.depixSent ||
+              statusEvent.status == DepositStatus.paid) &&
           mounted) {
         _processedDeposits.add(statusEvent.depositId);
 

@@ -7,6 +7,7 @@ enum DepositStatus {
   processing,
   fundsPrepared,
   depixSent,
+  paid,
   broadcasted,
   finished,
   completed,
@@ -30,8 +31,9 @@ enum DepositStatus {
       case 'funds_prepared':
         return DepositStatus.fundsPrepared;
       case 'depix_sent':
-      case 'paid':
         return DepositStatus.depixSent;
+      case 'paid':
+        return DepositStatus.paid;
       case 'broadcasted':
         return DepositStatus.broadcasted;
       case 'finished':
@@ -62,27 +64,29 @@ extension DepositStatusExtension on DepositStatus {
   String get label {
     switch (this) {
       case DepositStatus.pending:
-        return 'Pendente';
+        return 'Pagamento Pendente';
       case DepositStatus.underReview:
         return 'Em Análise';
       case DepositStatus.processing:
         return 'Processando';
       case DepositStatus.fundsPrepared:
-        return 'Fundos Preparados';
-      case DepositStatus.depixSent: // "depix_sent" and "paid"
-        return 'Enviado';
+        return 'A caminho';
+      case DepositStatus.depixSent:
+        return 'Em análise';
+      case DepositStatus.paid:
+        return 'Em análise';
       case DepositStatus.broadcasted:
-        return 'Transmitido';
+        return 'A caminho';
       case DepositStatus.finished:
         return 'Enviado';
       case DepositStatus.failed:
-        return 'Em Análise';
+        return 'Processando';
       case DepositStatus.expired:
         return 'Expirado';
       case DepositStatus.refunded:
-        return 'Reembolso efetuado';
+        return 'Pagamento estornado';
       case DepositStatus.med:
-        return 'Estornado';
+        return 'Em análise';
       case DepositStatus.processingRefund:
         return 'Processando estorno';
       case DepositStatus.broadcastedRefund:
@@ -90,46 +94,48 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.completed:
         return 'Concluído';
       case DepositStatus.timeout:
-        return 'Tempo esgotado';
+        return 'Expirado';
       case DepositStatus.unknown:
-        return 'Desconhecido';
+        return 'Processando';
     }
   }
 
   String get labelPlural {
     switch (this) {
       case DepositStatus.pending:
-        return 'Pendentes';
+        return 'Pagamentos Pendentes';
       case DepositStatus.underReview:
         return 'Em Análise';
       case DepositStatus.processing:
         return 'Processando';
       case DepositStatus.fundsPrepared:
-        return 'Fundos Preparados';
+        return 'A caminho';
       case DepositStatus.depixSent:
-        return 'Enviados';
+        return 'Em análise';
+      case DepositStatus.paid:
+        return 'Em análise';
       case DepositStatus.broadcasted:
-        return 'Transmitidos';
+        return 'A caminho';
       case DepositStatus.finished:
-        return 'Finalizados';
+        return 'Enviados';
       case DepositStatus.failed:
-        return 'Falhados';
+        return 'Processando';
       case DepositStatus.expired:
         return 'Expirados';
       case DepositStatus.refunded:
-        return 'Devolvidos';
+        return 'Pagamentos estornados';
       case DepositStatus.med:
-        return 'Estornados';
+        return 'Em análise';
       case DepositStatus.processingRefund:
-        return 'Processando estorno';
+        return 'Processando estornos';
       case DepositStatus.broadcastedRefund:
-        return 'Processando estorno';
+        return 'Processando estornos';
       case DepositStatus.completed:
         return 'Concluídos';
       case DepositStatus.timeout:
-        return 'Tempo esgotado';
+        return 'Expirados';
       case DepositStatus.unknown:
-        return 'Desconhecidos';
+        return 'Processando';
     }
   }
 
@@ -145,6 +151,8 @@ extension DepositStatusExtension on DepositStatus {
         return 'funds_prepared';
       case DepositStatus.depixSent:
         return 'depix_sent';
+      case DepositStatus.paid:
+        return 'paid';
       case DepositStatus.broadcasted:
         return 'broadcasted';
       case DepositStatus.finished:
@@ -181,6 +189,8 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.fundsPrepared:
         return Colors.lightBlue;
       case DepositStatus.depixSent:
+        return Colors.green;
+      case DepositStatus.paid:
         return Colors.cyan;
       case DepositStatus.broadcasted:
         return Colors.teal;
