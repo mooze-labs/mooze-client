@@ -1,6 +1,8 @@
+import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
+
 class PixStatusEvent {
   String depositId;
-  String status;
+  DepositStatus status;
   String? blockchainTxid;
   int? assetAmount;
   String? errorMessage;
@@ -16,7 +18,7 @@ class PixStatusEvent {
   factory PixStatusEvent.fromJson(Map<String, dynamic> json) {
     return PixStatusEvent(
       depositId: json["transaction_id"] as String,
-      status: json["status"] as String,
+      status: DepositStatus.fromString(json["status"] as String),
       blockchainTxid: json["blockchain_txid"] as String?,
       assetAmount: json["asset_amount"] as int?,
       errorMessage: json["error_message"] as String?,
