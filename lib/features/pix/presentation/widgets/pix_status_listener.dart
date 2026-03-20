@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/data/models/pix_status_event.dart';
 import 'package:mooze_mobile/features/pix/di/providers/pix_repository_provider.dart';
+import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/domain/repositories/pix_repository.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/pix_success_screen.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/pix_error_screen.dart';
@@ -45,9 +46,8 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
         return;
       }
 
-      if ((statusEvent.status == "under_review" ||
-              statusEvent.status == "depix_sent" ||
-              statusEvent.status == "paid") &&
+      if ((statusEvent.status == DepositStatus.underReview ||
+              statusEvent.status == DepositStatus.depixSent) &&
           mounted) {
         _processedDeposits.add(statusEvent.depositId);
 
@@ -102,7 +102,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
             );
           });
         });
-      } else if (statusEvent.status == "failed" && mounted) {
+      } else if (statusEvent.status == DepositStatus.failed && mounted) {
         _processedDeposits.add(statusEvent.depositId);
         ref.invalidate(userInfoProvider);
 
