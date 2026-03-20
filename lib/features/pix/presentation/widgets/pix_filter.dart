@@ -593,35 +593,8 @@ DateTimeRange calculateDateRange({required int days}) {
 }
 
 String _getStatusLabel(String status) {
-  switch (status) {
-    case 'all':
-      return 'Todos';
-    case 'pending':
-      return DepositStatus.pending.label;
-    case 'under_review':
-      return DepositStatus.underReview.label;
-    case 'processing':
-      return DepositStatus.processing.label;
-    case 'funds_prepared':
-      return DepositStatus.fundsPrepared.label;
-    case 'depix_sent':
-    case "paid":
-      return DepositStatus.depixSent.label;
-    case 'broadcasted':
-      return DepositStatus.broadcasted.label;
-    case 'finished':
-      return DepositStatus.finished.label;
-    case 'failed':
-      return DepositStatus.failed.label;
-    case 'expired':
-      return DepositStatus.expired.label;
-    case 'refunded':
-      return DepositStatus.refunded.label;
-    case 'med':
-      return DepositStatus.med.label;
-    default:
-      return 'Todos';
-  }
+  if (status == 'all') return 'Todos';
+  return DepositStatus.fromString(status).label;
 }
 
 String _formatDate(DateTime date) {
