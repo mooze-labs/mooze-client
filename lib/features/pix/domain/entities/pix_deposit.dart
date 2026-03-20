@@ -69,7 +69,7 @@ extension DepositStatusExtension on DepositStatus {
         return 'Processando';
       case DepositStatus.fundsPrepared:
         return 'Fundos Preparados';
-      case DepositStatus.depixSent:
+      case DepositStatus.depixSent: // "depix_sent" and "paid"
         return 'Enviado';
       case DepositStatus.broadcasted:
         return 'Transmitido';
