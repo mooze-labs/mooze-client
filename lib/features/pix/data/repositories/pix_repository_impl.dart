@@ -72,6 +72,14 @@ class PixRepositoryImpl implements PixRepository {
 
             // For now, uses polling as a fallback
 
+            // Notify listeners that a new deposit was added
+            _statusUpdatesController.add(
+              PixStatusEvent(
+                depositId: response.depositId,
+                status: DepositStatus.pending,
+              ),
+            );
+
             _startPollingPixStatus(response.depositId);
 
             return PixDeposit(
@@ -100,7 +108,7 @@ class PixRepositoryImpl implements PixRepository {
 
         final expiredEvent = PixStatusEvent(
           depositId: depositId,
-          status: "expired",
+          status: DepositStatus.expired,
         );
         _statusUpdatesController.add(expiredEvent);
         _updateTransactionStatus(expiredEvent).run();
@@ -118,10 +126,11 @@ class PixRepositoryImpl implements PixRepository {
               return;
             }
             final deposit = deposits.first;
-            if (deposit.status != "pending") {
+            final parsedStatus = DepositStatus.fromString(deposit.status);
+            if (parsedStatus != DepositStatus.pending) {
               final statusEvent = PixStatusEvent(
                 depositId: depositId,
-                status: deposit.status,
+                status: parsedStatus,
                 assetAmount: deposit.assetAmount,
                 blockchainTxid: deposit.blockchainTxid,
               );
@@ -138,32 +147,28 @@ class PixRepositoryImpl implements PixRepository {
 
   @override
   TaskEither<String, Option<PixDeposit>> getDeposit(String depositId) {
-    final deposit = _database
+    return _database
         .getDeposit(depositId)
         .flatMap(
           (f) => f.fold(
             () => TaskEither.right(Option<PixDeposit>.none()),
-            (f) => TaskEither.fromEither(parseDepositStatus(f.status)).flatMap(
-              (s) => TaskEither.right(
-                Option.of(
-                  PixDeposit(
-                    depositId: f.depositId,
-                    pixKey: f.pixKey,
-                    amountInCents: f.amountInCents,
-                    asset: Asset.fromId(f.assetId),
-                    network: "liquid",
-                    status: s,
-                    createdAt: f.createdAt,
-                    blockchainTxid: f.blockchainTxid,
-                    assetAmount: f.assetAmount,
-                  ),
+            (f) => TaskEither.right(
+              Option.of(
+                PixDeposit(
+                  depositId: f.depositId,
+                  pixKey: f.pixKey,
+                  amountInCents: f.amountInCents,
+                  asset: Asset.fromId(f.assetId),
+                  network: "liquid",
+                  status: DepositStatus.fromString(f.status),
+                  createdAt: f.createdAt,
+                  blockchainTxid: f.blockchainTxid,
+                  assetAmount: f.assetAmount,
                 ),
               ),
             ),
           ),
         );
-
-    return deposit;
   }
 
   @override
@@ -201,28 +206,21 @@ class PixRepositoryImpl implements PixRepository {
           (deposits) => TaskEither.fromEither(
             deposits
                 .map(
-                  (deposit) => parseDepositStatus(deposit.status)
-                      .flatMap(
-                        (status) => Either.tryCatch(
-                          () => PixDeposit(
-                            depositId: deposit.depositId,
-                            pixKey: deposit.pixKey,
-                            amountInCents: deposit.amountInCents,
-                            asset: Asset.fromId(deposit.assetId),
-                            network: "liquid",
-                            status: status,
-                            createdAt: deposit.createdAt,
-                            blockchainTxid: deposit.blockchainTxid,
-                            assetAmount: deposit.assetAmount,
-                          ),
-                          (error, _) =>
-                              "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
-                        ),
-                      )
-                      .mapLeft(
-                        (error) =>
-                            "Invalid deposit status '${deposit.status}' for deposit ${deposit.depositId}: $error",
-                      ),
+                  (deposit) => Either.tryCatch(
+                    () => PixDeposit(
+                      depositId: deposit.depositId,
+                      pixKey: deposit.pixKey,
+                      amountInCents: deposit.amountInCents,
+                      asset: Asset.fromId(deposit.assetId),
+                      network: "liquid",
+                      status: DepositStatus.fromString(deposit.status),
+                      createdAt: deposit.createdAt,
+                      blockchainTxid: deposit.blockchainTxid,
+                      assetAmount: deposit.assetAmount,
+                    ),
+                    (error, _) =>
+                        "Invalid asset ID '${deposit.assetId}' for deposit ${deposit.depositId}: $error",
+                  ),
                 )
                 .fold<Either<String, List<PixDeposit>>>(
                   right(<PixDeposit>[]),
@@ -369,42 +367,12 @@ class PixRepositoryImpl implements PixRepository {
   TaskEither<String, Unit> _updateTransactionStatus(PixStatusEvent pixStatus) {
     return _database.updateDeposit(
       pixStatus.depositId,
-      pixStatus.status,
+      pixStatus.status.toApiString,
       assetAmount:
           pixStatus.assetAmount != null
               ? BigInt.from(pixStatus.assetAmount!)
               : null,
       blockchainTxid: pixStatus.blockchainTxid,
     );
-  }
-}
-
-Either<String, DepositStatus> parseDepositStatus(String status) {
-  switch (status) {
-    case "pending":
-      return right(DepositStatus.pending);
-    case "under_review":
-      return right(DepositStatus.underReview);
-    case "processing":
-      return right(DepositStatus.processing);
-    case "funds_prepared":
-      return right(DepositStatus.fundsPrepared);
-    case "depix_sent":
-    case "paid":
-      return right(DepositStatus.depixSent);
-    case "broadcasted":
-      return right(DepositStatus.broadcasted);
-    case "finished":
-      return right(DepositStatus.finished);
-    case "failed":
-      return right(DepositStatus.failed);
-    case "expired":
-      return right(DepositStatus.expired);
-    case "refunded":
-      return right(DepositStatus.refunded);
-    case "med":
-      return right(DepositStatus.med);
-    default:
-      return right(DepositStatus.unknown);
   }
 }
