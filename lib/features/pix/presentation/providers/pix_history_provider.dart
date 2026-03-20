@@ -50,50 +50,13 @@ PixDeposit _mapDepositToPixDeposit(Deposit deposit) {
     orElse: () => Asset.btc,
   );
 
-  DepositStatus status;
-  switch (deposit.status) {
-    case 'pending':
-      status = DepositStatus.pending;
-      break;
-    case 'under_review':
-      status = DepositStatus.underReview;
-      break;
-    case 'processing':
-      status = DepositStatus.processing;
-      break;
-    case 'funds_prepared':
-      status = DepositStatus.fundsPrepared;
-      break;
-    case 'depix_sent':
-    case "paid":
-      status = DepositStatus.depixSent;
-      break;
-    case 'broadcasted':
-      status = DepositStatus.broadcasted;
-      break;
-    case 'finished':
-      status = DepositStatus.finished;
-      break;
-    case 'failed':
-      status = DepositStatus.failed;
-      break;
-    case 'refunded':
-      status = DepositStatus.refunded;
-      break;
-    case 'med':
-      status = DepositStatus.med;
-      break;
-    default:
-      status = DepositStatus.unknown;
-  }
-
   return PixDeposit(
     depositId: deposit.depositId,
     pixKey: deposit.pixKey,
     asset: asset,
     amountInCents: deposit.amountInCents,
     network: 'PIX',
-    status: status,
+    status: DepositStatus.fromString(deposit.status),
     createdAt: deposit.createdAt,
     blockchainTxid: deposit.blockchainTxid,
     assetAmount: deposit.assetAmount,
