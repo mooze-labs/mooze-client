@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/di/providers/pix_repository_provider.dart';
 import 'package:mooze_mobile/features/pix/domain/entities.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
 import 'package:mooze_mobile/features/pix/presentation/widgets/providers/pix_history_paging_state.dart';
@@ -24,6 +25,13 @@ class PixHistoryNotifier extends AsyncNotifier<PixDepositsPageState> {
   FutureOr<PixDepositsPageState> build() async {
     final offset = ref.watch(pixHistoryPagingNotifier);
     final controller = ref.watch(pixHistoryControllerProvider);
+
+    // Auto-refresh on status change or new deposit
+    final repository = ref.read(pixRepositoryProvider);
+    final subscription = repository.statusUpdates.listen((_) {
+      Future.microtask(refresh);
+    });
+    ref.onDispose(subscription.cancel);
 
     final Either<String, List<PixDeposit>> deposits =
         await controller.getPixHistory(limit: pageSize, offset: offset).run();
