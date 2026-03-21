@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/external_navigation.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:package_info_plus/package_info_plus.dart';
