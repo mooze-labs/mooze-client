@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../widgets/currency_list.dart';
+import '../widgets/currency/currency_list.dart';
 
 class CurrencySelectorScreen extends ConsumerWidget {
   const CurrencySelectorScreen({super.key});

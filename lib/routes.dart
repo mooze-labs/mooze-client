@@ -33,7 +33,6 @@ final router = GoRouter(
     ),
     ...setupRoutes,
     ...walletRoutes,
-    ...phoneVerificationRoutes,
     ...transactionHistoryRoutes,
     ...pixRoutes,
     ...walletLevelsRoutes,

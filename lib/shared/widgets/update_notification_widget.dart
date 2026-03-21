@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/providers/update_provider.dart';
+import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:url_launcher/url_launcher_string.dart';

@@ -7,7 +7,7 @@ import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
-import 'package:mooze_mobile/providers/update_provider.dart';
+import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync.dart'
     hide isLoadingDataProvider;
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';

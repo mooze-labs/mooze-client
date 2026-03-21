@@ -100,9 +100,9 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
             context: context,
             barrierDismissible: false,
             builder:
-                (dialogContext) => WillPopScope(
-                  onWillPop: () async => false,
-                  child: const Center(child: CircularProgressIndicator()),
+                (dialogContext) => const PopScope(
+                  canPop: false,
+                  child: Center(child: CircularProgressIndicator()),
                 ),
           );
 

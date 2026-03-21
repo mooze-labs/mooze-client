@@ -1,21 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/logs_source.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_filter_bar.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_item.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_detail_modal.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_filter_bar.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_detail_modal.dart';
 import 'package:mooze_mobile/database/database.dart';
-
-/// Source of logs to display
-enum LogSource {
-  memory('Memória'),
-  database('Banco de Dados'),
-  all('Todos');
-
-  final String label;
-  const LogSource(this.label);
-}
 
 /// Screen for viewing and filtering application logs
 class LogsViewerScreen extends StatefulWidget {
@@ -282,23 +273,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     final filteredLogs = _getFilteredLogs();
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text(
-          'Application Logs',
-          style: TextStyle(color: colorScheme.onSurface, fontSize: 18),
-        ),
-        // actions: [
-        //   IconButton(
-        //     icon: Icon(
-        //       _autoScroll ? Icons.vertical_align_bottom : Icons.swap_vert,
-        //       color: _autoScroll ? AppColors.primaryColor : Colors.grey,
-        //     ),
-        //     tooltip: 'Auto-scroll',
-        //     onPressed: () => setState(() => _autoScroll = !_autoScroll),
-        //   ),
-        // ],
-      ),
+      appBar: AppBar(elevation: 0, title: const Text('Application Logs')),
       body: Column(
         children: [
           // Log source selector
@@ -318,7 +293,8 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                                 value: source,
                                 label: Text(
                                   source.label,
-                                  style: const TextStyle(fontSize: 12),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: Colors.white),
                                 ),
                               ),
                             )
@@ -367,7 +343,8 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                           const SizedBox(height: 16),
                           Text(
                             'Carregando logs...',
-                            style: TextStyle(color: colorScheme.outlineVariant),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.outlineVariant),
                           ),
                         ],
                       ),
@@ -376,7 +353,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                     ? Center(
                       child: Text(
                         'No logs found',
-                        style: TextStyle(color: colorScheme.outlineVariant),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.outlineVariant,
+                        ),
                       ),
                     )
                     : ListView.builder(

@@ -6,7 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 

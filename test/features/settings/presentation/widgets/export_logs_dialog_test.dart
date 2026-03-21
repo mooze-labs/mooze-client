@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/export_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
 
 void main() {
   Future<void> openDialog(WidgetTester tester) async {
