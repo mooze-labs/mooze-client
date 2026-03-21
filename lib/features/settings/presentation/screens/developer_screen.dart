@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,10 +13,10 @@ import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/developer_info_card.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/developer_action_grid.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/export_logs_dialog.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/clear_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_info_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_action_grid.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_dialog.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/logs_viewer_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
@@ -23,8 +24,6 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
-
-enum ExportMethod { email, share }
 
 /// Developer tools screen with debugging and diagnostic features
 class DeveloperScreen extends ConsumerStatefulWidget {
