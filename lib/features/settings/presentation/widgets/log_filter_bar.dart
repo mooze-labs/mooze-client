@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/consts.dart'
     as AppColors;
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
