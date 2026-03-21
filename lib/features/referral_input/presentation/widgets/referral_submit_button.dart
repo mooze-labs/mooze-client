@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 
 /// Submit section for the referral code input.
 ///
@@ -31,9 +32,10 @@ class ReferralSubmitButton extends StatelessWidget {
   }
 
   Widget _buildApiDownWarning(BuildContext context) {
+    final extraColors = Theme.of(context).extension<AppExtraColors>();
     final textTheme = Theme.of(context).textTheme;
-    final warningColor = Colors.orange;
-    final onWarningColor = Colors.orange.shade300;
+    final warningColor = extraColors?.warning ?? Colors.orange;
+    final onWarningColor = extraColors?.onWarning ?? Colors.orange.shade300;
 
     return Container(
       padding: const EdgeInsets.all(16),
