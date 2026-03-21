@@ -1,4 +1,4 @@
-import '../../domain/entities/wallet_level_limits_entity.dart';
+import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_limits_entity.dart';
 
 class WalletLevelLimitsModel {
   final int maxLimit;
@@ -20,6 +20,7 @@ class WalletLevelLimitsModel {
     return {'max_limit': maxLimit, 'min_limit': minLimit};
   }
 
+  /// Converts Data model to Domain entity, decoupling layers
   WalletLevelLimitsEntity toEntity() {
     return WalletLevelLimitsEntity(maxLimit: maxLimit, minLimit: minLimit);
   }

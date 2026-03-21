@@ -3,19 +3,21 @@ import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 class WalletLevelsHeader extends StatelessWidget {
-  final ColorScheme colorScheme;
   final bool isLoading;
 
   const WalletLevelsHeader({
     super.key,
-    required this.colorScheme,
     this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     if (isLoading) {
-      return _buildLoadingHeader();
+      return _buildLoadingHeader(colorScheme);
     }
 
     return Container(
@@ -59,8 +61,7 @@ class WalletLevelsHeader extends StatelessWidget {
               children: [
                 Text(
                   'Cresça com a Mooze',
-                  style: TextStyle(
-                    fontSize: 22,
+                  style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onPrimaryContainer,
                     height: 1.2,
@@ -69,8 +70,7 @@ class WalletLevelsHeader extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Quanto mais você movimenta, mais benefícios e limites desbloqueia.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: textTheme.titleSmall?.copyWith(
                     color: colorScheme.onPrimaryContainer.withValues(
                       alpha: 0.8,
                     ),
@@ -84,7 +84,7 @@ class WalletLevelsHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingHeader() {
+  Widget _buildLoadingHeader(ColorScheme colorScheme) {
     final baseColor = AppColors.baseColor;
     final highlightColor = AppColors.highlightColor;
 

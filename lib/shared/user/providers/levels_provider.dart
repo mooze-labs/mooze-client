@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'user_service_provider.dart';
-import 'package:mooze_mobile/features/wallet_level/data/datasources/wallet_levels_remote_data_source.dart';
-import 'package:mooze_mobile/features/wallet_level/data/models/wallet_levels_response_model.dart';
+import 'package:mooze_mobile/features/wallet_level/external/datasources/wallet_levels_remote_datasource.dart';
+import 'package:mooze_mobile/features/wallet_level/infra/models/wallet_levels_response_model.dart';
 import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 import 'package:dio/dio.dart';
 
@@ -77,7 +77,7 @@ final _walletLevelsRemoteProvider = FutureProvider<WalletLevelsResponseModel>((
   ref,
 ) async {
   final dio = Dio();
-  final dataSource = WalletLevelsRemoteDataSource(dio: dio);
+  final dataSource = WalletLevelsRemoteDataSource(dio);
   return dataSource.getWalletLevels();
 });
 
