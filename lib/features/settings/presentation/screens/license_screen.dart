@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LicenseSection {
@@ -57,17 +58,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        ),
-      ),
-    );
+    AppSnackBar.error(context, message);
   }
 
   Future<void> _launchUrl(String url) async {

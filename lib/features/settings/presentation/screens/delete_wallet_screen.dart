@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
@@ -91,9 +92,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   void _verifyAndDeleteWallet(BuildContext context) {
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
-        // Capture navigator and scaffold messenger before async operations
         final navigator = Navigator.of(context);
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
 
         try {
           // Show loading indicator using captured navigator
@@ -115,18 +114,13 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
           navigator.pop();
 
           if (success) {
-            // Navigate to first access screen
             if (context.mounted) {
               context.go('/setup/first-access');
             }
           } else {
-            // Show error message using captured scaffold messenger
-            scaffoldMessenger.showSnackBar(
-              const SnackBar(
-                content: Text('Erro ao deletar carteira. Tente novamente.'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            if (context.mounted) {
+              AppSnackBar.error(context, 'Erro ao deletar carteira. Tente novamente.');
+            }
           }
         } catch (e) {
           // Close loading dialog if it's open
@@ -136,13 +130,9 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
             // Dialog may already be closed
           }
 
-          // Show error message using captured scaffold messenger
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text('Erro inesperado: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (context.mounted) {
+            AppSnackBar.error(context, 'Erro inesperado: $e');
+          }
         }
       },
       forceAuth: true,

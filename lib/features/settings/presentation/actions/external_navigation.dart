@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/action.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ExternalNavigation extends SettingsActions {
@@ -29,15 +30,11 @@ class ExternalNavigation extends SettingsActions {
         );
 
         if (!launchedAlternative) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Não foi possível abrir o link")),
-          );
+          AppSnackBar.error(context, 'Não foi possível abrir o link');
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erro ao tentar abrir o link")),
-      );
+      AppSnackBar.error(context, 'Erro ao tentar abrir o link');
     }
   }
 }
