@@ -5,6 +5,7 @@ import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart'
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 import '../controllers/referral_input_controller.dart';
 import '../widgets/active_referral_card.dart';
@@ -73,30 +74,11 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
   }
 
   void _showSuccessMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Código aplicado com sucesso!'),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    AppSnackBar.success(context, 'Código aplicado com sucesso!');
   }
 
   void _showErrorSnackBar(BuildContext context, String error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppSnackBar.error(context, error);
   }
 
   @override
