@@ -6,16 +6,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
-import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer_info_card.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer_action_grid.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/export_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/clear_logs_dialog.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/logs_viewer_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
@@ -451,85 +451,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<ExportMethod?> _showExportLogsDialog() async {
-    return await showDialog<ExportMethod>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        final dialogColorScheme = Theme.of(context).colorScheme;
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: dialogColorScheme.surfaceContainerHigh,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: dialogColorScheme.primary.withValues(alpha: 0.2),
-                  ),
-                  child: Icon(
-                    Icons.file_download,
-                    size: 40,
-                    color: dialogColorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Exportar Logs',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: dialogColorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Os logs do aplicativo ajudam nossa equipe a resolver problemas. Como você gostaria de compartilhar?',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: dialogColorScheme.outlineVariant,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  text: 'Enviar por E-mail',
-                  onPressed: () {
-                    Navigator.of(context).pop(ExportMethod.email);
-                  },
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(ExportMethod.share);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    side: BorderSide(color: dialogColorScheme.outline),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Salvar/Compartilhar',
-                    style: TextStyle(
-                      color: dialogColorScheme.onSecondary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    return ExportLogsDialog.show(context);
   }
 
   // Future<void> _sendLogsViaEmail(String zipPath) async {
@@ -713,146 +635,10 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<String?> _showClearLogsDialog() async {
-    return await showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        final dialogColorScheme = Theme.of(context).colorScheme;
-        final extraColors = Theme.of(context).extension<AppExtraColors>();
-        final warningColor = extraColors?.warning ?? Colors.orange;
-
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: dialogColorScheme.surfaceContainerHigh,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: warningColor.withValues(alpha: 0.2),
-                  ),
-                  child: Icon(
-                    Icons.delete_sweep,
-                    size: 40,
-                    color: warningColor,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Limpar Logs',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: dialogColorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Escolha o que deseja limpar:',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: dialogColorScheme.outlineVariant),
-                ),
-                const SizedBox(height: 24),
-                _buildClearOption(
-                  context,
-                  'Memória',
-                  'Limpar apenas logs em memória ($_totalLogs logs)',
-                  Icons.memory,
-                  'memory',
-                ),
-                const SizedBox(height: 12),
-                _buildClearOption(
-                  context,
-                  'Banco de Dados',
-                  'Limpar apenas logs do banco ($_dbLogs logs)',
-                  Icons.storage,
-                  'database',
-                ),
-                const SizedBox(height: 12),
-                _buildClearOption(
-                  context,
-                  'Todos',
-                  'Limpar memória, arquivos e banco',
-                  Icons.delete_forever,
-                  'all',
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancelar',
-                    style: TextStyle(color: dialogColorScheme.outlineVariant),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildClearOption(
-    BuildContext context,
-    String title,
-    String description,
-    IconData icon,
-    String value,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: () => Navigator.pop(context, value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceBright,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colorScheme.outline),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: colorScheme.primary, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(color: colorScheme.outlineVariant, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: colorScheme.outlineVariant),
-          ],
-        ),
-      ),
+    return ClearLogsDialog.show(
+      context,
+      totalLogs: _totalLogs,
+      dbLogs: _dbLogs,
     );
   }
 
