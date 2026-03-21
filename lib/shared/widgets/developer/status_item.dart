@@ -39,7 +39,7 @@ class StatusItem extends StatelessWidget {
           child: Text(
             label,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[400],
+              color: theme.colorScheme.outlineVariant,
               fontSize: 14,
             ),
           ),
@@ -50,7 +50,7 @@ class StatusItem extends StatelessWidget {
           child: Text(
             value,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
+              color: theme.colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -61,7 +61,7 @@ class StatusItem extends StatelessWidget {
         ),
         if (copiable) ...[
           const SizedBox(width: 8),
-          Icon(Icons.copy, size: 16, color: Colors.grey[500]),
+          Icon(Icons.copy, size: 16, color: theme.colorScheme.outlineVariant),
         ],
       ],
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
 
 class TransactionsBottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -20,6 +19,8 @@ class TransactionsBottomNavBar extends StatefulWidget {
 class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       children: [
         Positioned(
@@ -29,7 +30,7 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
           child: Container(
             height: 95,
             decoration: BoxDecoration(
-              color: AppColors.backgroundCard,
+              color: colorScheme.surfaceContainerLowest,
               borderRadius: BorderRadius.only(
                 topRight: Radius.circular(20),
                 topLeft: Radius.circular(20),
@@ -40,11 +41,13 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildNavItem(
+                  colorScheme: colorScheme,
                   icon: 'assets/icons/menu/navigation/asset.svg',
                   index: 0,
                   label: 'Transações',
                 ),
                 _buildNavItem(
+                  colorScheme: colorScheme,
                   icon: 'assets/icons/menu/navigation/pix.svg',
                   index: 1,
                   label: 'Pix',
@@ -58,6 +61,7 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
   }
 
   Widget _buildNavItem({
+    required ColorScheme colorScheme,
     required String icon,
     required int index,
     required String label,
@@ -78,8 +82,8 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
               height: 25,
               colorFilter: ColorFilter.mode(
                 isSelected
-                    ? AppColors.primaryColor
-                    : AppColors.primaryIconColor,
+                    ? colorScheme.primary
+                    : colorScheme.outlineVariant,
                 BlendMode.srcIn,
               ),
             ),
@@ -89,8 +93,8 @@ class _TransactionsBottomNavBarState extends State<TransactionsBottomNavBar> {
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color:
                     isSelected
-                        ? AppColors.primaryColor
-                        : AppColors.primaryIconColor,
+                        ? colorScheme.primary
+                        : colorScheme.outlineVariant,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,

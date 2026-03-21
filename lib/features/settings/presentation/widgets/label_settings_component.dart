@@ -4,7 +4,6 @@ import 'package:mooze_mobile/features/settings/presentation/actions/action.dart'
 import 'package:mooze_mobile/features/settings/presentation/actions/external_navigation.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
 
 class LabelSettings extends StatefulWidget {
   final String title;
@@ -27,6 +26,8 @@ class LabelSettings extends StatefulWidget {
 class _LabelSettingsState extends State<LabelSettings> {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
         gradient:
@@ -34,10 +35,10 @@ class _LabelSettingsState extends State<LabelSettings> {
                 ? LinearGradient(
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
-                  colors: [AppColors.primaryColor, AppColors.backgroundCard],
+                  colors: [colorScheme.primary, colorScheme.surfaceContainerLowest],
                 )
                 : null,
-        color: widget.highlight ? null : AppColors.surfaceLow,
+        color: widget.highlight ? null : colorScheme.surfaceContainerLow,
       ),
       child: Material(
         color: Colors.transparent,
@@ -72,8 +73,8 @@ class _LabelSettingsState extends State<LabelSettings> {
                       size: 16,
                       color:
                           widget.highlight
-                              ? AppColors.backgroundColor
-                              : AppColors.primaryColor,
+                              ? colorScheme.surfaceDim
+                              : colorScheme.primary,
                     ),
                   ),
                 if (widget.action is ExternalNavigation)
@@ -92,10 +93,10 @@ class _LabelSettingsState extends State<LabelSettings> {
                       child: Switch.adaptive(
                         value: true,
                         onChanged: (value) {},
-                        activeColor: Colors.white,
-                        activeTrackColor: Colors.green,
-                        inactiveThumbColor: const Color(0xFFD9D9D9),
-                        inactiveTrackColor: const Color(0xFF545454),
+                        activeThumbColor: colorScheme.onPrimary,
+                        activeTrackColor: colorScheme.tertiary,
+                        inactiveThumbColor: colorScheme.inverseSurface,
+                        inactiveTrackColor: colorScheme.secondary,
                       ),
                     ),
                   ),

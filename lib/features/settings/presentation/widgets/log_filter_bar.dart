@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
-    as AppColors;
 import 'package:mooze_mobile/services/app_logger_service.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 
 /// Filter bar for log viewer with search and level filters
 class LogFilterBar extends StatelessWidget {
@@ -24,6 +23,8 @@ class LogFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -31,20 +32,20 @@ class LogFilterBar extends StatelessWidget {
           // Search field
           TextField(
             controller: searchController,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: colorScheme.onSurface),
             decoration: InputDecoration(
               hintText: 'Search logs...',
-              hintStyle: TextStyle(color: Colors.grey[600]),
-              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              hintStyle: TextStyle(color: colorScheme.outlineVariant),
+              prefixIcon: Icon(Icons.search, color: colorScheme.outlineVariant),
               suffixIcon:
                   searchQuery.isNotEmpty
                       ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        icon: Icon(Icons.clear, color: colorScheme.outlineVariant),
                         onPressed: onClearSearch,
                       )
                       : null,
               filled: true,
-              fillColor: const Color(0xFF1A1B1F),
+              fillColor: colorScheme.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -58,12 +59,12 @@ class LogFilterBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildLevelChip(null, 'All'),
+                _buildLevelChip(context, null, 'All'),
                 const SizedBox(width: 8),
                 ...LogLevel.values.map((level) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: _buildLevelChip(level, level.displayName),
+                    child: _buildLevelChip(context, level, level.displayName),
                   );
                 }),
               ],
@@ -74,38 +75,42 @@ class LogFilterBar extends StatelessWidget {
     );
   }
 
-  Widget _buildLevelChip(LogLevel? level, String label) {
+  Widget _buildLevelChip(BuildContext context, LogLevel? level, String label) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isSelected = selectedLevel == level;
     final color =
-        level != null ? _getColorForLevel(level) : AppColors.primaryColor;
+        level != null ? _getColorForLevel(context, level) : colorScheme.primary;
 
     return FilterChip(
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : Colors.grey[400],
+          color: isSelected ? colorScheme.onSurface : colorScheme.outlineVariant,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       selected: isSelected,
       onSelected: (selected) => onLevelSelected(selected ? level : null),
-      backgroundColor: const Color(0xFF1A1B1F),
+      backgroundColor: colorScheme.surfaceContainerHigh,
       selectedColor: color.withValues(alpha: 0.3),
-      checkmarkColor: Colors.white,
-      side: BorderSide(color: isSelected ? color : Colors.grey[700]!),
+      checkmarkColor: colorScheme.onSurface,
+      side: BorderSide(color: isSelected ? color : colorScheme.outline),
     );
   }
 
-  Color _getColorForLevel(LogLevel level) {
+  Color _getColorForLevel(BuildContext context, LogLevel level) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final extraColors = Theme.of(context).extension<AppExtraColors>();
+
     switch (level) {
       case LogLevel.debug:
-        return Colors.grey;
+        return colorScheme.outlineVariant;
       case LogLevel.info:
         return Colors.blue;
       case LogLevel.warning:
-        return Colors.orange;
+        return extraColors?.warning ?? Colors.orange;
       case LogLevel.error:
-        return Colors.red;
+        return colorScheme.error;
       case LogLevel.critical:
         return Colors.purple;
     }

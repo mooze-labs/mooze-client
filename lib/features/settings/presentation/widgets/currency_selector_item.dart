@@ -13,13 +13,15 @@ class CurrencySelectorItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Row(
         children: [
           _buildCurrencyIcon(),
           const SizedBox(width: 12),
-          _buildCurrencyInfo(),
+          _buildCurrencyInfo(colorScheme),
           const SizedBox(width: 12),
           _buildSelectionIndicator(),
         ],
@@ -31,15 +33,15 @@ class CurrencySelectorItem extends StatelessWidget {
     return CircleAvatar(child: Text(item.icon));
   }
 
-  Widget _buildCurrencyInfo() {
+  Widget _buildCurrencyInfo(ColorScheme colorScheme) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             item.code,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -47,7 +49,7 @@ class CurrencySelectorItem extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             item.name,
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            style: TextStyle(color: colorScheme.outlineVariant, fontSize: 14),
           ),
         ],
       ),

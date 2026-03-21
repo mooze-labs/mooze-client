@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
@@ -377,7 +377,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
-                      color: AppColors.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
                     const Text('Refundables Found'),
@@ -455,11 +455,12 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
+        final dialogColorScheme = Theme.of(context).colorScheme;
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: const Color(0xFF1C1C1C),
+          backgroundColor: dialogColorScheme.surfaceContainerHigh,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -470,12 +471,12 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.primaryColor.withValues(alpha: 0.2),
+                    color: dialogColorScheme.primary.withValues(alpha: 0.2),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.file_download,
                     size: 40,
-                    color: AppColors.primaryColor,
+                    color: dialogColorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -483,7 +484,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   'Exportar Logs',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: dialogColorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -491,7 +492,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   'Os logs do aplicativo ajudam nossa equipe a resolver problemas. Como você gostaria de compartilhar?',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
+                    color: dialogColorScheme.outlineVariant,
                     height: 1.5,
                   ),
                 ),
@@ -509,7 +510,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
-                    side: BorderSide(color: Colors.grey[700]!),
+                    side: BorderSide(color: dialogColorScheme.outline),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -517,7 +518,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   child: Text(
                     'Salvar/Compartilhar',
                     style: TextStyle(
-                      color: Colors.grey[300],
+                      color: dialogColorScheme.onSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -716,11 +717,15 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
+        final dialogColorScheme = Theme.of(context).colorScheme;
+        final extraColors = Theme.of(context).extension<AppExtraColors>();
+        final warningColor = extraColors?.warning ?? Colors.orange;
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: const Color(0xFF1C1C1C),
+          backgroundColor: dialogColorScheme.surfaceContainerHigh,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -731,28 +736,28 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.orange.withValues(alpha: 0.2),
+                    color: warningColor.withValues(alpha: 0.2),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.delete_sweep,
                     size: 40,
-                    color: Colors.orange,
+                    color: warningColor,
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Limpar Logs',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: dialogColorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Escolha o que deseja limpar:',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                  style: TextStyle(fontSize: 14, color: dialogColorScheme.outlineVariant),
                 ),
                 const SizedBox(height: 24),
                 _buildClearOption(
@@ -781,9 +786,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                 const SizedBox(height: 20),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
+                  child: Text(
                     'Cancelar',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: dialogColorScheme.outlineVariant),
                   ),
                 ),
               ],
@@ -801,25 +806,27 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
     IconData icon,
     String value,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return InkWell(
       onTap: () => Navigator.pop(context, value),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey[900],
+          color: colorScheme.surfaceBright,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[800]!),
+          border: Border.all(color: colorScheme.outline),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: 0.2),
+                color: colorScheme.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: AppColors.primaryColor, size: 24),
+              child: Icon(icon, color: colorScheme.primary, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -828,8 +835,8 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -837,12 +844,12 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    style: TextStyle(color: colorScheme.outlineVariant, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            Icon(Icons.chevron_right, color: colorScheme.outlineVariant),
           ],
         ),
       ),
@@ -885,13 +892,15 @@ Generated: ${DateTime.now().toIso8601String()}
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         title: const Text('Copiar infos de sistema'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.copy, color: Colors.white),
+            icon: Icon(Icons.copy, color: colorScheme.onSurface),
             tooltip: 'Copy debug info',
             onPressed: _copyDebugInfo,
           ),
@@ -899,10 +908,10 @@ Generated: ${DateTime.now().toIso8601String()}
       ),
       body:
           _isLoading
-              ? const Center(
+              ? Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryColor,
+                    colorScheme.primary,
                   ),
                 ),
               )

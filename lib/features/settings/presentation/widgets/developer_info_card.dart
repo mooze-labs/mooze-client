@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/widgets/developer/status_item.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
 
 /// Information card displaying system and wallet data
 class DeveloperInfoCard extends StatelessWidget {
@@ -29,9 +28,11 @@ class DeveloperInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.swapCardBackground,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.all(20),
@@ -45,14 +46,14 @@ class DeveloperInfoCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: AppColors.primaryColor,
+                        color: colorScheme.primary,
                         size: 24,
                       ),
                       const SizedBox(width: 12),
-                      const Text(
+                      Text(
                         'System Information',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: colorScheme.onSurface,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -64,7 +65,7 @@ class DeveloperInfoCard extends StatelessWidget {
               ].expand((widget) sync* {
                 yield widget;
                 if (widget != const SizedBox(height: 20)) {
-                  yield Divider(height: 1, color: Colors.grey[800]);
+                  yield Divider(height: 1, color: colorScheme.outline);
                 }
               }).toList()
               ..removeLast(),

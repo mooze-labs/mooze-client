@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/widgets/developer/grid_action_button.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 
 /// Grid of action buttons for developer tools
 class DeveloperActionGrid extends StatelessWidget {
@@ -28,17 +28,21 @@ class DeveloperActionGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final extraColors = Theme.of(context).extension<AppExtraColors>();
+    final warningColor = extraColors?.warning ?? Colors.orange;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.build, color: AppColors.primaryColor, size: 20),
+            Icon(Icons.build, color: colorScheme.primary, size: 20),
             const SizedBox(width: 8),
-            const Text(
+            Text(
               'Tools',
               style: TextStyle(
-                color: Colors.white,
+                color: colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -67,7 +71,7 @@ class DeveloperActionGrid extends StatelessWidget {
               tooltip: 'Complete blockchain sync',
               onPressed: onFullSync,
               enabled: !isLoading,
-              iconColor: Colors.orange[400],
+              iconColor: warningColor,
             ),
             GridActionButton(
               icon: Icons.radar,
@@ -82,7 +86,7 @@ class DeveloperActionGrid extends StatelessWidget {
               tooltip: 'Complete blockchain sync',
               onPressed: onRefund,
               enabled: !isLoading,
-              iconColor: Colors.orange[700],
+              iconColor: warningColor,
             ),
             GridActionButton(
               icon: Icons.article,
@@ -104,7 +108,7 @@ class DeveloperActionGrid extends StatelessWidget {
               tooltip: 'Clear all logs',
               onPressed: onClearLogs,
               enabled: !isLoading,
-              iconColor: Colors.red[400],
+              iconColor: colorScheme.error,
             ),
           ],
         ),
