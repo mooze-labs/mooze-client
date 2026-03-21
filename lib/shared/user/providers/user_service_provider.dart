@@ -23,7 +23,6 @@ final userLevelStorageServiceProvider = Provider<UserLevelStorageService>((
 
 final userServiceProvider = Provider<UserService>((ref) {
   // return MockUserService();
-
   final authHttpClient = ref.watch(authenticatedClientProvider);
   final levelStorageService = ref.watch(userLevelStorageServiceProvider);
   return UserServiceImpl(authHttpClient, levelStorageService);
