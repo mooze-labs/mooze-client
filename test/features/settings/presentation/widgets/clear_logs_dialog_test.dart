@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/clear_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_dialog.dart';
 
 void main() {
   void setLargeScreen(WidgetTester tester) {

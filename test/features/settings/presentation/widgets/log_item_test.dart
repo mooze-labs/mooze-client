@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_item.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
 void main() {
