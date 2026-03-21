@@ -1,3 +1,4 @@
+export 'widgets/app_snackbar.dart';
 export 'widgets/buttons.dart';
 export 'widgets/currency_input_formatter.dart';
 export 'widgets/custom_app_bar.dart';
