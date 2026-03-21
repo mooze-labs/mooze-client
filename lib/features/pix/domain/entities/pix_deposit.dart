@@ -66,37 +66,37 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.pending:
         return 'Pagamento Pendente';
       case DepositStatus.underReview:
-        return 'Em Análise';
+        return 'Revisão bancária';
       case DepositStatus.processing:
-        return 'Processando';
+        return 'Processando 1/2';
       case DepositStatus.fundsPrepared:
-        return 'A caminho';
+        return 'Processando 1/2';
       case DepositStatus.depixSent:
         return 'Em análise';
       case DepositStatus.paid:
         return 'Em análise';
       case DepositStatus.broadcasted:
-        return 'A caminho';
+        return 'Processando 2/2';
       case DepositStatus.finished:
         return 'Enviado';
       case DepositStatus.failed:
-        return 'Processando';
+        return 'Processando 1/2';
       case DepositStatus.expired:
         return 'Expirado';
       case DepositStatus.refunded:
         return 'Pagamento estornado';
       case DepositStatus.med:
-        return 'Em análise';
+        return 'Contestado - MED';
       case DepositStatus.processingRefund:
-        return 'Processando estorno';
+        return 'Estornando 1/2';
       case DepositStatus.broadcastedRefund:
-        return 'Processando estorno';
+        return 'Estornando 2/2';
       case DepositStatus.completed:
         return 'Concluído';
       case DepositStatus.timeout:
         return 'Expirado';
       case DepositStatus.unknown:
-        return 'Processando';
+        return 'Revisão manual';
     }
   }
 
