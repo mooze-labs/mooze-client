@@ -33,7 +33,7 @@ import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider
 import 'package:mooze_mobile/shared/infra/sync/sync_config.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
-import 'package:mooze_mobile/features/pix/data/datasources/pix_deposit_db.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/data/datasources/pix_deposit_db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
