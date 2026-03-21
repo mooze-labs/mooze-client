@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
     as AppColors;
 import 'package:mooze_mobile/services/app_logger_service.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 /// Modal bottom sheet displaying detailed log information
 class LogDetailModal extends StatelessWidget {
@@ -183,12 +184,7 @@ class LogDetailModal extends StatelessWidget {
         onPressed: () {
           Clipboard.setData(ClipboardData(text: log.toFormattedString()));
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Log copied!'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          AppSnackBar.success(context, 'Log copied!');
         },
         icon: const Icon(Icons.copy),
         label: const Text('Copy Log'),
