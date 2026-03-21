@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 
 /// Individual log item widget for log list
 class LogItem extends StatelessWidget {
@@ -10,7 +11,8 @@ class LogItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColorForLevel(log.level);
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = _getColorForLevel(context, log.level);
     final timeStr =
         '${log.timestamp.hour.toString().padLeft(2, '0')}:'
         '${log.timestamp.minute.toString().padLeft(2, '0')}:'
@@ -22,7 +24,7 @@ class LogItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Colors.grey[900]!, width: 0.5),
+            bottom: BorderSide(color: colorScheme.surfaceBright, width: 0.5),
           ),
         ),
         child: Row(
@@ -46,7 +48,7 @@ class LogItem extends StatelessWidget {
                       Text(
                         timeStr,
                         style: TextStyle(
-                          color: Colors.grey[500],
+                          color: colorScheme.outlineVariant,
                           fontSize: 11,
                           fontFamily: 'monospace',
                         ),
@@ -58,7 +60,7 @@ class LogItem extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.2),
+                          color: color.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -75,7 +77,7 @@ class LogItem extends StatelessWidget {
                         child: Text(
                           log.tag,
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: colorScheme.outlineVariant,
                             fontSize: 11,
                             fontStyle: FontStyle.italic,
                           ),
@@ -87,7 +89,7 @@ class LogItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     log.message,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: TextStyle(color: colorScheme.onSurface, fontSize: 13),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -100,16 +102,19 @@ class LogItem extends StatelessWidget {
     );
   }
 
-  Color _getColorForLevel(LogLevel level) {
+  Color _getColorForLevel(BuildContext context, LogLevel level) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final extraColors = Theme.of(context).extension<AppExtraColors>();
+
     switch (level) {
       case LogLevel.debug:
-        return Colors.grey;
+        return colorScheme.outlineVariant;
       case LogLevel.info:
         return Colors.blue;
       case LogLevel.warning:
-        return Colors.orange;
+        return extraColors?.warning ?? Colors.orange;
       case LogLevel.error:
-        return Colors.red;
+        return colorScheme.error;
       case LogLevel.critical:
         return Colors.purple;
     }

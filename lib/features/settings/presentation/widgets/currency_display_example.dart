@@ -39,9 +39,9 @@ class CurrencyDisplayExample extends ConsumerWidget {
                     Text('${currencyItem.icon} ${currencyItem.code}'),
                     const SizedBox(width: 8),
                     if (controller.isSelected(currencyItem))
-                      const Icon(
+                      Icon(
                         Icons.check_circle,
-                        color: Colors.green,
+                        color: Theme.of(context).colorScheme.tertiary,
                         size: 16,
                       ),
                   ],

@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
-    as AppColors;
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/log_filter_bar.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/log_item.dart';
@@ -280,14 +278,15 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final filteredLogs = _getFilteredLogs();
 
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Application Logs',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(color: colorScheme.onSurface, fontSize: 18),
         ),
         // actions: [
         //   IconButton(
@@ -306,7 +305,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[800]!)),
+              border: Border(bottom: BorderSide(color: colorScheme.outline)),
             ),
             child: Row(
               children: [
@@ -336,9 +335,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                         states,
                       ) {
                         if (states.contains(WidgetState.selected)) {
-                          return AppColors.primaryColor;
+                          return colorScheme.primary;
                         }
-                        return Colors.grey[800];
+                        return colorScheme.outline;
                       }),
                     ),
                   ),
@@ -360,24 +359,24 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
           Expanded(
             child:
                 _isInitialLoading
-                    ? const Center(
+                    ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
                           Text(
                             'Carregando logs...',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: colorScheme.outlineVariant),
                           ),
                         ],
                       ),
                     )
                     : filteredLogs.isEmpty
-                    ? const Center(
+                    ? Center(
                       child: Text(
                         'No logs found',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: colorScheme.outlineVariant),
                       ),
                     )
                     : ListView.builder(

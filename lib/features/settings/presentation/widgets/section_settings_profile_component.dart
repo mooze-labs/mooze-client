@@ -58,10 +58,10 @@ class SectionSettingsProfile extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               email,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF7C7C7C),
+                                color: colorScheme.outlineVariant,
                               ),
                             ),
                           ],

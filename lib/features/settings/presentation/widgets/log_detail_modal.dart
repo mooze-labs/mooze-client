@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
-    as AppColors;
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 
 /// Modal bottom sheet displaying detailed log information
 class LogDetailModal extends StatelessWidget {
@@ -12,9 +11,11 @@ class LogDetailModal extends StatelessWidget {
   const LogDetailModal({super.key, required this.log});
 
   static void show(BuildContext context, LogEntry log) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2B2D33),
+      backgroundColor: colorScheme.surfaceContainerHighest,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -41,7 +42,7 @@ class LogDetailModal extends StatelessWidget {
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  child: _buildContent(),
+                  child: _buildContent(context),
                 ),
               ),
               const SizedBox(height: 16),
@@ -54,39 +55,43 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Log Details',
           style: TextStyle(
-            color: Colors.white,
+            color: colorScheme.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ],
     );
   }
 
-  Widget _buildContent() {
-    final color = _getColorForLevel(log.level);
+  Widget _buildContent(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final extraColors = Theme.of(context).extension<AppExtraColors>();
+    final color = _getColorForLevel(context, log.level);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailRow('Level', log.level.displayName, color: color),
-        _buildDetailRow('Tag', log.tag),
-        _buildDetailRow('Timestamp', log.timestamp.toIso8601String()),
-        const Divider(color: Colors.grey),
-        const Text(
+        _buildDetailRow(context, 'Level', log.level.displayName, color: color),
+        _buildDetailRow(context, 'Tag', log.tag),
+        _buildDetailRow(context, 'Timestamp', log.timestamp.toIso8601String()),
+        Divider(color: colorScheme.outlineVariant),
+        Text(
           'Message:',
           style: TextStyle(
-            color: Colors.grey,
+            color: colorScheme.outlineVariant,
             fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
@@ -94,15 +99,15 @@ class LogDetailModal extends StatelessWidget {
         const SizedBox(height: 8),
         SelectableText(
           log.message,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
         ),
         if (log.error != null) ...[
           const SizedBox(height: 16),
-          const Divider(color: Colors.grey),
-          const Text(
+          Divider(color: colorScheme.outlineVariant),
+          Text(
             'Error:',
             style: TextStyle(
-              color: Colors.red,
+              color: colorScheme.error,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -110,8 +115,8 @@ class LogDetailModal extends StatelessWidget {
           const SizedBox(height: 8),
           SelectableText(
             log.error.toString(),
-            style: const TextStyle(
-              color: Colors.red,
+            style: TextStyle(
+              color: colorScheme.error,
               fontSize: 12,
               fontFamily: 'monospace',
             ),
@@ -119,11 +124,11 @@ class LogDetailModal extends StatelessWidget {
         ],
         if (log.stackTrace != null) ...[
           const SizedBox(height: 16),
-          const Divider(color: Colors.grey),
-          const Text(
+          Divider(color: colorScheme.outlineVariant),
+          Text(
             'Stack Trace:',
             style: TextStyle(
-              color: Colors.orange,
+              color: extraColors?.warning ?? Colors.orange,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -132,13 +137,13 @@ class LogDetailModal extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1B1F),
+              color: colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(8),
             ),
             child: SelectableText(
               log.stackTrace.toString(),
               style: TextStyle(
-                color: Colors.grey[400],
+                color: colorScheme.outlineVariant,
                 fontSize: 11,
                 fontFamily: 'monospace',
               ),
@@ -149,7 +154,14 @@ class LogDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {Color? color}) {
+  Widget _buildDetailRow(
+    BuildContext context,
+    String label,
+    String value, {
+    Color? color,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -159,8 +171,8 @@ class LogDetailModal extends StatelessWidget {
             width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(
-                color: Colors.grey,
+              style: TextStyle(
+                color: colorScheme.outlineVariant,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -169,7 +181,10 @@ class LogDetailModal extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: color ?? Colors.white, fontSize: 14),
+              style: TextStyle(
+                color: color ?? colorScheme.onSurface,
+                fontSize: 14,
+              ),
             ),
           ),
         ],
@@ -178,6 +193,8 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildCopyButton(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -189,23 +206,26 @@ class LogDetailModal extends StatelessWidget {
         icon: const Icon(Icons.copy),
         label: const Text('Copy Log'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor: colorScheme.primary,
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
   }
 
-  Color _getColorForLevel(LogLevel level) {
+  Color _getColorForLevel(BuildContext context, LogLevel level) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final extraColors = Theme.of(context).extension<AppExtraColors>();
+
     switch (level) {
       case LogLevel.debug:
-        return Colors.grey;
+        return colorScheme.outlineVariant;
       case LogLevel.info:
         return Colors.blue;
       case LogLevel.warning:
-        return Colors.orange;
+        return extraColors?.warning ?? Colors.orange;
       case LogLevel.error:
-        return Colors.red;
+        return colorScheme.error;
       case LogLevel.critical:
         return Colors.purple;
     }
