@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/referral_input/providers/screens/referral_input_screen.dart';
+import 'package:mooze_mobile/features/referral_input/presentation/screens/referral_input_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/currency_selector_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/delete_wallet_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
