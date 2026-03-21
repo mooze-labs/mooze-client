@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/divider_component.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/label_settings_component.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_settings.dart';
 
 class SectionSettings extends StatelessWidget {
   final String title;
@@ -22,7 +22,7 @@ class SectionSettings extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
-            child: Text(title, style: const TextStyle(fontSize: 12)),
+            child: Text(title, style: Theme.of(context).textTheme.bodySmall),
           ),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),

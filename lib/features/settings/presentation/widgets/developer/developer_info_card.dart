@@ -29,6 +29,7 @@ class DeveloperInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       decoration: BoxDecoration(
@@ -52,10 +53,9 @@ class DeveloperInfoCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         'System Information',
-                        style: TextStyle(
-                          color: colorScheme.onSurface,
-                          fontSize: 18,
+                        style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ],

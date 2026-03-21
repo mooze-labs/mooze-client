@@ -32,6 +32,8 @@ class DeveloperActionGrid extends StatelessWidget {
     final extraColors = Theme.of(context).extension<AppExtraColors>();
     final warningColor = extraColors?.warning ?? Colors.orange;
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -41,10 +43,9 @@ class DeveloperActionGrid extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'Tools',
-              style: TextStyle(
-                color: colorScheme.onSurface,
-                fontSize: 16,
+              style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
               ),
             ),
           ],

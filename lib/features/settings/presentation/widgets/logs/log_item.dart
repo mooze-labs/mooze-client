@@ -12,6 +12,7 @@ class LogItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final color = _getColorForLevel(context, log.level);
     final timeStr =
         '${log.timestamp.hour.toString().padLeft(2, '0')}:'
@@ -47,9 +48,8 @@ class LogItem extends StatelessWidget {
                     children: [
                       Text(
                         timeStr,
-                        style: TextStyle(
+                        style: textTheme.labelSmall?.copyWith(
                           color: colorScheme.outlineVariant,
-                          fontSize: 11,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -65,7 +65,7 @@ class LogItem extends StatelessWidget {
                         ),
                         child: Text(
                           log.level.displayName,
-                          style: TextStyle(
+                          style: textTheme.labelSmall?.copyWith(
                             color: color,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -76,9 +76,8 @@ class LogItem extends StatelessWidget {
                       Expanded(
                         child: Text(
                           log.tag,
-                          style: TextStyle(
+                          style: textTheme.labelSmall?.copyWith(
                             color: colorScheme.outlineVariant,
-                            fontSize: 11,
                             fontStyle: FontStyle.italic,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -89,7 +88,10 @@ class LogItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     log.message,
-                    style: TextStyle(color: colorScheme.onSurface, fontSize: 13),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontSize: 13,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

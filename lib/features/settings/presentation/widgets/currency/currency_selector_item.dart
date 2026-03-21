@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 
 class CurrencySelectorItem extends StatelessWidget {
   final CurrencyItem item;
@@ -21,7 +21,7 @@ class CurrencySelectorItem extends StatelessWidget {
         children: [
           _buildCurrencyIcon(),
           const SizedBox(width: 12),
-          _buildCurrencyInfo(colorScheme),
+          _buildCurrencyInfo(context, colorScheme),
           const SizedBox(width: 12),
           _buildSelectionIndicator(),
         ],
@@ -33,23 +33,25 @@ class CurrencySelectorItem extends StatelessWidget {
     return CircleAvatar(child: Text(item.icon));
   }
 
-  Widget _buildCurrencyInfo(ColorScheme colorScheme) {
+  Widget _buildCurrencyInfo(BuildContext context, ColorScheme colorScheme) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             item.code,
-            style: TextStyle(
+            style: textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             item.name,
-            style: TextStyle(color: colorScheme.outlineVariant, fontSize: 14),
+            style: textTheme.titleSmall?.copyWith(
+              color: colorScheme.outlineVariant,
+            ),
           ),
         ],
       ),

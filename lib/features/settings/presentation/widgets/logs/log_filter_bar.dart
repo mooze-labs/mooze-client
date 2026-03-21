@@ -32,10 +32,14 @@ class LogFilterBar extends StatelessWidget {
           // Search field
           TextField(
             controller: searchController,
-            style: TextStyle(color: colorScheme.onSurface),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               hintText: 'Search logs...',
-              hintStyle: TextStyle(color: colorScheme.outlineVariant),
+              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.outlineVariant,
+              ),
               prefixIcon: Icon(Icons.search, color: colorScheme.outlineVariant),
               suffixIcon:
                   searchQuery.isNotEmpty
@@ -81,10 +85,12 @@ class LogFilterBar extends StatelessWidget {
     final color =
         level != null ? _getColorForLevel(context, level) : colorScheme.primary;
 
+    final textTheme = Theme.of(context).textTheme;
+
     return FilterChip(
       label: Text(
         label,
-        style: TextStyle(
+        style: textTheme.labelMedium?.copyWith(
           color: isSelected ? colorScheme.onSurface : colorScheme.outlineVariant,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),

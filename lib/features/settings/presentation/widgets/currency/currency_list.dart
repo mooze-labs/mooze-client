@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'currency_selector_item.dart';
 
 class CurrencyList extends ConsumerWidget {

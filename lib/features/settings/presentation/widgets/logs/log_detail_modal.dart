@@ -56,16 +56,16 @@ class LogDetailModal extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           'Log Details',
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontSize: 20,
+          style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
           ),
         ),
         IconButton(
@@ -78,6 +78,7 @@ class LogDetailModal extends StatelessWidget {
 
   Widget _buildContent(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final extraColors = Theme.of(context).extension<AppExtraColors>();
     final color = _getColorForLevel(context, log.level);
 
@@ -90,34 +91,33 @@ class LogDetailModal extends StatelessWidget {
         Divider(color: colorScheme.outlineVariant),
         Text(
           'Message:',
-          style: TextStyle(
-            color: colorScheme.outlineVariant,
-            fontSize: 14,
+          style: textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
+            color: colorScheme.outlineVariant,
           ),
         ),
         const SizedBox(height: 8),
         SelectableText(
           log.message,
-          style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+          style: textTheme.titleSmall?.copyWith(
+            color: colorScheme.onSurface,
+          ),
         ),
         if (log.error != null) ...[
           const SizedBox(height: 16),
           Divider(color: colorScheme.outlineVariant),
           Text(
             'Error:',
-            style: TextStyle(
-              color: colorScheme.error,
-              fontSize: 14,
+            style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              color: colorScheme.error,
             ),
           ),
           const SizedBox(height: 8),
           SelectableText(
             log.error.toString(),
-            style: TextStyle(
+            style: textTheme.bodySmall?.copyWith(
               color: colorScheme.error,
-              fontSize: 12,
               fontFamily: 'monospace',
             ),
           ),
@@ -127,10 +127,9 @@ class LogDetailModal extends StatelessWidget {
           Divider(color: colorScheme.outlineVariant),
           Text(
             'Stack Trace:',
-            style: TextStyle(
-              color: extraColors?.warning ?? Colors.orange,
-              fontSize: 14,
+            style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              color: extraColors?.warning ?? Colors.orange,
             ),
           ),
           const SizedBox(height: 8),
@@ -142,9 +141,8 @@ class LogDetailModal extends StatelessWidget {
             ),
             child: SelectableText(
               log.stackTrace.toString(),
-              style: TextStyle(
+              style: textTheme.labelSmall?.copyWith(
                 color: colorScheme.outlineVariant,
-                fontSize: 11,
                 fontFamily: 'monospace',
               ),
             ),
@@ -161,6 +159,7 @@ class LogDetailModal extends StatelessWidget {
     Color? color,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -171,19 +170,17 @@ class LogDetailModal extends StatelessWidget {
             width: 100,
             child: Text(
               '$label:',
-              style: TextStyle(
-                color: colorScheme.outlineVariant,
-                fontSize: 14,
+              style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
+                color: colorScheme.outlineVariant,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
+              style: textTheme.titleSmall?.copyWith(
                 color: color ?? colorScheme.onSurface,
-                fontSize: 14,
               ),
             ),
           ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 /// Dialog for choosing how to export logs (email or share)
@@ -19,9 +19,7 @@ class ExportLogsDialog extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: colorScheme.surfaceContainerHigh,
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -79,10 +77,9 @@ class ExportLogsDialog extends StatelessWidget {
               ),
               child: Text(
                 'Salvar/Compartilhar',
-                style: TextStyle(
-                  color: colorScheme.onSecondary,
-                  fontSize: 16,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: colorScheme.onSecondary,
                 ),
               ),
             ),

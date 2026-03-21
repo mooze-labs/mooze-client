@@ -11,12 +11,3 @@ class LabelDivider extends StatelessWidget {
     );
   }
 }
-
-class LabelDividerSelected extends StatelessWidget {
-  const LabelDividerSelected({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Divider(height: 0.1, thickness: 0.1);
-  }
-}
