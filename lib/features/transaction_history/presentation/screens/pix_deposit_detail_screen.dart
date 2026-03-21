@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 

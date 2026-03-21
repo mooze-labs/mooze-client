@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_deposit_list.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/providers/pix_history_state_notifier.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter_entity.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_deposit_list.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/providers/pix_history_state_notifier.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/transactions/transactions_bottom_nav_bar.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_deposit_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_history_screen.dart';

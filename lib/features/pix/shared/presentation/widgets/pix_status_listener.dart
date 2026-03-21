@@ -1,0 +1,167 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/data/models/pix_status_event.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/repositories/pix_repository.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_success_screen.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_error_screen.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
+import 'package:mooze_mobile/routes.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
+
+class PixStatusListener extends ConsumerStatefulWidget {
+  final Widget child;
+
+  const PixStatusListener({super.key, required this.child});
+
+  @override
+  ConsumerState<PixStatusListener> createState() => _PixStatusListenerState();
+}
+
+class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
+  StreamSubscription<PixStatusEvent>? _subscription;
+  ProviderSubscription<PixRepository>? _repositorySubscription;
+  final Set<String> _processedDeposits = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToRepository(ref.read(pixRepositoryProvider));
+    _repositorySubscription = ref.listenManual(pixRepositoryProvider, (
+      previous,
+      next,
+    ) {
+      _subscription?.cancel();
+      _subscribeToRepository(next);
+    });
+  }
+
+  void _subscribeToRepository(PixRepository repository) {
+    _subscription = repository.statusUpdates.listen((statusEvent) {
+      if (_processedDeposits.contains(statusEvent.depositId)) {
+        return;
+      }
+
+      if ((statusEvent.status == DepositStatus.underReview ||
+              statusEvent.status == DepositStatus.depixSent ||
+              statusEvent.status == DepositStatus.paid) &&
+          mounted) {
+        _processedDeposits.add(statusEvent.depositId);
+
+        ref.invalidate(userInfoProvider);
+
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted) return;
+
+          repository.getDeposit(statusEvent.depositId).run().then((result) {
+            if (!mounted) return;
+
+            result.fold(
+              (error) {
+                // error fetch deposit
+              },
+              (depositOption) {
+                if (!mounted) return;
+
+                depositOption.fold(
+                  () {
+                    // deposit not found
+                  },
+                  (deposit) {
+                    final navigatorContext = rootNavigatorKey.currentContext;
+                    if (navigatorContext != null && mounted) {
+                      try {
+                        PixSuccessScreen.show(
+                          navigatorContext,
+                          asset: deposit.asset,
+                          amountInCents: deposit.amountInCents,
+                          assetAmount:
+                              deposit.assetAmount != null
+                                  ? deposit.assetAmount!.toDouble() / 100000000
+                                  : 0.0,
+                          depositId: deposit.depositId,
+                          blockchainTxid: deposit.blockchainTxid,
+                          onClosed: () {
+                            ref.invalidate(walletLevelsProvider);
+                            ref.invalidate(levelsProvider);
+                            ref.invalidate(userDataProvider);
+                          },
+                        );
+                      } catch (e, stack) {
+                        debugPrint('Stack: $stack');
+                      }
+                    } else {
+                      debugPrint('Navigator context não disponível');
+                    }
+                  },
+                );
+              },
+            );
+          });
+        });
+      } else if (statusEvent.status == DepositStatus.failed && mounted) {
+        _processedDeposits.add(statusEvent.depositId);
+        ref.invalidate(userInfoProvider);
+
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted) return;
+
+          repository.getDeposit(statusEvent.depositId).run().then((result) {
+            if (!mounted) return;
+
+            result.fold(
+              (error) {
+                // error fetch deposit
+              },
+              (depositOption) {
+                if (!mounted) return;
+
+                depositOption.fold(
+                  () {
+                    // deposit not found
+                  },
+                  (deposit) {
+                    final navigatorContext = rootNavigatorKey.currentContext;
+                    if (navigatorContext != null && mounted) {
+                      try {
+                        PixErrorScreen.show(
+                          navigatorContext,
+                          asset: deposit.asset,
+                          amountInCents: deposit.amountInCents,
+                          depositId: deposit.depositId,
+                          errorMessage: statusEvent.errorMessage,
+                        );
+                      } catch (e, stack) {
+                        debugPrint('Stack: $stack');
+                      }
+                    } else {
+                      debugPrint('Navigator context não disponível');
+                    }
+                  },
+                );
+              },
+            );
+          });
+        });
+      } else {
+        debugPrint('Notification not sent for status ${statusEvent.status}');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _repositorySubscription?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}

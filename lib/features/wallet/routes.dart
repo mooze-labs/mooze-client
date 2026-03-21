@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/pix_main_screen.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/receive/presentation/screens/recive_pix_screen.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_main_screen.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/recive_pix_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
