@@ -8,7 +8,6 @@ import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_pr
 import 'package:mooze_mobile/shared/utils/result.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
 import '../../../shared/key_management/providers/has_pin_provider.dart';
-import '../../../shared/authentication/providers/ensure_auth_session_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
 import '../../setup/presentation/providers/onboarding_provider.dart';
 import '../../../routes.dart';
@@ -226,22 +225,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final container = ProviderScope.containerOf(context);
 
     final verifyPinArgs = VerifyPinArgs(
-      onPinConfirmed: () async {
+      onPinConfirmed: () {
         if (kDebugMode) {
-          debugPrint("[SplashScreen] PIN confirmed, ensuring auth session...");
+          debugPrint("[SplashScreen] PIN confirmed, navigating to /home...");
         }
 
         // Invalidate hasPinProvider using container to avoid disposed widget error
         container.invalidate(hasPinProvider);
 
-        try {
-          await container.read(ensureAuthSessionProvider.future);
-        } catch (e) {
-          if (kDebugMode) debugPrint("[SplashScreen] Error ensuring auth: $e");
-        }
-
-        // Navigation will be handled by the router
-        if (kDebugMode) debugPrint("[SplashScreen] Navigating to /home...");
+        // Navigate immediately — auth session is established in the background
+        // by AuthInitializerWidget (via authInitializerProvider) once HomeScreen renders.
         rootNavigatorKey.currentContext?.go('/home');
       },
       forceAuth: true,
