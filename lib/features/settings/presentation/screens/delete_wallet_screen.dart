@@ -31,60 +31,72 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// Título principal
-            const TitleAndSubtitleCreateWallet(
-              title: 'Atenção ao deletar sua ',
-              highlighted: 'carteira',
-              subtitle:
-                  'Ao deletar, será necessário passar novamente pelo sistema TRUST e você perderá acesso aos fundos se não tiver salvo sua frase de recuperação.',
-            ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// Título principal
+                      const TitleAndSubtitleCreateWallet(
+                        title: 'Atenção ao deletar sua ',
+                        highlighted: 'carteira',
+                        subtitle:
+                            'Ao deletar, será necessário passar novamente pelo sistema TRUST e você perderá acesso aos fundos se não tiver salvo sua frase de recuperação.',
+                      ),
 
-            const SizedBox(height: 20),
-            DeleteWalletSign(
-              title: 'Limites PIX',
-              description:
-                  'Eu estou ciente de que precisarei passar novamente pelo sistema TRUST e que meus limites de PIX serão resetados.',
-              isSelected: _trustAware,
-              onTap: () {
-                setState(() {
-                  _trustAware = !_trustAware;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            DeleteWalletSign(
-              title: 'Perda de fundos',
-              description:
-                  'Eu estou ciente que perderei acesso aos meus fundos caso não tenha guardado minha frase de recuperação.',
-              isSelected: _recoveryAware,
-              onTap: () {
-                setState(() {
-                  _recoveryAware = !_recoveryAware;
-                });
-              },
-            ),
+                      const SizedBox(height: 20),
 
-            const Spacer(),
-            const SizedBox(height: 16),
+                      DeleteWalletSign(
+                        title: 'Limites PIX',
+                        description:
+                            'Eu estou ciente de que precisarei passar novamente pelo sistema TRUST e que meus limites de PIX serão resetados.',
+                        isSelected: _trustAware,
+                        onTap: () {
+                          setState(() {
+                            _trustAware = !_trustAware;
+                          });
+                        },
+                      ),
 
-            PrimaryButton(
-              text: 'Deletar carteira',
-              onPressed:
-                  (_trustAware && _recoveryAware)
-                      ? () => _verifyAndDeleteWallet(context)
-                      : null,
-              isEnabled: _trustAware && _recoveryAware,
+                      const SizedBox(height: 16),
+
+                      DeleteWalletSign(
+                        title: 'Perda de fundos',
+                        description:
+                            'Eu estou ciente que perderei acesso aos meus fundos caso não tenha guardado minha frase de recuperação.',
+                        isSelected: _recoveryAware,
+                        onTap: () {
+                          setState(() {
+                            _recoveryAware = !_recoveryAware;
+                          });
+                        },
+                      ),
+
+                      const Spacer(),
+
+                      const SizedBox(height: 16),
+
+                      PrimaryButton(
+                        text: 'Deletar carteira',
+                        onPressed:
+                            (_trustAware && _recoveryAware)
+                                ? () => _verifyAndDeleteWallet(context)
+                                : null,
+                        isEnabled: _trustAware && _recoveryAware,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-
-            // const SizedBox(height: 20),
-            const Spacer(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -119,7 +131,10 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
             }
           } else {
             if (context.mounted) {
-              AppSnackBar.error(context, 'Erro ao deletar carteira. Tente novamente.');
+              AppSnackBar.error(
+                context,
+                'Erro ao deletar carteira. Tente novamente.',
+              );
             }
           }
         } catch (e) {
