@@ -66,6 +66,7 @@ class BootState {
   /// Returns true if UI can be shown (cache loaded, datasources initializing/syncing)
   bool get canShowUI =>
       phase == BootPhase.showingUI ||
+      phase == BootPhase.initializingDatasources ||
       phase == BootPhase.syncingBackground ||
       phase == BootPhase.completed;
 
@@ -241,14 +242,14 @@ class BootOrchestrator extends StateNotifier<BootState> {
       _logger.info('BootOrchestrator', 'Phase 2: Initializing database...');
       await _initializeDatabase();
 
-      // Phase 3: Load cached data (non-blocking)
+      // Phase 3: Load cached data state
       _logger.debug('BootOrchestrator', 'Phase 3: Loading cached data...');
       state = state.copyWith(
         phase: BootPhase.loadingCachedData,
         message: 'Carregando dados salvos...',
       );
 
-      // Phase 4: API Authentication (parallel, non-blocking datasources)
+      // Phase 4: API Authentication — fire-and-forget, never blocks navigation
       _logger.info('BootOrchestrator', 'Phase 4: Authenticating with API...');
       state = state.copyWith(
         phase: BootPhase.authenticating,
@@ -256,34 +257,17 @@ class BootOrchestrator extends StateNotifier<BootState> {
       );
       _authenticateAsync();
 
-      // Phase 5: Initialize datasources in parallel
-      _logger.info(
-        'BootOrchestrator',
-        'Phase 5: Initializing datasources in parallel...',
-      );
-      state = state.copyWith(
-        phase: BootPhase.initializingDatasources,
-        message: 'Conectando às blockchains...',
-      );
-      await _initializeDatasourcesParallel();
-
-      // Phase 6: Show UI with cached data
-      _logger.info('BootOrchestrator', 'Phase 6: Ready to show UI...');
+      // Phase 5: Show UI immediately with cached data.
+      // Datasource initialization (BDK Electrum, Breez, LWK) is CPU/network
+      // intensive and can take 10-45s. It must never block the UI transition.
+      _logger.info('BootOrchestrator', 'Phase 5: Ready to show UI...');
       state = state.copyWith(
         phase: BootPhase.showingUI,
         message: 'Carregando carteira...',
-      );
-
-      // Phase 7: Start background sync (non-blocking)
-      _logger.info('BootOrchestrator', 'Phase 7: Starting background sync...');
-      state = state.copyWith(
-        phase: BootPhase.syncingBackground,
-        message: 'Sincronizando em segundo plano...',
         datasourceSyncStatus: {'liquid': false, 'bdk': false, 'breez': false},
       );
-      _startBackgroundSync();
 
-      // Initialize WalletDataManager to load cached data
+      // Populate the UI with whatever is cached before any sync completes.
       _logger.debug(
         'BootOrchestrator',
         'Initializing WalletDataManager with cached data...',
@@ -292,11 +276,11 @@ class BootOrchestrator extends StateNotifier<BootState> {
           .read(walletDataManagerProvider.notifier)
           .initializeWallet(skipInitialSync: true);
 
-      // Don't complete boot here - wait for sync completion via listener
-      _logger.info(
-        'BootOrchestrator',
-        'Boot UI ready, syncing in background...',
-      );
+      // Phase 6: Initialize datasources and sync fully in the background.
+      // unawaited so startBoot() returns immediately, unblocking navigation.
+      unawaited(_initializeDatasourcesAndSync());
+
+      _logger.info('BootOrchestrator', 'Boot handed off to background — UI unblocked.');
     } catch (e, stack) {
       _logger.critical(
         'BootOrchestrator',
@@ -309,6 +293,51 @@ class BootOrchestrator extends StateNotifier<BootState> {
         errorMessage: e.toString(),
       );
       _bootCompleter?.completeError(e);
+    }
+  }
+
+  /// Initializes all datasources in background then starts blockchain sync.
+  ///
+  /// This is intentionally fire-and-forget from [startBoot] so that expensive
+  /// network and crypto operations (BDK Electrum connection with retries,
+  /// Breez SDK init) never block the UI thread or the navigation transition.
+  Future<void> _initializeDatasourcesAndSync() async {
+    try {
+      _logger.info(
+        'BootOrchestrator',
+        'Background: initializing datasources in parallel...',
+      );
+      state = state.copyWith(
+        phase: BootPhase.initializingDatasources,
+        message: 'Conectando às blockchains...',
+      );
+
+      await _initializeDatasourcesParallel();
+
+      _logger.info(
+        'BootOrchestrator',
+        'Background: datasources ready, starting sync...',
+      );
+      state = state.copyWith(
+        phase: BootPhase.syncingBackground,
+        message: 'Sincronizando em segundo plano...',
+      );
+
+      _startBackgroundSync();
+    } catch (e, stack) {
+      _logger.critical(
+        'BootOrchestrator',
+        'Background datasource initialization failed',
+        error: e,
+        stackTrace: stack,
+      );
+      state = state.copyWith(
+        phase: BootPhase.error,
+        errorMessage: e.toString(),
+      );
+      if (_bootCompleter != null && !_bootCompleter!.isCompleted) {
+        _bootCompleter!.completeError(e);
+      }
     }
   }
 
