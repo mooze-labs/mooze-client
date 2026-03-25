@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_co
 import 'package:mooze_mobile/routes.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 
 class TransactionStatusListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -35,14 +36,14 @@ class _TransactionStatusListenerState
 
     if (walletStatus.isSuccess && !_isInitialized) {
       debugPrint(
-        '[TransactionStatusListener] Wallet pronto (${walletStatus.state}), iniciando monitoramento',
+        '[TransactionStatusListener] Wallet ready (${walletStatus.state}), starting monitoring',
       );
       _isInitialized = true;
       _setupListener();
       _startMonitoring();
     } else {
       debugPrint(
-        '[TransactionStatusListener] Wallet não está pronto (${walletStatus.state}), aguardando...',
+        '[TransactionStatusListener] Wallet is not ready (${walletStatus.state}), waiting...',
       );
     }
   }
@@ -50,34 +51,34 @@ class _TransactionStatusListenerState
   void _startMonitoring() {
     final service = ref.read(transactionMonitorServiceProvider);
 
-    debugPrint('[TransactionStatusListener] Iniciando monitoramento...');
+    debugPrint('[TransactionStatusListener] Starting monitoring...');
 
     // Sync pending transactions on start
     service.syncPendingTransactions().then((_) {
       debugPrint(
-        '[TransactionStatusListener] Transações pendentes sincronizadas',
+        '[TransactionStatusListener] Pending transactions synchronized',
       );
     });
 
     // Start monitoring
     service.startMonitoring();
 
-    debugPrint('[TransactionStatusListener] Monitoramento iniciado');
+    debugPrint('[TransactionStatusListener] Monitoring started');
   }
 
   void _setupListener() {
     final service = ref.read(transactionMonitorServiceProvider);
 
-    debugPrint('[TransactionStatusListener] Configurando listener de eventos');
+    debugPrint('[TransactionStatusListener] Setting up event listener');
 
     _subscription = service.statusUpdates.listen((event) {
       debugPrint(
-        '[TransactionStatusListener] 🎉 Evento recebido: ${event.transactionId}',
+        '[TransactionStatusListener] Event received: ${event.transactionId}',
       );
 
       if (_processedTransactions.contains(event.transactionId)) {
         debugPrint(
-          '[TransactionStatusListener] Evento já processado, ignorando',
+          '[TransactionStatusListener] Event already processed, ignoring',
         );
         return;
       }
@@ -85,13 +86,15 @@ class _TransactionStatusListenerState
       if (mounted) {
         _processedTransactions.add(event.transactionId);
 
+        ref.invalidate(userInfoProvider);
+
         debugPrint(
-          '[TransactionStatusListener] Aguardando 300ms antes de exibir tela...',
+          '[TransactionStatusListener] Waiting 300ms before showing screen...',
         );
 
         Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) {
-            debugPrint('[TransactionStatusListener] Widget não montado');
+            debugPrint('[TransactionStatusListener] Widget is not mounted');
             return;
           }
 
@@ -101,7 +104,7 @@ class _TransactionStatusListenerState
               final asset = Asset.fromId(event.assetId);
 
               debugPrint(
-                '[TransactionStatusListener] Exibindo TransactionConfirmedScreen',
+                '[TransactionStatusListener] Showing TransactionConfirmedScreen',
               );
 
               TransactionConfirmedScreen.show(
@@ -111,17 +114,17 @@ class _TransactionStatusListenerState
                 transactionId: event.transactionId,
               );
             } catch (e, stack) {
-              debugPrint('Erro ao exibir tela de confirmação: $e');
+              debugPrint('Error showing confirmation screen: $e');
               debugPrint('Stack: $stack');
             }
           } else {
-            debugPrint('Navigator context não disponível');
+            debugPrint('Navigator context not available');
           }
         });
       }
     });
 
-    debugPrint('[TransactionStatusListener] Listener configurado com sucesso');
+    debugPrint('[TransactionStatusListener] Listener successfully configured');
   }
 
   @override
@@ -137,7 +140,7 @@ class _TransactionStatusListenerState
     ref.listen<WalletDataStatus>(walletDataManagerProvider, (previous, next) {
       if (!_isInitialized && next.isSuccess) {
         debugPrint(
-          '[TransactionStatusListener] Wallet ficou pronto (${next.state}), iniciando monitoramento',
+          '[TransactionStatusListener] Wallet became ready (${next.state}), starting monitoring',
         );
         _isInitialized = true;
         _setupListener();

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter_entity.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_filter.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_deposit_list.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/providers/pix_history_state_notifier.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter_entity.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_deposit_list.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/providers/pix_history_state_notifier.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
@@ -39,7 +39,6 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
             )
             .toList();
 
-    // Busca dados ao entrar na tela
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshData();
     });
@@ -250,39 +249,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
 
     final status = _filters.filter?['status'] as String?;
     if (status != null && status != 'all') {
-      switch (status) {
-        case 'pending':
-          descriptions.add(DepositStatus.pending.labelPlural);
-          break;
-        case 'under_review':
-          descriptions.add(DepositStatus.underReview.labelPlural);
-          break;
-        case 'processing':
-          descriptions.add(DepositStatus.processing.labelPlural);
-          break;
-        case 'funds_prepared':
-          descriptions.add(DepositStatus.fundsPrepared.labelPlural);
-          break;
-        case 'depix_sent':
-        case "paid":
-          descriptions.add(DepositStatus.depixSent.labelPlural);
-          break;
-        case 'broadcasted':
-          descriptions.add(DepositStatus.broadcasted.labelPlural);
-          break;
-        case 'finished':
-          descriptions.add(DepositStatus.finished.labelPlural);
-          break;
-        case 'failed':
-          descriptions.add(DepositStatus.failed.labelPlural);
-          break;
-        case 'expired':
-          descriptions.add(DepositStatus.expired.labelPlural);
-          break;
-        case 'refunded':
-          descriptions.add(DepositStatus.refunded.labelPlural);
-          break;
-      }
+      descriptions.add(DepositStatus.fromString(status).labelPlural);
     }
 
     final assetIds = _filters.filter?['assets'] as List<String>?;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/consts.dart'
     as AppColors;
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_network_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';

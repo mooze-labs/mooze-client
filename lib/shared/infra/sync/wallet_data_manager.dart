@@ -33,6 +33,7 @@ import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider
 import 'package:mooze_mobile/shared/infra/sync/sync_config.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/data/datasources/pix_deposit_db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -1666,14 +1667,18 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         );
       }
 
-      // 8. EIGHTH: Clear user verification level
+      // 8. EIGHTH: Clear user verification level and PIX deposit history
       _logger.info(
         'WalletDataManager',
-        'Step 8: Clearing user verification...',
+        'Step 8: Clearing user verification and PIX history...',
       );
       final prefs = await SharedPreferences.getInstance();
       final userLevelStorage = UserLevelStorageService(prefs);
       await userLevelStorage.clearVerificationLevel();
+
+      final pixDb = PixDepositDatabase(ref.read(appDatabaseProvider));
+      await pixDb.clearAllDeposits().run();
+      _logger.info('WalletDataManager', 'PIX deposit history cleared');
 
       // 9. NINTH: Delete PIN
       _logger.info('WalletDataManager', 'Step 9: Deleting PIN...');

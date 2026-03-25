@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 
+/// Merchant Header Widget (Presentation Layer)
+///
+/// Header component for the merchant mode screen displaying:
+/// - Back button to exit merchant mode
+/// - Title "Merchant Mode"
+/// - Current cart total in BRL (R$)
+/// - "Clear cart" button (only visible when cart has items)
+
 class MerchantHeaderWidget extends StatelessWidget {
-  final double valorReais;
-  final VoidCallback onLimparCarrinho;
+  /// Current total value in BRL (Brazilian Real)
+  final double totalAmountInBRL;
+  final VoidCallback onClearCart;
   final VoidCallback? onBack;
-  final GlobalKey? limparButtonKey;
-  final GlobalKey? valorTotalKey;
+  final GlobalKey? clearButtonKey;
+  final GlobalKey? totalAmountKey;
 
   const MerchantHeaderWidget({
     super.key,
-    required this.valorReais,
-    required this.onLimparCarrinho,
+    required this.totalAmountInBRL,
+    required this.onClearCart,
     this.onBack,
-    this.limparButtonKey,
-    this.valorTotalKey,
+    this.clearButtonKey,
+    this.totalAmountKey,
   });
 
   @override
@@ -44,9 +53,9 @@ class MerchantHeaderWidget extends StatelessWidget {
         ),
         SizedBox(height: 10),
         Container(
-          key: valorTotalKey,
+          key: totalAmountKey,
           child: Text(
-            'R\$${valorReais.toStringAsFixed(2)}',
+            'R\$${totalAmountInBRL.toStringAsFixed(2)}',
             style: TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -54,11 +63,11 @@ class MerchantHeaderWidget extends StatelessWidget {
             ),
           ),
         ),
-        if (valorReais > 0) ...[
+        if (totalAmountInBRL > 0) ...[
           SizedBox(height: 4),
           GestureDetector(
-            key: limparButtonKey,
-            onTap: onLimparCarrinho,
+            key: clearButtonKey,
+            onTap: onClearCart,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(

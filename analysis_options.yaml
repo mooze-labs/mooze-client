@@ -28,5 +28,7 @@ linter:
 # https://dart.dev/guides/language/analysis-options
 
 analyzer:
+  errors:
+    unintended_html_in_doc_comment: ignore
   plugins:
     - custom_lint

@@ -51,13 +51,27 @@ class PrimaryButton extends StatelessWidget {
         ),
         child:
             isLoading
-                ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
+                ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 )
                 : FittedBox(
                   fit: BoxFit.scaleDown,

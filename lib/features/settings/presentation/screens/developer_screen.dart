@@ -5,16 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/developer_info_card.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/developer_action_grid.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_info_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_action_grid.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_dialog.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/logs_viewer_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
@@ -22,8 +24,6 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
-
-enum ExportMethod { email, share }
 
 /// Developer tools screen with debugging and diagnostic features
 class DeveloperScreen extends ConsumerStatefulWidget {
@@ -376,7 +376,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
-                      color: AppColors.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
                     const Text('Refundables Found'),
@@ -450,84 +450,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<ExportMethod?> _showExportLogsDialog() async {
-    return await showDialog<ExportMethod>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: const Color(0xFF1C1C1C),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryColor.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.file_download,
-                    size: 40,
-                    color: AppColors.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Exportar Logs',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Os logs do aplicativo ajudam nossa equipe a resolver problemas. Como você gostaria de compartilhar?',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  text: 'Enviar por E-mail',
-                  onPressed: () {
-                    Navigator.of(context).pop(ExportMethod.email);
-                  },
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(ExportMethod.share);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    side: BorderSide(color: Colors.grey[700]!),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Salvar/Compartilhar',
-                    style: TextStyle(
-                      color: Colors.grey[300],
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    return ExportLogsDialog.show(context);
   }
 
   // Future<void> _sendLogsViaEmail(String zipPath) async {
@@ -711,140 +634,10 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<String?> _showClearLogsDialog() async {
-    return await showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: const Color(0xFF1C1C1C),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.orange.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.delete_sweep,
-                    size: 40,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Limpar Logs',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Escolha o que deseja limpar:',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                ),
-                const SizedBox(height: 24),
-                _buildClearOption(
-                  context,
-                  'Memória',
-                  'Limpar apenas logs em memória ($_totalLogs logs)',
-                  Icons.memory,
-                  'memory',
-                ),
-                const SizedBox(height: 12),
-                _buildClearOption(
-                  context,
-                  'Banco de Dados',
-                  'Limpar apenas logs do banco ($_dbLogs logs)',
-                  Icons.storage,
-                  'database',
-                ),
-                const SizedBox(height: 12),
-                _buildClearOption(
-                  context,
-                  'Todos',
-                  'Limpar memória, arquivos e banco',
-                  Icons.delete_forever,
-                  'all',
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildClearOption(
-    BuildContext context,
-    String title,
-    String description,
-    IconData icon,
-    String value,
-  ) {
-    return InkWell(
-      onTap: () => Navigator.pop(context, value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[800]!),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppColors.primaryColor, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
-        ),
-      ),
+    return ClearLogsDialog.show(
+      context,
+      totalLogs: _totalLogs,
+      dbLogs: _dbLogs,
     );
   }
 
@@ -875,36 +668,24 @@ Generated: ${DateTime.now().toIso8601String()}
   }
 
   void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    AppSnackBar.success(context, message);
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    AppSnackBar.error(context, message);
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         title: const Text('Copiar infos de sistema'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.copy, color: Colors.white),
+            icon: Icon(Icons.copy, color: colorScheme.onSurface),
             tooltip: 'Copy debug info',
             onPressed: _copyDebugInfo,
           ),
@@ -912,10 +693,10 @@ Generated: ${DateTime.now().toIso8601String()}
       ),
       body:
           _isLoading
-              ? const Center(
+              ? Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryColor,
+                    colorScheme.primary,
                   ),
                 ),
               )

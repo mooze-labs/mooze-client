@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
+import 'package:mooze_mobile/shared/utils/result.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
 import '../../../shared/key_management/providers/has_pin_provider.dart';
-import '../../../shared/authentication/providers/ensure_auth_session_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
 import '../../setup/presentation/providers/onboarding_provider.dart';
-import '../../merchant/presentation/providers/merchant_mode_provider.dart';
 import '../../../routes.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -89,8 +89,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         await onboardingService.isOnboardingCompleted();
 
     // Check if was in merchant mode
-    final merchantModeService = ref.read(merchantModeServiceProvider);
-    final wasInMerchantMode = await merchantModeService.isMerchantModeActive();
+    final checkMerchantModeUseCase = ref.read(checkMerchantModeUseCaseProvider);
+    final merchantModeResult = await checkMerchantModeUseCase();
+
+    bool wasInMerchantMode = false;
+    if (merchantModeResult is Success<bool>) {
+      wasInMerchantMode = merchantModeResult.data;
+    }
 
     if (kDebugMode) {
       debugPrint("[SplashScreen] Was in merchant mode: $wasInMerchantMode");
@@ -220,64 +225,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final container = ProviderScope.containerOf(context);
 
     final verifyPinArgs = VerifyPinArgs(
-      onPinConfirmed: () async {
+      onPinConfirmed: () {
         if (kDebugMode) {
-          debugPrint("[SplashScreen] PIN confirmed, ensuring auth session...");
+          debugPrint("[SplashScreen] PIN confirmed, navigating to /home...");
         }
 
         // Invalidate hasPinProvider using container to avoid disposed widget error
         container.invalidate(hasPinProvider);
 
-        try {
-          await container.read(ensureAuthSessionProvider.future);
-        } catch (e) {
-          if (kDebugMode) debugPrint("[SplashScreen] Error ensuring auth: $e");
-        }
-
-        // Navigation will be handled by the router
-        if (kDebugMode) debugPrint("[SplashScreen] Navigating to /home...");
+        // Navigate immediately — auth session is established in the background
+        // by AuthInitializerWidget (via authInitializerProvider) once HomeScreen renders.
         rootNavigatorKey.currentContext?.go('/home');
-      },
-      forceAuth: true,
-      canGoBack: false,
-    );
-
-    context.go('/setup/pin/verify', extra: verifyPinArgs);
-  }
-
-  void _authenticateForMerchantMode(String mnemonic) async {
-    if (kDebugMode) {
-      debugPrint("[SplashScreen] Authenticating for merchant mode return...");
-    }
-
-    if (!mounted) return;
-
-    final container = ProviderScope.containerOf(context);
-
-    final verifyPinArgs = VerifyPinArgs(
-      onPinConfirmed: () async {
-        if (kDebugMode) {
-          debugPrint(
-            "[SplashScreen] PIN confirmed, navigating to merchant mode...",
-          );
-        }
-
-        // Invalidate hasPinProvider
-        container.invalidate(hasPinProvider);
-
-        try {
-          await container.read(ensureAuthSessionProvider.future);
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint("[SplashScreen] Error ensuring auth: $e");
-          }
-        }
-
-        // Navigate to merchant mode
-        if (kDebugMode) {
-          debugPrint("[SplashScreen] Navigating to merchant mode...");
-        }
-        rootNavigatorKey.currentContext?.go('/merchant');
       },
       forceAuth: true,
       canGoBack: false,

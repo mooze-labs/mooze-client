@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/utils/wallet_level_ui_helpers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class LevelUpgradeScreen extends StatefulWidget {
@@ -38,16 +39,13 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
   void initState() {
     super.initState();
 
-    // Initialize particles
     _initParticles();
 
-    // Particles animation
     _particlesController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     );
 
-    // Scale animation for levels
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -82,7 +80,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
       ),
     ]).animate(_scaleController);
 
-    // Fade animation
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -93,7 +90,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
-    // Glow animation (pulsing effect)
     _glowController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -103,7 +99,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
 
-    // Text animation
     _textController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -114,7 +109,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
 
-    // Start animations
     _startAnimations();
   }
 
@@ -170,32 +164,17 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
     super.dispose();
   }
 
-  Color _getLevelColor(int level) {
-    switch (level) {
-      case 0:
-        return const Color(0xFF8B7355);
-      case 1:
-        return const Color(0xFFC0C0C0);
-      case 2:
-        return const Color(0xFFFFD700);
-      case 3:
-        return const Color(0xFF4169E1);
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final levelColor = _getLevelColor(widget.newLevel);
+    final textTheme = theme.textTheme;
+    final levelColor = WalletLevelUiHelpers.getLevelColor(widget.newLevel);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
-          // Background gradient
           Container(
             decoration: BoxDecoration(
               gradient: RadialGradient(
@@ -209,7 +188,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
             ),
           ),
 
-          // Animated particles (confetti effect)
           AnimatedBuilder(
             animation: _particlesController,
             builder: (context, child) {
@@ -223,7 +201,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
             },
           ),
 
-          // Content
           SafeArea(
             child: Center(
               child: Padding(
@@ -235,8 +212,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                       opacity: _textFadeAnimation,
                       child: Text(
                         'Parabéns!',
-                        style: TextStyle(
-                          fontSize: 48,
+                        style: textTheme.displayLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: levelColor,
                         ),
@@ -250,7 +226,6 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Old level (shrinking)
                           AnimatedBuilder(
                             animation: _oldLevelScaleAnimation,
                             builder: (context, child) {
@@ -260,14 +235,16 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                                   opacity: _oldLevelScaleAnimation.value,
                                   child: _buildLevelCircle(
                                     widget.oldLevel,
-                                    _getLevelColor(widget.oldLevel),
+                                    WalletLevelUiHelpers.getLevelColor(
+                                      widget.oldLevel,
+                                    ),
+                                    textTheme: textTheme,
                                   ),
                                 ),
                               );
                             },
                           ),
 
-                          // New level (growing with glow)
                           AnimatedBuilder(
                             animation: Listenable.merge([
                               _newLevelScaleAnimation,
@@ -284,6 +261,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                                   child: _buildLevelCircle(
                                     widget.newLevel,
                                     levelColor,
+                                    textTheme: textTheme,
                                   ),
                                 ),
                               );
@@ -302,18 +280,16 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                           Text(
                             'Você subiu de nível!',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 24,
+                            style: textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Do nível ${_getLevels(widget.oldLevel)} para o nível ${_getLevels(widget.newLevel)}',
+                            'Do nível ${WalletLevelUiHelpers.getLevelName(widget.oldLevel)} para o nível ${WalletLevelUiHelpers.getLevelName(widget.newLevel)}',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
+                            style: textTheme.titleMedium?.copyWith(
                               color: colorScheme.onSurface.withValues(
                                 alpha: 0.7,
                               ),
@@ -323,8 +299,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                           Text(
                             'Continue assim para desbloquear ainda mais benefícios!',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
+                            style: textTheme.bodyLarge?.copyWith(
                               color: colorScheme.onSurface.withValues(
                                 alpha: 0.6,
                               ),
@@ -334,7 +309,7 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
                       ),
                     ),
 
-                    Spacer(),
+                    const Spacer(),
 
                     FadeTransition(
                       opacity: _fadeAnimation,
@@ -356,46 +331,23 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
     );
   }
 
-  String _getLevels(level) {
-    switch (level) {
-      case 0:
-        return 'Bronze';
-      case 1:
-        return 'Prata';
-      case 2:
-        return 'Ouro';
-      case 3:
-        return 'Diamante';
-      default:
-        return 'Bronze';
-    }
-  }
-
-  IconData _getLevelIcon(int level) {
-    switch (level) {
-      case 0:
-        return Icons.military_tech;
-      case 1:
-        return Icons.workspace_premium;
-      case 2:
-        return Icons.emoji_events;
-      case 3:
-        return Icons.diamond;
-      default:
-        return Icons.military_tech;
-    }
-  }
-
-  Widget _buildLevelCircle(int level, Color color) {
+  Widget _buildLevelCircle(
+    int level,
+    Color color, {
+    required TextTheme textTheme,
+  }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(_getLevelIcon(level), size: 120, color: color),
+        Icon(
+          WalletLevelUiHelpers.getLevelIcon(level),
+          size: 120,
+          color: color,
+        ),
         const SizedBox(height: 16),
         Text(
-          _getLevels(level),
-          style: TextStyle(
-            fontSize: 28,
+          WalletLevelUiHelpers.getLevelName(level),
+          style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -406,10 +358,10 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
 }
 
 class _Particle {
-  double x; // Position X (0-1)
-  double y; // Position Y (0-1)
-  final double vx; // Velocity X
-  final double vy; // Velocity Y
+  double x;
+  double y;
+  final double vx;
+  final double vy;
   final Color color;
   final double size;
 
@@ -448,7 +400,7 @@ class _ParticlesPainter extends CustomPainter {
         } else {
           canvas.save();
           canvas.translate(position.dx, position.dy);
-          canvas.rotate(progress * 6.28); // Rotação completa
+          canvas.rotate(progress * 6.28);
           canvas.drawRect(
             Rect.fromCenter(
               center: Offset.zero,

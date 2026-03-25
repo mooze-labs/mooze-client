@@ -76,11 +76,14 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
       _isVerifying = true;
     });
 
-    try {
-      final auth = await _authService.authenticate(_pinController.text);
+    bool navigated = false;
 
-      if (auth) {
-        // Call the callback first, which should handle navigation
+    try {
+      final isValid = await _authService.authenticate(_pinController.text);
+
+      if (isValid) {
+        navigated = true;
+        await Future.delayed(const Duration(seconds: 1));
         widget.onPinConfirmed();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +99,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
         _pinController.clear();
       }
     } finally {
-      if (mounted) {
+      if (!navigated && mounted) {
         setState(() {
           _isVerifying = false;
         });
@@ -205,9 +208,10 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
-                  text: _isVerifying ? "Carregando" : "Continuar",
+                  text: "Continuar",
                   onPressed: _onContinuePressed,
                   isEnabled: _isPinValid && !_isVerifying,
+                  isLoading: _isVerifying,
                 ),
                 const SizedBox(height: 20),
                 const Text(

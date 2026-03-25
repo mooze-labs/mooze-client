@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_bootstrap.dart';
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_status_listener.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_status_listener.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/transaction_status_listener.dart';
 import 'package:mooze_mobile/shared/user/widgets/level_change_listener.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';

@@ -1,23 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/payment/consts.dart'
-    as AppColors;
+import 'package:mooze_mobile/features/settings/domain/entities/logs_source.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_filter_bar.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_item.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/log_detail_modal.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_filter_bar.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_detail_modal.dart';
 import 'package:mooze_mobile/database/database.dart';
-
-/// Source of logs to display
-enum LogSource {
-  memory('Memória'),
-  database('Banco de Dados'),
-  all('Todos');
-
-  final String label;
-  const LogSource(this.label);
-}
 
 /// Screen for viewing and filtering application logs
 class LogsViewerScreen extends StatefulWidget {
@@ -280,33 +269,18 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final filteredLogs = _getFilteredLogs();
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: const Text(
-          'Application Logs',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        // actions: [
-        //   IconButton(
-        //     icon: Icon(
-        //       _autoScroll ? Icons.vertical_align_bottom : Icons.swap_vert,
-        //       color: _autoScroll ? AppColors.primaryColor : Colors.grey,
-        //     ),
-        //     tooltip: 'Auto-scroll',
-        //     onPressed: () => setState(() => _autoScroll = !_autoScroll),
-        //   ),
-        // ],
-      ),
+      appBar: AppBar(elevation: 0, title: const Text('Application Logs')),
       body: Column(
         children: [
           // Log source selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[800]!)),
+              border: Border(bottom: BorderSide(color: colorScheme.outline)),
             ),
             child: Row(
               children: [
@@ -319,7 +293,8 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                                 value: source,
                                 label: Text(
                                   source.label,
-                                  style: const TextStyle(fontSize: 12),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: Colors.white),
                                 ),
                               ),
                             )
@@ -336,9 +311,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                         states,
                       ) {
                         if (states.contains(WidgetState.selected)) {
-                          return AppColors.primaryColor;
+                          return colorScheme.primary;
                         }
-                        return Colors.grey[800];
+                        return colorScheme.outline;
                       }),
                     ),
                   ),
@@ -360,24 +335,27 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
           Expanded(
             child:
                 _isInitialLoading
-                    ? const Center(
+                    ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
                           Text(
                             'Carregando logs...',
-                            style: TextStyle(color: Colors.grey),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.outlineVariant),
                           ),
                         ],
                       ),
                     )
                     : filteredLogs.isEmpty
-                    ? const Center(
+                    ? Center(
                       child: Text(
                         'No logs found',
-                        style: TextStyle(color: Colors.grey),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.outlineVariant,
+                        ),
                       ),
                     )
                     : ListView.builder(

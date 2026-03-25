@@ -3,19 +3,21 @@ import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/themes/app_colors.dart';
 
 class WalletLevelsQuickInfo extends StatelessWidget {
-  final ColorScheme colorScheme;
   final bool isLoading;
 
   const WalletLevelsQuickInfo({
     super.key,
-    required this.colorScheme,
     this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     if (isLoading) {
-      return _buildLoadingQuickInfo();
+      return _buildLoadingQuickInfo(colorScheme);
     }
 
     return SizedBox(
@@ -28,6 +30,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
                 icon: Icons.lock_open_rounded,
                 title: 'Desbloqueie',
                 subtitle: 'Aumente limites',
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ),
             const SizedBox(width: 12),
@@ -36,6 +40,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
                 icon: Icons.redeem_rounded,
                 title: 'Ganhe',
                 subtitle: 'Benefícios extras',
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ),
             const SizedBox(width: 12),
@@ -44,6 +50,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
                 icon: Icons.star_rate_rounded,
                 title: 'Status',
                 subtitle: 'Reconhecimento VIP',
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ),
           ],
@@ -56,6 +64,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
   }) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -72,8 +82,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 11,
+            style: textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -81,7 +90,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
           ),
           Text(
             subtitle,
-            style: TextStyle(
+            style: textTheme.labelSmall?.copyWith(
               fontSize: 9,
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
@@ -92,7 +101,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingQuickInfo() {
+  Widget _buildLoadingQuickInfo(ColorScheme colorScheme) {
     final baseColor = AppColors.baseColor;
     final highlightColor = AppColors.highlightColor;
 

@@ -18,27 +18,38 @@ class ConfigureSeedsScreen extends StatelessWidget {
           ),
           title: Text('Criar carteira'),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleAndSubtitleCreateWallet(
-                title: 'Selecione o tamanho da ',
-                highlighted: 'frase-semente',
-                subtitle:
-                    'Você pode criar sua carteira com 12 ou 24 palavras. Ambas são seguras, mas cada opção tem seu nível de praticidade e proteção.',
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0).copyWith(bottom: 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TitleAndSubtitleCreateWallet(
+                          title: 'Selecione o tamanho da ',
+                          highlighted: 'frase-semente',
+                          subtitle:
+                              'Você pode criar sua carteira com 12 ou 24 palavras. Ambas são seguras, mas cada opção tem seu nível de praticidade e proteção.',
+                        ),
+
+                        SizedBox(height: 32),
+
+                        SeedPhraseSelector(),
+
+                        Spacer(),
+
+                        GenerateSeedsButton(),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-
-              SizedBox(height: 32),
-
-              SeedPhraseSelector(),
-
-              Spacer(),
-
-              GenerateSeedsButton(),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

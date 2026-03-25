@@ -6,9 +6,7 @@ import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
 class CurrentLimitsCard extends ConsumerStatefulWidget {
-  final ColorScheme colorScheme;
-
-  const CurrentLimitsCard({super.key, required this.colorScheme});
+  const CurrentLimitsCard({super.key});
 
   @override
   ConsumerState<CurrentLimitsCard> createState() => _CurrentLimitsCardState();
@@ -29,17 +27,21 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildLimitsCard(UserLevelsData data) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.colorScheme.outline.withValues(alpha: 0.2),
+          color: colorScheme.outline.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.colorScheme.shadow.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -53,12 +55,12 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: widget.colorScheme.primaryContainer,
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.account_balance_wallet_outlined,
-                  color: widget.colorScheme.onPrimaryContainer,
+                  color: colorScheme.onPrimaryContainer,
                   size: 20,
                 ),
               ),
@@ -68,19 +70,15 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 children: [
                   Text(
                     'Seus Limites Atuais',
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: widget.colorScheme.onSurface,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     'Nível: ${data.currentLevelName}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.colorScheme.onSurface.withValues(
-                        alpha: 0.6,
-                      ),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -96,7 +94,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                     'Por transação',
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                     Icons.trending_up,
-                    widget.colorScheme.primary,
+                    colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -105,7 +103,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                     'Limite diário',
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                     Icons.flag,
-                    widget.colorScheme.secondary,
+                    colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -114,7 +112,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                     'Mínimo',
                     'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                     Icons.low_priority,
-                    widget.colorScheme.tertiary,
+                    colorScheme.tertiary,
                   ),
                 ),
               ],
@@ -124,7 +122,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: widget.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -132,17 +130,14 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: widget.colorScheme.primary,
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Continue usando para desbloquear o próximo nível${data.nextLevelName != null ? ' ${data.nextLevelName}' : ''}!',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.colorScheme.onSurface.withValues(
-                        alpha: 0.7,
-                      ),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -155,15 +150,19 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildErrorCard() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -177,12 +176,12 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: colorScheme.errorContainer,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
-                  color: Colors.red,
+                  color: colorScheme.error,
                   size: 28,
                 ),
               ),
@@ -193,20 +192,16 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                   children: [
                     Text(
                       'Erro ao carregar limites',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: widget.colorScheme.onSurface,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Tente novamente mais tarde ou contate o suporte.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: widget.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
+                      style: textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -241,10 +236,14 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
     IconData icon,
     Color iconColor,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -254,17 +253,16 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
           const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(
+            style: textTheme.labelSmall?.copyWith(
               fontSize: 10,
-              color: widget.colorScheme.onSurface.withValues(alpha: 0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 14,
+            style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: widget.colorScheme.onSurface,
+              color: colorScheme.onSurface,
             ),
           ),
         ],
@@ -273,16 +271,17 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildLoadingCurrentLimitsCard() {
+    final colorScheme = Theme.of(context).colorScheme;
     final baseColor = AppColors.baseColor;
     final highlightColor = AppColors.highlightColor;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.colorScheme.outline.withValues(alpha: 0.2),
+          color: colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(

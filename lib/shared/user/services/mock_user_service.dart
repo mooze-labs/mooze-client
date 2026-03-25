@@ -30,13 +30,13 @@ class MockUserService implements UserService {
             referredBy: null,
             allowedSpending: 25000,
             dailySpending: 5000,
-            spendingLevel: 1,
-            levelProgress: 1,
+            spendingLevel: 0,
+            levelProgress: 0,
             valuesToReceive: {
               '02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189':
-                  15000000000,
+                  5000, // R$50,00 in Depix
               '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d':
-                  25000,
+                  10000, // R$100,00 in Liquid Bitcoin
             },
           );
 

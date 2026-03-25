@@ -1,21 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_validation_provider.dart';
-import 'package:mooze_mobile/features/pix/di/providers/pix_onboarding_service_provider.dart';
-import 'package:mooze_mobile/features/pix/presentation/providers.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/first_time_pix_dialog.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
+import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
+import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_validation_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/account_limits_display_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/asset_selector_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/pix_value_input_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
+/// Merchant Charge Screen (Presentation Layer)
+///
+/// The payment/checkout screen for merchant mode transactions.
+/// This screen is reached after the merchant clicks "Finalizar Venda" (Complete Sale)
+/// from the merchant mode screen.
+///
+
 class MerchantChargeScreen extends ConsumerStatefulWidget {
+  /// Total amount to charge (in BRL)
   final double totalAmount;
-  final List<CartItem> items;
+
+  /// List of cart items being purchased
+  final List<CartItemEntity> items;
 
   const MerchantChargeScreen({
     super.key,
@@ -416,10 +434,10 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Colors.orange.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -530,7 +548,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     );
   }
 
-  Widget _buildItemRow(CartItem item) {
+  Widget _buildItemRow(CartItemEntity item) {
     return Padding(
       padding: EdgeInsets.only(bottom: 12),
       child: Row(
@@ -541,7 +559,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.nome,
+                  item.name,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -549,14 +567,14 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                   ),
                 ),
                 Text(
-                  'R\$ ${item.preco.toStringAsFixed(2)}',
+                  'R\$ ${item.price.toStringAsFixed(2)}',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
             ),
           ),
           Text(
-            'x${item.quantidade}',
+            'x${item.quantity}',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,

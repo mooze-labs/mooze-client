@@ -5,7 +5,8 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 
@@ -54,19 +55,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         final seed = await ref.read(seedProvider.future);
 
                         seed.match(
-                          // erro
                           (err) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro: $err')),
-                            );
+                            AppSnackBar.error(context, 'Erro: $err');
                           },
                           (maybeSeed) {
                             maybeSeed.match(
                               () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Nenhuma seed encontrada.'),
-                                  ),
+                                AppSnackBar.warning(
+                                  context,
+                                  'Nenhuma seed encontrada.',
                                 );
                               },
                               (seedValue) {

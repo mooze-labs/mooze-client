@@ -162,7 +162,7 @@ class _WalletImportLoadingScreenState
         if (!_completedDatasources.contains(event.datasource)) {
           _completedDatasources.add(event.datasource);
           _showMessage(
-            '${_getDatasourceName(event.datasource)} - erro, continuando...',
+            '${_getDatasourceName(event.datasource)} - resincronizado...',
           ).then((_) {
             if (_completedDatasources.containsAll(_requiredDatasources)) {
               _allSyncsCompleted = true;

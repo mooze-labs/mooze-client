@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/utils/wallet_level_ui_helpers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class LevelDowngradeScreen extends StatefulWidget {
@@ -75,7 +76,6 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
       ),
     );
 
-    // Fade animation
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -86,7 +86,6 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
-    // Drop animation (soft drop effect)
     _dropController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -96,7 +95,6 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
       CurvedAnimation(parent: _dropController, curve: Curves.bounceOut),
     );
 
-    // Text animation
     _textController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -107,7 +105,6 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
 
-    // Start animations
     _startAnimations();
   }
 
@@ -132,28 +129,14 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
     super.dispose();
   }
 
-  Color _getLevelColor(int level) {
-    switch (level) {
-      case 0:
-        return const Color(0xFF8B7355);
-      case 1:
-        return const Color(0xFFC0C0C0);
-      case 2:
-        return const Color(0xFFFFD700);
-      case 3:
-        return const Color(0xFF4169E1);
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
-    final neutralColor = const Color(0xFF78909C);
-    final backgroundColor = const Color(0xFFECEFF1);
+    final neutralColor = colorScheme.outline;
+    final neutralBgColor = colorScheme.surfaceContainerHighest;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -165,14 +148,13 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  backgroundColor.withValues(alpha: 0.3),
+                  neutralBgColor.withValues(alpha: 0.3),
                   colorScheme.surface,
                 ],
               ),
             ),
           ),
 
-          // Content
           SafeArea(
             child: Center(
               child: Padding(
@@ -212,7 +194,10 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                                   opacity: _oldLevelScaleAnimation.value,
                                   child: _buildLevelCircle(
                                     widget.oldLevel,
-                                    _getLevelColor(widget.oldLevel),
+                                    WalletLevelUiHelpers.getLevelColor(
+                                      widget.oldLevel,
+                                    ),
+                                    textTheme: textTheme,
                                   ),
                                 ),
                               );
@@ -236,8 +221,11 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                                         _opacityAnimation.value,
                                     child: _buildLevelCircle(
                                       widget.newLevel,
-                                      _getLevelColor(widget.newLevel),
+                                      WalletLevelUiHelpers.getLevelColor(
+                                        widget.newLevel,
+                                      ),
                                       isDowngraded: true,
+                                      textTheme: textTheme,
                                     ),
                                   ),
                                 ),
@@ -250,7 +238,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
 
                     const SizedBox(height: 20),
 
-                    Spacer(),
+                    const Spacer(),
 
                     FadeTransition(
                       opacity: _textFadeAnimation,
@@ -259,18 +247,16 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                           Text(
                             'Seu nível foi reduzido',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 24,
+                            style: textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: neutralColor,
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Do nível ${getLevels(widget.oldLevel)} para o nível ${getLevels(widget.newLevel)}',
+                            'Do nível ${WalletLevelUiHelpers.getLevelName(widget.oldLevel)} para o nível ${WalletLevelUiHelpers.getLevelName(widget.newLevel)}',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
+                            style: textTheme.titleMedium?.copyWith(
                               color: colorScheme.onSurface.withValues(
                                 alpha: 0.7,
                               ),
@@ -284,8 +270,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                             child: Text(
                               'Seu nível foi reduzido devido à inatividade. Continue usando o aplicativo para manter ou aumentar seu nível!',
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
+                              style: textTheme.bodyLarge?.copyWith(
                                 height: 1.5,
                                 color: colorScheme.onSurface.withValues(
                                   alpha: 0.6,
@@ -313,8 +298,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                                   child: Text(
                                     'Dica: Use a carteira regularmente para recuperar seus benefícios',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 14,
+                                    style: textTheme.titleSmall?.copyWith(
                                       color: neutralColor,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -327,7 +311,7 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
                       ),
                     ),
 
-                    Spacer(),
+                    const Spacer(),
 
                     FadeTransition(
                       opacity: _fadeAnimation,
@@ -349,52 +333,26 @@ class _LevelDowngradeScreenState extends State<LevelDowngradeScreen>
     );
   }
 
-  String getLevels(level) {
-    switch (level) {
-      case 0:
-        return 'Bronze';
-      case 1:
-        return 'Prata';
-      case 2:
-        return 'Ouro';
-      case 3:
-        return 'Diamante';
-      default:
-        return 'Bronze';
-    }
-  }
-
-  IconData _getLevelIcon(int level) {
-    switch (level) {
-      case 0:
-        return Icons.military_tech;
-      case 1:
-        return Icons.workspace_premium;
-      case 2:
-        return Icons.emoji_events;
-      case 3:
-        return Icons.diamond;
-      default:
-        return Icons.military_tech;
-    }
-  }
-
   Widget _buildLevelCircle(
     int level,
     Color color, {
     bool isDowngraded = false,
+    required TextTheme textTheme,
   }) {
     final displayColor = isDowngraded ? color.withValues(alpha: 0.6) : color;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(_getLevelIcon(level), size: 120, color: displayColor),
+        Icon(
+          WalletLevelUiHelpers.getLevelIcon(level),
+          size: 120,
+          color: displayColor,
+        ),
         const SizedBox(height: 16),
         Text(
-          getLevels(level),
-          style: TextStyle(
-            fontSize: 28,
+          WalletLevelUiHelpers.getLevelName(level),
+          style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: displayColor,
           ),

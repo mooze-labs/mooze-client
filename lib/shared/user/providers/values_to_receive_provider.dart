@@ -3,26 +3,27 @@ import 'package:fpdart/fpdart.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 
 /// Model for values to receive for each asset
 class AssetToReceive {
   final Asset asset;
-  final int valueInSatoshis;
+  // Value in BRL cents, as returned by the API
+  final int valueInCents;
   final String formattedValue;
-  final String formattedValueInFiat;
-  final double valueInFiat;
+  // Display value in the user's chosen currency
+  final double displayValue;
 
   const AssetToReceive({
     required this.asset,
-    required this.valueInSatoshis,
+    required this.valueInCents,
     required this.formattedValue,
-    required this.formattedValueInFiat,
-    required this.valueInFiat,
+    required this.displayValue,
   });
 
-  double get valueInReais => valueInSatoshis / 100000000.0;
+  double get valueInReais => valueInCents / 100.0;
 }
 
 /// Provider that returns the values to receive grouped by asset
@@ -30,51 +31,42 @@ final valuesToReceiveProvider = FutureProvider.autoDispose<
   Either<String, List<AssetToReceive>>
 >((ref) async {
   final userInfo = await ref.watch(userInfoProvider.future);
+  final currency = ref.watch(currencyControllerProvider);
   final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+  final formatter = NumberFormat('#,##0.00', 'pt_BR');
 
-  return userInfo.fold((error) => Either.left(error), (user) async {
+  double brlToUsdRate = 1.0;
+  if (currency == Currency.usd) {
+    final depixPriceResult = await ref.watch(
+      fiatPriceProvider(Asset.depix).future,
+    );
+    depixPriceResult.fold((_) => null, (rate) {
+      if (rate > 0) brlToUsdRate = rate;
+    });
+  }
+
+  return userInfo.fold((error) => Either.left(error), (user) {
     try {
       final List<AssetToReceive> toReceiveList = [];
 
       for (final entry in user.valuesToReceive.entries) {
         final assetId = entry.key;
-        final valueInSatoshis = entry.value;
+        final valueInCents = entry.value;
 
-        if (valueInSatoshis > 0) {
+        if (valueInCents > 0) {
           final asset = _getAssetFromId(assetId);
           if (asset != null) {
-            String formattedValue;
-            String formattedValueInFiat;
-            double valueInFiat;
-
-            final assetAmount = valueInSatoshis / 100000000.0;
-            final priceResult = await ref.read(fiatPriceProvider(asset).future);
-
-            valueInFiat = priceResult.fold(
-              (error) => 0.0,
-              (price) => assetAmount * price,
-            );
-
-            if (asset == Asset.btc || asset == Asset.lbtc) {
-              final formatter = NumberFormat('#,##0', 'pt_BR');
-              final formattedSats = formatter.format(valueInSatoshis);
-              formattedValue = '$formattedSats sats';
-            } else {
-              final formatter = NumberFormat('#,##0.00000000', 'pt_BR');
-              final formattedAmount = formatter.format(assetAmount);
-              formattedValue = '$formattedAmount ${asset.ticker}';
-            }
-
-            formattedValueInFiat =
-                '$currencyIcon ${valueInFiat.toStringAsFixed(2)}';
+            final valueInReais = valueInCents / 100.0;
+            final displayValue = valueInReais * brlToUsdRate;
+            final formattedValue =
+                '$currencyIcon ${formatter.format(displayValue)}';
 
             toReceiveList.add(
               AssetToReceive(
                 asset: asset,
-                valueInSatoshis: valueInSatoshis,
+                valueInCents: valueInCents,
                 formattedValue: formattedValue,
-                formattedValueInFiat: formattedValueInFiat,
-                valueInFiat: valueInFiat,
+                displayValue: displayValue,
               ),
             );
           }
@@ -82,9 +74,7 @@ final valuesToReceiveProvider = FutureProvider.autoDispose<
       }
 
       // Sort by value (highest first)
-      toReceiveList.sort(
-        (a, b) => b.valueInSatoshis.compareTo(a.valueInSatoshis),
-      );
+      toReceiveList.sort((a, b) => b.valueInCents.compareTo(a.valueInCents));
 
       return Either.right(toReceiveList);
     } catch (e) {
@@ -93,18 +83,17 @@ final valuesToReceiveProvider = FutureProvider.autoDispose<
   });
 });
 
-/// Provider that returns the total value to receive across all assets in BRL
+/// Provider that returns the total value to receive in the user's currency
 final totalValueToReceiveProvider = FutureProvider.autoDispose<double>((
   ref,
 ) async {
   final valuesToReceiveResult = await ref.watch(valuesToReceiveProvider.future);
 
   return valuesToReceiveResult.fold((error) => 0.0, (toReceiveList) {
-    final total = toReceiveList.fold<double>(
+    return toReceiveList.fold<double>(
       0.0,
-      (sum, item) => sum + item.valueInFiat,
+      (sum, item) => sum + item.displayValue,
     );
-    return total;
   });
 });
 

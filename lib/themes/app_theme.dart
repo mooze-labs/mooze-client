@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import 'app_extra_colors.dart';
 import 'app_text_styles.dart';
 import 'component_themes.dart';
 
@@ -49,6 +50,9 @@ class AppTheme {
 
       // Checkbox Theme
       checkboxTheme: ComponentThemes.checkboxTheme,
+
+      // Custom color extensions
+      extensions: [AppExtraColors.dark],
     );
   }
 }
