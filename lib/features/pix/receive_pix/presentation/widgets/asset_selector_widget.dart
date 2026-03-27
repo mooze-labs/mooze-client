@@ -7,6 +7,7 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/lbtc_warning_provider.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 const _possibleAssets = [Asset.depix, Asset.lbtc];
 
@@ -34,7 +35,7 @@ class AssetSelectorWidget extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: const Color(0xFF1C1C1C),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -45,12 +46,12 @@ class AssetSelectorWidget extends ConsumerWidget {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.amber.withValues(alpha: 0.2),
+                    color: context.appColors.warning.withValues(alpha: 0.2),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.trending_up,
                     size: 40,
-                    color: Colors.amber,
+                    color: context.appColors.warning,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -58,7 +59,6 @@ class AssetSelectorWidget extends ConsumerWidget {
                   'Câmbio Flutuante',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -66,7 +66,7 @@ class AssetSelectorWidget extends ConsumerWidget {
                   'Importante: o LBTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
+                    color: context.appColors.textSecondary,
                     height: 1.5,
                   ),
                 ),
