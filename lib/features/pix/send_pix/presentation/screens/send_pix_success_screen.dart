@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SendPixSuccessScreen extends ConsumerStatefulWidget {
   final String withdrawId;
@@ -88,17 +88,17 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.backgroundColor,
+        backgroundColor: context.colors.backgroundColor,
         body: PlatformSafeArea(
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment(0.0, -0.4),
                 radius: 0.8,
                 colors: [
                   Color(0xFF1A0A1A),
-                  AppColors.backgroundColor,
-                  AppColors.backgroundColor,
+                  context.colors.backgroundColor,
+                  context.colors.backgroundColor,
                 ],
               ),
             ),
@@ -118,11 +118,18 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.3 + (_glowAnimation.value * 0.4),
+                                  color: context.colors.primaryColor.withValues(
+                                    alpha: 0.18 + (_glowAnimation.value * 0.18),
                                   ),
-                                  blurRadius: 40 + (_glowAnimation.value * 30),
-                                  spreadRadius: 8 + (_glowAnimation.value * 15),
+                                  blurRadius: 24 + (_glowAnimation.value * 20),
+                                  spreadRadius: 0,
+                                ),
+                                BoxShadow(
+                                  color: context.colors.primaryColor.withValues(
+                                    alpha: 0.08 + (_glowAnimation.value * 0.08),
+                                  ),
+                                  blurRadius: 56 + (_glowAnimation.value * 24),
+                                  spreadRadius: 0,
                                 ),
                               ],
                             ),
@@ -132,11 +139,11 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                 width: 120,
                                 height: 120,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryColor,
+                                  color: context.colors.primaryColor,
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primaryColor.withValues(
+                                      color: context.colors.primaryColor.withValues(
                                         alpha: 0.3,
                                       ),
                                       blurRadius: 25,
@@ -144,7 +151,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.check,
                                   color: Colors.white,
                                   size: 60,
@@ -175,7 +182,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                               style: Theme.of(
                                 context,
                               ).textTheme.headlineMedium?.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.colors.textPrimary,
                                 fontWeight: FontWeight.bold,
                               ),
                               textAlign: TextAlign.center,
@@ -187,7 +194,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                             Text(
                               'Seu pagamento PIX foi realizado com sucesso!',
                               style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(color: AppColors.textSecondary),
+                                  ?.copyWith(color: context.colors.textSecondary),
                               textAlign: TextAlign.center,
                             ),
 
@@ -198,10 +205,10 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: AppColors.backgroundCard,
+                                  color: context.colors.backgroundCard,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: AppColors.primaryColor.withValues(
+                                    color: context.colors.primaryColor.withValues(
                                       alpha: 0.2,
                                     ),
                                     width: 1,
@@ -212,9 +219,9 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                     Row(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.all(12),
+                                          padding: EdgeInsets.all(12),
                                           decoration: BoxDecoration(
-                                            color: AppColors.primaryColor
+                                            color: context.colors.primaryColor
                                                 .withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(
                                               12,
@@ -222,7 +229,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                           ),
                                           child: Icon(
                                             Icons.pix,
-                                            color: AppColors.primaryColor,
+                                            color: context.colors.primaryColor,
                                             size: 32,
                                           ),
                                         ),
@@ -239,11 +246,11 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                                     .bodyMedium
                                                     ?.copyWith(
                                                       color:
-                                                          AppColors
+                                                          context.colors
                                                               .textSecondary,
                                                     ),
                                               ),
-                                              const SizedBox(height: 4),
+                                              SizedBox(height: 4),
                                               Text(
                                                 _formatCurrency(
                                                   payment.valueInBrl,
@@ -253,7 +260,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                                     .titleLarge
                                                     ?.copyWith(
                                                       color:
-                                                          AppColors.textPrimary,
+                                                          context.colors.textPrimary,
                                                       fontWeight:
                                                           FontWeight.bold,
                                                     ),
@@ -267,11 +274,11 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                     Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primaryColor
+                                        color: context.colors.primaryColor
                                             .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: AppColors.primaryColor
+                                          color: context.colors.primaryColor
                                               .withValues(alpha: 0.3),
                                           width: 1,
                                         ),
@@ -280,17 +287,17 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                         children: [
                                           Icon(
                                             Icons.info_outline,
-                                            color: AppColors.primaryColor,
+                                            color: context.colors.primaryColor,
                                             size: 20,
                                           ),
-                                          const SizedBox(width: 12),
+                                          SizedBox(width: 12),
                                           Expanded(
                                             child: Text(
                                               'O destinatário já pode verificar o recebimento do PIX.',
                                               style: Theme.of(
                                                 context,
                                               ).textTheme.bodySmall?.copyWith(
-                                                color: AppColors.textPrimary,
+                                                color: context.colors.textPrimary,
                                               ),
                                             ),
                                           ),
