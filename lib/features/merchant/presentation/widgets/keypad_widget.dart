@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Keypad Widget (Presentation Layer)
 ///
@@ -91,7 +92,7 @@ class KeypadWidget extends StatelessWidget {
             : (isSmallScreen || isNarrowScreen ? 1.5 : 4.0);
 
     return Container(
-      color: Colors.black,
+      color: context.colors.backgroundColor,
       padding: EdgeInsets.only(top: topPadding),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -101,8 +102,8 @@ class KeypadWidget extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Text(
               'R\$$typedValue',
-              style: TextStyle(
-                color: Colors.white,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: titleFontSize,
                 fontWeight: FontWeight.w300,
               ),
@@ -137,6 +138,7 @@ class KeypadWidget extends StatelessWidget {
                     children: [
                       for (int i = 1; i <= 9; i++)
                         _buildKeypadButton(
+                          context: context,
                           text: i.toString(),
                           onPressed: () => onAddDigit(i.toString()),
                           fontSize: buttonFontSize,
@@ -144,14 +146,16 @@ class KeypadWidget extends StatelessWidget {
                           margin: buttonMargin,
                         ),
                       _buildKeypadButton(
+                        context: context,
                         icon: Icons.backspace_outlined,
                         onPressed: onDeleteDigit,
-                        color: Colors.pink,
+                        color: Theme.of(context).colorScheme.primary,
                         fontSize: buttonFontSize,
                         iconSize: buttonIconSize,
                         margin: buttonMargin,
                       ),
                       _buildKeypadButton(
+                        context: context,
                         text: '0',
                         onPressed: () => onAddDigit('0'),
                         fontSize: buttonFontSize,
@@ -159,10 +163,11 @@ class KeypadWidget extends StatelessWidget {
                         margin: buttonMargin,
                       ),
                       _buildKeypadButton(
+                        context: context,
                         key: addButtonKey,
                         icon: Icons.add,
                         onPressed: onAddToTotal,
-                        color: Colors.green,
+                        color: context.colors.positiveColor,
                         fontSize: buttonFontSize,
                         iconSize: buttonIconSize,
                         margin: buttonMargin,
@@ -179,6 +184,7 @@ class KeypadWidget extends StatelessWidget {
   }
 
   Widget _buildKeypadButton({
+    required BuildContext context,
     Key? key,
     String? text,
     IconData? icon,
@@ -200,13 +206,17 @@ class KeypadWidget extends StatelessWidget {
             text != null
                 ? Text(
                   text,
-                  style: TextStyle(
-                    color: color ?? Colors.white,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: color ?? Theme.of(context).colorScheme.onSurface,
                     fontSize: fontSize,
                     fontWeight: FontWeight.w300,
                   ),
                 )
-                : Icon(icon, color: color ?? Colors.white, size: iconSize),
+                : Icon(
+                  icon,
+                  color: color ?? Theme.of(context).colorScheme.onSurface,
+                  size: iconSize,
+                ),
       ),
     );
   }
