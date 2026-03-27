@@ -127,7 +127,7 @@ class _PhoneVerificationCodeScreenState
                   keyboardType: TextInputType.number,
                   length: 6,
                   controller: _pinController,
-                  defaultPinTheme: PinThemes.focusedPinTheme,
+                  defaultPinTheme: PinThemes.focusedThemeOf(context),
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
