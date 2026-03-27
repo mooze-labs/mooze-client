@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
-import 'package:mooze_mobile/themes/app_extra_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Modal bottom sheet displaying detailed log information
 class LogDetailModal extends StatelessWidget {
@@ -11,11 +11,9 @@ class LogDetailModal extends StatelessWidget {
   const LogDetailModal({super.key, required this.log});
 
   static void show(BuildContext context, LogEntry log) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: colorScheme.surfaceContainerHighest,
+      backgroundColor: context.colors.backgroundCard,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -55,21 +53,17 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           'Log Details',
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
-          ),
+          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         IconButton(
-          icon: Icon(Icons.close, color: colorScheme.onSurface),
+          icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
         ),
       ],
@@ -77,10 +71,10 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final extraColors = Theme.of(context).extension<AppExtraColors>();
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final color = _getColorForLevel(context, log.level);
+    final dividerColor = colorScheme.onSurface.withValues(alpha: 0.12);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,24 +82,22 @@ class LogDetailModal extends StatelessWidget {
         _buildDetailRow(context, 'Level', log.level.displayName, color: color),
         _buildDetailRow(context, 'Tag', log.tag),
         _buildDetailRow(context, 'Timestamp', log.timestamp.toIso8601String()),
-        Divider(color: colorScheme.outlineVariant),
+        Divider(color: dividerColor),
         Text(
           'Message:',
           style: textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: colorScheme.outlineVariant,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
         SelectableText(
           log.message,
-          style: textTheme.titleSmall?.copyWith(
-            color: colorScheme.onSurface,
-          ),
+          style: textTheme.titleSmall,
         ),
         if (log.error != null) ...[
           const SizedBox(height: 16),
-          Divider(color: colorScheme.outlineVariant),
+          Divider(color: dividerColor),
           Text(
             'Error:',
             style: textTheme.titleSmall?.copyWith(
@@ -124,25 +116,25 @@ class LogDetailModal extends StatelessWidget {
         ],
         if (log.stackTrace != null) ...[
           const SizedBox(height: 16),
-          Divider(color: colorScheme.outlineVariant),
+          Divider(color: dividerColor),
           Text(
             'Stack Trace:',
             style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: extraColors?.warning ?? Colors.orange,
+              color: context.appColors.warning,
             ),
           ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
+              color: colorScheme.onSurface.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(8),
             ),
             child: SelectableText(
               log.stackTrace.toString(),
               style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.outlineVariant,
+                color: context.colors.textTertiary,
                 fontFamily: 'monospace',
               ),
             ),
@@ -158,8 +150,7 @@ class LogDetailModal extends StatelessWidget {
     String value, {
     Color? color,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -172,16 +163,14 @@ class LogDetailModal extends StatelessWidget {
               '$label:',
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: colorScheme.outlineVariant,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: textTheme.titleSmall?.copyWith(
-                color: color ?? colorScheme.onSurface,
-              ),
+              style: textTheme.titleSmall?.copyWith(color: color),
             ),
           ),
         ],
@@ -190,8 +179,6 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildCopyButton(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -203,7 +190,6 @@ class LogDetailModal extends StatelessWidget {
         icon: const Icon(Icons.copy),
         label: const Text('Copy Log'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
@@ -211,16 +197,15 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Color _getColorForLevel(BuildContext context, LogLevel level) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final extraColors = Theme.of(context).extension<AppExtraColors>();
+    final colorScheme = context.colorScheme;
 
     switch (level) {
       case LogLevel.debug:
-        return colorScheme.outlineVariant;
+        return context.colors.textTertiary;
       case LogLevel.info:
         return Colors.blue;
       case LogLevel.warning:
-        return extraColors?.warning ?? Colors.orange;
+        return context.appColors.warning;
       case LogLevel.error:
         return colorScheme.error;
       case LogLevel.critical:

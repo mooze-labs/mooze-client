@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/domain/entities/logs_source.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_filter_bar.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
@@ -269,18 +270,22 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final filteredLogs = _getFilteredLogs();
 
     return Scaffold(
       appBar: AppBar(elevation: 0, title: const Text('Application Logs')),
       body: Column(
         children: [
-          // Log source selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: colorScheme.outline)),
+              border: Border(
+                bottom: BorderSide(
+                  color: colorScheme.onSurface.withValues(alpha: 0.12),
+                ),
+              ),
             ),
             child: Row(
               children: [
@@ -291,11 +296,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                             .map(
                               (source) => ButtonSegment(
                                 value: source,
-                                label: Text(
-                                  source.label,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: Colors.white),
-                                ),
+                                label: Text(source.label),
                               ),
                             )
                             .toList(),
@@ -313,7 +314,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                         if (states.contains(WidgetState.selected)) {
                           return colorScheme.primary;
                         }
-                        return colorScheme.outline;
+                        return colorScheme.onSurface.withValues(alpha: 0.06);
                       }),
                     ),
                   ),
@@ -343,8 +344,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                           const SizedBox(height: 16),
                           Text(
                             'Carregando logs...',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: colorScheme.outlineVariant),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: context.colors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -353,8 +355,8 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                     ? Center(
                       child: Text(
                         'No logs found',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.outlineVariant,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     )
@@ -363,7 +365,6 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                       itemCount: filteredLogs.length + (_hasMoreData ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index == filteredLogs.length) {
-                          // Loading indicator at the end
                           return _isLoadingMore
                               ? const Padding(
                                 padding: EdgeInsets.all(16.0),
