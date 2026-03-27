@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/consts.dart'
-    as AppColors;
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_network_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/send_validation_controller.dart';
@@ -387,7 +386,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
               onPressed: () => _setMaxAmount(selectedAsset, amount.toInt()),
               style: Theme.of(
                 context,
-              ).textTheme.labelLarge!.copyWith(color: AppColors.primaryColor),
+              ).textTheme.labelLarge!.copyWith(color: context.colors.primaryColor),
             ),
           ),
       error: (err, _) => null,
@@ -503,7 +502,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
             selectedAsset: selectedAsset,
             assetAmount: btcAmount,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _buildNetworkValidations(context, network, btcAmount),
         ],
       ),
