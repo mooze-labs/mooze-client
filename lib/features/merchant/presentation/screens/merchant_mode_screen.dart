@@ -790,6 +790,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           ),
           child: PlatformSafeArea(
             iosTop: true,
+            androidTop: true,
             child: Column(
               children: [
                 Padding(

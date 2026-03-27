@@ -228,6 +228,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             ),
             child: PlatformSafeArea(
               iosTop: true,
+              androidTop: true,
               child: Column(
                 children: [
                   _buildHeader(),
@@ -340,7 +341,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           Text(
             'R\$${widget.totalAmount.toStringAsFixed(2)}',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: validation.isValid ? Colors.white : context.appColors.warning,
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -350,7 +351,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               child: Text(
                 validation.message!,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: context.appColors.warning,
+                  color: context.appColors.editColor,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -368,7 +369,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         text: TextSpan(
           text: 'Escolha o ativo que deseja receber na ',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             height: 1.4,
           ),
           children: [
@@ -453,7 +456,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                             Expanded(
                               child: Text(
                                 'Erro ao carregar limites',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelMedium?.copyWith(
                                   color: context.appColors.warning,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -483,7 +488,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                     SizedBox(width: 4),
                                     Text(
                                       'Tentar novamente',
-                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall?.copyWith(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -497,8 +504,12 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                         SizedBox(height: 8),
                         Text(
                           error.toString(),
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -518,7 +529,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
         Text(
@@ -570,7 +583,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 Text(
                   'R\$ ${item.price.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
