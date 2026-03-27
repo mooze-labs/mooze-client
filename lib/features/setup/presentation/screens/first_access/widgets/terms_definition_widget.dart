@@ -43,10 +43,7 @@ class TermsDefinitionWidget extends ConsumerWidget {
     return RichText(
       text: TextSpan(
         children: [
-          TextSpan(
-            text: "Eu li e concordo com os ",
-            style: bodyStyle?.copyWith(color: colorScheme.onPrimary),
-          ),
+          TextSpan(text: "Eu li e concordo com os ", style: bodyStyle),
           TextSpan(
             text: "Termos e Condições",
             style: bodyStyle?.copyWith(color: colorScheme.primary),

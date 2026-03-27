@@ -24,8 +24,8 @@ class ImportWalletWidget extends ConsumerWidget {
         style: textStyle.copyWith(
           color:
               hasAcceptedTerms
-                  ? colorScheme.onPrimary
-                  : colorScheme.primary.withValues(alpha: 0.5),
+                  ? colorScheme.primary
+                  : colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
     );
