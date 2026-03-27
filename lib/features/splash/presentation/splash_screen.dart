@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
 import '../../../shared/key_management/providers/has_pin_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
@@ -113,7 +114,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             //       "[SplashScreen] First time user, redirecting to /setup/onboarding",
             //     );
             //   }
-            //   context.go('/setup/onboarding');
+            // context.go('/setup/onboarding');
             // } else {
             if (kDebugMode) {
               debugPrint(
@@ -291,7 +292,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Widget _buildScaffold() {
     return Scaffold(
-      backgroundColor: Color(0xFF1A1A1A),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -314,6 +314,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           'assets/logos/logo_primary.svg',
           width: _logoWidth,
           height: _logoHeight,
+          colorFilter: ColorFilter.mode(
+            context.colors.logoColor,
+            BlendMode.srcIn,
+          ),
         ),
       ),
     );
