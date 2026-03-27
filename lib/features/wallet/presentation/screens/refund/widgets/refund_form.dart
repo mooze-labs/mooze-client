@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Form widget for entering refund address and viewing swap details
 class RefundForm extends StatelessWidget {
@@ -28,18 +28,18 @@ class RefundForm extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: addressController,
-            style: TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: context.colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Insira o endereço Bitcoin',
-              hintStyle: TextStyle(color: AppColors.textSecondary),
+              hintStyle: TextStyle(color: context.colors.textSecondary),
               filled: true,
-              fillColor: AppColors.backgroundColor,
+              fillColor: context.colors.backgroundColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -77,7 +77,7 @@ class RefundForm extends StatelessWidget {
               return null;
             },
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Divider(
               height: 32.0,

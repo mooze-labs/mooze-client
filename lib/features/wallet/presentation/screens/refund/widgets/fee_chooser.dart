@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Widget to display and choose between different fee options
 class FeeChooser extends StatelessWidget {
@@ -29,7 +29,7 @@ class FeeChooser extends StatelessWidget {
       return Center(
         child: Text(
           'Valor muito pequeno para cobrir as taxas',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
         ),
       );
     }
@@ -41,13 +41,13 @@ class FeeChooser extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 24.0),
+          padding: EdgeInsets.only(bottom: 24.0),
           child: Text(
             'Selecione a velocidade da transação',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -59,6 +59,7 @@ class FeeChooser extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: _buildFeeOptionCard(
+              context,
               label: labels[index]['label']!,
               estimatedTime: labels[index]['time']!,
               feeRate: feeOption.feeRateSatPerVbyte.toInt(),
@@ -72,7 +73,8 @@ class FeeChooser extends StatelessWidget {
     );
   }
 
-  Widget _buildFeeOptionCard({
+  Widget _buildFeeOptionCard(
+    BuildContext context, {
     required String label,
     required String estimatedTime,
     required int feeRate,
@@ -87,10 +89,10 @@ class FeeChooser extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? AppColors.primaryColor.withValues(alpha: 0.1)
-                  : AppColors.backgroundCard,
+                  ? context.colors.primaryColor.withValues(alpha: 0.1)
+                  : context.colors.backgroundCard,
           border: Border.all(
-            color: isSelected ? AppColors.primaryColor : Colors.transparent,
+            color: isSelected ? context.colors.primaryColor : Colors.transparent,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -104,7 +106,7 @@ class FeeChooser extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -112,7 +114,7 @@ class FeeChooser extends StatelessWidget {
                 if (isSelected)
                   Icon(
                     Icons.check_circle,
-                    color: AppColors.primaryColor,
+                    color: context.colors.primaryColor,
                     size: 24,
                   ),
               ],
@@ -120,23 +122,23 @@ class FeeChooser extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               estimatedTime,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Taxa: $feeRate sat/vB',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
                 Text(
                   'Total: ${_formatSats(txFee)} sats',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Card widget to display a refundable swap item
 class RefundItemCard extends StatelessWidget {
@@ -24,17 +24,17 @@ class RefundItemCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
+          color: context.colors.backgroundCard,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primaryColor.withValues(alpha: 0.2),
+            color: context.colors.primaryColor.withValues(alpha: 0.2),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryColor.withValues(alpha: 0.05),
+              color: context.colors.primaryColor.withValues(alpha: 0.05),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -60,7 +60,7 @@ class RefundItemCard extends StatelessWidget {
                           color:
                               lastRefundTxId.isNotEmpty
                                   ? Colors.orange.withValues(alpha: 0.15)
-                                  : AppColors.primaryColor.withValues(
+                                  : context.colors.primaryColor.withValues(
                                     alpha: 0.15,
                                   ),
                           borderRadius: BorderRadius.circular(20),
@@ -76,9 +76,9 @@ class RefundItemCard extends StatelessWidget {
                               color:
                                   lastRefundTxId.isNotEmpty
                                       ? Colors.orange
-                                      : AppColors.primaryColor,
+                                      : context.colors.primaryColor,
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               lastRefundTxId.isNotEmpty
                                   ? 'Pendente'
@@ -87,7 +87,7 @@ class RefundItemCard extends StatelessWidget {
                                 color:
                                     lastRefundTxId.isNotEmpty
                                         ? Colors.orange
-                                        : AppColors.primaryColor,
+                                        : context.colors.primaryColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -95,11 +95,11 @@ class RefundItemCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Spacer(),
+                      Spacer(),
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        color: context.colors.textSecondary.withValues(alpha: 0.5),
                       ),
                     ],
                   ),
@@ -112,30 +112,30 @@ class RefundItemCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primaryColor.withValues(alpha: 0.1),
-                          AppColors.primaryColor.withValues(alpha: 0.05),
+                          context.colors.primaryColor.withValues(alpha: 0.1),
+                          context.colors.primaryColor.withValues(alpha: 0.05),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.primaryColor.withValues(alpha: 0.2),
+                        color: context.colors.primaryColor.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.15,
                             ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             Icons.currency_bitcoin,
-                            color: AppColors.primaryColor,
+                            color: context.colors.primaryColor,
                             size: 24,
                           ),
                         ),
@@ -148,16 +148,16 @@ class RefundItemCard extends StatelessWidget {
                                 'Valor do Reembolso',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: context.colors.textSecondary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 _formatAmount(refundableSwap.amountSat.toInt()),
                                 style: TextStyle(
                                   fontSize: 18,
-                                  color: AppColors.textPrimary,
+                                  color: context.colors.textPrimary,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -207,13 +207,13 @@ class RefundItemCard extends StatelessWidget {
                     height: 48,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
+                        backgroundColor: context.colors.primaryColor,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        shadowColor: AppColors.primaryColor.withValues(
+                        shadowColor: context.colors.primaryColor.withValues(
                           alpha: 0.3,
                         ),
                       ).copyWith(elevation: WidgetStateProperty.all(4)),
@@ -232,7 +232,7 @@ class RefundItemCard extends StatelessWidget {
                             lastRefundTxId.isNotEmpty
                                 ? 'Retransmitir'
                                 : 'Continuar',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -262,12 +262,12 @@ class RefundItemCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.backgroundColor.withValues(alpha: 0.5),
+        color: context.colors.backgroundColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textSecondary),
+          Icon(icon, size: 18, color: context.colors.textSecondary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -277,16 +277,16 @@ class RefundItemCard extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -303,8 +303,8 @@ class RefundItemCard extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('Copiado!'),
-                    duration: const Duration(seconds: 2),
-                    backgroundColor: AppColors.primaryColor,
+                    duration: Duration(seconds: 2),
+                    backgroundColor: context.colors.primaryColor,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -314,15 +314,15 @@ class RefundItemCard extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.1),
+                  color: context.colors.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.copy,
                   size: 16,
-                  color: AppColors.primaryColor,
+                  color: context.colors.primaryColor,
                 ),
               ),
             ),
