@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import 'asset_filter_entity.dart';
 
@@ -68,12 +68,12 @@ class _FilterByAssetState extends State<FilterByAsset> {
                       borderRadius: BorderRadius.circular(15),
                       color:
                           isSelected
-                              ? AppColors.primaryColor.withValues(alpha: 0.3)
+                              ? context.colors.primaryColor.withValues(alpha: 0.3)
                               : Colors.grey,
                       border:
                           isSelected
                               ? Border.all(
-                                color: AppColors.primaryColor,
+                                color: context.colors.primaryColor,
                                 width: 2,
                               )
                               : null,
@@ -85,7 +85,7 @@ class _FilterByAssetState extends State<FilterByAsset> {
                           asset.name,
                           maxLines: 2,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             overflow: TextOverflow.ellipsis,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,

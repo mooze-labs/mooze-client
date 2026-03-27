@@ -5,7 +5,7 @@ import 'package:mooze_mobile/features/transaction_history/widgets/transaction_fi
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
 import 'package:mooze_mobile/shared/widgets/buttons.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
   required BuildContext contextFlow,
@@ -66,8 +66,8 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
       return StatefulBuilder(
         builder: (context, setState) {
           return Container(
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceColor,
+            decoration: BoxDecoration(
+              color: context.colors.surfaceColor,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: DraggableScrollableSheet(
@@ -157,7 +157,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                   BorderRadius.circular(15),
                                               color:
                                                   isSelected
-                                                      ? AppColors.primaryColor
+                                                      ? context.colors.primaryColor
                                                           .withValues(
                                                             alpha: 0.3,
                                                           )
@@ -166,7 +166,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                   isSelected
                                                       ? Border.all(
                                                         color:
-                                                            AppColors
+                                                            context.colors
                                                                 .primaryColor,
                                                         width: 2,
                                                       )
@@ -175,7 +175,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                             child: Center(
                                               child: Padding(
                                                 padding:
-                                                    const EdgeInsets.symmetric(
+                                                    EdgeInsets.symmetric(
                                                       horizontal: 5.0,
                                                     ),
                                                 child: Text(
@@ -233,7 +233,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                   BorderRadius.circular(15),
                                               color:
                                                   isSelected
-                                                      ? AppColors.primaryColor
+                                                      ? context.colors.primaryColor
                                                           .withValues(
                                                             alpha: 0.3,
                                                           )
@@ -242,7 +242,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                   isSelected
                                                       ? Border.all(
                                                         color:
-                                                            AppColors
+                                                            context.colors
                                                                 .primaryColor,
                                                         width: 2,
                                                       )
@@ -251,7 +251,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                             child: Center(
                                               child: Padding(
                                                 padding:
-                                                    const EdgeInsets.symmetric(
+                                                    EdgeInsets.symmetric(
                                                       horizontal: 5.0,
                                                     ),
                                                 child: Text(
@@ -355,7 +355,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                           ),
                                                       color:
                                                           isSelected
-                                                              ? AppColors
+                                                              ? context.colors
                                                                   .primaryColor
                                                                   .withValues(
                                                                     alpha: 0.3,
@@ -365,7 +365,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                           isSelected
                                                               ? Border.all(
                                                                 color:
-                                                                    AppColors
+                                                                    context.colors
                                                                         .primaryColor,
                                                                 width: 2,
                                                               )
@@ -419,7 +419,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                       endDate != null &&
                                                       selectedDateRangeIndex ==
                                                           null
-                                                  ? AppColors.primaryColor
+                                                  ? context.colors.primaryColor
                                                       .withValues(alpha: 0.3)
                                                   : Colors.grey,
                                           border:
@@ -429,7 +429,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                           null
                                                   ? Border.all(
                                                     color:
-                                                        AppColors.primaryColor,
+                                                        context.colors.primaryColor,
                                                     width: 2,
                                                   )
                                                   : null,
@@ -451,7 +451,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                           null
                                                   ? '${_formatDate(startDate!)} - ${_formatDate(endDate!)}'
                                                   : 'Período personalizado',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.white,

@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/overlay_widget.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 Future<DateTimeRange?> datapicker(
   BuildContext context, {
@@ -24,8 +24,8 @@ Future<DateTimeRange?> datapicker(
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return Container(
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceColor,
+            decoration: BoxDecoration(
+              color: context.colors.surfaceColor,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               boxShadow: [
                 BoxShadow(
@@ -92,18 +92,18 @@ Future<DateTimeRange?> datapicker(
                                       side: BorderSide(
                                         color:
                                             isSelectingStartDate
-                                                ? theme.colorScheme.onPrimary
-                                                    .withValues(alpha: 0.4)
+                                                ? theme.colorScheme.primary
+                                                    .withValues(alpha: 0.5)
                                                 : Colors.transparent,
-                                        width: 1,
+                                        width: 1.5,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
                                   backgroundColor:
                                       WidgetStateProperty.all<Color>(
-                                        theme.colorScheme.onPrimary.withValues(
-                                          alpha: 0.1,
+                                        theme.colorScheme.surface.withValues(
+                                          alpha: 1,
                                         ),
                                       ),
                                   elevation: WidgetStateProperty.all(0),
@@ -138,18 +138,18 @@ Future<DateTimeRange?> datapicker(
                                       side: BorderSide(
                                         color:
                                             !isSelectingStartDate
-                                                ? theme.colorScheme.onPrimary
-                                                    .withValues(alpha: 0.4)
+                                                ? theme.colorScheme.primary
+                                                    .withValues(alpha: 0.5)
                                                 : Colors.transparent,
-                                        width: 1,
+                                        width: 1.5,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
                                   backgroundColor:
                                       WidgetStateProperty.all<Color>(
-                                        theme.colorScheme.onPrimary.withValues(
-                                          alpha: 0.1,
+                                        theme.colorScheme.surface.withValues(
+                                          alpha: 1,
                                         ),
                                       ),
                                   elevation: WidgetStateProperty.all(0),
