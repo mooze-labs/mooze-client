@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
 class AssetHeaderWidget extends ConsumerWidget {
@@ -15,233 +16,243 @@ class AssetHeaderWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final icon = ref.watch(currencyControllerProvider.notifier).icon;
-    final priceHistory = ref.watch(assetPriceHistoryProvider(asset));
-
-    // Usar o fiatPriceProvider que já tem cache integrado do HybridPriceService
+    final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
     final priceAsync = ref.watch(fiatPriceProvider(asset));
+    final priceHistory = ref.watch(assetPriceHistoryProvider(asset));
     final isUsingCache = ref.watch(isUsingCacheProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryColor.withValues(alpha: 0.2),
-            AppColors.primaryColor.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color:
-              isUsingCache
-                  ? Colors.orange.withValues(alpha: 0.5)
-                  : AppColors.primaryColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Indicador de cache no topo se offline
-          if (isUsingCache) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.offline_bolt, color: Colors.orange, size: 16),
-                  SizedBox(width: 4),
-                  Text(
-                    'Dados offline',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16),
-          ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    asset.name,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  priceAsync.when(
-                    data:
-                        (priceResult) => priceResult.fold(
-                          (error) => _buildErrorPrice(),
-                          (price) => _buildCurrentPrice(icon, price),
-                        ),
-                    loading: () => _buildLoadingPrice(),
-                    error: (_, _) => _buildErrorPrice(),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: SvgPicture.asset(asset.iconPath, width: 48, height: 48),
-              ),
-            ],
-          ),
+    final colorScheme = context.colorScheme;
+    final warning = context.appColors.warning;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isUsingCache) ...[
+          _buildOfflineBadge(context, warning),
           const SizedBox(height: 16),
-          priceHistory.when(
-            data:
-                (data) => data.fold(
-                  (err) => _buildErrorChange(),
-                  (klines) => _buildPriceChange(klines, ref),
+        ],
+
+        // Asset identity row
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.onSurface.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: SvgPicture.asset(asset.iconPath, width: 32, height: 32),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  asset.name,
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-            error: (_, _) => _buildErrorChange(),
-            loading: () => _buildLoadingChange(),
+                Text(
+                  asset.ticker,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // Price hero
+        priceAsync.when(
+          data: (result) => result.fold(
+            (_) => _buildErrorPrice(context),
+            (price) => _buildCurrentPrice(context, currencyIcon, price),
+          ),
+          loading: () => _buildLoadingPrice(context),
+          error: (_, _) => _buildErrorPrice(context),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Change row
+        priceHistory.when(
+          data: (data) => data.fold(
+            (_) => _buildErrorChange(context),
+            (klines) => _buildPriceChange(context, klines, ref),
+          ),
+          error: (_, _) => _buildErrorChange(context),
+          loading: () => _buildLoadingChange(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOfflineBadge(BuildContext context, Color warning) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.offline_bolt, color: warning, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            'Dados offline',
+            style: context.textTheme.labelSmall?.copyWith(
+              color: warning,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCurrentPrice(String icon, double price) {
+  static final _numberFormat = NumberFormat('#,##0.00', 'en_US');
+
+  Widget _buildCurrentPrice(BuildContext context, String icon, double price) {
     return Text(
-      '$icon ${price.toStringAsFixed(2)}',
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 25,
+      '$icon ${_numberFormat.format(price)}',
+      style: context.textTheme.headlineLarge?.copyWith(
         fontWeight: FontWeight.bold,
+        letterSpacing: -0.5,
       ),
     );
   }
 
-  Widget _buildErrorPrice() {
-    return const Text(
+  Widget _buildErrorPrice(BuildContext context) {
+    return Text(
       'N/A',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 32,
+      style: context.textTheme.headlineLarge?.copyWith(
         fontWeight: FontWeight.bold,
+        letterSpacing: -0.5,
+        color: context.colors.textSecondary,
       ),
     );
   }
 
-  Widget _buildLoadingPrice() {
+  Widget _buildLoadingPrice(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.baseColor,
-      highlightColor: AppColors.highlightColor,
+      baseColor: context.colors.baseColor,
+      highlightColor: context.colors.highlightColor,
       child: Container(
-        width: 120,
-        height: 32,
+        width: 180,
+        height: 44,
         decoration: BoxDecoration(
-          color: AppColors.baseColor,
+          color: context.colors.baseColor,
           borderRadius: BorderRadius.circular(8),
         ),
       ),
     );
   }
 
-  Widget _buildPriceChange(List<double> klines, WidgetRef ref) {
+  Widget _buildPriceChange(
+    BuildContext context,
+    List<double> klines,
+    WidgetRef ref,
+  ) {
     final percentage = ((klines.last - klines.first) / klines.first) * 100;
-    final isPositive = klines.last > klines.first;
+    final isPositive = klines.last >= klines.first;
     final change = klines.last - klines.first;
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
+    final lineColor = isPositive
+        ? context.colors.positiveColor
+        : context.colors.negativeColor;
 
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color:
-                isPositive
-                    ? Colors.green.withValues(alpha: 0.2)
-                    : Colors.red.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isPositive ? Colors.green : Colors.red,
-              width: 1,
-            ),
+            color: lineColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? Colors.green : Colors.red,
-                size: 16,
+                isPositive
+                    ? Icons.arrow_drop_up_rounded
+                    : Icons.arrow_drop_down_rounded,
+                color: lineColor,
+                size: 20,
               ),
-              const SizedBox(width: 4),
               Text(
                 '${isPositive ? '+' : ''}${percentage.toStringAsFixed(2)}%',
-                style: TextStyle(
-                  color: isPositive ? Colors.green : Colors.red,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                style: context.textTheme.labelLarge?.copyWith(
+                  color: lineColor,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Text(
-          '${isPositive ? '+' : ''}$icon ${change.toStringAsFixed(2)} (24h)',
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+          '${isPositive ? '+' : ''}$icon ${_numberFormat.format(change.abs())}',
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: context.colorScheme.onSurface.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            '24h',
+            style: context.textTheme.labelSmall?.copyWith(
+              color: context.colors.textTertiary,
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildLoadingChange() {
+  Widget _buildLoadingChange(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.baseColor,
-      highlightColor: AppColors.highlightColor,
+      baseColor: context.colors.baseColor,
+      highlightColor: context.colors.highlightColor,
       child: Container(
         width: 150,
-        height: 20,
+        height: 30,
         decoration: BoxDecoration(
-          color: AppColors.baseColor,
-          borderRadius: BorderRadius.circular(8),
+          color: context.colors.baseColor,
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
     );
   }
 
-  Widget _buildErrorChange() {
+  Widget _buildErrorChange(BuildContext context) {
+    final outline = context.colorScheme.outline;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey, width: 1),
+        color: outline.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.remove, color: Colors.grey, size: 16),
-          SizedBox(width: 4),
+          Icon(Icons.remove, color: outline, size: 14),
+          const SizedBox(width: 4),
           Text(
             'N/A',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
+            style: context.textTheme.labelLarge?.copyWith(
+              color: outline,
               fontWeight: FontWeight.w600,
             ),
           ),
