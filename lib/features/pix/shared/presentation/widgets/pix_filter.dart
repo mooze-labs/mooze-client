@@ -4,7 +4,7 @@ import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
 import 'package:mooze_mobile/shared/widgets/buttons.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 Future<PixFiltersEntity?> showPixFilterDraggableSheet({
   required BuildContext contextFlow,
@@ -54,8 +54,8 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
       return StatefulBuilder(
         builder: (context, setState) {
           return Container(
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceColor,
+            decoration: BoxDecoration(
+              color: context.colors.surfaceColor,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: DraggableScrollableSheet(
@@ -118,6 +118,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                           _buildFilterSection(
                             title: 'Status do depósito',
                             child: _buildOptimizedGrid(
+                              context,
                               items: [
                                 'all',
                                 'pending',
@@ -173,7 +174,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                   BorderRadius.circular(15),
                                               color:
                                                   isSelected
-                                                      ? AppColors.primaryColor
+                                                      ? context.colors.primaryColor
                                                           .withValues(
                                                             alpha: 0.3,
                                                           )
@@ -182,7 +183,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                   isSelected
                                                       ? Border.all(
                                                         color:
-                                                            AppColors
+                                                            context.colors
                                                                 .primaryColor,
                                                         width: 2,
                                                       )
@@ -190,7 +191,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                             ),
                                             child: Center(
                                               child: Padding(
-                                                padding: const EdgeInsets.all(
+                                                padding: EdgeInsets.all(
                                                   8.0,
                                                 ),
                                                 child: Text(
@@ -278,7 +279,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                           ),
                                                       color:
                                                           isSelected
-                                                              ? AppColors
+                                                              ? context.colors
                                                                   .primaryColor
                                                                   .withValues(
                                                                     alpha: 0.3,
@@ -288,7 +289,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                           isSelected
                                                               ? Border.all(
                                                                 color:
-                                                                    AppColors
+                                                                    context.colors
                                                                         .primaryColor,
                                                                 width: 2,
                                                               )
@@ -340,7 +341,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                       endDate != null &&
                                                       selectedDateRangeIndex ==
                                                           null
-                                                  ? AppColors.primaryColor
+                                                  ? context.colors.primaryColor
                                                       .withValues(alpha: 0.3)
                                                   : Colors.grey,
                                           border:
@@ -350,7 +351,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                           null
                                                   ? Border.all(
                                                     color:
-                                                        AppColors.primaryColor,
+                                                        context.colors.primaryColor,
                                                     width: 2,
                                                   )
                                                   : null,
@@ -372,7 +373,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                           null
                                                   ? '${_formatDate(startDate!)} - ${_formatDate(endDate!)}'
                                                   : 'Período personalizado',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.white,
@@ -487,7 +488,8 @@ Widget _buildFilterSection({
   );
 }
 
-Widget _buildOptimizedGrid<T>({
+Widget _buildOptimizedGrid<T>(
+  BuildContext context, {
   required List<T> items,
   required T selectedItem,
   required Function(T) onItemSelected,
@@ -551,14 +553,14 @@ Widget _buildOptimizedGrid<T>({
                                 borderRadius: BorderRadius.circular(15),
                                 color:
                                     isSelected
-                                        ? AppColors.primaryColor.withValues(
+                                        ? context.colors.primaryColor.withValues(
                                           alpha: 0.3,
                                         )
                                         : Colors.grey,
                                 border:
                                     isSelected
                                         ? Border.all(
-                                          color: AppColors.primaryColor,
+                                          color: context.colors.primaryColor,
                                           width: 2,
                                         )
                                         : null,
@@ -566,7 +568,7 @@ Widget _buildOptimizedGrid<T>({
                               child: Center(
                                 child: Text(
                                   labelBuilder(item),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
