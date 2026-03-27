@@ -101,6 +101,7 @@ dependencies:
   mailto: ^2.0.0
   flutter_email_sender: ^6.0.3
   mutex: ^3.1.0
+  fl_chart: ^0.69.0
 
 dependency_overrides:
 
