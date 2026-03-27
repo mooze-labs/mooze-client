@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
 
 /// Add/Edit Item Modal (Presentation Layer)
 ///
@@ -40,7 +40,7 @@ class AddEditItemModal {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFF1A1A1A),
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                 ),
                 child: Padding(
@@ -54,9 +54,8 @@ class AddEditItemModal {
                         children: [
                           Text(
                             'Adicionar Produto',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -64,7 +63,7 @@ class AddEditItemModal {
                             onPressed: () => Navigator.pop(context),
                             icon: Icon(
                               Icons.close,
-                              color: Colors.grey[400],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                               size: 24,
                             ),
                             padding: EdgeInsets.zero,
@@ -79,21 +78,24 @@ class AddEditItemModal {
 
                       Text(
                         'Nome do produto',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       SizedBox(height: 8),
                       TextField(
                         controller: nomeController,
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Digite o nome do produto',
-                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
                           filled: true,
-                          fillColor: Color(0xFF2A2A2A),
+                          fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -115,9 +117,8 @@ class AddEditItemModal {
 
                       Text(
                         'Preço',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -128,24 +129,27 @@ class AddEditItemModal {
                         keyboardType: TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'R\$ 0,00',
-                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
                           prefixIcon: Container(
                             width: 50,
                             alignment: Alignment.center,
                             child: Text(
                               'R\$',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 16,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                           filled: true,
-                          fillColor: Color(0xFF2A2A2A),
+                          fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -233,7 +237,7 @@ class AddEditItemModal {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFF1A1A1A),
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                 ),
                 child: Padding(
@@ -247,9 +251,8 @@ class AddEditItemModal {
                         children: [
                           Text(
                             'Editar Produto',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -257,7 +260,7 @@ class AddEditItemModal {
                             onPressed: () => Navigator.pop(context),
                             icon: Icon(
                               Icons.close,
-                              color: Colors.grey[400],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                               size: 24,
                             ),
                             padding: EdgeInsets.zero,
@@ -272,21 +275,24 @@ class AddEditItemModal {
 
                       Text(
                         'Nome do produto',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       SizedBox(height: 8),
                       TextField(
                         controller: nomeController,
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Digite o nome do produto',
-                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
                           filled: true,
-                          fillColor: Color(0xFF2A2A2A),
+                          fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -308,9 +314,8 @@ class AddEditItemModal {
 
                       Text(
                         'Preço',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -321,24 +326,27 @@ class AddEditItemModal {
                         keyboardType: TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'R\$ 0,00',
-                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
                           prefixIcon: Container(
                             width: 50,
                             alignment: Alignment.center,
                             child: Text(
                               'R\$',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 16,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                           filled: true,
-                          fillColor: Color(0xFF2A2A2A),
+                          fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -367,7 +375,7 @@ class AddEditItemModal {
                                 onPressed: () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
-                                    color: Colors.grey[600]!,
+                                    color: Theme.of(context).colorScheme.outline,
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(
@@ -376,9 +384,8 @@ class AddEditItemModal {
                                 ),
                                 child: Text(
                                   'Cancelar',
-                                  style: TextStyle(
-                                    color: Colors.grey[300],
-                                    fontSize: 16,
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurface,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
