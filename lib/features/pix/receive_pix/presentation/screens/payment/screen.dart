@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import 'consts.dart';
 import 'providers/pix_deposit_provider.dart';
@@ -112,13 +112,13 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
                                 1.2,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.primaryColor,
+                              color: context.colors.primaryColor,
                             ),
                           ),
                         ),
                         Opacity(
                           opacity: progress,
-                          child: Container(color: AppColors.primaryColor),
+                          child: Container(color: context.colors.primaryColor),
                         ),
                       ],
                     ),
@@ -179,7 +179,7 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
                             builder:
                                 (dialogContext) => AlertDialog(
                                   title: const Text('Tempo Esgotado'),
-                                  content: const Text(
+                                  content: Text(
                                     'O tempo para realizar o pagamento expirou. Por favor, gere um novo PIX.',
                                   ),
                                   actions: [
@@ -207,10 +207,7 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
                       SizedBox(height: 20),
                       Text(
                         "Powered by depix.info",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(fontSize: 12),
                       ),
                       SizedBox(height: 20),
                       CopyableAddress(pixKey: widget.deposit.pixKey),
