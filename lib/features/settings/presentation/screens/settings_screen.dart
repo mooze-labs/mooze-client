@@ -105,6 +105,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
+              title: 'APARÊNCIA',
+              settingsItems: [
+                ConfigStructure(
+                  title: 'Tema',
+                  iconSvgPath: 'assets/icons/menu/settings/theme.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/theme-selector',
+                  ),
+                ),
+              ],
+            ),
+            SectionSettings(
               title: 'MOEDA',
               settingsItems: [
                 ConfigStructure(
