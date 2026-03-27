@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SendPixInputScreen extends ConsumerStatefulWidget {
   const SendPixInputScreen({super.key});
@@ -37,8 +37,8 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
-        color: AppColors.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        color: context.colors.backgroundColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -136,43 +136,43 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.primaryColor.withValues(alpha: 0.1),
-                        AppColors.primaryColor.withValues(alpha: 0.05),
+                        context.colors.primaryColor.withValues(alpha: 0.1),
+                        context.colors.primaryColor.withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppColors.primaryColor.withValues(alpha: 0.2),
+                      color: context.colors.primaryColor.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withValues(alpha: 0.1),
+                          color: context.colors.primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.pix,
                           size: 40,
-                          color: AppColors.primaryColor,
+                          color: context.colors.primaryColor,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Insira a chave PIX',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         'Cole a chave ou escaneie o QR Code',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -193,7 +193,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                             context,
                           ).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                       ],
@@ -202,18 +202,18 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                     TextField(
                       controller: _pixKeyController,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         hintText: 'exemplo@email.com ou chave aleatória',
                         hintStyle: TextStyle(
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          color: context.colors.textSecondary.withValues(alpha: 0.5),
                         ),
                         suffixIcon: IconButton(
                           onPressed: _isLoading ? null : _showQRScanner,
                           icon: Icon(
                             Icons.qr_code_scanner,
-                            color: AppColors.primaryColor,
+                            color: context.colors.primaryColor,
                           ),
                           tooltip: 'Escanear QR Code',
                         ),
@@ -223,7 +223,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.2,
                             ),
                           ),
@@ -231,13 +231,13 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: AppColors.primaryColor,
+                            color: context.colors.primaryColor,
                             width: 2,
                           ),
                         ),
                         filled: true,
-                        fillColor: AppColors.backgroundCard,
-                        contentPadding: const EdgeInsets.all(20),
+                        fillColor: context.colors.backgroundCard,
+                        contentPadding: EdgeInsets.all(20),
                       ),
                       maxLines: 3,
                       minLines: 1,
@@ -254,10 +254,10 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundCard,
+                    color: context.colors.backgroundCard,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primaryColor.withValues(alpha: 0.1),
+                      color: context.colors.primaryColor.withValues(alpha: 0.1),
                       width: 1,
                     ),
                   ),
@@ -269,15 +269,15 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                           Icon(
                             Icons.check_circle_outline,
                             size: 18,
-                            color: AppColors.primaryColor,
+                            color: context.colors.primaryColor,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             'Tipos de chave aceitos:',
                             style: Theme.of(
                               context,
                             ).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -305,11 +305,11 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                         _pixKeyController.text.isNotEmpty && !_isLoading
                             ? [
                               BoxShadow(
-                                color: AppColors.primaryColor.withValues(
+                                color: context.colors.primaryColor.withValues(
                                   alpha: 0.3,
                                 ),
                                 blurRadius: 12,
-                                offset: const Offset(0, 6),
+                                offset: Offset(0, 6),
                               ),
                             ]
                             : null,
@@ -327,20 +327,20 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withValues(alpha: 0.08),
+                    color: context.colors.primaryColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.bolt, color: AppColors.primaryColor, size: 20),
-                      const SizedBox(width: 12),
+                      Icon(Icons.bolt, color: context.colors.primaryColor, size: 20),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Pagamento instantâneo usando Lightning Network',
                           style: Theme.of(
                             context,
                           ).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -359,13 +359,13 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
   Widget _buildKeyTypeRow(BuildContext context, IconData icon, String label) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
-        const SizedBox(width: 8),
+        Icon(icon, size: 16, color: context.colors.textSecondary),
+        SizedBox(width: 8),
         Text(
           label,
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          ).textTheme.bodySmall?.copyWith(color: context.colors.textSecondary),
         ),
       ],
     );
