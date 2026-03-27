@@ -33,7 +33,11 @@ class DeveloperScreen extends ConsumerStatefulWidget {
   ConsumerState<DeveloperScreen> createState() => _DeveloperScreenState();
 }
 
-class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
+class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _entryController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
   // Screen state
   String _appVersion = 'Loading...';
   String _buildNumber = '';
@@ -55,6 +59,20 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   @override
   void initState() {
     super.initState();
+
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOut,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
+    _entryController.forward();
 
     // Initialize logger once in initState to avoid accessing ref after dispose
     _logger = ref.read(appLoggerProvider);
@@ -93,6 +111,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
 
   @override
   void dispose() {
+    _entryController.dispose();
     // Cancel stream subscription to prevent memory leaks
     _logStreamSubscription?.cancel();
     _dbStatsDebounceTimer?.cancel();
@@ -678,31 +697,32 @@ Generated: ${DateTime.now().toIso8601String()}
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
+        centerTitle: true,
         title: const Text('Copiar infos de sistema'),
         actions: [
           IconButton(
-            icon: Icon(Icons.copy, color: colorScheme.onSurface),
-            tooltip: 'Copy debug info',
+            icon: const Icon(Icons.copy_outlined),
+            tooltip: 'Copiar debug info',
             onPressed: _copyDebugInfo,
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    colorScheme.primary,
-                  ),
-                ),
-              )
-              : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+              ),
+            )
+          : FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -717,7 +737,7 @@ Generated: ${DateTime.now().toIso8601String()}
                         logRetention: _logRetention,
                         onViewLogs: _viewLogs,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       DeveloperActionGrid(
                         isLoading: _isLoading,
                         onSync: _syncWallet,
@@ -732,6 +752,7 @@ Generated: ${DateTime.now().toIso8601String()}
                   ),
                 ),
               ),
+            ),
     );
   }
 }
