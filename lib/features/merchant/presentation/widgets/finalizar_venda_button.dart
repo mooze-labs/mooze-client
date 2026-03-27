@@ -30,14 +30,7 @@ class FinalizarVendaButton extends StatelessWidget {
         horizontal: isVerySmallScreen ? 12 : 16,
       ).copyWith(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.black,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: Offset(0, -2),
-          ),
-        ],
+        color: Theme.of(context).scaffoldBackgroundColor,
       ),
       child: PlatformSafeArea(
         androidTop: false,
