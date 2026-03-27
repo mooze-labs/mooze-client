@@ -84,6 +84,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Scaffold(
         body: PlatformSafeArea(
           iosTop: true,
+          androidTop: true,
+          androidBottom: false,
           child: WalletScreenWrapper(
             child: Stack(
               children: [
