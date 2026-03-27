@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
 String formatNumber(int value) {
@@ -177,10 +177,10 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withValues(alpha: 0.1),
+                          color: context.colors.primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.3,
                             ),
                             width: 2,
@@ -189,7 +189,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                         child: Icon(
                           Icons.pix,
                           size: 40,
-                          color: AppColors.primaryColor,
+                          color: context.colors.primaryColor,
                         ),
                       ),
 
@@ -201,7 +201,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                         style: Theme.of(
                           context,
                         ).textTheme.displaySmall?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -211,7 +211,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                       Text(
                         'Pagamento PIX',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
 
@@ -221,10 +221,10 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundCard,
+                          color: context.colors.backgroundCard,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.2,
                             ),
                             width: 1,
@@ -246,7 +246,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                               'Taxa',
                               _formatCurrency(paymentRequest.fee),
                             ),
-                            const Divider(height: 24),
+                            Divider(height: 24),
                             _buildDetailRow(
                               'Cotação BTC/BRL',
                               'R\$ ${formatNumber(paymentRequest.quote.btcToBrlRate.toInt())}',
@@ -261,10 +261,10 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withValues(alpha: 0.1),
+                          color: context.colors.primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.3,
                             ),
                             width: 1,
@@ -274,15 +274,15 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
                           children: [
                             Icon(
                               Icons.bolt,
-                              color: AppColors.primaryColor,
+                              color: context.colors.primaryColor,
                               size: 20,
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'O pagamento será instantâneo usando Lightning Network.',
                                 style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: AppColors.textPrimary),
+                                    ?.copyWith(color: context.colors.textPrimary),
                               ),
                             ),
                           ],
@@ -319,12 +319,12 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
           label,
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ).textTheme.bodyMedium?.copyWith(color: context.colors.textSecondary),
         ),
         Text(
           value,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
