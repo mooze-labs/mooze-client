@@ -1,107 +1,109 @@
 import 'package:flutter/material.dart';
 
+/// Owns the app's Material 3 [ColorScheme] definitions.
+///
+/// This class contains **only** the two scheme constants — one for dark mode
+/// and one for light mode. All individual color values that used to live here
+/// as static constants have been moved into the theme system:
+///
+/// - Standard roles → [ColorScheme] fields on [darkColorScheme] / [lightColorScheme]
+/// - Custom roles   → [AppExtraColors] (dark/light instances in `app_extra_colors.dart`)
+///
+/// **In widgets, never import this file directly.**
+/// Access colors via `context.colors`, `context.colorScheme`, or
+/// `context.appColors` (all from `theme_context_x.dart`).
 class AppColors {
   AppColors._();
 
-  // Primary Colors
-  static const Color backgroundColor = Color(0xFF000000);
-  static const Color backgroundCard = Color(0xFF0A0A0A);
-  static const Color primaryColor = Color(0xFFEA1E63);
-  static const Color pinkAccent = Colors.pinkAccent;
-  static const Color onPrimaryColor = Colors.white;
-
-  // Text Colors
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFF9194A6); //0xFF757575
-  static const Color textTertiary = Color(0xFF7C7C7C);
-  static const Color textQuartiary = Color(0xFFC2C2C2);
-  static const Color textQuintary = Color(0xFFA6A0BB);
-  static const Color textWhite60 = Colors.white60;
-
-  // Status Colors
-  static const Color positiveColor = Color(0xFF32B153);
-  static const Color negativeColor = Color(0xFFD73131);
-  static const Color errorColor = Colors.red;
-  static const Color editColor = Colors.orangeAccent;
-
-  // Surface Colors
-  static const Color absoluteBlack = Color(0xFF000000);
-  static const Color surfaceColor = Color(0xFF141722);
-  static const Color swapCardBackground = Color(0xFF141722);
-  static const Color swapLinearBorder = Color(0xFF2D2E2A);
-  static const Color recoveryPhraseBackground = Color(0xFF1C1924);
-
-  // Secondary Colors
-  static const Color secondaryColor = Color(0xFF212121);
-  static const Color greyShade500 = Color(0xFF9E9E9E);
-
-  // Settigns Colors
-  static const Color surfaceLow = Color(0xFF111111);
-
-  // PIN Color
-  static const Color pinBackground = Color(0xFF191818);
-
-  // Icon
-  static const Color primaryIconColor = Color(0xFF9DB2CE);
-
-  // NavBar
-  static const Color navBarBackground = Color(0xFF1E1E1E);
-  // NavBar Fab colors
-  static const Color navBarFabBackground = Color(0xFFAD1457);
-
-  // Shimmer
-  static const Color baseColor = Color(0xFF757575);
-  static const Color highlightColor = Color(0xFFBDBDBD);
-
+  /// Material 3 [ColorScheme] for the dark theme — used by [AppTheme.darkTheme].
   static const ColorScheme darkColorScheme = ColorScheme.dark(
     brightness: Brightness.dark,
     // Primary
-    primary: primaryColor,
-    onPrimary: onPrimaryColor,
+    primary: Color(0xFFEA1E63),
+    onPrimary: Colors.white,
     primaryContainer: Color(0xFF4A0E2A),
     onPrimaryContainer: Color(0xFFFFD9E4),
-
     // Secondary
-    secondary: secondaryColor,
-    onSecondary: textWhite60,
+    secondary: Color(0xFF212121),
+    onSecondary: Colors.white60,
     secondaryContainer: Color(0xFF383838),
     onSecondaryContainer: Color(0xFFE6E1E5),
-
-    // Tertiary
-    tertiary: positiveColor,
-    onTertiary: textPrimary,
+    // Tertiary (positive/success)
+    tertiary: Color(0xFF32B153),
+    onTertiary: Colors.white,
     tertiaryContainer: Color(0xFF0F3A1C),
     onTertiaryContainer: Color(0xFFB7F397),
-
-    // Errors
-    error: negativeColor,
-    onError: textPrimary,
+    // Error (negative)
+    error: Color(0xFFD73131),
+    onError: Colors.white,
     errorContainer: Color(0xFF410E0B),
     onErrorContainer: Color(0xFFF2B8B5),
-
     // Surface
-    surface: surfaceColor,
-    onSurface: textPrimary,
-    surfaceTint: primaryColor,
-    surfaceDim: backgroundColor,
+    surface: Color(0xFF141722),
+    onSurface: Colors.white,
+    surfaceTint: Color(0xFFEA1E63),
+    surfaceDim: Color(0xFF000000),
     surfaceBright: Color(0xFF1F1F1F),
     surfaceContainerLowest: Color(0xFF0A0A0A),
     surfaceContainerLow: Color(0xFF111111),
-    surfaceContainer: swapCardBackground,
-    surfaceContainerHigh: Color(0xFF1C1B1F),
+    surfaceContainer: Color(0xFF141722),
+    surfaceContainerHigh: Color(0xFF1C1C1C),
     surfaceContainerHighest: Color(0xFF26252A),
-
     // Outline
-    outline: swapLinearBorder,
-    outlineVariant: textTertiary,
-
-    // Inverse Colors
+    outline: Color(0xFF2D2E2A),
+    outlineVariant: Color(0xFF7C7C7C),
+    // Inverse
     inverseSurface: Color(0xFFE6E1E5),
     onInverseSurface: Color(0xFF313033),
     inversePrimary: Color(0xFF9F4052),
-
     // Overlay
-    scrim: absoluteBlack,
-    shadow: absoluteBlack,
+    scrim: Color(0xFF000000),
+    shadow: Color(0xFF000000),
+  );
+
+  /// Material 3 [ColorScheme] for the light theme — used by [AppTheme.lightTheme].
+  static const ColorScheme lightColorScheme = ColorScheme.light(
+    brightness: Brightness.light,
+    // Primary
+    primary: Color(0xFFEA1E63),
+    onPrimary: Colors.white,
+    primaryContainer: Color(0xFFFFD9E4),
+    onPrimaryContainer: Color(0xFF3E0020),
+    // Secondary
+    secondary: Color(0xFF5A5A5A),
+    onSecondary: Colors.white,
+    secondaryContainer: Color(0xFFE8E8E8),
+    onSecondaryContainer: Color(0xFF1A1A1A),
+    // Tertiary (positive/success)
+    tertiary: Color(0xFF1A7A36),
+    onTertiary: Colors.white,
+    tertiaryContainer: Color(0xFFB7F0C8),
+    onTertiaryContainer: Color(0xFF002110),
+    // Error
+    error: Color(0xFFD73131),
+    onError: Colors.white,
+    errorContainer: Color(0xFFFFDAD6),
+    onErrorContainer: Color(0xFF410002),
+    // Surface
+    surface: Color(0xFFF5F5F5),
+    onSurface: Color(0xFF1A1A1A),
+    surfaceTint: Color(0xFFEA1E63),
+    surfaceDim: Color(0xFFE8E8E8),
+    surfaceBright: Colors.white,
+    surfaceContainerLowest: Colors.white,
+    surfaceContainerLow: Color(0xFFF5F5F5),
+    surfaceContainer: Color(0xFFEEEEEE),
+    surfaceContainerHigh: Color(0xFFE8E8E8),
+    surfaceContainerHighest: Color(0xFFE0E0E0),
+    // Outline
+    outline: Color(0xFFBDBDBD),
+    outlineVariant: Color(0xFFD4D4D4),
+    // Inverse
+    inverseSurface: Color(0xFF303033),
+    onInverseSurface: Color(0xFFF2EFF4),
+    inversePrimary: Color(0xFFFFB0C8),
+    // Overlay
+    scrim: Colors.black,
+    shadow: Colors.black,
   );
 }
