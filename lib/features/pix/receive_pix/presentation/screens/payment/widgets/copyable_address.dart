@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class CopyableAddress extends ConsumerStatefulWidget {
   final String pixKey;
@@ -38,14 +38,14 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
         decoration: BoxDecoration(
           color:
               _isCopied
-                  ? AppColors.primaryColor.withValues(alpha: 0.08)
-                  : AppColors.pinBackground,
+                  ? context.colors.primaryColor.withValues(alpha: 0.08)
+                  : context.colors.pinBackground,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color:
                 _isCopied
-                    ? AppColors.primaryColor.withValues(alpha: 0.5)
-                    : AppColors.primaryColor.withValues(alpha: 0.2),
+                    ? context.colors.primaryColor.withValues(alpha: 0.5)
+                    : context.colors.primaryColor.withValues(alpha: 0.2),
             width: 1.2,
           ),
         ),
@@ -55,8 +55,8 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
               Icons.qr_code_rounded,
               color:
                   _isCopied
-                      ? AppColors.primaryColor
-                      : AppColors.primaryColor.withValues(alpha: 0.7),
+                      ? context.colors.primaryColor
+                      : context.colors.primaryColor.withValues(alpha: 0.7),
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -66,18 +66,20 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
                 children: [
                   Text(
                     'Chave PIX',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     widget.pixKey,
-                    style: TextStyle(
-                      color: _isCopied ? AppColors.primaryColor : Colors.white,
-                      fontSize: 14,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: _isCopied
+                          ? context.colors.primaryColor
+                          : Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -86,13 +88,13 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Icon(
               _isCopied ? Icons.check_rounded : Icons.copy_rounded,
               color:
                   _isCopied
-                      ? AppColors.primaryColor
-                      : AppColors.primaryColor.withValues(alpha: 0.7),
+                      ? context.colors.primaryColor
+                      : context.colors.primaryColor.withValues(alpha: 0.7),
               size: 20,
             ),
           ],
