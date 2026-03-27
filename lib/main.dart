@@ -7,6 +7,7 @@ import 'package:safe_device/safe_device.dart';
 import 'package:safe_device/safe_device_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_bootstrap.dart';
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
@@ -43,14 +44,16 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.read(walletBootOrchestratorProvider);
     ref.read(connectivityProvider);
+    final themeMode = ref.watch(themeModeProvider);
     return LevelChangeListener(
       child: TransactionStatusListener(
         child: PixStatusListener(
           child: MaterialApp.router(
             title: 'Mooze',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.darkTheme(context),
-            themeMode: ThemeMode.dark,
+            theme: AppTheme.lightTheme(context),
+            darkTheme: AppTheme.darkTheme(context),
+            themeMode: themeMode,
             routerConfig: router,
           ),
         ),
