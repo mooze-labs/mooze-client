@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
@@ -126,17 +126,17 @@ class _PixErrorScreenState extends State<PixErrorScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       body: PlatformSafeArea(
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0.0, -0.4),
               radius: 0.8,
               colors: [
                 Color(0xFF1A0606),
-                AppColors.backgroundColor,
-                AppColors.backgroundColor,
+                context.colors.backgroundColor,
+                context.colors.backgroundColor,
               ],
             ),
           ),
@@ -204,7 +204,7 @@ class _PixErrorScreenState extends State<PixErrorScreen>
                           style: Theme.of(
                             context,
                           ).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -215,7 +215,7 @@ class _PixErrorScreenState extends State<PixErrorScreen>
                           widget.errorMessage ??
                               'Ocorreu um problema durante o processamento do seu depósito PIX.',
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
+                              ?.copyWith(color: context.colors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
 
@@ -223,10 +223,10 @@ class _PixErrorScreenState extends State<PixErrorScreen>
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppColors.backgroundCard,
+                            color: context.colors.backgroundCard,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppColors.primaryColor.withValues(
+                              color: context.colors.primaryColor.withValues(
                                 alpha: 0.2,
                               ),
                               width: 1,
@@ -245,14 +245,14 @@ class _PixErrorScreenState extends State<PixErrorScreen>
                                           children: [
                                             Icon(
                                               Icons.pix,
-                                              color: AppColors.primaryColor,
+                                              color: context.colors.primaryColor,
                                               size: 30,
                                             ),
                                             const SizedBox(width: 8),
-                                            const Text(
+                                            Text(
                                               'PIX',
                                               style: TextStyle(
-                                                color: AppColors.textSecondary,
+                                                color: context.colors.textSecondary,
                                                 fontSize: 16,
                                               ),
                                             ),
@@ -261,8 +261,8 @@ class _PixErrorScreenState extends State<PixErrorScreen>
                                         const SizedBox(height: 10),
                                         Text(
                                           _formatCurrency(widget.amountInCents),
-                                          style: const TextStyle(
-                                            color: AppColors.textPrimary,
+                                          style: TextStyle(
+                                            color: context.colors.textPrimary,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 24,
                                           ),
@@ -331,18 +331,18 @@ class _PixErrorScreenState extends State<PixErrorScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
               isCopied
-                  ? AppColors.primaryColor.withValues(alpha: 0.08)
-                  : AppColors.backgroundColor,
+                  ? context.colors.primaryColor.withValues(alpha: 0.08)
+                  : context.colors.backgroundColor,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color:
                 isCopied
-                    ? AppColors.primaryColor.withValues(alpha: 0.5)
-                    : AppColors.primaryColor.withValues(alpha: 0.2),
+                    ? context.colors.primaryColor.withValues(alpha: 0.5)
+                    : context.colors.primaryColor.withValues(alpha: 0.2),
             width: 1.2,
           ),
         ),
@@ -354,19 +354,19 @@ class _PixErrorScreenState extends State<PixErrorScreen>
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
                     color:
                         isCopied
-                            ? AppColors.primaryColor
-                            : AppColors.textPrimary,
+                            ? context.colors.primaryColor
+                            : context.colors.textPrimary,
                     fontWeight: FontWeight.w500,
                     fontSize: 14,
                   ),
@@ -377,8 +377,8 @@ class _PixErrorScreenState extends State<PixErrorScreen>
               isCopied ? Icons.check_rounded : Icons.copy_rounded,
               color:
                   isCopied
-                      ? AppColors.primaryColor
-                      : AppColors.primaryColor.withValues(alpha: 0.7),
+                      ? context.colors.primaryColor
+                      : context.colors.primaryColor.withValues(alpha: 0.7),
               size: 20,
             ),
           ],
