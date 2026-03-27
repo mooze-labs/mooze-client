@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../providers/btc_lbtc_swap_controller_provider.dart';
 import '../widgets/btc_lbtc_confirm_bottom_sheet.dart';
 import '../screens/swap_success_screen.dart';
@@ -73,9 +73,9 @@ class BtcLbtcSwapHelper {
                       Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
+                      backgroundColor: context.colors.primaryColor,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
