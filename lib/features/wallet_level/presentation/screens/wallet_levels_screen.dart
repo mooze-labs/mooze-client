@@ -8,7 +8,7 @@ import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet
 import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_entity.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_header.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_quick_info.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
@@ -62,18 +62,16 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     final colorScheme = theme.colorScheme;
     final walletLevelsAsync = ref.watch(walletLevelsProvider);
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: _buildAppBar(),
-        body: walletLevelsAsync.when(
-          data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
-          loading: () => _buildLoadingBody(theme, colorScheme),
-          error: (error, stackTrace) => _buildError(error, colorScheme),
-        ),
-        floatingActionButton:
-            _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: walletLevelsAsync.when(
+        data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
+        loading: () => _buildLoadingBody(theme, colorScheme),
+        error: (error, stackTrace) => _buildError(error, colorScheme),
       ),
+      floatingActionButton:
+          _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
@@ -147,7 +145,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: extraColors?.warning.withValues(
+                                  color:
+                                      extraColors?.warning.withValues(
                                         alpha: 0.3,
                                       ) ??
                                       colorScheme.outline,
@@ -177,8 +176,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                                         Text(
                                           'Os dados podem estar desatualizados. Algumas funcionalidades estão temporariamente indisponíveis.',
                                           style: textTheme.bodySmall?.copyWith(
-                                            color:
-                                                colorScheme.onSurfaceVariant,
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ],
@@ -322,8 +320,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildLoadingUserLevelCard(ColorScheme colorScheme) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -400,7 +398,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Shimmer.fromColors(
             baseColor: baseColor,
             highlightColor: highlightColor,
