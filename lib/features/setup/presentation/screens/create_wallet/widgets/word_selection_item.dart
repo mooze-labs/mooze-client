@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WordSelectionItem extends StatelessWidget {
   final String word;
@@ -28,11 +28,11 @@ class WordSelectionItem extends StatelessWidget {
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.recoveryPhraseBackground,
+              color: context.colors.recoveryPhraseBackground,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: borderColor, width: 2),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: EdgeInsets.symmetric(horizontal: 5),
             alignment: Alignment.center,
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -75,7 +75,7 @@ class _PositionBadge extends StatelessWidget {
         '$position',
         style: Theme.of(
           context,
-        ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
+        ).textTheme.bodySmall?.copyWith(color: context.colors.textPrimary),
       ),
     );
   }

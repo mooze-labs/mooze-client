@@ -267,7 +267,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen>
         textAlign: TextAlign.center,
         text: TextSpan(
           text: 'Escolha o ativo que deseja receber na ',
-          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(height: 1.4),
           children: [
             TextSpan(
               text: 'Mooze',

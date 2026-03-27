@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
@@ -92,7 +92,7 @@ class _SwapFromCardState extends ConsumerState<SwapFromCard> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        color: AppColors.backgroundColor,
+        color: context.colors.backgroundColor,
       ),
       height: 115,
       child: Column(
@@ -111,17 +111,17 @@ class _SwapFromCardState extends ConsumerState<SwapFromCard> {
                       return Text(
                         snapshot.data ?? "...",
                         style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       );
                     },
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 5),
                   TransparentTextButton(
                     text: 'MAX',
                     onPressed: widget.onMaxPressed,
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: AppColors.primaryColor,
+                      color: context.colors.primaryColor,
                     ),
                   ),
                 ],

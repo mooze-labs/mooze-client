@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
@@ -272,8 +272,8 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
 
   Widget _buildLoadingCurrentLimitsCard() {
     final colorScheme = Theme.of(context).colorScheme;
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -317,7 +317,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Shimmer.fromColors(
                     baseColor: baseColor,
                     highlightColor: highlightColor,

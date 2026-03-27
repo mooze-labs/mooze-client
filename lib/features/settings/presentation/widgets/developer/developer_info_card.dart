@@ -30,45 +30,39 @@ class DeveloperInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final dividerColor = colorScheme.onSurface.withValues(alpha: 0.08);
+
+    final items = _buildInfoItems();
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer,
+        color: colorScheme.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: dividerColor),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: colorScheme.primary,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'System Information',
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: colorScheme.primary, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'System Information',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                ..._buildInfoItems(),
-              ].expand((widget) sync* {
-                yield widget;
-                if (widget != const SizedBox(height: 20)) {
-                  yield Divider(height: 1, color: colorScheme.outline);
-                }
-              }).toList()
-              ..removeLast(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Divider(color: dividerColor, height: 1),
+          for (int i = 0; i < items.length; i++) ...[
+            items[i],
+            if (i < items.length - 1) Divider(color: dividerColor, height: 1),
+          ],
+        ],
       ),
     );
   }

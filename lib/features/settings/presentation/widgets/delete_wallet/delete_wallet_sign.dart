@@ -18,11 +18,12 @@ class DeleteWalletSign extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    final onSurface = theme.colorScheme.onSurface;
-    final textColor = isSelected ? primaryColor : onSurface;
-    final borderColor = isSelected ? primaryColor : onSurface;
-    final checkBorderColor = isSelected ? primaryColor : theme.colorScheme.outlineVariant;
-    final iconBackground = isSelected ? primaryColor : onSurface;
+    final colorScheme = theme.colorScheme;
+    final textColor = isSelected ? primaryColor : colorScheme.onSurface;
+    final borderColor = isSelected ? primaryColor : colorScheme.onSurface;
+    final checkBorderColor = isSelected ? primaryColor : colorScheme.outline;
+    final iconBackground =
+        isSelected ? primaryColor : colorScheme.surfaceContainerLowest;
 
     return GestureDetector(
       onTap: onTap,
@@ -57,14 +58,7 @@ class DeleteWalletSign extends StatelessWidget {
                           color: iconBackground,
                           border: Border.all(color: checkBorderColor, width: 2),
                         ),
-                        child:
-                            isSelected
-                                ? Icon(
-                                  Icons.check,
-                                  color: theme.colorScheme.onPrimary,
-                                  size: 16,
-                                )
-                                : null,
+                        child: isSelected ? Icon(Icons.check, size: 16) : null,
                       ),
                     ],
                   ),
@@ -72,7 +66,7 @@ class DeleteWalletSign extends StatelessWidget {
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimary,
+                      color: textColor,
                     ),
                   ),
                 ],

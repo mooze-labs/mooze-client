@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/features/phone_verification/presentation/widgets/send_method.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 final _phoneFormatter = MaskTextInputFormatter(
@@ -91,7 +91,7 @@ class _PhoneVerificationMethodScreenState
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: AppColors.primaryColor,
+                        color: context.colors.primaryColor,
                         width: 1,
                       ),
                       borderRadius: BorderRadius.circular(8),
@@ -105,7 +105,7 @@ class _PhoneVerificationMethodScreenState
                           height: 24,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           '+55',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -149,8 +149,8 @@ class _PhoneVerificationMethodScreenState
                     top: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      color: AppColors.backgroundColor,
-                      child: const Text(
+                      color: context.colors.backgroundColor,
+                      child: Text(
                         'Número',
                         style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),

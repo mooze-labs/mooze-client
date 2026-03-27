@@ -50,16 +50,20 @@ class _ConfirmSwapBottomSheetState
 
     return PlatformSafeArea(
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.65,
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height * 0.4,
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1C1C1C),
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Center(
               child: Text(
@@ -73,24 +77,19 @@ class _ConfirmSwapBottomSheetState
                   label: Text(_formatDuration(millisecondsRemaining)),
                 ),
               ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Column(
-                children: [
-                  const Spacer(),
-                  _fromToSummary(context, state),
-                  const Spacer(),
-                  if (state.error != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        '${state.error}',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                ],
+            const SizedBox(height: 16),
+            _fromToSummary(context, state),
+            if (state.error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '${state.error}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
               ),
-            ),
+            const SizedBox(height: 16),
             if (quote != null) ...[
               const Divider(),
               InfoRow(
@@ -163,7 +162,7 @@ class _ConfirmSwapBottomSheetState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Erro na confirmação: $err'),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
               duration: const Duration(seconds: 5),
             ),
           );
@@ -228,10 +227,13 @@ class _ConfirmSwapBottomSheetState
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
-          colors: [Color(0xFF2D2E2A), Color(0xFFE91E63)],
+          colors: [
+            Theme.of(context).colorScheme.surfaceContainerLowest,
+            const Color(0xFFE91E63),
+          ],
         ),
         borderRadius: BorderRadius.circular(15),
       ),
@@ -240,7 +242,7 @@ class _ConfirmSwapBottomSheetState
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: const Color(0xFF111111),
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(13),
           ),
           child: Row(
@@ -272,10 +274,19 @@ class _ConfirmSwapBottomSheetState
                 ],
               ),
               const Spacer(),
-              SvgPicture.asset(
-                'assets/icons/menu/arrow.svg',
-                width: 25,
-                height: 25,
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: SvgPicture.asset(
+                  'assets/icons/menu/arrow.svg',
+                  width: 25,
+                  height: 25,
+                ),
               ),
               const Spacer(),
               Column(

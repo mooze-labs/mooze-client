@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
@@ -169,6 +169,9 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -177,178 +180,156 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.backgroundColor,
+        backgroundColor: context.colors.backgroundColor,
         body: PlatformSafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0.0, -0.4),
-                radius: 0.8,
-                colors: [
-                  Color(0xFF0A1A0A),
-                  AppColors.backgroundColor,
-                  AppColors.backgroundColor,
-                ],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: AnimatedBuilder(
-                        animation: _glowAnimation,
-                        builder: (context, child) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.3 + (_glowAnimation.value * 0.4),
-                                  ),
-                                  blurRadius: 40 + (_glowAnimation.value * 30),
-                                  spreadRadius: 8 + (_glowAnimation.value * 15),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: AnimatedBuilder(
+                      animation: _glowAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: context.colors.primaryColor.withValues(
+                                  alpha: 0.18 + (_glowAnimation.value * 0.18),
                                 ),
-                              ],
-                            ),
-                            child: ScaleTransition(
-                              scale: _checkAnimation,
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryColor,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryColor.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      blurRadius: 25,
-                                      spreadRadius: 3,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 60,
-                                ),
+                                blurRadius: 24 + (_glowAnimation.value * 20),
+                                spreadRadius: 0,
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.3),
-                          end: Offset.zero,
-                        ).animate(_fadeAnimation),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Transação Enviada!',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.headlineMedium?.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
+                              BoxShadow(
+                                color: context.colors.primaryColor.withValues(
+                                  alpha: 0.08 + (_glowAnimation.value * 0.08),
+                                ),
+                                blurRadius: 56 + (_glowAnimation.value * 24),
+                                spreadRadius: 0,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Seu ${widget.asset.ticker} foi enviado com sucesso',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.textSecondary),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 32),
-                            Container(
-                              padding: const EdgeInsets.all(20),
+                            ],
+                          ),
+                          child: ScaleTransition(
+                            scale: _checkAnimation,
+                            child: Container(
+                              width: 120,
+                              height: 120,
                               decoration: BoxDecoration(
-                                color: AppColors.backgroundCard,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_upward,
-                                        color: AppColors.primaryColor,
-                                        size: 30,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Enviado',
-                                        style: TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      _formatAmount(),
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 24,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _buildCopyableField(
-                                    label: 'Endereço de destino',
-                                    value: truncateHashId(
-                                      widget.destinationAddress,
-                                      length: 10,
-                                    ),
-                                    fullValue: widget.destinationAddress,
+                                color: context.colors.primaryColor,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: context.colors.primaryColor
+                                        .withValues(alpha: 1),
+                                    blurRadius: 80,
+                                    spreadRadius: 20,
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Você pode acompanhar o status na seção de histórico.',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
+                              child: Icon(
+                                Icons.check,
+                                color: colorScheme.onPrimary,
+                                size: 60,
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                            const Spacer(),
-                            PrimaryButton(
-                              text: 'Voltar para Dashboard',
-                              onPressed: _handleClose,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.3),
+                        end: Offset.zero,
+                      ).animate(_fadeAnimation),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Transação Enviada!',
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Seu ${widget.asset.ticker} foi enviado com sucesso',
+                            style: textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: context.colors.backgroundCard,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: context.colors.primaryColor.withValues(
+                                  alpha: 0.2,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.arrow_upward,
+                                      color: context.colors.primaryColor,
+                                      size: 30,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text('Enviado', style: textTheme.bodyLarge),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _formatAmount(),
+                                    style: textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                _buildCopyableField(
+                                  label: 'Endereço de destino',
+                                  value: truncateHashId(
+                                    widget.destinationAddress,
+                                    length: 10,
+                                  ),
+                                  fullValue: widget.destinationAddress,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Você pode acompanhar o status na seção de histórico.',
+                            style: textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          Spacer(),
+                          PrimaryButton(
+                            text: 'Voltar para Dashboard',
+                            onPressed: _handleClose,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -361,6 +342,9 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
     required String value,
     required String fullValue,
   }) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     return GestureDetector(
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: fullValue));
@@ -376,18 +360,18 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
               _addressCopied
-                  ? AppColors.primaryColor.withValues(alpha: 0.08)
-                  : AppColors.backgroundColor,
+                  ? context.colors.primaryColor.withValues(alpha: 0.08)
+                  : context.colors.backgroundColor,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color:
                 _addressCopied
-                    ? AppColors.primaryColor.withValues(alpha: 0.5)
-                    : AppColors.primaryColor.withValues(alpha: 0.2),
+                    ? context.colors.primaryColor.withValues(alpha: 0.5)
+                    : context.colors.primaryColor.withValues(alpha: 0.2),
             width: 1.2,
           ),
         ),
@@ -398,23 +382,12 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
+                  Text(label, style: textTheme.bodySmall),
+                  SizedBox(height: 2),
                   Text(
                     value,
-                    style: TextStyle(
-                      color:
-                          _addressCopied
-                              ? AppColors.primaryColor
-                              : AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: _addressCopied ? colorScheme.primary : null,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -425,8 +398,8 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
               _addressCopied ? Icons.check_rounded : Icons.copy_rounded,
               color:
                   _addressCopied
-                      ? AppColors.primaryColor
-                      : AppColors.primaryColor.withValues(alpha: 0.7),
+                      ? context.colors.primaryColor
+                      : context.colors.primaryColor.withValues(alpha: 0.7),
               size: 20,
             ),
           ],

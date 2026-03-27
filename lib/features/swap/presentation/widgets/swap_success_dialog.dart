@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SwapSuccessDialog extends StatelessWidget {
   final String title;
@@ -20,7 +20,7 @@ class SwapSuccessDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: AppColors.surfaceColor,
+      backgroundColor: context.colors.surfaceColor,
       title: Row(
         children: [
           Container(
@@ -29,7 +29,7 @@ class SwapSuccessDialog extends StatelessWidget {
               color: Colors.green.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_circle,
               color: Colors.green,
               size: 28,
@@ -61,7 +61,7 @@ class SwapSuccessDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.backgroundColor,
+                color: context.colors.backgroundColor,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey[800]!, width: 1),
               ),
@@ -81,7 +81,7 @@ class SwapSuccessDialog extends StatelessWidget {
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: txId!));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text('TX ID copiado!'),
                               duration: Duration(seconds: 2),
                             ),
@@ -90,12 +90,12 @@ class SwapSuccessDialog extends StatelessWidget {
                         child: Icon(
                           Icons.copy,
                           size: 16,
-                          color: AppColors.primaryColor,
+                          color: context.colors.primaryColor,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     txId!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -117,9 +117,9 @@ class SwapSuccessDialog extends StatelessWidget {
           child: ElevatedButton(
             onPressed: onClose,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
+              backgroundColor: context.colors.primaryColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

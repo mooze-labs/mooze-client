@@ -91,6 +91,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: SvgPicture.asset(
         'assets/logos/logo_primary.svg',
         height: _logoHeight,
+        colorFilter: ColorFilter.mode(
+          Theme.of(context).colorScheme.onSurface,
+          BlendMode.srcIn,
+        ),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WalletLevelsQuickInfo extends StatelessWidget {
   final bool isLoading;
@@ -17,7 +17,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     if (isLoading) {
-      return _buildLoadingQuickInfo(colorScheme);
+      return _buildLoadingQuickInfo(colorScheme, context);
     }
 
     return SizedBox(
@@ -101,9 +101,9 @@ class WalletLevelsQuickInfo extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingQuickInfo(ColorScheme colorScheme) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+  Widget _buildLoadingQuickInfo(ColorScheme colorScheme, BuildContext context) {
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return SizedBox(
       height: 125,
@@ -149,7 +149,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Shimmer.fromColors(
                     baseColor: baseColor,
                     highlightColor: highlightColor,

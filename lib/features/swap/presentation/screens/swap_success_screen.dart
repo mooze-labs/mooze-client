@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
 class SwapSuccessScreen extends StatefulWidget {
@@ -125,320 +125,295 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
       body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(0.0, -0.4),
-              radius: 0.8,
-              colors: [
-                Color(0xFF1A0A1A),
-                AppColors.backgroundColor,
-                AppColors.backgroundColor,
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.3 + (_glowAnimation.value * 0.4),
-                                ),
-                                blurRadius: 40 + (_glowAnimation.value * 30),
-                                spreadRadius: 8 + (_glowAnimation.value * 15),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _glowAnimation,
+                    builder: (context, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.18 + (_glowAnimation.value * 0.18),
                               ),
-                            ],
-                          ),
-                          child: ScaleTransition(
-                            scale: _checkAnimation,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 25,
-                                    spreadRadius: 3,
+                              blurRadius: 24 + (_glowAnimation.value * 20),
+                              spreadRadius: 0,
+                            ),
+                            BoxShadow(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.08 + (_glowAnimation.value * 0.08),
+                              ),
+                              blurRadius: 56 + (_glowAnimation.value * 24),
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: ScaleTransition(
+                          scale: _checkAnimation,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: context.colors.primaryColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.colors.primaryColor.withValues(
+                                    alpha: 1,
                                   ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 60,
-                              ),
+                                  blurRadius: 80,
+                                  spreadRadius: 20,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.check,
+                              color: colorScheme.onPrimary,
+                              size: 60,
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
+              ),
 
-                Expanded(
-                  flex: 4,
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.3),
-                        end: Offset.zero,
-                      ).animate(_fadeAnimation),
-                      child: Column(
-                        children: [
-                          // Title
-                          Text(
-                            'Swap Realizado!',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineMedium?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
+              Expanded(
+                flex: 4,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.3),
+                      end: Offset.zero,
+                    ).animate(_fadeAnimation),
+                    child: Column(
+                      children: [
+                        // Title
+                        Text(
+                          'Swap Realizado!',
+                          style: textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
 
-                          const SizedBox(height: 8),
+                        const SizedBox(height: 8),
 
-                          Text(
-                            'Sua transação foi processada com sucesso, em instantes o saldo estará disponível na sua carteira.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center,
-                          ),
+                        Text(
+                          'Sua transação foi processada com sucesso, em instantes o saldo estará disponível na sua carteira.',
+                          style: textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
 
-                          const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-                          // Swap Info
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: AppColors.backgroundCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.2,
-                                ),
-                                width: 1,
+                        // Swap Info
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: context.colors.backgroundCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.2,
                               ),
+                              width: 1,
                             ),
-                            child: Column(
-                              children: [
-                                // FROM -> TO
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              SvgPicture.asset(
-                                                widget.fromAsset.iconPath,
-                                                width: 20,
-                                                height: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                widget.fromAsset.name,
-                                                style: const TextStyle(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            widget.amountSent.toStringAsFixed(
-                                              8,
-                                            ),
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: Icon(
-                                        Icons.arrow_forward,
-                                        color: AppColors.primaryColor,
-                                        size: 20,
-                                      ),
-                                    ),
-
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              SvgPicture.asset(
-                                                widget.toAsset.iconPath,
-                                                width: 20,
-                                                height: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                widget.toAsset.name,
-                                                style: const TextStyle(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            widget.amountReceived
-                                                .toStringAsFixed(8),
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 20),
-
-                                // TXID
-                                GestureDetector(
-                                  onTap: () async {
-                                    await Clipboard.setData(
-                                      ClipboardData(text: widget.txid),
-                                    );
-                                    setState(() {
-                                      _txidCopied = true;
-                                    });
-                                    await Future.delayed(
-                                      const Duration(seconds: 2),
-                                    );
-                                    if (mounted) {
-                                      setState(() {
-                                        _txidCopied = false;
-                                      });
-                                    }
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          _txidCopied
-                                              ? AppColors.primaryColor
-                                                  .withValues(alpha: 0.08)
-                                              : AppColors.backgroundColor,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            _txidCopied
-                                                ? AppColors.primaryColor
-                                                    .withValues(alpha: 0.5)
-                                                : AppColors.primaryColor
-                                                    .withValues(alpha: 0.2),
-                                        width: 1.2,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                          ),
+                          child: Column(
+                            children: [
+                              // FROM -> TO
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
                                       children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
-                                            const Text(
-                                              'ID da Transação',
-                                              style: TextStyle(
-                                                color: AppColors.textSecondary,
-                                                fontSize: 12,
-                                              ),
+                                            SvgPicture.asset(
+                                              widget.fromAsset.iconPath,
+                                              width: 20,
+                                              height: 20,
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(width: 8),
                                             Text(
-                                              truncateHashId(
-                                                widget.txid,
-                                                length: 10,
-                                              ),
-                                              style: TextStyle(
-                                                color:
-                                                    _txidCopied
-                                                        ? AppColors.primaryColor
-                                                        : AppColors.textPrimary,
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 14,
-                                              ),
+                                              widget.fromAsset.name,
+                                              style: textTheme.bodySmall,
                                             ),
                                           ],
                                         ),
-                                        Icon(
-                                          _txidCopied
-                                              ? Icons.check_rounded
-                                              : Icons.copy_rounded,
-                                          color:
-                                              _txidCopied
-                                                  ? AppColors.primaryColor
-                                                  : AppColors.primaryColor
-                                                      .withValues(alpha: 0.7),
-                                          size: 20,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          widget.amountSent.toStringAsFixed(8),
+                                          style: textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
+
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: Icon(
+                                      Icons.arrow_forward,
+                                      color: context.colors.primaryColor,
+                                      size: 20,
+                                    ),
+                                  ),
+
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            SvgPicture.asset(
+                                              widget.toAsset.iconPath,
+                                              width: 20,
+                                              height: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              widget.toAsset.name,
+                                              style: textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          widget.amountReceived.toStringAsFixed(
+                                            8,
+                                          ),
+                                          style: textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // TXID
+                              GestureDetector(
+                                onTap: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: widget.txid),
+                                  );
+                                  setState(() {
+                                    _txidCopied = true;
+                                  });
+                                  await Future.delayed(
+                                    const Duration(seconds: 2),
+                                  );
+                                  if (mounted) {
+                                    setState(() {
+                                      _txidCopied = false;
+                                    });
+                                  }
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  padding: EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        _txidCopied
+                                            ? context.colors.primaryColor
+                                                .withValues(alpha: 0.08)
+                                            : context.colors.backgroundColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color:
+                                          _txidCopied
+                                              ? context.colors.primaryColor
+                                                  .withValues(alpha: 0.5)
+                                              : context.colors.primaryColor
+                                                  .withValues(alpha: 0.2),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'ID da Transação',
+                                            style: textTheme.bodySmall,
+                                          ),
+                                          SizedBox(height: 2),
+                                          Text(
+                                            truncateHashId(
+                                              widget.txid,
+                                              length: 10,
+                                            ),
+                                            style: textTheme.labelLarge
+                                                ?.copyWith(
+                                                  color:
+                                                      _txidCopied
+                                                          ? colorScheme.primary
+                                                          : null,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      Icon(
+                                        _txidCopied
+                                            ? Icons.check_rounded
+                                            : Icons.copy_rounded,
+                                        color:
+                                            _txidCopied
+                                                ? context.colors.primaryColor
+                                                : context.colors.primaryColor
+                                                    .withValues(alpha: 0.7),
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+                        ),
 
-                          const Spacer(),
+                        const Spacer(),
 
-                          PrimaryButton(
-                            text: 'Voltar para Dashboard',
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ],
-                      ),
+                        PrimaryButton(
+                          text: 'Voltar para Dashboard',
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

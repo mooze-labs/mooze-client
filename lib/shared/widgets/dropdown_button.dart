@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class FloatingLabelDropdown<T> extends StatefulWidget {
   final String label;
@@ -8,8 +8,8 @@ class FloatingLabelDropdown<T> extends StatefulWidget {
   final ValueChanged<T?> onChanged;
   final Widget Function(T) itemIconBuilder;
   final String Function(T) itemLabelBuilder;
-  final Color borderColor;
-  final Color backgroundColor;
+  final Color? borderColor;
+  final Color? backgroundColor;
 
   const FloatingLabelDropdown({
     super.key,
@@ -19,8 +19,8 @@ class FloatingLabelDropdown<T> extends StatefulWidget {
     required this.onChanged,
     required this.itemIconBuilder,
     required this.itemLabelBuilder,
-    this.borderColor = AppColors.primaryColor,
-    this.backgroundColor = AppColors.backgroundColor,
+    this.borderColor,
+    this.backgroundColor,
   });
 
   @override
@@ -87,7 +87,7 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                       child: Material(
                         elevation: 4.0,
                         borderRadius: BorderRadius.circular(8),
-                        color: Color(0xFF2A2A2A),
+                        // color: Color(0xFF2A2A2A),
                         child: Container(
                           constraints: BoxConstraints(maxHeight: 300),
                           child: ListView(
@@ -120,7 +120,7 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                                           Text(
                                             widget.itemLabelBuilder(item),
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              // color: Colors.white,
                                               fontSize: 16,
                                             ),
                                           ),
@@ -143,6 +143,10 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedBorderColor =
+        widget.borderColor ?? context.colors.primaryColor;
+    final resolvedBackgroundColor =
+        widget.backgroundColor ?? context.colors.backgroundColor;
     return CompositedTransformTarget(
       link: _layerLink,
       child: Stack(
@@ -152,7 +156,7 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
             margin: EdgeInsets.only(top: 8),
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: widget.borderColor, width: 1),
+              border: Border.all(color: resolvedBorderColor, width: 1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: InkWell(
@@ -171,14 +175,11 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                     SizedBox(width: 12),
                     Text(
                       widget.itemLabelBuilder(widget.value as T),
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: TextStyle(fontSize: 16),
                     ),
                   ],
                   Spacer(),
-                  Icon(
-                    _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    color: Colors.white,
-                  ),
+                  Icon(_isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down),
                 ],
               ),
             ),
@@ -188,11 +189,8 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
             top: 0,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 4),
-              color: widget.backgroundColor,
-              child: Text(
-                widget.label,
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
+              color: resolvedBackgroundColor,
+              child: Text(widget.label, style: TextStyle(fontSize: 12)),
             ),
           ),
         ],

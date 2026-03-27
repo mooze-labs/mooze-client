@@ -7,7 +7,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/ass
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 const minimumAmountForVariableFee = 55 * 100;
 
@@ -30,17 +30,20 @@ class PaymentDetailsDisplay extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceLow,
+        color: context.colors.surfaceLow,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(context),
-            _buildAssetInfo(deposit.asset, assetQuantity, depositAmountInReais),
-            Divider(color: Colors.white24, thickness: 1),
+            _buildAssetInfo(context, deposit.asset, assetQuantity, depositAmountInReais),
+            Divider(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.24),
+              thickness: 1,
+            ),
             _buildFeeBreakdown(
               context,
               depositAmountInReais,
@@ -56,19 +59,22 @@ class PaymentDetailsDisplay extends ConsumerWidget {
   Widget _buildHeader(BuildContext context) {
     return Text(
       'Você receberá',
-      style: TextStyle(
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
         color: Theme.of(context).colorScheme.primary,
-        fontSize: 16,
         fontWeight: FontWeight.w700,
       ),
     );
   }
 
   Widget _buildAssetInfo(
+    BuildContext context,
     Asset asset,
     Future<String> assetQuantity,
     double reaisAmount,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -78,16 +84,15 @@ class PaymentDetailsDisplay extends ConsumerWidget {
             if (snapshot.hasData) {
               return Text(
                 snapshot.data!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
+                style: textTheme.titleLarge?.copyWith(
+                  color: colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
                 ),
               );
             }
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SizedBox(
+              return SizedBox(
                 height: 18,
                 child: Center(
                   child: SizedBox(
@@ -95,17 +100,18 @@ class PaymentDetailsDisplay extends ConsumerWidget {
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.onSurface,
+                      ),
                     ),
                   ),
                 ),
               );
             }
-            return const Text(
+            return Text(
               'N/A',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 18,
+              style: textTheme.titleLarge?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w700,
               ),
             );
@@ -114,10 +120,9 @@ class PaymentDetailsDisplay extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           'de R\$ ${reaisAmount.toStringAsFixed(2).replaceAll('.', ',')}',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+          style: textTheme.labelLarge?.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.5),
+            letterSpacing: 0.3,
           ),
         ),
       ],
@@ -131,22 +136,20 @@ class PaymentDetailsDisplay extends ConsumerWidget {
     int amountInCents,
   ) {
     final isFixedFee = amountInCents < minimumAmountForVariableFee;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Taxas aplicadas',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 12,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: onSurface.withValues(alpha: 0.6),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: 10),
-
-        // Taxa principal
         if (isFixedFee) ...[
           InfoRow(label: 'Taxa fixa', value: 'R\$ 1,00'),
         ] else ...[
@@ -168,9 +171,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
             },
           ),
         ],
-
         const SizedBox(height: 6),
-
         const InfoRow(label: 'Taxa da processadora', value: 'R\$ 1,00'),
       ],
     );

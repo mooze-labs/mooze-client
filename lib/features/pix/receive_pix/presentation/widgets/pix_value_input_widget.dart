@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
@@ -34,10 +34,8 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
             padding: EdgeInsets.only(top: 16),
             child: Text(
               'Valor do PIX',
-              style: TextStyle(
-                color: Colors.white,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: context.responsiveFont(20),
-                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -66,8 +64,8 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
                       child: InfoRow(
                         label: 'Meus níveis',
                         value: 'Ver Limite',
-                        labelColor: Colors.white,
-                        valueColor: AppColors.primaryColor,
+                        labelColor: Theme.of(context).colorScheme.onSurface,
+                        valueColor: context.colors.primaryColor,
                         fontSize: context.responsiveFont(14),
                       ),
                     ),
@@ -88,7 +86,7 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
 
   BoxDecoration _buildContainerDecoration(BuildContext context) {
     return BoxDecoration(
-      color: AppColors.surfaceLow,
+      color: context.colors.surfaceLow,
       borderRadius: BorderRadius.circular(12),
     );
   }
@@ -142,9 +140,11 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
           style: TextStyle(
             color:
                 isLoadingLimits
-                    ? Colors.white38
+                    ? Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.38)
                     : validation.isValid
-                    ? Theme.of(context).colorScheme.onPrimary
+                    ? null // Use default color
                     : Theme.of(context).colorScheme.error,
             fontSize: context.responsiveFont(36),
             fontWeight: FontWeight.bold,
@@ -162,7 +162,7 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
             filled: false,
             hintText: isLoadingLimits ? 'Carregando limites...' : 'R\$ 00,00',
             hintStyle: TextStyle(
-              color: Colors.white38,
+              // color: Colors.white38,
               fontSize: isLoadingLimits ? 20 : 28,
               fontWeight: FontWeight.bold,
             ),
@@ -185,7 +185,7 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
         ),
         if (!validation.isValid && validation.message != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8.0),
+            padding: EdgeInsets.only(top: 8.0),
             child: Text(
               validation.message!,
               style: TextStyle(

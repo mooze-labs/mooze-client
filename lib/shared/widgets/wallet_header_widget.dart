@@ -10,7 +10,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_p
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
@@ -42,10 +42,7 @@ class WalletHeaderWidget extends ConsumerWidget {
               style: TextStyle(color: Color(0xFF9194A6), fontSize: 16),
             ),
             IconButton(
-              icon: Icon(
-                isVisible ? Icons.visibility_off : Icons.visibility,
-                color: Colors.white,
-              ),
+              icon: Icon(isVisible ? Icons.visibility_off : Icons.visibility),
               onPressed: () {
                 ref.read(isVisibleProvider.notifier).toggle();
               },
@@ -62,9 +59,10 @@ class WalletHeaderWidget extends ConsumerWidget {
               totalBitcoinValue,
               totalSatoshisValue,
               isVisible,
+              context,
             ),
             const SizedBox(width: 8),
-            _buildVariationPercentage(totalVariation),
+            _buildVariationPercentage(totalVariation, context),
             Spacer(),
             const SizedBox(height: 12),
             _buildPendingTransactionsBadge(context, valuesToReceiveAsync),
@@ -116,6 +114,7 @@ class WalletHeaderWidget extends ConsumerWidget {
     AsyncValue<Either<String, double>> totalBitcoinValue,
     AsyncValue<Either<String, BigInt>> totalSatoshisValue,
     bool isVisible,
+    BuildContext context,
   ) {
     final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
 
@@ -151,30 +150,21 @@ class WalletHeaderWidget extends ConsumerWidget {
             (either) => either.fold(
               (error) => const Text(
                 'N/A',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               (total) => Text(
                 isVisible ? '•••••••' : formatter(total),
                 style: const TextStyle(
-                  color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-        loading: () => _buildLoadingText(),
+        loading: () => _buildLoadingText(context),
         error:
             (_, _) => const Text(
               'N/A',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
       ),
     );
@@ -182,6 +172,7 @@ class WalletHeaderWidget extends ConsumerWidget {
 
   Widget _buildVariationPercentage(
     AsyncValue<Either<String, double>> totalVariation,
+    BuildContext context,
   ) {
     return totalVariation.when(
       data:
@@ -209,34 +200,34 @@ class WalletHeaderWidget extends ConsumerWidget {
             );
           }),
       error: (_, _) => const SizedBox.shrink(),
-      loading: () => _buildLoadingPercentage(),
+      loading: () => _buildLoadingPercentage(context),
     );
   }
 
-  Widget _buildLoadingText() {
+  Widget _buildLoadingText(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.baseColor,
-      highlightColor: AppColors.highlightColor,
+      baseColor: context.colors.baseColor,
+      highlightColor: context.colors.highlightColor,
       child: Container(
         width: 150,
         height: 28,
         decoration: BoxDecoration(
-          color: AppColors.baseColor,
+          color: context.colors.baseColor,
           borderRadius: BorderRadius.circular(4),
         ),
       ),
     );
   }
 
-  Widget _buildLoadingPercentage() {
+  Widget _buildLoadingPercentage(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.baseColor,
-      highlightColor: AppColors.highlightColor,
+      baseColor: context.colors.baseColor,
+      highlightColor: context.colors.highlightColor,
       child: Container(
         width: 60,
         height: 20,
         decoration: BoxDecoration(
-          color: AppColors.baseColor,
+          color: context.colors.baseColor,
           borderRadius: BorderRadius.circular(12),
         ),
       ),
@@ -260,7 +251,7 @@ class _AnimatedPixIconState extends State<_AnimatedPixIcon>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 1),
+      duration: Duration(seconds: 1),
       vsync: this,
     )..repeat(reverse: true);
 

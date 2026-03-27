@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SwapLoadingIndicator extends StatelessWidget {
   const SwapLoadingIndicator({super.key});
@@ -8,7 +8,7 @@ class SwapLoadingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.baseColor,
+      baseColor: context.colors.baseColor,
       highlightColor: Colors.grey[100]!,
       child: Container(
         height: 20,

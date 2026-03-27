@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class PixDepositDetailScreen extends StatefulWidget {
@@ -23,8 +23,6 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final amountStr = 'R\$ ${_formatAmount(widget.deposit.amountInCents)}';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes do Depósito PIX'),
@@ -38,7 +36,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDepositHeader(amountStr),
+            _buildDepositHeader(),
 
             const SizedBox(height: 32),
 
@@ -54,15 +52,18 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     );
   }
 
-  Widget _buildDepositHeader(String amountStr) {
+  Widget _buildDepositHeader() {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: 0.1),
+        color: context.colors.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryColor.withValues(alpha: 0.3),
+          color: context.colors.primaryColor.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -72,20 +73,23 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
             height: 80,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: colorScheme.onSurface.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(40),
             ),
-            child: Icon(Icons.pix, size: 48, color: AppColors.primaryColor),
+            child: Icon(
+              Icons.pix,
+              size: 48,
+              color: context.colors.primaryColor,
+            ),
           ),
 
           const SizedBox(height: 16),
 
           Text(
             amountStr,
-            style: const TextStyle(
-              fontSize: 28,
+            style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.green,
+              color: context.colors.positiveColor,
             ),
           ),
 
@@ -99,10 +103,9 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
             ),
             child: Text(
               _getStatusLabel(),
-              style: TextStyle(
+              style: textTheme.labelLarge?.copyWith(
                 color: _getStatusColor(),
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
               ),
             ),
           ),
@@ -112,22 +115,23 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
   }
 
   Widget _buildDetailsCard(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: context.colors.backgroundCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Informações do Depósito',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 20),
@@ -178,6 +182,9 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     bool copyable = false,
     String? fieldId,
   ]) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -187,10 +194,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
             flex: 2,
             child: Text(
               label,
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+              style: textTheme.labelLarge?.copyWith(
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -201,9 +206,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
                 Expanded(
                   child: Text(
                     value,
-                    style: TextStyle(
-                      color: valueColor ?? Colors.white,
-                      fontSize: 14,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: valueColor ?? colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -227,8 +231,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
                         size: 16,
                         color:
                             _isCopiedForField(fieldId)
-                                ? Colors.green
-                                : Colors.grey[400],
+                                ? context.colors.positiveColor
+                                : context.colors.textSecondary,
                       ),
                     ),
                   ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:pinput/pinput.dart';
 
@@ -74,11 +74,11 @@ class _HumanVerificationCodeScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
         title: const Text('Validar Código'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
       ),
@@ -92,17 +92,17 @@ class _HumanVerificationCodeScreenState
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.1),
+                  color: context.colors.primaryColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primaryColor.withValues(alpha: 0.3),
+                    color: context.colors.primaryColor.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
                 child: Icon(
                   Icons.message_outlined,
                   size: 50,
-                  color: AppColors.primaryColor,
+                  color: context.colors.primaryColor,
                 ),
               ),
 
@@ -112,10 +112,10 @@ class _HumanVerificationCodeScreenState
                 text: TextSpan(
                   style: Theme.of(context).textTheme.headlineSmall,
                   children: [
-                    const TextSpan(text: 'Digite o '),
+                    TextSpan(text: 'Digite o '),
                     TextSpan(
                       text: 'código',
-                      style: TextStyle(color: AppColors.primaryColor),
+                      style: TextStyle(color: context.colors.primaryColor),
                     ),
                   ],
                 ),
@@ -127,7 +127,7 @@ class _HumanVerificationCodeScreenState
                 'Insira o código de 6 dígitos que você recebeu na mensagem do PIX de retorno.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                ).textTheme.bodyLarge?.copyWith(color: context.colors.textSecondary),
                 textAlign: TextAlign.center,
               ),
 
@@ -137,32 +137,32 @@ class _HumanVerificationCodeScreenState
                 keyboardType: TextInputType.number,
                 length: 6,
                 controller: _codeController,
-                defaultPinTheme: PinThemes.focusedPinTheme.copyWith(
+                defaultPinTheme: PinThemes.focusedThemeOf(context).copyWith(
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundCard,
+                    color: context.colors.backgroundCard,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primaryColor.withValues(alpha: 0.3),
+                      color: context.colors.primaryColor.withValues(alpha: 0.3),
                     ),
                   ),
                 ),
-                focusedPinTheme: PinThemes.focusedPinTheme.copyWith(
+                focusedPinTheme: PinThemes.focusedThemeOf(context).copyWith(
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundCard,
+                    color: context.colors.backgroundCard,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primaryColor, width: 2),
+                    border: Border.all(color: context.colors.primaryColor, width: 2),
                   ),
                 ),
-                submittedPinTheme: PinThemes.focusedPinTheme.copyWith(
+                submittedPinTheme: PinThemes.focusedThemeOf(context).copyWith(
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundCard,
+                    color: context.colors.backgroundCard,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primaryColor),
+                    border: Border.all(color: context.colors.primaryColor),
                   ),
                 ),
-                errorPinTheme: PinThemes.focusedPinTheme.copyWith(
+                errorPinTheme: PinThemes.focusedThemeOf(context).copyWith(
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundCard,
+                    color: context.colors.backgroundCard,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.red, width: 2),
                   ),
@@ -182,10 +182,10 @@ class _HumanVerificationCodeScreenState
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.1),
+                  color: context.colors.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primaryColor.withValues(alpha: 0.3),
+                    color: context.colors.primaryColor.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -193,15 +193,15 @@ class _HumanVerificationCodeScreenState
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: AppColors.primaryColor,
+                      color: context.colors.primaryColor,
                       size: 20,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Verifique o campo de mensagem do PIX que você recebeu de volta.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                     ),
@@ -209,7 +209,7 @@ class _HumanVerificationCodeScreenState
                 ),
               ),
 
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
 
               TextButton.icon(
                 onPressed: () {
@@ -217,12 +217,12 @@ class _HumanVerificationCodeScreenState
                 },
                 icon: Icon(
                   Icons.arrow_back,
-                  color: AppColors.primaryColor,
+                  color: context.colors.primaryColor,
                   size: 20,
                 ),
                 label: Text(
                   'Voltar para o pagamento',
-                  style: TextStyle(color: AppColors.primaryColor, fontSize: 14),
+                  style: TextStyle(color: context.colors.primaryColor, fontSize: 14),
                 ),
               ),
             ],

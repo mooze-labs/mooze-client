@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class HumanVerificationSuccessScreen extends StatefulWidget {
   const HumanVerificationSuccessScreen({super.key});
@@ -76,17 +76,17 @@ class _HumanVerificationSuccessScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       body: PlatformSafeArea(
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0.0, -0.4),
               radius: 0.8,
               colors: [
                 Color(0xFF1A0A1A),
-                AppColors.backgroundColor,
-                AppColors.backgroundColor,
+                context.colors.backgroundColor,
+                context.colors.backgroundColor,
               ],
             ),
           ),
@@ -105,7 +105,7 @@ class _HumanVerificationSuccessScreenState
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primaryColor.withValues(
+                                color: context.colors.primaryColor.withValues(
                                   alpha: 0.3 + (_glowAnimation.value * 0.4),
                                 ),
                                 blurRadius: 40 + (_glowAnimation.value * 30),
@@ -119,11 +119,11 @@ class _HumanVerificationSuccessScreenState
                               width: 120,
                               height: 120,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
+                                color: context.colors.primaryColor,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primaryColor.withValues(
+                                    color: context.colors.primaryColor.withValues(
                                       alpha: 0.3,
                                     ),
                                     blurRadius: 25,
@@ -131,7 +131,7 @@ class _HumanVerificationSuccessScreenState
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.verified_user,
                                 color: Colors.white,
                                 size: 60,
@@ -160,7 +160,7 @@ class _HumanVerificationSuccessScreenState
                             style: Theme.of(
                               context,
                             ).textTheme.headlineMedium?.copyWith(
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                             textAlign: TextAlign.center,
@@ -171,7 +171,7 @@ class _HumanVerificationSuccessScreenState
                           Text(
                             'Sua identidade foi verificada com sucesso. Agora você pode utilizar todos os recursos da plataforma.',
                             style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppColors.textSecondary),
+                                ?.copyWith(color: context.colors.textSecondary),
                             textAlign: TextAlign.center,
                           ),
 
@@ -180,10 +180,10 @@ class _HumanVerificationSuccessScreenState
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: AppColors.backgroundCard,
+                              color: context.colors.backgroundCard,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: AppColors.primaryColor.withValues(
+                                color: context.colors.primaryColor.withValues(
                                   alpha: 0.2,
                                 ),
                                 width: 1,
@@ -194,15 +194,15 @@ class _HumanVerificationSuccessScreenState
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primaryColor
+                                        color: context.colors.primaryColor
                                             .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Icon(
                                         Icons.check_circle,
-                                        color: AppColors.primaryColor,
+                                        color: context.colors.primaryColor,
                                         size: 32,
                                       ),
                                     ),
@@ -217,17 +217,17 @@ class _HumanVerificationSuccessScreenState
                                             style: Theme.of(
                                               context,
                                             ).textTheme.titleMedium?.copyWith(
-                                              color: AppColors.textPrimary,
+                                              color: context.colors.textPrimary,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
+                                          SizedBox(height: 4),
                                           Text(
                                             'Você é uma pessoa real',
                                             style: Theme.of(
                                               context,
                                             ).textTheme.bodyMedium?.copyWith(
-                                              color: AppColors.textSecondary,
+                                              color: context.colors.textSecondary,
                                             ),
                                           ),
                                         ],
@@ -239,12 +239,12 @@ class _HumanVerificationSuccessScreenState
                                 Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryColor.withValues(
+                                    color: context.colors.primaryColor.withValues(
                                       alpha: 0.1,
                                     ),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: AppColors.primaryColor.withValues(
+                                      color: context.colors.primaryColor.withValues(
                                         alpha: 0.3,
                                       ),
                                       width: 1,
@@ -254,17 +254,17 @@ class _HumanVerificationSuccessScreenState
                                     children: [
                                       Icon(
                                         Icons.info_outline,
-                                        color: AppColors.primaryColor,
+                                        color: context.colors.primaryColor,
                                         size: 20,
                                       ),
-                                      const SizedBox(width: 12),
+                                      SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           'Seu PIX de R\$ 1,00 foi devolvido com sucesso.',
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodySmall?.copyWith(
-                                            color: AppColors.textPrimary,
+                                            color: context.colors.textPrimary,
                                           ),
                                         ),
                                       ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class LoadingOverlayWidget extends StatelessWidget {
   final AnimationController circleController;
@@ -49,7 +49,7 @@ class LoadingOverlayWidget extends StatelessWidget {
         height: size.width * circleAnimation.value * 1.5,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primaryColor,
+          color: context.colors.primaryColor,
         ),
       ),
     );

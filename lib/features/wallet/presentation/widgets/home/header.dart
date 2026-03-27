@@ -20,12 +20,15 @@ class LogoHeader extends ConsumerWidget {
         Stack(
           children: [
             Center(
-              child: Opacity(
-                opacity: logoOpacity,
-                child: SvgPicture.asset(
-                  logoPath,
-                  width: logoWidth,
-                  height: logoHeight,
+              child: SvgPicture.asset(
+                logoPath,
+                width: logoWidth,
+                height: logoHeight,
+                colorFilter: ColorFilter.mode(
+                  Theme.of(context).colorScheme.onSurface.withValues(
+                    alpha: logoOpacity,
+                  ),
+                  BlendMode.srcIn,
                 ),
               ),
             ),

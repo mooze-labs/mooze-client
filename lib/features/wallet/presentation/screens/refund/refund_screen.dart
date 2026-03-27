@@ -4,7 +4,7 @@ import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_confirmation_screen.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Screen to enter refund address and review swap details
 class RefundScreen extends ConsumerStatefulWidget {
@@ -52,245 +52,223 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
           tooltip: 'Voltar',
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0.0, -0.4),
-            radius: 0.8,
-            colors: [
-              Color(0xFF1A0A1A),
-              AppColors.backgroundColor,
-              AppColors.backgroundColor,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Info Header
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.primaryColor.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  AppColors.primaryColor.withValues(
-                                    alpha: 0.05,
-                                  ),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+      body: PlatformSafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Info Header
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                context.colors.primaryColor.withValues(
+                                  alpha: 0.15,
+                                ),
+                                context.colors.primaryColor.withValues(
+                                  alpha: 0.05,
+                                ),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.3,
                               ),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withValues(
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: context.colors.primaryColor.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.info_outline,
+                                  color: context.colors.primaryColor,
+                                  size: 24,
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  'Não se preocupe, o reembolso em Bitcoin será enviado automaticamente para o endereço da sua wallet.',
+                                  style: context.textTheme.bodyMedium?.copyWith(
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Swap Details Card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: context.colors.backgroundCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Informações do Reembolso',
+                                style: context.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Amount
+                              _buildDetailRow(
+                                icon: Icons.currency_bitcoin,
+                                label: 'Valor',
+                                value: _formatAmount(
+                                  widget.swapInfo.amountSat.toInt(),
+                                ),
+                                isHighlight: true,
+                              ),
+
+                              SizedBox(height: 16),
+
+                              // Transaction
+                              _buildDetailRow(
+                                icon: Icons.link,
+                                label: 'Transação',
+                                value: _shortenAddress(
+                                  widget.swapInfo.swapAddress,
+                                ),
+                                isHighlight: false,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Bitcoin Address Input
+                        Text(
+                          'Endereço Bitcoin',
+                          style: context.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _addressController,
+                          style: context.textTheme.bodyMedium,
+                          // readOnly: true,
+                          decoration: InputDecoration(
+                            hintText: 'Insira o endereço Bitcoin',
+                            hintStyle: TextStyle(
+                              color: context.colors.textSecondary,
+                            ),
+                            filled: true,
+                            fillColor: context.colors.backgroundCard,
+                            prefixIcon: Icon(
+                              Icons.account_balance_wallet,
+                              color: context.colors.primaryColor,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: context.colors.primaryColor.withValues(
                                   alpha: 0.3,
                                 ),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.primaryColor,
-                                    size: 24,
-                                  ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: context.colors.primaryColor.withValues(
+                                  alpha: 0.3,
                                 ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Text(
-                                    'Não se preocupe, o reembolso em Bitcoin será enviado automaticamente para o endereço da sua wallet.',
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 14,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: context.colors.primaryColor,
+                                width: 2,
+                              ),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Colors.red,
+                                width: 2,
+                              ),
                             ),
                           ),
+                          maxLines: 2,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Por favor, insira um endereço Bitcoin';
+                            }
 
-                          const SizedBox(height: 32),
+                            final address = value.trim();
 
-                          // Swap Details Card
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: AppColors.backgroundCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Informações do Reembolso',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
+                            // Comprehensive Bitcoin address validation
+                            final legacyPattern = RegExp(
+                              r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$',
+                            );
+                            final segwitPattern = RegExp(
+                              r'^bc1[a-z0-9]{39,59}$',
+                            );
+                            final testnetPattern = RegExp(
+                              r'^(tb1|[mn2])[a-z0-9]{25,59}$',
+                            );
 
-                                // Amount
-                                _buildDetailRow(
-                                  icon: Icons.currency_bitcoin,
-                                  label: 'Valor',
-                                  value: _formatAmount(
-                                    widget.swapInfo.amountSat.toInt(),
-                                  ),
-                                  isHighlight: true,
-                                ),
+                            final isValid =
+                                legacyPattern.hasMatch(address) ||
+                                segwitPattern.hasMatch(address) ||
+                                testnetPattern.hasMatch(address);
 
-                                const SizedBox(height: 16),
+                            if (!isValid) {
+                              return 'Endereço Bitcoin inválido';
+                            }
 
-                                // Transaction
-                                _buildDetailRow(
-                                  icon: Icons.link,
-                                  label: 'Transação',
-                                  value: _shortenAddress(
-                                    widget.swapInfo.swapAddress,
-                                  ),
-                                  isHighlight: false,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Bitcoin Address Input
-                          Text(
-                            'Endereço Bitcoin',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _addressController,
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                            ),
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              hintText: 'Insira o endereço Bitcoin',
-                              hintStyle: TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.backgroundCard,
-                              prefixIcon: Icon(
-                                Icons.account_balance_wallet,
-                                color: AppColors.primaryColor,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: AppColors.primaryColor.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: AppColors.primaryColor,
-                                  width: 2,
-                                ),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.red),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            maxLines: 2,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Por favor, insira um endereço Bitcoin';
-                              }
-
-                              final address = value.trim();
-
-                              // Comprehensive Bitcoin address validation
-                              final legacyPattern = RegExp(
-                                r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$',
-                              );
-                              final segwitPattern = RegExp(
-                                r'^bc1[a-z0-9]{39,59}$',
-                              );
-                              final testnetPattern = RegExp(
-                                r'^(tb1|[mn2])[a-z0-9]{25,59}$',
-                              );
-
-                              final isValid =
-                                  legacyPattern.hasMatch(address) ||
-                                  segwitPattern.hasMatch(address) ||
-                                  testnetPattern.hasMatch(address);
-
-                              if (!isValid) {
-                                return 'Endereço Bitcoin inválido';
-                              }
-
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                PrimaryButton(
-                  text: 'Próximo',
-                  onPressed: _prepareRefund,
-                  isLoading: _isLoading,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              PrimaryButton(
+                text: 'Próximo',
+                onPressed: _prepareRefund,
+                isLoading: _isLoading,
+              ),
+            ],
           ),
         ),
       ),
@@ -308,13 +286,13 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
       decoration: BoxDecoration(
         color:
             isHighlight
-                ? AppColors.primaryColor.withValues(alpha: 0.1)
-                : AppColors.backgroundColor.withValues(alpha: 0.5),
+                ? context.colors.primaryColor.withValues(alpha: 0.1)
+                : context.colors.backgroundColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
         border:
             isHighlight
                 ? Border.all(
-                  color: AppColors.primaryColor.withValues(alpha: 0.3),
+                  color: context.colors.primaryColor.withValues(alpha: 0.3),
                 )
                 : null,
       ),
@@ -324,7 +302,9 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
             icon,
             size: 20,
             color:
-                isHighlight ? AppColors.primaryColor : AppColors.textSecondary,
+                isHighlight
+                    ? context.colors.primaryColor
+                    : context.colors.textSecondary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -333,20 +313,22 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: isHighlight ? 16 : 14,
-                    color: AppColors.textPrimary,
-                    fontWeight: isHighlight ? FontWeight.w700 : FontWeight.w600,
-                  ),
+                  style:
+                      isHighlight
+                          ? context.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          )
+                          : context.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                 ),
               ],
             ),
@@ -396,7 +378,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro: $error'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colorScheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class FirstTimePixDialog extends StatefulWidget {
@@ -16,7 +18,32 @@ class FirstTimePixDialog extends StatefulWidget {
 }
 
 class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
-  bool _isChecked = false;
+  int _secondsRemaining = 7;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,44 +113,6 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: () {
-              setState(() {
-                _isChecked = !_isChecked;
-              });
-            },
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Checkbox(
-                    value: _isChecked,
-                    onChanged: (value) {
-                      setState(() {
-                        _isChecked = value ?? false;
-                      });
-                    },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Compreendo e aceito estas condições',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
       actions: [
@@ -131,16 +120,20 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
           width: double.infinity,
           child: FilledButton(
             onPressed:
-                _isChecked ? () => Navigator.of(context).pop(true) : null,
+                _secondsRemaining == 0
+                    ? () => Navigator.of(context).pop(true)
+                    : null,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text(
-              'Confirmar',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            child: Text(
+              _secondsRemaining == 0
+                  ? 'Compreendo e aceito'
+                  : 'Compreendo e aceito ($_secondsRemaining)',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ),

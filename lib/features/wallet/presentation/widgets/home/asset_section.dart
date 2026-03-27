@@ -9,7 +9,7 @@ class AssetSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
+    children: [
         SectionHeader(
           onAction: () {
             Navigator.push(

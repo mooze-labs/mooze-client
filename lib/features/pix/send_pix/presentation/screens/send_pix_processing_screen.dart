@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class SendPixProcessingScreen extends ConsumerStatefulWidget {
@@ -81,17 +81,17 @@ class _SendPixProcessingScreenState
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.backgroundColor,
+        backgroundColor: context.colors.backgroundColor,
         body: PlatformSafeArea(
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment(0.0, -0.4),
                 radius: 0.8,
                 colors: [
                   Color(0xFF1A0A1A),
-                  AppColors.backgroundColor,
-                  AppColors.backgroundColor,
+                  context.colors.backgroundColor,
+                  context.colors.backgroundColor,
                 ],
               ),
             ),
@@ -107,17 +107,17 @@ class _SendPixProcessingScreenState
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryColor.withValues(alpha: 0.1),
+                        color: context.colors.primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.primaryColor.withValues(alpha: 0.3),
+                          color: context.colors.primaryColor.withValues(alpha: 0.3),
                           width: 3,
                         ),
                       ),
                       child: Icon(
                         Icons.hourglass_empty,
                         size: 60,
-                        color: AppColors.primaryColor,
+                        color: context.colors.primaryColor,
                       ),
                     ),
                   ),
@@ -128,7 +128,7 @@ class _SendPixProcessingScreenState
                   Text(
                     'Processando Pagamento',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
@@ -140,7 +140,7 @@ class _SendPixProcessingScreenState
                   Text(
                     'Seu PIX está sendo processado. Isso pode levar alguns instantes...',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -149,7 +149,7 @@ class _SendPixProcessingScreenState
 
                   // Loading indicator
                   LoadingAnimationWidget.threeRotatingDots(
-                    color: AppColors.primaryColor,
+                    color: context.colors.primaryColor,
                     size: 50,
                   ),
 
@@ -159,10 +159,10 @@ class _SendPixProcessingScreenState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryColor.withValues(alpha: 0.1),
+                      color: context.colors.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.primaryColor.withValues(alpha: 0.3),
+                        color: context.colors.primaryColor.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -170,15 +170,15 @@ class _SendPixProcessingScreenState
                       children: [
                         Icon(
                           Icons.info_outline,
-                          color: AppColors.primaryColor,
+                          color: context.colors.primaryColor,
                           size: 20,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'Aguarde enquanto verificamos o status do seu pagamento.',
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppColors.textPrimary),
+                                ?.copyWith(color: context.colors.textPrimary),
                           ),
                         ),
                       ],
@@ -195,11 +195,11 @@ class _SendPixProcessingScreenState
 
   Widget _buildErrorScreen(String error) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
         title: const Text('Erro no Pagamento'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.go('/pix'),
         ),
       ),
@@ -232,7 +232,7 @@ class _SendPixProcessingScreenState
               Text(
                 'Erro no Pagamento',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
@@ -244,11 +244,11 @@ class _SendPixProcessingScreenState
                 error,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                ).textTheme.bodyLarge?.copyWith(color: context.colors.textSecondary),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
 
               PrimaryButton(
                 text: 'Voltar',

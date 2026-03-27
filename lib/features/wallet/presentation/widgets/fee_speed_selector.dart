@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 enum FeeSpeed { low, medium, fast }
 
@@ -102,8 +102,8 @@ class _FeeSpeedOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return GestureDetector(
       onTap: isLoading ? null : onTap,
@@ -113,9 +113,9 @@ class _FeeSpeedOption extends StatelessWidget {
           color:
               isSelected
                   ? const Color(0xFFE91E63).withValues(alpha: 0.1)
-                  : const Color(0xFF2C2C2C),
+                  : Theme.of(context).colorScheme.surfaceContainerLow,
           border: Border.all(
-            color: isSelected ? const Color(0xFFE91E63) : Colors.transparent,
+            color: isSelected ? Color(0xFFE91E63) : Colors.transparent,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -126,7 +126,7 @@ class _FeeSpeedOption extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFFE91E63) : Colors.white,
+                color: isSelected ? const Color(0xFFE91E63) : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -147,13 +147,14 @@ class _FeeSpeedOption extends StatelessWidget {
                   '$feeRate sat/vB',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
+                  ).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                 ),
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[500],
-                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],

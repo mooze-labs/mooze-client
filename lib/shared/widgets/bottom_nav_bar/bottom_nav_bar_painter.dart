@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
 
+/// Custom painter for the bottom navigation bar's shaped background.
+///
+/// [backgroundColor] is injected by the parent widget from the active theme
+/// (via `context.colors.navBarBackground`) so the painter itself needs no
+/// [BuildContext] and remains a pure [CustomPainter].
 class BottomNavBarPainter extends CustomPainter {
+  final Color backgroundColor;
+
+  const BottomNavBarPainter({required this.backgroundColor});
+
   @override
   void paint(Canvas canvas, Size size) {
-    Paint paint =
+    final paint =
         Paint()
-          ..color = AppColors.navBarBackground
+          ..color = backgroundColor
           ..style = PaintingStyle.fill;
 
-    Path path = Path();
+    final path = Path();
 
-    double curveHeight = 25.0;
-    double centerX = size.width / 2;
-    double curveWidth = 150.0;
-    double cornerRadius = 15.0;
+    const double curveHeight = 25.0;
+    final double centerX = size.width / 2;
+    const double curveWidth = 150.0;
+    const double cornerRadius = 15.0;
 
     path.moveTo(cornerRadius, size.height);
     path.lineTo(0, size.height);
@@ -55,5 +63,6 @@ class BottomNavBarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(BottomNavBarPainter oldDelegate) =>
+      oldDelegate.backgroundColor != backgroundColor;
 }

@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/settings/presentation/screens/delete_walle
 import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/license_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/theme_selector_screen.dart';
 import 'package:mooze_mobile/features/support/presentations/srcreens/support_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/view_mnemonic.dart';
@@ -44,5 +45,9 @@ final settingsRoutes = [
   GoRoute(
     path: '/settings/developer-mode',
     builder: (context, state) => DeveloperScreen(),
+  ),
+  GoRoute(
+    path: '/settings/theme-selector',
+    builder: (context, state) => const ThemeSelectorScreen(),
   ),
 ];

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
-import 'package:mooze_mobile/themes/app_extra_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Filter bar for log viewer with search and level filters
 class LogFilterBar extends StatelessWidget {
@@ -23,33 +23,31 @@ class LogFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return Container(
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
-          // Search field
           TextField(
             controller: searchController,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface,
-            ),
+            style: textTheme.bodyMedium,
             decoration: InputDecoration(
               hintText: 'Search logs...',
-              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.outlineVariant,
+              hintStyle: textTheme.bodyMedium?.copyWith(
+                color: context.colors.textTertiary,
               ),
-              prefixIcon: Icon(Icons.search, color: colorScheme.outlineVariant),
+              prefixIcon: Icon(Icons.search, color: context.colors.textTertiary),
               suffixIcon:
                   searchQuery.isNotEmpty
                       ? IconButton(
-                        icon: Icon(Icons.clear, color: colorScheme.outlineVariant),
+                        icon: Icon(Icons.clear, color: context.colors.textTertiary),
                         onPressed: onClearSearch,
                       )
                       : null,
               filled: true,
-              fillColor: colorScheme.surfaceContainerHigh,
+              fillColor: colorScheme.onSurface.withValues(alpha: 0.06),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -58,7 +56,6 @@ class LogFilterBar extends StatelessWidget {
             onChanged: onSearchChanged,
           ),
           const SizedBox(height: 12),
-          // Level filters
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -80,41 +77,41 @@ class LogFilterBar extends StatelessWidget {
   }
 
   Widget _buildLevelChip(BuildContext context, LogLevel? level, String label) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final isSelected = selectedLevel == level;
     final color =
         level != null ? _getColorForLevel(context, level) : colorScheme.primary;
-
-    final textTheme = Theme.of(context).textTheme;
 
     return FilterChip(
       label: Text(
         label,
         style: textTheme.labelMedium?.copyWith(
-          color: isSelected ? colorScheme.onSurface : colorScheme.outlineVariant,
+          color: isSelected ? colorScheme.onSurface : context.colors.textSecondary,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       selected: isSelected,
       onSelected: (selected) => onLevelSelected(selected ? level : null),
-      backgroundColor: colorScheme.surfaceContainerHigh,
+      backgroundColor: colorScheme.onSurface.withValues(alpha: 0.06),
       selectedColor: color.withValues(alpha: 0.3),
       checkmarkColor: colorScheme.onSurface,
-      side: BorderSide(color: isSelected ? color : colorScheme.outline),
+      side: BorderSide(
+        color: isSelected ? color : colorScheme.onSurface.withValues(alpha: 0.12),
+      ),
     );
   }
 
   Color _getColorForLevel(BuildContext context, LogLevel level) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final extraColors = Theme.of(context).extension<AppExtraColors>();
+    final colorScheme = context.colorScheme;
 
     switch (level) {
       case LogLevel.debug:
-        return colorScheme.outlineVariant;
+        return context.colors.textTertiary;
       case LogLevel.info:
         return Colors.blue;
       case LogLevel.warning:
-        return extraColors?.warning ?? Colors.orange;
+        return context.appColors.warning;
       case LogLevel.error:
         return colorScheme.error;
       case LogLevel.critical:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class FilterOrderBy extends StatefulWidget {
   final bool isMostRecentSelected;
@@ -51,18 +51,18 @@ class _FilterOrderByState extends State<FilterOrderBy> {
               borderRadius: BorderRadius.circular(15),
               color:
                   _isMostRecentSelected
-                      ? AppColors.primaryColor.withValues(alpha: 0.3)
+                      ? context.colors.primaryColor.withValues(alpha: 0.3)
                       : Colors.grey,
               border:
                   _isMostRecentSelected
-                      ? Border.all(color: AppColors.primaryColor, width: 2)
+                      ? Border.all(color: context.colors.primaryColor, width: 2)
                       : null,
             ),
 
             child: Center(
               child: Text(
                 'Mais Recente',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -81,12 +81,12 @@ class _FilterOrderByState extends State<FilterOrderBy> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               gradient: LinearGradient(
-                colors: [AppColors.primaryColor, AppColors.navBarFabBackground],
+                colors: [context.colors.primaryColor, context.colors.navBarFabBackground],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.compare_arrows_rounded,
                 color: Colors.white,
@@ -106,17 +106,17 @@ class _FilterOrderByState extends State<FilterOrderBy> {
               borderRadius: BorderRadius.circular(15),
               color:
                   !_isMostRecentSelected
-                      ? AppColors.primaryColor.withValues(alpha: 0.3)
+                      ? context.colors.primaryColor.withValues(alpha: 0.3)
                       : Colors.grey,
               border:
                   !_isMostRecentSelected
-                      ? Border.all(color: AppColors.primaryColor, width: 2)
+                      ? Border.all(color: context.colors.primaryColor, width: 2)
                       : null,
             ),
             child: Center(
               child: Text(
                 'Mais Antigo',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

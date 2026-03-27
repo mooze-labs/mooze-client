@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/settings/presentation/actions/navigation_a
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Merchant Mode Exit Screen (Presentation Layer)
 ///
@@ -110,7 +111,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
             ],
           ),
         ),
-        child: SafeArea(
+        child: PlatformSafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Column(
@@ -131,6 +132,10 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                         'assets/logos/logo_primary.svg',
                         width: 150,
                         height: 100,
+                        colorFilter: ColorFilter.mode(
+                          context.colors.logoColor,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),

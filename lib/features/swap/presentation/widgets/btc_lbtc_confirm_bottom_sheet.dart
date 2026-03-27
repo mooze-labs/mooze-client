@@ -10,7 +10,7 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_sele
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/controllers/btc_lbtc_swap_controller.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
@@ -207,16 +207,20 @@ class _BtcLbtcConfirmBottomSheetState
 
     return PlatformSafeArea(
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.9,
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height * 0.5,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1C1C1C),
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Center(
               child: Text(
@@ -225,44 +229,46 @@ class _BtcLbtcConfirmBottomSheetState
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    _fromToSummary(
-                      context,
-                      fromAsset,
-                      toAsset,
-                      amountBtc,
-                      receivedAmount,
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _fromToSummary(
+                    context,
+                    fromAsset,
+                    toAsset,
+                    amountBtc,
+                    receivedAmount,
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  if (_feeEstimate != null) ...[
+                    FeeSpeedSelector(
+                      selectedSpeed: _selectedFeeSpeed,
+                      lowFeeLoading: false,
+                      onSpeedChanged: _onFeeSpeedChanged,
+                      lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
+                      mediumFeeSatPerVByte: _feeEstimate!.mediumFeeSatPerVByte,
+                      fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Divider(),
+                    const SizedBox(height: 8),
+                  ] else ...[
+                    _buildFeeSpeedSelectorSkeleton(),
                     const SizedBox(height: 16),
-                    if (_feeEstimate != null) ...[
-                      FeeSpeedSelector(
-                        selectedSpeed: _selectedFeeSpeed,
-                        lowFeeLoading: false,
-                        onSpeedChanged: _onFeeSpeedChanged,
-                        lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
-                        mediumFeeSatPerVByte:
-                            _feeEstimate!.mediumFeeSatPerVByte,
-                        fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                    ],
-
-                    _buildFeeBreakdown(
-                      boltzFeeSat: boltzFeeSat,
-                      networkFeeSat: networkFeeSat,
-                      totalFeeSat: totalFeeSat,
-                      isLoading: _isLoadingFees,
-                    ),
+                    const Divider(),
+                    const SizedBox(height: 8),
                   ],
-                ),
+
+                  _buildFeeBreakdown(
+                    boltzFeeSat: boltzFeeSat,
+                    networkFeeSat: networkFeeSat,
+                    totalFeeSat: totalFeeSat,
+                    isLoading: _isLoadingFees,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -279,6 +285,78 @@ class _BtcLbtcConfirmBottomSheetState
     );
   }
 
+  Widget _buildFeeSpeedSelectorSkeleton() {
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 160,
+            height: 14,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildFeeCardSkeleton(baseColor)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildFeeCardSkeleton(baseColor)),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeeCardSkeleton(Color baseColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: baseColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 14,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 60,
+            height: 12,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 48,
+            height: 12,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeeBreakdown({
     required BigInt boltzFeeSat,
     required BigInt networkFeeSat,
@@ -290,23 +368,21 @@ class _BtcLbtcConfirmBottomSheetState
       children: [
         Text(
           'Estimativa',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 13,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          _getEstimatedTime(),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-        ),
+        Text(_getEstimatedTime(), style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: 20),
 
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF2C2C2C),
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -314,7 +390,7 @@ class _BtcLbtcConfirmBottomSheetState
               _FeeRow(
                 label: 'Enviando:',
                 value: '${widget.amount} sats',
-                valueColor: Colors.white,
+                valueColor: Theme.of(context).colorScheme.onSurface,
                 isBold: false,
                 isLoading: isLoading,
               ),
@@ -323,7 +399,9 @@ class _BtcLbtcConfirmBottomSheetState
                 _FeeRow(
                   label: 'Taxa de serviço da Boltz:',
                   value: isLoading ? '' : '-$boltzFeeSat sats',
-                  valueColor: Colors.grey[400],
+                  valueColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                   isBold: false,
                   isLoading: isLoading,
                 ),
@@ -331,24 +409,33 @@ class _BtcLbtcConfirmBottomSheetState
               _FeeRow(
                 label: 'Taxa da transação:',
                 value: isLoading ? '' : '-$networkFeeSat sats',
-                valueColor: Colors.grey[400],
+                valueColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
                 isBold: false,
                 isLoading: isLoading,
               ),
               _FeeRow(
                 label: 'Total de taxas:',
                 value: isLoading ? '' : '-${networkFeeSat + boltzFeeSat} sats',
-                valueColor: Colors.grey[400],
+                valueColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
                 isBold: false,
                 isLoading: isLoading,
               ),
               const SizedBox(height: 16),
-              Container(height: 1, color: Colors.grey[700]),
+              Container(
+                height: 1,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.12),
+              ),
               const SizedBox(height: 16),
               _FeeRow(
                 label: 'Recebendo:',
                 value: isLoading ? '' : '${widget.amount - totalFeeSat} sats',
-                valueColor: Colors.white,
+                valueColor: Theme.of(context).colorScheme.onSurface,
                 isBold: true,
                 isLoading: isLoading,
               ),
@@ -406,10 +493,13 @@ class _BtcLbtcConfirmBottomSheetState
   ) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
-          colors: [Color(0xFF2D2E2A), Color(0xFFE91E63)],
+          colors: [
+            Theme.of(context).colorScheme.surfaceContainerLowest,
+            const Color(0xFFE91E63),
+          ],
         ),
         borderRadius: BorderRadius.circular(15),
       ),
@@ -418,7 +508,7 @@ class _BtcLbtcConfirmBottomSheetState
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: const Color(0xFF111111),
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(13),
           ),
           child: Row(
@@ -447,7 +537,7 @@ class _BtcLbtcConfirmBottomSheetState
                   Text(sendAsset.name.toLowerCase()),
                 ],
               ),
-              const Spacer(),
+              Spacer(),
               SvgPicture.asset(
                 'assets/icons/menu/arrow.svg',
                 width: 25,
@@ -503,13 +593,20 @@ class _FeeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
         isLoading
             ? Shimmer.fromColors(
               baseColor: baseColor,
@@ -525,9 +622,8 @@ class _FeeRow extends StatelessWidget {
             )
             : Text(
               value,
-              style: TextStyle(
-                color: valueColor ?? Colors.white,
-                fontSize: 14,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
                 fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               ),
               textAlign: TextAlign.end,

@@ -11,7 +11,7 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_hea
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
 import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tutorial_service.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 /// Merchant Mode Screen (Presentation Layer)
@@ -790,6 +790,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           ),
           child: PlatformSafeArea(
             iosTop: true,
+            androidTop: true,
             child: Column(
               children: [
                 Padding(
@@ -816,7 +817,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.backgroundColor,
+                      color: context.colors.backgroundColor,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
@@ -829,7 +830,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                           controller: _tabController,
                           indicatorColor: Colors.pink,
                           dividerColor: Colors.transparent,
-                          labelColor: Colors.white,
+                          // labelColor: Colors.white,
                           unselectedLabelColor: Colors.grey[400],
                           tabs: [
                             Tab(
@@ -896,7 +897,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                       );
                                     },
                                     loading:
-                                        () => const Center(
+                                        () => Center(
                                           child: CircularProgressIndicator(),
                                         ),
                                     error:

@@ -3,13 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/generate_seeds_button.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/phrase_length_selection.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
+import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 
 class ConfigureSeedsScreen extends StatelessWidget {
   const ConfigureSeedsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -25,7 +26,7 @@ class ConfigureSeedsScreen extends StatelessWidget {
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0).copyWith(bottom: 0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

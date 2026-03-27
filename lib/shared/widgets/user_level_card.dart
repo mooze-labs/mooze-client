@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
 
 class UserLevelCard extends StatefulWidget {
@@ -128,13 +128,13 @@ class _UserLevelCardState extends State<UserLevelCard>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: AppColors.surfaceColor,
+          color: context.colors.surfaceColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryColor.withValues(alpha: 0.1),
+              color: context.colors.primaryColor.withValues(alpha: 0.1),
               blurRadius: 12,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -150,7 +150,7 @@ class _UserLevelCardState extends State<UserLevelCard>
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _buildHeader(),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _buildLevelProgressBar(),
             const SizedBox(height: 12),
             Padding(
@@ -168,7 +168,7 @@ class _UserLevelCardState extends State<UserLevelCard>
       children: [
         Icon(
           Icons.military_tech,
-          color: AppColors.primaryColor,
+          color: context.colors.primaryColor,
           size: context.responsiveFont(20),
         ),
         const SizedBox(width: 8),
@@ -177,17 +177,17 @@ class _UserLevelCardState extends State<UserLevelCard>
           style: TextStyle(
             fontSize: context.responsiveFont(18),
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const Spacer(),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primaryColor.withValues(alpha: 0.2),
+            color: context.colors.primaryColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.primaryColor.withValues(alpha: 0.3),
+              color: context.colors.primaryColor.withValues(alpha: 0.3),
             ),
           ),
           child: Text(
@@ -195,7 +195,7 @@ class _UserLevelCardState extends State<UserLevelCard>
             style: TextStyle(
               fontSize: context.responsiveFont(12),
               fontWeight: FontWeight.w600,
-              color: AppColors.primaryColor,
+              color: context.colors.primaryColor,
             ),
           ),
         ),
@@ -252,7 +252,7 @@ class _UserLevelCardState extends State<UserLevelCard>
                         ? level.color
                         : isCompleted
                         ? level.color.withValues(alpha: 0.8)
-                        : AppColors.textSecondary,
+                        : context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -284,12 +284,12 @@ class _UserLevelCardState extends State<UserLevelCard>
                             ),
                             child: LinearProgressIndicator(
                               value: lineProgress,
-                              backgroundColor: AppColors.textSecondary
+                              backgroundColor: context.colors.textSecondary
                                   .withValues(alpha: 0.3),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 isCompleted || isCurrentLevel
                                     ? level.color
-                                    : AppColors.textSecondary.withValues(
+                                    : context.colors.textSecondary.withValues(
                                       alpha: 0.3,
                                     ),
                               ),
@@ -304,7 +304,7 @@ class _UserLevelCardState extends State<UserLevelCard>
                     animation:
                         isCurrentLevel
                             ? _highlightAnimation
-                            : const AlwaysStoppedAnimation(1.0),
+                            : AlwaysStoppedAnimation(1.0),
                     builder: (context, child) {
                       final scale =
                           isCurrentLevel ? _highlightAnimation.value : 1.0;
@@ -319,7 +319,7 @@ class _UserLevelCardState extends State<UserLevelCard>
                             color:
                                 isCompleted || isCurrentLevel
                                     ? level.color
-                                    : AppColors.textSecondary.withValues(
+                                    : context.colors.textSecondary.withValues(
                                       alpha: 0.3,
                                     ),
                             boxShadow:
@@ -349,7 +349,7 @@ class _UserLevelCardState extends State<UserLevelCard>
                             color:
                                 isCompleted || isCurrentLevel
                                     ? Colors.white
-                                    : AppColors.textSecondary,
+                                    : context.colors.textSecondary,
                             size: context.responsiveFont(22),
                           ),
                         ),
@@ -380,7 +380,7 @@ class _UserLevelCardState extends State<UserLevelCard>
               'Nível atual: ',
               style: TextStyle(
                 fontSize: context.responsiveFont(14),
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             Text(
@@ -396,7 +396,7 @@ class _UserLevelCardState extends State<UserLevelCard>
                 ' → ',
                 style: TextStyle(
                   fontSize: context.responsiveFont(14),
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
               Text(
@@ -426,7 +426,7 @@ class _UserLevelCardState extends State<UserLevelCard>
                         'Progresso: ${(_progressAnimation.value * 100).toInt()}%',
                         style: TextStyle(
                           fontSize: context.responsiveFont(12),
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                       Text(
@@ -438,12 +438,12 @@ class _UserLevelCardState extends State<UserLevelCard>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: _progressAnimation.value,
-                      backgroundColor: AppColors.textSecondary.withValues(
+                      backgroundColor: context.colors.textSecondary.withValues(
                         alpha: 0.2,
                       ),
                       valueColor: AlwaysStoppedAnimation<Color>(

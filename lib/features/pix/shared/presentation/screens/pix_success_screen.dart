@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
 class PixSuccessScreen extends StatefulWidget {
@@ -133,202 +133,198 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       body: PlatformSafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(0.0, -0.4),
-              radius: 0.8,
-              colors: [
-                Color(0xFF1A0A1A),
-                AppColors.backgroundColor,
-                AppColors.backgroundColor,
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.3 + (_glowAnimation.value * 0.4),
-                                ),
-                                blurRadius: 40 + (_glowAnimation.value * 30),
-                                spreadRadius: 8 + (_glowAnimation.value * 15),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _glowAnimation,
+                    builder: (context, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.18 + (_glowAnimation.value * 0.18),
                               ),
-                            ],
-                          ),
-                          child: ScaleTransition(
-                            scale: _checkAnimation,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 25,
-                                    spreadRadius: 3,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 60,
-                              ),
+                              blurRadius: 24 + (_glowAnimation.value * 20),
+                              spreadRadius: 0,
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                Expanded(
-                  flex: 4,
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.3),
-                        end: Offset.zero,
-                      ).animate(_fadeAnimation),
-                      child: Column(
-                        children: [
-                          Text(
-                            'PIX Recebido!',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineMedium?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
+                            BoxShadow(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.08 + (_glowAnimation.value * 0.08),
+                              ),
+                              blurRadius: 56 + (_glowAnimation.value * 24),
+                              spreadRadius: 0,
                             ),
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Text(
-                            'Seu depósito está sendo processado',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          Container(
-                            padding: const EdgeInsets.all(20),
+                          ],
+                        ),
+                        child: ScaleTransition(
+                          scale: _checkAnimation,
+                          child: Container(
+                            width: 120,
+                            height: 120,
                             decoration: BoxDecoration(
-                              color: AppColors.backgroundCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.2,
+                              color: context.colors.primaryColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.colors.primaryColor
+                                      .withValues(alpha: 1),
+                                  blurRadius: 80,
+                                  spreadRadius: 20,
                                 ),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.pix,
-                                                color: AppColors.primaryColor,
-                                                size: 30,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              const Text(
-                                                'PIX',
-                                                style: TextStyle(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 10),
-                                          Text(
-                                            _formatCurrency(
-                                              widget.amountInCents,
-                                            ),
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 24,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 20),
-                                _buildCopyableField(
-                                  label: 'ID do Depósito',
-                                  value: truncateHashId(
-                                    widget.depositId,
-                                    length: 10,
-                                  ),
-                                  fullValue: widget.depositId,
-                                ),
-
-                                if (widget.blockchainTxid != null) ...[
-                                  const SizedBox(height: 12),
-                                  _buildCopyableField(
-                                    label: 'ID da Transação',
-                                    value: truncateHashId(
-                                      widget.blockchainTxid!,
-                                      length: 10,
-                                    ),
-                                    fullValue: widget.blockchainTxid!,
-                                  ),
-                                ],
                               ],
                             ),
+                            child: Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 60,
+                            ),
                           ),
-
-                          const Spacer(),
-
-                          PrimaryButton(
-                            text: 'Voltar para Dashboard',
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+        
+              Expanded(
+                flex: 4,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.3),
+                      end: Offset.zero,
+                    ).animate(_fadeAnimation),
+                    child: Column(
+                      children: [
+                        Text(
+                          'PIX Recebido!',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(
+                            color: context.colors.textPrimary,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
+                        ),
+        
+                        const SizedBox(height: 8),
+        
+                        Text(
+                          'Seu depósito está sendo processado',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: context.colors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+        
+                        const SizedBox(height: 32),
+        
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: context.colors.backgroundCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.2,
+                              ),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.pix,
+                                              color:
+                                                  context.colors.primaryColor,
+                                              size: 30,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'PIX',
+                                              style: TextStyle(
+                                                color:
+                                                    context
+                                                        .colors
+                                                        .textSecondary,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          _formatCurrency(
+                                            widget.amountInCents,
+                                          ),
+                                          style: TextStyle(
+                                            color: context.colors.textPrimary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+        
+                              const SizedBox(height: 20),
+                              _buildCopyableField(
+                                label: 'ID do Depósito',
+                                value: truncateHashId(
+                                  widget.depositId,
+                                  length: 10,
+                                ),
+                                fullValue: widget.depositId,
+                              ),
+        
+                              if (widget.blockchainTxid != null) ...[
+                                const SizedBox(height: 12),
+                                _buildCopyableField(
+                                  label: 'ID da Transação',
+                                  value: truncateHashId(
+                                    widget.blockchainTxid!,
+                                    length: 10,
+                                  ),
+                                  fullValue: widget.blockchainTxid!,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+        
+                        const Spacer(),
+        
+                        PrimaryButton(
+                          text: 'Voltar para Dashboard',
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -359,18 +355,18 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
               isCopied
-                  ? AppColors.primaryColor.withValues(alpha: 0.08)
-                  : AppColors.backgroundColor,
+                  ? context.colors.primaryColor.withValues(alpha: 0.08)
+                  : context.colors.backgroundColor,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color:
                 isCopied
-                    ? AppColors.primaryColor.withValues(alpha: 0.5)
-                    : AppColors.primaryColor.withValues(alpha: 0.2),
+                    ? context.colors.primaryColor.withValues(alpha: 0.5)
+                    : context.colors.primaryColor.withValues(alpha: 0.2),
             width: 1.2,
           ),
         ),
@@ -382,19 +378,19 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
                     color:
                         isCopied
-                            ? AppColors.primaryColor
-                            : AppColors.textPrimary,
+                            ? context.colors.primaryColor
+                            : context.colors.textPrimary,
                     fontWeight: FontWeight.w500,
                     fontSize: 14,
                   ),
@@ -405,8 +401,8 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
               isCopied ? Icons.check_rounded : Icons.copy_rounded,
               color:
                   isCopied
-                      ? AppColors.primaryColor
-                      : AppColors.primaryColor.withValues(alpha: 0.7),
+                      ? context.colors.primaryColor
+                      : context.colors.primaryColor.withValues(alpha: 0.7),
               size: 20,
             ),
           ],

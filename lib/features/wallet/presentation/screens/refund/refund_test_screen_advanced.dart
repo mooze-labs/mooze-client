@@ -5,7 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refun
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider_mock.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_mock_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Tela de teste avançada para o fluxo de refund
 ///
@@ -46,7 +46,7 @@ class _RefundTestScreenAdvancedState
     return Scaffold(
       appBar: AppBar(
         title: const Text('🧪 Teste de Refund Avançado'),
-        backgroundColor: AppColors.backgroundColor,
+        backgroundColor: context.colors.backgroundColor,
         actions: [
           if (_mockTransactionsLoaded)
             IconButton(
@@ -58,7 +58,7 @@ class _RefundTestScreenAdvancedState
                     .clearMockTransactions();
                 setState(() => _mockTransactionsLoaded = false);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text('Transações mockadas removidas'),
                     backgroundColor: Colors.orange,
                     duration: Duration(seconds: 2),
@@ -68,19 +68,17 @@ class _RefundTestScreenAdvancedState
             ),
         ],
       ),
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            Icon(Icons.science, size: 80, color: AppColors.primaryColor),
+            Icon(Icons.science, size: 80, color: context.colors.primaryColor),
             const SizedBox(height: 32),
             Text(
               'Teste de Refund com\nTransações Reais',
-              style: TextStyle(
-                fontSize: 24,
+              style: context.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -88,7 +86,9 @@ class _RefundTestScreenAdvancedState
             Text(
               'Simule transações Peg In refundable baseadas em\n'
               'dados reais para testar o fluxo completo de reembolso.',
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              style: context.textTheme.bodyLarge?.copyWith(
+                color: context.colors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
@@ -100,12 +100,12 @@ class _RefundTestScreenAdvancedState
                 height: 56,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.add_circle_outline, size: 24),
-                  label: const Text(
+                  label: Text(
                     'Carregar Transações Mock',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
+                    backgroundColor: context.colors.primaryColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -120,7 +120,7 @@ class _RefundTestScreenAdvancedState
                       SnackBar(
                         content: Text(
                           '${ref.read(transactionMockProvider).length} transações mockadas carregadas',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         backgroundColor: Colors.green,
                         duration: const Duration(seconds: 3),
@@ -136,10 +136,10 @@ class _RefundTestScreenAdvancedState
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundCard,
+                  color: context.colors.backgroundCard,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primaryColor.withValues(alpha: 0.3),
+                    color: context.colors.primaryColor.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -150,16 +150,14 @@ class _RefundTestScreenAdvancedState
                       children: [
                         Icon(
                           Icons.list_alt,
-                          color: AppColors.primaryColor,
+                          color: context.colors.primaryColor,
                           size: 24,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Text(
                           'Transações Mockadas (${mockTransactions.length})',
-                          style: TextStyle(
-                            fontSize: 18,
+                          style: context.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -245,7 +243,7 @@ class _RefundTestScreenAdvancedState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.backgroundCard,
+                color: context.colors.backgroundCard,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -255,16 +253,14 @@ class _RefundTestScreenAdvancedState
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: AppColors.primaryColor,
+                        color: context.colors.primaryColor,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
                         'Sobre a Transação Real',
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: context.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
@@ -296,13 +292,13 @@ class _RefundTestScreenAdvancedState
                           color: Colors.orange,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Status: REFUNDABLE\nEsta transação falhou e os fundos podem ser reembolsados para o endereço Bitcoin original.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ),
@@ -363,38 +359,36 @@ class _RefundTestScreenAdvancedState
                 color: isRefundable ? Colors.orange : Colors.green,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   '${tx.fromAsset?.name.toUpperCase()} → ${tx.toAsset?.name.toUpperCase()}',
-                  style: TextStyle(
+                  style: context.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Valor: ${tx.amount} sats',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
           Text(
             'ID: ${tx.id.length > 20 ? '${tx.id.substring(0, 20)}...' : tx.id}',
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
+            style: context.textTheme.labelSmall?.copyWith(
+              color: context.colors.textSecondary,
               fontFamily: 'monospace',
             ),
           ),
           if (tx.destination != null)
             Text(
               'Para: ${tx.destination!.length > 25 ? '${tx.destination!.substring(0, 25)}...' : tx.destination!}',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.textSecondary,
+              style: context.textTheme.labelSmall?.copyWith(
+                color: context.colors.textSecondary,
                 fontFamily: 'monospace',
               ),
             ),
@@ -408,7 +402,9 @@ class _RefundTestScreenAdvancedState
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(
         text,
-        style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        style: context.textTheme.bodyMedium?.copyWith(
+          color: context.colors.textSecondary,
+        ),
       ),
     );
   }

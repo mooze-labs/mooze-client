@@ -10,7 +10,7 @@ import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class PixMainScreen extends ConsumerStatefulWidget {
   const PixMainScreen({super.key});
@@ -120,24 +120,24 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.backgroundCard,
+              color: context.colors.backgroundCard,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primaryColor.withValues(alpha: 0.1),
+                color: context.colors.primaryColor.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: AppColors.primaryColor,
+                color: context.colors.primaryColor,
                 borderRadius: BorderRadius.circular(10),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
               labelColor: Colors.white,
-              unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: const TextStyle(
+              unselectedLabelColor: context.colors.textSecondary,
+              labelStyle: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),

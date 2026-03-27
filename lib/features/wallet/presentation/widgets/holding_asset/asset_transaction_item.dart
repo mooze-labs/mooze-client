@@ -29,17 +29,10 @@ class AssetTransactionItem extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey[400], fontSize: 14),
-              ),
+              Text(subtitle, style: TextStyle(fontSize: 14)),
             ],
           ),
         ),
@@ -48,11 +41,7 @@ class AssetTransactionItem extends StatelessWidget {
           children: [
             Text(
               value,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 4),
             Text(

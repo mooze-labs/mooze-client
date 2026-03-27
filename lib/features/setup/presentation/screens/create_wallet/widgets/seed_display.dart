@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class MnemonicGridDisplay extends StatelessWidget {
   final String mnemonic;
@@ -72,7 +72,7 @@ class MnemonicGridDisplay extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.recoveryPhraseBackground,
+        color: context.colors.recoveryPhraseBackground,
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Center(
@@ -82,7 +82,7 @@ class MnemonicGridDisplay extends StatelessWidget {
             children: [
               TextSpan(
                 text: '$number. ',
-                style: theme?.copyWith(color: AppColors.textQuintary),
+                style: theme?.copyWith(color: context.colors.textQuintary),
               ),
               TextSpan(text: word, style: theme),
             ],
