@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Botão de ação em grid para a tela de desenvolvedor
+/// Action button used inside the developer tools grid
 class GridActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -25,60 +26,58 @@ class GridActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final defaultBgColor = colorScheme.surfaceContainer;
-    final defaultIconColor = colorScheme.primary;
-    final defaultTextColor = colorScheme.onSurface;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
+    final effectiveIconColor = enabled
+        ? (iconColor ?? colorScheme.primary)
+        : colorScheme.onSurface.withValues(alpha: 0.25);
+    final effectiveLabelColor = enabled
+        ? (textColor ?? colorScheme.onSurface)
+        : colorScheme.onSurface.withValues(alpha: 0.25);
+    final effectiveBgColor = enabled
+        ? (backgroundColor ?? colorScheme.onSurface.withValues(alpha: 0.04))
+        : colorScheme.onSurface.withValues(alpha: 0.02);
+    final borderColor = colorScheme.onSurface.withValues(
+      alpha: enabled ? 0.08 : 0.04,
+    );
 
     return Tooltip(
       message: tooltip,
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: enabled ? onPressed : null,
           borderRadius: BorderRadius.circular(12),
           child: Container(
             decoration: BoxDecoration(
-              color:
-                  enabled
-                      ? (backgroundColor ?? defaultBgColor)
-                      : colorScheme.outline,
+              color: effectiveBgColor,
               borderRadius: BorderRadius.circular(12),
-              boxShadow:
-                  enabled
-                      ? [
-                        BoxShadow(
-                          color: colorScheme.shadow.withValues(alpha: 0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                      : null,
+              border: Border.all(color: borderColor),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
               children: [
-                Icon(
-                  icon,
-                  color:
-                      enabled
-                          ? (iconColor ?? defaultIconColor)
-                          : colorScheme.outlineVariant,
-                  size: 28,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        enabled
-                            ? (textColor ?? defaultTextColor)
-                            : colorScheme.outlineVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: effectiveIconColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  textAlign: TextAlign.center,
+                  child: Icon(icon, color: effectiveIconColor, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: effectiveLabelColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
