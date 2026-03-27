@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class ValuesToReceiveCard extends ConsumerStatefulWidget {
   const ValuesToReceiveCard({super.key});
@@ -74,14 +74,14 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                         height: 40,
                         width: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.primaryColor.withValues(alpha: 0.1),
+                          color: context.colors.primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: RotationTransition(
                           turns: _rotationAnimation,
                           child: Icon(
                             Icons.sync,
-                            color: AppColors.primaryColor,
+                            color: context.colors.primaryColor,
                             size: 20,
                           ),
                         ),
@@ -95,7 +95,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                             Text(
                               'Pagamentos em análise',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: context.colors.textPrimary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -106,7 +106,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                                   (total) => Text(
                                     'Total: $currencyIcon ${total.toStringAsFixed(2)}',
                                     style: TextStyle(
-                                      color: AppColors.primaryColor,
+                                      color: context.colors.primaryColor,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -115,11 +115,11 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                                   () => Text(
                                     'Calculando...',
                                     style: TextStyle(
-                                      color: AppColors.textSecondary,
+                                      color: context.colors.textSecondary,
                                       fontSize: 12,
                                     ),
                                   ),
-                              error: (_, _) => const SizedBox.shrink(),
+                              error: (_, _) => SizedBox.shrink(),
                             ),
                           ],
                         ),
@@ -129,10 +129,10 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
 
                   // Divider
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(vertical: 12),
                     child: Container(
                       height: 1,
-                      color: AppColors.textSecondary.withValues(alpha: 0.1),
+                      color: context.colors.textSecondary.withValues(alpha: 0.1),
                     ),
                   ),
 
@@ -147,12 +147,12 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                             width: 20,
                             height: 20,
                           ),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               item.asset.name,
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: context.colors.textSecondary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -161,7 +161,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                           Text(
                             item.formattedValue,
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
