@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/providers/pix_history_state_notifier.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class PixDepositList extends ConsumerWidget {
   final Function(List<PixDeposit>) filterClosure;
@@ -81,7 +81,6 @@ class PixDepositListItem extends StatelessWidget {
                   Text(
                     deposit.asset.name,
                     style: const TextStyle(
-                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -89,7 +88,7 @@ class PixDepositListItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     _getPixDepositSubtitle(),
-                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    style: TextStyle(fontSize: 14),
                   ),
                 ],
               ),
@@ -104,12 +103,13 @@ class PixDepositListItem extends StatelessWidget {
                       ? '+R\$ ${_formatAmount(deposit.amountInCents)}'
                       : 'R\$ ${_formatAmount(deposit.amountInCents)}',
                   style: TextStyle(
-                    color: isVisible ? Colors.white : _getStatusColor(),
+                    color: isVisible ? null : _getStatusColor(),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     decoration:
                         deposit.status == DepositStatus.finished ||
-                                deposit.status == DepositStatus.expired
+                                deposit.status == DepositStatus.expired &&
+                                    !isVisible
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
                   ),
@@ -117,7 +117,7 @@ class PixDepositListItem extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   _formatTime(deposit.createdAt),
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  style: TextStyle(fontSize: 12),
                 ),
               ],
             ),
@@ -185,8 +185,8 @@ class LoadingPixDepositList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Column(
       children: List.generate(
@@ -224,7 +224,7 @@ class LoadingPixDepositList extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Shimmer.fromColors(
                       baseColor: baseColor,
                       highlightColor: highlightColor,
