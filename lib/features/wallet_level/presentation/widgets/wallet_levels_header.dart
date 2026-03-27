@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WalletLevelsHeader extends StatelessWidget {
   final bool isLoading;
@@ -17,7 +17,7 @@ class WalletLevelsHeader extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     if (isLoading) {
-      return _buildLoadingHeader(colorScheme);
+      return _buildLoadingHeader(colorScheme, context);
     }
 
     return Container(
@@ -84,9 +84,9 @@ class WalletLevelsHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingHeader(ColorScheme colorScheme) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+  Widget _buildLoadingHeader(ColorScheme colorScheme, BuildContext context) {
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -132,7 +132,7 @@ class WalletLevelsHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Shimmer.fromColors(
                   baseColor: baseColor,
                   highlightColor: highlightColor,
