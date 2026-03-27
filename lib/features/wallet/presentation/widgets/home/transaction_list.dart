@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -148,8 +148,8 @@ class LoadingTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Column(
       children: List.generate(
@@ -292,17 +292,13 @@ class EmptyTransactionList extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             "Nenhuma transação encontrada",
-            style: TextStyle(
-              color: Colors.blueGrey[100],
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             "Seu histórico de transações aparecerá aqui assim que você realizar alguma movimentação.",
-            style: TextStyle(color: Colors.grey[400], fontSize: 15),
+            style: TextStyle(fontSize: 15),
             textAlign: TextAlign.center,
           ),
         ],
@@ -366,20 +362,12 @@ class HomeTransactionItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium!.copyWith(color: Colors.white),
-                ),
+                Text(title, style: Theme.of(context).textTheme.bodyMedium),
                 SizedBox(height: 4),
                 if (hasSwapDetails)
-                  _buildSwapSubtitle()
+                  _buildSwapSubtitle(context)
                 else
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                  ),
+                  Text(subtitle, style: TextStyle(fontSize: 14)),
               ],
             ),
           ),
@@ -397,17 +385,14 @@ class HomeTransactionItem extends StatelessWidget {
                 style: TextStyle(
                   color:
                       isVisible
-                          ? Colors.white
-                          : (value.contains('-') ? Colors.red : Colors.white),
+                          ? null
+                          : (value.contains('-') ? Colors.red : null),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: 4),
-              Text(
-                time,
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
+              Text(time, style: TextStyle(fontSize: 12)),
             ],
           ),
         ],
@@ -458,18 +443,15 @@ class HomeTransactionItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSwapSubtitle() {
+  Widget _buildSwapSubtitle(BuildContext context) {
     if (transaction?.status == TransactionStatus.refundable ||
         transaction?.status == TransactionStatus.failed) {
-      return Text(
-        subtitle,
-        style: TextStyle(color: Colors.grey[400], fontSize: 14),
-      );
+      return Text(subtitle, style: TextStyle(fontSize: 14));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(subtitle, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+        Text(subtitle, style: TextStyle(fontSize: 14)),
         if (!isVisible &&
             transaction?.sentAmount != null &&
             transaction?.receivedAmount != null)
@@ -484,7 +466,7 @@ class HomeTransactionItem extends StatelessWidget {
                   transaction!.fromAsset!,
                   transaction!.sentAmount!,
                 ),
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                style: TextStyle(fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -493,7 +475,7 @@ class HomeTransactionItem extends StatelessWidget {
                 "assets/icons/menu/navigation/swap.svg",
                 width: 12,
                 height: 12,
-                color: AppColors.primaryColor,
+                color: context.colors.primaryColor,
               ),
               SizedBox(width: 4),
               Text(
@@ -501,7 +483,7 @@ class HomeTransactionItem extends StatelessWidget {
                   transaction!.toAsset!,
                   transaction!.receivedAmount!,
                 ),
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                style: TextStyle(fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
