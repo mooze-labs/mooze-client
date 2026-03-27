@@ -10,7 +10,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_p
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class PixHistoryScreen extends ConsumerStatefulWidget {
   const PixHistoryScreen({super.key});
@@ -92,7 +92,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Histórico do PIX'),
+        title: Text('Histórico do PIX'),
         leading: IconButton(
           onPressed: () {
             context.pop();
@@ -104,7 +104,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
           IconButton(
             icon: Icon(
               Icons.filter_alt_outlined,
-              color: AppColors.primaryColor,
+              color: context.colors.primaryColor,
             ),
             onPressed: _openFilterSheet,
             tooltip: 'Filtros',
@@ -113,7 +113,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
-        color: AppColors.primaryColor,
+        color: context.colors.primaryColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           controller: _scrollController,
@@ -146,12 +146,12 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                                 padding: const EdgeInsets.all(12),
                                 margin: const EdgeInsets.only(bottom: 16),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryColor.withValues(
+                                  color: context.colors.primaryColor.withValues(
                                     alpha: 0.1,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: AppColors.primaryColor.withValues(
+                                    color: context.colors.primaryColor.withValues(
                                       alpha: 0.3,
                                     ),
                                   ),
@@ -163,7 +163,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                                     Expanded(
                                       child: Text(
                                         _getActiveFiltersDescription(),
-                                        style: const TextStyle(fontSize: 14),
+                                        style: TextStyle(fontSize: 14),
                                       ),
                                     ),
                                     TextButton(
@@ -188,12 +188,12 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                               padding: const EdgeInsets.all(12),
                               margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryColor.withValues(
+                                color: context.colors.primaryColor.withValues(
                                   alpha: 0.1,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: AppColors.primaryColor.withValues(
+                                  color: context.colors.primaryColor.withValues(
                                     alpha: 0.3,
                                   ),
                                 ),
@@ -205,7 +205,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                                   Expanded(
                                     child: Text(
                                       _getActiveFiltersDescription(),
-                                      style: const TextStyle(fontSize: 14),
+                                      style: TextStyle(fontSize: 14),
                                     ),
                                   ),
                                   TextButton(
