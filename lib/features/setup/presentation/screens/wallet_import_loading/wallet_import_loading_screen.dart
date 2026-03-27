@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/infra/boot/boot_orchestrator.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
@@ -439,7 +440,7 @@ class _WalletImportLoadingScreenState
       duration: const Duration(milliseconds: 800),
       curve: Curves.easeOut,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: Stack(
           children: [
             ...List.generate(20, (index) => _buildParticle(index)),
@@ -466,10 +467,10 @@ class _WalletImportLoadingScreenState
                   margin: const EdgeInsets.symmetric(horizontal: 32),
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
+                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
+                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
                   ),
@@ -479,16 +480,16 @@ class _WalletImportLoadingScreenState
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.15),
+                          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.4),
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.4),
                             width: 2,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.cloud_off_outlined,
-                          color: Colors.red,
+                          color: Theme.of(context).colorScheme.error,
                           size: 40,
                         ),
                       ),
@@ -496,10 +497,7 @@ class _WalletImportLoadingScreenState
                       Text(
                         _errorMessage ?? 'Ocorreu um erro',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           height: 1.5,
                         ),
                       ),
@@ -510,16 +508,15 @@ class _WalletImportLoadingScreenState
                           onPressed: _retry,
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: Colors.white,
+                            backgroundColor: Theme.of(context).colorScheme.onSurface,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Tentar Novamente',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.surface,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
                             ),
@@ -550,9 +547,9 @@ class _WalletImportLoadingScreenState
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  Colors.white.withValues(alpha: 0.3),
-                  Colors.white.withValues(alpha: 0.6),
-                  Colors.white.withValues(alpha: 0.3),
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                   Colors.transparent,
                 ],
                 stops: [0.0, 0.4, 0.5, 0.6, 1.0],
@@ -585,7 +582,7 @@ class _WalletImportLoadingScreenState
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(
                         alpha: 0.1 * _glowController.value,
                       ),
                       blurRadius: 60,
@@ -602,7 +599,7 @@ class _WalletImportLoadingScreenState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
                       width: 1.5,
                     ),
                   ),
@@ -617,11 +614,11 @@ class _WalletImportLoadingScreenState
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                   blurRadius: 8,
                                   spreadRadius: 2,
                                 ),
@@ -642,7 +639,7 @@ class _WalletImportLoadingScreenState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                       width: 1.5,
                     ),
                   ),
@@ -657,11 +654,11 @@ class _WalletImportLoadingScreenState
                             width: 6,
                             height: 6,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.white.withValues(alpha: 0.4),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                                   blurRadius: 6,
                                   spreadRadius: 1,
                                 ),
@@ -678,19 +675,19 @@ class _WalletImportLoadingScreenState
                 width: 40 + (_pulseController.value * 10),
                 height: 40 + (_pulseController.value * 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(
                     alpha: 0.15 + (_pulseController.value * 0.1),
                   ),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(
                       alpha: 0.4 + (_pulseController.value * 0.2),
                     ),
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(
                         alpha: 0.2 * _pulseController.value,
                       ),
                       blurRadius: 20,
@@ -729,11 +726,11 @@ class _WalletImportLoadingScreenState
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                     blurRadius: 4,
                   ),
                 ],
@@ -773,18 +770,18 @@ class _WalletImportLoadingScreenState
                 decoration: BoxDecoration(
                   color:
                       message.hasError
-                          ? Colors.red.withValues(alpha: 0.1)
+                          ? Theme.of(context).colorScheme.error.withValues(alpha: 0.1)
                           : isRetryMessage
-                          ? Colors.orange.withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.05),
+                          ? context.appColors.warning.withValues(alpha: 0.1)
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color:
                         message.hasError
-                            ? Colors.red.withValues(alpha: 0.3)
+                            ? Theme.of(context).colorScheme.error.withValues(alpha: 0.3)
                             : isRetryMessage
-                            ? Colors.orange.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.1),
+                            ? context.appColors.warning.withValues(alpha: 0.3)
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -804,11 +801,11 @@ class _WalletImportLoadingScreenState
                               height: 28,
                               margin: const EdgeInsets.only(right: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.white.withValues(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(
                                       alpha: 0.3 * value,
                                     ),
                                     blurRadius: 8,
@@ -816,9 +813,9 @@ class _WalletImportLoadingScreenState
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.check,
-                                color: Colors.black,
+                                color: Theme.of(context).colorScheme.surface,
                                 size: 18,
                               ),
                             ),
@@ -833,7 +830,7 @@ class _WalletImportLoadingScreenState
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.orange.withValues(alpha: 0.8),
+                            context.appColors.warning.withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -845,7 +842,7 @@ class _WalletImportLoadingScreenState
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.7),
+                            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -853,14 +850,13 @@ class _WalletImportLoadingScreenState
                     Flexible(
                       child: Text(
                         message.text,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color:
                               message.hasError
-                                  ? Colors.red[300]
+                                  ? Theme.of(context).colorScheme.error
                                   : isRetryMessage
-                                  ? Colors.orange[300]
-                                  : Colors.white,
-                          fontSize: 16,
+                                  ? context.appColors.warning
+                                  : Theme.of(context).colorScheme.onSurface,
                           fontWeight:
                               message.isCompleted
                                   ? FontWeight.w600
