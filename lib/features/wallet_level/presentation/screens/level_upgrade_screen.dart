@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/utils/wallet_level_ui_helpers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class LevelUpgradeScreen extends StatefulWidget {
   final int oldLevel;
@@ -21,19 +22,23 @@ class LevelUpgradeScreen extends StatefulWidget {
 
 class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
     with TickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late AnimationController _fadeController;
+  late AnimationController _sparklesController;
+  late AnimationController _confettiController;
+  late AnimationController _ringPulseController;
+  late AnimationController _iconController;
   late AnimationController _glowController;
-  late AnimationController _textController;
-  late AnimationController _particlesController;
+  late AnimationController _contentController;
 
-  late Animation<double> _oldLevelScaleAnimation;
-  late Animation<double> _newLevelScaleAnimation;
-  late Animation<double> _fadeAnimation;
+  late Animation<double> _iconScaleAnimation;
   late Animation<double> _glowAnimation;
-  late Animation<double> _textFadeAnimation;
+  late Animation<double> _badgeAnimation;
+  late Animation<double> _levelNameAnimation;
+  late Animation<double> _transitionRowAnimation;
+  late Animation<double> _textAnimation;
+  late Animation<double> _buttonAnimation;
 
-  final List<_Particle> _particles = [];
+  final List<_Sparkle> _sparkles = [];
+  final List<_ConfettiPiece> _confetti = [];
 
   @override
   void initState() {
@@ -41,288 +46,396 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
 
     _initParticles();
 
-    _particlesController = AnimationController(
+    _sparklesController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat();
+
+    _confettiController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
-    );
+    )..repeat();
 
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    _ringPulseController = AnimationController(
+      duration: const Duration(milliseconds: 1600),
       vsync: this,
-    );
-
-    _oldLevelScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.0,
-          end: 0.8,
-        ).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 1,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.8,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 1,
-      ),
-      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 2),
-    ]).animate(_scaleController);
-
-    _newLevelScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 2),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: 1.3,
-        ).chain(CurveTween(curve: Curves.elasticOut)),
-        weight: 2,
-      ),
-    ]).animate(_scaleController);
-
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
+    )..repeat();
 
     _glowController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
-
-    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _glowAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
 
-    _textController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+    _iconController = AnimationController(
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
+    _iconScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _iconController, curve: Curves.elasticOut),
+    );
 
-    _textFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
+    _contentController = AnimationController(
+      duration: const Duration(milliseconds: 1400),
+      vsync: this,
+    );
+    _badgeAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+    );
+    _levelNameAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(0.25, 0.55, curve: Curves.easeOut),
+    );
+    _transitionRowAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(0.4, 0.65, curve: Curves.easeOut),
+    );
+    _textAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(0.55, 0.82, curve: Curves.easeOut),
+    );
+    _buttonAnimation = CurvedAnimation(
+      parent: _contentController,
+      curve: const Interval(0.72, 1.0, curve: Curves.easeOut),
+    );
 
     _startAnimations();
   }
 
   void _initParticles() {
-    final random = Random();
-    for (int i = 0; i < 50; i++) {
-      _particles.add(
-        _Particle(
+    final random = Random(42);
+    final levelColor = WalletLevelUiHelpers.getLevelColor(widget.newLevel);
+    final sparkleColors = [Colors.white, Colors.amber.shade200, levelColor];
+
+    for (int i = 0; i < 42; i++) {
+      _sparkles.add(
+        _Sparkle(
           x: random.nextDouble(),
-          y: 0.3 + random.nextDouble() * 0.1,
-          vx: (random.nextDouble() - 0.5) * 2,
-          vy: random.nextDouble() * 2 + 1,
-          color: _getRandomColor(random),
-          size: random.nextDouble() * 10 + 5,
+          size: 3.0 + random.nextDouble() * 5.5,
+          speed: 0.3 + random.nextDouble() * 0.7,
+          phaseOffset: random.nextDouble(),
+          color: sparkleColors[random.nextInt(sparkleColors.length)],
+        ),
+      );
+    }
+
+    final confettiColors = [
+      levelColor,
+      Colors.amber.shade300,
+      Colors.white,
+      Colors.pink.shade200,
+      Colors.lightBlue.shade200,
+      Colors.greenAccent.shade200,
+    ];
+
+    for (int i = 0; i < 35; i++) {
+      _confetti.add(
+        _ConfettiPiece(
+          x: random.nextDouble(),
+          width: 5 + random.nextDouble() * 8,
+          height: 3 + random.nextDouble() * 5,
+          speed: 0.15 + random.nextDouble() * 0.35,
+          phaseOffset: random.nextDouble(),
+          rotationSpeed: (random.nextDouble() - 0.5) * 4,
+          color: confettiColors[random.nextInt(confettiColors.length)],
+          sway: (random.nextDouble() - 0.5) * 60,
         ),
       );
     }
   }
 
-  Color _getRandomColor(Random random) {
-    final colors = [
-      Colors.red,
-      Colors.blue,
-      Colors.green,
-      Colors.yellow,
-      Colors.purple,
-      Colors.orange,
-      Colors.pink,
-      Colors.cyan,
-    ];
-    return colors[random.nextInt(colors.length)];
-  }
+  Future<void> _startAnimations() async {
+    _contentController.forward();
 
-  void _startAnimations() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _fadeController.forward();
-    _particlesController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 500));
-    _scaleController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 800));
-    _textController.forward();
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    _iconController.forward();
   }
 
   @override
   void dispose() {
-    _scaleController.dispose();
-    _fadeController.dispose();
+    _sparklesController.dispose();
+    _confettiController.dispose();
+    _ringPulseController.dispose();
+    _iconController.dispose();
     _glowController.dispose();
-    _textController.dispose();
-    _particlesController.dispose();
+    _contentController.dispose();
     super.dispose();
+  }
+
+  /// Returns a version of [color] that is always legible against both light and
+  /// dark backgrounds. In dark mode the color is used as-is. In light mode the
+  /// HSL lightness is clamped to 45 % so that colours like gold (#FFD700,
+  /// L ≈ 50 %) don't disappear against a white surface.
+  Color _toReadable(Color color, Brightness brightness) {
+    if (brightness == Brightness.dark) return color;
+    final hsl = HSLColor.fromColor(color);
+    return hsl.withLightness(hsl.lightness.clamp(0.0, 0.45)).toColor();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final textTheme = context.textTheme;
+    final colorScheme = context.colorScheme;
+    final brightness = Theme.of(context).brightness;
     final levelColor = WalletLevelUiHelpers.getLevelColor(widget.newLevel);
+    final oldLevelColor = WalletLevelUiHelpers.getLevelColor(widget.oldLevel);
+    // Readable variants: darkened in light mode so they contrast against white.
+    final readableLevelColor = _toReadable(levelColor, brightness);
+    final readableOldLevelColor = _toReadable(oldLevelColor, brightness);
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: context.colors.backgroundColor,
       body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                radius: 1.0,
-                colors: [
-                  levelColor.withValues(alpha: 0.5),
-                  levelColor.withValues(alpha: 0.2),
-                ],
+          // Pulsing background gradient
+          AnimatedBuilder(
+            animation: _glowAnimation,
+            builder: (context, _) => Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.15),
+                  radius: 1.3,
+                  colors: [
+                    levelColor.withValues(
+                      alpha: 0.22 + _glowAnimation.value * 0.18,
+                    ),
+                    levelColor.withValues(alpha: 0.07),
+                    context.colors.backgroundColor,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
               ),
             ),
           ),
 
+          // Sparkle particles
           AnimatedBuilder(
-            animation: _particlesController,
-            builder: (context, child) {
-              return CustomPaint(
-                painter: _ParticlesPainter(
-                  particles: _particles,
-                  progress: _particlesController.value,
-                ),
-                size: Size.infinite,
-              );
-            },
+            animation: _sparklesController,
+            builder: (context, _) => CustomPaint(
+              painter: _SparklesPainter(
+                sparkles: _sparkles,
+                progress: _sparklesController.value,
+              ),
+              size: Size.infinite,
+            ),
           ),
 
+          // Confetti particles
+          AnimatedBuilder(
+            animation: _confettiController,
+            builder: (context, _) => CustomPaint(
+              painter: _ConfettiPainter(
+                pieces: _confetti,
+                progress: _confettiController.value,
+              ),
+              size: Size.infinite,
+            ),
+          ),
+
+          // Content
           SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FadeTransition(
-                      opacity: _textFadeAnimation,
-                      child: Text(
-                        'Parabéns!',
-                        style: textTheme.displayLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: levelColor,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Badge
+                  FadeTransition(
+                    opacity: _badgeAnimation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, -0.5),
+                        end: Offset.zero,
+                      ).animate(_badgeAnimation),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: readableLevelColor,
+                          ),
+                        ),
+                        child: Text(
+                          '✦  SUBIU DE NÍVEL!  ✦',
+                          style: textTheme.labelLarge?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 60),
+                  const Spacer(),
 
-                    SizedBox(
-                      height: 200,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          AnimatedBuilder(
-                            animation: _oldLevelScaleAnimation,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _oldLevelScaleAnimation.value,
-                                child: Opacity(
-                                  opacity: _oldLevelScaleAnimation.value,
-                                  child: _buildLevelCircle(
-                                    widget.oldLevel,
-                                    WalletLevelUiHelpers.getLevelColor(
-                                      widget.oldLevel,
-                                    ),
-                                    textTheme: textTheme,
-                                  ),
-                                ),
-                              );
-                            },
+                  // Ring pulses + glowing level icon
+                  AnimatedBuilder(
+                    animation: _glowAnimation,
+                    builder: (context, child) => Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: levelColor.withValues(
+                              alpha: 0.28 + _glowAnimation.value * 0.38,
+                            ),
+                            blurRadius: 40 + _glowAnimation.value * 35,
+                            spreadRadius: 6 + _glowAnimation.value * 14,
                           ),
-
-                          AnimatedBuilder(
-                            animation: Listenable.merge([
-                              _newLevelScaleAnimation,
-                              _glowAnimation,
-                            ]),
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _newLevelScaleAnimation.value,
-                                child: Opacity(
-                                  opacity:
-                                      _newLevelScaleAnimation.value > 0
-                                          ? 1.0
-                                          : 0.0,
-                                  child: _buildLevelCircle(
-                                    widget.newLevel,
-                                    levelColor,
-                                    textTheme: textTheme,
-                                  ),
-                                ),
-                              );
-                            },
+                          BoxShadow(
+                            color: levelColor.withValues(alpha: 0.12),
+                            blurRadius: 80,
+                            spreadRadius: 20,
                           ),
                         ],
                       ),
+                      child: child,
                     ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Expanding ring pulses
+                        AnimatedBuilder(
+                          animation: _ringPulseController,
+                          builder: (context, _) => CustomPaint(
+                            painter: _RingPulsePainter(
+                              progress: _ringPulseController.value,
+                              color: readableLevelColor,
+                            ),
+                            child: const SizedBox(width: 200, height: 200),
+                          ),
+                        ),
+                        // Icon with scale-in
+                        ScaleTransition(
+                          scale: _iconScaleAnimation,
+                          child: Icon(
+                            WalletLevelUiHelpers.getLevelIcon(widget.newLevel),
+                            size: 148,
+                            color: readableLevelColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                    const SizedBox(height: 60),
+                  const SizedBox(height: 28),
 
-                    FadeTransition(
-                      opacity: _textFadeAnimation,
+                  // New level name
+                  FadeTransition(
+                    opacity: _levelNameAnimation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.4),
+                        end: Offset.zero,
+                      ).animate(_levelNameAnimation),
+                      child: Text(
+                        WalletLevelUiHelpers.getLevelName(widget.newLevel),
+                        style: textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: readableLevelColor,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Old → New transition row
+                  FadeTransition(
+                    opacity: _transitionRowAnimation,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          WalletLevelUiHelpers.getLevelIcon(widget.oldLevel),
+                          size: 16,
+                          color: readableOldLevelColor.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          WalletLevelUiHelpers.getLevelName(widget.oldLevel),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 16,
+                            color: readableLevelColor.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        Icon(
+                          WalletLevelUiHelpers.getLevelIcon(widget.newLevel),
+                          size: 16,
+                          color: readableLevelColor,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          WalletLevelUiHelpers.getLevelName(widget.newLevel),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: readableLevelColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // Congratulations text
+                  FadeTransition(
+                    opacity: _textAnimation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.25),
+                        end: Offset.zero,
+                      ).animate(_textAnimation),
                       child: Column(
                         children: [
                           Text(
                             'Você subiu de nível!',
                             textAlign: TextAlign.center,
                             style: textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Do nível ${WalletLevelUiHelpers.getLevelName(widget.oldLevel)} para o nível ${WalletLevelUiHelpers.getLevelName(widget.newLevel)}',
-                            textAlign: TextAlign.center,
-                            style: textTheme.titleMedium?.copyWith(
-                              color: colorScheme.onSurface.withValues(
-                                alpha: 0.7,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Text(
                             'Continue assim para desbloquear ainda mais benefícios!',
                             textAlign: TextAlign.center,
                             style: textTheme.bodyLarge?.copyWith(
-                              color: colorScheme.onSurface.withValues(
-                                alpha: 0.6,
-                              ),
+                              color: context.colors.textSecondary,
+                              height: 1.5,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
 
-                    const Spacer(),
+                  const SizedBox(height: 32),
 
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: PrimaryButton(
-                        text: 'Continuar',
-                        color: levelColor,
-                        onPressed: () {
-                          context.pop();
-                        },
-                      ),
+                  FadeTransition(
+                    opacity: _buttonAnimation,
+                    child: PrimaryButton(
+                      text: 'Continuar',
+                      color: readableLevelColor,
+                      onPressed: () => context.pop(),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -330,93 +443,191 @@ class _LevelUpgradeScreenState extends State<LevelUpgradeScreen>
       ),
     );
   }
-
-  Widget _buildLevelCircle(
-    int level,
-    Color color, {
-    required TextTheme textTheme,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          WalletLevelUiHelpers.getLevelIcon(level),
-          size: 120,
-          color: color,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          WalletLevelUiHelpers.getLevelName(level),
-          style: textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
-class _Particle {
-  double x;
-  double y;
-  final double vx;
-  final double vy;
-  final Color color;
-  final double size;
+// ── Sparkle data model ──────────────────────────────────────────────────────────
 
-  _Particle({
+class _Sparkle {
+  final double x;
+  final double size;
+  final double speed;
+  final double phaseOffset;
+  final Color color;
+
+  const _Sparkle({
     required this.x,
-    required this.y,
-    required this.vx,
-    required this.vy,
-    required this.color,
     required this.size,
+    required this.speed,
+    required this.phaseOffset,
+    required this.color,
   });
 }
 
-class _ParticlesPainter extends CustomPainter {
-  final List<_Particle> particles;
+// ── Confetti data model ─────────────────────────────────────────────────────────
+
+class _ConfettiPiece {
+  final double x;
+  final double width;
+  final double height;
+  final double speed;
+  final double phaseOffset;
+  final double rotationSpeed;
+  final double sway;
+  final Color color;
+
+  const _ConfettiPiece({
+    required this.x,
+    required this.width,
+    required this.height,
+    required this.speed,
+    required this.phaseOffset,
+    required this.rotationSpeed,
+    required this.sway,
+    required this.color,
+  });
+}
+
+// ── Sparkles CustomPainter ──────────────────────────────────────────────────────
+
+class _SparklesPainter extends CustomPainter {
+  final List<_Sparkle> sparkles;
   final double progress;
 
-  _ParticlesPainter({required this.particles, required this.progress});
+  const _SparklesPainter({required this.sparkles, required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var particle in particles) {
-      final currentY = particle.y + (particle.vy * progress * 0.5);
-      final currentX = particle.x + (particle.vx * progress * 0.1);
+    for (final s in sparkles) {
+      final t = (progress + s.phaseOffset) % 1.0;
 
-      if (currentY <= 1.0) {
-        final paint =
-            Paint()
-              ..color = particle.color.withValues(alpha: (1.0 - progress) * 0.9)
-              ..style = PaintingStyle.fill;
+      final opacity =
+          t < 0.15
+              ? t / 0.15
+              : t > 0.7
+              ? (1.0 - t) / 0.3
+              : 1.0;
 
-        final position = Offset(currentX * size.width, currentY * size.height);
+      final cx = s.x * size.width;
+      final cy = size.height * 0.52 - t * s.speed * size.height * 0.88;
 
-        if (particle.size > 7) {
-          canvas.drawCircle(position, particle.size / 2, paint);
-        } else {
-          canvas.save();
-          canvas.translate(position.dx, position.dy);
-          canvas.rotate(progress * 6.28);
-          canvas.drawRect(
-            Rect.fromCenter(
-              center: Offset.zero,
-              width: particle.size,
-              height: particle.size,
-            ),
-            paint,
-          );
-          canvas.restore();
-        }
+      if (cy < -s.size * 2) continue;
+
+      final paint =
+          Paint()
+            ..color = s.color.withValues(
+              alpha: (opacity * 0.85).clamp(0.0, 1.0),
+            )
+            ..style = PaintingStyle.fill;
+
+      _drawStar(canvas, Offset(cx, cy), s.size * (1.0 - t * 0.25), paint);
+    }
+  }
+
+  void _drawStar(Canvas canvas, Offset center, double outerR, Paint paint) {
+    final innerR = outerR * 0.32;
+    const n = 4;
+    final path = Path();
+
+    for (int i = 0; i < n * 2; i++) {
+      final angle = (i * pi / n) - pi / 2;
+      final r = i.isEven ? outerR : innerR;
+      final px = center.dx + cos(angle) * r;
+      final py = center.dy + sin(angle) * r;
+      if (i == 0) {
+        path.moveTo(px, py);
+      } else {
+        path.lineTo(px, py);
       }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_SparklesPainter old) => progress != old.progress;
+}
+
+// ── Confetti CustomPainter ──────────────────────────────────────────────────────
+
+class _ConfettiPainter extends CustomPainter {
+  final List<_ConfettiPiece> pieces;
+  final double progress;
+
+  const _ConfettiPainter({required this.pieces, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in pieces) {
+      final t = (progress * p.speed + p.phaseOffset) % 1.0;
+
+      final opacity =
+          t < 0.1
+              ? t / 0.1
+              : t > 0.82
+              ? (1.0 - t) / 0.18
+              : 1.0;
+
+      final cx =
+          p.x * size.width + sin(t * pi * 2 + p.phaseOffset * pi) * p.sway;
+      final cy = t * (size.height + 40) - 20;
+      final rotation = t * pi * 2 * p.rotationSpeed;
+
+      final paint =
+          Paint()
+            ..color = p.color.withValues(alpha: (opacity * 0.75).clamp(0.0, 1.0))
+            ..style = PaintingStyle.fill;
+
+      canvas.save();
+      canvas.translate(cx, cy);
+      canvas.rotate(rotation);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset.zero,
+            width: p.width,
+            height: p.height,
+          ),
+          const Radius.circular(1.5),
+        ),
+        paint,
+      );
+      canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(_ParticlesPainter oldDelegate) {
-    return progress != oldDelegate.progress;
+  bool shouldRepaint(_ConfettiPainter old) => progress != old.progress;
+}
+
+// ── Ring Pulse CustomPainter ────────────────────────────────────────────────────
+
+class _RingPulsePainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  const _RingPulsePainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const ringCount = 3;
+    final maxRadius = size.shortestSide * 0.65;
+
+    for (int i = 0; i < ringCount; i++) {
+      final phase = (progress + i / ringCount) % 1.0;
+      final radius = phase * maxRadius;
+      final opacity = (1 - phase) * 0.45;
+
+      final paint =
+          Paint()
+            ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0 * (1 - phase * 0.6);
+
+      canvas.drawCircle(center, radius, paint);
+    }
   }
+
+  @override
+  bool shouldRepaint(_RingPulsePainter old) => progress != old.progress;
 }
