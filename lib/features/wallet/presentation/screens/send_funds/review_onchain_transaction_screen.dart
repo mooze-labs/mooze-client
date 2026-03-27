@@ -13,6 +13,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_provi
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/fee_speed_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/prepared_psbt_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'transaction_sent_screen.dart';
 
 class ReviewOnchainTransactionScreen extends ConsumerStatefulWidget {
@@ -46,9 +47,9 @@ class _ReviewOnchainTransactionScreenState
       if (psbt == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro: Transação não encontrada'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content: const Text('Erro: Transação não encontrada'),
+              backgroundColor: context.colorScheme.error,
             ),
           );
         }
@@ -61,7 +62,7 @@ class _ReviewOnchainTransactionScreenState
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Erro: $error'),
-                backgroundColor: Colors.red,
+                backgroundColor: context.colorScheme.error,
               ),
             );
           }
@@ -76,7 +77,7 @@ class _ReviewOnchainTransactionScreenState
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Erro ao enviar transação: $error'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: context.colorScheme.error,
                   ),
                 );
               }
@@ -110,6 +111,9 @@ class _ReviewOnchainTransactionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     final asset = ref.watch(selectedAssetProvider);
     final finalAmount = ref.watch(finalAmountProvider);
     final amount = BigInt.from(finalAmount);
@@ -136,21 +140,22 @@ class _ReviewOnchainTransactionScreenState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.error_outline,
                           size: 64,
-                          color: Colors.red,
+                          color: colorScheme.error,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Erro ao preparar transação',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          style: textTheme.titleLarge,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Transação não encontrada',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Colors.grey[400]),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: context.colors.textSecondary,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -201,8 +206,8 @@ class _ReviewOnchainTransactionScreenState
                 const SizedBox(height: 16),
                 Text(
                   'A taxa foi calculada com base na velocidade selecionada.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colors.textTertiary,
                     fontStyle: FontStyle.italic,
                   ),
                   textAlign: TextAlign.center,
@@ -231,6 +236,9 @@ class _ReviewOnchainTransactionScreenState
     String destination,
     BigInt networkFee,
   ) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+
     final feeBtc = networkFee.toDouble() / 100000000;
     final totalBtc = isDrain ? amountBtc : amountBtc + feeBtc;
 
@@ -241,13 +249,13 @@ class _ReviewOnchainTransactionScreenState
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+            colorScheme.primary.withValues(alpha: 0.1),
+            colorScheme.primary.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+          color: colorScheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -259,9 +267,7 @@ class _ReviewOnchainTransactionScreenState
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.2),
+                  color: colorScheme.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: SvgPicture.asset(asset.iconPath, width: 24, height: 24),
@@ -273,15 +279,15 @@ class _ReviewOnchainTransactionScreenState
                   children: [
                     Text(
                       isDrain ? 'Enviar Tudo' : 'Enviar ${asset.name}',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       'Bitcoin On-chain',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400]),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -296,13 +302,13 @@ class _ReviewOnchainTransactionScreenState
             children: [
               Text(
                 'Valor',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400]),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
               Text(
                 '${amountBtc.toStringAsFixed(8)} BTC',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: textTheme.bodyMedium,
               ),
             ],
           ),
@@ -312,13 +318,13 @@ class _ReviewOnchainTransactionScreenState
             children: [
               Text(
                 'Taxa de rede',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400]),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
               Text(
                 '${feeBtc.toStringAsFixed(8)} BTC',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: textTheme.bodyMedium,
               ),
             ],
           ),
@@ -331,16 +337,15 @@ class _ReviewOnchainTransactionScreenState
               children: [
                 Text(
                   'Total',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+                  style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '${totalBtc.toStringAsFixed(8)} BTC',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -350,14 +355,14 @@ class _ReviewOnchainTransactionScreenState
           const SizedBox(height: 16),
           Text(
             'Destino',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
+            style: textTheme.bodySmall?.copyWith(
+              color: context.colors.textTertiary,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             destination,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: textTheme.bodyMedium,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -367,30 +372,32 @@ class _ReviewOnchainTransactionScreenState
   }
 
   Widget _buildFeeSpeedInfo(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final selectedSpeed = ref.watch(feeSpeedProvider);
 
-    String speedLabel;
-    String speedDescription;
-    Color speedColor;
-    IconData speedIcon;
+    final String speedLabel;
+    final String speedDescription;
+    final Color speedColor;
+    final IconData speedIcon;
 
     switch (selectedSpeed) {
       case FeeSpeed.low:
         speedLabel = 'Econômica';
         speedDescription = 'Confirmação mais lenta, taxa menor';
-        speedColor = Colors.blue;
+        speedColor = colorScheme.secondary;
         speedIcon = Icons.schedule;
         break;
       case FeeSpeed.medium:
         speedLabel = 'Normal';
         speedDescription = 'Equilíbrio entre velocidade e custo';
-        speedColor = Colors.orange;
+        speedColor = context.appColors.warning;
         speedIcon = Icons.speed;
         break;
       case FeeSpeed.fast:
         speedLabel = 'Prioritária';
         speedDescription = 'Confirmação mais rápida, taxa maior';
-        speedColor = Colors.green;
+        speedColor = colorScheme.tertiary;
         speedIcon = Icons.flash_on;
         break;
     }
@@ -419,7 +426,7 @@ class _ReviewOnchainTransactionScreenState
               children: [
                 Text(
                   'Velocidade: $speedLabel',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: speedColor,
                   ),
@@ -427,9 +434,9 @@ class _ReviewOnchainTransactionScreenState
                 const SizedBox(height: 4),
                 Text(
                   speedDescription,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
               ],
             ),

@@ -10,6 +10,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import '../../providers/send_funds/network_detection_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
@@ -123,6 +124,9 @@ class _ReviewTransactionScreenState
   }
 
   Widget _buildErrorScreen(BuildContext context, String error) {
+    final textTheme = context.textTheme;
+    final colorScheme = context.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Revisar Transação"),
@@ -140,18 +144,18 @@ class _ReviewTransactionScreenState
               Icon(
                 Icons.error_rounded,
                 size: 64,
-                color: Theme.of(context).colorScheme.error,
+                color: colorScheme.error,
               ),
               const SizedBox(height: 16),
               Text(
                 'Erro ao preparar transação',
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 error,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -174,6 +178,9 @@ class _ReviewTransactionScreenState
     SendValidationState validationState,
     bool isDrainTransaction,
   ) {
+    final textTheme = context.textTheme;
+    final colorScheme = context.colorScheme;
+
     NetworkType networkType;
     switch (psbt.blockchain) {
       case Blockchain.bitcoin:
@@ -211,14 +218,10 @@ class _ReviewTransactionScreenState
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.3),
+                        color: colorScheme.primary.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -226,16 +229,14 @@ class _ReviewTransactionScreenState
                         Icon(
                           Icons.info_outline,
                           size: 20,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             "Enviando todos os fundos disponíveis. As taxas serão deduzidas automaticamente do valor total.",
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.primary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -251,19 +252,13 @@ class _ReviewTransactionScreenState
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.1),
-                        Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.05),
+                        colorScheme.primary.withValues(alpha: 0.1),
+                        colorScheme.primary.withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.3),
+                      color: colorScheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -271,9 +266,7 @@ class _ReviewTransactionScreenState
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.2),
+                          color: colorScheme.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: SvgPicture.asset(
@@ -289,8 +282,7 @@ class _ReviewTransactionScreenState
                           children: [
                             Text(
                               psbt.asset.name,
-                              style: const TextStyle(
-                                fontSize: 18,
+                              style: textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -309,9 +301,8 @@ class _ReviewTransactionScreenState
                                             ) => balanceEither.fold(
                                               (error) => Text(
                                                 'Erro ao calcular valor',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.grey[400],
+                                                style: context.textTheme.bodyLarge?.copyWith(
+                                                  color: context.colors.textSecondary,
                                                 ),
                                               ),
                                               (balance) {
@@ -326,20 +317,12 @@ class _ReviewTransactionScreenState
                                                           btcPrice,
                                                           currencySymbol,
                                                         ),
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          color:
-                                                              Colors.grey[400],
-                                                        ),
+                                                        style: context.textTheme.bodyLarge,
                                                       ),
                                                   loading:
                                                       () => Text(
                                                         'Carregando preço...',
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          color:
-                                                              Colors.grey[400],
-                                                        ),
+                                                        style: context.textTheme.bodyLarge,
                                                       ),
                                                   error:
                                                       (error, _) => Text(
@@ -349,11 +332,7 @@ class _ReviewTransactionScreenState
                                                           null,
                                                           currencySymbol,
                                                         ),
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          color:
-                                                              Colors.grey[400],
-                                                        ),
+                                                        style: context.textTheme.bodyLarge,
                                                       ),
                                                 );
                                               },
@@ -361,17 +340,15 @@ class _ReviewTransactionScreenState
                                         loading:
                                             () => Text(
                                               'Calculando valor...',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.grey[400],
+                                              style: context.textTheme.bodyLarge?.copyWith(
+                                                color: context.colors.textSecondary,
                                               ),
                                             ),
                                         error:
                                             (error, _) => Text(
                                               'Erro ao calcular valor',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.grey[400],
+                                              style: context.textTheme.bodyLarge?.copyWith(
+                                                color: context.colors.textSecondary,
                                               ),
                                             ),
                                       );
@@ -386,17 +363,15 @@ class _ReviewTransactionScreenState
                                           btcPrice,
                                           currencySymbol,
                                         ),
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[400],
+                                        style: context.textTheme.bodyLarge?.copyWith(
+                                          color: context.colors.textSecondary,
                                         ),
                                       ),
                                   loading:
                                       () => Text(
                                         'Carregando preço...',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[400],
+                                        style: context.textTheme.bodyLarge?.copyWith(
+                                          color: context.colors.textSecondary,
                                         ),
                                       ),
                                   error:
@@ -407,9 +382,8 @@ class _ReviewTransactionScreenState
                                           null,
                                           currencySymbol,
                                         ),
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[400],
+                                        style: context.textTheme.bodyLarge?.copyWith(
+                                          color: context.colors.textSecondary,
                                         ),
                                       ),
                                 );
@@ -429,13 +403,12 @@ class _ReviewTransactionScreenState
                     Icon(
                       Icons.hub_rounded,
                       size: 20,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Rede de Destino',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -451,13 +424,12 @@ class _ReviewTransactionScreenState
                     Icon(
                       Icons.account_balance_wallet_rounded,
                       size: 20,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Endereço de Destino',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -473,13 +445,12 @@ class _ReviewTransactionScreenState
                     Icon(
                       Icons.receipt_long_rounded,
                       size: 20,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Detalhes das Taxas',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -499,28 +470,24 @@ class _ReviewTransactionScreenState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.errorContainer.withValues(alpha: 0.3),
+                      color: colorScheme.errorContainer.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.error.withValues(alpha: 0.5),
+                        color: colorScheme.error.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.warning_rounded,
-                          color: Theme.of(context).colorScheme.error,
+                          color: colorScheme.error,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'Há problemas com esta transação. Verifique os dados.',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.error,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -554,14 +521,16 @@ class _ReviewTransactionScreenState
     BigInt amount,
     BigInt networkFees,
   ) {
+    final colorScheme = context.colorScheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          color: colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -575,7 +544,7 @@ class _ReviewTransactionScreenState
           _buildFeeRow(context, 'Taxa de Serviço', _getServiceFee(asset)),
           const SizedBox(height: 12),
           Divider(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+            color: colorScheme.outline.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 12),
           _buildFeeRow(
@@ -595,20 +564,23 @@ class _ReviewTransactionScreenState
     String value, {
     bool isTotal = false,
   }) {
+    final textTheme = context.textTheme;
+    final colorScheme = context.colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: textTheme.bodyMedium?.copyWith(
             fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: textTheme.bodyMedium?.copyWith(
             fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
-            color: isTotal ? Theme.of(context).colorScheme.primary : null,
+            color: isTotal ? colorScheme.primary : null,
           ),
         ),
       ],
@@ -752,61 +724,60 @@ class _ReviewTransactionScreenState
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.error_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                const SizedBox(width: 8),
-                const Text('Erro na Transação'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Não foi possível enviar a transação:',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Text(
-                    error,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Verifique os dados e tente novamente.',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+          (context) {
+            final textTheme = context.textTheme;
+            final colorScheme = context.colorScheme;
+
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.error_rounded, color: colorScheme.error),
+                  const SizedBox(width: 8),
+                  const Text('Erro na Transação'),
+                ],
               ),
-            ],
-          ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Não foi possível enviar a transação:',
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colorScheme.error.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Text(
+                      error,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.error,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Verifique os dados e tente novamente.',
+                    style: textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
     );
   }
 
