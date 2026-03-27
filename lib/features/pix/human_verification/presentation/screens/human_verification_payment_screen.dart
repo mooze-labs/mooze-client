@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/themes/app_text_styles.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
@@ -175,18 +175,18 @@ class _HumanVerificationPaymentScreenState
                           decoration: BoxDecoration(
                             color:
                                 _pixKeyCopied
-                                    ? AppColors.primaryColor.withValues(
+                                    ? context.colors.primaryColor.withValues(
                                       alpha: 0.08,
                                     )
-                                    : AppColors.pinBackground,
+                                    : context.colors.pinBackground,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color:
                                   _pixKeyCopied
-                                      ? AppColors.primaryColor.withValues(
+                                      ? context.colors.primaryColor.withValues(
                                         alpha: 0.5,
                                       )
-                                      : AppColors.primaryColor.withValues(
+                                      : context.colors.primaryColor.withValues(
                                         alpha: 0.2,
                                       ),
                               width: 1.2,
@@ -198,8 +198,8 @@ class _HumanVerificationPaymentScreenState
                                 Icons.qr_code_rounded,
                                 color:
                                     _pixKeyCopied
-                                        ? AppColors.primaryColor
-                                        : AppColors.primaryColor.withValues(
+                                        ? context.colors.primaryColor
+                                        : context.colors.primaryColor.withValues(
                                           alpha: 0.7,
                                         ),
                                 size: 24,
@@ -217,13 +217,13 @@ class _HumanVerificationPaymentScreenState
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    SizedBox(height: 4),
                                     Text(
                                       _pixKey,
                                       style: TextStyle(
                                         color:
                                             _pixKeyCopied
-                                                ? AppColors.primaryColor
+                                                ? context.colors.primaryColor
                                                 : Colors.white,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -234,15 +234,15 @@ class _HumanVerificationPaymentScreenState
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: 12),
                               Icon(
                                 _pixKeyCopied
                                     ? Icons.check_rounded
                                     : Icons.copy_rounded,
                                 color:
                                     _pixKeyCopied
-                                        ? AppColors.primaryColor
-                                        : AppColors.primaryColor.withValues(
+                                        ? context.colors.primaryColor
+                                        : context.colors.primaryColor.withValues(
                                           alpha: 0.7,
                                         ),
                                 size: 20,
@@ -255,10 +255,10 @@ class _HumanVerificationPaymentScreenState
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundCard,
+                          color: context.colors.backgroundCard,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.2,
                             ),
                             width: 1,
@@ -271,14 +271,14 @@ class _HumanVerificationPaymentScreenState
                               children: [
                                 Icon(
                                   Icons.pix,
-                                  color: AppColors.primaryColor,
+                                  color: context.colors.primaryColor,
                                   size: 30,
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
+                                Text(
                                   'PIX',
                                   style: TextStyle(
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.textSecondary,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -287,8 +287,8 @@ class _HumanVerificationPaymentScreenState
                             const SizedBox(height: 10),
                             Text(
                               _amount,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
+                              style: TextStyle(
+                                color: context.colors.textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 32,
                               ),
@@ -297,18 +297,18 @@ class _HumanVerificationPaymentScreenState
                             Text(
                               'Pagamento de verificação',
                               style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.textSecondary),
+                                  ?.copyWith(color: context.colors.textSecondary),
                             ),
                             const SizedBox(height: 20),
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryColor.withValues(
+                                color: context.colors.primaryColor.withValues(
                                   alpha: 0.1,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: AppColors.primaryColor.withValues(
+                                  color: context.colors.primaryColor.withValues(
                                     alpha: 0.3,
                                   ),
                                   width: 1,
@@ -318,17 +318,17 @@ class _HumanVerificationPaymentScreenState
                                 children: [
                                   Icon(
                                     Icons.info_outline,
-                                    color: AppColors.primaryColor,
+                                    color: context.colors.primaryColor,
                                     size: 20,
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       'Após o pagamento, você receberá um código na mensagem do PIX de retorno.',
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall?.copyWith(
-                                        color: AppColors.textPrimary,
+                                        color: context.colors.textPrimary,
                                       ),
                                     ),
                                   ),
