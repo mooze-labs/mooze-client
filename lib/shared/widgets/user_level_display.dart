@@ -5,7 +5,7 @@ import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
 class UserLevelDisplay extends ConsumerStatefulWidget {
@@ -40,10 +40,10 @@ class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
   }
 
   Widget _buildLoadingCard(ColorScheme colorScheme) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
@@ -139,9 +139,8 @@ class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
           const SizedBox(height: 8),
           Text(
             'Erro ao carregar nível',
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: colorScheme.error,
-              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -303,6 +302,9 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
     required bool isNext,
     required int index,
   }) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: 120,
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -311,20 +313,17 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
         children: [
           Text(
             level.name,
-            style: TextStyle(
-              fontSize: context.responsiveFont(12),
+            style: textTheme.labelMedium?.copyWith(
               fontWeight: isCurrentLevel ? FontWeight.bold : FontWeight.w500,
-              color:
-                  isCurrentLevel
-                      ? level.color
-                      : isCompleted
-                      ? level.color.withValues(alpha: 0.8)
-                      : Colors.white.withValues(alpha: 0.6),
+              color: isCurrentLevel
+                  ? level.color
+                  : isCompleted
+                  ? level.color.withValues(alpha: 0.8)
+                  : onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-
           SizedBox(
             height: 50,
             width: 120,
@@ -338,12 +337,11 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                     child: AnimatedBuilder(
                       animation: _progressAnimation,
                       builder: (context, child) {
-                        final lineProgress =
-                            isCompleted
-                                ? 1.0
-                                : isCurrentLevel
-                                ? _progressAnimation.value
-                                : 0.0;
+                        final lineProgress = isCompleted
+                            ? 1.0
+                            : isCurrentLevel
+                            ? _progressAnimation.value
+                            : 0.0;
 
                         return Container(
                           width: 120,
@@ -351,13 +349,11 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                           padding: const EdgeInsets.symmetric(horizontal: 30),
                           child: LinearProgressIndicator(
                             value: lineProgress,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.3,
-                            ),
+                            backgroundColor: onSurface.withValues(alpha: 0.3),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               isCompleted || isCurrentLevel
                                   ? level.color
-                                  : Colors.white.withValues(alpha: 0.3),
+                                  : onSurface.withValues(alpha: 0.3),
                             ),
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -365,13 +361,11 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                       },
                     ),
                   ),
-
                 Center(
                   child: AnimatedBuilder(
-                    animation:
-                        isCurrentLevel
-                            ? _highlightAnimation
-                            : const AlwaysStoppedAnimation(1.0),
+                    animation: isCurrentLevel
+                        ? _highlightAnimation
+                        : const AlwaysStoppedAnimation(1.0),
                     builder: (context, child) {
                       final scale =
                           isCurrentLevel ? _highlightAnimation.value : 1.0;
@@ -383,38 +377,32 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                           height: 45,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color:
-                                isCompleted || isCurrentLevel
-                                    ? level.color
-                                    : Colors.white.withValues(alpha: 0.3),
-                            boxShadow:
-                                isCurrentLevel
-                                    ? [
-                                      BoxShadow(
-                                        color: level.color.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                        blurRadius: 12,
-                                        spreadRadius: 4,
-                                      ),
-                                    ]
-                                    : null,
-                            border:
-                                isCurrentLevel
-                                    ? Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      width: 2,
-                                    )
-                                    : null,
+                            color: isCompleted || isCurrentLevel
+                                ? level.color
+                                : onSurface.withValues(alpha: 0.3),
+                            boxShadow: isCurrentLevel
+                                ? [
+                                    BoxShadow(
+                                      color: level.color.withValues(alpha: 0.4),
+                                      blurRadius: 12,
+                                      spreadRadius: 4,
+                                    ),
+                                  ]
+                                : null,
+                            border: isCurrentLevel
+                                ? Border.all(
+                                    color: onSurface.withValues(alpha: 0.3),
+                                    width: 2,
+                                  )
+                                : null,
                           ),
                           child: Icon(
                             level.icon,
-                            color:
-                                isCompleted || isCurrentLevel
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.5),
+                            // Keep white for icons on brand-colored circles;
+                            // use muted onSurface for icons on dim future circles.
+                            color: isCompleted || isCurrentLevel
+                                ? Colors.white
+                                : onSurface.withValues(alpha: 0.5),
                             size: context.responsiveFont(22),
                           ),
                         ),
@@ -436,6 +424,9 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
 
     if (currentLevelData == null) return const SizedBox.shrink();
 
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -443,15 +434,13 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
           children: [
             Text(
               'Nível atual: ',
-              style: TextStyle(
-                fontSize: context.responsiveFont(14),
-                color: Colors.white.withValues(alpha: 0.7),
+              style: textTheme.labelLarge?.copyWith(
+                color: onSurface.withValues(alpha: 0.7),
               ),
             ),
             Text(
               currentLevelData.name,
-              style: TextStyle(
-                fontSize: context.responsiveFont(14),
+              style: textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: currentLevelData.color,
               ),
@@ -460,15 +449,17 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
               SizedBox(width: 10),
               SvgPicture.asset(
                 "assets/icons/menu/arrow_to_slide.svg",
-                color: currentLevelData.color,
+                colorFilter: ColorFilter.mode(
+                  currentLevelData.color,
+                  BlendMode.srcIn,
+                ),
                 height: 12,
                 width: 12,
               ),
               SizedBox(width: 10),
               Text(
                 nextLevelData.name,
-                style: TextStyle(
-                  fontSize: context.responsiveFont(14),
+                style: textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: nextLevelData.color.withValues(alpha: 0.7),
                 ),
@@ -477,11 +468,11 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
           ],
         ),
         const SizedBox(height: 8),
-
         if (nextLevelData != null)
           AnimatedBuilder(
             animation: _progressAnimation,
             builder: (context, child) {
+              final onSurface = Theme.of(context).colorScheme.onSurface;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -490,15 +481,13 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                     children: [
                       Text(
                         'Progresso: ${(_progressAnimation.value * 100).toInt()}%',
-                        style: TextStyle(
-                          fontSize: context.responsiveFont(12),
-                          color: Colors.white.withValues(alpha: 0.7),
+                        style: textTheme.labelMedium?.copyWith(
+                          color: onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                       Text(
                         'Próximo: ${nextLevelData.name}',
-                        style: TextStyle(
-                          fontSize: context.responsiveFont(12),
+                        style: textTheme.labelMedium?.copyWith(
                           color: nextLevelData.color.withValues(alpha: 0.8),
                         ),
                       ),
@@ -509,7 +498,7 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: _progressAnimation.value,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      backgroundColor: onSurface.withValues(alpha: 0.2),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         currentLevelData.color,
                       ),
