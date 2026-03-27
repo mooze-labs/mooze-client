@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class RefundSuccessScreen extends StatefulWidget {
   final String txid;
@@ -108,321 +108,309 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(0.0, -0.4),
-              radius: 0.8,
-              colors: [
-                Color(0xFF1A0A1A),
-                AppColors.backgroundColor,
-                AppColors.backgroundColor,
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.3 + (_glowAnimation.value * 0.4),
-                                ),
-                                blurRadius: 40 + (_glowAnimation.value * 30),
-                                spreadRadius: 8 + (_glowAnimation.value * 15),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _glowAnimation,
+                    builder: (context, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.3 + (_glowAnimation.value * 0.4),
                               ),
-                            ],
-                          ),
-                          child: ScaleTransition(
-                            scale: _checkAnimation,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 25,
-                                    spreadRadius: 3,
+                              blurRadius: 40 + (_glowAnimation.value * 30),
+                              spreadRadius: 8 + (_glowAnimation.value * 15),
+                            ),
+                          ],
+                        ),
+                        child: ScaleTransition(
+                          scale: _checkAnimation,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: context.colors.primaryColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.colors.primaryColor.withValues(
+                                    alpha: 0.3,
                                   ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 60,
-                              ),
+                                  blurRadius: 25,
+                                  spreadRadius: 3,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 60,
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
+              ),
 
-                Expanded(
-                  flex: 4,
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.3),
-                        end: Offset.zero,
-                      ).animate(_fadeAnimation),
-                      child: Column(
-                        children: [
-                          // Title
-                          Text(
-                            'Reembolso Iniciado!',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineMedium?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
+              Expanded(
+                flex: 4,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.3),
+                      end: Offset.zero,
+                    ).animate(_fadeAnimation),
+                    child: Column(
+                      children: [
+                        // Title
+                        Text(
+                          'Reembolso Iniciado!',
+                          style: context.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
 
-                          const SizedBox(height: 8),
+                        const SizedBox(height: 8),
 
-                          Text(
-                            'Seu reembolso foi processado com sucesso. Em breve os fundos estarão disponíveis no endereço informado.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center,
+                        Text(
+                          'Seu reembolso foi processado com sucesso. Em breve os fundos estarão disponíveis no endereço informado.',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: context.colors.textSecondary,
                           ),
+                          textAlign: TextAlign.center,
+                        ),
 
-                          const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-                          // Refund Info
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: AppColors.backgroundCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.primaryColor.withValues(
-                                  alpha: 0.2,
-                                ),
-                                width: 1,
+                        // Refund Info
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: context.colors.backgroundCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: context.colors.primaryColor.withValues(
+                                alpha: 0.2,
                               ),
+                              width: 1,
                             ),
-                            child: Column(
-                              children: [
-                                // Amount
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.primaryColor.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        AppColors.primaryColor.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.primaryColor.withValues(
-                                        alpha: 0.2,
+                          ),
+                          child: Column(
+                            children: [
+                              // Amount
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      context.colors.primaryColor.withValues(
+                                        alpha: 0.1,
                                       ),
+                                      context.colors.primaryColor.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: context.colors.primaryColor
+                                        .withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: context.colors.primaryColor
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        Icons.currency_bitcoin,
+                                        color: context.colors.primaryColor,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Valor Reembolsado',
+                                            style: context.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color:
+                                                      context
+                                                          .colors
+                                                          .textSecondary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _formatAmount(
+                                              widget.amountSat.toInt(),
+                                            ),
+                                            style: context.textTheme.titleLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // TXID
+                              GestureDetector(
+                                onTap: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: widget.txid),
+                                  );
+                                  setState(() {
+                                    _txidCopied = true;
+                                  });
+                                  await Future.delayed(
+                                    const Duration(seconds: 2),
+                                  );
+                                  if (mounted) {
+                                    setState(() {
+                                      _txidCopied = false;
+                                    });
+                                  }
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        _txidCopied
+                                            ? context.colors.primaryColor
+                                                .withValues(alpha: 0.1)
+                                            : context.colors.backgroundColor
+                                                .withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color:
+                                          _txidCopied
+                                              ? context.colors.primaryColor
+                                              : context.colors.primaryColor
+                                                  .withValues(alpha: 0.3),
+                                      width: 1.2,
                                     ),
                                   ),
                                   child: Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primaryColor
-                                              .withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.currency_bitcoin,
-                                          color: AppColors.primaryColor,
-                                          size: 24,
-                                        ),
+                                      Icon(
+                                        _txidCopied
+                                            ? Icons.check_circle
+                                            : Icons.tag,
+                                        size: 18,
+                                        color:
+                                            _txidCopied
+                                                ? context.colors.primaryColor
+                                                : context.colors.textSecondary,
                                       ),
-                                      const SizedBox(width: 16),
+                                      const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Valor Reembolsado',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textSecondary,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                              'Transaction ID',
+                                              style: context
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        _txidCopied
+                                                            ? context
+                                                                .colors
+                                                                .primaryColor
+                                                            : context
+                                                                .colors
+                                                                .textSecondary,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 2),
                                             Text(
-                                              _formatAmount(
-                                                widget.amountSat.toInt(),
-                                              ),
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                color: AppColors.textPrimary,
-                                                fontWeight: FontWeight.w700,
-                                              ),
+                                              widget.txid,
+                                              style: context.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        _txidCopied
+                                                            ? context
+                                                                .colors
+                                                                .primaryColor
+                                                            : null,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontFamily: 'monospace',
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
                                       ),
+                                      SizedBox(width: 12),
+                                      Icon(
+                                        _txidCopied
+                                            ? Icons.check
+                                            : Icons.content_copy,
+                                        size: 16,
+                                        color:
+                                            _txidCopied
+                                                ? context.colors.primaryColor
+                                                : context.colors.textSecondary,
+                                      ),
                                     ],
                                   ),
                                 ),
-
-                                const SizedBox(height: 20),
-
-                                // TXID
-                                GestureDetector(
-                                  onTap: () async {
-                                    await Clipboard.setData(
-                                      ClipboardData(text: widget.txid),
-                                    );
-                                    setState(() {
-                                      _txidCopied = true;
-                                    });
-                                    await Future.delayed(
-                                      const Duration(seconds: 2),
-                                    );
-                                    if (mounted) {
-                                      setState(() {
-                                        _txidCopied = false;
-                                      });
-                                    }
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          _txidCopied
-                                              ? AppColors.primaryColor
-                                                  .withValues(alpha: 0.1)
-                                              : AppColors.backgroundColor
-                                                  .withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            _txidCopied
-                                                ? AppColors.primaryColor
-                                                : AppColors.primaryColor
-                                                    .withValues(alpha: 0.3),
-                                        width: 1.2,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          _txidCopied
-                                              ? Icons.check_circle
-                                              : Icons.tag,
-                                          size: 18,
-                                          color:
-                                              _txidCopied
-                                                  ? AppColors.primaryColor
-                                                  : AppColors.textSecondary,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Transaction ID',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color:
-                                                      _txidCopied
-                                                          ? AppColors
-                                                              .primaryColor
-                                                          : AppColors
-                                                              .textSecondary,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                widget.txid,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color:
-                                                      _txidCopied
-                                                          ? AppColors
-                                                              .primaryColor
-                                                          : AppColors
-                                                              .textPrimary,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontFamily: 'monospace',
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Icon(
-                                          _txidCopied
-                                              ? Icons.check
-                                              : Icons.content_copy,
-                                          size: 16,
-                                          color:
-                                              _txidCopied
-                                                  ? AppColors.primaryColor
-                                                  : AppColors.textSecondary,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+                        ),
 
-                          const Spacer(),
+                        const Spacer(),
 
-                          PrimaryButton(
-                            text: 'Voltar para Dashboard',
-                            onPressed: () {
-                              Navigator.of(
-                                context,
-                              ).popUntil((route) => route.isFirst);
-                            },
-                          ),
-                        ],
-                      ),
+                        PrimaryButton(
+                          text: 'Voltar para Dashboard',
+                          onPressed: () {
+                            Navigator.of(
+                              context,
+                            ).popUntil((route) => route.isFirst);
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
