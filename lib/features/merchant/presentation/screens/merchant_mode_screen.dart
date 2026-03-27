@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_charge_screen.dart';
@@ -725,6 +726,37 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   }
 
   void _finalizarVenda() {
+    final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
+
+    if (keypadValue >= 20.0) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final items = [
+        CartItemEntity(
+          productId: timestamp,
+          name: 'Valor Avulso',
+          price: keypadValue,
+          quantity: 1,
+        ),
+      ];
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (context) => MerchantChargeScreen(
+                totalAmount: keypadValue,
+                items: items,
+              ),
+            ),
+          )
+          .then((_) {
+            if (mounted) {
+              setState(() {
+                valorDigitado = '0.00';
+              });
+            }
+          });
+      return;
+    }
+
     final cartTotal = ref.read(cartTotalProvider);
     final cartItems = ref.read(cartControllerProvider.notifier).cartItems;
 
@@ -954,9 +986,12 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 Consumer(
                   builder: (context, ref, child) {
                     final cartTotal = ref.watch(cartTotalProvider);
+                    final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
+                    final effectiveAmount =
+                        keypadValue >= 20.0 ? keypadValue : cartTotal;
                     return FinalizarVendaButton(
                       onPressed: _finalizarVenda,
-                      totalOrderAmount: cartTotal,
+                      totalOrderAmount: effectiveAmount,
                       buttonKey: _finalizarVendaKey,
                     );
                   },
