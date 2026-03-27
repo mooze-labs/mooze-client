@@ -140,7 +140,7 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
                 obscureText: true,
                 controller: _pinController,
                 focusNode: _focusNode,
-                defaultPinTheme: PinThemes.focusedPinTheme,
+                defaultPinTheme: PinThemes.focusedThemeOf(context),
               ),
 
               const SizedBox(height: 50),

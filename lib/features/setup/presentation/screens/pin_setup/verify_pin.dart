@@ -156,7 +156,6 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     return PopScope(
       canPop: canGoBack,
       child: Scaffold(
-        backgroundColor: Colors.black,
         appBar: AppBar(
           title: Text('Validação de segurança'),
           leading:
@@ -204,7 +203,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                   length: 6,
                   obscureText: true,
                   controller: _pinController,
-                  defaultPinTheme: PinThemes.focusedPinTheme,
+                  defaultPinTheme: PinThemes.focusedThemeOf(context),
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
@@ -214,10 +213,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                   isLoading: _isVerifying,
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Esqueceu seu PIN?',
-                  style: TextStyle(color: Colors.white),
-                ),
+                const Text('Esqueceu seu PIN?'),
                 TextButton(
                   onPressed: _authWithBiometrics,
                   child: Text(
