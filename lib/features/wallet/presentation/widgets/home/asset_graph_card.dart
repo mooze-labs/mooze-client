@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
@@ -7,7 +8,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_
 import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/asset_detail_screen.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
@@ -80,6 +81,8 @@ class SuccessfulAssetCard extends ConsumerWidget {
   });
 
   @override
+  static final _numberFormat = NumberFormat('#,##0.00', 'en_US');
+
   Widget build(BuildContext context, WidgetRef ref) {
     final percentage = ((klines.last - klines.first) / klines.first) * 100;
     final isPositive = klines.last > klines.first;
@@ -97,7 +100,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceLow,
+          color: context.colors.surfaceLow,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -111,11 +114,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
                 children: [
                   Text(
                     asset.displayName,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   SvgPicture.asset(asset.iconPath, width: 40, height: 40),
                 ],
@@ -124,7 +123,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                "$icon ${assetValue.toStringAsFixed(2)}",
+                "$icon ${_numberFormat.format(assetValue)}",
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold),
@@ -137,15 +136,18 @@ class SuccessfulAssetCard extends ConsumerWidget {
                 children: [
                   Text(
                     "${percentage.toStringAsFixed(2)}% (24h)",
-                    style: TextStyle(
-                      color: isPositive ? Colors.green : Colors.red,
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: isPositive
+                          ? context.colors.positiveColor
+                          : Theme.of(context).colorScheme.error,
                     ),
                   ),
                   SizedBox(width: 4),
                   Icon(
                     isPositive ? Icons.trending_up : Icons.trending_down,
-                    color: isPositive ? Colors.green : Colors.red,
+                    color: isPositive
+                        ? context.colors.positiveColor
+                        : Theme.of(context).colorScheme.error,
                     size: 16,
                   ),
                 ],
@@ -158,6 +160,8 @@ class SuccessfulAssetCard extends ConsumerWidget {
                 painter: SimpleChartPainter(
                   isPositive: isPositive,
                   klines: klines,
+                  positiveColor: context.colors.positiveColor,
+                  negativeColor: Theme.of(context).colorScheme.error,
                 ),
                 size: Size(double.infinity, 40),
               ),
@@ -173,14 +177,21 @@ class SuccessfulAssetCard extends ConsumerWidget {
 class SimpleChartPainter extends CustomPainter {
   final bool isPositive;
   final List<double> klines;
+  final Color positiveColor;
+  final Color negativeColor;
 
-  SimpleChartPainter({required this.isPositive, required this.klines});
+  SimpleChartPainter({
+    required this.isPositive,
+    required this.klines,
+    required this.positiveColor,
+    required this.negativeColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = isPositive ? Colors.green : Colors.red
+          ..color = isPositive ? positiveColor : negativeColor
           ..strokeWidth = 2
           ..style = PaintingStyle.stroke
           ..isAntiAlias = true;
@@ -236,8 +247,8 @@ class LoadingAssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return GestureDetector(
       onTap: () {
@@ -250,7 +261,7 @@ class LoadingAssetCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xFF2A2A2A),
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -264,11 +275,7 @@ class LoadingAssetCard extends StatelessWidget {
                 children: [
                   Text(
                     asset.displayName,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   SvgPicture.asset(asset.iconPath, width: 40, height: 40),
                 ],
@@ -350,7 +357,7 @@ class ErrorAssetCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xFF2A2A2A),
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -364,11 +371,7 @@ class ErrorAssetCard extends StatelessWidget {
                 children: [
                   Text(
                     asset.name,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   SvgPicture.asset(asset.iconPath, width: 40, height: 40),
                 ],
@@ -378,9 +381,7 @@ class ErrorAssetCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 "N/A",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -392,10 +393,16 @@ class ErrorAssetCard extends StatelessWidget {
                 children: [
                   Text(
                     "N/A",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                   SizedBox(width: 4),
-                  Icon(Icons.remove, color: Colors.grey, size: 16),
+                  Icon(
+                    Icons.remove,
+                    color: Theme.of(context).colorScheme.outline,
+                    size: 16,
+                  ),
                 ],
               ),
             ),
@@ -403,7 +410,9 @@ class ErrorAssetCard extends StatelessWidget {
             SizedBox(
               height: 40,
               child: CustomPaint(
-                painter: ErrorChartPainter(),
+                painter: ErrorChartPainter(
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 size: Size(double.infinity, 40),
               ),
             ),
@@ -415,11 +424,15 @@ class ErrorAssetCard extends StatelessWidget {
 }
 
 class ErrorChartPainter extends CustomPainter {
+  final Color color;
+
+  ErrorChartPainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Colors.red
+          ..color = color
           ..strokeWidth = 2
           ..style = PaintingStyle.stroke;
 
