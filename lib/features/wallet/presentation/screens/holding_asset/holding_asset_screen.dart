@@ -160,11 +160,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
       children: [
         Text(
           'Ativos',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -190,12 +186,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   Widget _buildHoldingsList(List<WalletHolding> holdings) {
     if (holdings.isEmpty) {
-      return const Center(
-        child: Text(
-          'Nenhum ativo encontrado',
-          style: TextStyle(color: Colors.white70),
-        ),
-      );
+      return const Center(child: Text('Nenhum ativo encontrado'));
     }
 
     return Consumer(
@@ -233,16 +224,12 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
           const SizedBox(height: 16),
           Text(
             'Erro ao carregar ativos',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             error,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],
