@@ -16,7 +16,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_p
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync.dart';
@@ -160,7 +160,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
-              color: AppColors.surfaceColor,
+              color: context.colors.surfaceColor,
             ),
             width: double.infinity,
             child: Column(
@@ -205,7 +205,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       setState(() {});
                     }
                   },
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(10),
                     child: Center(child: _SwapIcon()),
                   ),
@@ -214,8 +214,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 const SizedBox(height: 15),
                 if (isLoading)
                   Shimmer.fromColors(
-                    baseColor: AppColors.baseColor,
-                    highlightColor: AppColors.highlightColor,
+                    baseColor: context.colors.baseColor,
+                    highlightColor: context.colors.highlightColor,
                     child: Container(
                       width: 50,
                       height: 20,
@@ -266,7 +266,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.schedule,
                                     color: Colors.blue,
                                     size: 20,
@@ -420,7 +420,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             ),
                           ),
                         PrimaryButton(
-                          text: 'swap',
+                          text: 'Swap',
                           isEnabled: canProceed,
                           onPressed:
                               canProceed
@@ -507,10 +507,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       });
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        color: AppColors.backgroundColor,
+        color: context.colors.backgroundColor,
       ),
       height: 115,
       child: Column(
@@ -527,25 +527,24 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     future: ref.watch(fiatPriceProvider(_fromAsset).future),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
-                        return snapshot.data!.fold(
-                          (error) => const Text('0.00'),
-                          (price) {
-                            final amount =
-                                BigInt.tryParse(
-                                  _fromAmountController.text.trim(),
-                                ) ??
-                                BigInt.zero;
-                            final usd = _fromAsset.toUsd(amount, price);
-                            return Text(
-                              '${currency.icon}${usd.toStringAsFixed(2)}',
-                            );
-                          },
-                        );
+                        return snapshot.data!.fold((error) => Text('0.00'), (
+                          price,
+                        ) {
+                          final amount =
+                              BigInt.tryParse(
+                                _fromAmountController.text.trim(),
+                              ) ??
+                              BigInt.zero;
+                          final usd = _fromAsset.toUsd(amount, price);
+                          return Text(
+                            '${currency.icon}${usd.toStringAsFixed(2)}',
+                          );
+                        });
                       }
                       return const Text('...');
                     },
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 5),
                   TransparentTextButton(
                     text: 'MAX',
                     onPressed: () async {
@@ -565,7 +564,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       _requestQuoteDebounced();
                     },
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: AppColors.primaryColor,
+                      color: context.colors.primaryColor,
                     ),
                   ),
                 ],
@@ -703,12 +702,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         (error) => Text(
                           '...',
                           style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.colors.textSecondary),
                         ),
                         (balance) => Text(
                           _fromAsset.formatBalance(balance),
                           style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.colors.textSecondary),
                         ),
                       );
                     },
@@ -716,13 +715,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         () => Text(
                           '...',
                           style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.colors.textSecondary),
                         ),
                     error:
                         (err, stack) => Text(
                           '...',
                           style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.colors.textSecondary),
                         ),
                   );
                 },
@@ -761,7 +760,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       });
     }
 
-    String displayToAmount() {
+    String displayToAmount(context) {
       if (_fromAmountController.text.trim().isEmpty) {
         return '0';
       }
@@ -800,16 +799,16 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         gradient: LinearGradient(
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
-          colors: const [Color(0xFF2D2E2A), AppColors.primaryColor],
+          colors: [Color(0xFF2D2E2A), context.colors.primaryColor],
         ),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Padding(
         padding: const EdgeInsets.all(1.5),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.surfaceColor,
+            color: context.colors.surfaceColor,
             borderRadius: BorderRadius.circular(13),
           ),
           child: Column(
@@ -846,7 +845,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                               (price) {
                                 final amount = swapState.receiveAmount ?? 0;
                                 if (amount == 0) {
-                                  return const Text('0.00');
+                                  return Text('0.00');
                                 }
                                 final usd = _toAsset.toUsd(
                                   BigInt.from(amount),
@@ -905,11 +904,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           },
                         ),
                         Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
+                          padding: EdgeInsets.only(left: 8.0),
                           child: Text(
-                            displayToAmount(),
+                            displayToAmount(context),
                             style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppColors.textSecondary),
+                                ?.copyWith(color: context.colors.textSecondary),
                           ),
                         ),
                       ],
@@ -929,27 +928,39 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           return either.fold(
                             (error) => Text(
                               '...',
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge!.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
                             ),
                             (balance) => Text(
                               _toAsset.formatBalance(balance),
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge!.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
                             ),
                           );
                         },
                         loading:
                             () => Text(
                               '...',
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge!.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
                             ),
                         error:
                             (err, stack) => Text(
                               '...',
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge!.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
                             ),
                       );
                     },
@@ -1126,7 +1137,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   'Sem Liquidez',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    // color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1147,9 +1158,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       _requestQuoteDebounced();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
+                      backgroundColor: context.colors.primaryColor,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1300,11 +1311,11 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                     child: Material(
                       elevation: 4.0,
                       borderRadius: BorderRadius.circular(8),
-                      color: AppColors.backgroundColor,
+                      color: context.colors.backgroundColor,
                       child: Container(
                         width: dropdownWidth,
                         constraints: BoxConstraints(
-                          maxHeight: maxHeight > 0 ? maxHeight : 100,
+                          maxHeight: maxHeight > 0 ? maxHeight + 10 : 100,
                         ),
                         child: ListView(
                           padding: EdgeInsets.zero,
@@ -1317,7 +1328,7 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                                     _closeDropdown();
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                       horizontal: 12,
                                       vertical: 12,
                                     ),
@@ -1334,7 +1345,6 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                                           child: Text(
                                             asset.ticker,
                                             style: const TextStyle(
-                                              color: Colors.white,
                                               fontSize: 16,
                                             ),
                                             overflow: TextOverflow.ellipsis,
