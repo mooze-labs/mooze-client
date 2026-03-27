@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_text_styles.dart';
 
 class TimerCountdown extends StatefulWidget {
   final DateTime expireAt;
@@ -64,7 +63,7 @@ class _TimerCountdownState extends State<TimerCountdown> {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
-        style: AppTextStyles.subtitle,
+        style: Theme.of(context).textTheme.bodyMedium,
         children: [
           const TextSpan(text: 'Você tem '),
           TextSpan(
