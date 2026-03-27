@@ -12,37 +12,21 @@ class CurrencyList extends ConsumerWidget {
     final controller = ref.read(currencyControllerProvider.notifier);
     final availableCurrencies = controller.availableCurrencies;
 
-    return ListView.builder(
+    return ListView.separated(
       physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       itemCount: availableCurrencies.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = availableCurrencies[index];
         final isSelected = currentCurrency == item.currency;
 
-        return _buildCurrencyListItem(
-          item: item,
-          isSelected: isSelected,
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
           onTap: () => controller.setCurrency(item.currency),
+          child: CurrencySelectorItem(item: item, isSelected: isSelected),
         );
       },
-    );
-  }
-
-  Widget _buildCurrencyListItem({
-    required CurrencyItem item,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: CurrencySelectorItem(item: item, isSelected: isSelected),
-        ),
-      ),
     );
   }
 }
