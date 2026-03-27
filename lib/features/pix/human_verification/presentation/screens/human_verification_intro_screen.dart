@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class HumanVerificationIntroScreen extends StatelessWidget {
   const HumanVerificationIntroScreen({super.key});
@@ -9,11 +9,11 @@ class HumanVerificationIntroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
         title: const Text('Verificação de Humanidade'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
       ),
@@ -33,12 +33,12 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryColor.withValues(
+                            color: context.colors.primaryColor.withValues(
                               alpha: 0.1,
                             ),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.primaryColor.withValues(
+                              color: context.colors.primaryColor.withValues(
                                 alpha: 0.3,
                               ),
                               width: 2,
@@ -47,7 +47,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                           child: Icon(
                             Icons.verified_user_outlined,
                             size: 60,
-                            color: AppColors.primaryColor,
+                            color: context.colors.primaryColor,
                           ),
                         ),
                       ),
@@ -57,7 +57,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                         style: Theme.of(
                           context,
                         ).textTheme.headlineMedium?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
@@ -66,7 +66,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                       Text(
                         'Para garantir a segurança da plataforma, precisamos verificar que você é uma pessoa real.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -88,7 +88,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                             'Você receberá o valor de volta com um código único na mensagem.',
                         icon: Icons.arrow_back,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       _buildStepCard(
                         context,
                         stepNumber: '3',
@@ -125,10 +125,10 @@ class HumanVerificationIntroScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        color: context.colors.backgroundCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryColor.withValues(alpha: 0.2),
+          color: context.colors.primaryColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -139,13 +139,13 @@ class HumanVerificationIntroScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primaryColor,
+              color: context.colors.primaryColor,
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 stepNumber,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -160,26 +160,26 @@ class HumanVerificationIntroScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(icon, color: AppColors.primaryColor, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(icon, color: context.colors.primaryColor, size: 20),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         title,
                         style: Theme.of(
                           context,
                         ).textTheme.titleMedium?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
