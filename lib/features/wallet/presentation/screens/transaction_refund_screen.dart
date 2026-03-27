@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class TransactionRefundScreen extends ConsumerStatefulWidget {
   final Transaction transaction;
@@ -67,13 +67,13 @@ class _TransactionRefundScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reembolso de Transação'),
-        backgroundColor: AppColors.backgroundColor,
+        title: Text('Reembolso de Transação'),
+        backgroundColor: context.colors.backgroundColor,
       ),
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       body:
           state.isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : state.error != null
               ? _buildErrorView(state.error!)
               : _buildRefundForm(state),
@@ -87,20 +87,21 @@ class _TransactionRefundScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 64),
+            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 64),
             const SizedBox(height: 16),
             Text(
               'Erro ao carregar dados',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 18,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: context.colors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -109,10 +110,10 @@ class _TransactionRefundScreenState
                 ref.read(refundProvider.notifier).loadRefundData();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: AppColors.backgroundColor,
+                backgroundColor: context.colors.primaryColor,
+                foregroundColor: context.colors.backgroundColor,
               ),
-              child: const Text('Tentar Novamente'),
+              child: Text('Tentar Novamente'),
             ),
           ],
         ),
@@ -134,13 +135,13 @@ class _TransactionRefundScreenState
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.error_outline,
                     size: 64,
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 ),
               ),
@@ -149,24 +150,22 @@ class _TransactionRefundScreenState
               // Error Message
               Text(
                 'Transação Falhada',
-                style: TextStyle(
-                  fontSize: 24,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
                 'Sua transação de peg-in não pode ser concluída. Clicando em OK, os seus bitcoins serão restituídos para sua carteira onchain.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: context.colors.textSecondary,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32),
 
               // Transaction Details Card
               _buildTransactionDetailsCard(),
@@ -174,11 +173,11 @@ class _TransactionRefundScreenState
 
               // Bitcoin Address Input
               _buildAddressInput(state),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Fee Selection
               if (state.recommendedFees != null) _buildFeeSelection(state),
-              const SizedBox(height: 32),
+              SizedBox(height: 32),
 
               // Refund Button
               _buildRefundButton(state),
@@ -191,27 +190,26 @@ class _TransactionRefundScreenState
 
   Widget _buildTransactionDetailsCard() {
     return Card(
-      color: AppColors.backgroundCard,
+      color: context.colors.backgroundCard,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Detalhes da Transação',
-              style: TextStyle(
-                fontSize: 18,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
             _buildDetailRow('Valor', _formatAmount()),
-            const SizedBox(height: 8),
-            _buildDetailRow('Status', 'Falhada', valueColor: Colors.red),
+            SizedBox(height: 8),
+            _buildDetailRow('Status', 'Falhada', valueColor: Theme.of(context).colorScheme.error),
             const SizedBox(height: 8),
             _buildDetailRow('Data', _formatDate()),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             _buildTxIdRow(),
           ],
         ),
@@ -225,14 +223,15 @@ class _TransactionRefundScreenState
       children: [
         Text(
           label,
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: context.colors.textSecondary,
+          ),
         ),
         Flexible(
           child: Text(
             value,
-            style: TextStyle(
-              color: valueColor ?? AppColors.textPrimary,
-              fontSize: 14,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: valueColor ?? context.colors.textPrimary,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.end,
@@ -248,7 +247,9 @@ class _TransactionRefundScreenState
       children: [
         Text(
           'TX ID',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: context.colors.textSecondary,
+          ),
         ),
         Flexible(
           child: Row(
@@ -261,15 +262,14 @@ class _TransactionRefundScreenState
                         widget.transaction.receiveTxId ??
                         '',
                   ),
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               InkWell(
                 onTap: () {
                   Clipboard.setData(
@@ -288,7 +288,7 @@ class _TransactionRefundScreenState
                 child: Icon(
                   _txidCopied ? Icons.check : Icons.copy,
                   size: 16,
-                  color: _txidCopied ? Colors.green : AppColors.textSecondary,
+                  color: _txidCopied ? context.colors.positiveColor : context.colors.textSecondary,
                 ),
               ),
             ],
@@ -304,28 +304,27 @@ class _TransactionRefundScreenState
       children: [
         Text(
           'Endereço Bitcoin para Reembolso',
-          style: TextStyle(
-            fontSize: 16,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _addressController,
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Insira o endereço Bitcoin',
-            hintStyle: TextStyle(color: AppColors.textSecondary),
+            hintStyle: TextStyle(color: context.colors.textSecondary),
             filled: true,
-            fillColor: AppColors.backgroundCard,
+            fillColor: context.colors.backgroundCard,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
             suffixIcon:
                 state.bitcoinAddress != null
-                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    ? Icon(Icons.check_circle, color: context.colors.positiveColor)
                     : null,
           ),
           maxLines: 2,
@@ -338,7 +337,9 @@ class _TransactionRefundScreenState
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
               'Endereço gerado automaticamente da sua carteira',
-              style: TextStyle(fontSize: 12, color: Colors.green[400]),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: context.colors.positiveColor,
+              ),
             ),
           ),
       ],
@@ -359,10 +360,9 @@ class _TransactionRefundScreenState
       children: [
         Text(
           'Velocidade da Transação',
-          style: TextStyle(
-            fontSize: 16,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         if (isUsingFallback) ...[
@@ -370,10 +370,10 @@ class _TransactionRefundScreenState
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primaryColor.withValues(alpha: 0.1),
+              color: context.colors.primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: AppColors.primaryColor.withValues(alpha: 0.3),
+                color: context.colors.primaryColor.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -381,15 +381,15 @@ class _TransactionRefundScreenState
                 Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: AppColors.primaryColor,
+                  color: context.colors.primaryColor,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Usando taxas estimadas (API temporariamente indisponível)',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primaryColor,
+                      color: context.colors.primaryColor,
                     ),
                   ),
                 ),
@@ -442,14 +442,14 @@ class _TransactionRefundScreenState
         ref.read(refundProvider.notifier).setSelectedFeeRate(feeRate);
       },
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? AppColors.primaryColor.withValues(alpha: 0.1)
-                  : AppColors.backgroundCard,
+                  ? context.colors.primaryColor.withValues(alpha: 0.1)
+                  : context.colors.backgroundCard,
           border: Border.all(
-            color: isSelected ? AppColors.primaryColor : Colors.transparent,
+            color: isSelected ? context.colors.primaryColor : Colors.transparent,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -462,28 +462,24 @@ class _TransactionRefundScreenState
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   estimatedTime,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
             ),
             Text(
               '${feeRate.toString()} sat/vB',
-              style: TextStyle(
-                color:
-                    isSelected ? AppColors.primaryColor : AppColors.textPrimary,
-                fontSize: 14,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: isSelected ? context.colors.primaryColor : context.colors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -511,36 +507,40 @@ class _TransactionRefundScreenState
                   // This screen is deprecated. Use GetRefundScreen instead.
                   // For backward compatibility, we'll show an error message.
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
+                    SnackBar(
+                      content: const Text(
                         'Esta tela está obsoleta. Por favor, use o novo fluxo de estorno.',
                       ),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: context.appColors.warning,
                     ),
                   );
                 }
                 : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
-          foregroundColor: AppColors.backgroundColor,
-          disabledBackgroundColor: AppColors.textSecondary.withValues(
+          backgroundColor: context.colors.primaryColor,
+          foregroundColor: context.colors.backgroundColor,
+          disabledBackgroundColor: context.colors.textSecondary.withValues(
             alpha: 0.3,
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child:
             state.isLoading
-                ? const SizedBox(
+                ? SizedBox(
                   height: 20,
                   width: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.onPrimary,
+                    ),
                   ),
                 )
-                : const Text(
+                : Text(
                   'Confirmar Reembolso',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
       ),
     );
@@ -552,14 +552,14 @@ class _TransactionRefundScreenState
       barrierDismissible: false,
       builder:
           (context) => AlertDialog(
-            backgroundColor: AppColors.backgroundCard,
+            backgroundColor: context.colors.backgroundCard,
             title: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 32),
-                const SizedBox(width: 12),
+                Icon(Icons.check_circle, color: context.colors.positiveColor, size: 32),
+                SizedBox(width: 12),
                 Text(
                   'Reembolso Iniciado',
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: context.colors.textPrimary),
                 ),
               ],
             ),
@@ -569,13 +569,13 @@ class _TransactionRefundScreenState
               children: [
                 Text(
                   'Seu reembolso foi processado com sucesso!',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.colors.textSecondary),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
                   'TX ID:',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -583,7 +583,7 @@ class _TransactionRefundScreenState
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundColor,
+                    color: context.colors.backgroundColor,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
@@ -592,7 +592,7 @@ class _TransactionRefundScreenState
                         child: Text(
                           _shortenTxId(txId),
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                             fontSize: 12,
                             fontFamily: 'monospace',
                           ),
@@ -603,7 +603,7 @@ class _TransactionRefundScreenState
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: txId));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text('TX ID copiado!'),
                               duration: Duration(seconds: 1),
                             ),
@@ -623,7 +623,7 @@ class _TransactionRefundScreenState
                 },
                 child: Text(
                   'OK',
-                  style: TextStyle(color: AppColors.primaryColor),
+                  style: TextStyle(color: context.colors.primaryColor),
                 ),
               ),
             ],
