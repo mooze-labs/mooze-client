@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Items List Widget (Presentation Layer)
 ///
@@ -64,8 +64,8 @@ class ItemsListWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: products.isEmpty ? _buildEmptyState() : _buildItemsList(),
+      backgroundColor: context.colors.backgroundColor,
+      body: products.isEmpty ? _buildEmptyState(context) : _buildItemsList(context),
       floatingActionButton: SizedBox(
         key: addButtonKey,
         width: 56,
@@ -80,28 +80,32 @@ class ItemsListWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final outline = Theme.of(context).colorScheme.outline;
+
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 20),
+            Icon(Icons.inventory_2_outlined, size: 64, color: outline),
+            const SizedBox(height: 20),
             Text(
               'Nenhum produto cadastrado',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Comece adicionando seu primeiro produto\nclicando no botão + abaixo',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: outline,
+              ),
             ),
           ],
         ),
@@ -109,7 +113,7 @@ class ItemsListWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildItemsList() {
+  Widget _buildItemsList(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.all(20).copyWith(bottom: 100),
       itemCount: products.length,
@@ -125,12 +129,12 @@ class ItemsListWidget extends StatelessWidget {
         return Slidable(
           key: isFirstItem ? firstItemKey : Key('${product.name}_$index'),
           endActionPane: ActionPane(
-            motion: const ScrollMotion(),
+            motion: ScrollMotion(),
             children: [
               SlidableAction(
                 onPressed: (context) => onEditItem(index),
-                backgroundColor: AppColors.editColor.withValues(alpha: 0.3),
-                foregroundColor: AppColors.editColor,
+                backgroundColor: context.colors.editColor.withValues(alpha: 0.3),
+                foregroundColor: context.colors.editColor,
                 icon: Icons.edit,
               ),
               SlidableAction(
@@ -139,14 +143,18 @@ class ItemsListWidget extends StatelessWidget {
                     context: context,
                     builder:
                         (context) => AlertDialog(
-                          backgroundColor: Colors.grey[900],
-                          title: const Text(
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+                          title: Text(
                             'Deletar item',
-                            style: TextStyle(color: Colors.white),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                           ),
                           content: Text(
                             'Deseja realmente deletar "${product.name}"?',
-                            style: const TextStyle(color: Colors.white70),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
                           ),
                           actions: [
                             TextButton(
@@ -155,9 +163,11 @@ class ItemsListWidget extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(context, true),
-                              child: const Text(
+                              child: Text(
                                 'Deletar',
-                                style: TextStyle(color: Colors.red),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                               ),
                             ),
                           ],
@@ -168,8 +178,8 @@ class ItemsListWidget extends StatelessWidget {
                     onRemoveItem(index);
                   }
                 },
-                backgroundColor: AppColors.errorColor.withValues(alpha: 0.3),
-                foregroundColor: AppColors.errorColor,
+                backgroundColor: context.colors.errorColor.withValues(alpha: 0.3),
+                foregroundColor: context.colors.errorColor,
                 icon: Icons.delete,
               ),
             ],
@@ -182,19 +192,16 @@ class ItemsListWidget extends StatelessWidget {
                   children: [
                     Text(
                       product.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'R\$ ${product.price.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
                       ),
                     ),
                   ],
@@ -213,17 +220,16 @@ class ItemsListWidget extends StatelessWidget {
                       Icons.remove,
                       color:
                           quantity < 1
-                              ? AppColors.errorColor.withValues(alpha: 0.3)
-                              : AppColors.errorColor,
+                              ? context.colors.errorColor.withValues(alpha: 0.3)
+                              : context.colors.errorColor,
                       size: 20,
                     ),
                     padding: EdgeInsets.zero,
                   ),
                   Text(
                     quantity.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -231,9 +237,9 @@ class ItemsListWidget extends StatelessWidget {
                     onPressed: () {
                       onUpdateQuantity(index, true);
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.add,
-                      color: AppColors.positiveColor,
+                      color: context.colors.positiveColor,
                       size: 20,
                     ),
                     padding: EdgeInsets.zero,
