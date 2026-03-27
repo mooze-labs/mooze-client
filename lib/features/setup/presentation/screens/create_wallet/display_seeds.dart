@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 
 import 'widgets.dart';
@@ -25,7 +26,7 @@ class DisplaySeedsScreen extends ConsumerWidget {
       onPopInvokedWithResult: (didPop, result) async {
         await noScreenshot.screenshotOn();
       },
-      child: SafeArea(
+      child: PlatformSafeArea(
         child: Scaffold(
           appBar: _buildAppBar(context),
           body: Padding(
