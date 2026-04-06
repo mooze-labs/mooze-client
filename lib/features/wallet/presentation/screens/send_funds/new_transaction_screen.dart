@@ -14,13 +14,54 @@ import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/selected_network_provider.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/fee_speed_provider.dart';
+import '../../providers/send_funds/send_funds_onboarding_service_provider.dart';
 import '../../widgets/send_funds/widgets.dart';
 
-class NewTransactionScreen extends ConsumerWidget {
+class NewTransactionScreen extends ConsumerStatefulWidget {
   const NewTransactionScreen({super.key});
+
+  @override
+  ConsumerState<NewTransactionScreen> createState() =>
+      _NewTransactionScreenState();
+}
+
+class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
+  bool _hasCheckedFirstTimeDialog = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkFirstTimeAccess();
+      }
+    });
+  }
+
+  Future<void> _checkFirstTimeAccess() async {
+    if (_hasCheckedFirstTimeDialog) return;
+    _hasCheckedFirstTimeDialog = true;
+
+    final onboardingService = ref.read(sendFundsOnboardingServiceProvider);
+
+    if (!onboardingService.hasSeenFirstTimeDialog() && mounted) {
+      final router = GoRouter.of(context);
+      final goToSwap = await LbtcDisclaimerDialog.show(context);
+
+      if (!mounted) return;
+      await onboardingService.markFirstTimeDialogAsSeen();
+      // If the user tapped SWAP in the disclaimer, navigate there
+      if (goToSwap == true) {
+        router.go('/swap');
+      }
+    }
+  }
 
   void _clearProviders(WidgetRef ref) {
     Future.microtask(() {
+      // Guard against the widget being disposed before the microtask runs
+      // (e.g. when context.go() navigates away and disposes this screen).
+      if (!mounted) return;
       final addressController = ref.read(addressControllerProvider);
       addressController.clear();
       ref.invalidate(addressStateProvider);
@@ -47,7 +88,7 @@ class NewTransactionScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
@@ -67,6 +108,7 @@ class NewTransactionScreen extends ConsumerWidget {
                 icon: Icon(Icons.arrow_back_ios_new_rounded),
               ),
               actions: [
+                LbtcFeeInfoButton(),
                 OfflineIndicator(
                   onTap: () => OfflinePriceInfoOverlay.show(context),
                 ),
@@ -85,6 +127,7 @@ class NewTransactionScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                   BalanceCard(),
                   const SizedBox(height: 20),
+                  LbtcZeroBalanceBanner(),
                   AddressField(),
                   const SizedBox(height: 10),
                   NetworkIndicatorWidget(),
