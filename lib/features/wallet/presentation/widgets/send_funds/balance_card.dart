@@ -57,10 +57,9 @@ class BalanceCard extends ConsumerWidget {
                   children: [
                     Text(
                       "Saldo disponível",
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(fontSize: 14),
                     ),
                     Text(
                       selectedAsset.name,
