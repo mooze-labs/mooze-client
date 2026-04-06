@@ -12,6 +12,7 @@ import '../../providers/send_funds/partially_signed_transaction_provider.dart';
 import '../../providers/send_funds/prepared_psbt_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/selected_network_provider.dart';
+import 'lbtc_insufficient_funds_dialog.dart';
 
 class ReviewButton extends ConsumerWidget {
   const ReviewButton({super.key});
@@ -114,7 +115,7 @@ class ReviewButton extends ConsumerWidget {
 
         psbtResult.fold(
           (error) async {
-            final errorMessage = await _parseInsufficientFundsError(error, ref);
+            final errorMessage = await _parseError(error, ref);
             preparationController.setError(errorMessage);
           },
           (psbt) {
@@ -126,10 +127,7 @@ class ReviewButton extends ConsumerWidget {
           },
         );
       } catch (e) {
-        final errorMessage = await _parseInsufficientFundsError(
-          e.toString(),
-          ref,
-        );
+        final errorMessage = await _parseError(e.toString(), ref);
         preparationController.setError(errorMessage);
       }
       return;
@@ -149,7 +147,6 @@ class ReviewButton extends ConsumerWidget {
 
     if (!finalValidation.canProceed || finalValidation.errors.isNotEmpty) {
       preparationController.reset();
-
       return;
     }
 
@@ -160,8 +157,16 @@ class ReviewButton extends ConsumerWidget {
 
       psbtResult.fold(
         (error) async {
-          final errorMessage = await _parseInsufficientFundsError(error, ref);
-          preparationController.setError(errorMessage);
+          final isLbtcError = await _handleInsufficientLbtcError(
+            error,
+            ref,
+            context,
+            preparationController,
+          );
+          if (!isLbtcError) {
+            final errorMessage = await _parseError(error, ref);
+            preparationController.setError(errorMessage);
+          }
         },
         (psbt) {
           preparationController.setSuccess();
@@ -169,29 +174,84 @@ class ReviewButton extends ConsumerWidget {
         },
       );
     } catch (e) {
-      final errorMessage = await _parseInsufficientFundsError(
+      final isLbtcError = await _handleInsufficientLbtcError(
         e.toString(),
         ref,
+        context,
+        preparationController,
       );
-      preparationController.setError(errorMessage);
+      if (!isLbtcError) {
+        final errorMessage = await _parseError(e.toString(), ref);
+        preparationController.setError(errorMessage);
+      }
     }
   }
 
-  Future<String> _parseInsufficientFundsError(
+  /// Checks if the error is an insufficient L-BTC funds error for liquid tokens.
+  /// If so, resets the preparation state and shows the L-BTC dialog.
+  /// Returns `true` if the error was handled as an L-BTC issue.
+  Future<bool> _handleInsufficientLbtcError(
     String error,
     WidgetRef ref,
+    BuildContext context,
+    dynamic preparationController,
   ) async {
-    final errorLower = error.toLowerCase();
+    if (!_isInsufficientFundsError(error)) return false;
 
-    if (errorLower.contains('not enough funds') ||
+    final asset = ref.read(selectedAssetProvider);
+    final blockchain = ref.read(selectedNetworkProvider);
+
+    if ((asset == Asset.depix || asset == Asset.usdt) &&
+        blockchain == Blockchain.liquid) {
+      // Capture router before any await to avoid BuildContext async gap warning
+      final router = GoRouter.of(context);
+
+      try {
+        final lbtcBalanceResult = await ref.read(
+          balanceProvider(Asset.lbtc).future,
+        );
+
+        final hasLbtcBalance = lbtcBalanceResult.fold(
+          (error) => false,
+          (balance) => balance > BigInt.zero,
+        );
+
+        if (!hasLbtcBalance) {
+          preparationController.reset();
+          if (!context.mounted) return true;
+
+          final goToSwap = await LbtcInsufficientFundsDialog.show(
+            context,
+            asset: asset,
+          );
+
+          if (goToSwap == true) {
+            router.go('/swap');
+          }
+          return true;
+        }
+      } catch (_) {
+        // If balance check fails, fall through to generic error
+      }
+    }
+
+    return false;
+  }
+
+  bool _isInsufficientFundsError(String error) {
+    final errorLower = error.toLowerCase();
+    return errorLower.contains('not enough funds') ||
         errorLower.contains('insufficient') ||
         errorLower.contains('insuficient') ||
         errorLower.contains('insufficientfunds') ||
-        errorLower.contains('cannot pay')) {
+        errorLower.contains('cannot pay');
+  }
+
+  Future<String> _parseError(String error, WidgetRef ref) async {
+    if (_isInsufficientFundsError(error)) {
       final asset = ref.read(selectedAssetProvider);
       final blockchain = ref.read(selectedNetworkProvider);
 
-      // Check if user has L-BTC balance for fees when sending DePIX or USDT
       if ((asset == Asset.depix || asset == Asset.usdt) &&
           blockchain == Blockchain.liquid) {
         try {
@@ -205,19 +265,20 @@ class ReviewButton extends ConsumerWidget {
           );
 
           if (!hasLbtcBalance) {
-            return 'Saldo de BTC L2 insuficiente para taxas.\n\n'
-                'Para enviar ${asset == Asset.depix ? 'DePIX' : 'USDT'}, você precisa ter BTC L2 '
-                '(Bitcoin Liquid) disponível para pagar as taxas da transação. '
-                'Adicione BTC L2 à sua carteira e tente novamente.';
+            final assetName = asset == Asset.depix ? 'DePIX' : 'USDT';
+            return 'Saldo de Bitcoin L2 insuficiente para taxas.\n\n'
+                'Para enviar $assetName, você precisa de Bitcoin L2 para pagar '
+                'os mineradores da rede. Use a função SWAP ou receba Bitcoin '
+                'via Lightning ou Liquid.';
           }
-        } catch (e) {} // Ignore errors fetching balance
+        } catch (_) {}
       }
 
-      return 'Fundos insuficientes.\n\n'
-          'O envio não pôde ser realizado. Isso pode ocorrer por falta de saldo no ativo '
-          'ou por não haver BTC L2 (Liquid Bitcoin) suficiente para pagar as taxas da rede.';
+      return 'Saldo insuficiente para realizar o envio.\n\n'
+          'Verifique se você tem saldo suficiente no ativo selecionado e '
+          'Bitcoin L2 para pagar as taxas da rede.';
     }
 
-    return 'Erro ao preparar transação: $error';
+    return 'Não foi possível preparar a transação. Tente novamente.';
   }
 }
