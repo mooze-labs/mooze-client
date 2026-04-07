@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_level_color_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -73,7 +74,7 @@ class LogDetailModal extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
-    final color = _getColorForLevel(context, log.level);
+    final color = log.level.color(context);
     final dividerColor = colorScheme.onSurface.withValues(alpha: 0.12);
 
     return Column(
@@ -196,20 +197,4 @@ class LogDetailModal extends StatelessWidget {
     );
   }
 
-  Color _getColorForLevel(BuildContext context, LogLevel level) {
-    final colorScheme = context.colorScheme;
-
-    switch (level) {
-      case LogLevel.debug:
-        return context.colors.textTertiary;
-      case LogLevel.info:
-        return Colors.blue;
-      case LogLevel.warning:
-        return context.appColors.warning;
-      case LogLevel.error:
-        return colorScheme.error;
-      case LogLevel.critical:
-        return Colors.purple;
-    }
-  }
 }

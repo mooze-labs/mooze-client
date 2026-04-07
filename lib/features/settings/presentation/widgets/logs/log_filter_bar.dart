@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_level_color_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -81,7 +82,7 @@ class LogFilterBar extends StatelessWidget {
     final textTheme = context.textTheme;
     final isSelected = selectedLevel == level;
     final color =
-        level != null ? _getColorForLevel(context, level) : colorScheme.primary;
+        level != null ? level.color(context) : colorScheme.primary;
 
     return FilterChip(
       label: Text(
@@ -102,20 +103,4 @@ class LogFilterBar extends StatelessWidget {
     );
   }
 
-  Color _getColorForLevel(BuildContext context, LogLevel level) {
-    final colorScheme = context.colorScheme;
-
-    switch (level) {
-      case LogLevel.debug:
-        return context.colors.textTertiary;
-      case LogLevel.info:
-        return Colors.blue;
-      case LogLevel.warning:
-        return context.appColors.warning;
-      case LogLevel.error:
-        return colorScheme.error;
-      case LogLevel.critical:
-        return Colors.purple;
-    }
-  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_level_color_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -13,7 +14,7 @@ class LogItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
-    final color = _getColorForLevel(context, log.level);
+    final color = log.level.color(context);
     final timeStr =
         '${log.timestamp.hour.toString().padLeft(2, '0')}:'
         '${log.timestamp.minute.toString().padLeft(2, '0')}:'
@@ -103,20 +104,4 @@ class LogItem extends StatelessWidget {
     );
   }
 
-  Color _getColorForLevel(BuildContext context, LogLevel level) {
-    final colorScheme = context.colorScheme;
-
-    switch (level) {
-      case LogLevel.debug:
-        return context.colors.textTertiary;
-      case LogLevel.info:
-        return Colors.blue;
-      case LogLevel.warning:
-        return context.appColors.warning;
-      case LogLevel.error:
-        return colorScheme.error;
-      case LogLevel.critical:
-        return Colors.purple;
-    }
-  }
 }
