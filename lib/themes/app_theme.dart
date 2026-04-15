@@ -73,8 +73,9 @@ class AppTheme {
       ),
 
       // Floating Action Button
-      floatingActionButtonTheme:
-          ComponentThemes.floatingActionButtonTheme(colorScheme),
+      floatingActionButtonTheme: ComponentThemes.floatingActionButtonTheme(
+        colorScheme,
+      ),
 
       // Divider
       dividerTheme: ComponentThemes.dividerTheme(colorScheme),
@@ -142,8 +143,9 @@ class AppTheme {
       ),
 
       // Floating Action Button
-      floatingActionButtonTheme:
-          ComponentThemes.floatingActionButtonTheme(colorScheme),
+      floatingActionButtonTheme: ComponentThemes.floatingActionButtonTheme(
+        colorScheme,
+      ),
 
       // Divider
       dividerTheme: ComponentThemes.dividerTheme(colorScheme),
