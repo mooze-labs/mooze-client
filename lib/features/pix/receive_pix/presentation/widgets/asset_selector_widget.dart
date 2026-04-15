@@ -57,9 +57,9 @@ class AssetSelectorWidget extends ConsumerWidget {
                 const SizedBox(height: 20),
                 Text(
                   'Câmbio Flutuante',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Text(
