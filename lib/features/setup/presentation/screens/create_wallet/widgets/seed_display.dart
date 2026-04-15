@@ -69,11 +69,12 @@ class MnemonicGridDisplay extends StatelessWidget {
 
   Widget _buildWordCard(int number, String word, BuildContext context) {
     final theme = Theme.of(context).textTheme.labelLarge;
-
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: context.colors.recoveryPhraseBackground,
-        borderRadius: BorderRadius.circular(8.0),
+        color: colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1)),
       ),
       child: Center(
         child: RichText(

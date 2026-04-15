@@ -46,9 +46,11 @@ class SelectedWordsRow extends StatelessWidget {
                   left: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor, width: 2),
+                  color: colorScheme.onSurface.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.onSurface.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
