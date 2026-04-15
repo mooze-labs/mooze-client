@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/action.dart';
+import 'package:mooze_mobile/shared/widgets/app_icon.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/external_navigation.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
@@ -53,11 +53,7 @@ class _LabelSettingsState extends State<LabelSettings> {
                 Row(
                   children: [
                     if (widget.iconPathSVG != null)
-                      SvgPicture.asset(
-                        widget.iconPathSVG!,
-                        width: 20,
-                        height: 20,
-                      ),
+                      AppIcon(path: widget.iconPathSVG!),
                     if (widget.iconPathSVG != null) const SizedBox(width: 20),
                     Text(
                       widget.title,
@@ -80,8 +76,8 @@ class _LabelSettingsState extends State<LabelSettings> {
                 if (widget.action is ExternalNavigation)
                   Padding(
                     padding: const EdgeInsets.only(right: 20.0),
-                    child: SvgPicture.asset(
-                      'assets/icons/menu/settings/open_in_new.svg',
+                    child: AppIcon(
+                      path: 'assets/icons/menu/settings/open_in_new.svg',
                     ),
                   ),
                 if (widget.action is Toggle)
