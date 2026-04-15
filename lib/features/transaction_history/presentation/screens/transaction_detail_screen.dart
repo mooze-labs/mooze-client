@@ -76,13 +76,12 @@ class _TransactionDetailScreenState
       child: Scaffold(
         backgroundColor: context.colors.backgroundColor,
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
             'Detalhes da Transação',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           leading: IconButton(
             onPressed: () => context.pop(),
@@ -212,7 +211,9 @@ class _TransactionDetailScreenState
             child: Text(
               explanation,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.9),
                 height: 1.5,
                 letterSpacing: 0.2,
               ),
@@ -246,7 +247,9 @@ class _TransactionDetailScreenState
         Text(
           _getTransactionTypeLabel(),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -258,7 +261,10 @@ class _TransactionDetailScreenState
             '$amountStr ${widget.transaction.asset.ticker}',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: isReceive ? context.colors.positiveColor : Theme.of(context).colorScheme.error,
+              color:
+                  isReceive
+                      ? context.colors.positiveColor
+                      : Theme.of(context).colorScheme.error,
               letterSpacing: -0.5,
             ),
           ),
@@ -275,7 +281,9 @@ class _TransactionDetailScreenState
               ? 'Swap não concluído'
               : 'Swap reembolsado',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -289,10 +297,14 @@ class _TransactionDetailScreenState
               height: 56,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -303,17 +315,25 @@ class _TransactionDetailScreenState
               ),
             ),
             const SizedBox(width: 16),
-            Icon(Icons.close, size: 24, color: Theme.of(context).colorScheme.outline),
+            Icon(
+              Icons.close,
+              size: 24,
+              color: Theme.of(context).colorScheme.outline,
+            ),
             const SizedBox(width: 16),
             Container(
               width: 56,
               height: 56,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -335,7 +355,9 @@ class _TransactionDetailScreenState
         Text(
           'Troca entre ativos',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -353,10 +375,14 @@ class _TransactionDetailScreenState
                     height: 56,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.error.withValues(alpha: 0.3),
                         width: 2,
                       ),
                     ),
@@ -399,10 +425,14 @@ class _TransactionDetailScreenState
                     height: 56,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: context.colors.positiveColor.withValues(alpha: 0.15),
+                      color: context.colors.positiveColor.withValues(
+                        alpha: 0.15,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: context.colors.positiveColor.withValues(alpha: 0.3),
+                        color: context.colors.positiveColor.withValues(
+                          alpha: 0.3,
+                        ),
                         width: 2,
                       ),
                     ),
@@ -659,7 +689,9 @@ class _TransactionDetailScreenState
             child: Text(
               explanation,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.9),
                 height: 1.5,
                 letterSpacing: 0.2,
               ),
@@ -678,7 +710,9 @@ class _TransactionDetailScreenState
         decoration: BoxDecoration(
           color: context.appColors.warning.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: context.appColors.warning.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: context.appColors.warning.withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,7 +785,9 @@ class _TransactionDetailScreenState
                   Text(
                     'Confirmações',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -789,9 +825,15 @@ class _TransactionDetailScreenState
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.1),
+          ),
         ),
         child: Row(
           children: [
@@ -818,7 +860,9 @@ class _TransactionDetailScreenState
                   Text(
                     label,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
@@ -827,7 +871,9 @@ class _TransactionDetailScreenState
                   Text(
                     value,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.9),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -844,8 +890,12 @@ class _TransactionDetailScreenState
                   decoration: BoxDecoration(
                     color:
                         isCopied
-                            ? context.colors.positiveColor.withValues(alpha: 0.2)
-                            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                            ? context.colors.positiveColor.withValues(
+                              alpha: 0.2,
+                            )
+                            : Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -960,13 +1010,17 @@ class _TransactionDetailScreenState
           color:
               isDestructive
                   ? Theme.of(context).colorScheme.error.withValues(alpha: 0.15)
-                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                  : Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color:
                 isDestructive
                     ? Theme.of(context).colorScheme.error.withValues(alpha: 0.3)
-                    : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    : Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -977,8 +1031,12 @@ class _TransactionDetailScreenState
               decoration: BoxDecoration(
                 color:
                     isDestructive
-                        ? Theme.of(context).colorScheme.error.withValues(alpha: 0.2)
-                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        ? Theme.of(
+                          context,
+                        ).colorScheme.error.withValues(alpha: 0.2)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -1007,7 +1065,9 @@ class _TransactionDetailScreenState
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1017,7 +1077,9 @@ class _TransactionDetailScreenState
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ],
         ),
