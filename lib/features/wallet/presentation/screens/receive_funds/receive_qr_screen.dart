@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
@@ -182,16 +183,16 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
   }
 
   Widget _buildAddressSection() {
+    final colorScheme = context.colorScheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          color: colorScheme.onSurface.withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -231,16 +232,12 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
           const SizedBox(height: 16),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
+              color: colorScheme.onSurface.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.2),
+                color: colorScheme.onSurface.withValues(alpha: 0.08),
               ),
             ),
             child: SelectableText(
@@ -303,7 +300,6 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
 
   Widget _buildQRCode() {
     String address = widget.qrData;
-
 
     return Container(
       padding: const EdgeInsets.all(15),

@@ -506,11 +506,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         });
       });
     }
+    final colorScheme = context.colorScheme;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
         color: context.colors.backgroundColor,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.2)),
       ),
       height: 115,
       child: Column(

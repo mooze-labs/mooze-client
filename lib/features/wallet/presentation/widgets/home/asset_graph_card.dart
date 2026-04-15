@@ -88,6 +88,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
     final isPositive = klines.last > klines.first;
     final assetValue = klines.last;
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
+    final colorScheme = context.colorScheme;
 
     return GestureDetector(
       onTap: () {
@@ -100,8 +101,11 @@ class SuccessfulAssetCard extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: context.colors.surfaceLow,
-          borderRadius: BorderRadius.circular(12),
+          color: colorScheme.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.onSurface.withValues(alpha: 0.08),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,17 +141,19 @@ class SuccessfulAssetCard extends ConsumerWidget {
                   Text(
                     "${percentage.toStringAsFixed(2)}% (24h)",
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isPositive
-                          ? context.colors.positiveColor
-                          : Theme.of(context).colorScheme.error,
+                      color:
+                          isPositive
+                              ? context.colors.positiveColor
+                              : Theme.of(context).colorScheme.error,
                     ),
                   ),
                   SizedBox(width: 4),
                   Icon(
                     isPositive ? Icons.trending_up : Icons.trending_down,
-                    color: isPositive
-                        ? context.colors.positiveColor
-                        : Theme.of(context).colorScheme.error,
+                    color:
+                        isPositive
+                            ? context.colors.positiveColor
+                            : Theme.of(context).colorScheme.error,
                     size: 16,
                   ),
                 ],
@@ -381,9 +387,9 @@ class ErrorAssetCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 "N/A",
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             SizedBox(height: 8),
