@@ -122,6 +122,9 @@ class AppColorsProxy {
   /// Primary icon tint — from [AppExtraColors.primaryIconColor].
   Color get primaryIconColor => _extra.primaryIconColor;
 
+  /// Menu/navigation SVG icon tint for light mode — from [AppExtraColors.menuIconColor].
+  Color get menuIconColor => _extra.menuIconColor;
+
   // ── NavBar ────────────────────────────────────────────────────────────────
 
   /// Nav bar background — maps to [ColorScheme.surface].
