@@ -99,7 +99,7 @@ class PixRepositoryImpl implements PixRepository {
 
   void _startPollingPixStatus(String depositId) {
     const pollingInterval = Duration(seconds: 30);
-    const maxDuration = Duration(minutes: 20);
+    const maxDuration = Duration(minutes: 21);
     final startTime = DateTime.now();
 
     Timer.periodic(pollingInterval, (timer) {
