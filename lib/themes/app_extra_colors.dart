@@ -70,6 +70,14 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
   /// Tint applied to primary decorative icons (e.g. asset icons).
   final Color primaryIconColor;
 
+  /// Tint applied to menu/navigation SVG icons in light mode.
+  ///
+  /// In dark mode this token is unused — SVG files render with their own
+  /// embedded colors so that the dark-mode appearance stays unchanged.
+  /// In light mode [AppIcon] applies this as a [ColorFilter] so that icons
+  /// have sufficient contrast against light backgrounds.
+  final Color menuIconColor;
+
   // ── Status / actions ──────────────────────────────────────────────────────
 
   /// Color indicating an editable / pending-edit state (e.g. edit mode badge).
@@ -95,6 +103,7 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
     required this.pinBackground,
     required this.recoveryPhraseBackground,
     required this.primaryIconColor,
+    required this.menuIconColor,
     required this.editColor,
     required this.actionButtonBackground,
   });
@@ -115,6 +124,7 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
     pinBackground: Color(0xFF191818),
     recoveryPhraseBackground: Color(0xFF1C1924),
     primaryIconColor: Color(0xFF9DB2CE),
+    menuIconColor: Color(0xFFB0BAD0),
     editColor: Colors.orangeAccent,
     actionButtonBackground: Color(0xFF2B2D33),
   );
@@ -133,6 +143,7 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
     pinBackground: Color(0xFFF5F5F5),
     recoveryPhraseBackground: Color(0xFFF0EEF5),
     primaryIconColor: Color(0xFF5B7A9A),
+    menuIconColor: Color(0xFF475569),
     editColor: Colors.orange,
     actionButtonBackground: Color(0xFFD1D5DB),
   );
@@ -153,6 +164,7 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
     Color? pinBackground,
     Color? recoveryPhraseBackground,
     Color? primaryIconColor,
+    Color? menuIconColor,
     Color? editColor,
     Color? actionButtonBackground,
   }) {
@@ -170,6 +182,7 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
       recoveryPhraseBackground:
           recoveryPhraseBackground ?? this.recoveryPhraseBackground,
       primaryIconColor: primaryIconColor ?? this.primaryIconColor,
+      menuIconColor: menuIconColor ?? this.menuIconColor,
       editColor: editColor ?? this.editColor,
       actionButtonBackground:
           actionButtonBackground ?? this.actionButtonBackground,
@@ -200,6 +213,7 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
           )!,
       primaryIconColor:
           Color.lerp(primaryIconColor, other.primaryIconColor, t)!,
+      menuIconColor: Color.lerp(menuIconColor, other.menuIconColor, t)!,
       editColor: Color.lerp(editColor, other.editColor, t)!,
       actionButtonBackground:
           Color.lerp(actionButtonBackground, other.actionButtonBackground, t)!,
