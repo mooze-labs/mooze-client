@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class AppNavItem extends StatelessWidget {
   final String icon;
@@ -25,7 +26,7 @@ class AppNavItem extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final color =
-        isSelected ? colorScheme.primary : colorScheme.outlineVariant;
+        isSelected ? colorScheme.primary : context.colors.textTertiary;
 
     return GestureDetector(
       onTap: onTap,
@@ -39,10 +40,7 @@ class AppNavItem extends StatelessWidget {
               icon,
               width: 25,
               height: 25,
-              colorFilter: ColorFilter.mode(
-                color,
-                BlendMode.srcIn,
-              ),
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
             ),
             const SizedBox(height: 4),
             Text(
