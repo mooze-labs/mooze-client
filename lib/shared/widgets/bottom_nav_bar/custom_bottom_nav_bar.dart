@@ -78,7 +78,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     required String label,
   }) {
     final isSelected = widget.currentIndex == index;
-
     return GestureDetector(
       onTap: () => widget.onTap(index),
       child: Container(
@@ -99,7 +98,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                         context.colors.primaryColor,
                         BlendMode.srcIn,
                       )
-                      : null,
+                      : ColorFilter.mode(
+                        context.colors.textTertiary,
+                        BlendMode.srcIn,
+                      ),
             ),
             const SizedBox(height: 4),
             isSelected
@@ -119,7 +121,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   }
 
   Widget _buildCentralButton() {
-    // LinearGradient uses runtime colors — cannot be const
     return GestureDetector(
       onTap: () => widget.onTap(2),
       child: Container(
