@@ -87,8 +87,8 @@ class _LabelSettingsState extends State<LabelSettings> {
                       width: 48,
                       height: 27,
                       child: Switch.adaptive(
-                        value: true,
-                        onChanged: (value) {},
+                        value: (widget.action as Toggle).value,
+                        onChanged: (widget.action as Toggle).onChange,
                         activeThumbColor: colorScheme.onPrimary,
                         activeTrackColor: colorScheme.tertiary,
                         inactiveThumbColor: colorScheme.inverseSurface,
