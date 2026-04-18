@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/biometric_setup_screen.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/verify_pin.dart';
 import 'presentation/screens.dart';
 import 'package:flutter/material.dart';
@@ -77,5 +78,9 @@ final setupRoutes = [
   GoRoute(
     path: "/setup/onboarding",
     builder: (context, state) => const OnboardingScreen(),
+  ),
+  GoRoute(
+    path: "/setup/biometric",
+    builder: (context, state) => const BiometricSetupScreen(),
   ),
 ];
