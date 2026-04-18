@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:mooze_mobile/services/auth.dart';
+import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
-class VerifyPinScreen extends StatefulWidget {
+class VerifyPinScreen extends ConsumerStatefulWidget {
   final Function() onPinConfirmed;
   final bool forceAuth;
   final bool isAppResuming;
@@ -24,10 +24,10 @@ class VerifyPinScreen extends StatefulWidget {
   });
 
   @override
-  State<VerifyPinScreen> createState() => _VerifyPinScreenState();
+  ConsumerState<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
 
-class _VerifyPinScreenState extends State<VerifyPinScreen> {
+class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   final TextEditingController _pinController = TextEditingController();
   final AuthenticationService _authService = AuthenticationService();
 
@@ -35,7 +35,11 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
   bool _isVerifying = false;
   bool _isPinValid = false;
 
-  final LocalAuthentication auth = LocalAuthentication();
+  // Biometric state — resolved once during _checkSession and then fixed for
+  // the lifetime of this screen instance.
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
+  bool _isBiometricLoading = false;
 
   @override
   void initState() {
@@ -60,12 +64,25 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
         (hasValidSession && !widget.forceAuth) ||
         !isPinSetup) {
       widget.onPinConfirmed();
-    } else {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      return;
+    }
+
+    // PIN is required — also check biometric preference before showing the UI.
+    final biometricService = ref.read(biometricServiceProvider);
+    final isAvailable = await biometricService.isAvailable().run();
+    final isEnabled = await biometricService.isEnabled().run();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      _biometricAvailable = isAvailable;
+      _biometricEnabled = isEnabled;
+    });
+
+    // Auto-trigger biometric prompt if the user has opted in.
+    if (isAvailable && isEnabled) {
+      _authWithBiometrics();
     }
   }
 
@@ -86,16 +103,12 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
         await Future.delayed(const Duration(seconds: 1));
         widget.onPinConfirmed();
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PIN incorreto. Tente novamente.')),
-        );
+        AppSnackBar.error(context, 'PIN incorreto. Tente novamente.');
         _pinController.clear();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
+        AppSnackBar.error(context, 'Erro: ${e.toString()}');
         _pinController.clear();
       }
     } finally {
@@ -107,38 +120,70 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     }
   }
 
+  /// Triggers the native biometric / device-credential prompt.
+  ///
+  /// Called automatically on screen load when biometric is enabled, and also
+  /// manually when the user taps the "Usar biometria" button after dismissing
+  /// the prompt.
   Future<void> _authWithBiometrics() async {
-    try {
-      final isAvailable =
-          await auth.canCheckBiometrics || await auth.isDeviceSupported();
-      if (!isAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Biometria ou senha do sistema não disponível.'),
-          ),
-        );
-        return;
-      }
+    if (_isBiometricLoading) return;
 
-      final didAuthenticate = await auth.authenticate(
-        localizedReason:
-            'Use sua biometria ou senha do dispositivo para redefinir o PIN',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-        ),
+    setState(() => _isBiometricLoading = true);
+
+    final biometricService = ref.read(biometricServiceProvider);
+
+    final result = await biometricService
+        .authenticate(reason: 'Use sua biometria para acessar sua carteira')
+        .run();
+
+    if (!mounted) return;
+
+    result.fold(
+      (error) => AppSnackBar.error(context, 'Erro ao autenticar: $error'),
+      (authenticated) {
+        if (authenticated) widget.onPinConfirmed();
+        // If the user dismissed without authenticating the PIN form remains
+        // visible — no action needed.
+      },
+    );
+
+    if (mounted) setState(() => _isBiometricLoading = false);
+  }
+
+  /// Emergency fallback: lets users who forgot their PIN unlock using only
+  /// device credentials (device PIN / pattern / password).
+  ///
+  /// Only shown when biometric authentication is NOT enabled, so there is no
+  /// duplicate with the regular biometric flow.
+  Future<void> _authWithDeviceCredential() async {
+    final biometricService = ref.read(biometricServiceProvider);
+
+    final isAvailable = await biometricService.isAvailable().run();
+    if (!mounted) return;
+
+    if (!isAvailable) {
+      AppSnackBar.warning(
+        context,
+        'Biometria ou senha do sistema não disponível.',
       );
-
-      if (didAuthenticate) {
-        widget.onPinConfirmed();
-      }
-    } on PlatformException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao autenticar: ${e.message}')),
-        );
-      }
+      return;
     }
+
+    final result = await biometricService
+        .authenticate(
+          reason:
+              'Use sua biometria ou senha do dispositivo para redefinir o PIN',
+        )
+        .run();
+
+    if (!mounted) return;
+
+    result.fold(
+      (error) => AppSnackBar.error(context, 'Erro ao autenticar: $error'),
+      (authenticated) {
+        if (authenticated) widget.onPinConfirmed();
+      },
+    );
   }
 
   @override
@@ -150,21 +195,18 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
       );
     }
 
-    // Determine if back button should be enabled
     final canGoBack = widget.canGoBack;
 
     return PopScope(
       canPop: canGoBack,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Validação de segurança'),
+          title: const Text('Validação de segurança'),
           leading:
               canGoBack
                   ? IconButton(
-                    onPressed: () {
-                      context.pop();
-                    },
-                    icon: Icon(Icons.arrow_back_ios_new_rounded),
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   )
                   : null,
           automaticallyImplyLeading: canGoBack,
@@ -191,11 +233,11 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                 ),
                 const SizedBox(height: 16),
                 RichText(
+                  textAlign: TextAlign.center,
                   text: TextSpan(
                     style: Theme.of(context).textTheme.bodyLarge,
                     text: 'Digite seu PIN para continuar com segurança.',
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 50),
                 Pinput(
@@ -207,22 +249,43 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
-                  text: "Continuar",
+                  text: 'Continuar',
                   onPressed: _onContinuePressed,
                   isEnabled: _isPinValid && !_isVerifying,
                   isLoading: _isVerifying,
                 ),
                 const SizedBox(height: 20),
-                const Text('Esqueceu seu PIN?'),
-                TextButton(
-                  onPressed: _authWithBiometrics,
-                  child: Text(
-                    'Use sua senha do dispositivo',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
+
+                // ── Biometric section ──────────────────────────────────────
+                if (_biometricEnabled && _biometricAvailable) ...[
+                  // Biometric is the user's preferred method — show a
+                  // prominent button that re-triggers the prompt.
+                  TextButton.icon(
+                    onPressed: _isBiometricLoading ? null : _authWithBiometrics,
+                    icon:
+                        _isBiometricLoading
+                            ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.fingerprint),
+                    label: const Text('Usar biometria'),
+                  ),
+                ] else ...[
+                  // Biometric not enabled — show an emergency device-credential
+                  // fallback for users who forgot their PIN.
+                  const Text('Esqueceu seu PIN?'),
+                  TextButton(
+                    onPressed: _authWithDeviceCredential,
+                    child: Text(
+                      'Use a senha do dispositivo',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
