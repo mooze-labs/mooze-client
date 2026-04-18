@@ -65,9 +65,8 @@ class AssetAmountDisplay extends ConsumerWidget {
           (quote) => discountedDepositAmount.when(
             data: (depositAmount) {
               final amount = depositAmount / quote;
-              final decimalPlaces = selectedAsset == Asset.depix ? 2 : 8;
               return Text(
-                amount.toStringAsFixed(decimalPlaces),
+                selectedAsset.formatQuoteAmount(amount),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
@@ -130,20 +129,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
   }
 
   Widget _buildAssetAmount(BuildContext context, Asset asset, WidgetRef ref) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        AssetAmountDisplay(),
-        const SizedBox(width: 8),
-        Text(
-          asset.ticker,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
+    return AssetAmountDisplay();
   }
 
   Widget _buildReaisAmount(BuildContext context, double amount) {

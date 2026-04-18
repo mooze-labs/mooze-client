@@ -157,15 +157,29 @@ enum Asset {
     }
   }
 
-  /// Formats value in satoshis (Bitcoin only)
+  /// Formats value in satoshis (Bitcoin and Liquid Bitcoin)
   String formatAsSatoshis(BigInt amountInSats) {
-    if (this == Asset.btc) {
+    if (this == Asset.btc || this == Asset.lbtc) {
       final sats = amountInSats.toInt();
       final satText = sats == 1 ? 'sat' : 'sats';
       return "$sats $satText";
     } else {
       return formatAsAsset(amountInSats);
     }
+  }
+
+  /// Formats a quote-calculated amount (BRL / BRL-per-asset) for display.
+  /// BTC/LBTC: converts to satoshis and labels sat/sats.
+  /// DEPIX: 2 decimal places. USDT: 8 decimal places.
+  String formatQuoteAmount(double amount) {
+    return switch (this) {
+      Asset.btc || Asset.lbtc => () {
+        final sats = (amount * 100000000).round();
+        return "≈ $sats ${sats == 1 ? 'sat' : 'sats'}";
+      }(),
+      Asset.depix => "${amount.toStringAsFixed(2)} ${ticker.toUpperCase()}",
+      Asset.usdt => "${amount.toStringAsFixed(8)} ${ticker.toUpperCase()}",
+    };
   }
 
   /// Formats Bitcoin balance in SATs

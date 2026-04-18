@@ -188,8 +188,7 @@ Future<String> _getAssetQuantity(
       (err) => "N/A",
       (optionQuote) => optionQuote.fold(() => "N/A", (quote) {
         final quantity = amountAfterFees / quote;
-        final decimalPlaces = asset == Asset.depix ? 2 : 8;
-        return "${quantity.toStringAsFixed(decimalPlaces)} ${asset.ticker.toUpperCase()}";
+        return asset.formatQuoteAmount(quantity);
       }),
     ),
   );

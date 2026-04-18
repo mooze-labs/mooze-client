@@ -335,7 +335,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
               icon: Icons.arrow_downward,
               label: 'Valor recebido',
               value:
-                  '${(widget.deposit.assetAmount!.toDouble() / 100000000).toStringAsFixed(8)} ${widget.deposit.asset.ticker}',
+                  widget.deposit.asset.formatAsSatoshis(widget.deposit.assetAmount!),
             ),
           if (widget.deposit.blockchainTxid != null)
             _buildInfoRow(
