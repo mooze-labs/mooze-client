@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/services/auth.dart';
+import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
@@ -61,18 +63,34 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
       (failure) => ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(failure.toString()))),
-      (_) {
+      (_) async {
         // Invalidate hasPinProvider after PIN creation
         ref.invalidate(hasPinProvider);
 
-        if (context.mounted) {
-          if (widget.isChangingPin) {
-            int count = 0;
-            Navigator.of(context).popUntil((route) {
-              return count++ == 3;
-            });
+        // Always clear the session after a PIN save so the next app open
+        // requires the new PIN — whether this is initial setup or a change.
+        // Without this, the old session allows bypassing PIN entry entirely.
+        await AuthenticationService().invalidateSession();
+
+        if (!mounted) return;
+
+        if (widget.isChangingPin) {
+          int count = 0;
+          Navigator.of(context).popUntil((route) {
+            return count++ == 3;
+          });
+        } else {
+          // For new wallet setup, offer biometric opt-in if the device
+          // supports it. Otherwise go straight to the loading screen.
+          final biometricService = ref.read(biometricServiceProvider);
+          final isAvailable = await biometricService.isAvailable().run();
+
+          if (!mounted) return;
+
+          if (isAvailable) {
+            context.go('/setup/biometric');
           } else {
-            context.go("/setup/wallet-import-loading");
+            context.go('/setup/wallet-import-loading');
           }
         }
       },
