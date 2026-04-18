@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
+import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
+import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
@@ -25,8 +27,66 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  /// Called when the user taps the biometric toggle.
+  ///
+  /// Enabling: triggers the native prompt to confirm it actually works before
+  /// persisting the preference.
+  /// Disabling: clears the preference immediately.
+  Future<void> _handleBiometricToggle(bool enable) async {
+    final biometricService = ref.read(biometricServiceProvider);
+
+    if (enable) {
+      final authResult = await biometricService
+          .authenticate(
+            reason:
+                'Confirme sua identidade para ativar a autenticação biométrica',
+          )
+          .run();
+
+      if (!mounted) return;
+
+      await authResult.fold(
+        (error) async => AppSnackBar.error(context, 'Erro ao autenticar: $error'),
+        (authenticated) async {
+          if (!authenticated) return; // user dismissed — leave toggle off
+
+          final saveResult = await biometricService.setEnabled(true).run();
+
+          if (!mounted) return;
+
+          saveResult.fold(
+            (error) => AppSnackBar.error(context, 'Erro ao salvar configuração.'),
+            (_) {
+              ref.invalidate(isBiometricEnabledProvider);
+              AppSnackBar.success(context, 'Autenticação biométrica ativada.');
+            },
+          );
+        },
+      );
+    } else {
+      final result = await biometricService.setEnabled(false).run();
+
+      if (!mounted) return;
+
+      result.fold(
+        (error) => AppSnackBar.error(context, 'Erro ao desativar biometria.'),
+        (_) {
+          ref.invalidate(isBiometricEnabledProvider);
+          AppSnackBar.info(context, 'Autenticação biométrica desativada.');
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isBiometricAvailable = ref.watch(isBiometricAvailableProvider);
+    final isBiometricEnabled = ref.watch(isBiometricEnabledProvider);
+
+    // Derived values with safe defaults while the futures resolve.
+    final biometricAvailable = isBiometricAvailable.value ?? false;
+    final biometricEnabled = isBiometricEnabled.value ?? false;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configurações'),
@@ -51,7 +111,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     rota: '/setup/pin/verify',
                     verifyPinArgs: VerifyPinArgs(
                       onPinConfirmed: () async {
-                        // Consome o provider
                         final seed = await ref.read(seedProvider.future);
 
                         seed.match(
@@ -94,6 +153,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 ),
+                // Only surface the biometric toggle when the device has the
+                // necessary hardware — no point showing it on unsupported
+                // devices.
+                if (biometricAvailable)
+                  ConfigStructure(
+                    title: 'Autenticação biométrica',
+                    iconSvgPath: 'assets/icons/menu/settings/security.svg',
+                    action: Toggle(
+                      value: biometricEnabled,
+                      onChange: _handleBiometricToggle,
+                    ),
+                  ),
                 ConfigStructure(
                   title: 'Deletar carteira',
                   iconSvgPath: 'assets/icons/menu/settings/delete_account.svg',
