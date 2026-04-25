@@ -30,7 +30,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
           onTap: onToggleView,
           child: InfoRow(
             label: 'Meus limites',
-            value: 'Ver níveis',
+            value: onToggleView != null ? 'Ver níveis' : '',
             labelColor: onSurface,
             valueColor: context.colors.primaryColor,
             fontSize: context.responsiveFont(14),
