@@ -39,9 +39,16 @@ class PaymentDetailsDisplay extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(context),
-            _buildAssetInfo(context, deposit.asset, assetQuantity, depositAmountInReais),
+            _buildAssetInfo(
+              context,
+              deposit.asset,
+              assetQuantity,
+              depositAmountInReais,
+            ),
             Divider(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.24),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.24),
               thickness: 1,
             ),
             _buildFeeBreakdown(
