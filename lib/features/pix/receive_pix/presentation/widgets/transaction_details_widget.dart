@@ -143,15 +143,33 @@ class TransactionDisplayWidget extends ConsumerWidget {
     );
   }
 
+  /// Formats a fee rate double as a percentage string with up to 2 decimal
+  /// places, stripping trailing zeros. E.g. 3.5 → "3,5%", 3.0 → "3%".
+  String _formatPercent(double rate) {
+    final s = rate
+        .toStringAsFixed(2)
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
+    return '${s.replaceAll('.', ',')}%';
+  }
+
   Widget _buildFeeBreakdown(
     BuildContext context,
     WidgetRef ref,
     double depositAmount,
   ) {
     final feeAmount = ref.watch(feeAmountProvider(depositAmount));
+    final feeRate = ref.watch(feeRateProvider(depositAmount));
     final hasReferral = ref.watch(hasReferralProvider);
     final isFixedFee = depositAmount <= fixedFeeRateThreshold;
     final onSurface = Theme.of(context).colorScheme.onSurface;
+
+    // Derive the percent label from the live fee rate (already includes the
+    // 15% referral discount when applicable).
+    final percentLabel = feeRate.maybeWhen(
+      data: _formatPercent,
+      orElse: () => '...%',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +205,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
                         title: 'Taxa Mooze',
                         value:
                             'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
-                        percent: '2,32%',
+                        percent: percentLabel,
                         subtitle: 'Já com 15% de desconto aplicado',
                         icon: Icons.receipt_long,
                       ),
@@ -205,7 +223,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
                   value:
                       'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
                   subtitle: null,
-                  percent: '2,32%',
+                  percent: percentLabel,
                   icon: Icons.receipt_long,
                 );
               },
@@ -214,7 +232,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
                 title: 'Taxa Mooze',
                 value: 'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
                 subtitle: null,
-                percent: '2,32%',
+                percent: percentLabel,
                 icon: Icons.receipt_long,
               ),
               loading: () => _buildSimpleFeeCard(
