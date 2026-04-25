@@ -35,6 +35,10 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   late TabController _tabController;
   String valorDigitado = '0.00';
 
+  // Caps the typed value at R$ 9.999,99 (six cent-digits). Pix transactions
+  // are limited to R$ 3.000,00, so a higher input has no real-world meaning.
+  static const double _kMaxKeypadValue = 9999.99;
+
   // GlobalKeys
   final GlobalKey _headerKey = GlobalKey();
   final GlobalKey _valorTotalKey = GlobalKey();
@@ -549,10 +553,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   }
 
   void _adicionarNumero(String numero) {
+    final String valorLimpo =
+        valorDigitado.replaceAll('.', '').replaceAll(',', '') + numero;
+    final double valor = double.parse(valorLimpo) / 100;
+    if (valor > _kMaxKeypadValue) return;
     setState(() {
-      String valorLimpo = valorDigitado.replaceAll('.', '').replaceAll(',', '');
-      valorLimpo += numero;
-      double valor = double.parse(valorLimpo) / 100;
       valorDigitado = valor.toStringAsFixed(2);
     });
   }
@@ -727,40 +732,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
 
   void _finalizarVenda() {
     final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
-
-    if (keypadValue >= 20.0) {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final items = [
-        CartItemEntity(
-          productId: timestamp,
-          name: 'Valor Avulso',
-          price: keypadValue,
-          quantity: 1,
-        ),
-      ];
-      Navigator.of(context)
-          .push(
-            MaterialPageRoute(
-              builder: (context) => MerchantChargeScreen(
-                totalAmount: keypadValue,
-                items: items,
-              ),
-            ),
-          )
-          .then((_) {
-            if (mounted) {
-              setState(() {
-                valorDigitado = '0.00';
-              });
-            }
-          });
-      return;
-    }
-
     final cartTotal = ref.read(cartTotalProvider);
     final cartItems = ref.read(cartControllerProvider.notifier).cartItems;
+    final totalAmount = cartTotal + keypadValue;
 
-    if (cartItems.isEmpty) {
+    if (totalAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -772,7 +748,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       return;
     }
 
-    if (cartTotal < 20.0) {
+    if (totalAmount < 20.0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('O valor mínimo para finalizar a venda é de R\$ 20,00'),
@@ -782,17 +758,33 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       return;
     }
 
+    final items = [...cartItems];
+    if (keypadValue > 0) {
+      items.add(
+        CartItemEntity(
+          productId: DateTime.now().millisecondsSinceEpoch,
+          name: 'Valor Avulso',
+          price: keypadValue,
+          quantity: 1,
+        ),
+      );
+    }
+
     Navigator.of(context)
         .push(
           MaterialPageRoute(
             builder:
                 (context) => MerchantChargeScreen(
-                  totalAmount: cartTotal,
-                  items: cartItems,
+                  totalAmount: totalAmount,
+                  items: items,
                 ),
           ),
         )
         .then((_) {
+          if (!mounted) return;
+          setState(() {
+            valorDigitado = '0.00';
+          });
           ref.read(cartControllerProvider.notifier).clearCart();
         });
   }
@@ -987,8 +979,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   builder: (context, ref, child) {
                     final cartTotal = ref.watch(cartTotalProvider);
                     final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
-                    final effectiveAmount =
-                        keypadValue >= 20.0 ? keypadValue : cartTotal;
+                    final effectiveAmount = cartTotal + keypadValue;
                     return FinalizarVendaButton(
                       onPressed: _finalizarVenda,
                       totalOrderAmount: effectiveAmount,
