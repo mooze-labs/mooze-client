@@ -165,8 +165,6 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
           isEmpty: false,
           decoration: InputDecoration(
             labelText: widget.label,
-            labelStyle: TextStyle(color: resolvedBorderColor),
-            floatingLabelStyle: TextStyle(color: resolvedBorderColor),
             filled: true,
             fillColor: resolvedBackgroundColor,
             border: border,
