@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
 import 'package:mooze_mobile/shared/extensions.dart';
+
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -13,21 +13,11 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 
 import 'account_limits_display_widget.dart';
 
-class PixValueInputWidget extends ConsumerStatefulWidget {
+class PixValueInputWidget extends ConsumerWidget {
   const PixValueInputWidget({super.key});
 
   @override
-  ConsumerState<PixValueInputWidget> createState() =>
-      _PixValueInputWidgetState();
-}
-
-class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
-  bool _showLimits = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = context.colorScheme.onSurface;
-
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: context.colors.surfaceLow,
@@ -40,36 +30,30 @@ class _PixValueInputWidgetState extends ConsumerState<PixValueInputWidget> {
             padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: PixDepositAmountInput(),
           ),
-          if (_showLimits)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: AccountLimitsDisplay(
-                onToggleView: () => setState(() => _showLimits = false),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: AccountLimitsDisplay(),
+          ),
+          Divider(
+            height: 1,
+            thickness: 0.5,
+            color: context.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(
+              'Meu Nível',
+              style: context.textTheme.labelLarge?.copyWith(
+                color: context.colorScheme.onSurface,
+                fontSize: context.responsiveFont(14),
+                fontWeight: FontWeight.normal,
               ),
-            )
-          else
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _showLimits = true),
-                    child: InfoRow(
-                      label: 'Meus níveis',
-                      value: 'Ver Limite',
-                      labelColor: onSurface,
-                      valueColor: context.colors.primaryColor,
-                      fontSize: context.responsiveFont(14),
-                    ),
-                  ),
-                ),
-                // UserLevelDisplay manages its own internal padding —
-                // no outer padding here to avoid double-spacing.
-                UserLevelDisplay(
-                  onTap: () => setState(() => _showLimits = false),
-                ),
-              ],
             ),
+          ),
+          // UserLevelDisplay manages its own internal padding —
+          // no outer padding here to avoid double-spacing.
+          const UserLevelDisplay(),
+          const SizedBox(height: 12),
         ],
       ),
     );
