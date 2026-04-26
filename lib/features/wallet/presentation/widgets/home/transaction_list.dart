@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
@@ -61,6 +62,8 @@ class SuccessfulTransactionList extends ConsumerWidget {
       return EmptyTransactionList();
     }
 
+    final t = AppLocalizations.of(context);
+
     return Column(
       children:
           transactions.map((transaction) {
@@ -74,8 +77,8 @@ class SuccessfulTransactionList extends ConsumerWidget {
               },
               child: HomeTransactionItem(
                 icon: transaction.asset.iconPath,
-                title: _getTransactionTitle(transaction),
-                subtitle: _getTransactionSubtitle(transaction),
+                title: _getTransactionTitle(t, transaction),
+                subtitle: _getTransactionSubtitle(t, transaction),
                 value: amountStr,
                 time: _formatTime(transaction),
                 isVisible: isVisible,
@@ -86,54 +89,63 @@ class SuccessfulTransactionList extends ConsumerWidget {
     );
   }
 
-  String _getTransactionTitle(Transaction transaction) {
+  String _getTransactionTitle(AppLocalizations t, Transaction transaction) {
     if (transaction.fromAsset != null &&
         transaction.toAsset != null &&
         transaction.sentAmount != null &&
         transaction.receivedAmount != null) {
-      return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+      return t.wallet_tx_swap_pair(
+        transaction.fromAsset!.ticker,
+        transaction.toAsset!.ticker,
+      );
     }
 
     if (transaction.type == TransactionType.send &&
         transaction.asset == Asset.usdt) {
-      return "Enviou ${transaction.asset.ticker}";
+      return t.wallet_tx_sent(transaction.asset.ticker);
     }
 
     if (transaction.type == TransactionType.receive &&
         transaction.asset == Asset.lbtc) {
-      return "Recebeu ${transaction.asset.ticker}";
+      return t.wallet_tx_received(transaction.asset.ticker);
     }
 
     switch (transaction.type) {
       case TransactionType.send:
-        return "Enviou ${transaction.asset.ticker}";
+        return t.wallet_tx_sent(transaction.asset.ticker);
       case TransactionType.receive:
-        return "Recebeu ${transaction.asset.ticker}";
+        return t.wallet_tx_received(transaction.asset.ticker);
       case TransactionType.swap:
-        return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+        return t.wallet_tx_swap_pair(
+          transaction.fromAsset!.ticker,
+          transaction.toAsset!.ticker,
+        );
       case TransactionType.submarine:
-        return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+        return t.wallet_tx_swap_pair(
+          transaction.fromAsset!.ticker,
+          transaction.toAsset!.ticker,
+        );
       case TransactionType.redeposit:
-        return "Autodepositou ${transaction.asset.ticker}";
+        return t.wallet_tx_redeposit(transaction.asset.ticker);
       case TransactionType.unknown:
-        return "Unknown transaction type";
+        return t.wallet_tx_unknown;
     }
   }
 
-  String _getTransactionSubtitle(Transaction transaction) {
-    return _getStatusText(transaction.status);
+  String _getTransactionSubtitle(AppLocalizations t, Transaction transaction) {
+    return _getStatusText(t, transaction.status);
   }
 
-  String _getStatusText(TransactionStatus status) {
+  String _getStatusText(AppLocalizations t, TransactionStatus status) {
     switch (status) {
       case TransactionStatus.pending:
-        return "Pendente";
+        return t.tx_status_pending;
       case TransactionStatus.confirmed:
-        return "Confirmado";
+        return t.tx_status_confirmed;
       case TransactionStatus.failed:
-        return "Falhou";
+        return t.tx_status_failed;
       case TransactionStatus.refundable:
-        return "Reembolsável";
+        return t.tx_status_refundable;
     }
   }
 
@@ -246,6 +258,7 @@ class ErrorTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -253,12 +266,12 @@ class ErrorTransactionList extends StatelessWidget {
           Icon(Icons.error_outline, color: Colors.grey, size: 48),
           SizedBox(height: 12),
           Text(
-            "Unable to load transactions",
+            t.wallet_tx_load_error_title,
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
           SizedBox(height: 8),
           Text(
-            "Please try again later",
+            t.wallet_tx_load_error_retry,
             style: TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
         ],
@@ -272,6 +285,7 @@ class EmptyTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -291,13 +305,13 @@ class EmptyTransactionList extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            "Nenhuma transação encontrada",
+            t.wallet_tx_empty_title,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 10),
           Text(
-            "Seu histórico de transações aparecerá aqui assim que você realizar alguma movimentação.",
+            t.wallet_tx_empty_body,
             style: TextStyle(fontSize: 15),
             textAlign: TextAlign.center,
           ),

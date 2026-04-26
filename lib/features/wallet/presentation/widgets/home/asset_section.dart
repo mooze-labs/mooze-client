@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/all_assets/all_assets_screen.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'asset_graph_card.dart';
 import 'section_header.dart';
 
@@ -8,6 +9,7 @@ class AssetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Column(
     children: [
         SectionHeader(
@@ -17,8 +19,8 @@ class AssetSection extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const AllAssetsScreen()),
             );
           },
-          title: "Ativos",
-          actionDescription: "Ver mais",
+          title: t.wallet_assets_section_title,
+          actionDescription: t.wallet_section_see_more,
         ),
         const SizedBox(height: 16),
         const AssetCardList(),
