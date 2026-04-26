@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 import 'package:shimmer/shimmer.dart';
@@ -17,6 +18,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final levelsData = ref.watch(levelsProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -29,8 +31,8 @@ class AccountLimitsDisplay extends ConsumerWidget {
         GestureDetector(
           onTap: onToggleView,
           child: InfoRow(
-            label: 'Meus limites',
-            value: onToggleView != null ? 'Ver níveis' : '',
+            label: t.pix_receive_my_limits,
+            value: onToggleView != null ? t.pix_receive_see_levels : '',
             labelColor: onSurface,
             valueColor: context.colors.primaryColor,
             fontSize: context.responsiveFont(14),
@@ -43,7 +45,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
               Expanded(
                 child: _buildLimitCard(
                   context,
-                  label: 'Limite diário',
+                  label: t.pix_receive_daily_limit,
                   value: 'R\$ ${FiatInputFormatter.formatValue(UserLevelsData.dailyLimit)}',
                   icon: Icons.calendar_today_rounded,
                   iconColor: context.appColors.warning,
@@ -53,7 +55,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
               Expanded(
                 child: _buildLimitCard(
                   context,
-                  label: 'Por transação',
+                  label: t.pix_receive_per_transaction,
                   value: 'R\$ ${FiatInputFormatter.formatValue(data.allowedSpending)}',
                   icon: Icons.swap_horiz_rounded,
                   iconColor: colorScheme.primary,
@@ -63,7 +65,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
               Expanded(
                 child: _buildLimitCard(
                   context,
-                  label: 'Mín.',
+                  label: t.pix_receive_min,
                   value: 'R\$ ${FiatInputFormatter.formatValue(data.absoluteMinLimit)}',
                   icon: Icons.south_rounded,
                   iconColor: colorScheme.tertiary,
@@ -81,7 +83,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
                     Expanded(
                       child: _buildLimitCard(
                         context,
-                        label: 'Limite diário',
+                        label: t.pix_receive_daily_limit,
                         value: 'R\$ ${FiatInputFormatter.formatValue(UserLevelsData.dailyLimit)}',
                         icon: Icons.calendar_today_rounded,
                         iconColor: context.appColors.warning,
@@ -117,7 +119,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Erro ao carregar limites',
+                              t.pix_receive_limits_error,
                               style: textTheme.labelLarge?.copyWith(
                                 color: warning,
                                 fontWeight: FontWeight.w600,
@@ -145,7 +147,7 @@ class AccountLimitsDisplay extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Tentar novamente',
+                                    t.common_retry,
                                     style: textTheme.labelMedium?.copyWith(
                                       color: colorScheme.onPrimary,
                                       fontWeight: FontWeight.w600,
@@ -170,7 +172,9 @@ class AccountLimitsDisplay extends ConsumerWidget {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'Detalhes: ${error.getTechnicalMessage()}',
+                            t.pix_receive_details(
+                              error.getTechnicalMessage() ?? '',
+                            ),
                             style: textTheme.labelSmall?.copyWith(
                               color: onSurface.withValues(alpha: 0.6),
                               fontStyle: FontStyle.italic,

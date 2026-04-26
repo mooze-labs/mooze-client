@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Data model for a single info tip. Keep it immutable so tips can live as
@@ -16,28 +17,25 @@ class InfoTip {
 }
 
 // ---------------------------------------------------------------------------
-// Static tips for the PIX deposit flow.
+// Default tips for the PIX deposit flow, built from localized strings.
 // Each item combines a reassurance or rule into one concise sentence.
 // Extend or swap this list for dynamic/remote content in the future.
 // ---------------------------------------------------------------------------
-const _pixDepositTips = [
+List<InfoTip> _defaultPixDepositTips(AppLocalizations t) => [
   InfoTip(
     icon: Icons.info_outline_rounded,
-    text:
-        'Máx. 3 PIX seguidos do mesmo titular em 30 min · Limite de R\$ 5.000/dia por titular.',
-    iconColor: Color(0xFFE8733A),
+    text: t.pix_tip_consecutive_daily,
+    iconColor: const Color(0xFFE8733A),
   ),
   InfoTip(
     icon: Icons.shield_rounded,
-    text:
-        'Pagamentos fora das regras são devolvidos automaticamente ao remetente.',
-    iconColor: Color(0xFF2A9D6B),
+    text: t.pix_tip_outside_rules_returned,
+    iconColor: const Color(0xFF2A9D6B),
   ),
   InfoTip(
     icon: Icons.access_time_rounded,
-    text:
-        'Processamento em 5–25 min. PIX com sinal de risco bancário pode levar 3–7 dias (estornável).',
-    iconColor: Color(0xFFE8A020),
+    text: t.pix_tip_processing_avg_time,
+    iconColor: const Color(0xFFE8A020),
   ),
 ];
 
@@ -98,8 +96,9 @@ class _InfoTipsSectionState extends State<InfoTipsSection>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final visibleTips =
-        (widget.tips ?? _pixDepositTips).take(widget.maxTips).toList();
+        (widget.tips ?? _defaultPixDepositTips(t)).take(widget.maxTips).toList();
 
     return FadeTransition(
       opacity: _fade,
