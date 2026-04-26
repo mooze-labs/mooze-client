@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/auth_initializer_provider.dart';
 
 class AuthInitializerWidget extends ConsumerWidget {
@@ -71,7 +72,7 @@ class AuthInitializerWidget extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Sincronizando...',
+                        AppLocalizations.of(context).auth_syncing,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,
