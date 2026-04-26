@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
 import 'package:mooze_mobile/features/wallet/routes.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
@@ -77,10 +78,11 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text('Receber PIX'),
+        title: Text(t.pix_receive_appbar_title),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           IconButton(
@@ -99,8 +101,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
             onRetry: () {
               ref.invalidate(depositAmountProvider);
             },
-            customMessage:
-                'Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.',
+            customMessage: t.pix_receive_api_unavailable,
           ),
         ],
       ),
@@ -108,32 +109,30 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
   }
 
   void _showPixInfo(BuildContext context) {
+    final t = AppLocalizations.of(context);
     InfoOverlay.show(
       context,
-      title: 'Informações sobre PIX',
+      title: t.pix_receive_info_title,
       steps: [
         InfoStep(
           icon: Icons.schedule,
-          title: 'Prazo de processamento',
-          description:
-              'Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.',
+          title: t.pix_receive_info_step1_title,
+          description: t.pix_receive_info_step1_desc,
         ),
         InfoStep(
           icon: Icons.currency_bitcoin,
-          title: 'Variação de câmbio (LBTC)',
-          description:
-              'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.',
+          title: t.pix_receive_info_step2_title,
+          description: t.pix_receive_info_step2_desc,
         ),
         InfoStep(
           icon: Icons.receipt_long,
-          title: 'Sobre as taxas',
-          description:
-              'As taxas variam conforme o valor da transação. Valores menores têm taxas fixas, valores maiores têm taxas percentuais decrescentes.',
+          title: t.pix_receive_info_step3_title,
+          description: t.pix_receive_info_step3_desc,
         ),
       ],
       footerBuilder:
           (closeOverlay) => SecondaryButton(
-            text: 'Ver detalhes das taxas',
+            text: t.pix_receive_info_see_fees,
             onPressed: () {
               closeOverlay();
               context.push('/pix/fees');
@@ -143,11 +142,12 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
   }
 
   Widget _buildInstructionText(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          text: 'Escolha o ativo que deseja receber na ',
+          text: t.pix_receive_instruction_prefix,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(height: 1.4),
           children: [
             TextSpan(
@@ -165,6 +165,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
     final isButtonEnabled = depositAmount > 0 && validation.isValid;
@@ -180,19 +181,19 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           const SizedBox(height: 10),
           PixValueInputWidget(),
           const SizedBox(height: 12),
-          const InfoTipsSection(
+          InfoTipsSection(
             tips: [
               InfoTip(
                 icon: Icons.trending_up_rounded,
-                text: 'Faça mais pagamentos para liberar novos limites',
-                iconColor: Color(0xFF2A9D6B),
+                text: t.pix_receive_tip_more_payments,
+                iconColor: const Color(0xFF2A9D6B),
               ),
             ],
             maxTips: 1,
           ),
           const SizedBox(height: 24),
           PrimaryButton(
-            text: 'Avançar',
+            text: t.pix_receive_advance,
             onPressed: () => context.push('/pix/confirm'),
             isEnabled: isButtonEnabled,
           ),
