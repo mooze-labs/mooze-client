@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -91,6 +92,7 @@ class _UpdateNotificationWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final shouldShow = ref.watch(shouldShowUpdateNotificationProvider);
     final updateState = ref.watch(updateNotifierProvider);
 
@@ -154,7 +156,7 @@ class _UpdateNotificationWidgetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Nova atualização disponível',
+                            t.update_available_short,
                             style: TextStyle(
                               color: context.colors.textPrimary,
                               fontSize: 16,
@@ -192,12 +194,12 @@ class _UpdateNotificationWidgetState
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Atualize para obter melhorias e correções',
+                  t.update_available_body,
                   style: TextStyle(color: context.colors.textTertiary, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
                 PrimaryButton(
-                  text: 'ATUALIZAR',
+                  text: t.update_available_button,
                   height: 44,
                   onPressed: () {
                     _showUpdateDialog(
@@ -220,6 +222,7 @@ class _UpdateNotificationWidgetState
     String newVersion,
     String localVersion,
   ) {
+    final t = AppLocalizations.of(context);
     showGeneralDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -256,7 +259,7 @@ class _UpdateNotificationWidgetState
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Atualização Disponível',
+                    t.update_dialog_title,
                     style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 18,
@@ -270,7 +273,7 @@ class _UpdateNotificationWidgetState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Uma nova versão do aplicativo está disponível.',
+                    t.update_dialog_body,
                     style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 15,
@@ -283,7 +286,7 @@ class _UpdateNotificationWidgetState
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Versão atual:',
+                            t.update_current_version,
                             style: TextStyle(
                               color: context.colors.textSecondary,
                               fontSize: 14,
@@ -304,7 +307,7 @@ class _UpdateNotificationWidgetState
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Nova versão:',
+                            t.update_new_version,
                             style: TextStyle(
                               color: context.colors.textSecondary,
                               fontSize: 14,
@@ -324,7 +327,7 @@ class _UpdateNotificationWidgetState
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Recomendamos atualizar para obter as melhorias mais recentes e correções de bugs.',
+                    t.update_dialog_recommend,
                     style: TextStyle(
                       color: context.colors.textTertiary,
                       fontSize: 13,
@@ -337,7 +340,7 @@ class _UpdateNotificationWidgetState
                   children: [
                     Expanded(
                       child: SecondaryButton(
-                        text: 'MAIS TARDE',
+                        text: t.update_later,
                         height: 44,
                         onPressed: () {
                           Navigator.of(context).pop();
@@ -347,7 +350,7 @@ class _UpdateNotificationWidgetState
                     const SizedBox(width: 12),
                     Expanded(
                       child: PrimaryButton(
-                        text: 'ATUALIZAR',
+                        text: t.update_available_button,
                         height: 44,
                         onPressed: () {
                           Navigator.of(context).pop();
