@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_option.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Dialog for choosing what logs to clear (memory, database, or all)
@@ -21,7 +22,8 @@ class ClearLogsDialog extends StatelessWidget {
     return showDialog<String>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => ClearLogsDialog(totalLogs: totalLogs, dbLogs: dbLogs),
+      builder:
+          (context) => ClearLogsDialog(totalLogs: totalLogs, dbLogs: dbLogs),
     );
   }
 
@@ -30,6 +32,7 @@ class ClearLogsDialog extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
     final warningColor = context.appColors.warning;
+    final t = AppLocalizations.of(context)!;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -54,12 +57,14 @@ class ClearLogsDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Limpar Logs',
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              t.clear_logs_title,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Escolha o que deseja limpar:',
+              t.clear_logs_description,
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: context.colors.textSecondary,
@@ -67,22 +72,22 @@ class ClearLogsDialog extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ClearOption(
-              title: 'Memória',
-              description: 'Limpar apenas logs em memória ($totalLogs logs)',
+              title: t.clear_logs_option_memory,
+              description: t.clear_logs_option_memory_desc(totalLogs),
               icon: Icons.memory_outlined,
               value: 'memory',
             ),
             const SizedBox(height: 12),
             ClearOption(
-              title: 'Banco de Dados',
-              description: 'Limpar apenas logs do banco ($dbLogs logs)',
+              title: t.clear_logs_option_db,
+              description: t.clear_logs_option_db_desc(dbLogs),
               icon: Icons.storage_outlined,
               value: 'database',
             ),
             const SizedBox(height: 12),
             ClearOption(
-              title: 'Todos',
-              description: 'Limpar memória, arquivos e banco',
+              title: t.clear_logs_option_all,
+              description: t.clear_logs_option_all_desc,
               icon: Icons.delete_forever_outlined,
               value: 'all',
               iconColor: colorScheme.error,
@@ -91,7 +96,7 @@ class ClearLogsDialog extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Cancelar',
+                t.clear_logs_cancel,
                 style: textTheme.labelLarge?.copyWith(
                   color: context.colors.textSecondary,
                 ),
