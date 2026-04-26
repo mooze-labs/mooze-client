@@ -87,7 +87,7 @@ class PixDepositListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _getPixDepositSubtitle(),
+                    _getPixDepositSubtitle(context),
                     style: TextStyle(fontSize: 14),
                   ),
                 ],
@@ -127,8 +127,8 @@ class PixDepositListItem extends StatelessWidget {
     );
   }
 
-  String _getPixDepositSubtitle() {
-    return deposit.status.label;
+  String _getPixDepositSubtitle(BuildContext context) {
+    return deposit.status.localizedLabel(context);
   }
 
   String _formatTime(DateTime dateTime) {
