@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'bottom_nav_bar_painter.dart';
 
@@ -20,6 +21,7 @@ class CustomBottomNavBar extends StatefulWidget {
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Stack(
       children: [
         CustomPaint(
@@ -46,13 +48,13 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/asset.svg',
                   index: 1,
-                  label: 'Ativos',
+                  label: t.wallet_assets_tab,
                 ),
                 SizedBox(width: 60),
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/swap.svg',
                   index: 3,
-                  label: 'Swap',
+                  label: t.swap_title,
                 ),
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/menu.svg',
