@@ -11,6 +11,7 @@ import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widge
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
 import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tutorial_service.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -101,7 +102,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         } else if (target.identify == "add_product") {
           // Add tutorial product
           final product = ProductEntity(
-            name: 'Produto 01',
+            name: AppLocalizations.of(context).merchant_default_product_name,
             price: 21.00,
             createdAt: DateTime.now(),
           );
@@ -128,6 +129,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   }
 
   List<TargetFocus> _createTutorialTargets() {
+    final t = AppLocalizations.of(context);
     List<TargetFocus> targets = [];
     targets.add(
       TargetFocus(
@@ -152,7 +154,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Bem-vindo ao Modo Comerciante!",
+                      t.merchant_welcome_title,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -161,7 +163,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                     ),
                     SizedBox(height: 10),
                     Text(
-                      "Aqui você tem um mini PDV: cadastre itens, some valores e cobre seus clientes de forma rápida.",
+                      t.merchant_welcome_body,
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     SizedBox(height: 20),
@@ -179,7 +181,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                           ),
                         ),
                         child: Text(
-                          'Continuar',
+                          t.common_continue,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -213,7 +215,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Digite o valor desejado",
+                    t.merchant_step_enter_value_title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -222,7 +224,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Vamos começar inserindo um valor de R\$ 20,00 usando o teclado abaixo.",
+                    t.merchant_step_enter_value_body,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -248,7 +250,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Adicionar valor",
+                    t.merchant_step_add_value_title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -257,7 +259,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Agora toque no botão '+' verde para adicionar o valor à lista de itens.",
+                    t.merchant_step_add_value_body,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -284,7 +286,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Aba de Itens",
+                    t.merchant_step_items_tab_title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -293,7 +295,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Toque aqui para ver seus produtos cadastrados e criar novos itens.",
+                    t.merchant_step_items_tab_body,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -319,7 +321,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Criar produto",
+                    t.merchant_step_create_product_title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -328,7 +330,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Toque no botão '+' para criar automaticamente o produto 'Produto 01' com preço de R\$ 21,00.",
+                    t.merchant_step_create_product_body,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -355,7 +357,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Editar e Deletar produtos",
+                    t.merchant_step_edit_delete_title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -364,7 +366,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Arraste este produto da direita para a esquerda para ver as opções de editar ✏️ e excluir 🗑️.",
+                    t.merchant_step_edit_delete_body,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -391,7 +393,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Finalizar venda",
+                    t.merchant_step_finalize_title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -400,7 +402,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Quando tiver itens no carrinho (mínimo R\$ 20,00), toque aqui para finalizar a venda.",
+                    t.merchant_step_finalize_body,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -428,7 +430,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Limpar carrinho",
+                      t.merchant_step_clear_cart_title,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -437,7 +439,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                     ),
                     SizedBox(height: 10),
                     Text(
-                      "Se quiser começar do zero, toque aqui para limpar todos os itens do carrinho.",
+                      t.merchant_step_clear_cart_body,
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
@@ -472,7 +474,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Tutorial Concluído! 🎉",
+                      t.merchant_tutorial_done_title,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -481,7 +483,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                     ),
                     SizedBox(height: 10),
                     Text(
-                      "Agora você já sabe usar todas as funcionalidades do Modo Comerciante. Pronto para começar?",
+                      t.merchant_tutorial_done_body,
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     SizedBox(height: 20),
@@ -505,7 +507,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                               ),
                             ),
                             child: Text(
-                              'Refazer',
+                              t.common_redo,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -529,7 +531,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                               ),
                             ),
                             child: Text(
-                              'Concluir',
+                              t.common_finish,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -595,8 +597,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         orElse: () => <ProductEntity>[],
       );
 
+      final tutorialName = AppLocalizations.of(context).merchant_default_product_name;
       for (var product in products) {
-        if (product.name == 'Produto 01' && product.price == 21.00) {
+        if (product.name == tutorialName && product.price == 21.00) {
           if (product.id != null) {
             await ref
                 .read(productControllerProvider.notifier)
@@ -622,9 +625,10 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       double valorAdicionado = double.tryParse(valorDigitado) ?? 0.0;
       if (valorAdicionado > 0) {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final looseLabel = AppLocalizations.of(context).merchant_loose_value;
         ref
             .read(cartControllerProvider.notifier)
-            .updateQuantity(timestamp, 'Valor Avulso', valorAdicionado, true);
+            .updateQuantity(timestamp, looseLabel, valorAdicionado, true);
       }
       valorDigitado = '0.00';
     });
@@ -637,7 +641,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao adicionar produto: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).merchant_add_product_error(e.toString()),
+            ),
+          ),
         );
       }
     }
@@ -665,7 +673,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao atualizar produto: $e')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).merchant_update_product_error(e.toString()),
+              ),
+            ),
           );
         }
       }
@@ -690,9 +702,13 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao remover produto: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).merchant_remove_product_error(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -731,6 +747,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
   }
 
   void _finalizarVenda() {
+    final t = AppLocalizations.of(context);
     final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
     final cartTotal = ref.read(cartTotalProvider);
     final cartItems = ref.read(cartControllerProvider.notifier).cartItems;
@@ -738,10 +755,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
 
     if (totalAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Adicione itens ao carrinho antes de finalizar a venda',
-          ),
+        SnackBar(
+          content: Text(t.merchant_add_item_first),
           backgroundColor: Colors.orange,
         ),
       );
@@ -750,8 +765,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
 
     if (totalAmount < 20.0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('O valor mínimo para finalizar a venda é de R\$ 20,00'),
+        SnackBar(
+          content: Text(t.merchant_min_sale_value),
           backgroundColor: Colors.red,
         ),
       );
@@ -763,7 +778,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       items.add(
         CartItemEntity(
           productId: DateTime.now().millisecondsSinceEpoch,
-          name: 'Valor Avulso',
+          name: t.merchant_loose_value,
           price: keypadValue,
           quantity: 1,
         ),
@@ -864,7 +879,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.grid_3x3),
-                                  Text('Keypad'),
+                                  Text(AppLocalizations.of(context).merchant_tab_keypad),
                                 ],
                               ),
                             ),
@@ -874,7 +889,10 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
-                                children: [Icon(Icons.grid_3x3), Text('Itens')],
+                                children: [
+                                  Icon(Icons.grid_3x3),
+                                  Text(AppLocalizations.of(context).merchant_tab_items),
+                                ],
                               ),
                             ),
                           ],
@@ -937,7 +955,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                               ),
                                               const SizedBox(height: 16),
                                               Text(
-                                                'Erro ao carregar produtos',
+                                                AppLocalizations.of(context).merchant_load_products_error,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),
@@ -958,8 +976,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                                     productControllerProvider,
                                                   );
                                                 },
-                                                child: const Text(
-                                                  'Tentar novamente',
+                                                child: Text(
+                                                  AppLocalizations.of(context).common_retry,
                                                 ),
                                               ),
                                             ],
