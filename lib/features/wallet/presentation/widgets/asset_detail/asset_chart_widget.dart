@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -133,6 +134,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
   Widget _buildSuccessChart(BuildContext context, List<double> klines) {
     if (klines.isEmpty) return _buildErrorChart(context);
 
+    final t = AppLocalizations.of(context);
     final isPositive = klines.last >= klines.first;
     final lineColor = isPositive
         ? context.colors.positiveColor
@@ -180,7 +182,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Gráfico - ${_getPeriodLabel(widget.selectedPeriod)}',
+              t.wallet_asset_chart_title(_getPeriodLabel(widget.selectedPeriod)),
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -375,13 +377,14 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
   }
 
   Widget _buildErrorChart(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = context.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Gráfico Indisponível',
+          t.wallet_asset_chart_unavailable,
           style: context.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -399,7 +402,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Não foi possível carregar o gráfico',
+                  t.wallet_asset_chart_load_error,
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
