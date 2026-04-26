@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Items List Widget (Presentation Layer)
@@ -81,6 +82,7 @@ class ItemsListWidget extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final outline = Theme.of(context).colorScheme.outline;
 
@@ -93,7 +95,7 @@ class ItemsListWidget extends StatelessWidget {
             Icon(Icons.inventory_2_outlined, size: 64, color: outline),
             const SizedBox(height: 20),
             Text(
-              'Nenhum produto cadastrado',
+              t.merchant_no_products_title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: onSurface,
                 fontWeight: FontWeight.w600,
@@ -101,7 +103,7 @@ class ItemsListWidget extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Comece adicionando seu primeiro produto\nclicando no botão + abaixo',
+              t.merchant_no_products_body,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: outline,
@@ -141,37 +143,39 @@ class ItemsListWidget extends StatelessWidget {
                 onPressed: (context) async {
                   final confirm = await showDialog<bool>(
                     context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-                          title: Text(
-                            'Deletar item',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                    builder: (context) {
+                      final t = AppLocalizations.of(context);
+                      return AlertDialog(
+                        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+                        title: Text(
+                          t.merchant_delete_item_title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
-                          content: Text(
-                            'Deseja realmente deletar "${product.name}"?',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
+                        ),
+                        content: Text(
+                          t.merchant_delete_item_confirm(product.name),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: Text(
-                                'Deletar',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(t.common_cancel),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(
+                              t.merchant_delete_action,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      );
+                    },
                   );
 
                   if (confirm ?? false) {

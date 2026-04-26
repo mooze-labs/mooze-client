@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Merchant Header Widget (Presentation Layer)
 ///
@@ -27,6 +28,7 @@ class MerchantHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Column(
       children: [
         Row(
@@ -41,7 +43,7 @@ class MerchantHeaderWidget extends StatelessWidget {
               ),
             ),
             Text(
-              'Modo comerciante',
+              t.merchant_mode_header,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -81,7 +83,7 @@ class MerchantHeaderWidget extends StatelessWidget {
                   Icon(Icons.delete_outline, color: Colors.white, size: 16),
                   SizedBox(width: 6),
                   Text(
-                    'Limpar',
+                    t.merchant_clear_cart,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
