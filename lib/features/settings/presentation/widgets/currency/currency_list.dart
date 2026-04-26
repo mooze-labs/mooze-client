@@ -10,7 +10,7 @@ class CurrencyList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentCurrency = ref.watch(currencyControllerProvider);
     final controller = ref.read(currencyControllerProvider.notifier);
-    final availableCurrencies = controller.availableCurrencies;
+    final availableCurrencies = controller.availableCurrencies(context);
 
     return ListView.separated(
       physics: const ClampingScrollPhysics(),
