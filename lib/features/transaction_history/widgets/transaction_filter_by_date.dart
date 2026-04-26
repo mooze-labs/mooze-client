@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/overlay_widget.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -23,6 +24,7 @@ Future<DateTimeRange?> datapicker(
     builder: (context) {
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
+          final t = AppLocalizations.of(context);
           return Container(
             decoration: BoxDecoration(
               color: context.colors.surfaceColor,
@@ -71,7 +73,7 @@ Future<DateTimeRange?> datapicker(
                           children: [
                             Expanded(
                               child: Text(
-                                'Selecionar Período',
+                                t.tx_filter_select_period,
                                 style: Theme.of(context).textTheme.titleLarge,
                                 textAlign: TextAlign.center,
                               ),
@@ -120,13 +122,13 @@ Future<DateTimeRange?> datapicker(
                                 child: Text(
                                   startDate != null
                                       ? "${startDate!.day.toString().padLeft(2, '0')}/${startDate!.month.toString().padLeft(2, '0')}/${startDate!.year}"
-                                      : 'Selecione',
+                                      : t.tx_filter_select,
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            const Text('para'),
+                            Text(t.tx_filter_to),
                             const SizedBox(width: 10),
                             Expanded(
                               child: ElevatedButton(
@@ -166,7 +168,7 @@ Future<DateTimeRange?> datapicker(
                                 child: Text(
                                   endDate != null
                                       ? "${endDate!.day.toString().padLeft(2, '0')}/${endDate!.month.toString().padLeft(2, '0')}/${endDate!.year}"
-                                      : 'Selecione',
+                                      : t.tx_filter_select,
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                               ),
@@ -214,7 +216,7 @@ Future<DateTimeRange?> datapicker(
                           children: [
                             Expanded(
                               child: SecondaryButton(
-                                text: 'Cancelar',
+                                text: t.common_cancel,
                                 onPressed: () {
                                   Navigator.pop(context);
                                 },
@@ -223,7 +225,7 @@ Future<DateTimeRange?> datapicker(
                             const SizedBox(width: 10),
                             Expanded(
                               child: PrimaryButton(
-                                text: 'Confirmar',
+                                text: t.common_confirm,
                                 onPressed: () {
                                   DateTime start = startDate ?? DateTime.now();
                                   DateTime end = endDate ?? DateTime.now();
@@ -231,7 +233,7 @@ Future<DateTimeRange?> datapicker(
                                   if (start.isAfter(end)) {
                                     showErrorOverlay(
                                       context,
-                                      'A data de início não pode ser posterior à data de término.',
+                                      t.tx_filter_start_after_end_error,
                                     );
                                   } else {
                                     Navigator.pop(
