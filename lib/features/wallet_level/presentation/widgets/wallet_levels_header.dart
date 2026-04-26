@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WalletLevelsHeader extends StatelessWidget {
   final bool isLoading;
 
-  const WalletLevelsHeader({
-    super.key,
-    this.isLoading = false,
-  });
+  const WalletLevelsHeader({super.key, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -60,7 +59,7 @@ class WalletLevelsHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Cresça com a Mooze',
+                  t.wallet_levels_header_title,
                   style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onPrimaryContainer,
@@ -69,7 +68,7 @@ class WalletLevelsHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Quanto mais você movimenta, mais benefícios e limites desbloqueia.',
+                  t.wallet_levels_header_subtitle,
                   style: textTheme.titleSmall?.copyWith(
                     color: colorScheme.onPrimaryContainer.withValues(
                       alpha: 0.8,
