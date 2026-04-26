@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
@@ -36,7 +37,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
       child: PlatformSafeArea(
         child: Scaffold(
           appBar: AppBar(
-            title: const Text("Receber Ativos"),
+            title: Text(AppLocalizations.of(context).receive_title),
             leading: IconButton(
               onPressed: () {
                 _clearProviders(ref);
@@ -153,22 +154,22 @@ class ReceiveFundsScreen extends ConsumerWidget {
                         _buildInfoStep(
                           context,
                           '1',
-                          'Selecione o ativo',
-                          'Escolha qual criptomoeda você deseja receber',
+                          AppLocalizations.of(context).receive_info_step1_title,
+                          AppLocalizations.of(context).receive_info_step1_desc,
                         ),
                         const SizedBox(height: 12),
                         _buildInfoStep(
                           context,
                           '2',
-                          'Escolha a rede',
-                          'Bitcoin (on-chain), Lightning ou Liquid',
+                          AppLocalizations.of(context).receive_info_step2_title,
+                          AppLocalizations.of(context).receive_info_step2_desc,
                         ),
                         const SizedBox(height: 12),
                         _buildInfoStep(
                           context,
                           '3',
-                          'Gere o QR code',
-                          'Compartilhe com quem vai enviar o pagamento',
+                          AppLocalizations.of(context).receive_info_step3_title,
+                          AppLocalizations.of(context).receive_info_step3_desc,
                         ),
                         const SizedBox(height: 16),
                         Container(
@@ -190,7 +191,9 @@ class ReceiveFundsScreen extends ConsumerWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Toque fora desta área para fechar',
+                                  AppLocalizations.of(
+                                    context,
+                                  ).receive_info_close_hint,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodySmall?.copyWith(

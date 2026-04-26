@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -56,7 +57,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
     return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Receber Pagamento"),
+          title: Text(AppLocalizations.of(context).receive_qr_title),
           leading: IconButton(
             onPressed: () => context.pop(),
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -147,7 +148,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
           if (widget.amount != null) ...[
             const SizedBox(height: 16),
             Text(
-              'Valor:',
+              AppLocalizations.of(context).receive_qr_amount_label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
@@ -165,7 +166,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
           if (widget.description != null && widget.description!.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(
-              'Descrição:',
+              AppLocalizations.of(context).receive_qr_description_label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
@@ -220,8 +221,10 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
               Expanded(
                 child: Text(
                   widget.network == NetworkType.lightning
-                      ? 'Lightning Invoice'
-                      : 'Endereço de Recebimento',
+                      ? AppLocalizations.of(
+                        context,
+                      ).receive_qr_lightning_invoice
+                      : AppLocalizations.of(context).receive_qr_address_title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -281,7 +284,11 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _isCopied ? 'Copiado!' : 'Copiar Endereço',
+                        _isCopied
+                            ? AppLocalizations.of(context).receive_qr_copied
+                            : AppLocalizations.of(
+                              context,
+                            ).receive_qr_copy_address,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -355,11 +362,12 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen>
   }
 
   String _getNetworkLabel(NetworkType network) {
+    final t = AppLocalizations.of(context);
     return switch (network) {
-      NetworkType.bitcoin => 'Bitcoin On-chain',
-      NetworkType.lightning => 'Lightning Network',
-      NetworkType.liquid => 'Liquid Network',
-      NetworkType.unknown => 'Desconhecida',
+      NetworkType.bitcoin => t.receive_network_bitcoin_onchain,
+      NetworkType.lightning => t.receive_network_lightning_network,
+      NetworkType.liquid => t.receive_network_liquid_network,
+      NetworkType.unknown => t.receive_network_unknown,
     };
   }
 }

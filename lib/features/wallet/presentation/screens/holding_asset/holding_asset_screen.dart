@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_loading.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -110,8 +111,9 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final t = AppLocalizations.of(context);
     return AppBar(
-      title: Text('Ativos'),
+      title: Text(t.wallet_holding_appbar_title),
       actions: [
         OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
         const SizedBox(width: 16),
@@ -120,12 +122,13 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
           child: ActionButton(
             icon: Icons.send,
-            label: 'Enviar',
+            label: t.wallet_holding_action_send,
             onPressed: () {
               context.push('/send-asset');
             },
@@ -135,7 +138,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         Expanded(
           child: ActionButton(
             icon: Icons.qr_code_scanner,
-            label: 'Receber',
+            label: t.wallet_holding_action_receive,
             onPressed: () {
               context.push('/receive-asset');
             },
@@ -145,7 +148,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         Expanded(
           child: ActionButton(
             icon: Icons.swap_horiz,
-            label: 'Swap',
+            label: t.wallet_holding_action_swap,
             onPressed: () {
               context.go('/swap');
             },
@@ -156,10 +159,11 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   }
 
   Widget _buildAssetsLabel() {
+    final t = AppLocalizations.of(context);
     return Row(
       children: [
         Text(
-          'Ativos',
+          t.wallet_holding_appbar_title,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
       ],
@@ -169,6 +173,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   Widget _buildAssetsList() {
     return Consumer(
       builder: (context, ref, child) {
+        final t = AppLocalizations.of(context);
         final holdingsAsync = ref.watch(walletHoldingsProvider);
 
         return holdingsAsync.when(
@@ -178,15 +183,17 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                 (holdings) => _buildHoldingsList(holdings),
               ),
           loading: () => AssetLoading(),
-          error: (error, stack) => _buildErrorWidget('Erro inesperado: $error'),
+          error: (error, stack) =>
+              _buildErrorWidget(t.wallet_holding_unexpected_error('$error')),
         );
       },
     );
   }
 
   Widget _buildHoldingsList(List<WalletHolding> holdings) {
+    final t = AppLocalizations.of(context);
     if (holdings.isEmpty) {
-      return const Center(child: Text('Nenhum ativo encontrado'));
+      return Center(child: Text(t.wallet_holding_empty));
     }
 
     return Consumer(
@@ -206,7 +213,11 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                 title: holding.asset.name,
                 subtitle: isVisible ? '•••••' : holding.formattedBalance,
                 value: isVisible ? '•••••' : holding.formattedFiatValue,
-                time: isVisible ? '' : (holding.hasBalance ? '' : 'Sem saldo'),
+                time: isVisible
+                    ? ''
+                    : (holding.hasBalance
+                        ? ''
+                        : t.wallet_holding_no_balance),
               ),
             );
           },
@@ -216,6 +227,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
   }
 
   Widget _buildErrorWidget(String error) {
+    final t = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -223,7 +235,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
           const Icon(Icons.error_outline, color: Colors.red, size: 48),
           const SizedBox(height: 16),
           Text(
-            'Erro ao carregar ativos',
+            t.wallet_holding_load_error_title,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
