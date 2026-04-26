@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
 class UserIdContainerWidget extends StatefulWidget {
@@ -23,6 +24,7 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
@@ -70,8 +72,8 @@ class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
                 Expanded(
                   child: Text(
                     widget.hasError
-                        ? 'Erro ao carregar código'
-                        : 'Código único',
+                        ? t.support_user_code_load_error_inline
+                        : t.support_user_code_unique,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
