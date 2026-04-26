@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -8,6 +9,7 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
     final notifier = ref.read(seedPhraseProvider.notifier);
 
@@ -33,7 +35,7 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Palavras confirmadas (${state.wordCount})',
+                t.seed_confirmed_words_count(state.wordCount),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
@@ -43,7 +45,7 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
                 TextButton.icon(
                   onPressed: notifier.removeLastWord,
                   icon: const Icon(Icons.backspace, size: 16),
-                  label: const Text('Remover última'),
+                  label: Text(t.seed_remove_last),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
