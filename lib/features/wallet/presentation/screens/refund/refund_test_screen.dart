@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider_mock.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class RefundTestScreen extends StatelessWidget {
@@ -12,9 +13,10 @@ class RefundTestScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('🧪 Teste de Refund'),
+        title: Text(t.refund_test_title),
         backgroundColor: context.colors.backgroundColor,
       ),
       backgroundColor: context.colors.backgroundColor,
@@ -27,7 +29,7 @@ class RefundTestScreen extends StatelessWidget {
               Icon(Icons.science, size: 80, color: context.colors.primaryColor),
               const SizedBox(height: 32),
               Text(
-                'Modo de Teste - Refund',
+                t.refund_test_heading,
                 style: context.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -35,8 +37,7 @@ class RefundTestScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Use esta tela para testar o fluxo completo de refund '
-                'com dados simulados, sem precisar de transações reais.',
+                t.refund_test_description,
                 style: context.textTheme.bodyLarge?.copyWith(
                   color: context.colors.textSecondary,
                 ),
@@ -64,9 +65,12 @@ class RefundTestScreen extends StatelessWidget {
                     );
                   },
                   icon: Icon(Icons.play_arrow),
-                  label: const Text(
-                    'Testar com Dados Mock',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    t.refund_test_button_mock,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.primaryColor,
@@ -91,9 +95,12 @@ class RefundTestScreen extends StatelessWidget {
                     );
                   },
                   icon: Icon(Icons.wifi),
-                  label: const Text(
-                    'Testar com SDK Real',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    t.refund_test_button_real_sdk,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: context.colors.primaryColor,
@@ -124,7 +131,7 @@ class RefundTestScreen extends StatelessWidget {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'Dados Mock Incluídos',
+                          t.refund_test_mock_data_title,
                           style: context.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -132,11 +139,11 @@ class RefundTestScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildInfoRow(context, '• 3 swaps reembolsáveis'),
-                    _buildInfoRow(context, '• Valores: 0.001, 0.0025, 0.0005 BTC'),
-                    _buildInfoRow(context, '• 4 opções de taxa diferentes'),
-                    _buildInfoRow(context, '• Endereço Bitcoin pré-preenchido'),
-                    _buildInfoRow(context, '• Simula sucesso em 90% dos casos'),
+                    _buildInfoRow(context, t.refund_test_mock_item_swaps),
+                    _buildInfoRow(context, t.refund_test_mock_item_amounts),
+                    _buildInfoRow(context, t.refund_test_mock_item_fees),
+                    _buildInfoRow(context, t.refund_test_mock_item_address),
+                    _buildInfoRow(context, t.refund_test_mock_item_success),
                   ],
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/widgets/refundable_swap_list.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Screen to display list of refundable swaps
@@ -28,14 +29,15 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(refundProvider);
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reembolsos Disponíveis'),
+        title: Text(t.refund_available_title),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          tooltip: 'Voltar',
+          tooltip: t.common_back,
         ),
       ),
       body:
@@ -50,6 +52,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
   Widget _buildLoadingView(RefundState state) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -85,14 +88,17 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
               child: Column(
                 children: [
                   Text(
-                    'Tentativa ${state.currentRetry! + 1} de ${state.maxRetries!}',
+                    t.refund_retry_progress(
+                      state.currentRetry! + 1,
+                      state.maxRetries!,
+                    ),
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Aguarde, pode demorar um pouco...',
+                    t.refund_loading_long,
                     style: textTheme.bodyMedium?.copyWith(
                       color: context.colors.textSecondary,
                     ),
@@ -121,6 +127,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
   Widget _buildErrorView(String error) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
 
     return Center(
       child: Padding(
@@ -157,7 +164,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Erro ao Carregar Dados',
+                t.error_load_data_title,
                 style: textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -196,7 +203,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Tentar Novamente',
+                    t.common_retry,
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -214,6 +221,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
     if (state.refundableSwaps == null || state.refundableSwaps!.isEmpty) {
       final colorScheme = context.colorScheme;
       final textTheme = context.textTheme;
+      final t = AppLocalizations.of(context);
 
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -256,7 +264,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Nenhum Reembolso Disponível',
+                      t.refund_empty_title,
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -270,7 +278,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'Você não tem transações pendentes de reembolso.',
+                        t.refund_empty_body,
                         style: textTheme.bodyMedium?.copyWith(
                           color: context.colors.textSecondary,
                           height: 1.5,
@@ -305,7 +313,7 @@ class _GetRefundScreenState extends ConsumerState<GetRefundScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Puxe para baixo para atualizar',
+                            t.refund_pull_to_refresh,
                             style: textTheme.labelMedium?.copyWith(
                               color: context.colors.primaryColor,
                               fontWeight: FontWeight.w600,

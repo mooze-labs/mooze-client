@@ -4,6 +4,7 @@ import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_success_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/widgets/fee_chooser.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -34,13 +35,14 @@ class _RefundConfirmationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Velocidade da Transação'),
+        title: Text(t.refund_speed_title),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          tooltip: 'Voltar',
+          tooltip: t.common_back,
         ),
       ),
       body: FutureBuilder<List<RefundFeeOption>>(
@@ -49,8 +51,8 @@ class _RefundConfirmationScreenState
           if (snapshot.error != null) {
             return _buildErrorMessage(
               snapshot.error.toString().contains('InsufficientFunds')
-                  ? 'Fundos insuficientes para cobrir a taxa de transação'
-                  : 'Erro ao recuperar taxas: ${snapshot.error}',
+                  ? t.refund_insufficient_for_fee
+                  : t.refund_fee_load_error(snapshot.error.toString()),
             );
           }
 
@@ -70,7 +72,7 @@ class _RefundConfirmationScreenState
             );
           } else {
             return _buildErrorMessage(
-              'Valor muito pequeno para cobrir as taxas de transação',
+              t.refund_amount_too_small,
             );
           }
         },
@@ -83,7 +85,7 @@ class _RefundConfirmationScreenState
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: PrimaryButton(
-                    text: 'Confirmar Reembolso',
+                    text: t.refund_confirm_button,
                     onPressed: _confirmRefund,
                   ),
                 ),
@@ -114,7 +116,7 @@ class _RefundConfirmationScreenState
           ),
           const SizedBox(height: 24),
           Text(
-            'Calculando taxas...',
+            AppLocalizations.of(context).refund_calculating_fees,
             style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -244,7 +246,9 @@ class _RefundConfirmationScreenState
         // Show error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao processar reembolso: $e'),
+            content: Text(
+              AppLocalizations.of(context).refund_process_error(e.toString()),
+            ),
             backgroundColor: context.colorScheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

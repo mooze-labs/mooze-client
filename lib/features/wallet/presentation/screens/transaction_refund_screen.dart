@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class TransactionRefundScreen extends ConsumerStatefulWidget {
@@ -52,6 +53,7 @@ class _TransactionRefundScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(refundProvider);
+    final t = AppLocalizations.of(context);
 
     // Update address controller when state changes
     if (state.bitcoinAddress != null && _addressController.text.isEmpty) {
@@ -67,7 +69,7 @@ class _TransactionRefundScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reembolso de Transação'),
+        title: Text(t.refund_screen_title),
         backgroundColor: context.colors.backgroundColor,
       ),
       backgroundColor: context.colors.backgroundColor,
@@ -81,6 +83,7 @@ class _TransactionRefundScreenState
   }
 
   Widget _buildErrorView(String error) {
+    final t = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -90,7 +93,7 @@ class _TransactionRefundScreenState
             Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Erro ao carregar dados',
+              t.error_load_data_short,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: context.colors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -113,7 +116,7 @@ class _TransactionRefundScreenState
                 backgroundColor: context.colors.primaryColor,
                 foregroundColor: context.colors.backgroundColor,
               ),
-              child: Text('Tentar Novamente'),
+              child: Text(t.common_retry),
             ),
           ],
         ),
@@ -149,7 +152,7 @@ class _TransactionRefundScreenState
 
               // Error Message
               Text(
-                'Transação Falhada',
+                AppLocalizations.of(context).tx_refund_failed_title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: context.colors.textPrimary,
@@ -158,7 +161,7 @@ class _TransactionRefundScreenState
               ),
               const SizedBox(height: 12),
               Text(
-                'Sua transação de peg-in não pode ser concluída. Clicando em OK, os seus bitcoins serão restituídos para sua carteira onchain.',
+                AppLocalizations.of(context).tx_refund_failed_body,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: context.colors.textSecondary,
                   height: 1.5,
@@ -189,6 +192,7 @@ class _TransactionRefundScreenState
   }
 
   Widget _buildTransactionDetailsCard() {
+    final t = AppLocalizations.of(context);
     return Card(
       color: context.colors.backgroundCard,
       child: Padding(
@@ -197,18 +201,22 @@ class _TransactionRefundScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Detalhes da Transação',
+              t.tx_detail_title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
-            _buildDetailRow('Valor', _formatAmount()),
+            _buildDetailRow(t.wallet_amount, _formatAmount()),
             SizedBox(height: 8),
-            _buildDetailRow('Status', 'Falhada', valueColor: Theme.of(context).colorScheme.error),
+            _buildDetailRow(
+              t.tx_refund_status_label,
+              t.tx_refund_status_failed,
+              valueColor: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 8),
-            _buildDetailRow('Data', _formatDate()),
+            _buildDetailRow(t.pix_deposit_date, _formatDate()),
             SizedBox(height: 8),
             _buildTxIdRow(),
           ],
@@ -246,7 +254,7 @@ class _TransactionRefundScreenState
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'TX ID',
+          AppLocalizations.of(context).pix_deposit_tx_id,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: context.colors.textSecondary,
           ),
@@ -299,11 +307,12 @@ class _TransactionRefundScreenState
   }
 
   Widget _buildAddressInput(RefundState state) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Endereço Bitcoin para Reembolso',
+          t.tx_refund_address_label,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: context.colors.textPrimary,
@@ -314,7 +323,7 @@ class _TransactionRefundScreenState
           controller: _addressController,
           style: TextStyle(color: context.colors.textPrimary),
           decoration: InputDecoration(
-            hintText: 'Insira o endereço Bitcoin',
+            hintText: t.tx_refund_address_hint,
             hintStyle: TextStyle(color: context.colors.textSecondary),
             filled: true,
             fillColor: context.colors.backgroundCard,
@@ -336,7 +345,7 @@ class _TransactionRefundScreenState
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Endereço gerado automaticamente da sua carteira',
+              t.tx_refund_address_auto,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: context.colors.positiveColor,
               ),
@@ -347,6 +356,7 @@ class _TransactionRefundScreenState
   }
 
   Widget _buildFeeSelection(RefundState state) {
+    final t = AppLocalizations.of(context);
     final fees = state.recommendedFees!;
     final isUsingFallback =
         state.lastFeeUpdate == null ||
@@ -359,7 +369,7 @@ class _TransactionRefundScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Velocidade da Transação',
+          t.refund_speed_title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: context.colors.textPrimary,
@@ -386,7 +396,7 @@ class _TransactionRefundScreenState
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Usando taxas estimadas (API temporariamente indisponível)',
+                    t.tx_refund_fees_fallback_warning,
                     style: TextStyle(
                       fontSize: 12,
                       color: context.colors.primaryColor,
@@ -399,30 +409,30 @@ class _TransactionRefundScreenState
         ],
         const SizedBox(height: 12),
         _buildFeeOption(
-          'Economia',
+          t.refund_fee_label_economy,
           fees.economyFee,
-          '~24 horas',
+          t.refund_fee_time_24h,
           state.selectedFeeRate,
         ),
         const SizedBox(height: 8),
         _buildFeeOption(
-          'Padrão',
+          t.refund_fee_label_standard,
           fees.hourFee,
-          '~1 hora',
+          t.refund_fee_time_1h,
           state.selectedFeeRate,
         ),
         const SizedBox(height: 8),
         _buildFeeOption(
-          'Rápido',
+          t.refund_fee_label_fast,
           fees.halfHourFee,
-          '~30 minutos',
+          t.refund_fee_time_30m,
           state.selectedFeeRate,
         ),
         const SizedBox(height: 8),
         _buildFeeOption(
-          'Urgente',
+          t.refund_fee_label_urgent,
           fees.fastestFee,
-          '~10 minutos',
+          t.refund_fee_time_10m,
           state.selectedFeeRate,
         ),
       ],
@@ -508,8 +518,8 @@ class _TransactionRefundScreenState
                   // For backward compatibility, we'll show an error message.
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text(
-                        'Esta tela está obsoleta. Por favor, use o novo fluxo de estorno.',
+                      content: Text(
+                        AppLocalizations.of(context).tx_refund_screen_deprecated,
                       ),
                       backgroundColor: context.appColors.warning,
                     ),
@@ -537,7 +547,7 @@ class _TransactionRefundScreenState
                   ),
                 )
                 : Text(
-                  'Confirmar Reembolso',
+                  AppLocalizations.of(context).refund_confirm_button,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -550,84 +560,90 @@ class _TransactionRefundScreenState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: context.colors.backgroundCard,
-            title: Row(
-              children: [
-                Icon(Icons.check_circle, color: context.colors.positiveColor, size: 32),
-                SizedBox(width: 12),
-                Text(
-                  'Reembolso Iniciado',
-                  style: TextStyle(color: context.colors.textPrimary),
+      builder: (context) {
+        final t = AppLocalizations.of(context);
+        return AlertDialog(
+          backgroundColor: context.colors.backgroundCard,
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: context.colors.positiveColor,
+                size: 32,
+              ),
+              SizedBox(width: 12),
+              Text(
+                t.tx_refund_dialog_title,
+                style: TextStyle(color: context.colors.textPrimary),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.tx_refund_dialog_body,
+                style: TextStyle(color: context.colors.textSecondary),
+              ),
+              SizedBox(height: 16),
+              Text(
+                t.tx_refund_dialog_txid_label,
+                style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: 12,
                 ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Seu reembolso foi processado com sucesso!',
-                  style: TextStyle(color: context.colors.textSecondary),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: context.colors.backgroundColor,
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'TX ID:',
-                  style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: context.colors.backgroundColor,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _shortenTxId(txId),
-                          style: TextStyle(
-                            color: context.colors.textPrimary,
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                          ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _shortenTxId(txId),
+                        style: TextStyle(
+                          color: context.colors.textPrimary,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.copy, size: 16),
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: txId));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('TX ID copiado!'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Return to previous screen
-                },
-                child: Text(
-                  'OK',
-                  style: TextStyle(color: context.colors.primaryColor),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 16),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: txId));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(t.swap_success_dialog_txid_copied),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Return to previous screen
+              },
+              child: Text(
+                t.common_ok,
+                style: TextStyle(color: context.colors.primaryColor),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

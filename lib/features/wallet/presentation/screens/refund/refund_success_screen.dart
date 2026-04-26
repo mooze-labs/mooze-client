@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -107,6 +108,7 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: context.colors.backgroundColor,
       body: SafeArea(
@@ -177,7 +179,7 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
                       children: [
                         // Title
                         Text(
-                          'Reembolso Iniciado!',
+                          t.refund_success_title,
                           style: context.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -186,7 +188,7 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
                         const SizedBox(height: 8),
 
                         Text(
-                          'Seu reembolso foi processado com sucesso. Em breve os fundos estarão disponíveis no endereço informado.',
+                          t.refund_success_body,
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colors.textSecondary,
                           ),
@@ -254,7 +256,7 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Valor Reembolsado',
+                                            t.refund_success_amount_label,
                                             style: context.textTheme.bodySmall
                                                 ?.copyWith(
                                                   color:
@@ -340,7 +342,7 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Transaction ID',
+                                              t.refund_success_txid_label,
                                               style: context
                                                   .textTheme
                                                   .labelSmall
@@ -398,7 +400,7 @@ class _RefundSuccessScreenState extends State<RefundSuccessScreen>
                         const Spacer(),
 
                         PrimaryButton(
-                          text: 'Voltar para Dashboard',
+                          text: t.refund_success_back_dashboard,
                           onPressed: () {
                             Navigator.of(
                               context,
