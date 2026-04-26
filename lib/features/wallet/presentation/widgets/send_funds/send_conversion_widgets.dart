@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/send_funds/amount_field_send.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
@@ -139,6 +140,7 @@ class SendConversionPreview extends ConsumerWidget {
     return FutureBuilder(
       future: ref.read(fiatPriceProvider(selectedAsset).future),
       builder: (context, snapshot) {
+        final t = AppLocalizations.of(context);
         if (!snapshot.hasData) {
           return Row(
             children: [
@@ -149,7 +151,7 @@ class SendConversionPreview extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Carregando conversões...',
+                t.wallet_send_loading_conversions,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
@@ -186,7 +188,7 @@ class SendConversionPreview extends ConsumerWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Conversões equivalentes:',
+                    t.wallet_send_equivalent_conversions,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.primary,
@@ -217,7 +219,7 @@ class SendConversionPreview extends ConsumerWidget {
                   satsValue != null)
                 _ConversionRow(
                   icon: Icons.bolt,
-                  label: 'Satoshis:',
+                  label: t.wallet_send_satoshis_label,
                   value: SatsInputFormatter.formatValue(satsValue),
                   suffix: satsValue == 1 ? 'sat' : 'sats',
                 ),

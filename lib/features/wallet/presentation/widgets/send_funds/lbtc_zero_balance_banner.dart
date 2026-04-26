@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 /// Banner shown on the Send screen when the user has zero L-BTC balance.
@@ -34,6 +35,7 @@ class LbtcZeroBalanceBanner extends ConsumerWidget {
 class _LbtcZeroBalanceBannerContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -60,7 +62,7 @@ class _LbtcZeroBalanceBannerContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Bitcoin L2 necessário para taxas',
+                    t.wallet_send_lbtc_banner_title,
                     style: textTheme.labelLarge?.copyWith(
                       color: colorScheme.onErrorContainer,
                       fontWeight: FontWeight.w600,
@@ -68,7 +70,7 @@ class _LbtcZeroBalanceBannerContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Para enviar DePIX ou USDT, você precisa ter Bitcoin L2 na carteira para pagar as taxas da rede.',
+                    t.wallet_send_lbtc_banner_body,
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onErrorContainer.withValues(
                         alpha: 0.85,
@@ -79,7 +81,7 @@ class _LbtcZeroBalanceBannerContent extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Obter via SWAP',
+                        t.wallet_send_lbtc_banner_action,
                         style: textTheme.labelSmall?.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w700,

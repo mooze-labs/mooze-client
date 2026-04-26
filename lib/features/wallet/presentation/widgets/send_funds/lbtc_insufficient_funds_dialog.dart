@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 /// Dialog shown when the user attempts to send DEPIX or USDT without
@@ -43,6 +44,7 @@ class _LbtcInsufficientFundsDialogState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final assetName = widget.asset == Asset.depix ? 'DePIX' : 'USDT';
@@ -67,7 +69,7 @@ class _LbtcInsufficientFundsDialogState
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Bitcoin L2 insuficiente',
+              t.wallet_send_lbtc_insufficient_title,
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -80,13 +82,13 @@ class _LbtcInsufficientFundsDialogState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Você precisa de Bitcoin L2 para pagar as taxas dos mineradores ao enviar $assetName:',
+            t.wallet_send_lbtc_insufficient_body(assetName),
             style: textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 16),
-          _buildSwapOption(colorScheme, textTheme),
+          _buildSwapOption(context, colorScheme, textTheme),
           const SizedBox(height: 10),
-          _buildLightningOption(colorScheme, textTheme),
+          _buildLightningOption(context, colorScheme, textTheme),
         ],
       ),
       actions: [
@@ -98,7 +100,7 @@ class _LbtcInsufficientFundsDialogState
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          child: const Text('Entendi'),
+          child: Text(t.common_understood),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
@@ -108,13 +110,18 @@ class _LbtcInsufficientFundsDialogState
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          child: const Text('Ir para SWAP'),
+          child: Text(t.wallet_send_lbtc_go_swap),
         ),
       ],
     );
   }
 
-  Widget _buildSwapOption(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildSwapOption(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    final t = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -130,7 +137,7 @@ class _LbtcInsufficientFundsDialogState
                   height: 1.4,
                 ),
                 children: [
-                  const TextSpan(text: 'Use a função '),
+                  TextSpan(text: t.wallet_send_lbtc_insufficient_swap_prefix),
                   TextSpan(
                     text: 'SWAP',
                     style: TextStyle(
@@ -141,7 +148,7 @@ class _LbtcInsufficientFundsDialogState
                     // Reuses the state-managed recognizer — no leak
                     recognizer: _swapRecognizer,
                   ),
-                  const TextSpan(text: ' para obter Bitcoin L2'),
+                  TextSpan(text: t.wallet_send_lbtc_insufficient_swap_suffix),
                 ],
               ),
             ),
@@ -151,7 +158,12 @@ class _LbtcInsufficientFundsDialogState
     );
   }
 
-  Widget _buildLightningOption(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildLightningOption(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    final t = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -161,7 +173,7 @@ class _LbtcInsufficientFundsDialogState
           child: Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Receba Bitcoin via Lightning ou Liquid para obter Bitcoin L2',
+              t.wallet_send_lbtc_insufficient_lightning,
               style: textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurface.withValues(alpha: 0.85),
                 height: 1.4,
