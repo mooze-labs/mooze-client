@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -125,6 +126,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
 
@@ -204,7 +206,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                       children: [
                         // Title
                         Text(
-                          'Swap Realizado!',
+                          t.swap_success_title,
                           style: textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -213,7 +215,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                         const SizedBox(height: 8),
 
                         Text(
-                          'Sua transação foi processada com sucesso, em instantes o saldo estará disponível na sua carteira.',
+                          t.swap_success_body,
                           style: textTheme.bodyMedium,
                           textAlign: TextAlign.center,
                         ),
@@ -362,7 +364,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'ID da Transação',
+                                            t.tx_id,
                                             style: textTheme.bodySmall,
                                           ),
                                           SizedBox(height: 2),
@@ -403,7 +405,7 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
                         const Spacer(),
 
                         PrimaryButton(
-                          text: 'Voltar para Dashboard',
+                          text: t.refund_success_back_dashboard,
                           onPressed: () {
                             Navigator.of(context).pop();
                           },

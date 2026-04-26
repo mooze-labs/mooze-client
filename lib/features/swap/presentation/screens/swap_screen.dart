@@ -20,6 +20,7 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -39,6 +40,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   bool _useDrain = false;
   int _swapKey = 0;
   bool _hasCheckedBtcLbtcWarning = false;
+  bool _isFiatMode = false;
+  double? _cachedFromPrice;
 
   static const int _minBtcLbtcSwapSats = 25000;
 
@@ -63,6 +66,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   void _syncDecimalFromAmount() {
     if (_isSyncingDecimal) return;
+    if (_isFiatMode) return;
     _isSyncingDecimal = true;
 
     final text = _fromAmountController.text.trim();
@@ -102,8 +106,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   @override
   void deactivate() {
-    debugPrint('[SwapScreen] Deactivating - cleaning up active quote');
-    ref.read(swapControllerProvider.notifier).resetQuote();
+    debugPrint('[SwapScreen] Deactivating - disposing swap provider');
+    ref.invalidate(swapControllerProvider);
     super.deactivate();
   }
 
@@ -118,13 +122,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final swapState = ref.watch(swapControllerProvider);
 
     final isLoading = swapState.loading;
     final error = swapState.error;
 
     if (error != null &&
-        _isNoLiquidityError(error) &&
+        error.code == SwapErrorCode.noLiquidity &&
         !_hasShownNoLiquidityDialog) {
       _hasShownNoLiquidityDialog = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -135,7 +140,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       });
     }
 
-    if (error == null || !_isNoLiquidityError(error)) {
+    if (error == null || error.code != SwapErrorCode.noLiquidity) {
       _hasShownNoLiquidityDialog = false;
     }
 
@@ -146,7 +151,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       child: Scaffold(
         extendBody: true,
         appBar: AppBar(
-          title: const Text('Swap'),
+          title: Text(t.swap_title),
           actions: [
             OfflineIndicator(
               onTap: () => OfflinePriceInfoOverlay.show(context),
@@ -232,27 +237,27 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
-                        '1 ${_fromAsset.ticker} = ${_formatRate(exchangeRate)} ${_toAsset.ticker}',
+                        t.swap_rate_line(
+                          _fromAsset.ticker,
+                          _formatRate(exchangeRate),
+                          _toAsset.ticker,
+                        ),
                         style: Theme.of(context).textTheme.labelMedium,
                       ),
                     ],
                   ),
                 ],
                 if (error != null) const SizedBox(height: 8),
-                if (error != null && !_isNoLiquidityError(error))
+                if (error != null && error.code != SwapErrorCode.noLiquidity)
                   FutureBuilder<bool>(
                     future: _hasInsufficientBalance(),
                     builder: (context, snapshot) {
                       final hasInsufficientBalance = snapshot.data ?? false;
                       final isInsufficientError =
-                          error.toLowerCase().contains('insuficiente') ||
+                          error.code == SwapErrorCode.insufficientBalance ||
                           hasInsufficientBalance;
 
-                      final isUtxoError =
-                          error.toLowerCase().contains(
-                            'aguarde alguns instantes',
-                          ) ||
-                          error.toLowerCase().contains('transação anterior');
+                      final isUtxoError = error.code == SwapErrorCode.utxoBusy;
 
                       if (isUtxoError) {
                         return Column(
@@ -274,7 +279,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      error,
+                                      error.localize(context),
                                       style: const TextStyle(
                                         color: Colors.blue,
                                       ),
@@ -299,18 +304,18 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: Colors.orange),
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.warning,
                                     color: Colors.orange,
                                     size: 20,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Saldo insuficiente para realizar o swap',
-                                      style: TextStyle(color: Colors.orange),
+                                      t.swap_insufficient_balance,
+                                      style: const TextStyle(color: Colors.orange),
                                     ),
                                   ),
                                 ],
@@ -339,7 +344,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      error,
+                                      error.localize(context),
                                       style: TextStyle(color: Colors.red),
                                     ),
                                   ),
@@ -360,7 +365,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         : 'Powered by sideswap.io',
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 10),
+                _buildFiatModeToggle(),
+                const SizedBox(height: 10),
 
                 FutureBuilder<bool>(
                   future: _hasInsufficientBalance(),
@@ -409,7 +416,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Valor mínimo: ${_minBtcLbtcSwapSats.toString()} sats',
+                                      t.swap_min_value_sats(
+                                        _minBtcLbtcSwapSats.toString(),
+                                      ),
                                       style: const TextStyle(
                                         color: Colors.orange,
                                       ),
@@ -420,7 +429,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             ),
                           ),
                         PrimaryButton(
-                          text: 'Swap',
+                          text: t.swap_title,
                           isEnabled: canProceed,
                           onPressed:
                               canProceed
@@ -447,11 +456,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Atualizando cotação...',
+                                                  t.swap_updating_quote,
                                                 ),
-                                                duration: Duration(seconds: 2),
+                                                duration: const Duration(
+                                                  seconds: 2,
+                                                ),
                                               ),
                                             );
                                           }
@@ -483,6 +494,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   // FROM card
   Widget _from(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final currency = ref.read(currencyControllerProvider.notifier);
 
     final fromOptions = () {
@@ -523,7 +535,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Você envia', style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                t.swap_you_send,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
               Row(
                 children: [
                   FutureBuilder<Either<String, double>>(
@@ -533,11 +548,27 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         return snapshot.data!.fold((error) => Text('0.00'), (
                           price,
                         ) {
+                          _cachedFromPrice = price;
                           final amount =
                               BigInt.tryParse(
                                 _fromAmountController.text.trim(),
                               ) ??
                               BigInt.zero;
+                          if (_isFiatMode) {
+                            final isBtcOrLbtc =
+                                _fromAsset == core.Asset.btc ||
+                                _fromAsset == core.Asset.lbtc;
+                            final assetDisplay = isBtcOrLbtc
+                                ? '${amount.toString()} SATS'
+                                : '${(amount.toDouble() / 100000000).toStringAsFixed(2)} ${_fromAsset.ticker}';
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
+                              child: Text(
+                                amount > BigInt.zero ? '≈ $assetDisplay' : '',
+                                key: ValueKey('fiat_$assetDisplay'),
+                              ),
+                            );
+                          }
                           final usd = _fromAsset.toUsd(amount, price);
                           return Text(
                             '${currency.icon}${usd.toStringAsFixed(2)}',
@@ -549,7 +580,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   ),
                   SizedBox(width: 5),
                   TransparentTextButton(
-                    text: 'MAX',
+                    text: t.common_max,
                     onPressed: () async {
                       await ref
                           .read(swapControllerProvider.notifier)
@@ -561,6 +592,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       if (!mounted) return;
 
                       _fromAmountController.text = balance.toString();
+                      if (_isFiatMode &&
+                          _cachedFromPrice != null &&
+                          _cachedFromPrice! > 0) {
+                        final fiatValue =
+                            _fromAsset.toUsd(balance, _cachedFromPrice!);
+                        _fromAmountDecimalController.text =
+                            fiatValue.toStringAsFixed(2);
+                      }
                       setState(() {
                         _useDrain = true;
                       });
@@ -624,8 +663,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     Expanded(
                       child: TextField(
                         controller: _fromAmountDecimalController,
-                        keyboardType:
-                            (_fromAsset == core.Asset.btc ||
+                        keyboardType: _isFiatMode
+                            ? const TextInputType.numberWithOptions(
+                                decimal: true,
+                              )
+                            : (_fromAsset == core.Asset.btc ||
                                     _fromAsset == core.Asset.lbtc)
                                 ? const TextInputType.numberWithOptions(
                                   decimal: false,
@@ -633,7 +675,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 : const TextInputType.numberWithOptions(
                                   decimal: true,
                                 ),
-                        textAlign: TextAlign.end,
+                        textAlign:
+                            _isFiatMode ? TextAlign.start : TextAlign.end,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -647,10 +690,20 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           contentPadding: EdgeInsets.zero,
                           fillColor: Colors.transparent,
                           filled: true,
-                          hintText: '0',
+                          hintText: _isFiatMode ? '0,00' : '0',
                           hintStyle: Theme.of(
                             context,
                           ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+                          prefix: _isFiatMode
+                              ? Text(
+                                  '${currency.icon} ',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
                         ),
                         onChanged: (value) {
                           if (_isSyncingDecimal) return;
@@ -665,22 +718,45 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             return;
                           }
 
-                          final isBtcOrLbtc =
-                              _fromAsset == core.Asset.btc ||
-                              _fromAsset == core.Asset.lbtc;
-                          BigInt sats;
-
-                          if (isBtcOrLbtc) {
-                            sats = BigInt.tryParse(value) ?? BigInt.zero;
-                          } else {
-                            double parsed =
-                                double.tryParse(value.replaceAll(',', '.')) ??
+                          if (_isFiatMode) {
+                            final fiatAmount =
+                                double.tryParse(
+                                  value.replaceAll(',', '.'),
+                                ) ??
                                 0;
-                            sats = BigInt.from((parsed * 100000000).round());
-                          }
+                            if (_cachedFromPrice != null &&
+                                _cachedFromPrice! > 0) {
+                              final sats = _fromAsset.fromUsd(
+                                fiatAmount,
+                                _cachedFromPrice!,
+                              );
+                              if (_fromAmountController.text !=
+                                  sats.toString()) {
+                                _fromAmountController.text = sats.toString();
+                              }
+                            }
+                          } else {
+                            final isBtcOrLbtc =
+                                _fromAsset == core.Asset.btc ||
+                                _fromAsset == core.Asset.lbtc;
+                            BigInt sats;
 
-                          if (_fromAmountController.text != sats.toString()) {
-                            _fromAmountController.text = sats.toString();
+                            if (isBtcOrLbtc) {
+                              sats = BigInt.tryParse(value) ?? BigInt.zero;
+                            } else {
+                              double parsed =
+                                  double.tryParse(
+                                    value.replaceAll(',', '.'),
+                                  ) ??
+                                  0;
+                              sats =
+                                  BigInt.from((parsed * 100000000).round());
+                            }
+
+                            if (_fromAmountController.text !=
+                                sats.toString()) {
+                              _fromAmountController.text = sats.toString();
+                            }
                           }
                           _isSyncingDecimal = false;
                           _requestQuoteDebounced();
@@ -695,7 +771,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Saldo disponível:'),
+              Text(t.wallet_balance_available),
               Consumer(
                 builder: (context, ref, child) {
                   final balanceAsync = ref.watch(balanceProvider(_fromAsset));
@@ -738,6 +814,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   // TO card
   Widget _to(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final currency = ref.read(currencyControllerProvider.notifier);
     final swapState = ref.watch(swapControllerProvider);
 
@@ -822,7 +899,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Você recebe',
+                    t.swap_you_receive,
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   Row(
@@ -922,7 +999,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Saldo disponível:'),
+                  Text(t.wallet_balance_available),
                   Consumer(
                     builder: (context, ref, child) {
                       final balanceAsync = ref.watch(balanceProvider(_toAsset));
@@ -1061,9 +1138,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     if (!_useDrain &&
         (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats))) {
       if (mounted) {
+        final t = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Quantidade mínima é ${_minBtcLbtcSwapSats} sats'),
+            content: Text(
+              t.swap_min_amount_sats(_minBtcLbtcSwapSats.toString()),
+            ),
           ),
         );
       }
@@ -1077,12 +1157,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       toAsset: _toAsset,
       drain: _useDrain && _isBtcLbtcSwap,
     );
-  }
-
-  bool _isNoLiquidityError(String error) {
-    return error.toLowerCase().contains('no matching orders') ||
-        error.toLowerCase().contains('matching orders') ||
-        error.toLowerCase().contains('liquidez');
   }
 
   Future<void> _checkAndShowBtcLbtcWarning() async {
@@ -1112,6 +1186,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        final t = AppLocalizations.of(context);
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -1137,7 +1212,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Sem Liquidez',
+                  t.swap_no_liquidity_title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     // color: Colors.white,
@@ -1145,7 +1220,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'No momento não há liquidez disponível na Sideswap para realizar esta operação.',
+                  t.swap_no_liquidity_body,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[400],
@@ -1168,9 +1243,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Tentar Novamente',
-                      style: TextStyle(
+                    child: Text(
+                      t.common_retry,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1188,7 +1263,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: Text(
-                      'Fechar',
+                      t.common_close,
                       style: TextStyle(fontSize: 16, color: Colors.grey[400]),
                     ),
                   ),
@@ -1199,6 +1274,78 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         );
       },
     );
+  }
+
+  Widget _buildFiatModeToggle() {
+    final t = AppLocalizations.of(context);
+    final currency = ref.read(currencyControllerProvider.notifier);
+    return Center(
+      child: GestureDetector(
+        onTap: _toggleFiatMode,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+          child: Text(
+            _isFiatMode
+                ? t.swap_use_asset_value
+                : t.swap_use_currency_value(currency.icon),
+            key: ValueKey(_isFiatMode),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: context.colors.primaryColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleFiatMode() {
+    if (_cachedFromPrice == null || _cachedFromPrice! <= 0) return;
+    setState(() {
+      _isFiatMode = !_isFiatMode;
+      _convertForModeSwitch();
+    });
+  }
+
+  void _convertForModeSwitch() {
+    final sats =
+        BigInt.tryParse(_fromAmountController.text.trim()) ?? BigInt.zero;
+
+    if (_isFiatMode) {
+      // Switching TO fiat mode: convert current sats to fiat display
+      if (sats > BigInt.zero &&
+          _cachedFromPrice != null &&
+          _cachedFromPrice! > 0) {
+        final fiatValue = _fromAsset.toUsd(sats, _cachedFromPrice!);
+        _fromAmountDecimalController.text = fiatValue.toStringAsFixed(2);
+      } else {
+        _fromAmountDecimalController.text = '';
+      }
+    } else {
+      // Switching TO asset mode: convert sats back to asset decimal
+      final text = _fromAmountController.text.trim();
+      if (text.isEmpty) {
+        _fromAmountDecimalController.text = '';
+      } else {
+        final amount = BigInt.tryParse(text);
+        if (amount != null && amount > BigInt.zero) {
+          final isBtcOrLbtc =
+              _fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc;
+          if (isBtcOrLbtc) {
+            _fromAmountDecimalController.text = amount.toString();
+          } else {
+            _fromAmountDecimalController.text =
+                (amount.toDouble() / 100000000).toStringAsFixed(2);
+          }
+        } else {
+          _fromAmountDecimalController.text = '';
+        }
+      }
+    }
   }
 
   void _requestQuoteDebounced() {
