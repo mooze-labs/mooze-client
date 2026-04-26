@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final receiveDescriptionProvider = StateProvider<String>((ref) => '');
@@ -39,7 +40,7 @@ class _DescriptionFieldReceiveState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Descrição (opcional)',
+          AppLocalizations.of(context).receive_description_label,
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -53,7 +54,7 @@ class _DescriptionFieldReceiveState
           maxLines: 2,
           maxLength: 100,
           decoration: InputDecoration(
-            hintText: 'Ex: Pagamento do almoço',
+            hintText: AppLocalizations.of(context).receive_description_hint,
             hintStyle: TextStyle(
               color: Theme.of(
                 context,

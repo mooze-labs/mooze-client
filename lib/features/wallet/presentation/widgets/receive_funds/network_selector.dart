@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
@@ -34,7 +35,7 @@ class NetworkSelector extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Selecione a rede',
+          AppLocalizations.of(context).receive_select_network,
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -64,10 +65,12 @@ class NetworkSelector extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     selectedAsset == Asset.btc
-                        ? 'Bitcoin on-chain é a única rede disponível para BTC'
+                        ? AppLocalizations.of(context).receive_asset_hint_btc
                         : selectedAsset == Asset.lbtc
-                        ? 'Bitcoin L2 suporta Lightning e Liquid'
-                        : '${selectedAsset.name} suporta apenas rede Liquid',
+                        ? AppLocalizations.of(context).receive_asset_hint_lbtc
+                        : AppLocalizations.of(
+                          context,
+                        ).receive_asset_hint_liquid_only(selectedAsset.name),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -103,7 +106,9 @@ class NetworkSelector extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Para Lightning, o valor é obrigatório',
+                    AppLocalizations.of(
+                      context,
+                    ).receive_lightning_amount_required_hint,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.orange.shade700,
                     ),
@@ -145,7 +150,7 @@ class NetworkSelector extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          'Selecione um ativo primeiro',
+          AppLocalizations.of(context).receive_select_asset_first,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(
               context,
@@ -169,8 +174,8 @@ class NetworkSelector extends ConsumerWidget {
         Expanded(
           child: _NetworkOption(
             networkType: network,
-            label: _getNetworkLabel(network),
-            subtitle: _getNetworkSubtitle(network),
+            label: _getNetworkLabel(context, network),
+            subtitle: _getNetworkSubtitle(context, network),
             icon: _getNetworkIcon(network),
             isSelected: selectedNetwork == network,
             onTap: () {
@@ -185,20 +190,22 @@ class NetworkSelector extends ConsumerWidget {
     return Row(children: networkWidgets);
   }
 
-  String _getNetworkLabel(NetworkType network) {
+  String _getNetworkLabel(BuildContext context, NetworkType network) {
+    final t = AppLocalizations.of(context);
     return switch (network) {
-      NetworkType.bitcoin => 'Bitcoin',
-      NetworkType.lightning => 'Lightning',
-      NetworkType.liquid => 'Liquid',
-      NetworkType.unknown => 'Desconhecida',
+      NetworkType.bitcoin => t.receive_network_label_bitcoin,
+      NetworkType.lightning => t.receive_network_label_lightning,
+      NetworkType.liquid => t.receive_network_label_liquid,
+      NetworkType.unknown => t.receive_network_unknown,
     };
   }
 
-  String _getNetworkSubtitle(NetworkType network) {
+  String _getNetworkSubtitle(BuildContext context, NetworkType network) {
+    final t = AppLocalizations.of(context);
     return switch (network) {
-      NetworkType.bitcoin => 'On-chain',
-      NetworkType.lightning => 'Instantâneo',
-      NetworkType.liquid => 'Privado',
+      NetworkType.bitcoin => t.receive_network_subtitle_onchain,
+      NetworkType.lightning => t.receive_network_subtitle_instant,
+      NetworkType.liquid => t.receive_network_subtitle_private,
       NetworkType.unknown => '',
     };
   }
