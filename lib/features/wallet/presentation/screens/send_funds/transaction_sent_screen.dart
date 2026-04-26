@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -169,6 +170,7 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
 
@@ -253,14 +255,14 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
                       child: Column(
                         children: [
                           Text(
-                            'Transação Enviada!',
+                            t.tx_sent_title,
                             style: textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Seu ${widget.asset.ticker} foi enviado com sucesso',
+                            t.tx_sent_subtitle(widget.asset.ticker),
                             style: textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                           ),
@@ -288,7 +290,10 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
                                       size: 30,
                                     ),
                                     const SizedBox(width: 8),
-                                    Text('Enviado', style: textTheme.bodyLarge),
+                                    Text(
+                                      t.tx_sent_status_label,
+                                      style: textTheme.bodyLarge,
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
@@ -303,7 +308,7 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
                                 ),
                                 const SizedBox(height: 20),
                                 _buildCopyableField(
-                                  label: 'Endereço de destino',
+                                  label: t.wallet_send_destination_address,
                                   value: truncateHashId(
                                     widget.destinationAddress,
                                     length: 10,
@@ -315,13 +320,13 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Você pode acompanhar o status na seção de histórico.',
+                            t.tx_sent_track_history,
                             style: textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                           ),
                           Spacer(),
                           PrimaryButton(
-                            text: 'Voltar para Dashboard',
+                            text: t.refund_success_back_dashboard,
                             onPressed: _handleClose,
                           ),
                         ],

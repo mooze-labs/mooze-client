@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
@@ -79,7 +80,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(validationResult.errorMessage ?? 'QR code inválido'),
+          content: Text(validationResult.localize(context)),
           backgroundColor: Colors.red.shade700,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
@@ -181,11 +182,12 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PlatformSafeArea(
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text('Escanear QR Code'),
+          title: Text(t.wallet_send_address_scan_qr),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           leading: IconButton(
@@ -236,6 +238,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   }
 
   Widget _buildInstructions() {
+    final t = AppLocalizations.of(context);
     return Positioned(
       bottom: 100,
       left: 0,
@@ -265,9 +268,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isScanning
-                        ? 'Procurando QR Code...'
-                        : 'QR Code encontrado!',
+                    isScanning ? t.qr_scanner_searching : t.qr_scanner_found,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -278,9 +279,9 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Posicione o QR code dentro da área destacada',
-              style: TextStyle(
+            Text(
+              t.qr_scanner_position_hint,
+              style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
@@ -288,9 +289,9 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Bitcoin • Lightning • Liquid',
-              style: TextStyle(
+            Text(
+              t.qr_scanner_supported_networks,
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 14,
                 fontWeight: FontWeight.w300,
@@ -304,6 +305,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   }
 
   Widget _buildControlButtons() {
+    final t = AppLocalizations.of(context);
     return Positioned(
       bottom: 30,
       left: 0,
@@ -316,7 +318,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
             Expanded(
               child: _buildControlButton(
                 icon: isFlashOn ? Icons.flash_on : Icons.flash_off,
-                label: 'Flash',
+                label: t.qr_scanner_flash_label,
                 isActive: isFlashOn,
                 onTap: _toggleFlash,
               ),
@@ -325,7 +327,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
             Expanded(
               child: _buildControlButton(
                 icon: Icons.flip_camera_ios,
-                label: 'Câmera',
+                label: t.qr_scanner_camera_label,
                 isActive: false,
                 onTap: () => cameraController.switchCamera(),
               ),
