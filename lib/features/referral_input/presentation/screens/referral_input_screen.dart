@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
@@ -74,11 +75,32 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
   }
 
   void _showSuccessMessage(BuildContext context) {
-    AppSnackBar.success(context, 'Código aplicado com sucesso!');
+    AppSnackBar.success(
+      context,
+      AppLocalizations.of(context).referral_applied_success,
+    );
+  }
+
+  String _translateError(BuildContext context, String errorKey) {
+    final t = AppLocalizations.of(context);
+    switch (errorKey) {
+      case 'referral_error_empty_code':
+        return t.referral_error_empty_code;
+      case 'referral_error_invalid_code':
+        return t.referral_error_invalid_code;
+      case 'referral_error_apply_failed':
+        return t.referral_error_apply_failed;
+      case 'referral_error_fetch_failed':
+        return t.referral_error_fetch_failed;
+      case 'referral_error_validate_failed':
+        return t.referral_error_validate_failed;
+      default:
+        return errorKey;
+    }
   }
 
   void _showErrorSnackBar(BuildContext context, String error) {
-    AppSnackBar.error(context, error);
+    AppSnackBar.error(context, _translateError(context, error));
   }
 
   @override
@@ -103,7 +125,7 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Código de Indicação'),
+        title: Text(AppLocalizations.of(context).referral_title),
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
