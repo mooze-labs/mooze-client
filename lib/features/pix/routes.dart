@@ -4,7 +4,7 @@ import 'package:mooze_mobile/features/pix/send_pix/routes.dart';
 import 'package:mooze_mobile/features/pix/human_verification/routes.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_main_screen.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_fees_screen.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/recive_pix_screen.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
 
 final pixRoutes = [
   // GoRoute(path: "/pix", builder: (context, state) => PixMainScreen()),
