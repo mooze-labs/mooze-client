@@ -11,6 +11,7 @@ import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.d
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/controllers/btc_lbtc_swap_controller.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
@@ -194,6 +195,7 @@ class _BtcLbtcConfirmBottomSheetState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final amountBtc = widget.amount.toDouble() / 100000000;
     final fromAsset = widget.isPegIn ? core.Asset.btc : core.Asset.lbtc;
     final toAsset = widget.isPegIn ? core.Asset.lbtc : core.Asset.btc;
@@ -224,7 +226,7 @@ class _BtcLbtcConfirmBottomSheetState
           children: [
             Center(
               child: Text(
-                'Confirmar Swap',
+                t.swap_confirm_title,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -273,7 +275,7 @@ class _BtcLbtcConfirmBottomSheetState
             ),
             const SizedBox(height: 16),
             SlideToConfirmButton(
-              text: _isConfirming ? 'Confirmando...' : 'Confirmar Swap',
+              text: _isConfirming ? t.common_confirming : t.swap_confirm_title,
               isLoading: _isConfirming || _isLoadingFees,
               onSlideComplete:
                   (_isConfirming || _isLoadingFees) ? () {} : _handleConfirm,
@@ -363,11 +365,12 @@ class _BtcLbtcConfirmBottomSheetState
     required BigInt totalFeeSat,
     required bool isLoading,
   }) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Estimativa',
+          t.swap_confirm_estimate,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: Theme.of(
               context,
@@ -388,7 +391,7 @@ class _BtcLbtcConfirmBottomSheetState
           child: Column(
             children: [
               _FeeRow(
-                label: 'Enviando:',
+                label: t.swap_confirm_sending,
                 value: '${widget.amount} sats',
                 valueColor: Theme.of(context).colorScheme.onSurface,
                 isBold: false,
@@ -397,7 +400,7 @@ class _BtcLbtcConfirmBottomSheetState
               const SizedBox(height: 12),
               if (!isLoading && boltzFeeSat > BigInt.zero || isLoading) ...[
                 _FeeRow(
-                  label: 'Taxa de serviço da Boltz:',
+                  label: t.swap_confirm_boltz_fee,
                   value: isLoading ? '' : '-$boltzFeeSat sats',
                   valueColor: Theme.of(
                     context,
@@ -407,7 +410,7 @@ class _BtcLbtcConfirmBottomSheetState
                 ),
               ],
               _FeeRow(
-                label: 'Taxa da transação:',
+                label: t.swap_confirm_tx_fee,
                 value: isLoading ? '' : '-$networkFeeSat sats',
                 valueColor: Theme.of(
                   context,
@@ -416,7 +419,7 @@ class _BtcLbtcConfirmBottomSheetState
                 isLoading: isLoading,
               ),
               _FeeRow(
-                label: 'Total de taxas:',
+                label: t.swap_confirm_total_fees,
                 value: isLoading ? '' : '-${networkFeeSat + boltzFeeSat} sats',
                 valueColor: Theme.of(
                   context,
@@ -433,7 +436,7 @@ class _BtcLbtcConfirmBottomSheetState
               ),
               const SizedBox(height: 16),
               _FeeRow(
-                label: 'Recebendo:',
+                label: t.swap_confirm_receiving,
                 value: isLoading ? '' : '${widget.amount - totalFeeSat} sats',
                 valueColor: Theme.of(context).colorScheme.onSurface,
                 isBold: true,
@@ -491,6 +494,7 @@ class _BtcLbtcConfirmBottomSheetState
     double sendAmount,
     double receiveAmount,
   ) {
+    final t = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -519,7 +523,7 @@ class _BtcLbtcConfirmBottomSheetState
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Você envia'),
+                      Text(t.swap_you_send),
                       const SizedBox(width: 10),
                       SvgPicture.asset(
                         sendAsset.iconPath,
@@ -550,7 +554,7 @@ class _BtcLbtcConfirmBottomSheetState
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Você recebe'),
+                      Text(t.swap_you_receive),
                       const SizedBox(width: 10),
                       SvgPicture.asset(
                         receiveAsset.iconPath,
