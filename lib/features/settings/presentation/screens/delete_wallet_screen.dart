@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -22,10 +23,11 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Deletar carteira'),
+          title: Text(t.delete_wallet_title),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () {
@@ -44,20 +46,17 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        /// Título principal
-                        const TitleAndSubtitleCreateWallet(
-                          title: 'Atenção ao deletar sua ',
-                          highlighted: 'carteira',
-                          subtitle:
-                              'Ao deletar, será necessário passar novamente pelo sistema TRUST e você perderá acesso aos fundos se não tiver salvo sua frase de recuperação.',
+                        TitleAndSubtitleCreateWallet(
+                          title: t.delete_wallet_warning_title,
+                          highlighted: t.delete_wallet_word,
+                          subtitle: t.delete_wallet_warning_subtitle,
                         ),
 
                         const SizedBox(height: 20),
 
                         DeleteWalletSign(
-                          title: 'Limites PIX',
-                          description:
-                              'Eu estou ciente de que precisarei passar novamente pelo sistema TRUST e que meus limites de PIX serão resetados.',
+                          title: t.delete_wallet_pix_limits_title,
+                          description: t.delete_wallet_pix_limits_desc,
                           isSelected: _trustAware,
                           onTap: () {
                             setState(() {
@@ -69,9 +68,8 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
                         const SizedBox(height: 16),
 
                         DeleteWalletSign(
-                          title: 'Perda de fundos',
-                          description:
-                              'Eu estou ciente que perderei acesso aos meus fundos caso não tenha guardado minha frase de recuperação.',
+                          title: t.delete_wallet_funds_loss_title,
+                          description: t.delete_wallet_funds_loss_desc,
                           isSelected: _recoveryAware,
                           onTap: () {
                             setState(() {
@@ -85,7 +83,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
                         const SizedBox(height: 16),
 
                         PrimaryButton(
-                          text: 'Deletar carteira',
+                          text: t.delete_wallet_button,
                           onPressed:
                               (_trustAware && _recoveryAware)
                                   ? () => _verifyAndDeleteWallet(context)
@@ -105,6 +103,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   }
 
   void _verifyAndDeleteWallet(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
         final navigator = Navigator.of(context);
@@ -134,10 +133,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
             }
           } else {
             if (context.mounted) {
-              AppSnackBar.error(
-                context,
-                'Erro ao deletar carteira. Tente novamente.',
-              );
+              AppSnackBar.error(context, t.delete_wallet_error);
             }
           }
         } catch (e) {
@@ -149,7 +145,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
           }
 
           if (context.mounted) {
-            AppSnackBar.error(context, 'Erro inesperado: $e');
+            AppSnackBar.error(context, t.error_unexpected(e.toString()));
           }
         }
       },

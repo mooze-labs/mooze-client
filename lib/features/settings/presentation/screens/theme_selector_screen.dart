@@ -3,35 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class ThemeSelectorScreen extends ConsumerWidget {
   const ThemeSelectorScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final currentMode = ref.watch(themeModeProvider);
 
     final options = [
       _ThemeOption(
         mode: ThemeMode.system,
-        label: 'Sistema',
+        label: t.theme_system,
         icon: Icons.brightness_auto_rounded,
       ),
       _ThemeOption(
         mode: ThemeMode.light,
-        label: 'Claro',
+        label: t.theme_light,
         icon: Icons.light_mode_rounded,
       ),
       _ThemeOption(
         mode: ThemeMode.dark,
-        label: 'Escuro',
+        label: t.theme_dark,
         icon: Icons.dark_mode_rounded,
       ),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tema'),
+        title: Text(t.settings_theme),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -46,7 +48,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
                 child: Text(
-                  'APARÊNCIA',
+                  t.settings_section_appearance,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),

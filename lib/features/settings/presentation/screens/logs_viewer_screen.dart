@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/domain/entities/logs_source.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_filter_bar.dart';
@@ -247,6 +248,17 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     return logs;
   }
 
+  String _sourceLabel(AppLocalizations t, LogSource source) {
+    switch (source) {
+      case LogSource.memory:
+        return t.logs_source_memory;
+      case LogSource.database:
+        return t.logs_source_database;
+      case LogSource.all:
+        return t.logs_source_all;
+    }
+  }
+
   /// Convert AppLog to LogEntry for display
   LogEntry _toLogEntry(dynamic log) {
     if (log is LogEntry) return log;
@@ -273,9 +285,10 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
     final filteredLogs = _getFilteredLogs();
+    final t = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(elevation: 0, title: const Text('Application Logs')),
+      appBar: AppBar(elevation: 0, title: Text(t.logs_viewer_title)),
       body: Column(
         children: [
           Container(
@@ -296,7 +309,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                             .map(
                               (source) => ButtonSegment(
                                 value: source,
-                                label: Text(source.label),
+                                label: Text(_sourceLabel(t, source)),
                               ),
                             )
                             .toList(),
@@ -343,7 +356,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           Text(
-                            'Carregando logs...',
+                            t.logs_viewer_loading,
                             style: textTheme.bodySmall?.copyWith(
                               color: context.colors.textSecondary,
                             ),
@@ -354,7 +367,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                     : filteredLogs.isEmpty
                     ? Center(
                       child: Text(
-                        'No logs found',
+                        t.logs_viewer_empty,
                         style: textTheme.bodySmall?.copyWith(
                           color: context.colors.textSecondary,
                         ),
