@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
@@ -93,6 +94,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       _isVerifying = true;
     });
 
+    final t = AppLocalizations.of(context);
     bool navigated = false;
 
     try {
@@ -103,12 +105,12 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
         await Future.delayed(const Duration(seconds: 1));
         widget.onPinConfirmed();
       } else if (mounted) {
-        AppSnackBar.error(context, 'PIN incorreto. Tente novamente.');
+        AppSnackBar.error(context, t.pin_incorrect);
         _pinController.clear();
       }
     } catch (e) {
       if (mounted) {
-        AppSnackBar.error(context, 'Erro: ${e.toString()}');
+        AppSnackBar.error(context, t.error_generic(e.toString()));
         _pinController.clear();
       }
     } finally {
@@ -130,16 +132,20 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
 
     setState(() => _isBiometricLoading = true);
 
+    final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
 
     final result = await biometricService
-        .authenticate(reason: 'Use sua biometria para acessar sua carteira')
+        .authenticate(reason: t.pin_biometric_access_reason)
         .run();
 
     if (!mounted) return;
 
     result.fold(
-      (error) => AppSnackBar.error(context, 'Erro ao autenticar: $error'),
+      (error) => AppSnackBar.error(
+        context,
+        t.biometric_auth_error(error),
+      ),
       (authenticated) {
         if (authenticated) widget.onPinConfirmed();
         // If the user dismissed without authenticating the PIN form remains
@@ -156,30 +162,28 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   /// Only shown when biometric authentication is NOT enabled, so there is no
   /// duplicate with the regular biometric flow.
   Future<void> _authWithDeviceCredential() async {
+    final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
 
     final isAvailable = await biometricService.isAvailable().run();
     if (!mounted) return;
 
     if (!isAvailable) {
-      AppSnackBar.warning(
-        context,
-        'Biometria ou senha do sistema não disponível.',
-      );
+      AppSnackBar.warning(context, t.pin_biometric_unavailable);
       return;
     }
 
     final result = await biometricService
-        .authenticate(
-          reason:
-              'Use sua biometria ou senha do dispositivo para redefinir o PIN',
-        )
+        .authenticate(reason: t.pin_reset_biometric_reason)
         .run();
 
     if (!mounted) return;
 
     result.fold(
-      (error) => AppSnackBar.error(context, 'Erro ao autenticar: $error'),
+      (error) => AppSnackBar.error(
+        context,
+        t.biometric_auth_error(error),
+      ),
       (authenticated) {
         if (authenticated) widget.onPinConfirmed();
       },
@@ -188,9 +192,10 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Validar PIN')),
+        appBar: AppBar(title: Text(t.pin_validate_title)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -201,7 +206,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       canPop: canGoBack,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Validação de segurança'),
+          title: Text(t.pin_validate_security),
           leading:
               canGoBack
                   ? IconButton(
@@ -221,9 +226,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                   text: TextSpan(
                     style: Theme.of(context).textTheme.headlineSmall,
                     children: [
-                      const TextSpan(text: 'Validar '),
+                      TextSpan(text: t.pin_validate_action),
                       TextSpan(
-                        text: 'PIN',
+                        text: t.pin_word,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -236,7 +241,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     style: Theme.of(context).textTheme.bodyLarge,
-                    text: 'Digite seu PIN para continuar com segurança.',
+                    text: t.pin_validate_body,
                   ),
                 ),
                 const SizedBox(height: 50),
@@ -249,7 +254,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
-                  text: 'Continuar',
+                  text: t.common_continue,
                   onPressed: _onContinuePressed,
                   isEnabled: _isPinValid && !_isVerifying,
                   isLoading: _isVerifying,
@@ -270,16 +275,16 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                             : const Icon(Icons.fingerprint),
-                    label: const Text('Usar biometria'),
+                    label: Text(t.pin_use_biometric),
                   ),
                 ] else ...[
                   // Biometric not enabled — show an emergency device-credential
                   // fallback for users who forgot their PIN.
-                  const Text('Esqueceu seu PIN?'),
+                  Text(t.pin_forgot),
                   TextButton(
                     onPressed: _authWithDeviceCredential,
                     child: Text(
-                      'Use a senha do dispositivo',
+                      t.pin_use_device_password,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                       ),

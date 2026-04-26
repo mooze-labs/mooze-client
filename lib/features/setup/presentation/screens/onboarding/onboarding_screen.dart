@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/data/onboarding/onboarding_data.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/onboarding_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -30,7 +31,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   static const double _indicatorActiveWidth = 24.0;
   static const double _indicatorInactiveSize = 8.0;
   static const double _horizontalPadding = 24.0;
-  static const List<OnboardingPageData> _pages = OnboardingPageData.pages;
+
+  /// Resolved on every build so locale changes propagate without recreating
+  /// the state. The list itself is cheap to build.
+  late List<OnboardingPageData> _pages;
 
   @override
   void dispose() {
@@ -70,16 +74,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     });
   }
 
-  String get _buttonText {
-    return _currentIndex == _pages.length - 1 ? 'Começar' : 'Próximo';
+  String _buttonText(AppLocalizations t) {
+    return _currentIndex == _pages.length - 1 ? 'Começar' : t.common_next;
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    _pages = OnboardingPageData.items(t);
     return Scaffold(
       body: SafeArea(
         child: Column(
-          children: [_buildHeader(), _buildPageView(), _buildBottomSection()],
+          children: [
+            _buildHeader(),
+            _buildPageView(),
+            _buildBottomSection(t),
+          ],
         ),
       ),
     );
@@ -183,21 +193,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildBottomSection() {
+  Widget _buildBottomSection(AppLocalizations t) {
     return Column(
       children: [
         const SizedBox(height: 24),
-        _buildPrimaryButton(),
+        _buildPrimaryButton(t),
         _buildSkipButton(),
         const SizedBox(height: 24),
       ],
     );
   }
 
-  Widget _buildPrimaryButton() {
+  Widget _buildPrimaryButton(AppLocalizations t) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-      child: PrimaryButton(text: _buttonText, onPressed: _handleNextPage),
+      child: PrimaryButton(text: _buttonText(t), onPressed: _handleNextPage),
     );
   }
 

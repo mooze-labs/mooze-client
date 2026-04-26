@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 
 import 'widgets.dart';
@@ -24,12 +25,13 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
 
     return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text("Importar Carteira"),
+          title: Text(t.setup_import_appbar),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () {
@@ -41,7 +43,7 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
             if (state.confirmedWords.isNotEmpty)
               IconButton(
                 icon: Icon(Icons.refresh),
-                tooltip: 'Recomeçar',
+                tooltip: t.setup_import_restart_tooltip,
                 onPressed: () {
                   ref.read(seedPhraseProvider.notifier).reset();
                 },
@@ -82,7 +84,7 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  "Digite sua frase de recuperação",
+                                  t.setup_import_instruction_title,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.titleMedium?.copyWith(
@@ -96,7 +98,7 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "Digite cada palavra da sua seed phrase (12 ou 24 palavras). O sistema oferecerá sugestões BIP39 conforme você digita. Pressione espaço ou clique para confirmar cada palavra.",
+                            t.setup_import_instruction_body,
                             style: Theme.of(
                               context,
                             ).textTheme.bodyMedium?.copyWith(
@@ -149,8 +151,8 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                             Expanded(
                               child: Text(
                                 state.isValid
-                                    ? 'Seed phrase válida! Pronta para importar.'
-                                    : 'Checksum inválido. Verifique as palavras.',
+                                    ? t.setup_import_seed_valid
+                                    : t.setup_import_checksum_invalid,
                                 style: TextStyle(
                                   color:
                                       state.isValid
@@ -189,7 +191,7 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Dica: Pressione espaço para confirmar a primeira sugestão rapidamente',
+                                t.setup_import_tip,
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodySmall?.copyWith(
