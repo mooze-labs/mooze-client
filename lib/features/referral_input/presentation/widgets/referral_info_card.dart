@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Promotional card displaying referral program benefits.
 ///
@@ -13,6 +14,7 @@ class ReferralInfoCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final positiveColor = colorScheme.tertiary;
     final onPositive = colorScheme.onTertiary;
+    final t = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -62,7 +64,7 @@ class ReferralInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Economize com indicações!',
+            t.referral_save_title,
             style: textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
@@ -77,7 +79,7 @@ class ReferralInfoCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'ATÉ 15% DE DESCONTO',
+              t.referral_discount_badge,
               style: textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: onPositive,
@@ -86,7 +88,7 @@ class ReferralInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Digite seu código de indicação e aproveite descontos exclusivos em todas as taxas da plataforma.',
+            t.referral_save_description,
             style: textTheme.titleSmall?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
               height: 1.5,
