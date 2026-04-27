@@ -246,6 +246,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
+              title: t.settings_section_network,
+              settingsItems: [
+                ConfigStructure(
+                  title: t.settings_node_config,
+                  iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/node-config',
+                  ),
+                ),
+              ],
+            ),
+            SectionSettings(
               title: t.settings_section_developer,
               settingsItems: [
                 ConfigStructure(

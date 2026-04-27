@@ -5,7 +5,9 @@ import 'package:mooze_mobile/shared/utils/result.dart';
 /// Bitcoin Settings Local Data Source Implementation (External Layer)
 ///
 /// Storage Key: 'bitcoin_node_url'
-/// Default: empty string
+/// Returns an empty string when the key is absent — the consumer
+/// (BDK blockchain provider) treats absence as "default mode" and
+/// engages the built-in fallback rotation.
 class BitcoinSettingsLocalDataSource implements BlockchainSettingsDataSource {
   static const String _key = 'bitcoin_node_url';
 
@@ -31,6 +33,20 @@ class BitcoinSettingsLocalDataSource implements BlockchainSettingsDataSource {
     } catch (e) {
       return Failure(
         'Erro ao obter a URL do node: ${e.toString()}',
+        e as Exception?,
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> clearNodeUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_key);
+      return const Success(null);
+    } catch (e) {
+      return Failure(
+        'Erro ao remover a URL do node: ${e.toString()}',
         e as Exception?,
       );
     }

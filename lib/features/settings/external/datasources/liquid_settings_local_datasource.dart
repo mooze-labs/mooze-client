@@ -5,10 +5,11 @@ import 'package:mooze_mobile/shared/utils/result.dart';
 /// Liquid Settings Local Data Source Implementation (External Layer)
 ///
 /// Storage Key: 'liquid_node_url'
-/// Default: 'blockstream.info:465'
+/// Returns an empty string when the key is absent — the consumer
+/// (LWK electrum node provider) treats absence as "default mode" and
+/// engages the built-in fallback rotation.
 class LiquidSettingsLocalDataSource implements BlockchainSettingsDataSource {
   static const String _key = 'liquid_node_url';
-  static const String _defaultUrl = 'blockstream.info:465';
 
   @override
   Future<Result<void>> setNodeUrl(String url) async {
@@ -28,10 +29,24 @@ class LiquidSettingsLocalDataSource implements BlockchainSettingsDataSource {
   Future<Result<String>> getNodeUrl() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return Success(prefs.getString(_key) ?? _defaultUrl);
+      return Success(prefs.getString(_key) ?? '');
     } catch (e) {
       return Failure(
         'Erro ao obter a URL do node: ${e.toString()}',
+        e as Exception?,
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> clearNodeUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_key);
+      return const Success(null);
+    } catch (e) {
+      return Failure(
+        'Erro ao remover a URL do node: ${e.toString()}',
         e as Exception?,
       );
     }

@@ -35,4 +35,16 @@ class BlockchainSettingsRepositoryImpl implements BlockchainSettingsRepository {
       );
     }
   }
+
+  @override
+  Future<Result<void>> clearNodeUrl() async {
+    try {
+      return await _dataSource.clearNodeUrl();
+    } catch (e) {
+      return Failure(
+        'Erro ao remover a URL do node: ${e.toString()}',
+        e as Exception?,
+      );
+    }
+  }
 }

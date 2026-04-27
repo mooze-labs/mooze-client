@@ -284,6 +284,9 @@ class _NullLiquidDataSource implements LiquidDataSource {
   final String dbPath = '';
 
   @override
+  final bool useFallback = true;
+
+  @override
   get database => null;
 
   @override
