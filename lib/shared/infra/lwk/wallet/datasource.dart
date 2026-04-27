@@ -25,6 +25,12 @@ class LiquidDataSource implements SyncableDataSource {
   final AppDatabase? database;
   final Ref ref;
 
+  /// When false, sync retries against the same [electrumUrl] without
+  /// rotating to the built-in fallback servers. Set this to false only
+  /// when the user has supplied a custom URL AND explicitly disabled
+  /// fallback. Defaults to true to preserve existing behavior.
+  final bool useFallback;
+
   bool _isSyncing = false;
 
   LiquidDataSource({
@@ -37,6 +43,7 @@ class LiquidDataSource implements SyncableDataSource {
     required this.syncStream,
     required this.ref,
     this.database,
+    this.useFallback = true,
   }) {
     debugPrint(
       '[LiquidDataSource] Created with SyncStreamController hashCode: ${syncStream.hashCode}',
@@ -91,9 +98,11 @@ class LiquidDataSource implements SyncableDataSource {
       );
 
       for (int attempt = 0; attempt < maxAttempts && !syncSuccess; attempt++) {
-        // On first attempt, use the URL from constructor
-        // On subsequent attempts, use fallback system
-        if (attempt > 0) {
+        // On first attempt, use the URL from constructor.
+        // On subsequent attempts, use fallback system — unless the user
+        // pinned a specific URL and disabled fallback, in which case
+        // we keep retrying against the same endpoint.
+        if (attempt > 0 && useFallback) {
           currentUrl = LiquidElectrumFallback.getCurrentServer();
         }
 
@@ -158,8 +167,10 @@ class LiquidDataSource implements SyncableDataSource {
             "[LiquidDataSource] Tentativa ${attempt + 1} falhou: $errorMsg",
           );
 
-          // Report failure and check if we should switch servers
-          final shouldSwitch = LiquidElectrumFallback.reportFailure(errorMsg);
+          // Report failure and check if we should switch servers.
+          // Skip server rotation entirely when fallback is disabled.
+          final shouldSwitch = useFallback &&
+              LiquidElectrumFallback.reportFailure(errorMsg);
 
           if (shouldSwitch && attempt < maxAttempts - 1) {
             final newServer = LiquidElectrumFallback.switchToNextServer();
