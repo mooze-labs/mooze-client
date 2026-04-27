@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
@@ -17,17 +18,17 @@ class ThemeSelectorScreen extends ConsumerWidget {
       _ThemeOption(
         mode: ThemeMode.system,
         label: t.theme_system,
-        icon: Icons.brightness_auto_rounded,
+        iconAsset: 'assets/icons/menu/settings/theme.svg',
       ),
       _ThemeOption(
         mode: ThemeMode.light,
         label: t.theme_light,
-        icon: Icons.light_mode_rounded,
+        iconAsset: 'assets/icons/menu/settings/sun.svg',
       ),
       _ThemeOption(
         mode: ThemeMode.dark,
         label: t.theme_dark,
-        icon: Icons.dark_mode_rounded,
+        iconAsset: 'assets/icons/menu/settings/moon.svg',
       ),
     ];
 
@@ -116,13 +117,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      option.icon,
-                      size: 20,
-                      color:
-                          isSelected
-                              ? colorScheme.primary
-                              : colorScheme.onSurface,
+                    SvgPicture.asset(
+                      option.iconAsset,
+                      width: 20,
+                      height: 20,
                     ),
                     const SizedBox(width: 20),
                     Text(
@@ -154,11 +152,11 @@ class ThemeSelectorScreen extends ConsumerWidget {
 class _ThemeOption {
   final ThemeMode mode;
   final String label;
-  final IconData icon;
+  final String iconAsset;
 
   const _ThemeOption({
     required this.mode,
     required this.label,
-    required this.icon,
+    required this.iconAsset,
   });
 }
