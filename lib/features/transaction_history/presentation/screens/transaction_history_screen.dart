@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,15 +13,16 @@ import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart'
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
-class TransactionHistoryScreen extends StatefulWidget {
+class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
 
   @override
-  State<TransactionHistoryScreen> createState() =>
+  ConsumerState<TransactionHistoryScreen> createState() =>
       _TransactionHistoryScreenState();
 }
 
-class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
+class _TransactionHistoryScreenState
+    extends ConsumerState<TransactionHistoryScreen> {
   TransactionFiltersEntity _filters = TransactionFiltersEntity();
   List<AssetEntity> _allAssets = [];
 
@@ -144,22 +144,6 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-          Consumer(
-            builder: (context, ref, _) {
-              return IconButton(
-                icon: Icon(Icons.refresh, color: context.colors.primaryColor),
-                onPressed: () {
-                  ref.invalidate(transactionHistoryProvider);
-                  if (kDebugMode) {
-                    print(
-                      '[TransactionHistoryScreen] Provider invalidado manualmente',
-                    );
-                  }
-                },
-                tooltip: t.tx_history_refresh_debug,
-              );
-            },
-          ),
           IconButton(
             icon: Icon(
               Icons.filter_alt_outlined,
@@ -170,34 +154,87 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight:
-                MediaQuery.of(context).size.height -
-                MediaQuery.of(context).padding.top -
-                kToolbarHeight -
-                32,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Consumer(
-              builder: (context, ref, _) {
-                final transactionHistory = ref.watch(
-                  transactionHistoryProvider,
-                );
-                final isVisible = ref.watch(isVisibleProvider);
-                return transactionHistory.when(
-                  data:
-                      (data) => data.fold(
-                        (err) => Center(child: ErrorTransactionList()),
-                        (transactions) {
-                          final filteredTransactions = _applyFilters(
-                            transactions,
-                          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(transactionHistoryProvider);
+          try {
+            await ref.read(transactionHistoryProvider.future);
+          } catch (_) {}
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  kToolbarHeight -
+                  32,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final transactionHistory = ref.watch(
+                    transactionHistoryProvider,
+                  );
+                  final isVisible = ref.watch(isVisibleProvider);
+                  return transactionHistory.when(
+                    data:
+                        (data) => data.fold(
+                          (err) => Center(child: ErrorTransactionList()),
+                          (transactions) {
+                            final filteredTransactions = _applyFilters(
+                              transactions,
+                            );
 
-                          if (filteredTransactions.isEmpty) {
+                            if (filteredTransactions.isEmpty) {
+                              return Column(
+                                children: [
+                                  if (_hasActiveFilters) ...[
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: context.colors.primaryColor
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: context.colors.primaryColor
+                                              .withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.info_outline,
+                                            color: context.colors.primaryColor,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              t.tx_history_filters_active(
+                                                _getActiveFiltersDescription(),
+                                              ),
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: _clearFilters,
+                                            child: Text(t.tx_history_clear),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  Center(child: EmptyTransactionList()),
+                                  const SizedBox(height: 80),
+                                ],
+                              );
+                            }
+
                             return Column(
                               children: [
                                 if (_hasActiveFilters) ...[
@@ -206,9 +243,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                     padding: const EdgeInsets.all(12),
                                     margin: const EdgeInsets.only(bottom: 16),
                                     decoration: BoxDecoration(
-                                      color: context.colors.primaryColor.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                      color: context.colors.primaryColor
+                                          .withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
                                         color: context.colors.primaryColor
@@ -217,16 +253,17 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(
-                                          Icons.info_outline,
-                                          color: context.colors.primaryColor,
-                                          size: 20,
-                                        ),
+                                        Icon(Icons.filter_alt, size: 20),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            t.tx_history_filters_active(
-                                              _getActiveFiltersDescription(),
+                                            t.tx_history_filter_count(
+                                              filteredTransactions.length,
+                                              transactions.length,
+                                              _getActiveFiltersDescription()
+                                                      .isNotEmpty
+                                                  ? _getActiveFiltersDescription()
+                                                  : t.tx_history_filter_default,
                                             ),
                                             style: TextStyle(fontSize: 12),
                                           ),
@@ -239,68 +276,20 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                     ),
                                   ),
                                 ],
-                                Center(child: EmptyTransactionList()),
+                                SuccessfulTransactionList(
+                                  transactions: filteredTransactions,
+                                  isVisible: isVisible,
+                                ),
                                 const SizedBox(height: 80),
                               ],
                             );
-                          }
-
-                          return Column(
-                            children: [
-                              if (_hasActiveFilters) ...[
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  decoration: BoxDecoration(
-                                    color: context.colors.primaryColor.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: context.colors.primaryColor.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.filter_alt, size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          t.tx_history_filter_count(
-                                            filteredTransactions.length,
-                                            transactions.length,
-                                            _getActiveFiltersDescription()
-                                                    .isNotEmpty
-                                                ? _getActiveFiltersDescription()
-                                                : t.tx_history_filter_default,
-                                          ),
-                                          style: TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: _clearFilters,
-                                        child: Text(t.tx_history_clear),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              SuccessfulTransactionList(
-                                transactions: filteredTransactions,
-                                isVisible: isVisible,
-                              ),
-                              const SizedBox(height: 80),
-                            ],
-                          );
-                        },
-                      ),
-                  error: (err, stackTrace) => ErrorTransactionList(),
-                  loading: () => LoadingTransactionList(),
-                );
-              },
+                          },
+                        ),
+                    error: (err, stackTrace) => ErrorTransactionList(),
+                    loading: () => LoadingTransactionList(),
+                  );
+                },
+              ),
             ),
           ),
         ),
