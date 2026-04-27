@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_controller.dart';
@@ -154,7 +155,7 @@ class ReceiveConversionPreview extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Carregando conversões...',
+                AppLocalizations.of(context).receive_conversion_loading,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
@@ -191,7 +192,7 @@ class ReceiveConversionPreview extends ConsumerWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Conversões equivalentes:',
+                    AppLocalizations.of(context).receive_conversion_equivalent,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.primary,
@@ -222,7 +223,7 @@ class ReceiveConversionPreview extends ConsumerWidget {
                   satsValue != null)
                 _ConversionRow(
                   icon: Icons.bolt,
-                  label: 'Satoshis:',
+                  label: AppLocalizations.of(context).receive_satoshis_label,
                   value: SatsInputFormatter.formatValue(satsValue),
                   suffix: 'sats',
                 ),

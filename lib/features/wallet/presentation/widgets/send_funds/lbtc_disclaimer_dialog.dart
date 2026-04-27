@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// One-time disclaimer shown on the first access to the Send screen.
 /// Informs users that L-BTC is required to pay network mining fees.
@@ -55,6 +56,7 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -66,7 +68,7 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Como funciona o envio de ativos',
+              t.wallet_send_lbtc_disclaimer_title,
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -79,22 +81,22 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Para enviar ativos (Bitcoin L2, DePIX ou USDT), você precisa manter um saldo de Bitcoin L2 na sua carteira.',
+            t.wallet_send_lbtc_disclaimer_body,
             style: textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 16),
           _buildInfoItem(
             colorScheme,
             Icons.bolt,
-            'Taxas de rede',
-            'O saldo de Bitcoin L2 é usado para pagar as taxas dos mineradores da rede Liquid.',
+            t.wallet_send_lbtc_network_fees_title,
+            t.wallet_send_lbtc_network_fees_desc,
           ),
           const SizedBox(height: 12),
           _buildInfoItem(
             colorScheme,
             Icons.swap_horiz,
-            'Como obter Bitcoin L2',
-            'Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.',
+            t.wallet_send_lbtc_obtain_title,
+            t.wallet_send_lbtc_obtain_desc_disclaimer,
             highlightText: 'SWAP',
             highlightRecognizer: _swapRecognizer,
           ),
@@ -111,7 +113,7 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Mantenha um pequeno saldo de Bitcoin L2 para garantir que suas transações sejam processadas.',
+                    t.wallet_send_lbtc_disclaimer_tip,
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.8),
                       height: 1.4,
@@ -139,8 +141,10 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
             ),
             child: Text(
               _secondsRemaining == 0
-                  ? 'Entendi'
-                  : 'Entendi ($_secondsRemaining)',
+                  ? t.common_understood
+                  : t.wallet_send_lbtc_disclaimer_understood_countdown(
+                    _secondsRemaining,
+                  ),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),

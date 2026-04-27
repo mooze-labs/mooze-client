@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../../providers/send_funds/drain_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
@@ -9,6 +10,7 @@ class DrainInfoWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final isDrainTransaction = ref.watch(isDrainTransactionProvider);
     final selectedAsset = ref.watch(selectedAssetProvider);
 
@@ -38,7 +40,7 @@ class DrainInfoWidget extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                "Envio Total de Fundos",
+                t.wallet_send_drain_title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.primary,
@@ -48,7 +50,7 @@ class DrainInfoWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            "Você selecionou enviar todos os fundos do ativo ${selectedAsset.name}.",
+            t.wallet_send_drain_body(selectedAsset.name),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
@@ -72,7 +74,7 @@ class DrainInfoWidget extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "Pronto para revisar - as taxas serão deduzidas do valor total",
+                    t.wallet_send_drain_ready,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w500,

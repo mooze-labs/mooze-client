@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -65,7 +66,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Text(
-      'Você receberá',
+      AppLocalizations.of(context).pix_you_will_receive,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
         color: Theme.of(context).colorScheme.primary,
         fontWeight: FontWeight.w700,
@@ -126,7 +127,9 @@ class PaymentDetailsDisplay extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'de R\$ ${reaisAmount.toStringAsFixed(2).replaceAll('.', ',')}',
+          AppLocalizations.of(context).pix_of_amount(
+            reaisAmount.toStringAsFixed(2).replaceAll('.', ','),
+          ),
           style: textTheme.labelLarge?.copyWith(
             color: colorScheme.onSurface.withValues(alpha: 0.5),
             letterSpacing: 0.3,
@@ -142,6 +145,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
     Future<double> feeRate,
     int amountInCents,
   ) {
+    final t = AppLocalizations.of(context);
     final isFixedFee = amountInCents < minimumAmountForVariableFee;
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
@@ -149,7 +153,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Taxas aplicadas',
+          t.pix_fees_applied,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: onSurface.withValues(alpha: 0.6),
             fontWeight: FontWeight.w600,
@@ -158,7 +162,7 @@ class PaymentDetailsDisplay extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         if (isFixedFee) ...[
-          InfoRow(label: 'Taxa fixa', value: 'R\$ 1,00'),
+          InfoRow(label: t.pix_fee_fixed_label, value: 'R\$ 1,00'),
         ] else ...[
           FutureBuilder<double>(
             future: feeRate,
@@ -166,20 +170,20 @@ class PaymentDetailsDisplay extends ConsumerWidget {
               if (snapshot.hasData) {
                 final feeAmount = depositAmountInReais * (snapshot.data! / 100);
                 return InfoRow(
-                  label: 'Taxa Mooze',
+                  label: t.pix_fee_mooze,
                   value:
                       'R\$ ${feeAmount.toStringAsFixed(2).replaceAll('.', ',')}',
                 );
               }
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const ShimmerInfoRow(label: 'Taxa Mooze');
+                return ShimmerInfoRow(label: t.pix_fee_mooze);
               }
-              return const InfoRow(label: 'Taxa Mooze', value: 'N/A');
+              return InfoRow(label: t.pix_fee_mooze, value: 'N/A');
             },
           ),
         ],
         const SizedBox(height: 6),
-        const InfoRow(label: 'Taxa da processadora', value: 'R\$ 1,00'),
+        InfoRow(label: t.pix_fee_processor, value: 'R\$ 1,00'),
       ],
     );
   }

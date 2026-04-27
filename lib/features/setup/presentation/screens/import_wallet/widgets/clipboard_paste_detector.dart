@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -62,14 +63,14 @@ class _ClipboardPasteDetectorState
     } else {
       if (mounted) {
         final state = ref.read(seedPhraseProvider);
-        if (state.errorMessage != null) {
+        if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
                   Icon(Icons.error_outline, color: Colors.white),
                   SizedBox(width: 8),
-                  Expanded(child: Text(state.errorMessage!)),
+                  Expanded(child: Text(state.error!.localize(context))),
                 ],
               ),
               backgroundColor: Colors.red,
@@ -83,6 +84,7 @@ class _ClipboardPasteDetectorState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
 
     if (!_showBanner ||
@@ -121,7 +123,7 @@ class _ClipboardPasteDetectorState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Frase semente detectada',
+                  t.setup_clipboard_detected_title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -129,7 +131,7 @@ class _ClipboardPasteDetectorState
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Detectamos uma frase na área de transferência',
+                  t.setup_clipboard_detected_body,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
@@ -157,7 +159,7 @@ class _ClipboardPasteDetectorState
                   children: [
                     Icon(Icons.check, size: 18),
                     SizedBox(width: 4),
-                    Text('Colar'),
+                    Text(t.setup_clipboard_paste_button),
                   ],
                 ),
               ),
@@ -171,7 +173,10 @@ class _ClipboardPasteDetectorState
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
-                child: Text('Ignorar', style: TextStyle(fontSize: 12)),
+                child: Text(
+                  t.setup_clipboard_ignore_button,
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
             ],
           ),

@@ -1,39 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
+import 'package:mooze_mobile/features/settings/presentation/providers/locale_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
-class ThemeSelectorScreen extends ConsumerWidget {
-  const ThemeSelectorScreen({super.key});
+class LanguageSelectorScreen extends ConsumerWidget {
+  const LanguageSelectorScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final currentMode = ref.watch(themeModeProvider);
+    final current = ref.watch(localeProvider);
 
-    final options = [
-      _ThemeOption(
-        mode: ThemeMode.system,
-        label: t.theme_system,
-        icon: Icons.brightness_auto_rounded,
+    final options = <_LanguageOption>[
+      _LanguageOption(locale: null, label: t.language_system),
+      _LanguageOption(
+        locale: const Locale('pt'),
+        label: t.language_portuguese,
       ),
-      _ThemeOption(
-        mode: ThemeMode.light,
-        label: t.theme_light,
-        icon: Icons.light_mode_rounded,
+      _LanguageOption(
+        locale: const Locale('en'),
+        label: t.language_english,
       ),
-      _ThemeOption(
-        mode: ThemeMode.dark,
-        label: t.theme_dark,
-        icon: Icons.dark_mode_rounded,
+      _LanguageOption(
+        locale: const Locale('es'),
+        label: t.language_spanish,
       ),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.settings_theme),
+        title: Text(t.settings_language),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -48,7 +46,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
                 child: Text(
-                  t.settings_section_appearance,
+                  t.settings_section_language,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -63,7 +61,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
                           context: context,
                           ref: ref,
                           option: option,
-                          currentMode: currentMode,
+                          current: current,
                         ),
                         if (index < options.length - 1) const LabelDivider(),
                       ],
@@ -81,55 +79,28 @@ class ThemeSelectorScreen extends ConsumerWidget {
   Widget _buildOption({
     required BuildContext context,
     required WidgetRef ref,
-    required _ThemeOption option,
-    required ThemeMode currentMode,
+    required _LanguageOption option,
+    required Locale? current,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isSelected = currentMode == option.mode;
+    final isSelected = current?.languageCode == option.locale?.languageCode;
 
     return Container(
-      decoration: BoxDecoration(
-        // gradient: isSelected
-        //     ? LinearGradient(
-        //         begin: Alignment.centerRight,
-        //         end: Alignment.centerLeft,
-        //         colors: [
-        //           colorScheme.primary,
-        //           colorScheme.surfaceContainerLowest,
-        //         ],
-        //       )
-        //     : null,
-        color: colorScheme.surfaceContainerLow,
-      ),
+      decoration: BoxDecoration(color: colorScheme.surfaceContainerLow),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap:
-              () => ref
-                  .read(themeModeProvider.notifier)
-                  .setThemeMode(option.mode),
+          onTap: () =>
+              ref.read(localeProvider.notifier).setLocale(option.locale),
           child: Padding(
             padding: const EdgeInsets.only(top: 10, bottom: 10, left: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      option.icon,
-                      size: 20,
-                      color:
-                          isSelected
-                              ? colorScheme.primary
-                              : colorScheme.onSurface,
-                    ),
-                    const SizedBox(width: 20),
-                    Text(
-                      option.label,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ],
+                Text(
+                  option.label,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(right: 20),
@@ -138,8 +109,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
                         ? Icons.check_circle_rounded
                         : Icons.radio_button_unchecked_rounded,
                     size: 20,
-                    color:
-                        isSelected ? colorScheme.primary : colorScheme.primary,
+                    color: colorScheme.primary,
                   ),
                 ),
               ],
@@ -151,14 +121,9 @@ class ThemeSelectorScreen extends ConsumerWidget {
   }
 }
 
-class _ThemeOption {
-  final ThemeMode mode;
+class _LanguageOption {
+  final Locale? locale;
   final String label;
-  final IconData icon;
 
-  const _ThemeOption({
-    required this.mode,
-    required this.label,
-    required this.icon,
-  });
+  const _LanguageOption({required this.locale, required this.label});
 }

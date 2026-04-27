@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class SlideToConfirmButton extends StatefulWidget {
   final VoidCallback onSlideComplete;
@@ -110,7 +111,9 @@ class SlideToConfirmButtonState extends State<SlideToConfirmButton>
           // Texto de fundo
           Center(
             child: Text(
-              widget.isLoading ? "Processando..." : widget.text,
+              widget.isLoading
+                  ? AppLocalizations.of(context).common_processing
+                  : widget.text,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,

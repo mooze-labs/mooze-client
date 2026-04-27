@@ -24,7 +24,7 @@ class ProductRepositoryImpl implements ProductRepository {
       return await _dataSource.create(product);
     } catch (e) {
       // Convert exceptions to domain Failures
-      return Failure('Erro ao criar produto: ${e.toString()}', e as Exception?);
+      return Failure('Failed to create product: ${e.toString()}', e as Exception?);
     }
   }
 
@@ -34,7 +34,7 @@ class ProductRepositoryImpl implements ProductRepository {
       return await _dataSource.getAll();
     } catch (e) {
       return Failure(
-        'Erro ao buscar produtos: ${e.toString()}',
+        'Failed to fetch products: ${e.toString()}',
         e as Exception?,
       );
     }
@@ -46,7 +46,7 @@ class ProductRepositoryImpl implements ProductRepository {
       return await _dataSource.getById(id);
     } catch (e) {
       return Failure(
-        'Erro ao buscar produto: ${e.toString()}',
+        'Failed to fetch product: ${e.toString()}',
         e as Exception?,
       );
     }
@@ -58,7 +58,7 @@ class ProductRepositoryImpl implements ProductRepository {
       return await _dataSource.update(product);
     } catch (e) {
       return Failure(
-        'Erro ao atualizar produto: ${e.toString()}',
+        'Failed to update product: ${e.toString()}',
         e as Exception?,
       );
     }
@@ -70,7 +70,7 @@ class ProductRepositoryImpl implements ProductRepository {
       return await _dataSource.delete(id);
     } catch (e) {
       return Failure(
-        'Erro ao deletar produto: ${e.toString()}',
+        'Failed to delete product: ${e.toString()}',
         e as Exception?,
       );
     }

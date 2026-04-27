@@ -129,9 +129,9 @@ class MockRefundNotifier extends RefundNotifier {
     } else {
       state = state.copyWith(
         isLoading: false,
-        error: 'Erro simulado: Falha na transmissão da transação',
+        error: 'Simulated error: transaction broadcast failed',
       );
-      throw Exception('Erro simulado: Falha na transmissão da transação');
+      throw Exception('Simulated error: transaction broadcast failed');
     }
   }
 }

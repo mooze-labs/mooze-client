@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter_entity.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -53,6 +53,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final t = AppLocalizations.of(context);
           return Container(
             decoration: BoxDecoration(
               color: context.colors.surfaceColor,
@@ -95,7 +96,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                           Row(
                             children: [
                               Text(
-                                'Filtros PIX',
+                                t.tx_filter_pix_title,
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ],
@@ -103,7 +104,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                           const SizedBox(height: 15),
 
                           _buildFilterSection(
-                            title: 'Ordenar por',
+                            title: t.tx_filter_sort_by,
                             child: FilterOrderBy(
                               isMostRecentSelected: isMostRecentSelected,
                               onSelectionChanged: (isRecent) {
@@ -116,7 +117,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                           ),
 
                           _buildFilterSection(
-                            title: 'Status do depósito',
+                            title: t.tx_filter_deposit_status,
                             child: _buildOptimizedGrid(
                               context,
                               items: [
@@ -132,13 +133,14 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                   selectedStatus = status;
                                 });
                               },
-                              labelBuilder: (status) => _getStatusLabel(status),
+                              labelBuilder:
+                                  (status) => _getStatusLabel(t, status),
                             ),
                             context: context,
                           ),
 
                           _buildFilterSection(
-                            title: 'Moeda',
+                            title: t.tx_filter_currency,
                             child: Wrap(
                               spacing: 10,
                               runSpacing: 10,
@@ -218,7 +220,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                           ),
 
                           _buildFilterSection(
-                            title: 'Período',
+                            title: t.tx_filter_period,
                             child: StatefulBuilder(
                               builder: (
                                 BuildContext context,
@@ -372,7 +374,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                                       selectedDateRangeIndex ==
                                                           null
                                                   ? '${_formatDate(startDate!)} - ${_formatDate(endDate!)}'
-                                                  : 'Período personalizado',
+                                                  : t.tx_filter_period_custom,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
@@ -402,7 +404,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                             color: Colors.grey[600],
                                           ),
                                           label: Text(
-                                            'Limpar período',
+                                            t.tx_filter_clear_period,
                                             style: TextStyle(
                                               color: Colors.grey[600],
                                               fontWeight: FontWeight.w500,
@@ -422,7 +424,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                             children: [
                               Expanded(
                                 child: SecondaryButton(
-                                  text: 'Limpar filtros',
+                                  text: t.tx_filter_clear_filters,
                                   onPressed: () {
                                     Navigator.of(
                                       context,
@@ -433,7 +435,7 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                               const SizedBox(width: 8),
                               Expanded(
                                 child: PrimaryButton(
-                                  text: 'Aplicar filtros',
+                                  text: t.tx_filter_apply,
                                   onPressed: () {
                                     final filterMap = <String, dynamic>{};
                                     filterMap['status'] = selectedStatus;
@@ -594,9 +596,21 @@ DateTimeRange calculateDateRange({required int days}) {
   return DateTimeRange(start: startDate, end: endDate);
 }
 
-String _getStatusLabel(String status) {
-  if (status == 'all') return 'Todos';
-  return DepositStatus.fromString(status).label;
+String _getStatusLabel(AppLocalizations t, String status) {
+  switch (status) {
+    case 'all':
+      return t.tx_status_all;
+    case 'pending':
+      return t.pix_filter_status_pending;
+    case 'processing':
+      return t.pix_filter_status_processing;
+    case 'finished':
+      return t.pix_filter_status_finished;
+    case 'expired':
+      return t.pix_filter_status_expired;
+    default:
+      return status;
+  }
 }
 
 String _formatDate(DateTime date) {

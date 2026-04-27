@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class TimerCountdown extends StatefulWidget {
   final DateTime expireAt;
@@ -57,6 +58,7 @@ class _TimerCountdownState extends State<TimerCountdown> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final int minutes = _remainingTime.inMinutes;
     final int seconds = _remainingTime.inSeconds % 60;
 
@@ -65,15 +67,17 @@ class _TimerCountdownState extends State<TimerCountdown> {
       text: TextSpan(
         style: Theme.of(context).textTheme.bodyMedium,
         children: [
-          const TextSpan(text: 'Você tem '),
+          TextSpan(text: t.human_verif_time_remaining_prefix),
           TextSpan(
-            text: "$minutes minutos e $seconds segundos ",
+            text:
+                '$minutes ${t.human_verif_minutes_and}'
+                '$seconds ${t.human_verif_seconds}',
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const TextSpan(text: 'para concluir o pagamento.'),
+          TextSpan(text: t.human_verif_to_pay),
         ],
       ),
     );

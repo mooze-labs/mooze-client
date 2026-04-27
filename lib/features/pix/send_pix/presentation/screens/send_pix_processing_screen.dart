@@ -55,7 +55,6 @@ class _SendPixProcessingScreenState
       data: (result) {
         return result.fold((error) => _buildErrorScreen(error), (status) {
           if (status.status == 'completed') {
-            // Navegar para tela de sucesso
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 context.pushReplacement(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -75,6 +76,7 @@ class _HumanVerificationSuccessScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: context.colors.backgroundColor,
       body: PlatformSafeArea(
@@ -156,7 +158,7 @@ class _HumanVerificationSuccessScreenState
                       child: Column(
                         children: [
                           Text(
-                            'Humanidade Confirmada!',
+                            t.human_verif_success_title,
                             style: Theme.of(
                               context,
                             ).textTheme.headlineMedium?.copyWith(
@@ -169,7 +171,7 @@ class _HumanVerificationSuccessScreenState
                           const SizedBox(height: 16),
 
                           Text(
-                            'Sua identidade foi verificada com sucesso. Agora você pode utilizar todos os recursos da plataforma.',
+                            t.human_verif_success_body,
                             style: Theme.of(context).textTheme.bodyLarge
                                 ?.copyWith(color: context.colors.textSecondary),
                             textAlign: TextAlign.center,
@@ -213,7 +215,7 @@ class _HumanVerificationSuccessScreenState
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Verificação completa',
+                                            t.human_verif_success_card_title,
                                             style: Theme.of(
                                               context,
                                             ).textTheme.titleMedium?.copyWith(
@@ -223,7 +225,7 @@ class _HumanVerificationSuccessScreenState
                                           ),
                                           SizedBox(height: 4),
                                           Text(
-                                            'Você é uma pessoa real',
+                                            t.human_verif_success_card_body,
                                             style: Theme.of(
                                               context,
                                             ).textTheme.bodyMedium?.copyWith(
@@ -260,7 +262,7 @@ class _HumanVerificationSuccessScreenState
                                       SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
-                                          'Seu PIX de R\$ 1,00 foi devolvido com sucesso.',
+                                          t.human_verif_success_refund_info,
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodySmall?.copyWith(
@@ -278,7 +280,7 @@ class _HumanVerificationSuccessScreenState
                           const Spacer(),
 
                           PrimaryButton(
-                            text: 'Continuar',
+                            text: t.common_continue,
                             onPressed: () {
                               Navigator.of(
                                 context,

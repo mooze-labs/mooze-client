@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_level_color_x.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -54,13 +55,14 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final textTheme = context.textTheme;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Log Details',
+          t.settings_log_details,
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         IconButton(
@@ -76,31 +78,38 @@ class LogDetailModal extends StatelessWidget {
     final textTheme = context.textTheme;
     final color = log.level.color(context);
     final dividerColor = colorScheme.onSurface.withValues(alpha: 0.12);
+    final t = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailRow(context, 'Level', log.level.displayName, color: color),
+        _buildDetailRow(
+          context,
+          t.logs_detail_level,
+          log.level.displayName,
+          color: color,
+        ),
         _buildDetailRow(context, 'Tag', log.tag),
-        _buildDetailRow(context, 'Timestamp', log.timestamp.toIso8601String()),
+        _buildDetailRow(
+          context,
+          t.logs_detail_timestamp,
+          log.timestamp.toIso8601String(),
+        ),
         Divider(color: dividerColor),
         Text(
-          'Message:',
+          t.logs_detail_message,
           style: textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
-        SelectableText(
-          log.message,
-          style: textTheme.titleSmall,
-        ),
+        SelectableText(log.message, style: textTheme.titleSmall),
         if (log.error != null) ...[
           const SizedBox(height: 16),
           Divider(color: dividerColor),
           Text(
-            'Error:',
+            t.logs_detail_error_label,
             style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.error,
@@ -119,7 +128,7 @@ class LogDetailModal extends StatelessWidget {
           const SizedBox(height: 16),
           Divider(color: dividerColor),
           Text(
-            'Stack Trace:',
+            t.logs_detail_stack_trace,
             style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: context.appColors.warning,
@@ -180,21 +189,21 @@ class LogDetailModal extends StatelessWidget {
   }
 
   Widget _buildCopyButton(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () {
           Clipboard.setData(ClipboardData(text: log.toFormattedString()));
           Navigator.pop(context);
-          AppSnackBar.success(context, 'Log copied!');
+          AppSnackBar.success(context, t.logs_detail_copied);
         },
         icon: const Icon(Icons.copy),
-        label: const Text('Copy Log'),
+        label: Text(t.logs_detail_copy),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
   }
-
 }

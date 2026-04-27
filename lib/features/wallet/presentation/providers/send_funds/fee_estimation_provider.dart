@@ -74,7 +74,7 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
   final validationState = ref.watch(sendValidationControllerProvider);
   if (!validationState.canProceed || validationState.errors.isNotEmpty) {
     final hasOnlyBalanceErrors = validationState.errors.every(
-      (error) => error.toLowerCase().contains('saldo'),
+      (error) => error.category == SendValidationErrorCategory.balance,
     );
 
     if (!hasOnlyBalanceErrors) {

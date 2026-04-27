@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WalletLevelsQuickInfo extends StatelessWidget {
   final bool isLoading;
 
-  const WalletLevelsQuickInfo({
-    super.key,
-    this.isLoading = false,
-  });
+  const WalletLevelsQuickInfo({super.key, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -28,8 +27,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
             Expanded(
               child: _buildInfoCard(
                 icon: Icons.lock_open_rounded,
-                title: 'Desbloqueie',
-                subtitle: 'Aumente limites',
+                title: t.wallet_levels_quick_unlock_title,
+                subtitle: t.wallet_levels_quick_unlock_subtitle,
                 colorScheme: colorScheme,
                 textTheme: textTheme,
               ),
@@ -38,8 +37,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
             Expanded(
               child: _buildInfoCard(
                 icon: Icons.redeem_rounded,
-                title: 'Ganhe',
-                subtitle: 'Benefícios extras',
+                title: t.wallet_levels_quick_earn_title,
+                subtitle: t.wallet_levels_quick_earn_subtitle,
                 colorScheme: colorScheme,
                 textTheme: textTheme,
               ),
@@ -48,8 +47,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
             Expanded(
               child: _buildInfoCard(
                 icon: Icons.star_rate_rounded,
-                title: 'Status',
-                subtitle: 'Reconhecimento VIP',
+                title: t.wallet_levels_quick_status_title,
+                subtitle: t.wallet_levels_quick_status_subtitle,
                 colorScheme: colorScheme,
                 textTheme: textTheme,
               ),

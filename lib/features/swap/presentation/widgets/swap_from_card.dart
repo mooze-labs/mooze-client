@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class SwapFromCard extends ConsumerStatefulWidget {
   final core.Asset selectedAsset;
@@ -86,6 +87,7 @@ class _SwapFromCardState extends ConsumerState<SwapFromCard> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final currency = ref.read(currencyControllerProvider.notifier);
 
     return Container(
@@ -102,7 +104,10 @@ class _SwapFromCardState extends ConsumerState<SwapFromCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Você envia', style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                t.swap_you_send,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
               Row(
                 children: [
                   FutureBuilder<String>(
@@ -118,7 +123,7 @@ class _SwapFromCardState extends ConsumerState<SwapFromCard> {
                   ),
                   SizedBox(width: 5),
                   TransparentTextButton(
-                    text: 'MAX',
+                    text: t.common_max,
                     onPressed: widget.onMaxPressed,
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(
                       color: context.colors.primaryColor,

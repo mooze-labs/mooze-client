@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -96,10 +97,11 @@ class _ReviewTransactionScreenState
     BuildContext context, [
     bool isDrainTransaction = false,
   ]) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isDrainTransaction ? "Revisar Envio Total" : "Revisar Transação",
+          isDrainTransaction ? t.wallet_send_all_title : t.wallet_send_title,
         ),
         leading: IconButton(
           onPressed: () => context.pop(),
@@ -114,8 +116,8 @@ class _ReviewTransactionScreenState
             SizedBox(height: 16),
             Text(
               isDrainTransaction
-                  ? 'Calculando envio total de fundos...'
-                  : 'Preparando transação...',
+                  ? t.wallet_send_calculating_total
+                  : t.wallet_send_preparing,
             ),
           ],
         ),
@@ -126,10 +128,11 @@ class _ReviewTransactionScreenState
   Widget _buildErrorScreen(BuildContext context, String error) {
     final textTheme = context.textTheme;
     final colorScheme = context.colorScheme;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Revisar Transação"),
+        title: Text(t.wallet_send_title),
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -148,7 +151,7 @@ class _ReviewTransactionScreenState
               ),
               const SizedBox(height: 16),
               Text(
-                'Erro ao preparar transação',
+                t.wallet_send_prepare_error,
                 style: textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
@@ -161,7 +164,7 @@ class _ReviewTransactionScreenState
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => context.pop(),
-                child: const Text('Voltar'),
+                child: Text(t.common_back),
               ),
             ],
           ),
@@ -180,6 +183,7 @@ class _ReviewTransactionScreenState
   ) {
     final textTheme = context.textTheme;
     final colorScheme = context.colorScheme;
+    final t = AppLocalizations.of(context);
 
     NetworkType networkType;
     switch (psbt.blockchain) {
@@ -198,7 +202,7 @@ class _ReviewTransactionScreenState
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            isDrainTransaction ? "Revisar Envio Total" : "Revisar Transação",
+            isDrainTransaction ? t.wallet_send_all_title : t.wallet_send_title,
           ),
           leading: IconButton(
             onPressed: () => context.pop(),
@@ -234,7 +238,7 @@ class _ReviewTransactionScreenState
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            "Enviando todos os fundos disponíveis. As taxas serão deduzidas automaticamente do valor total.",
+                            t.wallet_send_all_info,
                             style: textTheme.bodySmall?.copyWith(
                               color: colorScheme.primary,
                               fontWeight: FontWeight.w500,
@@ -300,7 +304,7 @@ class _ReviewTransactionScreenState
                                               balanceEither,
                                             ) => balanceEither.fold(
                                               (error) => Text(
-                                                'Erro ao calcular valor',
+                                                t.wallet_send_calc_value_error,
                                                 style: context.textTheme.bodyLarge?.copyWith(
                                                   color: context.colors.textSecondary,
                                                 ),
@@ -321,7 +325,7 @@ class _ReviewTransactionScreenState
                                                       ),
                                                   loading:
                                                       () => Text(
-                                                        'Carregando preço...',
+                                                        t.wallet_send_loading_price,
                                                         style: context.textTheme.bodyLarge,
                                                       ),
                                                   error:
@@ -339,7 +343,7 @@ class _ReviewTransactionScreenState
                                             ),
                                         loading:
                                             () => Text(
-                                              'Calculando valor...',
+                                              t.wallet_send_calculating_value,
                                               style: context.textTheme.bodyLarge?.copyWith(
                                                 color: context.colors.textSecondary,
                                               ),
@@ -369,7 +373,7 @@ class _ReviewTransactionScreenState
                                       ),
                                   loading:
                                       () => Text(
-                                        'Carregando preço...',
+                                        t.wallet_send_loading_price,
                                         style: context.textTheme.bodyLarge?.copyWith(
                                           color: context.colors.textSecondary,
                                         ),
@@ -407,7 +411,7 @@ class _ReviewTransactionScreenState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Rede de Destino',
+                      t.wallet_send_destination_network,
                       style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
@@ -428,7 +432,7 @@ class _ReviewTransactionScreenState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Endereço de Destino',
+                      t.wallet_send_destination_address,
                       style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
@@ -449,7 +453,7 @@ class _ReviewTransactionScreenState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Detalhes das Taxas',
+                      t.wallet_send_fee_details,
                       style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
@@ -485,7 +489,7 @@ class _ReviewTransactionScreenState
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Há problemas com esta transação. Verifique os dados.',
+                            t.wallet_send_dust_warning,
                             style: textTheme.bodyMedium?.copyWith(
                               color: colorScheme.error,
                               fontWeight: FontWeight.w500,
@@ -500,7 +504,7 @@ class _ReviewTransactionScreenState
                 SizedBox(height: 20),
 
                 SlideToConfirmButton(
-                  text: "Confirmar",
+                  text: t.common_confirm,
                   onSlideComplete:
                       () => _confirmTransaction(context, ref, psbt),
                   isLoading: _isConfirming,
@@ -522,6 +526,7 @@ class _ReviewTransactionScreenState
     BigInt networkFees,
   ) {
     final colorScheme = context.colorScheme;
+    final t = AppLocalizations.of(context);
 
     return Container(
       width: double.infinity,
@@ -537,11 +542,11 @@ class _ReviewTransactionScreenState
         children: [
           _buildFeeRow(
             context,
-            'Taxa da Rede',
+            t.wallet_send_network_fee,
             _formatNetworkFee(networkFees, asset),
           ),
           const SizedBox(height: 12),
-          _buildFeeRow(context, 'Taxa de Serviço', _getServiceFee(asset)),
+          _buildFeeRow(context, t.wallet_send_service_fee, _getServiceFee(asset, context)),
           const SizedBox(height: 12),
           Divider(
             color: colorScheme.outline.withValues(alpha: 0.3),
@@ -549,7 +554,7 @@ class _ReviewTransactionScreenState
           const SizedBox(height: 12),
           _buildFeeRow(
             context,
-            'Total das Taxas',
+            t.wallet_send_total_fees,
             _formatNetworkFee(networkFees, asset),
             isTotal: true,
           ),
@@ -587,13 +592,14 @@ class _ReviewTransactionScreenState
     );
   }
 
-  String _getServiceFee(Asset asset) {
+  String _getServiceFee(Asset asset, BuildContext context) {
+    final t = AppLocalizations.of(context);
     switch (asset) {
       case Asset.btc || Asset.lbtc:
-        return "Gratuito";
+        return t.wallet_send_free;
       case Asset.usdt:
       case Asset.depix:
-        return "Gratuito";
+        return t.wallet_send_free;
     }
   }
 
@@ -629,13 +635,13 @@ class _ReviewTransactionScreenState
   String _formatNetworkFee(BigInt networkFees, Asset asset) {
     if (asset == Asset.btc || asset == Asset.lbtc) {
       if (networkFees == BigInt.zero) {
-        return "Gratuito";
+        return AppLocalizations.of(context).wallet_send_free;
       }
       final satText = networkFees == BigInt.one ? 'sat' : 'sats';
       return "$networkFees $satText";
     } else {
       if (networkFees == BigInt.zero) {
-        return "Gratuito";
+        return AppLocalizations.of(context).wallet_send_free;
       }
       final lbtcAmount = networkFees.toDouble() / 100000000;
       return "${lbtcAmount.toStringAsFixed(8)} L-BTC";
@@ -676,7 +682,9 @@ class _ReviewTransactionScreenState
             'Wallet controller unavailable: ${error.description}',
           );
           return left<String, dynamic>(
-            "Erro ao acessar carteira: ${error.description}",
+            AppLocalizations.of(
+              context,
+            ).wallet_send_wallet_error(error.description),
           );
         },
         (controller) async =>
@@ -709,7 +717,10 @@ class _ReviewTransactionScreenState
         stackTrace: stackTrace,
       );
       if (context.mounted) {
-        _showErrorDialog(context, "Erro inesperado: $e");
+        _showErrorDialog(
+          context,
+          AppLocalizations.of(context).error_unexpected(e.toString()),
+        );
       }
     } finally {
       if (mounted) {
@@ -727,13 +738,14 @@ class _ReviewTransactionScreenState
           (context) {
             final textTheme = context.textTheme;
             final colorScheme = context.colorScheme;
+            final t = AppLocalizations.of(context);
 
             return AlertDialog(
               title: Row(
                 children: [
                   Icon(Icons.error_rounded, color: colorScheme.error),
                   const SizedBox(width: 8),
-                  const Text('Erro na Transação'),
+                  Text(t.wallet_send_tx_error_title),
                 ],
               ),
               content: Column(
@@ -741,7 +753,7 @@ class _ReviewTransactionScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Não foi possível enviar a transação:',
+                    t.wallet_send_tx_error_desc,
                     style: textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
@@ -765,7 +777,7 @@ class _ReviewTransactionScreenState
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Verifique os dados e tente novamente.',
+                    t.wallet_send_tx_error_check,
                     style: textTheme.bodyMedium,
                   ),
                 ],
@@ -773,7 +785,7 @@ class _ReviewTransactionScreenState
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
+                  child: Text(t.common_ok),
                 ),
               ],
             );

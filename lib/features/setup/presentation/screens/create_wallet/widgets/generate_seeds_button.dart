@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/mnemonic_controller_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 import 'package:no_screenshot/no_screenshot.dart';
@@ -13,8 +14,9 @@ class GenerateSeedsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     return PrimaryButton(
-      text: 'Gerar frase de recuperação',
+      text: t.setup_generate_seed_button,
       onPressed: () async {
         await deactivateScreenshot().run();
 

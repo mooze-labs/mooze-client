@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -27,7 +28,7 @@ class AssetSelectorReceive extends ConsumerWidget {
     );
 
     return FloatingLabelDropdown<Asset>(
-      label: "Selecione um ativo",
+      label: AppLocalizations.of(context).receive_select_asset,
       value: selectedAsset,
       items: [Asset.btc, Asset.lbtc, Asset.depix, Asset.usdt],
       onChanged: (val) {

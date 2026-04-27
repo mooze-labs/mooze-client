@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Card widget to display a refundable swap item
@@ -17,6 +18,7 @@ class RefundItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final lastRefundTxId = refundableSwap.lastRefundTxId ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -81,8 +83,8 @@ class RefundItemCard extends StatelessWidget {
                             SizedBox(width: 6),
                             Text(
                               lastRefundTxId.isNotEmpty
-                                  ? 'Pendente'
-                                  : 'Disponível',
+                                  ? t.refund_status_pending
+                                  : t.refund_status_available,
                               style: TextStyle(
                                 color:
                                     lastRefundTxId.isNotEmpty
@@ -145,7 +147,7 @@ class RefundItemCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Valor do Reembolso',
+                                t.refund_label_refund_amount,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: context.colors.textSecondary,
@@ -174,7 +176,7 @@ class RefundItemCard extends StatelessWidget {
                   _buildInfoRow(
                     context,
                     icon: Icons.link,
-                    label: 'Transação',
+                    label: t.refund_label_transaction,
                     value:
                         lastRefundTxId.isNotEmpty
                             ? _shortenAddress(lastRefundTxId)
@@ -193,7 +195,7 @@ class RefundItemCard extends StatelessWidget {
                   _buildInfoRow(
                     context,
                     icon: Icons.calendar_today,
-                    label: 'Data',
+                    label: t.refund_label_date,
                     value: _formatDate(refundableSwap.timestamp),
                     canCopy: false,
                     colorScheme: colorScheme,
@@ -230,8 +232,8 @@ class RefundItemCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             lastRefundTxId.isNotEmpty
-                                ? 'Retransmitir'
-                                : 'Continuar',
+                                ? t.refund_action_retransmit
+                                : t.common_continue,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -302,8 +304,8 @@ class RefundItemCard extends StatelessWidget {
                 Clipboard.setData(ClipboardData(text: fullValue));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Copiado!'),
-                    duration: Duration(seconds: 2),
+                    content: Text(AppLocalizations.of(context).receive_qr_copied),
+                    duration: const Duration(seconds: 2),
                     backgroundColor: context.colors.primaryColor,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(

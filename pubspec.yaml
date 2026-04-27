@@ -12,6 +12,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   slip_0021:
     git:
       url: https://github.com/mooze-labs/slip-21-dart.git
@@ -121,6 +123,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/flags/

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 
 final syncErrorProvider = StateProvider<bool>((ref) => false);
@@ -43,7 +44,7 @@ class SyncErrorIndicator extends ConsumerWidget {
             ),
             const SizedBox(width: 5),
             Text(
-              'Erro de Sync',
+              AppLocalizations.of(context).sync_error_indicator,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.error,
                 fontWeight: FontWeight.w600,
@@ -61,79 +62,81 @@ class SyncErrorIndicator extends ConsumerWidget {
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Erro de Sincronização'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Não foi possível sincronizar com a API da Mooze.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
+      builder: (context) {
+        final t = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(t.sync_error_dialog_title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.sync_error_dialog_body,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.errorContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
                     color: Theme.of(
                       context,
-                    ).colorScheme.errorContainer.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.warning_rounded,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Sem sincronização, não é possível usar o PIX',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ).colorScheme.error.withValues(alpha: 0.2),
                   ),
                 ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Detalhes: $errorMessage',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
-                  ),
-                ],
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        t.sync_error_warning,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  t.sync_error_details(errorMessage),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
+                ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Fechar'),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  onRetry?.call();
-                },
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Tentar Novamente'),
-              ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(t.common_close),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                onRetry?.call();
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(t.common_retry),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -158,7 +161,7 @@ class SyncErrorIndicatorIcon extends ConsumerWidget {
         Icons.sync_problem_rounded,
         color: Theme.of(context).colorScheme.error,
       ),
-      tooltip: 'Erro ao sincronizar com API - PIX indisponível',
+      tooltip: AppLocalizations.of(context).sync_error_warning,
     );
   }
 
@@ -167,89 +170,91 @@ class SyncErrorIndicatorIcon extends ConsumerWidget {
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.sync_problem_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                const Text('Erro de Sincronização'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Não foi possível sincronizar com a API da Mooze.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.warning_rounded,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Sem sincronização, não é possível usar o PIX',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Detalhes: $errorMessage',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Fechar'),
+      builder: (context) {
+        final t = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.sync_problem_rounded,
+                color: Theme.of(context).colorScheme.error,
+                size: 28,
               ),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  onRetry?.call();
-                },
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Tentar Novamente'),
-              ),
+              const SizedBox(width: 12),
+              Text(t.sync_error_dialog_title),
             ],
           ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.sync_error_dialog_body,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.errorContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        t.sync_error_warning,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  t.sync_error_details(errorMessage),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(t.common_close),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                onRetry?.call();
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(t.common_retry),
+            ),
+          ],
+        );
+      },
     );
   }
 }

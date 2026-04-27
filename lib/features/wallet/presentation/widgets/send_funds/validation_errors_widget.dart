@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../../providers/send_funds/send_validation_controller.dart';
 
@@ -8,6 +9,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final validationState = ref.watch(sendValidationControllerProvider);
 
     if (validationState.errors.isEmpty) {
@@ -40,7 +42,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Atenção',
+                t.wallet_send_validation_attention,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: Theme.of(context).colorScheme.error,
                   fontWeight: FontWeight.w600,
@@ -67,7 +69,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      error,
+                      error.localize(context),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                         height: 1.4,
@@ -81,9 +83,9 @@ class ValidationErrorsWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           if (validationState.errors.any(
             (error) =>
-                error.contains('mínimo') ||
-                error.contains('máximo') ||
-                error.contains('inválido'),
+                error.category == SendValidationErrorCategory.amount ||
+                error.category == SendValidationErrorCategory.limits ||
+                error.category == SendValidationErrorCategory.address,
           )) ...[
             const SizedBox(height: 4),
             Row(
@@ -98,7 +100,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'As validações são verificadas automaticamente conforme você digita.',
+                    t.wallet_send_validation_help,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,

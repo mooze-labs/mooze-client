@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class FilterOrderBy extends StatefulWidget {
@@ -33,6 +34,7 @@ class _FilterOrderByState extends State<FilterOrderBy> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     const double totalSpacing = 2 * 30;
     final double itemWidth =
         (MediaQuery.of(context).size.width - totalSpacing) / 3;
@@ -61,7 +63,7 @@ class _FilterOrderByState extends State<FilterOrderBy> {
 
             child: Center(
               child: Text(
-                'Mais Recente',
+                t.tx_filter_most_recent,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -115,7 +117,7 @@ class _FilterOrderByState extends State<FilterOrderBy> {
             ),
             child: Center(
               child: Text(
-                'Mais Antigo',
+                t.tx_filter_oldest,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,

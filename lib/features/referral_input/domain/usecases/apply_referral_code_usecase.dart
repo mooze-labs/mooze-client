@@ -22,28 +22,24 @@ class ApplyReferralCodeUseCase {
   /// Returns: Result<void> - Success or Failure with error message
   Future<Result<void>> call(String code) async {
     if (code.isEmpty) {
-      return const Failure('Código não pode ser vazio');
+      return const Failure('referral_error_empty_code');
     }
 
     // Validate the code before applying
     final validationResult = await _repository.validateReferralCode(code);
     if (validationResult.isFailure) {
-      return const Failure(
-        'Código inválido. Verifique e tente novamente.',
-      );
+      return const Failure('referral_error_invalid_code');
     }
 
     final isValid = validationResult.data!;
     if (!isValid) {
-      return const Failure(
-        'Código inválido. Verifique e tente novamente.',
-      );
+      return const Failure('referral_error_invalid_code');
     }
 
     // Code is valid, apply it to the account
     final applyResult = await _repository.applyReferralCode(code);
     if (applyResult.isFailure) {
-      return const Failure('Erro ao adicionar código. Tente novamente.');
+      return const Failure('referral_error_apply_failed');
     }
 
     return const Success(null);

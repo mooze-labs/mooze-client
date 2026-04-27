@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
@@ -123,6 +124,7 @@ class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
   }
 
   Widget _buildErrorCard(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -138,7 +140,7 @@ class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
           Icon(Icons.error_outline, color: colorScheme.error, size: 32),
           const SizedBox(height: 8),
           Text(
-            'Erro ao carregar nível',
+            t.level_load_error,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: colorScheme.error,
               fontWeight: FontWeight.w600,
@@ -147,7 +149,7 @@ class _UserLevelDisplayState extends ConsumerState<UserLevelDisplay> {
           ),
           const SizedBox(height: 12),
           SecondaryButton(
-            text: 'Tentar novamente',
+            text: t.common_retry,
             isLoading: _isRetrying,
             onPressed: () async {
               setState(() => _isRetrying = true);
@@ -475,6 +477,7 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
   }
 
   Widget _buildCurrentLevelInfo() {
+    final t = AppLocalizations.of(context);
     final currentLevelData = UserLevels.getLevelByOrder(widget.currentLevel);
     final nextLevelData = UserLevels.getNextLevel(widget.currentLevel);
 
@@ -502,7 +505,7 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
         Row(
           children: [
             Text(
-              'Nível atual: ',
+              t.level_current,
               style: textTheme.labelLarge?.copyWith(
                 color: onSurface.withValues(alpha: 0.7),
               ),
@@ -545,13 +548,15 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Progresso: ${(_progressAnimation.value * 100).toInt()}%',
+                        t.level_progress(
+                          (_progressAnimation.value * 100).toInt(),
+                        ),
                         style: textTheme.labelMedium?.copyWith(
                           color: onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                       Text(
-                        'Próximo: ${nextLevelData.name}',
+                        t.level_next(nextLevelData.name),
                         style: textTheme.labelMedium?.copyWith(
                           color: adaptedNext?.withValues(alpha: 0.8),
                         ),

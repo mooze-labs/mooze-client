@@ -9,6 +9,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets/info_row.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import '../screens/swap_success_screen.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
   final VoidCallback? onSuccess;
@@ -42,6 +43,7 @@ class _ConfirmSwapBottomSheetState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(sc.swapControllerProvider);
     final controller = ref.read(sc.swapControllerProvider.notifier);
     final quote = state.currentQuote?.quote;
@@ -67,7 +69,7 @@ class _ConfirmSwapBottomSheetState
           children: [
             Center(
               child: Text(
-                'Confirmar Swap',
+                t.swap_confirm_title,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -93,15 +95,15 @@ class _ConfirmSwapBottomSheetState
             if (quote != null) ...[
               const Divider(),
               InfoRow(
-                label: 'Taxa do servidor',
+                label: t.swap_confirm_server_fee,
                 value: _formatFee(state, quote.serverFee),
               ),
               InfoRow(
-                label: 'Taxa fixa',
+                label: t.swap_confirm_fixed_fee,
                 value: _formatFee(state, quote.fixedFee),
               ),
               InfoRow(
-                label: 'Total de taxas',
+                label: t.swap_confirm_total_fees_short,
                 value: _formatFee(state, quote.serverFee + quote.fixedFee),
                 valueFontWeight: FontWeight.bold,
               ),
@@ -112,8 +114,8 @@ class _ConfirmSwapBottomSheetState
             SlideToConfirmButton(
               text:
                   _isConfirming || state.loading
-                      ? 'Confirmando...'
-                      : 'Confirmar Swap',
+                      ? t.common_confirming
+                      : t.swap_confirm_title,
               isLoading: _isConfirming || state.loading,
               onSlideComplete:
                   _isConfirming || state.loading
@@ -161,7 +163,7 @@ class _ConfirmSwapBottomSheetState
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erro na confirmação: $err'),
+              content: Text(err.localize(context)),
               backgroundColor: Theme.of(context).colorScheme.error,
               duration: const Duration(seconds: 5),
             ),
@@ -213,6 +215,7 @@ class _ConfirmSwapBottomSheetState
   }
 
   Widget _fromToSummary(BuildContext context, sc.SwapState state) {
+    final t = AppLocalizations.of(context);
     final sendId = state.lastSendAssetId;
     final receiveId = state.lastReceiveAssetId;
     final sendAsset =
@@ -253,7 +256,7 @@ class _ConfirmSwapBottomSheetState
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Você envia'),
+                      Text(t.swap_you_send),
                       const SizedBox(width: 10),
                       SvgPicture.asset(
                         sendAsset.iconPath,
@@ -295,7 +298,7 @@ class _ConfirmSwapBottomSheetState
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Você recebe'),
+                      Text(t.swap_you_receive),
                       const SizedBox(width: 10),
                       SvgPicture.asset(
                         receiveAsset.iconPath,

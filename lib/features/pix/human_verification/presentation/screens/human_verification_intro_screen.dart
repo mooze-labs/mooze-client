@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -8,10 +9,11 @@ class HumanVerificationIntroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
-        title: const Text('Verificação de Humanidade'),
+        title: Text(t.human_verif_title),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -53,7 +55,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        'Verifique sua humanidade',
+                        t.human_verif_intro_title,
                         style: Theme.of(
                           context,
                         ).textTheme.headlineMedium?.copyWith(
@@ -64,7 +66,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Para garantir a segurança da plataforma, precisamos verificar que você é uma pessoa real.',
+                        t.human_verif_intro_body,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: context.colors.textSecondary,
                         ),
@@ -74,27 +76,24 @@ class HumanVerificationIntroScreen extends StatelessWidget {
                       _buildStepCard(
                         context,
                         stepNumber: '1',
-                        title: 'Pagamento simbólico',
-                        description:
-                            'Você fará um PIX de apenas R\$ 1,00 para nossa chave. O valor será devolvido imediatamente após o pagamento.',
+                        title: t.human_verif_step1_title,
+                        description: t.human_verif_step1_desc,
                         icon: Icons.pix,
                       ),
                       const SizedBox(height: 16),
                       _buildStepCard(
                         context,
                         stepNumber: '2',
-                        title: 'Receba o código',
-                        description:
-                            'Você receberá o valor de volta com um código único na mensagem.',
+                        title: t.human_verif_step2_title,
+                        description: t.human_verif_step2_desc,
                         icon: Icons.arrow_back,
                       ),
                       SizedBox(height: 16),
                       _buildStepCard(
                         context,
                         stepNumber: '3',
-                        title: 'Valide sua identidade',
-                        description:
-                            'Digite o código recebido para confirmar sua humanidade.',
+                        title: t.human_verif_step3_title,
+                        description: t.human_verif_step3_desc,
                         icon: Icons.check_circle_outline,
                       ),
                     ],
@@ -103,7 +102,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               PrimaryButton(
-                text: 'Continuar',
+                text: t.common_continue,
                 onPressed: () {
                   context.push('/human-verification/payment');
                 },

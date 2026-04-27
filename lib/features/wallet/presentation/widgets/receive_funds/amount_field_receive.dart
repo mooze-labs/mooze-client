@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_receive_network_provider.dart';
@@ -67,7 +68,6 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final isConversionLoading = ref.watch(receiveConversionLoadingProvider);
     final controller = ref.read(receiveConversionControllerProvider.notifier);
 
-
     final currentValue = controller.getCurrentValueForType(conversionType);
 
     if (!_isUpdatingFromProvider &&
@@ -78,16 +78,14 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
       _textController.text = '0.00000000';
       _textController.selection = TextSelection.collapsed(offset: 10);
       _isUpdatingFromProvider = false;
-    }
-    else if (!_isUpdatingFromProvider &&
+    } else if (!_isUpdatingFromProvider &&
         conversionType == ReceiveConversionType.sats &&
         _textController.text.isEmpty) {
       _isUpdatingFromProvider = true;
       _textController.text = '0';
       _textController.selection = TextSelection.collapsed(offset: 1);
       _isUpdatingFromProvider = false;
-    }
-    else if (!_isUpdatingFromProvider &&
+    } else if (!_isUpdatingFromProvider &&
         conversionType == ReceiveConversionType.fiat &&
         _textController.text.isEmpty) {
       _isUpdatingFromProvider = true;
@@ -113,7 +111,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
         Row(
           children: [
             Text(
-              'Valor',
+              AppLocalizations.of(context).receive_amount_label,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -141,8 +139,8 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
           decoration: InputDecoration(
             hintText:
                 isRequired
-                    ? 'Digite o valor (obrigatório)'
-                    : 'Digite o valor (opcional)',
+                    ? AppLocalizations.of(context).receive_amount_hint_required
+                    : AppLocalizations.of(context).receive_amount_hint_optional,
             hintStyle: TextStyle(
               color: Theme.of(
                 context,
@@ -182,10 +180,16 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
             errorText: validationState.amountError,
             helperText:
                 isDisabled
-                    ? 'Selecione um ativo e rede primeiro'
+                    ? AppLocalizations.of(
+                      context,
+                    ).receive_amount_helper_disabled
                     : isRequired
-                    ? 'Valor obrigatório para Lightning'
-                    : 'Valor opcional para Bitcoin/Liquid',
+                    ? AppLocalizations.of(
+                      context,
+                    ).receive_amount_helper_lightning
+                    : AppLocalizations.of(
+                      context,
+                    ).receive_amount_helper_optional,
           ),
           onChanged: (value) {
             if (selectedAsset == null || _isUpdatingFromProvider) return;
@@ -196,8 +200,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
             if (conversionType == ReceiveConversionType.sats) {
               final intValue = SatsInputFormatter.parseValue(value);
               valueForController = intValue.toString();
-            }
-            else if (conversionType == ReceiveConversionType.fiat) {
+            } else if (conversionType == ReceiveConversionType.fiat) {
               final doubleValue = FiatInputFormatter.parseValue(value);
               valueForController = doubleValue.toString();
             }
@@ -269,7 +272,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Valor em Satoshis:',
+                  AppLocalizations.of(context).receive_amount_sats_label,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
@@ -310,7 +313,10 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 return _buildValidationRow(
                   context,
                   icon: Icons.warning_amber_outlined,
-                  text: 'Não foi possível carregar limites Lightning',
+                  text:
+                      AppLocalizations.of(
+                        context,
+                      ).receive_lightning_limits_unavailable,
                   color: Colors.orange,
                 );
               }
@@ -319,23 +325,33 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 return _buildValidationRow(
                   context,
                   icon: Icons.warning_amber_outlined,
-                  text:
-                      'Valor mínimo: ${SatsInputFormatter.formatValue(limits.receive.minSat.toInt())} sats',
+                  text: AppLocalizations.of(
+                    context,
+                  ).receive_lightning_min_value(
+                    SatsInputFormatter.formatValue(
+                      limits.receive.minSat.toInt(),
+                    ),
+                  ),
                   color: Colors.orange,
                 );
               } else if (amountSats > limits.receive.maxSat) {
                 return _buildValidationRow(
                   context,
                   icon: Icons.error_outline,
-                  text:
-                      'Valor máximo: ${SatsInputFormatter.formatValue(limits.receive.maxSat.toInt())} sats',
+                  text: AppLocalizations.of(
+                    context,
+                  ).receive_lightning_max_value(
+                    SatsInputFormatter.formatValue(
+                      limits.receive.maxSat.toInt(),
+                    ),
+                  ),
                   color: Colors.red,
                 );
               } else {
                 return _buildValidationRow(
                   context,
                   icon: Icons.check_circle_outline,
-                  text: 'Valor válido para Lightning',
+                  text: AppLocalizations.of(context).receive_lightning_valid,
                   color: Colors.green,
                 );
               }
@@ -344,14 +360,20 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 () => _buildValidationRow(
                   context,
                   icon: Icons.hourglass_empty,
-                  text: 'Carregando limites Lightning...',
+                  text:
+                      AppLocalizations.of(
+                        context,
+                      ).receive_lightning_limits_loading,
                   color: Colors.grey,
                 ),
             error:
                 (error, stack) => _buildValidationRow(
                   context,
                   icon: Icons.error_outline,
-                  text: 'Erro ao carregar limites Lightning',
+                  text:
+                      AppLocalizations.of(
+                        context,
+                      ).receive_lightning_limits_error,
                   color: Colors.red,
                 ),
           );
@@ -359,14 +381,14 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
       return _buildValidationRow(
         context,
         icon: Icons.check_circle_outline,
-        text: 'Valor válido para Bitcoin',
+        text: AppLocalizations.of(context).receive_bitcoin_valid,
         color: Colors.green,
       );
     } else if (network == NetworkType.liquid) {
       return _buildValidationRow(
         context,
         icon: Icons.check_circle_outline,
-        text: 'Valor válido para Liquid',
+        text: AppLocalizations.of(context).receive_liquid_valid,
         color: Colors.green,
       );
     }

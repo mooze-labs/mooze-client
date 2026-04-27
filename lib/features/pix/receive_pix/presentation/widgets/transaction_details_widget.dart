@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/sel
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_validation_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
@@ -120,7 +121,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Text(
-      'Você receberá',
+      AppLocalizations.of(context).pix_you_will_receive,
       style: Theme.of(context).textTheme.titleLarge?.copyWith(
         color: Theme.of(context).colorScheme.primary,
         fontWeight: FontWeight.w700,
@@ -135,7 +136,9 @@ class TransactionDisplayWidget extends ConsumerWidget {
   Widget _buildReaisAmount(BuildContext context, double amount) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     return Text(
-      'de R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
+      AppLocalizations.of(context).pix_of_amount(
+        amount.toStringAsFixed(2).replaceAll('.', ','),
+      ),
       style: Theme.of(context).textTheme.labelLarge?.copyWith(
         color: onSurface.withValues(alpha: 0.5),
         letterSpacing: 0.3,
@@ -158,6 +161,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
     WidgetRef ref,
     double depositAmount,
   ) {
+    final t = AppLocalizations.of(context);
     final feeAmount = ref.watch(feeAmountProvider(depositAmount));
     final feeRate = ref.watch(feeRateProvider(depositAmount));
     final hasReferral = ref.watch(hasReferralProvider);
@@ -175,7 +179,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Taxas aplicadas',
+          t.pix_fees_applied,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: onSurface.withValues(alpha: 0.7),
             fontWeight: FontWeight.w600,
@@ -186,9 +190,9 @@ class TransactionDisplayWidget extends ConsumerWidget {
         if (isFixedFee) ...[
           _buildSimpleFeeCard(
             context,
-            title: 'Taxa fixa (Mooze)',
+            title: t.pix_fee_fixed_mooze,
             value: 'R\$ 1,00',
-            subtitle: 'Para valores até R\$ 55',
+            subtitle: t.pix_fee_fixed_for_small_subtitle,
             icon: Icons.receipt_long,
           ),
         ] else ...[
@@ -202,24 +206,26 @@ class TransactionDisplayWidget extends ConsumerWidget {
                     children: [
                       _buildSimpleFeeCard(
                         context,
-                        title: 'Taxa Mooze',
+                        title: t.pix_fee_mooze,
                         value:
                             'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
                         percent: percentLabel,
-                        subtitle: 'Já com 15% de desconto aplicado',
+                        subtitle: t.pix_fee_referral_discount,
                         icon: Icons.receipt_long,
                       ),
                       const SizedBox(height: 8),
                       _buildDiscountBadge(
                         context,
-                        'Você economizou R\$ ${savedAmount.toStringAsFixed(2).replaceAll('.', ',')} com o código de indicação!',
+                        t.pix_fee_savings(
+                          savedAmount.toStringAsFixed(2).replaceAll('.', ','),
+                        ),
                       ),
                     ],
                   );
                 }
                 return _buildSimpleFeeCard(
                   context,
-                  title: 'Taxa Mooze',
+                  title: t.pix_fee_mooze,
                   value:
                       'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
                   subtitle: null,
@@ -229,7 +235,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
               },
               error: (_, _) => _buildSimpleFeeCard(
                 context,
-                title: 'Taxa Mooze',
+                title: t.pix_fee_mooze,
                 value: 'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
                 subtitle: null,
                 percent: percentLabel,
@@ -237,7 +243,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
               ),
               loading: () => _buildSimpleFeeCard(
                 context,
-                title: 'Taxa Mooze',
+                title: t.pix_fee_mooze,
                 value: '...',
                 percent: '...%',
                 subtitle: null,
@@ -246,15 +252,15 @@ class TransactionDisplayWidget extends ConsumerWidget {
             ),
             error: (_, _) => _buildSimpleFeeCard(
               context,
-              title: 'Taxa Mooze',
-              value: 'Erro',
+              title: t.pix_fee_mooze,
+              value: t.common_error,
               percent: '...%',
               subtitle: null,
               icon: Icons.receipt_long,
             ),
             loading: () => _buildSimpleFeeCard(
               context,
-              title: 'Taxa Mooze',
+              title: t.pix_fee_mooze,
               value: '...',
               percent: '...%',
               subtitle: null,
@@ -265,7 +271,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
         const SizedBox(height: 8),
         _buildSimpleFeeCard(
           context,
-          title: 'Taxa da processadora',
+          title: t.pix_fee_processor,
           value: 'R\$ 1,00',
           subtitle: null,
           icon: Icons.account_balance,
@@ -382,6 +388,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final textTheme = Theme.of(context).textTheme;
 
@@ -401,7 +408,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
           Icon(Icons.info_outline, size: 40, color: onSurface.withValues(alpha: 0.3)),
           SizedBox(height: 12),
           Text(
-            'Aguardando valor',
+            t.pix_waiting_amount_title,
             style: textTheme.bodyMedium?.copyWith(
               color: onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.w600,
@@ -410,7 +417,7 @@ class TransactionDisplayWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Digite um valor válido para ver\no resumo da transação',
+            t.pix_waiting_amount_body,
             textAlign: TextAlign.center,
             style: textTheme.labelLarge?.copyWith(
               color: onSurface.withValues(alpha: 0.4),

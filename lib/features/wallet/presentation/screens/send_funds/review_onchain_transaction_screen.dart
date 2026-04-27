@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
@@ -48,7 +49,7 @@ class _ReviewOnchainTransactionScreenState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Erro: Transação não encontrada'),
+              content: Text(AppLocalizations.of(context).wallet_tx_not_found_error),
               backgroundColor: context.colorScheme.error,
             ),
           );
@@ -61,7 +62,9 @@ class _ReviewOnchainTransactionScreenState
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Erro: $error'),
+                content: Text(
+                  AppLocalizations.of(context).error_generic(error.toString()),
+                ),
                 backgroundColor: context.colorScheme.error,
               ),
             );
@@ -76,7 +79,11 @@ class _ReviewOnchainTransactionScreenState
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Erro ao enviar transação: $error'),
+                    content: Text(
+                      AppLocalizations.of(
+                        context,
+                      ).wallet_send_tx_error(error.toString()),
+                    ),
                     backgroundColor: context.colorScheme.error,
                   ),
                 );
@@ -113,6 +120,7 @@ class _ReviewOnchainTransactionScreenState
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
 
     final asset = ref.watch(selectedAssetProvider);
     final finalAmount = ref.watch(finalAmountProvider);
@@ -125,7 +133,7 @@ class _ReviewOnchainTransactionScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Revisar Transação'),
+        title: Text(t.wallet_send_title),
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -147,12 +155,12 @@ class _ReviewOnchainTransactionScreenState
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Erro ao preparar transação',
+                          t.wallet_send_prepare_error,
                           style: textTheme.titleLarge,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Transação não encontrada',
+                          t.wallet_tx_not_found,
                           style: textTheme.bodyMedium?.copyWith(
                             color: context.colors.textSecondary,
                           ),
@@ -182,6 +190,7 @@ class _ReviewOnchainTransactionScreenState
     String destination,
     BigInt networkFee,
   ) {
+    final t = AppLocalizations.of(context);
     return Column(
       children: [
         Expanded(
@@ -205,7 +214,7 @@ class _ReviewOnchainTransactionScreenState
                 _buildFeeSpeedInfo(context),
                 const SizedBox(height: 16),
                 Text(
-                  'A taxa foi calculada com base na velocidade selecionada.',
+                  t.wallet_fee_calculated_note,
                   style: context.textTheme.bodySmall?.copyWith(
                     color: context.colors.textTertiary,
                     fontStyle: FontStyle.italic,
@@ -219,7 +228,7 @@ class _ReviewOnchainTransactionScreenState
         Padding(
           padding: const EdgeInsets.all(24),
           child: SlideToConfirmButton(
-            text: _isConfirming ? 'Enviando...' : 'Deslizar para confirmar',
+            text: _isConfirming ? t.common_sending : t.wallet_slide_to_confirm,
             isLoading: _isConfirming,
             onSlideComplete: _isConfirming ? () {} : _handleConfirm,
           ),
@@ -238,6 +247,7 @@ class _ReviewOnchainTransactionScreenState
   ) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
 
     final feeBtc = networkFee.toDouble() / 100000000;
     final totalBtc = isDrain ? amountBtc : amountBtc + feeBtc;
@@ -278,13 +288,15 @@ class _ReviewOnchainTransactionScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isDrain ? 'Enviar Tudo' : 'Enviar ${asset.name}',
+                      isDrain
+                          ? t.wallet_send_send_all_label
+                          : t.wallet_send_asset_label(asset.name),
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      'Bitcoin On-chain',
+                      t.wallet_onchain_network,
                       style: textTheme.bodyMedium?.copyWith(
                         color: context.colors.textSecondary,
                       ),
@@ -301,7 +313,7 @@ class _ReviewOnchainTransactionScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Valor',
+                t.wallet_amount,
                 style: textTheme.bodyMedium?.copyWith(
                   color: context.colors.textSecondary,
                 ),
@@ -317,7 +329,7 @@ class _ReviewOnchainTransactionScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Taxa de rede',
+                t.wallet_network_fee,
                 style: textTheme.bodyMedium?.copyWith(
                   color: context.colors.textSecondary,
                 ),
@@ -336,7 +348,7 @@ class _ReviewOnchainTransactionScreenState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total',
+                  t.wallet_total,
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -354,7 +366,7 @@ class _ReviewOnchainTransactionScreenState
           const Divider(),
           const SizedBox(height: 16),
           Text(
-            'Destino',
+            t.wallet_destination,
             style: textTheme.bodySmall?.copyWith(
               color: context.colors.textTertiary,
             ),
@@ -374,6 +386,7 @@ class _ReviewOnchainTransactionScreenState
   Widget _buildFeeSpeedInfo(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
     final selectedSpeed = ref.watch(feeSpeedProvider);
 
     final String speedLabel;
@@ -383,20 +396,20 @@ class _ReviewOnchainTransactionScreenState
 
     switch (selectedSpeed) {
       case FeeSpeed.low:
-        speedLabel = 'Econômica';
-        speedDescription = 'Confirmação mais lenta, taxa menor';
+        speedLabel = t.wallet_speed_economic;
+        speedDescription = t.wallet_speed_economic_desc;
         speedColor = colorScheme.secondary;
         speedIcon = Icons.schedule;
         break;
       case FeeSpeed.medium:
-        speedLabel = 'Normal';
-        speedDescription = 'Equilíbrio entre velocidade e custo';
+        speedLabel = t.wallet_speed_normal;
+        speedDescription = t.wallet_speed_normal_desc;
         speedColor = context.appColors.warning;
         speedIcon = Icons.speed;
         break;
       case FeeSpeed.fast:
-        speedLabel = 'Prioritária';
-        speedDescription = 'Confirmação mais rápida, taxa maior';
+        speedLabel = t.wallet_speed_priority;
+        speedDescription = t.wallet_speed_priority_desc;
         speedColor = colorScheme.tertiary;
         speedIcon = Icons.flash_on;
         break;
@@ -425,7 +438,7 @@ class _ReviewOnchainTransactionScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Velocidade: $speedLabel',
+                  t.wallet_speed_label(speedLabel),
                   style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: speedColor,

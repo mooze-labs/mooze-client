@@ -22,18 +22,14 @@ class ProductEntity {
   /// Returns true if name is not empty and price > 0
   bool get isValid => name.isNotEmpty && price > 0;
 
-  /// Validates the product and returns an error message if invalid
+  /// Validates the product and returns a stable error code if invalid.
   ///
   /// Returns:
   /// - null if valid
-  /// - Error message string if validation fails
+  /// - A non-localized identifier (callers translate at the UI boundary)
   String? validate() {
-    if (name.isEmpty) {
-      return 'Nome do produto não pode ser vazio'; // Product name cannot be empty
-    }
-    if (price <= 0) {
-      return 'Preço deve ser maior que zero'; // Price must be greater than zero
-    }
+    if (name.isEmpty) return 'product.name_empty';
+    if (price <= 0) return 'product.price_invalid';
     return null;
   }
 

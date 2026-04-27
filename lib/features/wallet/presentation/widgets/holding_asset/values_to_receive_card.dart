@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
@@ -41,6 +42,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final valuesToReceiveAsync = ref.watch(valuesToReceiveProvider);
     final totalValueAsync = ref.watch(totalValueToReceiveProvider);
     final currentBalanceAsync = ref.watch(totalWalletValueProvider);
@@ -93,7 +95,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Pagamentos em análise',
+                              t.wallet_holding_pending_payments_title,
                               style: TextStyle(
                                 color: context.colors.textPrimary,
                                 fontSize: 14,
@@ -104,7 +106,10 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                             totalValueAsync.when(
                               data:
                                   (total) => Text(
-                                    'Total: $currencyIcon ${total.toStringAsFixed(2)}',
+                                    t.wallet_holding_pending_payments_total(
+                                      currencyIcon,
+                                      total.toStringAsFixed(2),
+                                    ),
                                     style: TextStyle(
                                       color: context.colors.primaryColor,
                                       fontSize: 13,
@@ -113,7 +118,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
                                   ),
                               loading:
                                   () => Text(
-                                    'Calculando...',
+                                    t.wallet_holding_calculating,
                                     style: TextStyle(
                                       color: context.colors.textSecondary,
                                       fontSize: 12,

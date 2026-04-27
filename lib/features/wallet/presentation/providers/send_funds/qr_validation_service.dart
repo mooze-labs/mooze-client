@@ -1,12 +1,31 @@
+import 'package:flutter/widgets.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
+/// Stable error codes for QR validation failures, decoupled from user-facing copy
+enum QrValidationErrorCode {
+  empty,
+  unrecognized,
+  lightningUnsupportedSymbols,
+  lnurlBip353Unsupported,
+  boltzInvalid,
+  boltzNoAmount,
+  liquidInvalid,
+  liquidFormatError,
+  bitcoinInvalid,
+  bitcoinFormatError,
+  lightningTooShort,
+  lnurlUnsupported,
+}
+
 /// Service for validating QR code data across different blockchain networks
 class QrValidationResult {
   final bool isValid;
-  final String? errorMessage;
+  final QrValidationErrorCode? errorCode;
   final String? cleanedData;
 
   const QrValidationResult({
     required this.isValid,
-    this.errorMessage,
+    this.errorCode,
     this.cleanedData,
   });
 
@@ -14,16 +33,48 @@ class QrValidationResult {
     return QrValidationResult(isValid: true, cleanedData: cleanedData);
   }
 
-  factory QrValidationResult.invalid(String errorMessage) {
-    return QrValidationResult(isValid: false, errorMessage: errorMessage);
+  factory QrValidationResult.invalid(QrValidationErrorCode code) {
+    return QrValidationResult(isValid: false, errorCode: code);
+  }
+
+  String localize(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    switch (errorCode) {
+      case QrValidationErrorCode.empty:
+        return t.qr_validation_empty;
+      case QrValidationErrorCode.unrecognized:
+        return t.qr_validation_unrecognized;
+      case QrValidationErrorCode.lightningUnsupportedSymbols:
+        return t.qr_validation_lightning_unsupported_symbols;
+      case QrValidationErrorCode.lnurlBip353Unsupported:
+        return t.qr_validation_lnurl_bip353_unsupported;
+      case QrValidationErrorCode.boltzInvalid:
+        return t.qr_validation_boltz_invalid;
+      case QrValidationErrorCode.boltzNoAmount:
+        return t.qr_validation_boltz_no_amount;
+      case QrValidationErrorCode.liquidInvalid:
+        return t.qr_validation_liquid_invalid;
+      case QrValidationErrorCode.liquidFormatError:
+        return t.qr_validation_liquid_format_error;
+      case QrValidationErrorCode.bitcoinInvalid:
+        return t.qr_validation_bitcoin_invalid;
+      case QrValidationErrorCode.bitcoinFormatError:
+        return t.qr_validation_bitcoin_format_error;
+      case QrValidationErrorCode.lightningTooShort:
+        return t.qr_validation_lightning_too_short;
+      case QrValidationErrorCode.lnurlUnsupported:
+        return t.qr_validation_lnurl_unsupported;
+      case null:
+        return t.qr_validation_invalid_default;
+    }
   }
 }
 
 class QrValidationService {
-  /// Validates QR code data and returns a result with error messages for unsupported formats
+  /// Validates QR code data and returns a result with error codes for unsupported formats
   static QrValidationResult validateQrData(String data) {
     if (data.isEmpty) {
-      return QrValidationResult.invalid('QR code vazio');
+      return QrValidationResult.invalid(QrValidationErrorCode.empty);
     }
 
     final lowerData = data.toLowerCase();
@@ -44,15 +95,14 @@ class QrValidationService {
     // Check for Lightning invoices with special symbols
     if (_hasUnsupportedLightningSymbols(data)) {
       return QrValidationResult.invalid(
-        'Lightning com símbolos especiais (₿, #, \$) não é suportado',
+        QrValidationErrorCode.lightningUnsupportedSymbols,
       );
     }
 
     // Check for BIP 353 LNURL formats that are not supported
     if (_isUnsupportedBip353(data)) {
       return QrValidationResult.invalid(
-        'Formato LNURL BIP 353 não é suportado no momento. '
-        'Use um endereço Lightning válido ou LNURL de walletofsatoshi.com',
+        QrValidationErrorCode.lnurlBip353Unsupported,
       );
     }
 
@@ -81,7 +131,7 @@ class QrValidationService {
       return QrValidationResult.valid(data);
     }
 
-    return QrValidationResult.invalid('Formato de QR code não reconhecido');
+    return QrValidationResult.invalid(QrValidationErrorCode.unrecognized);
   }
 
   /// Checks if the data is a BOLTZ invoice
@@ -95,7 +145,7 @@ class QrValidationService {
     final lowerInvoice = invoice.toLowerCase();
 
     if (!lowerInvoice.startsWith('lnbc')) {
-      return QrValidationResult.invalid('Invoice BOLTZ inválido');
+      return QrValidationResult.invalid(QrValidationErrorCode.boltzInvalid);
     }
 
     String remaining = lowerInvoice.substring(4);
@@ -130,10 +180,7 @@ class QrValidationService {
     }
 
     if (!hasAmount) {
-      return QrValidationResult.invalid(
-        'Invoice BOLTZ sem valor não é suportado. '
-        'Por favor, gere um invoice com valor definido',
-      );
+      return QrValidationResult.invalid(QrValidationErrorCode.boltzNoAmount);
     }
 
     return QrValidationResult.valid(invoice);
@@ -178,9 +225,7 @@ class QrValidationService {
 
       // Validate that we have a proper address path
       if (uri.path.isEmpty) {
-        return QrValidationResult.invalid(
-          'Endereço Liquid inválido no QR code',
-        );
+        return QrValidationResult.invalid(QrValidationErrorCode.liquidInvalid);
       }
 
       // Asset ID is optional, but if present, we accept it
@@ -189,7 +234,7 @@ class QrValidationService {
       return QrValidationResult.valid(data);
     } catch (e) {
       return QrValidationResult.invalid(
-        'Erro ao processar QR Liquid: formato inválido',
+        QrValidationErrorCode.liquidFormatError,
       );
     }
   }
@@ -207,14 +252,14 @@ class QrValidationService {
       // Validate that we have a proper address path
       if (uri.path.isEmpty) {
         return QrValidationResult.invalid(
-          'Endereço Bitcoin inválido no QR code',
+          QrValidationErrorCode.bitcoinInvalid,
         );
       }
 
       return QrValidationResult.valid(data);
     } catch (e) {
       return QrValidationResult.invalid(
-        'Erro ao processar QR Bitcoin: formato inválido',
+        QrValidationErrorCode.bitcoinFormatError,
       );
     }
   }
@@ -222,7 +267,9 @@ class QrValidationService {
   /// Validates Lightning invoice
   static QrValidationResult _validateLightningInvoice(String invoice) {
     if (invoice.length < 10) {
-      return QrValidationResult.invalid('Lightning invoice muito curto');
+      return QrValidationResult.invalid(
+        QrValidationErrorCode.lightningTooShort,
+      );
     }
 
     // Strip lightning: prefix if present
@@ -248,9 +295,7 @@ class QrValidationService {
       return QrValidationResult.valid(lnurl);
     }
 
-    return QrValidationResult.invalid(
-      'LNURL não suportado. Use walletofsatoshi.com ou outro provedor compatível',
-    );
+    return QrValidationResult.invalid(QrValidationErrorCode.lnurlUnsupported);
   }
 
   /// Checks if data is a plain address (no URI scheme)

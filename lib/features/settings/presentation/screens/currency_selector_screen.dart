@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../widgets/currency/currency_list.dart';
 
@@ -48,10 +49,11 @@ class _CurrencySelectorScreenState
   Widget build(BuildContext context) {
     final textTheme = context.textTheme;
     final colorScheme = context.colorScheme;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Selecionar Moeda'),
+        title: Text(t.currency_select_title),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -71,14 +73,14 @@ class _CurrencySelectorScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Moeda de exibição',
+                      t.currency_display_label,
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Escolha a moeda usada para exibir preços e valores em todo o app.',
+                      t.currency_display_description,
                       style: textTheme.bodyMedium?.copyWith(
                         color: context.colors.textSecondary,
                       ),

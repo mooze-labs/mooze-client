@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -65,6 +66,7 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
 
     ref.listen<SeedPhraseState>(seedPhraseProvider, (previous, next) {
@@ -98,8 +100,8 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
           decoration: InputDecoration(
             hintText:
                 state.suggestions.isNotEmpty
-                    ? 'Pressione espaço para confirmar "${state.suggestions.first}"'
-                    : 'Digite uma palavra BIP39...',
+                    ? t.setup_input_hint_press_space(state.suggestions.first)
+                    : t.setup_input_hint_default,
             hintStyle: TextStyle(
               fontSize: 14,
               color: Theme.of(
@@ -150,7 +152,7 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
             LowerCaseTextFormatter(),
           ],
         ),
-        if (state.errorMessage != null) ...[
+        if (state.error != null) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
@@ -168,7 +170,7 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    state.errorMessage!,
+                    state.error!.localize(context),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onErrorContainer,
                       fontSize: 13,

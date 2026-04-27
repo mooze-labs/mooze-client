@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -18,6 +19,7 @@ class PixPaymentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final depositId =
         GoRouterState.of(context).pathParameters["transaction_id"] as String;
     final deposit = ref.watch(depositDataProvider(depositId));
@@ -26,13 +28,13 @@ class PixPaymentScreen extends ConsumerWidget {
       data:
           (data) => data.fold(
             (err) => ErrorPixPaymentScreen(
-              errorMessage: "Falha ao gerar QR code: $err",
+              errorMessage: t.pix_payment_qr_error(err.toString()),
             ),
             (deposit) => ValidPixPaymentScreen(deposit: deposit),
           ),
       error:
           (err, stackTrace) => ErrorPixPaymentScreen(
-            errorMessage: "Falha ao gerar QR code: $err",
+            errorMessage: t.pix_payment_qr_error(err.toString()),
           ),
       loading: () => LoadingPixPaymentScreen(),
     );
@@ -147,10 +149,11 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Pagamento PIX'),
+          title: Text(t.pix_payment_appbar_title),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () {
@@ -178,9 +181,9 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
                             barrierDismissible: false,
                             builder:
                                 (dialogContext) => AlertDialog(
-                                  title: const Text('Tempo Esgotado'),
+                                  title: Text(t.human_verif_time_expired_title),
                                   content: Text(
-                                    'O tempo para realizar o pagamento expirou. Por favor, gere um novo PIX.',
+                                    t.pix_payment_time_expired_body,
                                   ),
                                   actions: [
                                     TextButton(
@@ -192,7 +195,7 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
                                           context.go('/pix');
                                         }
                                       },
-                                      child: const Text('OK'),
+                                      child: Text(t.common_ok),
                                     ),
                                   ],
                                 ),

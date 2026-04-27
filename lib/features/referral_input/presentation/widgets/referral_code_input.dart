@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/formatter/upper_case_text_formatter.dart';
 
 /// Text input field for entering a referral code.
@@ -22,6 +23,7 @@ class ReferralCodeInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final disabledColor = colorScheme.outlineVariant;
@@ -61,17 +63,13 @@ class ReferralCodeInput extends StatelessWidget {
                     inputFormatters: [UpperCaseTextFormatter()],
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color:
-                          isApiDown
-                              ? disabledColor
-                              : colorScheme.onSurface,
+                      color: isApiDown ? disabledColor : colorScheme.onSurface,
                     ),
                     cursorColor: colorScheme.onSurface,
                     decoration: InputDecoration(
                       filled: false,
                       isCollapsed: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -79,14 +77,15 @@ class ReferralCodeInput extends StatelessWidget {
                       errorBorder: InputBorder.none,
                       focusedErrorBorder: InputBorder.none,
                       hintText:
-                          isApiDown ? 'Indisponível' : 'Ex: MOOZE123',
+                          isApiDown
+                              ? t.referral_input_unavailable
+                              : t.referral_input_hint,
                       hintStyle: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.normal,
                         color:
                             isApiDown
                                 ? disabledColor
-                                : colorScheme.onSurface
-                                    .withValues(alpha: 0.54),
+                                : colorScheme.onSurface.withValues(alpha: 0.54),
                       ),
                     ),
                   ),
@@ -102,7 +101,7 @@ class ReferralCodeInput extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             color: colorScheme.surfaceDim,
             child: Text(
-              'Código de Indicação',
+              t.referral_input_label,
               style: textTheme.bodySmall?.copyWith(
                 color:
                     isApiDown

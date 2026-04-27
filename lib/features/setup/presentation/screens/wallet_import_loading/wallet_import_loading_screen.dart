@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/shared/infra/boot/boot_orchestrator.dart';
@@ -19,11 +20,13 @@ class ImportMessage {
   final String text;
   final bool isCompleted;
   final bool hasError;
+  final bool isRetry;
 
   const ImportMessage({
     required this.text,
     this.isCompleted = false,
     this.hasError = false,
+    this.isRetry = false,
   });
 }
 
@@ -149,9 +152,10 @@ class _WalletImportLoadingScreenState
       if (event.isCompleted) {
         if (!_completedDatasources.contains(event.datasource)) {
           _completedDatasources.add(event.datasource);
-
+          if (!mounted) return;
+          final t = AppLocalizations.of(context);
           _showMessage(
-            '${_getDatasourceName(event.datasource)} sincronizado ✓',
+            t.wallet_import_msg_synced(_getDatasourceName(event.datasource)),
           ).then((_) {
             if (_completedDatasources.containsAll(_requiredDatasources)) {
               _allSyncsCompleted = true;
@@ -162,8 +166,11 @@ class _WalletImportLoadingScreenState
       } else if (event.isFailed) {
         if (!_completedDatasources.contains(event.datasource)) {
           _completedDatasources.add(event.datasource);
+          if (!mounted) return;
+          final t = AppLocalizations.of(context);
           _showMessage(
-            '${_getDatasourceName(event.datasource)} - resincronizado...',
+            t.wallet_import_msg_resynced(_getDatasourceName(event.datasource)),
+            isRetry: true,
           ).then((_) {
             if (_completedDatasources.containsAll(_requiredDatasources)) {
               _allSyncsCompleted = true;
@@ -176,13 +183,14 @@ class _WalletImportLoadingScreenState
   }
 
   String _getDatasourceName(String datasource) {
+    final t = AppLocalizations.of(context);
     switch (datasource) {
       case 'liquid':
-        return 'Liquid Network';
+        return t.wallet_import_datasource_liquid;
       case 'bdk':
-        return 'Bitcoin';
+        return t.wallet_import_datasource_bitcoin;
       case 'breez':
-        return 'Lightning';
+        return t.wallet_import_datasource_lightning;
       default:
         return datasource;
     }
@@ -193,17 +201,20 @@ class _WalletImportLoadingScreenState
 
     setState(() => _isHandlingSuccess = true);
 
-    await _showMessage('Carregando saldos...');
+    if (!mounted) return;
+    final t = AppLocalizations.of(context);
+
+    await _showMessage(t.wallet_import_msg_loading_balances);
 
     await _refreshBalances();
 
-    await _showMessage('Carregando transações...');
+    await _showMessage(t.wallet_import_msg_loading_transactions);
     await Future.delayed(const Duration(milliseconds: 500));
 
     final transactionMonitor = ref.read(transactionMonitorServiceProvider);
     await transactionMonitor.markExistingTransactionsAsKnown();
 
-    await _showMessage('Importação concluída ✓', isCompleted: true);
+    await _showMessage(t.wallet_import_msg_completed, isCompleted: true);
     await _checkBounceController.forward();
 
     transactionMonitor.finishImporting();
@@ -254,9 +265,12 @@ class _WalletImportLoadingScreenState
       final transactionMonitor = ref.read(transactionMonitorServiceProvider);
       transactionMonitor.startImporting();
 
-      await _showMessage('Processando...');
+      if (!mounted) return;
+      final t = AppLocalizations.of(context);
 
-      await _showMessage('Verificando dados...');
+      await _showMessage(t.wallet_import_msg_processing);
+
+      await _showMessage(t.wallet_import_msg_verifying);
 
       try {
         await LwkCacheManager.clearLwkDatabase();
@@ -287,7 +301,7 @@ class _WalletImportLoadingScreenState
 
       _listenToSyncEvents();
 
-      await _showMessage('Inicializando carteira...');
+      await _showMessage(t.wallet_import_msg_initializing);
       setState(() => _hasInitialized = true);
 
       await freshWalletDataManager.initializeWallet(
@@ -302,8 +316,10 @@ class _WalletImportLoadingScreenState
           if (_requiredDatasources.contains(datasource) &&
               !_completedDatasources.contains(datasource)) {
             _completedDatasources.add(datasource);
+            if (!mounted) return;
+            final t2 = AppLocalizations.of(context);
             await _showMessage(
-              '${_getDatasourceName(datasource)} sincronizado ✓',
+              t2.wallet_import_msg_synced(_getDatasourceName(datasource)),
             );
           }
         }
@@ -314,6 +330,7 @@ class _WalletImportLoadingScreenState
         }
       }
     } catch (e) {
+      if (!mounted) return;
       final errorMsg = _getErrorMessage(e);
       await _showMessage(errorMsg, hasError: true);
       setState(() {
@@ -327,6 +344,7 @@ class _WalletImportLoadingScreenState
     String text, {
     bool isCompleted = false,
     bool hasError = false,
+    bool isRetry = false,
   }) async {
     if (_currentMessageIndex >= 0 && _currentMessageIndex < _messages.length) {
       setState(() {
@@ -334,13 +352,19 @@ class _WalletImportLoadingScreenState
           text: _messages[_currentMessageIndex].text,
           isCompleted: true,
           hasError: _messages[_currentMessageIndex].hasError,
+          isRetry: _messages[_currentMessageIndex].isRetry,
         );
       });
     }
 
     setState(() {
       _messages.add(
-        ImportMessage(text: text, isCompleted: isCompleted, hasError: hasError),
+        ImportMessage(
+          text: text,
+          isCompleted: isCompleted,
+          hasError: hasError,
+          isRetry: isRetry,
+        ),
       );
       _currentMessageIndex = _messages.length - 1;
     });
@@ -351,27 +375,29 @@ class _WalletImportLoadingScreenState
   }
 
   String _getErrorMessage(dynamic error) {
+    final t = AppLocalizations.of(context);
     final errorStr = error.toString().toLowerCase();
 
     if (errorStr.contains('tentando reconectar') ||
         errorStr.contains('tentativas')) {
-      return 'Tentando reconectar...';
+      return t.wallet_import_error_reconnecting;
     } else if (errorStr.contains('mnemonic')) {
-      return 'Erro ao carregar dados';
+      return t.wallet_import_error_load_data;
     } else if (errorStr.contains('network') ||
         errorStr.contains('connection')) {
-      return 'Erro de conexão';
+      return t.wallet_import_error_connection;
     } else if (errorStr.contains('datasource')) {
-      return 'Erro ao conectar servidores';
+      return t.wallet_import_error_servers;
     } else if (errorStr.contains('nenhum datasource')) {
-      return 'Servidores indisponíveis';
+      return t.wallet_import_error_servers_unavailable;
     }
 
-    return 'Erro na importação';
+    return t.wallet_import_error_generic;
   }
 
   String _getUserFriendlyErrorMessage(String? errorMessage) {
-    if (errorMessage == null) return 'Ocorreu um erro';
+    final t = AppLocalizations.of(context);
+    if (errorMessage == null) return t.wallet_import_error_occurred;
 
     final errorStr = errorMessage.toLowerCase();
 
@@ -379,18 +405,21 @@ class _WalletImportLoadingScreenState
         errorStr.contains('tentativas')) {
       final match = RegExp(r'\((\d+)/(\d+)\)').firstMatch(errorMessage);
       if (match != null) {
-        return 'Reconectando (${match.group(1)}/${match.group(2)})';
+        return t.wallet_import_error_reconnecting_count(
+          match.group(1) ?? '',
+          match.group(2) ?? '',
+        );
       }
-      return 'Tentando reconectar aos servidores...';
+      return t.wallet_import_error_reconnecting_servers;
     } else if (errorStr.contains('nenhum datasource')) {
-      return 'Não foi possível conectar aos servidores.\nVerifique sua conexão e tente novamente.';
+      return t.wallet_import_error_no_connection;
     } else if (errorStr.contains('datasource')) {
-      return 'Erro ao conectar aos servidores.\nTente novamente.';
+      return t.wallet_import_error_servers_long;
     } else if (errorStr.contains('network') ||
         errorStr.contains('connection')) {
-      return 'Erro de conexão.\nVerifique sua internet.';
+      return t.wallet_import_error_internet;
     } else if (errorStr.contains('mnemonic')) {
-      return 'Erro ao carregar dados da carteira.';
+      return t.wallet_import_error_wallet_data;
     }
 
     return errorMessage;
@@ -412,19 +441,25 @@ class _WalletImportLoadingScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     ref.listen<WalletDataStatus>(walletDataManagerProvider, (
       previous,
       next,
     ) async {
       if (_hasInitialized && !_hasError && !_isCompleted && next.hasError) {
-        final errorMsg = next.errorMessage ?? 'Erro desconhecido';
+        final errorMsg =
+            next.errorMessage ?? t.wallet_import_error_unknown;
 
         final isRetrying =
             errorMsg.toLowerCase().contains('tentando reconectar') ||
             errorMsg.toLowerCase().contains('tentativas');
 
         if (isRetrying) {
-          await _showMessage(_getErrorMessage(errorMsg), hasError: false);
+          await _showMessage(
+            _getErrorMessage(errorMsg),
+            hasError: false,
+            isRetry: true,
+          );
         } else {
           await _showMessage(_getErrorMessage(errorMsg), hasError: true);
           setState(() {
@@ -495,7 +530,7 @@ class _WalletImportLoadingScreenState
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        _errorMessage ?? 'Ocorreu um erro',
+                        _errorMessage ?? t.wallet_import_error_occurred,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           height: 1.5,
@@ -514,7 +549,7 @@ class _WalletImportLoadingScreenState
                             ),
                           ),
                           child: Text(
-                            'Tentar Novamente',
+                            t.common_retry,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: Theme.of(context).colorScheme.surface,
                               fontWeight: FontWeight.w600,
@@ -745,9 +780,7 @@ class _WalletImportLoadingScreenState
   Widget _buildMessageItem(ImportMessage message, int index) {
     final isCurrentMessage = index == _currentMessageIndex;
 
-    final isRetryMessage =
-        message.text.toLowerCase().contains('reconect') ||
-        message.text.toLowerCase().contains('tentando');
+    final isRetryMessage = message.isRetry;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_fadeController, _slideController]),

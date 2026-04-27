@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -19,6 +20,7 @@ class ExportLogsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context)!;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -43,12 +45,14 @@ class ExportLogsDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Exportar Logs',
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              t.export_logs_title,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Os logs do aplicativo ajudam nossa equipe a resolver problemas. Como você gostaria de compartilhar?',
+              t.export_logs_description,
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: context.colors.textSecondary,
@@ -57,7 +61,7 @@ class ExportLogsDialog extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             PrimaryButton(
-              text: 'Enviar por E-mail',
+              text: t.export_logs_by_email,
               onPressed: () => Navigator.of(context).pop(ExportMethod.email),
             ),
             const SizedBox(height: 12),
@@ -73,7 +77,7 @@ class ExportLogsDialog extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'Salvar/Compartilhar',
+                t.export_logs_share,
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),

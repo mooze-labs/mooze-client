@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/features/swap/domain/repositories/swap_repository.dart';
@@ -9,12 +11,64 @@ import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider
 import 'package:mooze_mobile/features/swap/domain/entities.dart';
 import 'package:mooze_mobile/features/swap/data/models.dart';
 
+/// Stable error categories for swap failures, decoupled from user-facing copy
+enum SwapErrorCode {
+  noLiquidity,
+  insufficientBalance,
+  utxoBusy,
+  noActiveQuote,
+  timeout,
+  unexpected,
+  upstream,
+}
+
+/// Locale-agnostic swap error payload — UI calls [localize] to render it
+class SwapError {
+  final SwapErrorCode code;
+  final String? rawMessage;
+  final int? available;
+  final int? required;
+
+  const SwapError({
+    required this.code,
+    this.rawMessage,
+    this.available,
+    this.required,
+  });
+
+  String localize(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    switch (code) {
+      case SwapErrorCode.noLiquidity:
+        return t.swap_no_liquidity_body;
+      case SwapErrorCode.insufficientBalance:
+        if (available != null && required != null) {
+          return t.swap_error_insufficient_balance_detailed(
+            available!,
+            required!,
+          );
+        }
+        return t.swap_insufficient_balance;
+      case SwapErrorCode.utxoBusy:
+        return t.swap_error_processing;
+      case SwapErrorCode.noActiveQuote:
+        return t.swap_error_no_active_quote;
+      case SwapErrorCode.timeout:
+        return t.swap_error_timeout;
+      case SwapErrorCode.unexpected:
+        return t.swap_error_unexpected(rawMessage ?? '');
+      case SwapErrorCode.upstream:
+        return rawMessage ?? t.swap_error_unexpected('');
+    }
+  }
+}
+
 class SwapState {
   final bool loading;
   final List<SideswapAsset> assets;
   final List<SideswapMarket> markets;
   final QuoteResponse? currentQuote;
-  final String? error;
+  final SwapError? error;
   final int? activeQuoteId;
   final int? ttlMilliseconds;
   final int? millisecondsRemaining;
@@ -64,7 +118,7 @@ class SwapState {
     List<SideswapAsset>? assets,
     List<SideswapMarket>? markets,
     QuoteResponse? currentQuote,
-    String? error,
+    SwapError? error,
     int? activeQuoteId,
     int? ttlMilliseconds,
     int? millisecondsRemaining,
@@ -188,14 +242,21 @@ class SwapController extends StateNotifier<SwapState> {
       (markets) => _log.info(_tag, 'Loaded ${markets.length} swap markets'),
     );
 
+    final upstreamErr = assetsRes.match(
+      (l) => l,
+      (_) => marketsRes.match((l2) => l2, (_) => null),
+    );
     state = state.copyWith(
       loading: false,
       assets: assetsRes.getOrElse((_) => []),
       markets: marketsRes.getOrElse((_) => []),
-      error: assetsRes.match(
-        (l) => l,
-        (_) => marketsRes.match((l2) => l2, (_) => null),
-      ),
+      error:
+          upstreamErr != null
+              ? SwapError(
+                code: SwapErrorCode.upstream,
+                rawMessage: upstreamErr,
+              )
+              : null,
     );
   }
 
@@ -267,14 +328,19 @@ class SwapController extends StateNotifier<SwapState> {
     final utxoAsset = assetType == 'Base' ? baseAsset : quoteAsset;
 
     if (utxoAsset != sendAsset) {
-      final errMsg =
-          'Erro interno: normalização incorreta (utxo=$utxoAsset, send=$sendAsset)';
       _log.error(
         _tag,
         'Internal normalization mismatch: utxoAsset=$utxoAsset != sendAsset=$sendAsset',
       );
       if (!mounted) return;
-      state = state.copyWith(loading: false, error: errMsg);
+      state = state.copyWith(
+        loading: false,
+        error: SwapError(
+          code: SwapErrorCode.unexpected,
+          rawMessage:
+              'Internal normalization mismatch (utxo=$utxoAsset, send=$sendAsset)',
+        ),
+      );
       return;
     }
 
@@ -289,11 +355,14 @@ class SwapController extends StateNotifier<SwapState> {
     if (addrRes.isLeft() || utxosRes.isLeft()) {
       final err = addrRes.match(
         (l) => l,
-        (_) => utxosRes.match((l2) => l2, (_) => 'Erro inesperado'),
+        (_) => utxosRes.match((l2) => l2, (_) => 'Unexpected error'),
       );
       _log.error(_tag, 'Failed to get address or UTXOs: $err');
       if (!mounted) return;
-      state = state.copyWith(loading: false, error: err);
+      state = state.copyWith(
+        loading: false,
+        error: SwapError(code: SwapErrorCode.upstream, rawMessage: err),
+      );
       return;
     }
     final receiveAddress =
@@ -319,41 +388,61 @@ class SwapController extends StateNotifier<SwapState> {
       (err) {
         _log.error(_tag, 'Failed to start quote stream: $err');
         if (!mounted) return;
-        state = state.copyWith(loading: false, error: err);
+        state = state.copyWith(
+          loading: false,
+          error: SwapError(code: SwapErrorCode.upstream, rawMessage: err),
+        );
       },
       (stream) {
         _quoteSub = stream.listen((quote) {
           if (!mounted) return;
-          String? msg = quote.error?.errorMessage;
+          final rawMsg = quote.error?.errorMessage;
+          SwapError? swapErr;
 
-          if (msg != null &&
-              (msg.toLowerCase().contains('invalid utxo') ||
-                  msg.toLowerCase().contains('unknown utxo') ||
-                  msg.toLowerCase().contains('wait for wallet sync'))) {
-            msg =
-                'Aguarde alguns instantes antes de realizar outro swap. '
-                'Sua transação anterior ainda está sendo processada.';
+          if (rawMsg != null) {
+            final lower = rawMsg.toLowerCase();
+            if (lower.contains('invalid utxo') ||
+                lower.contains('unknown utxo') ||
+                lower.contains('wait for wallet sync')) {
+              swapErr = const SwapError(code: SwapErrorCode.utxoBusy);
+            } else if (lower.contains('no matching orders') ||
+                lower.contains('matching orders')) {
+              swapErr = const SwapError(code: SwapErrorCode.noLiquidity);
+            } else {
+              swapErr = SwapError(
+                code: SwapErrorCode.upstream,
+                rawMessage: rawMsg,
+              );
+            }
           }
 
-          if (msg == null && quote.lowBalance != null) {
+          if (swapErr == null && quote.lowBalance != null) {
             final lb = quote.lowBalance!;
             final totalFees = lb.fixedFee + lb.serverFee;
-            msg =
-                'Saldo insuficiente para este swap. Disponível: ${lb.available} sats. Necessário (enviado + taxas): ${lb.baseAmount + totalFees} sats.';
+            swapErr = SwapError(
+              code: SwapErrorCode.insufficientBalance,
+              available: lb.available,
+              required: lb.baseAmount + totalFees,
+            );
           }
 
           final ttlMs = quote.quote?.ttl;
-          final initializeDeadline = _ttlDeadline == null && ttlMs != null;
-          if (initializeDeadline) {
+          final shouldStartTimer = _ttlDeadline == null && ttlMs != null;
+          // Always update deadline with latest quote TTL so the countdown
+          // stays fresh while the server keeps pushing updates (~every 3s).
+          if (ttlMs != null) {
             _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
           }
 
-          if (msg != null) {
-            _log.warning(_tag, 'Quote stream received error message: $msg');
-          } else if (quote.quote != null) {
-            _log.info(
+          if (swapErr != null) {
+            _log.warning(
               _tag,
-              'Quote received — id: ${quote.quote!.quoteId}, '
+              'Quote stream received error: code=${swapErr.code}, raw=$rawMsg',
+            );
+          } else if (quote.quote != null) {
+            _log.debug(
+              _tag,
+              'Quote update — id: ${quote.quote!.quoteId}, '
               'baseAmount: ${quote.quote!.baseAmount} sats, '
               'quoteAmount: ${quote.quote!.quoteAmount} sats, '
               'ttl: ${ttlMs}ms',
@@ -364,18 +453,16 @@ class SwapController extends StateNotifier<SwapState> {
           state = state.copyWith(
             loading: false,
             currentQuote: quote,
-            error: msg,
+            error: swapErr,
             activeQuoteId: quote.quote?.quoteId,
-            ttlMilliseconds: initializeDeadline ? ttlMs : state.ttlMilliseconds,
-            millisecondsRemaining:
-                initializeDeadline ? ttlMs : state.millisecondsRemaining,
+            ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
             lastSendAssetId: sendAsset,
             lastReceiveAssetId: receiveAsset,
             lastAmount: amount,
             isInverseMarket: isInverse,
             feeAssetId: feeAsset,
           );
-          if (initializeDeadline) {
+          if (shouldStartTimer) {
             _startTtlCountdown();
           }
         });
@@ -399,22 +486,15 @@ class SwapController extends StateNotifier<SwapState> {
         _ttlDeadline = null;
         _log.info(
           _tag,
-          'Quote TTL expired — auto-renewing quote for '
-          'send=${state.lastSendAssetId}, receive=${state.lastReceiveAssetId}, amount=${state.lastAmount}',
+          'Quote TTL expired — clearing quote state, waiting for user action',
         );
         if (!mounted) return;
-        state = state.copyWith(millisecondsRemaining: 0);
-        final paramsOk =
-            state.lastSendAssetId != null &&
-            state.lastReceiveAssetId != null &&
-            state.lastAmount != null;
-        if (paramsOk && mounted) {
-          startQuote(
-            sendAsset: state.lastSendAssetId!,
-            receiveAsset: state.lastReceiveAssetId!,
-            amount: state.lastAmount!,
-          );
-        }
+        state = state.copyWith(
+          millisecondsRemaining: 0,
+          currentQuote: null,
+          activeQuoteId: null,
+          ttlMilliseconds: null,
+        );
       } else {
         if (!mounted) return;
         state = state.copyWith(millisecondsRemaining: remainingMs);
@@ -437,7 +517,7 @@ class SwapController extends StateNotifier<SwapState> {
     );
   }
 
-  Future<Either<String, String>> confirmSwap() async {
+  Future<Either<SwapError, String>> confirmSwap() async {
     _log.info(
       _tag,
       'User confirmed swap — stopping quote stream and proceeding',
@@ -452,12 +532,17 @@ class SwapController extends StateNotifier<SwapState> {
 
     if (!mounted) {
       _log.warning(_tag, 'confirmSwap: controller disposed before starting');
-      return Either.left('Controller disposed');
+      return Either.left(
+        const SwapError(
+          code: SwapErrorCode.upstream,
+          rawMessage: 'Controller disposed',
+        ),
+      );
     }
     final quote = state.currentQuote?.quote;
     if (quote == null) {
       _log.warning(_tag, 'confirmSwap: no active quote found');
-      return Either.left('Nenhum quote ativo');
+      return Either.left(const SwapError(code: SwapErrorCode.noActiveQuote));
     }
     _log.debug(_tag, 'Confirming swap with quote id=${quote.quoteId}');
     state = state.copyWith(loading: true, error: null);
@@ -474,10 +559,8 @@ class SwapController extends StateNotifier<SwapState> {
             _tag,
             'Swap confirmation timed out after 60s — quoteId=${quote.quoteId}',
           );
-          return Either.left(
-                'Timeout: A operação demorou muito. Tente novamente.',
-              )
-              as Either<String, String>;
+          return Either.left(const SwapError(code: SwapErrorCode.timeout))
+              as Either<SwapError, String>;
         }),
       ]);
 
@@ -486,12 +569,17 @@ class SwapController extends StateNotifier<SwapState> {
           _tag,
           'confirmSwap: controller disposed after swap execution',
         );
-        return Either.left('Controller disposed');
+        return Either.left(
+          const SwapError(
+            code: SwapErrorCode.upstream,
+            rawMessage: 'Controller disposed',
+          ),
+        );
       }
 
       return result.match(
         (err) {
-          _log.error(_tag, 'Swap confirmation failed: $err');
+          _log.error(_tag, 'Swap confirmation failed: ${err.rawMessage}');
           if (!mounted) return Either.left(err);
           state = state.copyWith(
             loading: false,
@@ -534,10 +622,14 @@ class SwapController extends StateNotifier<SwapState> {
         error: e,
         stackTrace: stackTrace,
       );
-      if (!mounted) return Either.left('Erro inesperado: ${e.toString()}');
+      final unexpected = SwapError(
+        code: SwapErrorCode.unexpected,
+        rawMessage: e.toString(),
+      );
+      if (!mounted) return Either.left(unexpected);
       state = state.copyWith(
         loading: false,
-        error: 'Erro inesperado: ${e.toString()}',
+        error: unexpected,
         currentQuote: null,
         activeQuoteId: null,
         ttlMilliseconds: null,
@@ -548,11 +640,11 @@ class SwapController extends StateNotifier<SwapState> {
         isInverseMarket: null,
         feeAssetId: null,
       );
-      return Either.left('Erro inesperado: ${e.toString()}');
+      return Either.left(unexpected);
     }
   }
 
-  Future<Either<String, String>> _performSwap(
+  Future<Either<SwapError, String>> _performSwap(
     SwapRepository repository,
     int quoteId,
   ) async {
@@ -563,14 +655,20 @@ class SwapController extends StateNotifier<SwapState> {
         _tag,
         '_performSwap: controller disposed after fetching PSET',
       );
-      return Either.left('Controller disposed');
+      return Either.left(
+        const SwapError(
+          code: SwapErrorCode.upstream,
+          rawMessage: 'Controller disposed',
+        ),
+      );
     }
 
     return await psetRes.match(
       (err) async {
         _log.error(_tag, 'Failed to get PSET for quoteId=$quoteId: $err');
-        if (!mounted) return Either.left(err);
-        return Either.left(err);
+        return Either.left(
+          SwapError(code: SwapErrorCode.upstream, rawMessage: err),
+        );
       },
       (pset) async {
         _log.debug(
@@ -586,16 +684,28 @@ class SwapController extends StateNotifier<SwapState> {
             _tag,
             '_performSwap: controller disposed after signAndBroadcast',
           );
-          return Either.left('Controller disposed');
+          return Either.left(
+            const SwapError(
+              code: SwapErrorCode.upstream,
+              rawMessage: 'Controller disposed',
+            ),
+          );
         }
-        txidRes.match(
-          (err) => _log.error(
-            _tag,
-            'signAndBroadcast failed for quoteId=$quoteId: $err',
-          ),
-          (txid) => _log.info(_tag, 'signAndBroadcast succeeded — txid: $txid'),
+        return txidRes.match(
+          (err) {
+            _log.error(
+              _tag,
+              'signAndBroadcast failed for quoteId=$quoteId: $err',
+            );
+            return Either.left(
+              SwapError(code: SwapErrorCode.upstream, rawMessage: err),
+            );
+          },
+          (txid) {
+            _log.info(_tag, 'signAndBroadcast succeeded — txid: $txid');
+            return Either.right(txid);
+          },
         );
-        return txidRes;
       },
     );
   }

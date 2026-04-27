@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Small-print disclaimer shown above the slide-to-confirm button on the
@@ -10,6 +11,7 @@ class PixDisclaimerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = context.colorScheme;
     final dimColor = colorScheme.onSurface.withValues(alpha: 0.42);
     final warnColor = context.appColors.warning.withValues(alpha: 0.65);
@@ -24,34 +26,32 @@ class PixDisclaimerSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Rules ─────────────────────────────────────────────────────────
-        Text('Para uma melhor experiência PIX:', style: boldDimStyle),
+        Text(t.pix_disclaimer_header, style: boldDimStyle),
         const SizedBox(height: 4),
         _BulletItem(
-          text: 'Máx. 3 PIX consecutivos do mesmo titular em 30 min.',
+          text: t.pix_disclaimer_max_consecutive,
           style: dimStyle,
         ),
         _BulletItem(
-          text: 'Limite R\$ 5.000/dia por titular (nível bancário).',
+          text: t.pix_disclaimer_daily_limit,
           style: dimStyle,
         ),
         const SizedBox(height: 8),
         // ── Warnings ──────────────────────────────────────────────────────
         _WarningItem(
-          text: 'Transferências fora das regras são devolvidas ao pagador.',
+          text: t.pix_disclaimer_outside_rules,
           style: dimStyle,
           iconColor: warnColor,
         ),
         const SizedBox(height: 3),
         _WarningItem(
-          text:
-              '100% dos PIX são analisados por infra conjunta — estorno automático se suspeita de automação.',
+          text: t.pix_disclaimer_analyzed,
           style: dimStyle,
           iconColor: warnColor,
         ),
         const SizedBox(height: 3),
         _WarningItem(
-          text:
-              'Tempo médio: 5 a 25 min. PIX c/ sinal de risco bancário: 3–7 dias úteis (estornável).',
+          text: t.pix_disclaimer_avg_time,
           style: dimStyle,
           iconColor: warnColor,
         ),

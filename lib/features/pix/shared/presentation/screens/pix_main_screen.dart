@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/recive_pix_screen.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/screens/send_pix_tab_screen.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
@@ -61,32 +62,30 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
   }
 
   void _showPixInfo(BuildContext context) {
+    final t = AppLocalizations.of(context);
     InfoOverlay.show(
       context,
-      title: 'Informações sobre PIX',
+      title: t.pix_info_title,
       steps: [
         InfoStep(
           icon: Icons.schedule,
-          title: 'Prazo de processamento',
-          description:
-              'Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.',
+          title: t.pix_info_processing_title,
+          description: t.pix_info_processing_body,
         ),
         InfoStep(
           icon: Icons.currency_bitcoin,
-          title: 'Variação de câmbio (LBTC)',
-          description:
-              'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.',
+          title: t.pix_info_lbtc_variation_title,
+          description: t.pix_info_lbtc_variation_body,
         ),
         InfoStep(
           icon: Icons.receipt_long,
-          title: 'Sobre as taxas',
-          description:
-              'As taxas variam conforme o valor da transação. Valores menores têm taxas fixas, valores maiores têm taxas percentuais decrescentes.',
+          title: t.pix_info_fees_title,
+          description: t.pix_info_fees_body,
         ),
       ],
       footerBuilder:
           (closeOverlay) => SecondaryButton(
-            text: 'Ver detalhes das taxas',
+            text: t.pix_info_fees_button,
             onPressed: () {
               closeOverlay();
               context.push('/pix/fees');
@@ -97,6 +96,7 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('PIX'),
@@ -145,7 +145,10 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
-              tabs: const [Tab(text: 'Receber'), Tab(text: 'Enviar')],
+              tabs: [
+                Tab(text: t.pix_main_tab_receive),
+                Tab(text: t.pix_main_tab_send),
+              ],
             ),
           ),
           Expanded(

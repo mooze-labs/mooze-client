@@ -20,21 +20,15 @@ class CartItemEntity {
   /// Validates if the cart item meets business rules
   bool get isValid => quantity > 0 && price > 0 && name.isNotEmpty;
 
-  /// Validates the cart item and returns an error message if invalid
+  /// Validates the cart item and returns a stable error code if invalid.
   ///
   /// Returns:
   /// - null if valid
-  /// - Error message string if validation fails
+  /// - A non-localized identifier (callers translate at the UI boundary)
   String? validate() {
-    if (name.isEmpty) {
-      return 'name do item não pode ser vazio'; // Item name cannot be empty
-    }
-    if (price <= 0) {
-      return 'Preço deve ser maior que zero'; // Price must be greater than zero
-    }
-    if (quantity <= 0) {
-      return 'quantity deve ser maior que zero'; // Quantity must be greater than zero
-    }
+    if (name.isEmpty) return 'cart_item.name_empty';
+    if (price <= 0) return 'cart_item.price_invalid';
+    if (quantity <= 0) return 'cart_item.quantity_invalid';
     return null;
   }
 

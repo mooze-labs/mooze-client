@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,14 +21,15 @@ import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 enum SendConversionType { asset, sats, fiat }
 
 extension SendConversionTypeExtension on SendConversionType {
-  String get label {
+  String label(BuildContext context) {
+    final t = AppLocalizations.of(context);
     switch (this) {
       case SendConversionType.asset:
-        return 'Ativo';
+        return t.wallet_send_conversion_asset;
       case SendConversionType.sats:
-        return 'Satoshis';
+        return t.wallet_send_conversion_sats;
       case SendConversionType.fiat:
-        return 'Fiat';
+        return t.wallet_send_conversion_fiat;
     }
   }
 
@@ -235,6 +237,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final selectedNetwork = ref.watch(selectedNetworkProvider);
     final selectedAsset = ref.watch(selectedAssetProvider);
     final validationState = ref.watch(sendValidationControllerProvider);
@@ -254,13 +257,14 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
 
     final isDisabled = false;
 
-    final amountError = validationState.errors.firstWhere(
-      (error) =>
-          error.contains('valor') ||
-          error.contains('Valor') ||
-          error.contains('mínimo'),
-      orElse: () => '',
-    );
+    SendValidationError? amountError;
+    for (final error in validationState.errors) {
+      if (error.category == SendValidationErrorCategory.amount ||
+          error.category == SendValidationErrorCategory.limits) {
+        amountError = error;
+        break;
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,7 +272,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
         Row(
           children: [
             Text(
-              'Valor',
+              t.wallet_send_amount_label,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -284,7 +288,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: _getInputFormatters(selectedAsset, conversionType),
           decoration: InputDecoration(
-            hintText: 'Digite o valor',
+            hintText: t.wallet_send_amount_hint,
             hintStyle: TextStyle(
               color: Theme.of(
                 context,
@@ -321,7 +325,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
             contentPadding: const EdgeInsets.all(16),
-            errorText: amountError.isEmpty ? null : amountError,
+            errorText: amountError?.localize(context),
           ),
           onChanged: (value) {
             if (_isUpdatingFromProvider) return;
@@ -486,7 +490,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Valor em Satoshis:',
+                  AppLocalizations.of(context).wallet_send_amount_in_sats,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
@@ -518,7 +522,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
       return _buildValidationRow(
         context,
         icon: Icons.check_circle_outline,
-        text: 'Valor válido!',
+        text: AppLocalizations.of(context).wallet_send_amount_valid,
         color: Colors.green,
       );
     }

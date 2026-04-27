@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
@@ -98,6 +99,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -147,7 +149,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Pronto para vender?',
+                        t.merchant_exit_ready,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,
@@ -156,7 +158,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                       ),
                       const SizedBox(height: 32),
                       PrimaryButton(
-                        text: 'Receber novo pagamento',
+                        text: t.merchant_exit_new_payment,
                         onPressed: () {
                           context.go('/merchant');
                         },
@@ -223,7 +225,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Quer acessar a carteira?',
+                                  t.merchant_exit_back_to_wallet,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.w600,

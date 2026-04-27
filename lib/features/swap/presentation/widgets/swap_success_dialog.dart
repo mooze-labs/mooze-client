@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SwapSuccessDialog extends StatelessWidget {
@@ -18,6 +19,7 @@ class SwapSuccessDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: context.colors.surfaceColor,
@@ -72,7 +74,7 @@ class SwapSuccessDialog extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Transaction ID',
+                        t.refund_success_txid_label,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: Colors.grey[500],
                         ),
@@ -82,8 +84,8 @@ class SwapSuccessDialog extends StatelessWidget {
                           Clipboard.setData(ClipboardData(text: txId!));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('TX ID copiado!'),
-                              duration: Duration(seconds: 2),
+                              content: Text(t.swap_success_dialog_txid_copied),
+                              duration: const Duration(seconds: 2),
                             ),
                           );
                         },
@@ -124,9 +126,9 @@ class SwapSuccessDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              'OK',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: Text(
+              t.common_ok,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),

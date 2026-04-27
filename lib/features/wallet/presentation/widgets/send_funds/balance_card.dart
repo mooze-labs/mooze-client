@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../providers/send_funds/selected_asset_provider.dart';
@@ -11,6 +12,7 @@ class BalanceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final selectedAsset = ref.watch(selectedAssetProvider);
 
     return Container(
@@ -56,7 +58,7 @@ class BalanceCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Saldo disponível",
+                      t.wallet_send_available_balance,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium?.copyWith(fontSize: 14),
@@ -85,6 +87,7 @@ class BalanceText extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final balanceAsyncValue = ref.watch(selectedAssetBalanceProvider);
 
     return Row(
@@ -94,7 +97,7 @@ class BalanceText extends ConsumerWidget {
           data:
               (balanceResult) => balanceResult.fold(
                 (error) => Text(
-                  "Indisponível",
+                  t.wallet_send_balance_unavailable,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.error,
                   ),
@@ -122,7 +125,7 @@ class BalanceText extends ConsumerWidget {
               ),
           error:
               (error, stackTrace) => Text(
-                "Erro ao carregar",
+                t.wallet_send_balance_load_error,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.error,
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Displays the currently active referral code with a success state.
 ///
@@ -15,6 +16,7 @@ class ActiveReferralCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final positiveColor = colorScheme.tertiary;
     final onPositive = colorScheme.onTertiary;
+    final t = AppLocalizations.of(context);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -23,10 +25,7 @@ class ActiveReferralCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            positiveColor,
-            Color.lerp(positiveColor, onPositive, 0.2)!,
-          ],
+          colors: [positiveColor, Color.lerp(positiveColor, onPositive, 0.2)!],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -60,7 +59,7 @@ class ActiveReferralCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Desconto Ativo',
+                      t.referral_active_title,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: onPositive,
@@ -68,7 +67,7 @@ class ActiveReferralCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Código: $referralCode',
+                      t.referral_code_with_value(referralCode),
                       style: textTheme.titleSmall?.copyWith(
                         color: onPositive.withValues(alpha: 0.9),
                       ),
@@ -97,7 +96,7 @@ class ActiveReferralCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Você está economizando em todas as transações!',
+                    t.referral_savings_message,
                     style: textTheme.labelMedium?.copyWith(
                       color: onPositive.withValues(alpha: 0.9),
                     ),

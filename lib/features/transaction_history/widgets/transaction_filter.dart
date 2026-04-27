@@ -4,6 +4,7 @@ import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_e
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_asset.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -65,6 +66,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final t = AppLocalizations.of(context);
           return Container(
             decoration: BoxDecoration(
               color: context.colors.surfaceColor,
@@ -107,7 +109,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                           Row(
                             children: [
                               Text(
-                                'Filtros',
+                                t.tx_filter_title,
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ],
@@ -115,7 +117,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                           const SizedBox(height: 15),
 
                           _buildFilterSection(
-                            title: 'Ordenar por',
+                            title: t.tx_filter_sort_by,
                             child: FilterOrderBy(
                               isMostRecentSelected: isMostRecentSelected,
                               onSelectionChanged: (isRecent) {
@@ -128,7 +130,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                           ),
 
                           _buildFilterSection(
-                            title: 'Tipo de transação',
+                            title: t.tx_filter_type,
                             child: Wrap(
                               spacing: 10,
                               runSpacing: 10,
@@ -180,6 +182,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                     ),
                                                 child: Text(
                                                   _getTransactionTypeLabel(
+                                                    t,
                                                     type,
                                                   ),
                                                   maxLines: 2,
@@ -204,7 +207,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                           ),
 
                           _buildFilterSection(
-                            title: 'Status',
+                            title: t.tx_filter_status,
                             child: Wrap(
                               spacing: 10,
                               runSpacing: 10,
@@ -256,6 +259,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                     ),
                                                 child: Text(
                                                   _getTransactionStatusLabel(
+                                                    t,
                                                     status,
                                                   ),
                                                   maxLines: 2,
@@ -280,7 +284,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                           ),
 
                           _buildFilterSection(
-                            title: 'Moeda',
+                            title: t.tx_filter_currency,
                             child: FilterByAsset(
                               assets: assets,
                               selectedAssetIds: selectedAssetIds,
@@ -294,7 +298,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                           ),
 
                           _buildFilterSection(
-                            title: 'Período',
+                            title: t.tx_filter_period,
                             child: StatefulBuilder(
                               builder: (
                                 BuildContext context,
@@ -450,7 +454,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                                       selectedDateRangeIndex ==
                                                           null
                                                   ? '${_formatDate(startDate!)} - ${_formatDate(endDate!)}'
-                                                  : 'Período personalizado',
+                                                  : t.tx_filter_period_custom,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
@@ -481,7 +485,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                                             color: Colors.grey[600],
                                           ),
                                           label: Text(
-                                            'Limpar período',
+                                            t.tx_filter_clear_period,
                                             style: TextStyle(
                                               color: Colors.grey[600],
                                               fontWeight: FontWeight.w500,
@@ -500,7 +504,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                             children: [
                               Expanded(
                                 child: SecondaryButton(
-                                  text: 'Limpar filtros',
+                                  text: t.tx_filter_clear_filters,
                                   onPressed: () {
                                     Navigator.of(
                                       context,
@@ -511,7 +515,7 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
                               const SizedBox(width: 8),
                               Expanded(
                                 child: PrimaryButton(
-                                  text: 'Aplicar filtros',
+                                  text: t.tx_filter_apply,
                                   onPressed: () {
                                     final filterMap = <String, dynamic>{};
                                     filterMap['type'] = selectedType.name;
@@ -573,31 +577,37 @@ DateTimeRange calculateDateRange({required int days}) {
   return DateTimeRange(start: startDate, end: endDate);
 }
 
-String _getTransactionTypeLabel(TransactionTypeEntity type) {
+String _getTransactionTypeLabel(
+  AppLocalizations t,
+  TransactionTypeEntity type,
+) {
   switch (type) {
     case TransactionTypeEntity.all:
-      return 'Todas';
+      return t.tx_type_all;
     case TransactionTypeEntity.send:
-      return 'Envio';
+      return t.tx_type_send;
     case TransactionTypeEntity.receive:
-      return 'Recebimento';
+      return t.tx_type_receive;
     case TransactionTypeEntity.swap:
-      return 'Swap';
+      return t.tx_type_swap;
   }
 }
 
-String _getTransactionStatusLabel(TransactionStatusEntity status) {
+String _getTransactionStatusLabel(
+  AppLocalizations t,
+  TransactionStatusEntity status,
+) {
   switch (status) {
     case TransactionStatusEntity.all:
-      return 'Todos';
+      return t.tx_status_all;
     case TransactionStatusEntity.pending:
-      return 'Pendente';
+      return t.tx_status_pending;
     case TransactionStatusEntity.confirmed:
-      return 'Confirmado';
+      return t.tx_status_confirmed;
     case TransactionStatusEntity.failed:
-      return 'Falhou';
+      return t.tx_status_failed;
     case TransactionStatusEntity.refundable:
-      return 'Reembolsável';
+      return t.tx_status_refundable;
   }
 }
 

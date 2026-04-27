@@ -24,6 +24,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Developer tools screen with debugging and diagnostic features
 class DeveloperScreen extends ConsumerStatefulWidget {
@@ -49,7 +50,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
   String _pendingBalance = '0';
   int _totalLogs = 0;
   int _dbLogs = 0;
-  String _logRetention = 'N/A';
+  int _retentionDays = -1;
 
   // Logger instance and stream subscription
   late final AppLoggerService _logger;
@@ -227,7 +228,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       if (mounted) {
         setState(() {
           _dbLogs = stats['total'] ?? 0;
-          _logRetention = '${_logger.config.retentionDays} dias';
+          _retentionDays = _logger.config.retentionDays;
         });
       }
     } catch (e) {
@@ -235,7 +236,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       if (mounted) {
         setState(() {
           _dbLogs = 0;
-          _logRetention = 'N/A';
+          _retentionDays = -1;
         });
       }
     }
@@ -253,7 +254,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       await Future.delayed(const Duration(milliseconds: 500));
 
       if (mounted) {
-        _showSuccessMessage('Light sync completed!');
+        _showSuccessMessage(
+          AppLocalizations.of(context)!.developer_sync_light_success,
+        );
         await _loadWalletInfo();
         _logger.info('DeveloperScreen', 'Light sync completed successfully');
       }
@@ -265,7 +268,11 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
         stackTrace: stackTrace,
       );
       if (mounted) {
-        _showErrorMessage('Failed to light sync: $e');
+        _showErrorMessage(
+          AppLocalizations.of(
+            context,
+          )!.developer_sync_light_error(e.toString()),
+        );
       }
     } finally {
       if (mounted) {
@@ -286,7 +293,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       await Future.delayed(const Duration(milliseconds: 500));
 
       if (mounted) {
-        _showSuccessMessage('Full sync completed!');
+        _showSuccessMessage(
+          AppLocalizations.of(context)!.developer_sync_full_success,
+        );
         await _loadWalletInfo();
         _logger.info('DeveloperScreen', 'Full sync completed successfully');
       }
@@ -298,7 +307,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
         stackTrace: stackTrace,
       );
       if (mounted) {
-        _showErrorMessage('Failed to full sync: $e');
+        _showErrorMessage(
+          AppLocalizations.of(context)!.developer_sync_full_error(e.toString()),
+        );
       }
     } finally {
       if (mounted) {
@@ -331,7 +342,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
           await _checkRefundables(breezSdk);
 
           if (mounted) {
-            _showSuccessMessage('Onchain swaps rescanned successfully!');
+            _showSuccessMessage(
+              AppLocalizations.of(context)!.developer_rescan_success,
+            );
             _logger.info(
               'DeveloperScreen',
               'Onchain swaps rescanned successfully',
@@ -347,7 +360,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
         stackTrace: stackTrace,
       );
       if (mounted) {
-        _showErrorMessage('Failed to rescan swaps: $e');
+        _showErrorMessage(
+          AppLocalizations.of(context)!.developer_rescan_error(e.toString()),
+        );
       }
     } finally {
       if (mounted) {
@@ -387,6 +402,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
 
       if (refundables.isNotEmpty && mounted) {
         // Show dialog asking if user wants to view refundables
+        final t = AppLocalizations.of(context)!;
         final shouldNavigate = await showDialog<bool>(
           context: context,
           builder:
@@ -398,21 +414,20 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
-                    const Text('Refundables Found'),
+                    Text(t.developer_refundables_title),
                   ],
                 ),
                 content: Text(
-                  'Found ${refundables.length} pending transaction(s) that can be refunded.\n\n'
-                  'Would you like to view them now?',
+                  t.developer_refundables_message(refundables.length),
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Later'),
+                    child: Text(t.developer_later),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('View Now'),
+                    child: Text(t.developer_view_now),
                   ),
                 ],
               ),
@@ -461,7 +476,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
         stackTrace: stackTrace,
       );
       if (mounted) {
-        _showErrorMessage('Failed to export logs: $e');
+        _showErrorMessage(
+          AppLocalizations.of(context)!.developer_export_error(e.toString()),
+        );
       }
     } finally {
       _setLoading(false);
@@ -471,58 +488,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
   Future<ExportMethod?> _showExportLogsDialog() async {
     return ExportLogsDialog.show(context);
   }
-
-  // Future<void> _sendLogsViaEmail(String zipPath) async {
-  //   try {
-  //     // Verifica se o arquivo existe
-  //     final file = File(zipPath);
-  //     if (!await file.exists()) {
-  //       throw Exception('Arquivo ZIP não encontrado: $zipPath');
-  //     }
-
-  //     // Verifica se o arquivo tem conteúdo
-  //     final fileSize = await file.length();
-  //     if (fileSize == 0) {
-  //       throw Exception('Arquivo ZIP está vazio');
-  //     }
-
-  //     _logger.info(
-  //       'DeveloperScreen',
-  //       'Sharing ZIP file: $zipPath (${fileSize} bytes)',
-  //     );
-
-  //     // Create mailto URI
-  //     final Uri emailUri = Uri(
-  //       scheme: 'mailto',
-  //       path: 'suporte@mooze.app',
-  //       query: Uri.encodeQueryComponent(
-  //         'subject=Logs do App Mooze&body=Segue em anexo os logs do aplicativo.\n\nDescreva aqui o problema que você está enfrentando:',
-  //       ).replaceAll('+', '%20'),
-  //     );
-
-  //     // Try to launch email app
-  //     if (await canLaunchUrl(emailUri)) {
-  //       await launchUrl(emailUri);
-  //     }
-
-  //     // Share the file with email apps using new API
-  //     final ShareParams shareParams = ShareParams(
-  //       title: 'Logs do App Mooze',
-  //       subject: 'Logs do App Mooze',
-  //       files: <XFile>[XFile(zipPath)],
-  //     );
-  //     await SharePlus.instance.share(shareParams);
-
-  //     _showSuccessMessage('Arquivo pronto para enviar por e-mail!');
-  //   } catch (e) {
-  //     _logger.error(
-  //       'DeveloperScreen',
-  //       'Failed to share logs via email',
-  //       error: e,
-  //     );
-  //     _showErrorMessage('Erro ao compartilhar logs: $e');
-  //   }
-  // }
 
   Future<void> _sendLogsViaEmail(String zipPath) async {
     try {
@@ -554,14 +519,16 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       // Send email
       await FlutterEmailSender.send(email);
 
-      _showSuccessMessage('Email pronto para envio!');
+      _showSuccessMessage(AppLocalizations.of(context)!.developer_email_ready);
     } catch (e) {
       _logger.error(
         'DeveloperScreen',
         'Failed to share logs via email',
         error: e,
       );
-      _showErrorMessage('Erro ao compartilhar logs: $e');
+      _showErrorMessage(
+        AppLocalizations.of(context)!.developer_share_logs_error(e.toString()),
+      );
     }
   }
 
@@ -592,10 +559,14 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       );
       await SharePlus.instance.share(shareParams);
 
-      _showSuccessMessage('Logs compartilhados com sucesso!');
+      _showSuccessMessage(
+        AppLocalizations.of(context)!.developer_share_logs_success,
+      );
     } catch (e) {
       _logger.error('DeveloperScreen', 'Failed to share logs', error: e);
-      _showErrorMessage('Erro ao compartilhar logs: $e');
+      _showErrorMessage(
+        AppLocalizations.of(context)!.developer_share_logs_error(e.toString()),
+      );
     }
   }
 
@@ -622,23 +593,24 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     if (clearOption == null) return; // User cancelled
 
     _setLoading(true);
+    final t = AppLocalizations.of(context)!;
     try {
       switch (clearOption) {
         case 'memory':
           _logger.clearLogs();
-          _showSuccessMessage('Logs da memória limpos com sucesso!');
+          _showSuccessMessage(t.developer_clear_memory_success);
           _logger.info('DeveloperScreen', 'Memory logs cleared');
           break;
         case 'database':
           await _logger.clearDatabaseLogs();
-          _showSuccessMessage('Logs do banco limpos com sucesso!');
+          _showSuccessMessage(t.developer_clear_db_success);
           _logger.info('DeveloperScreen', 'Database logs cleared');
           break;
         case 'all':
           _logger.clearLogs();
           await _logger.clearLogFiles();
           await _logger.clearDatabaseLogs();
-          _showSuccessMessage('Todos os logs limpos com sucesso!');
+          _showSuccessMessage(t.developer_clear_all_success);
           _logger.info('DeveloperScreen', 'All logs cleared');
           break;
       }
@@ -646,7 +618,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       await _updateDbLogStats();
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error clearing logs', error: e);
-      _showErrorMessage('Erro ao limpar logs: $e');
+      _showErrorMessage(t.developer_clear_error(e.toString()));
     } finally {
       _setLoading(false);
     }
@@ -671,12 +643,12 @@ Wallet Balance: $_walletBalance sats
 Pending Balance: $_pendingBalance sats
 Total Logs (Memory): $_totalLogs
 Total Logs (Database): $_dbLogs
-Log Retention: $_logRetention
+Log Retention: ${_retentionDays >= 0 ? '$_retentionDays days' : 'N/A'}
 Generated: ${DateTime.now().toIso8601String()}
 ''';
 
     await Clipboard.setData(ClipboardData(text: debugInfo));
-    _showSuccessMessage('Debug information copied!');
+    _showSuccessMessage(AppLocalizations.of(context)!.developer_debug_copied);
     _logger.info('DeveloperScreen', 'Debug info copied to clipboard');
   }
 
@@ -697,62 +669,70 @@ Generated: ${DateTime.now().toIso8601String()}
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final t = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Copiar infos de sistema'),
+        title: Text(t.developer_title),
         actions: [
           IconButton(
             icon: const Icon(Icons.copy_outlined),
-            tooltip: 'Copiar debug info',
+            tooltip: t.developer_copy_debug_tooltip,
             onPressed: _copyDebugInfo,
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-              ),
-            )
-          : FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DeveloperInfoCard(
-                        appVersion: _appVersion,
-                        buildNumber: _buildNumber,
-                        sdkVersion: _sdkVersion,
-                        walletBalance: _walletBalance,
-                        pendingBalance: _pendingBalance,
-                        totalLogs: _totalLogs,
-                        dbLogs: _dbLogs,
-                        logRetention: _logRetention,
-                        onViewLogs: _viewLogs,
-                      ),
-                      const SizedBox(height: 24),
-                      DeveloperActionGrid(
-                        isLoading: _isLoading,
-                        onSync: _syncWallet,
-                        onFullSync: _fullSyncWallet,
-                        onRescan: _rescanSwaps,
-                        onViewLogs: _viewLogs,
-                        onExportLogs: _exportLogs,
-                        onClearLogs: _clearLogs,
-                        onRefund: _onRefund,
-                      ),
-                    ],
+      body:
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colorScheme.primary,
+                  ),
+                ),
+              )
+              : FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DeveloperInfoCard(
+                          appVersion: _appVersion,
+                          buildNumber: _buildNumber,
+                          sdkVersion: _sdkVersion,
+                          walletBalance: _walletBalance,
+                          pendingBalance: _pendingBalance,
+                          totalLogs: _totalLogs,
+                          dbLogs: _dbLogs,
+                          logRetention:
+                              _retentionDays >= 0
+                                  ? t.developer_log_retention_days(
+                                    _retentionDays,
+                                  )
+                                  : 'N/A',
+                          onViewLogs: _viewLogs,
+                        ),
+                        const SizedBox(height: 24),
+                        DeveloperActionGrid(
+                          isLoading: _isLoading,
+                          onSync: _syncWallet,
+                          onFullSync: _fullSyncWallet,
+                          onRescan: _rescanSwaps,
+                          onViewLogs: _viewLogs,
+                          onExportLogs: _exportLogs,
+                          onClearLogs: _clearLogs,
+                          onRefund: _onRefund,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
     );
   }
 }

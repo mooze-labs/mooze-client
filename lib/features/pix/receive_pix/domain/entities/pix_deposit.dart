@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 enum DepositStatus {
@@ -61,81 +62,83 @@ enum DepositStatus {
 }
 
 extension DepositStatusExtension on DepositStatus {
-  String get label {
+  String localizedLabel(BuildContext context) {
+    final t = AppLocalizations.of(context);
     switch (this) {
       case DepositStatus.pending:
-        return 'Pagamento Pendente';
+        return t.pix_deposit_status_pending_label;
       case DepositStatus.underReview:
-        return 'Revisão bancária';
+        return t.pix_deposit_status_under_review_label;
       case DepositStatus.processing:
-        return 'Processando 1/2';
+        return t.pix_deposit_status_processing_1_2_label;
       case DepositStatus.fundsPrepared:
-        return 'Processando 1/2';
+        return t.pix_deposit_status_processing_1_2_label;
       case DepositStatus.depixSent:
-        return 'Em análise';
+        return t.pix_deposit_status_under_analysis_label;
       case DepositStatus.paid:
-        return 'Em análise';
+        return t.pix_deposit_status_under_analysis_label;
       case DepositStatus.broadcasted:
-        return 'Processando 2/2';
+        return t.pix_deposit_status_processing_2_2_label;
       case DepositStatus.finished:
-        return 'Enviado';
+        return t.pix_deposit_status_finished_label;
       case DepositStatus.failed:
-        return 'Processando 1/2';
+        return t.pix_deposit_status_processing_1_2_label;
       case DepositStatus.expired:
-        return 'Expirado';
+        return t.pix_deposit_status_expired_label;
       case DepositStatus.refunded:
-        return 'Pagamento estornado';
+        return t.pix_deposit_status_refunded_label;
       case DepositStatus.med:
-        return 'Contestado - MED';
+        return t.pix_deposit_status_med_label;
       case DepositStatus.processingRefund:
-        return 'Estornando 1/2';
+        return t.pix_deposit_status_processing_refund_1_2_label;
       case DepositStatus.broadcastedRefund:
-        return 'Estornando 2/2';
+        return t.pix_deposit_status_processing_refund_2_2_label;
       case DepositStatus.completed:
-        return 'Concluído';
+        return t.pix_deposit_status_completed_label;
       case DepositStatus.timeout:
-        return 'Expirado';
+        return t.pix_deposit_status_expired_label;
       case DepositStatus.unknown:
-        return 'Revisão manual';
+        return t.pix_deposit_status_unknown_label;
     }
   }
 
-  String get labelPlural {
+  String localizedLabelPlural(BuildContext context) {
+    final t = AppLocalizations.of(context);
     switch (this) {
       case DepositStatus.pending:
-        return 'Pagamentos Pendentes';
+        return t.pix_deposit_status_pending_plural;
       case DepositStatus.underReview:
-        return 'Em Análise';
+        return t.pix_deposit_status_under_review_plural;
       case DepositStatus.processing:
-        return 'Processando';
+        return t.pix_deposit_status_processing_plural;
       case DepositStatus.fundsPrepared:
-        return 'A caminho';
+        return t.pix_deposit_status_in_transit_plural;
       case DepositStatus.depixSent:
-        return 'Em análise';
+        return t.pix_deposit_status_under_analysis_plural;
       case DepositStatus.paid:
-        return 'Em análise';
+        return t.pix_deposit_status_under_analysis_plural;
       case DepositStatus.broadcasted:
-        return 'A caminho';
+        return t.pix_deposit_status_in_transit_plural;
       case DepositStatus.finished:
-        return 'Enviados';
+        return t.pix_deposit_status_finished_plural;
       case DepositStatus.failed:
-        return 'Processando';
+        return t.pix_deposit_status_processing_plural;
       case DepositStatus.expired:
-        return 'Expirados';
+        return t.pix_deposit_status_expired_plural;
       case DepositStatus.refunded:
-        return 'Pagamentos estornados';
+        return t.pix_deposit_status_refunded_plural;
       case DepositStatus.med:
-        return 'Em análise';
+        return t.pix_deposit_status_under_analysis_plural;
       case DepositStatus.processingRefund:
-        return 'Processando estornos';
+        return t.pix_deposit_status_processing_refunds_plural;
       case DepositStatus.broadcastedRefund:
-        return 'Processando estornos';
+        return t.pix_deposit_status_processing_refunds_plural;
       case DepositStatus.completed:
-        return 'Concluídos';
+        return t.pix_deposit_status_completed_plural;
       case DepositStatus.timeout:
-        return 'Expirados';
+        return t.pix_deposit_status_expired_plural;
       case DepositStatus.unknown:
-        return 'Processando';
+        return t.pix_deposit_status_processing_plural;
     }
   }
 

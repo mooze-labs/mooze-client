@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 class PhoneVerificationIntroScreen extends StatelessWidget {
@@ -8,11 +9,12 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verificação'),
+        title: Text(t.phone_verif_title),
         leading: const Icon(Icons.arrow_back_ios_new_rounded),
       ),
       body: Padding(
@@ -28,7 +30,7 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Verificação de Humanidade',
+              t.phone_verif_humanity_title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontSize: size.width < 350 ? 18 : null,
@@ -36,7 +38,7 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
             ),
             const SizedBox(height: 25),
             Text(
-              'Para garantir a segurança, precisamos confirmar que você é uma pessoa real. O número de telefone será usado apenas para enviar um código de verificação. Nenhum dado será armazenado ou vinculado à sua carteira.',
+              t.phone_verif_humanity_body,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontSize: size.width < 350 ? 13 : null,
@@ -44,7 +46,7 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             PrimaryButton(
-              text: 'Próximo',
+              text: t.common_next,
               onPressed: () {
                 context.go('/phone-verification/method');
               },
