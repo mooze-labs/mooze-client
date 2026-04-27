@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
@@ -29,6 +30,17 @@ final liquidDataSourceProvider = FutureProvider<
   final mnemonic = ref.read(mnemonicStoreProvider).getMnemonic();
   final syncStream = ref.read(syncStreamProvider);
   final database = ref.read(appDatabaseProvider);
+
+  // Compute the fallback policy once at provider build time:
+  // disable rotation only when the user has supplied a custom URL AND
+  // explicitly turned fallback off. Any other state keeps the default
+  // rotation behavior intact.
+  final prefs = await SharedPreferences.getInstance();
+  final hasCustomUrl =
+      (prefs.getString('liquid_node_url') ?? '').isNotEmpty;
+  final customFallbackEnabled =
+      prefs.getBool('custom_fallback_enabled') ?? true;
+  final useFallback = !hasCustomUrl || customFallbackEnabled;
 
   debugPrint(
     '[LiquidDataSourceProvider] Using SyncStreamController hashCode: ${syncStream.hashCode}',
@@ -129,7 +141,8 @@ final liquidDataSourceProvider = FutureProvider<
                 dbPath: dbpath,
                 syncStream: syncStream,
                 database: database,
-                ref: ref, // Adiciona ref aqui
+                ref: ref,
+                useFallback: useFallback,
               ),
             ),
           ),
