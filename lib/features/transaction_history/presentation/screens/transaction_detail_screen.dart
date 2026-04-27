@@ -8,6 +8,7 @@ import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
@@ -78,7 +79,7 @@ class _TransactionDetailScreenState
         appBar: AppBar(
           elevation: 0,
           title: Text(
-            'Detalhes da Transação',
+            AppLocalizations.of(context).tx_detail_title,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -184,15 +185,14 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildStatusExplanation() {
+    final t = AppLocalizations.of(context);
     String explanation;
 
     if (widget.transaction.status == TransactionStatus.refundable) {
-      explanation =
-          'Esta transação não foi concluída com sucesso. Seus fundos estão seguros e disponíveis para reembolso. Use o botão abaixo para solicitar o reembolso.';
+      explanation = t.tx_detail_refund_available_msg;
     } else {
       // failed
-      explanation =
-          'O reembolso desta transação já foi processado ou está sendo enviado. Seus fundos foram ou serão devolvidos em breve.';
+      explanation = t.tx_detail_refund_processed_msg;
     }
 
     return Container(
@@ -274,12 +274,13 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildRefundableHeader() {
+    final t = AppLocalizations.of(context);
     return Column(
       children: [
         Text(
           widget.transaction.status == TransactionStatus.refundable
-              ? 'Swap não concluído'
-              : 'Swap reembolsado',
+              ? t.tx_detail_swap_unfinished
+              : t.tx_detail_swap_refunded,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: Theme.of(
               context,
@@ -353,7 +354,7 @@ class _TransactionDetailScreenState
     return Column(
       children: [
         Text(
-          'Troca entre ativos',
+          AppLocalizations.of(context).tx_detail_swap_label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: Theme.of(
               context,
@@ -481,6 +482,7 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildDetailsCard(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final isSwap = widget.transaction.type == TransactionType.swap;
     final isSubmarineSwap =
         widget.transaction.type == TransactionType.submarine;
@@ -501,7 +503,7 @@ class _TransactionDetailScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Informações',
+              t.pix_deposit_info,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontSize: 18,
@@ -511,30 +513,30 @@ class _TransactionDetailScreenState
             SizedBox(height: 16),
             _buildInfoRow(
               icon: Icons.access_time,
-              label: 'Data',
+              label: t.pix_deposit_date,
               value: _formatDateTime(widget.transaction.createdAt),
             ),
             if (_hasSwapDetails()) ...[
               _buildInfoRow(
                 icon: Icons.swap_horiz,
-                label: 'Enviado',
+                label: t.tx_detail_sent,
                 value: widget.transaction.fromAsset!.ticker,
               ),
               _buildInfoRow(
                 icon: Icons.swap_horiz,
-                label: 'Esperado',
+                label: t.tx_detail_expected,
                 value: widget.transaction.toAsset!.ticker,
               ),
             ],
             _buildInfoRow(
               icon: Icons.link,
-              label: 'Blockchain',
+              label: t.tx_detail_blockchain,
               value: _getBlockchainLabel(),
             ),
             if (widget.transaction.id.isNotEmpty)
               _buildInfoRow(
                 icon: Icons.tag,
-                label: 'ID da Transação',
+                label: t.tx_id,
                 value: truncateHashId(widget.transaction.id),
                 copyable: true,
                 copyFieldId: 'transaction_id',
@@ -556,7 +558,7 @@ class _TransactionDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informações',
+            t.pix_deposit_info,
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontSize: 18,
@@ -578,7 +580,7 @@ class _TransactionDetailScreenState
 
           _buildInfoRow(
             icon: Icons.access_time,
-            label: 'Data',
+            label: t.pix_deposit_date,
             value: _formatDateTime(widget.transaction.createdAt),
           ),
 
@@ -587,12 +589,12 @@ class _TransactionDetailScreenState
               : [
                 _buildInfoRow(
                   icon: Icons.monetization_on,
-                  label: 'Moeda',
+                  label: t.tx_filter_currency,
                   value: widget.transaction.asset.name,
                 ),
                 _buildInfoRow(
                   icon: Icons.account_balance_wallet,
-                  label: 'Valor',
+                  label: t.wallet_amount,
                   value:
                       '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
                 ),
@@ -600,7 +602,7 @@ class _TransactionDetailScreenState
 
           _buildInfoRow(
             icon: Icons.link,
-            label: 'Blockchain',
+            label: t.tx_detail_blockchain,
             value: _getBlockchainLabel(),
           ),
 
@@ -609,7 +611,7 @@ class _TransactionDetailScreenState
           else
             _buildInfoRow(
               icon: Icons.tag,
-              label: 'ID da Transação',
+              label: t.tx_id,
               value: truncateHashId(widget.transaction.id),
               copyable: true,
               copyFieldId: 'transaction_id',
@@ -632,7 +634,7 @@ class _TransactionDetailScreenState
             if (widget.transaction.preimage != null)
               _buildInfoRow(
                 icon: Icons.key,
-                label: "Preimagem",
+                label: t.tx_detail_preimage_label,
                 value: truncateHashId(widget.transaction.preimage!),
                 copyable: true,
                 copyFieldId: 'preimagem',
@@ -647,24 +649,27 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildSubmarineSwapExplanation() {
+    final t = AppLocalizations.of(context);
     final fromAsset = widget.transaction.fromAsset;
     final toAsset = widget.transaction.toAsset;
 
     String explanation;
     if (fromAsset != null && toAsset != null) {
       if (fromAsset == Asset.btc && toAsset == Asset.lbtc) {
-        explanation =
-            'Swap de rede: Você enviou ${fromAsset.ticker} e receberá ${toAsset.ticker}. Assim que a transação onchain for confirmada, os fundos aparecerão automaticamente na Liquid Network.';
+        explanation = t.tx_detail_submarine_btc_to_lbtc(
+          fromAsset.ticker,
+          toAsset.ticker,
+        );
       } else if (fromAsset == Asset.lbtc && toAsset == Asset.btc) {
-        explanation =
-            'Swap de rede: Você enviou ${fromAsset.ticker} e receberá ${toAsset.ticker}. Assim que processado, a transação será enviada para a blockchain Bitcoin.';
+        explanation = t.tx_detail_submarine_lbtc_to_btc(
+          fromAsset.ticker,
+          toAsset.ticker,
+        );
       } else {
-        explanation =
-            'Swap de rede: Transação entre diferentes redes. Aguarde a confirmação.';
+        explanation = t.tx_detail_submarine_generic;
       }
     } else {
-      explanation =
-          'Esta transação representa uma troca de rede. Assim que confirmada, você receberá os fundos na rede de destino.';
+      explanation = t.tx_detail_submarine_default;
     }
 
     return Container(
@@ -721,7 +726,7 @@ class _TransactionDetailScreenState
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Preimagem pendente: Assim que sua transação for confirmada, a preimagem aparecerá aqui',
+                AppLocalizations.of(context).tx_detail_preimage_pending,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: context.appColors.warning,
                   height: 1.5,
@@ -736,6 +741,7 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildConfirmationRow() {
+    final t = AppLocalizations.of(context);
     final confirmations = _getConfirmations();
     final isFullyConfirmed = confirmations != null && confirmations >= 6;
 
@@ -743,13 +749,13 @@ class _TransactionDetailScreenState
     Color displayColor;
 
     if (confirmations == null) {
-      displayText = 'Verificando...';
+      displayText = t.common_verifying;
       displayColor = Theme.of(context).colorScheme.outline;
     } else if (confirmations >= 6) {
-      displayText = '6+ confirmações';
+      displayText = t.tx_detail_confirmations_full;
       displayColor = context.colors.positiveColor;
     } else {
-      displayText = '$confirmations/6 confirmações';
+      displayText = t.tx_detail_confirmations_progress(confirmations);
       displayColor = context.appColors.warning;
     }
 
@@ -783,7 +789,7 @@ class _TransactionDetailScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Confirmações',
+                    AppLocalizations.of(context).tx_detail_confirmations,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -916,15 +922,15 @@ class _TransactionDetailScreenState
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final isRefundable =
         widget.transaction.status == TransactionStatus.refundable;
-    final isFailed = widget.transaction.status == TransactionStatus.failed;
 
     if (isRefundable) {
       return _buildActionButton(
         context: context,
-        label: 'Solicitar Reembolso',
-        subtitle: 'Recuperar seus fundos agora',
+        label: t.tx_detail_request_refund,
+        subtitle: t.tx_detail_request_refund_subtitle,
         icon: Icons.refresh,
         onPressed: () {
           context.push('/transactions/refund', extra: widget.transaction);
@@ -933,16 +939,12 @@ class _TransactionDetailScreenState
       );
     }
 
-    // if (isFailed ) {
-    //   return const SizedBox.shrink();
-    // }
-
     if (_isCrossChainSwap()) {
       return Column(
         children: [
           _buildActionButton(
             context: context,
-            label: 'Ver Envio',
+            label: t.tx_detail_view_send,
             subtitle: _getBlockchainName(widget.transaction.sendBlockchain!),
             icon: Icons.call_made,
             onPressed:
@@ -954,7 +956,7 @@ class _TransactionDetailScreenState
           const SizedBox(height: 12),
           _buildActionButton(
             context: context,
-            label: 'Ver Recebimento',
+            label: t.tx_detail_view_receive,
             subtitle: _getBlockchainName(widget.transaction.receiveBlockchain!),
             icon: Icons.call_received,
             onPressed:
@@ -971,8 +973,8 @@ class _TransactionDetailScreenState
       children: [
         _buildActionButton(
           context: context,
-          label: 'Ver no Explorer',
-          subtitle: 'Visualizar na blockchain',
+          label: t.pix_deposit_view_explorer,
+          subtitle: t.pix_deposit_view_chain,
           icon: Icons.open_in_new,
           onPressed: () => _openInExplorer(),
         ),
@@ -982,8 +984,8 @@ class _TransactionDetailScreenState
           const SizedBox(height: 12),
           _buildActionButton(
             context: context,
-            label: 'Validar Pagamento',
-            subtitle: 'Verificar preimagem',
+            label: t.tx_detail_validate_payment,
+            subtitle: t.tx_detail_verify_preimage,
             icon: Icons.verified,
             onPressed: () => _openValidationUrl(),
           ),
@@ -1088,32 +1090,34 @@ class _TransactionDetailScreenState
   }
 
   String _getTransactionTypeLabel() {
+    final t = AppLocalizations.of(context);
     switch (widget.transaction.type) {
       case TransactionType.send:
-        return 'Envio';
+        return t.tx_type_send;
       case TransactionType.receive:
-        return 'Recebimento';
+        return t.tx_type_receive;
       case TransactionType.swap:
-        return 'Swap';
+        return t.tx_type_swap;
       case TransactionType.redeposit:
-        return "Auto-redepósito";
+        return t.tx_type_redeposit;
       case TransactionType.submarine:
-        return "Swap";
+        return t.tx_type_swap;
       case TransactionType.unknown:
-        return "Desconhecido";
+        return t.tx_type_unknown;
     }
   }
 
   String _getStatusLabel() {
+    final t = AppLocalizations.of(context);
     switch (widget.transaction.status) {
       case TransactionStatus.pending:
-        return 'Pendente';
+        return t.tx_status_pending;
       case TransactionStatus.confirmed:
-        return 'Confirmada';
+        return t.tx_status_confirmed_fem;
       case TransactionStatus.failed:
-        return 'Reembolso Processado';
+        return t.tx_status_failed_processed;
       case TransactionStatus.refundable:
-        return 'Aguardando Reembolso';
+        return t.tx_status_refundable_pending;
     }
   }
 
@@ -1209,8 +1213,8 @@ class _TransactionDetailScreenState
         await Clipboard.setData(ClipboardData(text: explorerUrl));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'Não foi possível abrir o navegador. Link copiado para área de transferência.',
+            content: Text(
+              AppLocalizations.of(context).error_open_browser_link_copied,
             ),
             backgroundColor: context.appColors.warning,
           ),
@@ -1244,8 +1248,8 @@ class _TransactionDetailScreenState
         await Clipboard.setData(ClipboardData(text: validationUrl));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'Não foi possível abrir o navegador. Link copiado para área de transferência.',
+            content: Text(
+              AppLocalizations.of(context).error_open_browser_link_copied,
             ),
             backgroundColor: context.appColors.warning,
           ),
@@ -1264,11 +1268,13 @@ class _TransactionDetailScreenState
   }
 
   List<Widget> _buildCrossChainSwapIds() {
+    final t = AppLocalizations.of(context);
     return [
       _buildInfoRow(
         icon: Icons.call_made,
-        label:
-            'ID Envio (${_getBlockchainName(widget.transaction.sendBlockchain!)})',
+        label: t.tx_detail_send_id_label(
+          _getBlockchainName(widget.transaction.sendBlockchain!),
+        ),
         value: truncateHashId(widget.transaction.sendTxId!),
         copyable: true,
         copyFieldId: 'send_tx_id',
@@ -1276,8 +1282,9 @@ class _TransactionDetailScreenState
       ),
       _buildInfoRow(
         icon: Icons.call_received,
-        label:
-            'ID Recebimento (${_getBlockchainName(widget.transaction.receiveBlockchain!)})',
+        label: t.tx_detail_receive_id_label(
+          _getBlockchainName(widget.transaction.receiveBlockchain!),
+        ),
         value: truncateHashId(widget.transaction.receiveTxId!),
         copyable: true,
         copyFieldId: 'receive_tx_id',

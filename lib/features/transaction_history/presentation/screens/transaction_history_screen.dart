@@ -12,6 +12,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -131,9 +132,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Histórico de transações'),
+        title: Text(t.tx_history_title),
         leading: IconButton(
           onPressed: () {
             context.pop();
@@ -154,7 +156,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     );
                   }
                 },
-                tooltip: 'Atualizar (Debug)',
+                tooltip: t.tx_history_refresh_debug,
               );
             },
           ),
@@ -164,7 +166,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               color: context.colors.primaryColor,
             ),
             onPressed: _openFilterSheet,
-            tooltip: 'Filtros',
+            tooltip: t.tx_filter_title,
           ),
         ],
       ),
@@ -223,13 +225,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            'Filtros ativos - ${_getActiveFiltersDescription()}',
+                                            t.tx_history_filters_active(
+                                              _getActiveFiltersDescription(),
+                                            ),
                                             style: TextStyle(fontSize: 12),
                                           ),
                                         ),
                                         TextButton(
                                           onPressed: _clearFilters,
-                                          child: Text('Limpar'),
+                                          child: Text(t.tx_history_clear),
                                         ),
                                       ],
                                     ),
@@ -265,13 +269,20 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          '${filteredTransactions.length} de ${transactions.length} transações - ${_getActiveFiltersDescription().isNotEmpty ? _getActiveFiltersDescription() : 'Todos'}',
+                                          t.tx_history_filter_count(
+                                            filteredTransactions.length,
+                                            transactions.length,
+                                            _getActiveFiltersDescription()
+                                                    .isNotEmpty
+                                                ? _getActiveFiltersDescription()
+                                                : t.tx_history_filter_default,
+                                          ),
                                           style: TextStyle(fontSize: 12),
                                         ),
                                       ),
                                       TextButton(
                                         onPressed: _clearFilters,
-                                        child: Text('Limpar'),
+                                        child: Text(t.tx_history_clear),
                                       ),
                                     ],
                                   ),
@@ -298,22 +309,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   String _getActiveFiltersDescription() {
+    final t = AppLocalizations.of(context);
     List<String> descriptions = [];
 
     final type = _filters.filter?['type'] as String?;
     if (type != null && type != 'all') {
       switch (type) {
         case 'send':
-          descriptions.add('Envios');
+          descriptions.add(t.tx_type_send);
           break;
         case 'receive':
-          descriptions.add('Recebimentos');
+          descriptions.add(t.tx_type_receive);
           break;
         case 'swap':
-          descriptions.add('Swaps');
+          descriptions.add(t.tx_type_swap);
           break;
         case 'refund':
-          descriptions.add('Reembolsos');
+          descriptions.add(t.tx_history_filter_refunds);
           break;
       }
     }
@@ -338,14 +350,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           '${_formatDate(_filters.startDate!)} - ${_formatDate(_filters.endDate!)}',
         );
       } else if (_filters.startDate != null) {
-        descriptions.add('A partir de ${_formatDate(_filters.startDate!)}');
+        descriptions.add(
+          t.tx_history_filter_from(_formatDate(_filters.startDate!)),
+        );
       } else if (_filters.endDate != null) {
-        descriptions.add('Até ${_formatDate(_filters.endDate!)}');
+        descriptions.add(
+          t.tx_history_filter_until(_formatDate(_filters.endDate!)),
+        );
       }
     }
 
     if (_filters.orderByMostRecent != null && !_filters.orderByMostRecent!) {
-      descriptions.add('Mais antigos primeiro');
+      descriptions.add(t.tx_history_filter_oldest_first);
     }
 
     return descriptions.join(' • ');
