@@ -259,6 +259,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
+              title: t.settings_section_addresses,
+              settingsItems: [
+                ConfigStructure(
+                  title: t.settings_verify_address,
+                  iconSvgPath: 'assets/icons/menu/settings/security.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/address-ownership',
+                  ),
+                ),
+                ConfigStructure(
+                  title: t.settings_address_explorer,
+                  iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/address-explorer',
+                  ),
+                ),
+              ],
+            ),
+            SectionSettings(
               title: t.settings_section_developer,
               settingsItems: [
                 ConfigStructure(
