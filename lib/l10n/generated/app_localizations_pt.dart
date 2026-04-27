@@ -188,6 +188,106 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_contact_support => 'Contatar suporte';
 
   @override
+  String get settings_section_network => 'REDE';
+
+  @override
+  String get settings_node_config => 'Configuração de nodes';
+
+  @override
+  String get node_config_title => 'Configuração de nodes';
+
+  @override
+  String get node_config_section_mode => 'MODO';
+
+  @override
+  String get node_config_section_custom => 'ENDPOINTS';
+
+  @override
+  String get node_config_section_advanced => 'AVANÇADO';
+
+  @override
+  String get node_config_mode_default_title => 'Modo padrão';
+
+  @override
+  String get node_config_mode_default_subtitle =>
+      'Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin, Liquid e Lightning.';
+
+  @override
+  String get node_config_mode_custom_title => 'Modo personalizado';
+
+  @override
+  String get node_config_mode_custom_subtitle =>
+      'Avançado — conecte-se aos seus próprios servidores Electrum.';
+
+  @override
+  String get node_config_advanced_warning =>
+      'Configure apenas se você sabe o que está fazendo. URLs inválidas podem impedir o app de sincronizar.';
+
+  @override
+  String get node_config_bitcoin_label => 'Endpoint Bitcoin Mainnet';
+
+  @override
+  String get node_config_bitcoin_hint => 'ssl://seu-node.tld:50002';
+
+  @override
+  String get node_config_bitcoin_helper =>
+      'Formato: esquema://host:porta. Use ssl:// para conexões criptografadas.';
+
+  @override
+  String get node_config_liquid_label => 'Endpoint Liquid Network';
+
+  @override
+  String get node_config_liquid_hint => 'seu-node.tld:50002';
+
+  @override
+  String get node_config_liquid_helper =>
+      'Formato: host:porta. O LWK usa TLS automaticamente.';
+
+  @override
+  String get node_config_lightning_note =>
+      'O node Lightning é gerenciado automaticamente pelo Breez SDK e não pode ser personalizado.';
+
+  @override
+  String get node_config_fallback_toggle_title =>
+      'Permitir fallback automático';
+
+  @override
+  String get node_config_fallback_toggle_subtitle =>
+      'Se o seu node falhar, o app tenta automaticamente os servidores padrão.';
+
+  @override
+  String get node_config_save => 'Salvar configurações';
+
+  @override
+  String get node_config_url_required => 'Obrigatório no modo personalizado';
+
+  @override
+  String get node_config_url_invalid =>
+      'Use o formato host:porta (ou esquema://host:porta)';
+
+  @override
+  String get node_config_unsaved_title => 'Alterações não salvas';
+
+  @override
+  String get node_config_unsaved_message =>
+      'Você tem alterações que ainda não foram salvas. Deseja salvá-las antes de sair?';
+
+  @override
+  String get node_config_unsaved_discard => 'Descartar';
+
+  @override
+  String get node_config_save_success => 'Configurações de node salvas';
+
+  @override
+  String node_config_save_error(String error) {
+    return 'Falha ao salvar: $error';
+  }
+
+  @override
+  String get node_config_load_error =>
+      'Não foi possível carregar as configurações de node';
+
+  @override
   String get support_telegram_open_error => 'Não foi possível abrir o Telegram';
 
   @override

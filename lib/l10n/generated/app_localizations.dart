@@ -442,6 +442,180 @@ abstract class AppLocalizations {
   /// **'Contatar suporte'**
   String get settings_contact_support;
 
+  /// No description provided for @settings_section_network.
+  ///
+  /// In pt, this message translates to:
+  /// **'REDE'**
+  String get settings_section_network;
+
+  /// No description provided for @settings_node_config.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configuração de nodes'**
+  String get settings_node_config;
+
+  /// No description provided for @node_config_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configuração de nodes'**
+  String get node_config_title;
+
+  /// No description provided for @node_config_section_mode.
+  ///
+  /// In pt, this message translates to:
+  /// **'MODO'**
+  String get node_config_section_mode;
+
+  /// No description provided for @node_config_section_custom.
+  ///
+  /// In pt, this message translates to:
+  /// **'ENDPOINTS'**
+  String get node_config_section_custom;
+
+  /// No description provided for @node_config_section_advanced.
+  ///
+  /// In pt, this message translates to:
+  /// **'AVANÇADO'**
+  String get node_config_section_advanced;
+
+  /// No description provided for @node_config_mode_default_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo padrão'**
+  String get node_config_mode_default_title;
+
+  /// No description provided for @node_config_mode_default_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin, Liquid e Lightning.'**
+  String get node_config_mode_default_subtitle;
+
+  /// No description provided for @node_config_mode_custom_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo personalizado'**
+  String get node_config_mode_custom_title;
+
+  /// No description provided for @node_config_mode_custom_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avançado — conecte-se aos seus próprios servidores Electrum.'**
+  String get node_config_mode_custom_subtitle;
+
+  /// No description provided for @node_config_advanced_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configure apenas se você sabe o que está fazendo. URLs inválidas podem impedir o app de sincronizar.'**
+  String get node_config_advanced_warning;
+
+  /// No description provided for @node_config_bitcoin_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endpoint Bitcoin Mainnet'**
+  String get node_config_bitcoin_label;
+
+  /// No description provided for @node_config_bitcoin_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'ssl://seu-node.tld:50002'**
+  String get node_config_bitcoin_hint;
+
+  /// No description provided for @node_config_bitcoin_helper.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato: esquema://host:porta. Use ssl:// para conexões criptografadas.'**
+  String get node_config_bitcoin_helper;
+
+  /// No description provided for @node_config_liquid_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endpoint Liquid Network'**
+  String get node_config_liquid_label;
+
+  /// No description provided for @node_config_liquid_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'seu-node.tld:50002'**
+  String get node_config_liquid_hint;
+
+  /// No description provided for @node_config_liquid_helper.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato: host:porta. O LWK usa TLS automaticamente.'**
+  String get node_config_liquid_helper;
+
+  /// No description provided for @node_config_lightning_note.
+  ///
+  /// In pt, this message translates to:
+  /// **'O node Lightning é gerenciado automaticamente pelo Breez SDK e não pode ser personalizado.'**
+  String get node_config_lightning_note;
+
+  /// No description provided for @node_config_fallback_toggle_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permitir fallback automático'**
+  String get node_config_fallback_toggle_title;
+
+  /// No description provided for @node_config_fallback_toggle_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se o seu node falhar, o app tenta automaticamente os servidores padrão.'**
+  String get node_config_fallback_toggle_subtitle;
+
+  /// No description provided for @node_config_save.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar configurações'**
+  String get node_config_save;
+
+  /// No description provided for @node_config_url_required.
+  ///
+  /// In pt, this message translates to:
+  /// **'Obrigatório no modo personalizado'**
+  String get node_config_url_required;
+
+  /// No description provided for @node_config_url_invalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use o formato host:porta (ou esquema://host:porta)'**
+  String get node_config_url_invalid;
+
+  /// No description provided for @node_config_unsaved_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterações não salvas'**
+  String get node_config_unsaved_title;
+
+  /// No description provided for @node_config_unsaved_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você tem alterações que ainda não foram salvas. Deseja salvá-las antes de sair?'**
+  String get node_config_unsaved_message;
+
+  /// No description provided for @node_config_unsaved_discard.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descartar'**
+  String get node_config_unsaved_discard;
+
+  /// No description provided for @node_config_save_success.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurações de node salvas'**
+  String get node_config_save_success;
+
+  /// No description provided for @node_config_save_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao salvar: {error}'**
+  String node_config_save_error(String error);
+
+  /// No description provided for @node_config_load_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar as configurações de node'**
+  String get node_config_load_error;
+
   /// No description provided for @support_telegram_open_error.
   ///
   /// In pt, this message translates to:
