@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
@@ -34,19 +35,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Disabling: clears the preference immediately.
   Future<void> _handleBiometricToggle(bool enable) async {
     final biometricService = ref.read(biometricServiceProvider);
+    final t = AppLocalizations.of(context);
 
     if (enable) {
       final authResult = await biometricService
-          .authenticate(
-            reason:
-                'Confirme sua identidade para ativar a autenticação biométrica',
-          )
+          .authenticate(reason: t.biometric_auth_reason)
           .run();
 
       if (!mounted) return;
 
       await authResult.fold(
-        (error) async => AppSnackBar.error(context, 'Erro ao autenticar: $error'),
+        (error) async =>
+            AppSnackBar.error(context, t.biometric_auth_error(error)),
         (authenticated) async {
           if (!authenticated) return; // user dismissed — leave toggle off
 
@@ -55,10 +55,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (!mounted) return;
 
           saveResult.fold(
-            (error) => AppSnackBar.error(context, 'Erro ao salvar configuração.'),
+            (error) => AppSnackBar.error(context, t.biometric_save_error),
             (_) {
               ref.invalidate(isBiometricEnabledProvider);
-              AppSnackBar.success(context, 'Autenticação biométrica ativada.');
+              AppSnackBar.success(context, t.biometric_enabled_success);
             },
           );
         },
@@ -69,10 +69,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (!mounted) return;
 
       result.fold(
-        (error) => AppSnackBar.error(context, 'Erro ao desativar biometria.'),
+        (error) => AppSnackBar.error(context, t.biometric_disable_error),
         (_) {
           ref.invalidate(isBiometricEnabledProvider);
-          AppSnackBar.info(context, 'Autenticação biométrica desativada.');
+          AppSnackBar.info(context, t.biometric_disabled_info);
         },
       );
     }
@@ -80,6 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final isBiometricAvailable = ref.watch(isBiometricAvailableProvider);
     final isBiometricEnabled = ref.watch(isBiometricEnabledProvider);
 
@@ -89,7 +90,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configurações'),
+        title: Text(t.settings_title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () {
@@ -101,10 +102,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Column(
           children: [
             SectionSettings(
-              title: 'SEGURANÇA',
+              title: t.settings_section_security,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Ver frase de recuperação',
+                  title: t.settings_view_recovery_phrase,
                   iconSvgPath: 'assets/icons/menu/settings/security.svg',
                   action: Navigation(
                     context: context,
@@ -115,14 +116,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                         seed.match(
                           (err) {
-                            AppSnackBar.error(context, 'Erro: $err');
+                            AppSnackBar.error(
+                              context,
+                              t.seed_fetch_error(err),
+                            );
                           },
                           (maybeSeed) {
                             maybeSeed.match(
                               () {
                                 AppSnackBar.warning(
                                   context,
-                                  'Nenhuma seed encontrada.',
+                                  t.seed_not_found,
                                 );
                               },
                               (seedValue) {
@@ -140,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 ConfigStructure(
-                  title: 'Mudar PIN',
+                  title: t.settings_change_pin,
                   iconSvgPath: 'assets/icons/menu/settings/key.svg',
                   action: Navigation(
                     context: context,
@@ -158,7 +162,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 // devices.
                 if (biometricAvailable)
                   ConfigStructure(
-                    title: 'Autenticação biométrica',
+                    title: t.settings_biometric_auth,
                     iconSvgPath: 'assets/icons/menu/settings/security.svg',
                     action: Toggle(
                       value: biometricEnabled,
@@ -166,7 +170,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 ConfigStructure(
-                  title: 'Deletar carteira',
+                  title: t.settings_delete_wallet,
                   iconSvgPath: 'assets/icons/menu/settings/delete_account.svg',
                   action: Navigation(
                     context: context,
@@ -176,23 +180,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
-              title: 'APARÊNCIA',
+              title: t.settings_section_appearance,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Tema',
+                  title: t.settings_theme,
                   iconSvgPath: 'assets/icons/menu/settings/theme.svg',
                   action: Navigation(
                     context: context,
                     rota: '/settings/theme-selector',
                   ),
                 ),
+                ConfigStructure(
+                  title: t.settings_language,
+                  iconSvgPath: 'assets/icons/menu/settings/language.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/language-selector',
+                  ),
+                ),
               ],
             ),
             SectionSettings(
-              title: 'MOEDA',
+              title: t.settings_section_currency,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Alterar Moeda',
+                  title: t.settings_change_currency,
                   iconSvgPath:
                       'assets/icons/menu/settings/currency_exchange.svg',
                   action: Navigation(
@@ -203,10 +215,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
-              title: 'CONTA E BENEFICIOS',
+              title: t.settings_section_account,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Cupom de Indicação',
+                  title: t.settings_referral_code,
                   iconSvgPath: 'assets/icons/menu/settings/gift.svg',
                   action: Navigation(
                     context: context,
@@ -216,15 +228,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
-              title: 'LEGAL',
+              title: t.settings_section_legal,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Termos de uso',
+                  title: t.settings_terms,
                   iconSvgPath: 'assets/icons/menu/settings/document.svg',
                   action: Navigation(context: context, rota: '/settings/terms'),
                 ),
                 ConfigStructure(
-                  title: 'Licença GPL',
+                  title: t.settings_license,
                   iconSvgPath: 'assets/icons/menu/settings/gavel.svg',
                   action: Navigation(
                     context: context,
@@ -234,10 +246,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
-              title: 'DESENVOLVEDOR',
+              title: t.settings_section_developer,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Logs',
+                  title: t.settings_logs,
                   iconSvgPath: 'assets/icons/menu/settings/data.svg',
                   action: Navigation(
                     context: context,
@@ -247,10 +259,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
-              title: 'AJUDA',
+              title: t.settings_section_help,
               settingsItems: [
                 ConfigStructure(
-                  title: 'Contatar suporte',
+                  title: t.settings_contact_support,
                   iconSvgPath: 'assets/icons/menu/settings/support.svg',
                   action: Navigation(
                     context: context,

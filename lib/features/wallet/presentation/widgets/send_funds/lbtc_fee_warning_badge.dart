@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 /// Always-visible AppBar info button — mirrors the PIX screen's info button.
@@ -16,36 +17,30 @@ class LbtcFeeInfoButton extends StatelessWidget {
   }
 
   void _showLbtcInfo(BuildContext context) {
+    final t = AppLocalizations.of(context);
     InfoOverlay.show(
       context,
-      title: 'Informações sobre taxas',
+      title: t.wallet_send_lbtc_info_title,
       steps: [
         InfoStep(
           icon: Icons.account_balance_wallet_outlined,
-          title: 'Bitcoin L2 para taxas de rede',
-          description:
-              'Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, '
-              'você precisa ter Bitcoin L2 (Liquid Bitcoin) na carteira. '
-              'Ele é usado para pagar os mineradores da rede.',
+          title: t.wallet_send_lbtc_info_step1_title,
+          description: t.wallet_send_lbtc_info_step1_desc,
         ),
         InfoStep(
           icon: Icons.swap_horiz,
-          title: 'Como obter Bitcoin L2',
-          description:
-              'Use a função SWAP para converter Bitcoin (Lightning ou '
-              'on-chain) em Bitcoin L2 diretamente no aplicativo.',
+          title: t.wallet_send_lbtc_obtain_title,
+          description: t.wallet_send_lbtc_obtain_desc_info,
         ),
         InfoStep(
           icon: Icons.bolt,
-          title: 'Receba via Lightning ou Liquid',
-          description:
-              'Receba Bitcoin via Lightning Network ou Liquid para obter '
-              'Bitcoin L2 na sua carteira sem usar o SWAP.',
+          title: t.wallet_send_lbtc_info_step3_title,
+          description: t.wallet_send_lbtc_info_step3_desc,
         ),
       ],
       footerBuilder:
           (closeOverlay) => SecondaryButton(
-            text: 'Ir para SWAP',
+            text: t.wallet_send_lbtc_go_swap,
             onPressed: () {
               closeOverlay();
               context.go('/swap');

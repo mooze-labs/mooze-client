@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
@@ -18,6 +19,7 @@ class ImportButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
     final notifier = ref.read(seedPhraseProvider.notifier);
     final mnemonicController = ref.watch(mnemonicControllerProvider);
@@ -29,7 +31,7 @@ class ImportButton extends ConsumerWidget {
     final isEnabled = !isLoading && validMnemonic != null;
 
     return PrimaryButton(
-      text: "Importar Carteira",
+      text: t.setup_import_button,
       isLoading: isLoading,
       isEnabled: isEnabled,
       onPressed: () async {
@@ -77,9 +79,7 @@ class ImportButton extends ConsumerWidget {
                         Icon(Icons.warning_amber_rounded, color: Colors.white),
                         SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            'Aviso: Alguns arquivos antigos não puderam ser removidos. O app pode precisar ser reiniciado.',
-                          ),
+                          child: Text(t.setup_import_cleanup_warning),
                         ),
                       ],
                     ),

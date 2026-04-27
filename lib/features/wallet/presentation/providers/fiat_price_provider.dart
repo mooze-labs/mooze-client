@@ -80,7 +80,6 @@ final fiatPriceProvider = FutureProvider.autoDispose.family<
           },
           (optDouble) =>
               optDouble.fold(() => const Left("Preço não disponível"), (val) {
-                // Sucesso - marca como online
                 ref.read(connectivityProvider.notifier).markOnline();
                 return Right(val);
               }),

@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/recive_pix_screen.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/pix_confirmation_screen.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/screen.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/pix_payment_screen.dart';
 
 final receivePixRoutes = [
   GoRoute(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class PixLimitsInfoDialog extends StatefulWidget {
   const PixLimitsInfoDialog({super.key});
@@ -46,6 +47,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final bool isButtonEnabled = _secondsRemaining == 0;
 
@@ -55,10 +57,13 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
         children: [
           Icon(Icons.info_outline, color: colorScheme.primary, size: 28),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Limites de Pagamento',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              t.pix_limits_title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -69,7 +74,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Entenda como funciona os pagamentos PIX:',
+              t.pix_limits_intro,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -103,7 +108,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Limite Inicial',
+                          t.pix_limits_initial_label,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -115,7 +120,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'R\$ 20,00',
+                          t.pix_limits_initial_value,
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             color: colorScheme.primary,
@@ -136,9 +141,9 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                           color: Colors.green.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Limite Máximo',
-                          style: TextStyle(
+                        child: Text(
+                          t.pix_limits_max_label,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: Colors.green,
@@ -149,8 +154,8 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'R\$ 3.000,00',
-                          style: TextStyle(
+                          t.pix_limits_max_value,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             color: Colors.green,
                           ),
@@ -163,7 +168,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Ao decorrer de pagamentos efetuados, seus limites de transação podem evoluir até o limite máximo de R\$ 3.000,00 por transação, de acordo sua pontuação de confiança junto ao aplicativo da Mooze.',
+              t.pix_limits_explanation,
               style: TextStyle(
                 fontSize: 14,
                 color: colorScheme.onSurface,
@@ -183,7 +188,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Consulte seus níveis de confiança no menu, opção "Nível da carteira".',
+                      t.pix_limits_trust_info,
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurface.withValues(alpha: 0.8),
@@ -207,7 +212,7 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Para aumentar seus limites, o uso frequente de pagamentos vai elevar seus limites gradualmente.',
+                      t.pix_limits_increase_info,
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurface.withValues(alpha: 0.8),
@@ -234,7 +239,9 @@ class _PixLimitsInfoDialogState extends State<PixLimitsInfoDialog> {
               ),
             ),
             child: Text(
-              isButtonEnabled ? 'Entendi' : 'Entendi ($_secondsRemaining)',
+              isButtonEnabled
+                  ? t.common_understood
+                  : t.pix_limits_button_understood_countdown(_secondsRemaining),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),

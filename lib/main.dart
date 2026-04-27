@@ -8,6 +8,8 @@ import 'package:safe_device/safe_device_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
+import 'package:mooze_mobile/features/settings/presentation/providers/locale_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_bootstrap.dart';
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
@@ -45,6 +47,7 @@ class MyApp extends ConsumerWidget {
     ref.read(walletBootOrchestratorProvider);
     ref.read(connectivityProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
     return LevelChangeListener(
       child: TransactionStatusListener(
         child: PixStatusListener(
@@ -54,6 +57,17 @@ class MyApp extends ConsumerWidget {
             theme: AppTheme.lightTheme(context),
             darkTheme: AppTheme.darkTheme(context),
             themeMode: themeMode,
+            locale: locale,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeResolutionCallback: (deviceLocale, supported) {
+              if (deviceLocale != null) {
+                for (final l in supported) {
+                  if (l.languageCode == deviceLocale.languageCode) return l;
+                }
+              }
+              return const Locale('en');
+            },
             routerConfig: router,
           ),
         ),

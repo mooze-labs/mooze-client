@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -34,6 +35,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
   }
 
   Widget _buildQRScanner() {
+    final t = AppLocalizations.of(context);
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
@@ -49,7 +51,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Text('Escanear QR Code PIX'),
+            title: Text(t.send_pix_qr_title),
           ),
           Expanded(
             child: MobileScanner(
@@ -75,7 +77,9 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
     final pixKey = _pixKeyController.text.trim();
     if (pixKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Digite ou escaneie uma chave PIX')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).send_pix_empty_key_error),
+        ),
       );
       return;
     }
@@ -111,9 +115,10 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enviar PIX'),
+        title: Text(t.send_pix_appbar),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -162,7 +167,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Insira a chave PIX',
+                        t.send_pix_insert_key,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: context.colors.textPrimary,
                           fontWeight: FontWeight.bold,
@@ -170,7 +175,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Cole a chave ou escaneie o QR Code',
+                        t.send_pix_paste_or_scan,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: context.colors.textSecondary,
                         ),
@@ -188,7 +193,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                     Row(
                       children: [
                         Text(
-                          'Chave PIX',
+                          t.send_pix_key_label,
                           style: Theme.of(
                             context,
                           ).textTheme.titleMedium?.copyWith(
@@ -205,7 +210,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                         color: context.colors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'exemplo@email.com ou chave aleatória',
+                        hintText: t.send_pix_key_hint,
                         hintStyle: TextStyle(
                           color: context.colors.textSecondary.withValues(alpha: 0.5),
                         ),
@@ -215,7 +220,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                             Icons.qr_code_scanner,
                             color: context.colors.primaryColor,
                           ),
-                          tooltip: 'Escanear QR Code',
+                          tooltip: t.wallet_send_address_scan_qr,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -273,7 +278,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                           ),
                           SizedBox(width: 8),
                           Text(
-                            'Tipos de chave aceitos:',
+                            t.send_pix_accepted_types,
                             style: Theme.of(
                               context,
                             ).textTheme.bodySmall?.copyWith(
@@ -284,13 +289,13 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildKeyTypeRow(context, Icons.email, 'E-mail'),
+                      _buildKeyTypeRow(context, Icons.email, t.send_pix_type_email),
                       const SizedBox(height: 8),
-                      _buildKeyTypeRow(context, Icons.phone, 'Telefone'),
+                      _buildKeyTypeRow(context, Icons.phone, t.send_pix_type_phone),
                       const SizedBox(height: 8),
-                      _buildKeyTypeRow(context, Icons.badge, 'CPF/CNPJ'),
+                      _buildKeyTypeRow(context, Icons.badge, t.send_pix_type_cpf_cnpj),
                       const SizedBox(height: 8),
-                      _buildKeyTypeRow(context, Icons.key, 'Chave aleatória'),
+                      _buildKeyTypeRow(context, Icons.key, t.send_pix_type_random),
                     ],
                   ),
                 ),
@@ -315,7 +320,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                             : null,
                   ),
                   child: PrimaryButton(
-                    text: _isLoading ? 'Processando...' : 'Continuar',
+                    text: _isLoading ? t.common_processing : t.common_continue,
                     onPressed: _isLoading ? null : _processPixKey,
                     isEnabled: !_isLoading && _pixKeyController.text.isNotEmpty,
                   ),
@@ -336,7 +341,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Pagamento instantâneo usando Lightning Network',
+                          t.send_pix_lightning_info,
                           style: Theme.of(
                             context,
                           ).textTheme.bodySmall?.copyWith(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_extra_colors.dart';
 
@@ -20,18 +21,20 @@ class ReferralSubmitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     if (isApiDown) {
       return _buildApiDownWarning(context);
     }
 
     return PrimaryButton(
       onPressed: isLoading ? null : onSubmit,
-      text: isLoading ? 'Validando...' : 'Aplicar Código',
+      text: isLoading ? t.referral_validating : t.referral_apply_code,
       isEnabled: !isLoading,
     );
   }
 
   Widget _buildApiDownWarning(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final extraColors = Theme.of(context).extension<AppExtraColors>();
     final textTheme = Theme.of(context).textTheme;
     final warningColor = extraColors?.warning ?? Colors.orange;
@@ -50,7 +53,7 @@ class ReferralSubmitButton extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'A API está indisponível. Não é possível aplicar códigos de indicação no momento.',
+              t.referral_api_down_warning,
               style: textTheme.titleSmall?.copyWith(color: onWarningColor),
             ),
           ),

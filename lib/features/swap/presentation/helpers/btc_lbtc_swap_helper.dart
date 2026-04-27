@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -24,6 +25,7 @@ class BtcLbtcSwapHelper {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        final t = AppLocalizations.of(context);
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -49,7 +51,7 @@ class BtcLbtcSwapHelper {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Transação Pendente',
+                  t.swap_pending_dialog_title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -57,8 +59,7 @@ class BtcLbtcSwapHelper {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Aguarde alguns instantes antes de realizar outro swap. '
-                  'Sua transação anterior ainda está sendo processada.',
+                  t.swap_error_processing,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[400],
@@ -80,9 +81,9 @@ class BtcLbtcSwapHelper {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Entendido',
-                      style: TextStyle(
+                    child: Text(
+                      t.common_understood,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -206,7 +207,11 @@ class BtcLbtcSwapHelper {
             } catch (e) {
               if (context.mounted) {
                 Navigator.of(context).pop();
-                _showErrorSnackBar('Erro inesperado: $e');
+                _showErrorSnackBar(
+                  AppLocalizations.of(
+                    context,
+                  ).swap_error_unexpected(e.toString()),
+                );
               }
             }
           },

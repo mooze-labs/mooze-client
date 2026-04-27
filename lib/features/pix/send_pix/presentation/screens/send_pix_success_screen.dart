@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -83,6 +84,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final payment = ref.watch(currentPixPaymentProvider);
 
     return PopScope(
@@ -106,7 +108,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  // Ícone animado de sucesso
+
                   Expanded(
                     flex: 3,
                     child: Center(
@@ -178,7 +180,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                           children: [
                             // Título
                             Text(
-                              'PIX Enviado!',
+                              t.send_pix_success_title,
                               style: Theme.of(
                                 context,
                               ).textTheme.headlineMedium?.copyWith(
@@ -192,7 +194,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
 
                             // Descrição
                             Text(
-                              'Seu pagamento PIX foi realizado com sucesso!',
+                              t.send_pix_success_body,
                               style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(color: context.colors.textSecondary),
                               textAlign: TextAlign.center,
@@ -240,7 +242,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Valor enviado',
+                                                t.send_pix_success_value_sent,
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .bodyMedium
@@ -293,7 +295,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
                                           SizedBox(width: 12),
                                           Expanded(
                                             child: Text(
-                                              'O destinatário já pode verificar o recebimento do PIX.',
+                                              t.send_pix_success_recipient_info,
                                               style: Theme.of(
                                                 context,
                                               ).textTheme.bodySmall?.copyWith(
@@ -312,7 +314,7 @@ class _SendPixSuccessScreenState extends ConsumerState<SendPixSuccessScreen>
 
                             // Botão de ação
                             PrimaryButton(
-                              text: 'Concluir',
+                              text: t.common_finish,
                               onPressed: () {
                                 ref
                                     .read(currentPixPaymentProvider.notifier)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -28,21 +29,19 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
   Future<void> _enableBiometrics() async {
     setState(() => _isLoading = true);
 
+    final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
 
     // Confirm the biometric works before persisting the preference — avoids
     // enabling a feature that the hardware cannot actually satisfy.
     final authResult = await biometricService
-        .authenticate(
-          reason:
-              'Confirme sua identidade para ativar a autenticação biométrica',
-        )
+        .authenticate(reason: t.biometric_auth_reason)
         .run();
 
     await authResult.fold(
       (error) async {
         if (mounted) {
-          AppSnackBar.error(context, 'Erro ao autenticar: $error');
+          AppSnackBar.error(context, t.biometric_auth_error(error));
         }
       },
       (authenticated) async {
@@ -57,7 +56,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
         saveResult.fold(
           (error) {
             if (mounted) {
-              AppSnackBar.error(context, 'Erro ao salvar configuração.');
+              AppSnackBar.error(context, t.biometric_save_error);
             }
           },
           (_) {
@@ -78,6 +77,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -90,36 +90,28 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
             children: [
               Icon(Icons.fingerprint, size: 80, color: colorScheme.primary),
               const SizedBox(height: 32),
-              RichText(
+              Text(
+                t.biometric_setup_enable_q,
                 textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  children: [
-                    const TextSpan(text: 'Ativar '),
-                    TextSpan(
-                      text: 'biometria',
-                      style: TextStyle(color: colorScheme.primary),
-                    ),
-                    const TextSpan(text: '?'),
-                  ],
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                'Use Face ID, impressão digital ou a senha do dispositivo '
-                'para acessar sua carteira com mais rapidez e segurança.',
+                t.biometric_setup_explanation,
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 50),
               PrimaryButton(
-                text: 'Ativar biometria',
+                text: t.biometric_setup_enable,
                 onPressed: _enableBiometrics,
                 isLoading: _isLoading,
               ),
               const SizedBox(height: 12),
               SecondaryButton(
-                text: 'Não, obrigado',
+                text: t.common_no_thanks,
                 onPressed: _proceed,
                 isEnabled: !_isLoading,
               ),

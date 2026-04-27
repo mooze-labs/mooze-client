@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
@@ -18,6 +19,7 @@ class PixValueInputWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: context.colors.surfaceLow,
@@ -42,7 +44,7 @@ class PixValueInputWidget extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
-              'Meu Nível',
+              t.pix_receive_my_level,
               style: context.textTheme.labelLarge?.copyWith(
                 color: context.colorScheme.onSurface,
                 fontSize: context.responsiveFont(14),
@@ -153,7 +155,7 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Você adiciona',
+                      AppLocalizations.of(context).pix_receive_you_add,
                       style: context.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.5),
                         fontWeight: FontWeight.w400,
@@ -240,34 +242,39 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
           },
         ),
         // Validation error — slides in below when amount is out of range
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child:
-              isError && validation.message != null
-                  ? Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          size: 14,
-                          color: colorScheme.error,
+        Builder(
+          builder: (context) {
+            final localizedMessage = validation.localize(context);
+            return AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child:
+                  isError && localizedMessage != null
+                      ? Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              size: 14,
+                              color: colorScheme.error,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              localizedMessage,
+                              style: context.textTheme.labelMedium?.copyWith(
+                                color: colorScheme.error,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          validation.message!,
-                          style: context.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.error,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  : const SizedBox.shrink(),
+                      )
+                      : const SizedBox.shrink(),
+            );
+          },
         ),
       ],
     );

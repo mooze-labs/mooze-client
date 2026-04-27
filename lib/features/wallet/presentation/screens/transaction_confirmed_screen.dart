@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -126,6 +127,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       body: PlatformSafeArea(
@@ -201,14 +203,14 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                     child: Column(
                       children: [
                         Text(
-                          'Transação Confirmada!',
+                          t.tx_confirmed_title,
                           style: textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Você recebeu ${widget.asset.ticker}',
+                          t.tx_received_asset(widget.asset.ticker),
                           style: textTheme.bodyMedium,
                           textAlign: TextAlign.center,
                         ),
@@ -236,7 +238,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                                     size: 30,
                                   ),
                                   const SizedBox(width: 8),
-                                  Text('Recebido', style: textTheme.bodyLarge),
+                                  Text(t.tx_received, style: textTheme.bodyLarge),
                                 ],
                               ),
                               const SizedBox(height: 10),
@@ -251,7 +253,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                               ),
                               const SizedBox(height: 20),
                               _buildCopyableField(
-                                label: 'ID da Transação',
+                                label: t.tx_id,
                                 value: truncateHashId(
                                   widget.transactionId,
                                   length: 10,
@@ -263,7 +265,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                         ),
                         const Spacer(),
                         PrimaryButton(
-                          text: 'Voltar para Dashboard',
+                          text: t.tx_back_to_dashboard,
                           onPressed: () {
                             Navigator.of(context).pop();
                           },

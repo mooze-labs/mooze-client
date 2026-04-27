@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -89,6 +90,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
@@ -99,7 +101,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
         child: PlatformSafeArea(
           child: Scaffold(
             appBar: AppBar(
-              title: const Text("Enviar ativos"),
+              title: Text(t.wallet_send_appbar_title),
               leading: IconButton(
                 onPressed: () {
                   _clearProviders(ref);
@@ -148,13 +150,14 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
   }
 
   Widget _buildInstructionText(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
           style: Theme.of(context).textTheme.bodyLarge,
           children: [
-            const TextSpan(text: "Escolha o ativo que quer enviar na "),
+            TextSpan(text: t.wallet_send_instruction_prefix),
             TextSpan(
               text: "Mooze",
               style: TextStyle(color: Theme.of(context).colorScheme.primary),

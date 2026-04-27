@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/referral_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 // ---------------------------------------------------------------------------
@@ -11,10 +12,33 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 typedef _FeeTier = ({String range, String fee, double min, double max});
 
-const _tiers = <_FeeTier>[
-  (range: 'R\$ 20 a R\$ 55', fee: 'R\$ 2,00 fixo *', min: 20, max: 55),
-  (range: 'R\$ 55 a R\$ 499', fee: '3,5%', min: 55, max: 500),
-  (range: 'R\$ 500 a R\$ 3.000', fee: '3% *', min: 500, max: 3000),
+// Numeric boundaries are locale-independent; range/fee labels are pulled
+// from AppLocalizations at build time so they can be translated.
+const _tierBounds = <({double min, double max})>[
+  (min: 20, max: 55),
+  (min: 55, max: 500),
+  (min: 500, max: 3000),
+];
+
+List<_FeeTier> _localizedTiers(AppLocalizations t) => [
+  (
+    range: t.pix_fee_tier1_range,
+    fee: t.pix_fee_tier1_value,
+    min: _tierBounds[0].min,
+    max: _tierBounds[0].max,
+  ),
+  (
+    range: t.pix_fee_tier2_range,
+    fee: t.pix_fee_tier2_value,
+    min: _tierBounds[1].min,
+    max: _tierBounds[1].max,
+  ),
+  (
+    range: t.pix_fee_tier3_range,
+    fee: t.pix_fee_tier3_value,
+    min: _tierBounds[2].min,
+    max: _tierBounds[2].max,
+  ),
 ];
 
 int _activeTierIndex(double amount) {
@@ -22,8 +46,8 @@ int _activeTierIndex(double amount) {
   // Tier 0 (fixed fee) matches the same boundary used by fee_rate_provider.
   if (amount <= fixedFeeRateThreshold) return 0;
   // Walk percentage tiers (index 1+) by their upper bound.
-  for (int i = 1; i < _tiers.length; i++) {
-    if (i == _tiers.length - 1 || amount < _tiers[i].max) return i;
+  for (int i = 1; i < _tierBounds.length; i++) {
+    if (i == _tierBounds.length - 1 || amount < _tierBounds[i].max) return i;
   }
   return -1;
 }
@@ -54,6 +78,7 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final depositAmount = ref.watch(depositAmountProvider);
     final activeTier = _activeTierIndex(depositAmount);
     final hasReferral = ref.watch(hasReferralProvider).valueOrNull == true;
@@ -91,7 +116,7 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Taxas de conversão',
+                    t.pix_fee_conversion_title,
                     style: context.textTheme.labelMedium?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.55),
                       fontWeight: FontWeight.w600,
@@ -144,21 +169,23 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
     int activeTier,
     bool hasDiscount,
   ) {
+    final t = AppLocalizations.of(context);
     final colorScheme = context.colorScheme;
+    final tiers = _localizedTiers(t);
     return [
       Divider(
         height: 1,
         thickness: 0.5,
         color: colorScheme.outlineVariant.withValues(alpha: 0.5),
       ),
-      for (int i = 0; i < _tiers.length; i++) ...[
+      for (int i = 0; i < tiers.length; i++) ...[
         _TierRow(
-          tier: _tiers[i],
+          tier: tiers[i],
           isActive: activeTier == i,
           hasDiscount: hasDiscount,
           showFootnoteMarker: true,
         ),
-        if (i < _tiers.length - 1)
+        if (i < tiers.length - 1)
           Divider(
             height: 1,
             thickness: 0.5,
@@ -170,7 +197,7 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 2, 16, 3),
         child: Text(
-          '* 15% de desconto para usuários com código de indicação.',
+          t.pix_fee_footnote_discount,
           style: context.textTheme.labelSmall?.copyWith(
             color: colorScheme.onSurface.withValues(alpha: 0.35),
             fontStyle: FontStyle.italic,
@@ -180,7 +207,7 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 3, 16, 12),
         child: Text(
-          '* Taxas de rede/spread variável por conta do usuário.',
+          t.pix_fee_footnote_network,
           style: context.textTheme.labelSmall?.copyWith(
             color: colorScheme.onSurface.withValues(alpha: 0.35),
             fontStyle: FontStyle.italic,
@@ -195,7 +222,9 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
     int activeTier,
     bool hasDiscount,
   ) {
+    final t = AppLocalizations.of(context);
     final colorScheme = context.colorScheme;
+    final tiers = _localizedTiers(t);
     return [
       Divider(
         height: 1,
@@ -203,7 +232,7 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
         color: colorScheme.outlineVariant.withValues(alpha: 0.5),
       ),
       _TierRow(
-        tier: _tiers[activeTier],
+        tier: tiers[activeTier],
         isActive: true,
         hasDiscount: hasDiscount,
         showFootnoteMarker: false,
@@ -221,6 +250,7 @@ class _DiscountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -241,7 +271,7 @@ class _DiscountBadge extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            'Desconto ativo',
+            t.pix_fee_discount_active_short,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: _discountColor,
               fontWeight: FontWeight.w700,
@@ -350,7 +380,7 @@ class _TierRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
-                    '−15%',
+                    AppLocalizations.of(context).pix_fee_discount_chip_15,
                     style: context.textTheme.labelSmall?.copyWith(
                       color: _discountColor,
                       fontWeight: FontWeight.w700,

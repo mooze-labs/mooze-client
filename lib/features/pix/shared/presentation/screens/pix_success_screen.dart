@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -132,6 +133,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: context.colors.backgroundColor,
       body: PlatformSafeArea(
@@ -207,7 +209,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                     child: Column(
                       children: [
                         Text(
-                          'PIX Recebido!',
+                          t.pix_received_title,
                           style: Theme.of(
                             context,
                           ).textTheme.headlineMedium?.copyWith(
@@ -215,11 +217,11 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-        
+
                         const SizedBox(height: 8),
-        
+
                         Text(
-                          'Seu depósito está sendo processado',
+                          t.pix_received_body,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: context.colors.textSecondary),
                           textAlign: TextAlign.center,
@@ -288,18 +290,18 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
         
                               const SizedBox(height: 20),
                               _buildCopyableField(
-                                label: 'ID do Depósito',
+                                label: t.pix_deposit_id_label,
                                 value: truncateHashId(
                                   widget.depositId,
                                   length: 10,
                                 ),
                                 fullValue: widget.depositId,
                               ),
-        
+
                               if (widget.blockchainTxid != null) ...[
                                 const SizedBox(height: 12),
                                 _buildCopyableField(
-                                  label: 'ID da Transação',
+                                  label: t.tx_id,
                                   value: truncateHashId(
                                     widget.blockchainTxid!,
                                     length: 10,
@@ -314,7 +316,7 @@ class _PixSuccessScreenState extends State<PixSuccessScreen>
                         const Spacer(),
         
                         PrimaryButton(
-                          text: 'Voltar para Dashboard',
+                          text: t.refund_success_back_dashboard,
                           onPressed: () {
                             Navigator.pop(context);
                           },

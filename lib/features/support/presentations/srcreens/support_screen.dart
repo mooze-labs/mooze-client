@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -91,13 +92,14 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
   }
 
   void _showErrorSnackBar(BuildContext context, ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.white),
-            SizedBox(width: 8),
-            Expanded(child: Text("Não foi possível abrir o Telegram")),
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(t.support_telegram_open_error)),
           ],
         ),
         backgroundColor: colorScheme.error,
@@ -111,10 +113,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Central de Suporte'),
+        title: Text(t.support_screen_title),
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -176,7 +179,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Como podemos ajudar?',
+                                  t.support_help_title,
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w700,
@@ -186,7 +189,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Para um atendimento mais eficiente, compartilhe o código abaixo com nosso suporte.',
+                                  t.support_help_subtitle,
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: colorScheme.onSurface.withValues(
@@ -203,7 +206,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                           const SizedBox(height: 32),
 
                           Text(
-                            'Seu código de identificação',
+                            t.support_user_code_label,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -248,10 +251,10 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                   );
                                 },
                                 error: (error, stack) {
-                                  const errorTitle =
-                                      'Não foi possível carregar seu código';
-                                  const errorMessage =
-                                      'Ocorreu um erro ao carregar suas informações';
+                                  final errorTitle =
+                                      t.support_user_code_load_error_title;
+                                  final errorMessage =
+                                      t.support_user_code_load_error_msg;
 
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -302,10 +305,10 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                   });
 
                                   if (userId == null) {
-                                    const errorTitle =
-                                        'Não foi possível carregar seu código';
-                                    const errorMessage =
-                                        'Não encontramos suas informações';
+                                    final errorTitle =
+                                        t.support_user_code_load_error_title;
+                                    final errorMessage =
+                                        t.support_user_code_not_found;
 
                                     WidgetsBinding.instance
                                         .addPostFrameCallback((_) {
@@ -361,7 +364,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                           ),
                           const SizedBox(height: 16),
                           PrimaryButton(
-                            text: 'Falar com o suporte',
+                            text: t.support_contact_button,
                             onPressed:
                                 () => _launchTelegramSupport(
                                   context,

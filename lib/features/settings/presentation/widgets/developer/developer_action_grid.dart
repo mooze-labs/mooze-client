@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/developer/grid_action_button.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -31,6 +32,7 @@ class DeveloperActionGrid extends StatelessWidget {
     final textTheme = context.textTheme;
     final dividerColor = colorScheme.onSurface.withValues(alpha: 0.08);
     final warningColor = context.appColors.warning;
+    final t = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -47,7 +49,7 @@ class DeveloperActionGrid extends StatelessWidget {
               Icon(Icons.build_outlined, color: colorScheme.primary, size: 20),
               const SizedBox(width: 10),
               Text(
-                'Ferramentas',
+                t.developer_tools_title,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -58,7 +60,7 @@ class DeveloperActionGrid extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 30),
             child: Text(
-              'Sincronização, logs e diagnósticos',
+              t.developer_tools_subtitle,
               style: textTheme.bodySmall?.copyWith(
                 color: context.colors.textSecondary,
               ),
@@ -77,52 +79,52 @@ class DeveloperActionGrid extends StatelessWidget {
             children: [
               GridActionButton(
                 icon: Icons.sync,
-                label: 'Light Sync',
-                tooltip: 'Fast sync (transactions, balances, prices)',
+                label: t.developer_action_light_sync,
+                tooltip: t.developer_action_light_sync_tooltip,
                 onPressed: onSync,
                 enabled: !isLoading,
               ),
               GridActionButton(
                 icon: Icons.sync_alt,
-                label: 'Full Sync',
-                tooltip: 'Complete blockchain sync',
+                label: t.developer_action_full_sync,
+                tooltip: t.developer_action_full_sync_tooltip,
                 onPressed: onFullSync,
                 enabled: !isLoading,
                 iconColor: warningColor,
               ),
               GridActionButton(
                 icon: Icons.radar,
-                label: 'Rescan',
-                tooltip: 'Rescan onchain swaps',
+                label: t.developer_action_rescan,
+                tooltip: t.developer_action_rescan_tooltip,
                 onPressed: onRescan,
                 enabled: !isLoading,
               ),
               GridActionButton(
                 icon: Icons.task_alt_rounded,
-                label: 'Reembolso',
-                tooltip: 'Navigate to refund screen',
+                label: t.developer_action_refund,
+                tooltip: t.developer_action_refund_tooltip,
                 onPressed: onRefund,
                 enabled: !isLoading,
                 iconColor: warningColor,
               ),
               GridActionButton(
                 icon: Icons.article_outlined,
-                label: 'View Logs',
-                tooltip: 'View application logs',
+                label: t.developer_action_view_logs,
+                tooltip: t.developer_action_view_logs_tooltip,
                 onPressed: onViewLogs,
                 enabled: !isLoading,
               ),
               GridActionButton(
                 icon: Icons.download_outlined,
-                label: 'Export',
-                tooltip: 'Export logs as ZIP',
+                label: t.developer_action_export,
+                tooltip: t.developer_action_export_tooltip,
                 onPressed: onExportLogs,
                 enabled: !isLoading,
               ),
               GridActionButton(
                 icon: Icons.delete_sweep_outlined,
-                label: 'Clear Logs',
-                tooltip: 'Clear all logs',
+                label: t.developer_action_clear_logs,
+                tooltip: t.developer_action_clear_logs_tooltip,
                 onPressed: onClearLogs,
                 enabled: !isLoading,
                 iconColor: colorScheme.error,

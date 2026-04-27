@@ -1,5 +1,44 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
+/// Stable error codes for seed phrase failures, decoupled from user-facing copy
+enum SeedPhraseErrorCode {
+  invalidWord,
+  wrongWordCount,
+  invalidWordsList,
+  invalidChecksum,
+}
+
+/// Locale-agnostic error payload — the screen calls [localize] to render it
+class SeedPhraseError {
+  final SeedPhraseErrorCode code;
+  final String? word;
+  final int? count;
+  final String? wordsList;
+
+  const SeedPhraseError({
+    required this.code,
+    this.word,
+    this.count,
+    this.wordsList,
+  });
+
+  String localize(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    switch (code) {
+      case SeedPhraseErrorCode.invalidWord:
+        return t.setup_seed_invalid_word(word ?? '');
+      case SeedPhraseErrorCode.wrongWordCount:
+        return t.setup_seed_wrong_count(count ?? 0);
+      case SeedPhraseErrorCode.invalidWordsList:
+        return t.setup_seed_invalid_words_list(wordsList ?? '');
+      case SeedPhraseErrorCode.invalidChecksum:
+        return t.setup_seed_invalid_checksum;
+    }
+  }
+}
 
 class SeedPhraseState {
   final List<String> confirmedWords;
@@ -8,7 +47,7 @@ class SeedPhraseState {
   final bool isComplete;
   final bool isValid;
   final bool isLoading;
-  final String? errorMessage;
+  final SeedPhraseError? error;
   final int? editingIndex;
 
   const SeedPhraseState({
@@ -18,7 +57,7 @@ class SeedPhraseState {
     this.isComplete = false,
     this.isValid = false,
     this.isLoading = false,
-    this.errorMessage,
+    this.error,
     this.editingIndex,
   });
 
@@ -29,9 +68,10 @@ class SeedPhraseState {
     bool? isComplete,
     bool? isValid,
     bool? isLoading,
-    String? errorMessage,
+    SeedPhraseError? error,
     int? editingIndex,
     bool clearEditingIndex = false,
+    bool clearError = false,
   }) {
     return SeedPhraseState(
       confirmedWords: confirmedWords ?? this.confirmedWords,
@@ -40,7 +80,7 @@ class SeedPhraseState {
       isComplete: isComplete ?? this.isComplete,
       isValid: isValid ?? this.isValid,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      error: clearError ? null : (error ?? this.error),
       editingIndex:
           clearEditingIndex ? null : (editingIndex ?? this.editingIndex),
     );
@@ -2119,7 +2159,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
   }
 
   void clearError() {
-    state = state.copyWith(errorMessage: null);
+    state = state.copyWith(clearError: true);
   }
 
   void updateCurrentInput(String input) {
@@ -2129,7 +2169,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       state = state.copyWith(
         currentInput: '',
         suggestions: [],
-        errorMessage: null,
+        clearError: true,
       );
       return;
     }
@@ -2140,13 +2180,18 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
     state = state.copyWith(
       currentInput: trimmed,
       suggestions: matches,
-      errorMessage: null,
+      clearError: true,
     );
   }
 
   void confirmWord(String word) {
     if (!_bip39Words.contains(word)) {
-      state = state.copyWith(errorMessage: 'Palavra inválida: $word');
+      state = state.copyWith(
+        error: SeedPhraseError(
+          code: SeedPhraseErrorCode.invalidWord,
+          word: word,
+        ),
+      );
       return;
     }
 
@@ -2170,7 +2215,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
         suggestions: [],
         isComplete: canComplete,
         isValid: isValid,
-        errorMessage: null,
+        clearError: true,
         clearEditingIndex: true,
       );
       return;
@@ -2193,7 +2238,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       suggestions: [],
       isComplete: canComplete,
       isValid: isValid,
-      errorMessage: null,
+      clearError: true,
       clearEditingIndex: true,
     );
   }
@@ -2209,7 +2254,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       suggestions: [],
       isComplete: false,
       isValid: false,
-      errorMessage: null,
+      clearError: true,
     );
 
     updateCurrentInput(word);
@@ -2220,7 +2265,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       currentInput: '',
       suggestions: [],
       clearEditingIndex: true,
-      errorMessage: null,
+      clearError: true,
     );
   }
 
@@ -2254,7 +2299,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       suggestions: [],
       isComplete: canComplete,
       isValid: isValid,
-      errorMessage: null,
+      clearError: true,
       clearEditingIndex: true,
     );
   }
@@ -2281,7 +2326,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       suggestions: [],
       isComplete: canComplete,
       isValid: isValid,
-      errorMessage: null,
+      clearError: true,
       clearEditingIndex: true,
     );
   }
@@ -2306,8 +2351,10 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
         words.length != 21 &&
         words.length != 24) {
       state = state.copyWith(
-        errorMessage:
-            'Frase deve ter 12, 15, 18, 21 ou 24 palavras. Encontradas: ${words.length}',
+        error: SeedPhraseError(
+          code: SeedPhraseErrorCode.wrongWordCount,
+          count: words.length,
+        ),
       );
       return false;
     }
@@ -2322,14 +2369,19 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
 
     if (invalidWords.isNotEmpty) {
       state = state.copyWith(
-        errorMessage: 'Palavras inválidas: ${invalidWords.join(", ")}',
+        error: SeedPhraseError(
+          code: SeedPhraseErrorCode.invalidWordsList,
+          wordsList: invalidWords.join(', '),
+        ),
       );
       return false;
     }
 
     if (!_validateMnemonic(words.map((w) => w.toLowerCase()).join(' '))) {
       state = state.copyWith(
-        errorMessage: 'Frase inválida. Verifique o checksum.',
+        error: const SeedPhraseError(
+          code: SeedPhraseErrorCode.invalidChecksum,
+        ),
       );
       return false;
     }
@@ -2344,7 +2396,7 @@ class SeedPhraseNotifier extends StateNotifier<SeedPhraseState> {
       suggestions: [],
       isComplete: true,
       isValid: isValid,
-      errorMessage: null,
+      clearError: true,
       clearEditingIndex: true,
     );
 

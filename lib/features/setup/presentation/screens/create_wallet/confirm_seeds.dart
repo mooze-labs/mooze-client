@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/selected_words_row.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/word_grid_selector.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
@@ -75,10 +76,11 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     if (_isLoading || !_hasValidData) {
       return Scaffold(
         appBar: AppBar(
-          title: Text("Confirme sua frase"),
+          title: Text(t.setup_confirm_seed_appbar),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => context.pop(),
@@ -94,18 +96,17 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
-        title: Text('Confirme sua frase'),
+        title: Text(t.setup_confirm_seed_appbar),
       ),
       body: Padding(
         padding: EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TitleAndSubtitleCreateWallet(
-              title: 'Confirmação de ',
-              highlighted: 'Segurança',
-              subtitle:
-                  'Selecione as palavras na ordem correta para confirmar sua frase de recuperação.',
+            TitleAndSubtitleCreateWallet(
+              title: t.setup_confirm_seed_title,
+              highlighted: t.setup_confirm_seed_highlight,
+              subtitle: t.setup_confirm_seed_subtitle,
             ),
             SizedBox(height: 40),
 
@@ -126,7 +127,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
 
             SizedBox(height: 10),
             PrimaryButton(
-              text: 'Confirmar',
+              text: t.common_confirm,
               onPressed: _confirm,
               isEnabled: _canConfirm(),
             ),
@@ -193,8 +194,8 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Uma ou mais palavras estão incorretas. Tente novamente.",
-            style: TextStyle(color: Colors.white),
+            AppLocalizations.of(context).setup_confirm_seed_error,
+            style: const TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.red[600],
           behavior: SnackBarBehavior.floating,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_level_color_x.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -26,6 +27,7 @@ class LogFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final t = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -35,15 +37,21 @@ class LogFilterBar extends StatelessWidget {
             controller: searchController,
             style: textTheme.bodyMedium,
             decoration: InputDecoration(
-              hintText: 'Search logs...',
+              hintText: t.logs_filter_search_hint,
               hintStyle: textTheme.bodyMedium?.copyWith(
                 color: context.colors.textTertiary,
               ),
-              prefixIcon: Icon(Icons.search, color: context.colors.textTertiary),
+              prefixIcon: Icon(
+                Icons.search,
+                color: context.colors.textTertiary,
+              ),
               suffixIcon:
                   searchQuery.isNotEmpty
                       ? IconButton(
-                        icon: Icon(Icons.clear, color: context.colors.textTertiary),
+                        icon: Icon(
+                          Icons.clear,
+                          color: context.colors.textTertiary,
+                        ),
                         onPressed: onClearSearch,
                       )
                       : null,
@@ -61,7 +69,7 @@ class LogFilterBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildLevelChip(context, null, 'All'),
+                _buildLevelChip(context, null, t.logs_filter_all),
                 const SizedBox(width: 8),
                 ...LogLevel.values.map((level) {
                   return Padding(
@@ -81,14 +89,14 @@ class LogFilterBar extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
     final isSelected = selectedLevel == level;
-    final color =
-        level != null ? level.color(context) : colorScheme.primary;
+    final color = level != null ? level.color(context) : colorScheme.primary;
 
     return FilterChip(
       label: Text(
         label,
         style: textTheme.labelMedium?.copyWith(
-          color: isSelected ? colorScheme.onSurface : context.colors.textSecondary,
+          color:
+              isSelected ? colorScheme.onSurface : context.colors.textSecondary,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -98,9 +106,9 @@ class LogFilterBar extends StatelessWidget {
       selectedColor: color.withValues(alpha: 0.3),
       checkmarkColor: colorScheme.onSurface,
       side: BorderSide(
-        color: isSelected ? color : colorScheme.onSurface.withValues(alpha: 0.12),
+        color:
+            isSelected ? color : colorScheme.onSurface.withValues(alpha: 0.12),
       ),
     );
   }
-
 }

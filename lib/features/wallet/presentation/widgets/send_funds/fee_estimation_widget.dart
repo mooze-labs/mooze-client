@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 
@@ -13,6 +14,7 @@ class FeeEstimationWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final asset = ref.watch(selectedAssetProvider);
     final isDrainTransaction = ref.watch(isDrainTransactionProvider);
     final validationState = ref.watch(sendValidationControllerProvider);
@@ -27,7 +29,7 @@ class FeeEstimationWidget extends ConsumerWidget {
 
     if (validationState.errors.isNotEmpty) {
       final hasOnlyBalanceErrors = validationState.errors.every(
-        (error) => error.toLowerCase().contains('saldo'),
+        (error) => error.category == SendValidationErrorCategory.balance,
       );
 
       if (!hasOnlyBalanceErrors) {
@@ -72,7 +74,7 @@ class FeeEstimationWidget extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Taxa estimada',
+                      t.wallet_send_fee_estimated,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -81,7 +83,7 @@ class FeeEstimationWidget extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _formatFee(estimation.fees, asset),
+                      _formatFee(estimation.fees, asset, t),
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
@@ -117,7 +119,7 @@ class FeeEstimationWidget extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Calculando taxa...',
+                t.wallet_send_fee_calculating,
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
@@ -146,7 +148,7 @@ class FeeEstimationWidget extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Erro ao calcular taxa',
+                  t.wallet_send_fee_calc_error,
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.error,
@@ -160,16 +162,16 @@ class FeeEstimationWidget extends ConsumerWidget {
     );
   }
 
-  String _formatFee(BigInt fees, Asset asset) {
+  String _formatFee(BigInt fees, Asset asset, AppLocalizations t) {
     if (asset == Asset.btc || asset == Asset.lbtc) {
       if (fees == BigInt.zero) {
-        return "Gratuito";
+        return t.wallet_send_fee_free;
       }
       final satText = fees == BigInt.one ? 'sat' : 'sats';
       return "${SatsInputFormatter.formatValue(fees.toInt())} $satText";
     } else {
       if (fees == BigInt.zero) {
-        return "Gratuito";
+        return t.wallet_send_fee_free;
       }
       final lbtcAmount = fees.toDouble() / 100000000;
       return "${lbtcAmount.toStringAsFixed(8)} L-BTC";

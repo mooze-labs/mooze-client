@@ -11,6 +11,7 @@ import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart'
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class PixHistoryScreen extends ConsumerStatefulWidget {
   const PixHistoryScreen({super.key});
@@ -90,9 +91,10 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Histórico do PIX'),
+        title: Text(t.tx_history_pix_title),
         leading: IconButton(
           onPressed: () {
             context.pop();
@@ -107,7 +109,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
               color: context.colors.primaryColor,
             ),
             onPressed: _openFilterSheet,
-            tooltip: 'Filtros',
+            tooltip: t.tx_filter_title,
           ),
         ],
       ),
@@ -162,7 +164,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        _getActiveFiltersDescription(),
+                                        _getActiveFiltersDescription(context),
                                         style: TextStyle(fontSize: 14),
                                       ),
                                     ),
@@ -204,7 +206,7 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      _getActiveFiltersDescription(),
+                                      _getActiveFiltersDescription(context),
                                       style: TextStyle(fontSize: 14),
                                     ),
                                   ),
@@ -244,12 +246,14 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
     );
   }
 
-  String _getActiveFiltersDescription() {
+  String _getActiveFiltersDescription(BuildContext context) {
     List<String> descriptions = [];
 
     final status = _filters.filter?['status'] as String?;
     if (status != null && status != 'all') {
-      descriptions.add(DepositStatus.fromString(status).labelPlural);
+      descriptions.add(
+        DepositStatus.fromString(status).localizedLabelPlural(context),
+      );
     }
 
     final assetIds = _filters.filter?['assets'] as List<String>?;

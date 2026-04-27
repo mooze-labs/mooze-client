@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 enum FeeSpeed { low, medium, fast }
@@ -29,11 +30,12 @@ class FeeSpeedSelector extends StatefulWidget {
 class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Velocidade da transação',
+          t.wallet_fee_speed_title,
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -44,8 +46,8 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             if (widget.lowFeeLoading) ...[
               Expanded(
                 child: _FeeSpeedOption(
-                  title: 'Econômica',
-                  subtitle: '~60+ min',
+                  title: t.wallet_fee_economic,
+                  subtitle: t.wallet_fee_economic_eta,
                   feeRate: widget.lowFeeSatPerVByte ?? 1,
                   isSelected: widget.selectedSpeed == FeeSpeed.low,
                   onTap: () => widget.onSpeedChanged(FeeSpeed.low),
@@ -56,8 +58,8 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             ],
             Expanded(
               child: _FeeSpeedOption(
-                title: 'Normal',
-                subtitle: '~30 min',
+                title: t.wallet_fee_normal,
+                subtitle: t.wallet_fee_normal_eta,
                 feeRate: widget.mediumFeeSatPerVByte ?? 3,
                 isSelected: widget.selectedSpeed == FeeSpeed.medium,
                 onTap: () => widget.onSpeedChanged(FeeSpeed.medium),
@@ -67,8 +69,8 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             const SizedBox(width: 8),
             Expanded(
               child: _FeeSpeedOption(
-                title: 'Rápida',
-                subtitle: '~10 min',
+                title: t.wallet_fee_fast,
+                subtitle: t.wallet_fee_fast_eta,
                 feeRate: widget.fastFeeSatPerVByte ?? 5,
                 isSelected: widget.selectedSpeed == FeeSpeed.fast,
                 onTap: () => widget.onSpeedChanged(FeeSpeed.fast),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class InfoOverlay {
   static void show(
@@ -97,7 +98,8 @@ class InfoOverlay {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Toque fora desta área para fechar',
+                                  AppLocalizations.of(context)
+                                      .info_overlay_dismiss_hint,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodySmall?.copyWith(

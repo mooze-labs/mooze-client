@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 class FinalizarVendaButton extends StatelessWidget {
@@ -21,6 +22,7 @@ class FinalizarVendaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final isVerySmallScreen = screenHeight < 650;
     final isSmallScreen = screenHeight < 700 && screenHeight >= 650;
@@ -39,7 +41,7 @@ class FinalizarVendaButton extends StatelessWidget {
           children: [
             PrimaryButton(
               key: buttonKey,
-              text: 'Finalizar Venda',
+              text: t.merchant_finalize_sale_button,
               onPressed: onPressed,
               isEnabled: totalOrderAmount == null || totalOrderAmount! >= 20.0,
               height: isVerySmallScreen ? 48 : (isSmallScreen ? 52 : 56),
@@ -49,7 +51,7 @@ class FinalizarVendaButton extends StatelessWidget {
                 totalOrderAmount! < 20.0) ...[
               SizedBox(height: isVerySmallScreen ? 6 : 8),
               Text(
-                'Mínimo R\$ 20,00',
+                t.merchant_min_sale_short,
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: isVerySmallScreen ? 11 : (isSmallScreen ? 12 : 13),

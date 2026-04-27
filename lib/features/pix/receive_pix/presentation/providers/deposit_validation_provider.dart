@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
 enum DepositValidationError {
@@ -12,21 +14,42 @@ enum DepositValidationError {
 
 class DepositValidation {
   final DepositValidationError error;
-  final String? message;
+  final double? limitAmount;
   final bool isValid;
 
   const DepositValidation({
     required this.error,
-    this.message,
+    this.limitAmount,
     required this.isValid,
   });
 
   const DepositValidation.valid()
     : error = DepositValidationError.none,
-      message = null,
+      limitAmount = null,
       isValid = true;
 
-  const DepositValidation.error(this.error, this.message) : isValid = false;
+  const DepositValidation.errorWith(this.error, {this.limitAmount})
+    : isValid = false;
+
+  String? localize(BuildContext context) {
+    if (isValid) return null;
+    final t = AppLocalizations.of(context);
+    switch (error) {
+      case DepositValidationError.invalidAmount:
+        return t.pix_receive_validation_invalid_amount;
+      case DepositValidationError.belowMinimum:
+        return t.pix_receive_validation_below_min(
+          (limitAmount ?? 0).toStringAsFixed(2),
+        );
+      case DepositValidationError.aboveTransaction:
+        return t.pix_receive_validation_above_transaction(
+          (limitAmount ?? 0).toStringAsFixed(2),
+        );
+      case DepositValidationError.aboveRemaining:
+      case DepositValidationError.none:
+        return null;
+    }
+  }
 }
 
 final depositValidationProvider = Provider<DepositValidation>((ref) {
@@ -34,9 +57,8 @@ final depositValidationProvider = Provider<DepositValidation>((ref) {
   final levelsAsync = ref.watch(levelsProvider);
 
   if (depositAmount <= 0) {
-    return DepositValidation.error(
+    return const DepositValidation.errorWith(
       DepositValidationError.invalidAmount,
-      'Digite um valor válido',
     );
   }
 
@@ -51,22 +73,22 @@ final depositValidationProvider = Provider<DepositValidation>((ref) {
   return levelsAsync.when(
     data: (levels) {
       if (depositAmount < levels.absoluteMinLimit) {
-        return DepositValidation.error(
+        return DepositValidation.errorWith(
           DepositValidationError.belowMinimum,
-          'Valor mínimo: R\$ ${levels.absoluteMinLimit.toStringAsFixed(2)}',
+          limitAmount: levels.absoluteMinLimit,
         );
       }
 
       if (depositAmount > levels.allowedSpending) {
-        return DepositValidation.error(
+        return DepositValidation.errorWith(
           DepositValidationError.aboveTransaction,
-          'Limite por transação: R\$ ${levels.allowedSpending.toStringAsFixed(2)}',
+          limitAmount: levels.allowedSpending,
         );
       }
 
       return const DepositValidation.valid();
     },
     loading: () => const DepositValidation.valid(),
-    error: (_, __) => const DepositValidation.valid(),
+    error: (_, _) => const DepositValidation.valid(),
   );
 });

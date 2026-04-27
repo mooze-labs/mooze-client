@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_validation_provider.dart';
@@ -122,7 +123,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
           (context) => LoadingOverlayWidget(
             circleController: _circleController,
             circleAnimation: _circleAnimation,
-            loadingText: 'Gerando QR Code...',
+            loadingText: AppLocalizations.of(context).pix_generating_qr,
             showLoadingText: true,
           ),
     );
@@ -137,6 +138,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
     final isSlideEnabled =
@@ -144,7 +146,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Confirmar transação'),
+        title: Text(t.pix_confirm_title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -168,7 +170,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                     const SizedBox(height: 24),
                     SlideToConfirmButton(
                       onSlideComplete: _onSlideComplete,
-                      text: 'Gerar QR Code',
+                      text: t.merchant_generate_qr,
                       isLoading: _isLoading,
                       isEnabled: isSlideEnabled,
                     ),
@@ -181,8 +183,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
             onRetry: () {
               ref.invalidate(pixDepositControllerProvider);
             },
-            customMessage:
-                'Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.',
+            customMessage: t.pix_processing_unavailable,
           ),
         ],
       ),

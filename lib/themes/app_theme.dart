@@ -86,6 +86,9 @@ class AppTheme {
       // Checkbox
       checkboxTheme: ComponentThemes.checkboxTheme(colorScheme),
 
+      // Switch
+      switchTheme: ComponentThemes.switchTheme(colorScheme),
+
       // Custom token extensions
       extensions: const [extraColors],
     );
@@ -155,6 +158,9 @@ class AppTheme {
 
       // Checkbox
       checkboxTheme: ComponentThemes.checkboxTheme(colorScheme),
+
+      // Switch
+      switchTheme: ComponentThemes.switchTheme(colorScheme),
 
       // Custom token extensions
       extensions: const [extraColors],

@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -19,6 +20,7 @@ class WalletHeaderWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final isVisible = ref.watch(isVisibleProvider);
     final displayMode = ref.watch(walletDisplayModeProvider);
 
@@ -37,9 +39,9 @@ class WalletHeaderWidget extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Minha Carteira',
-              style: TextStyle(color: Color(0xFF9194A6), fontSize: 16),
+            Text(
+              t.wallet_title,
+              style: const TextStyle(color: Color(0xFF9194A6), fontSize: 16),
             ),
             IconButton(
               icon: Icon(isVisible ? Icons.visibility_off : Icons.visibility),

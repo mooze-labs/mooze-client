@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class PixFeesScreen extends StatefulWidget {
   const PixFeesScreen({super.key});
@@ -55,7 +56,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(context),
       body: _buildBody(theme, colorScheme),
       floatingActionButton:
           _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
@@ -63,13 +64,14 @@ class _PixFeesScreenState extends State<PixFeesScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return AppBar(
-      title: const Text('Taxas do PIX'),
+      title: Text(t.main_settings_pix_fees),
       leading: IconButton(
         onPressed: () => context.pop(),
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        tooltip: 'Voltar',
+        tooltip: t.common_back,
       ),
     );
   }
@@ -101,11 +103,12 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildHeader(ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Taxas Transparentes',
+          t.pix_fees_screen_header_title,
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -114,7 +117,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'Conheça nossas taxas de depósito via PIX',
+          t.pix_fees_screen_header_subtitle,
           style: TextStyle(
             fontSize: 14,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -126,6 +129,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildFixedFeeCard(ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -156,7 +160,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Taxa Fixa',
+                      t.pix_fees_screen_fixed_fee_title,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -164,7 +168,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                       ),
                     ),
                     Text(
-                      'Para depósitos até R\$ 55,00',
+                      t.pix_fees_screen_fixed_fee_subtitle,
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -193,7 +197,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'R\$ 1,00 Mooze + R\$ 1,00 Processadora',
+                      t.pix_fees_screen_fixed_fee_breakdown,
                       style: TextStyle(
                         fontSize: 11,
                         color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -210,11 +214,12 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildFeeRangesSection(ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Taxas Percentuais',
+          t.pix_fees_screen_percentage_title,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -223,7 +228,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'Para depósitos acima de R\$ 55,00',
+          t.pix_fees_screen_percentage_subtitle,
           style: TextStyle(
             fontSize: 13,
             color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -257,15 +262,15 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                   fontWeight: FontWeight.w600,
                 ),
                 padding: const EdgeInsets.all(4),
-                tabs: const [
-                  Tab(text: 'Sem Desconto'),
+                tabs: [
+                  Tab(text: t.pix_fees_screen_tab_no_discount),
                   Tab(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Com Desconto'),
-                        SizedBox(width: 4),
-                        Icon(Icons.card_giftcard, size: 14),
+                        Text(t.pix_fees_screen_tab_with_discount),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.card_giftcard, size: 14),
                       ],
                     ),
                   ),
@@ -289,13 +294,14 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildFeeRangesList(ColorScheme colorScheme, bool withDiscount) {
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           _buildFeeRangeCard(
             colorScheme: colorScheme,
-            rangeLabel: 'R\$ 55 até R\$ 499',
+            rangeLabel: t.pix_fees_screen_fee_range_label('55', '499'),
             baseFeePercentage: 3.5,
             withDiscount: withDiscount,
             gradient: const LinearGradient(
@@ -307,7 +313,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
           const SizedBox(height: 12),
           _buildFeeRangeCard(
             colorScheme: colorScheme,
-            rangeLabel: 'R\$ 500 até R\$ 3.000',
+            rangeLabel: t.pix_fees_screen_fee_range_label('500', '3.000'),
             baseFeePercentage: 3.0,
             withDiscount: withDiscount,
             gradient: const LinearGradient(
@@ -328,6 +334,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
     required bool withDiscount,
     required Gradient gradient,
   }) {
+    final t = AppLocalizations.of(context);
     final displayFee =
         withDiscount ? baseFeePercentage * 0.85 : baseFeePercentage;
     final feeText = displayFee.toStringAsFixed(2).replaceAll('.', ',');
@@ -357,7 +364,9 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                 if (withDiscount) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'antes ${baseFeePercentage.toStringAsFixed(2).replaceAll('.', ',')}%',
+                    t.pix_fees_screen_fee_range_before(
+                      baseFeePercentage.toStringAsFixed(2).replaceAll('.', ','),
+                    ),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -382,6 +391,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildReferralBonusCard(ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -421,7 +431,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Bônus de Indicação',
+                      t.pix_fees_screen_referral_title,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -429,7 +439,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                       ),
                     ),
                     Text(
-                      'Use um código de indicação',
+                      t.pix_fees_screen_referral_subtitle,
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -454,7 +464,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '15% de desconto',
+                  t.pix_fees_screen_referral_discount,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
@@ -466,7 +476,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            'Todas as taxas percentuais são multiplicadas por 0,85',
+            t.pix_fees_screen_referral_disclaimer,
             style: TextStyle(
               fontSize: 12,
               color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -480,13 +490,14 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildExamplesSection(ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Exemplos Práticos',
+              t.pix_fees_screen_examples_title,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -515,7 +526,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
           fee: 'R\$ 10,50',
           youReceive: 'R\$ 289,50',
           hasReferral: false,
-          feeCalculation: '3,5% de R\$ 300,00',
+          feeCalculation: t.pix_fees_screen_fee_calculation_of('3,5', '300,00'),
         ),
 
         const SizedBox(height: 12),
@@ -540,7 +551,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
           fee: 'R\$ 30,00',
           youReceive: 'R\$ 970,00',
           hasReferral: false,
-          feeCalculation: '3% de R\$ 1.000,00',
+          feeCalculation: t.pix_fees_screen_fee_calculation_of('3', '1.000,00'),
         ),
 
         const SizedBox(height: 12),
@@ -552,7 +563,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
           fee: 'R\$ 90,00',
           youReceive: 'R\$ 2.910,00',
           hasReferral: false,
-          feeCalculation: '3% de R\$ 3.000,00',
+          feeCalculation: t.pix_fees_screen_fee_calculation_of('3', '3.000,00'),
         ),
       ],
     );
@@ -567,6 +578,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
     String? feeCalculation,
     String? originalAmount,
   }) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -599,7 +611,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Com indicação',
+                    t.pix_fees_screen_example_with_referral,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -616,7 +628,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Depósito',
+                    t.pix_fees_screen_example_deposit,
                     style: TextStyle(
                       fontSize: 11,
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -642,7 +654,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Você recebe',
+                    t.pix_fees_screen_example_receive,
                     style: TextStyle(
                       fontSize: 11,
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -691,7 +703,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  feeCalculation ?? 'Taxa',
+                  feeCalculation ?? t.pix_fees_screen_example_fee_label,
                   style: TextStyle(
                     fontSize: 11,
                     color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -714,6 +726,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
   }
 
   Widget _buildFooterInfo(ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -729,7 +742,7 @@ class _PixFeesScreenState extends State<PixFeesScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Informações Importantes',
+                  t.pix_fees_screen_footer_title,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -742,25 +755,22 @@ class _PixFeesScreenState extends State<PixFeesScreen>
           const SizedBox(height: 12),
           _buildInfoItem(
             colorScheme: colorScheme,
-            text:
-                'A taxa fixa de R\$ 2,00 se aplica apenas a depósitos até R\$ 55,00',
+            text: t.pix_fees_screen_footer_info_1,
           ),
           const SizedBox(height: 8),
           _buildInfoItem(
             colorScheme: colorScheme,
-            text:
-                'Para valores acima de R\$ 55,00, as taxas percentuais são aplicadas',
+            text: t.pix_fees_screen_footer_info_2,
           ),
           const SizedBox(height: 8),
           _buildInfoItem(
             colorScheme: colorScheme,
-            text:
-                'O desconto de 15% com indicação se aplica apenas às taxas percentuais',
+            text: t.pix_fees_screen_footer_info_3,
           ),
           const SizedBox(height: 8),
           _buildInfoItem(
             colorScheme: colorScheme,
-            text: 'As taxas são deduzidas automaticamente do valor depositado',
+            text: t.pix_fees_screen_footer_info_4,
           ),
         ],
       ),

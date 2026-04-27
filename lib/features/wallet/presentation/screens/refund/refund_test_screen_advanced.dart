@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refun
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider_mock.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_mock_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Tela de teste avançada para o fluxo de refund
@@ -41,17 +42,18 @@ class _RefundTestScreenAdvancedState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final mockTransactions = ref.watch(transactionMockProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🧪 Teste de Refund Avançado'),
+        title: Text(t.refund_test_advanced_title),
         backgroundColor: context.colors.backgroundColor,
         actions: [
           if (_mockTransactionsLoaded)
             IconButton(
               icon: const Icon(Icons.clear_all),
-              tooltip: 'Limpar transações mock',
+              tooltip: t.refund_test_clear_tooltip,
               onPressed: () {
                 ref
                     .read(transactionMockProvider.notifier)
@@ -59,9 +61,9 @@ class _RefundTestScreenAdvancedState
                 setState(() => _mockTransactionsLoaded = false);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Transações mockadas removidas'),
+                    content: Text(t.refund_test_cleared_snack),
                     backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 2),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               },
@@ -76,7 +78,7 @@ class _RefundTestScreenAdvancedState
             Icon(Icons.science, size: 80, color: context.colors.primaryColor),
             const SizedBox(height: 32),
             Text(
-              'Teste de Refund com\nTransações Reais',
+              t.refund_test_advanced_heading,
               style: context.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -84,8 +86,7 @@ class _RefundTestScreenAdvancedState
             ),
             const SizedBox(height: 16),
             Text(
-              'Simule transações Peg In refundable baseadas em\n'
-              'dados reais para testar o fluxo completo de reembolso.',
+              t.refund_test_advanced_description,
               style: context.textTheme.bodyLarge?.copyWith(
                 color: context.colors.textSecondary,
               ),
@@ -101,8 +102,11 @@ class _RefundTestScreenAdvancedState
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.add_circle_outline, size: 24),
                   label: Text(
-                    'Carregar Transações Mock',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    t.refund_test_load_mock_button,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.primaryColor,
@@ -119,8 +123,10 @@ class _RefundTestScreenAdvancedState
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          '${ref.read(transactionMockProvider).length} transações mockadas carregadas',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          t.refund_test_loaded_snack(
+                            ref.read(transactionMockProvider).length,
+                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         backgroundColor: Colors.green,
                         duration: const Duration(seconds: 3),
@@ -155,7 +161,9 @@ class _RefundTestScreenAdvancedState
                         ),
                         SizedBox(width: 12),
                         Text(
-                          'Transações Mockadas (${mockTransactions.length})',
+                          t.refund_test_mock_list_title(
+                            mockTransactions.length,
+                          ),
                           style: context.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -180,9 +188,12 @@ class _RefundTestScreenAdvancedState
                 height: 56,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.account_balance_wallet, size: 24),
-                  label: const Text(
-                    'Testar Fluxo de Refund (Mock SDK)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    t.refund_test_flow_button,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
@@ -218,9 +229,12 @@ class _RefundTestScreenAdvancedState
               height: 56,
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.cloud, size: 24),
-                label: const Text(
-                  'Testar com SDK Real',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                label: Text(
+                  t.refund_test_button_real_sdk,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.green,
@@ -258,7 +272,7 @@ class _RefundTestScreenAdvancedState
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Sobre a Transação Real',
+                        t.refund_test_real_tx_title,
                         style: context.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -266,15 +280,13 @@ class _RefundTestScreenAdvancedState
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildInfoRow('🔹 Tipo: Peg In (BTC → LBTC)'),
-                  _buildInfoRow('🔹 TX ID: 5e2159e9b5fbf7023b2800...'),
-                  _buildInfoRow(
-                    '🔹 Valor enviado: 52574 sats (402 sats de taxa)',
-                  ),
-                  _buildInfoRow('🔹 Valor esperado: 52172 sats (LBTC)'),
-                  _buildInfoRow('🔹 Data: 04/02/2026 às 00:17:10'),
-                  _buildInfoRow('🔹 Lockup TX: 2622dd4f5a1c69f7cea5...'),
-                  _buildInfoRow('🔹 Endereço: bc1p62e2r4jnr3v985uqk...'),
+                  _buildInfoRow(t.refund_test_real_tx_type),
+                  _buildInfoRow(t.refund_test_real_tx_id),
+                  _buildInfoRow(t.refund_test_real_tx_sent),
+                  _buildInfoRow(t.refund_test_real_tx_expected),
+                  _buildInfoRow(t.refund_test_real_tx_date),
+                  _buildInfoRow(t.refund_test_real_tx_lockup),
+                  _buildInfoRow(t.refund_test_real_tx_address),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -295,7 +307,7 @@ class _RefundTestScreenAdvancedState
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Status: REFUNDABLE\nEsta transação falhou e os fundos podem ser reembolsados para o endereço Bitcoin original.',
+                            t.refund_test_real_tx_warning,
                             style: TextStyle(
                               fontSize: 12,
                               color: context.colors.textSecondary,
@@ -315,6 +327,7 @@ class _RefundTestScreenAdvancedState
   }
 
   Widget _buildTransactionCard(Transaction tx, int index) {
+    final t = AppLocalizations.of(context);
     final isRefundable = tx.status == TransactionStatus.refundable;
 
     return Container(
@@ -345,7 +358,9 @@ class _RefundTestScreenAdvancedState
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  isRefundable ? 'REFUNDABLE' : 'CONFIRMED',
+                  isRefundable
+                      ? t.refund_test_badge_refundable
+                      : t.refund_test_badge_confirmed,
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -372,13 +387,15 @@ class _RefundTestScreenAdvancedState
           ),
           SizedBox(height: 8),
           Text(
-            'Valor: ${tx.amount} sats',
+            t.refund_test_card_amount(tx.amount.toString()),
             style: context.textTheme.bodySmall?.copyWith(
               color: context.colors.textSecondary,
             ),
           ),
           Text(
-            'ID: ${tx.id.length > 20 ? '${tx.id.substring(0, 20)}...' : tx.id}',
+            t.refund_test_card_id(
+              tx.id.length > 20 ? '${tx.id.substring(0, 20)}...' : tx.id,
+            ),
             style: context.textTheme.labelSmall?.copyWith(
               color: context.colors.textSecondary,
               fontFamily: 'monospace',
@@ -386,7 +403,11 @@ class _RefundTestScreenAdvancedState
           ),
           if (tx.destination != null)
             Text(
-              'Para: ${tx.destination!.length > 25 ? '${tx.destination!.substring(0, 25)}...' : tx.destination!}',
+              t.refund_test_card_to(
+                tx.destination!.length > 25
+                    ? '${tx.destination!.substring(0, 25)}...'
+                    : tx.destination!,
+              ),
               style: context.textTheme.labelSmall?.copyWith(
                 color: context.colors.textSecondary,
                 fontFamily: 'monospace',

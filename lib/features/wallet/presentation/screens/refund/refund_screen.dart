@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_confirmation_screen.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -43,13 +44,14 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalhes do Reembolso'),
+        title: Text(t.refund_details_title),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          tooltip: 'Voltar',
+          tooltip: t.common_back,
         ),
       ),
       body: PlatformSafeArea(
@@ -106,7 +108,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                               SizedBox(width: 16),
                               Expanded(
                                 child: Text(
-                                  'Não se preocupe, o reembolso em Bitcoin será enviado automaticamente para o endereço da sua wallet.',
+                                  t.refund_auto_send_info,
                                   style: context.textTheme.bodyMedium?.copyWith(
                                     height: 1.4,
                                   ),
@@ -134,7 +136,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Informações do Reembolso',
+                                t.refund_info_title,
                                 style: context.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -144,7 +146,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                               // Amount
                               _buildDetailRow(
                                 icon: Icons.currency_bitcoin,
-                                label: 'Valor',
+                                label: t.refund_label_amount,
                                 value: _formatAmount(
                                   widget.swapInfo.amountSat.toInt(),
                                 ),
@@ -156,7 +158,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                               // Transaction
                               _buildDetailRow(
                                 icon: Icons.link,
-                                label: 'Transação',
+                                label: t.refund_label_transaction,
                                 value: _shortenAddress(
                                   widget.swapInfo.swapAddress,
                                 ),
@@ -170,7 +172,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
 
                         // Bitcoin Address Input
                         Text(
-                          'Endereço Bitcoin',
+                          t.refund_address_label,
                           style: context.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -181,7 +183,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                           style: context.textTheme.bodyMedium,
                           // readOnly: true,
                           decoration: InputDecoration(
-                            hintText: 'Insira o endereço Bitcoin',
+                            hintText: t.refund_address_hint,
                             hintStyle: TextStyle(
                               color: context.colors.textSecondary,
                             ),
@@ -229,7 +231,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                           maxLines: 2,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Por favor, insira um endereço Bitcoin';
+                              return t.refund_address_required;
                             }
 
                             final address = value.trim();
@@ -251,7 +253,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
                                 testnetPattern.hasMatch(address);
 
                             if (!isValid) {
-                              return 'Endereço Bitcoin inválido';
+                              return t.refund_address_invalid;
                             }
 
                             return null;
@@ -264,7 +266,7 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
               ),
               const SizedBox(height: 16),
               PrimaryButton(
-                text: 'Próximo',
+                text: t.common_next,
                 onPressed: _prepareRefund,
                 isLoading: _isLoading,
               ),
@@ -377,7 +379,9 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro: $error'),
+            content: Text(
+              AppLocalizations.of(context).error_generic(error.toString()),
+            ),
             backgroundColor: context.colorScheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

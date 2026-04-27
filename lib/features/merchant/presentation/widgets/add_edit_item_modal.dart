@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
@@ -32,65 +33,66 @@ class AddEditItemModal {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder:
-          (context) => PlatformSafeArea(
+      builder: (context) {
+        final t = AppLocalizations.of(context);
+        return PlatformSafeArea(
+          child: Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: Container(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Adicionar Produto',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          t.merchant_add_product_title,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
                           ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(
-                              Icons.close,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                              size: 24,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
-                            ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            size: 24,
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 32),
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 32),
 
-                      Text(
-                        'Nome do produto',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    Text(
+                      t.merchant_product_name_label,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
                       ),
-                      SizedBox(height: 8),
-                      TextField(
-                        controller: nomeController,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Digite o nome do produto',
+                    ),
+                    SizedBox(height: 8),
+                    TextField(
+                      controller: nomeController,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: t.merchant_product_name_hint,
                           hintStyle: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
@@ -116,7 +118,7 @@ class AddEditItemModal {
                       SizedBox(height: 24),
 
                       Text(
-                        'Preço',
+                        t.merchant_price_label,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
@@ -169,47 +171,48 @@ class AddEditItemModal {
                       ),
                       SizedBox(height: 32),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SecondaryButton(
-                              text: 'Cancelar',
-                              onPressed: () => Navigator.pop(context),
-                            ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SecondaryButton(
+                            text: t.common_cancel,
+                            onPressed: () => Navigator.pop(context),
                           ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            key: adicionarButtonKey,
-                            child: PrimaryButton(
-                              text: 'Adicionar',
-                              onPressed: () {
-                                if (nomeController.text.trim().isNotEmpty &&
-                                    precoController.text.trim().isNotEmpty) {
-                                  final preco = FiatInputFormatter.parseValue(
-                                    precoController.text,
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          key: adicionarButtonKey,
+                          child: PrimaryButton(
+                            text: t.merchant_add_action,
+                            onPressed: () {
+                              if (nomeController.text.trim().isNotEmpty &&
+                                  precoController.text.trim().isNotEmpty) {
+                                final preco = FiatInputFormatter.parseValue(
+                                  precoController.text,
+                                );
+                                if (preco > 0) {
+                                  final novoProduct = ProductEntity(
+                                    name: nomeController.text.trim(),
+                                    price: preco,
+                                    createdAt: DateTime.now(),
                                   );
-                                  if (preco > 0) {
-                                    final novoProduct = ProductEntity(
-                                      name: nomeController.text.trim(),
-                                      price: preco,
-                                      createdAt: DateTime.now(),
-                                    );
-                                    onAdicionarItem(novoProduct);
-                                    Navigator.pop(context);
-                                  }
+                                  onAdicionarItem(novoProduct);
+                                  Navigator.pop(context);
                                 }
-                              },
-                            ),
+                              }
+                            },
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 24),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 24),
+                  ],
                 ),
               ),
             ),
           ),
+        );
+      },
     );
   }
 
@@ -229,28 +232,29 @@ class AddEditItemModal {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder:
-          (context) => PlatformSafeArea(
+      builder: (context) {
+        final t = AppLocalizations.of(context);
+        return PlatformSafeArea(
+          child: Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: Container(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Editar Produto',
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          t.merchant_edit_product_title,
                             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
@@ -274,7 +278,7 @@ class AddEditItemModal {
                       SizedBox(height: 32),
 
                       Text(
-                        'Nome do produto',
+                        t.merchant_product_name_label,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
@@ -287,7 +291,7 @@ class AddEditItemModal {
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Digite o nome do produto',
+                          hintText: t.merchant_product_name_hint,
                           hintStyle: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
@@ -313,7 +317,7 @@ class AddEditItemModal {
                       SizedBox(height: 24),
 
                       Text(
-                        'Preço',
+                        t.merchant_price_label,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
@@ -383,7 +387,7 @@ class AddEditItemModal {
                                   ),
                                 ),
                                 child: Text(
-                                  'Cancelar',
+                                  t.common_cancel,
                                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: Theme.of(context).colorScheme.onSurface,
                                     fontWeight: FontWeight.w500,
@@ -434,7 +438,7 @@ class AddEditItemModal {
                                   ),
                                 ),
                                 child: Text(
-                                  'Salvar',
+                                  t.common_save,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -452,7 +456,8 @@ class AddEditItemModal {
                 ),
               ),
             ),
-          ),
+          );
+      },
     );
   }
 }

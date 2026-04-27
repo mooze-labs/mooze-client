@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../providers/terms_acceptance_provider.dart';
 
@@ -9,6 +10,7 @@ class ImportWalletWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final hasAcceptedTerms = ref.watch(termsAcceptanceProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textStyle = Theme.of(context).textTheme.bodyMedium!;
@@ -20,7 +22,7 @@ class ImportWalletWidget extends ConsumerWidget {
       onPressed:
           hasAcceptedTerms ? () => context.push("/setup/import-wallet") : null,
       child: Text(
-        'Importar carteira',
+        t.first_access_import_wallet,
         style: textStyle.copyWith(
           color:
               hasAcceptedTerms

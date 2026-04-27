@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
@@ -19,6 +20,7 @@ class ReviewButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final validation = ref.watch(sendValidationControllerProvider);
     final isDrainTransaction = ref.watch(isDrainTransactionProvider);
     final preparationState = ref.watch(
@@ -70,10 +72,10 @@ class ReviewButton extends ConsumerWidget {
           PrimaryButton(
             text:
                 preparationState.isLoading
-                    ? "Preparando..."
+                    ? t.wallet_send_review_preparing
                     : (isDrainTransaction
-                        ? "Revisar Envio Total"
-                        : "Revisar Transação"),
+                        ? t.wallet_send_review_drain
+                        : t.wallet_send_review_transaction),
             onPressed:
                 (validation.canProceed && !preparationState.isLoading)
                     ? () => _prepareTransaction(context, ref)
@@ -87,6 +89,7 @@ class ReviewButton extends ConsumerWidget {
   }
 
   Future<void> _prepareTransaction(BuildContext context, WidgetRef ref) async {
+    final t = AppLocalizations.of(context);
     final asset = ref.read(selectedAssetProvider);
     final blockchain = ref.read(selectedNetworkProvider);
 
@@ -115,7 +118,7 @@ class ReviewButton extends ConsumerWidget {
 
         psbtResult.fold(
           (error) async {
-            final errorMessage = await _parseError(error, ref);
+            final errorMessage = await _parseError(error, ref, t);
             preparationController.setError(errorMessage);
           },
           (psbt) {
@@ -127,7 +130,7 @@ class ReviewButton extends ConsumerWidget {
           },
         );
       } catch (e) {
-        final errorMessage = await _parseError(e.toString(), ref);
+        final errorMessage = await _parseError(e.toString(), ref, t);
         preparationController.setError(errorMessage);
       }
       return;
@@ -164,7 +167,7 @@ class ReviewButton extends ConsumerWidget {
             preparationController,
           );
           if (!isLbtcError) {
-            final errorMessage = await _parseError(error, ref);
+            final errorMessage = await _parseError(error, ref, t);
             preparationController.setError(errorMessage);
           }
         },
@@ -181,7 +184,7 @@ class ReviewButton extends ConsumerWidget {
         preparationController,
       );
       if (!isLbtcError) {
-        final errorMessage = await _parseError(e.toString(), ref);
+        final errorMessage = await _parseError(e.toString(), ref, t);
         preparationController.setError(errorMessage);
       }
     }
@@ -247,7 +250,11 @@ class ReviewButton extends ConsumerWidget {
         errorLower.contains('cannot pay');
   }
 
-  Future<String> _parseError(String error, WidgetRef ref) async {
+  Future<String> _parseError(
+    String error,
+    WidgetRef ref,
+    AppLocalizations t,
+  ) async {
     if (_isInsufficientFundsError(error)) {
       final asset = ref.read(selectedAssetProvider);
       final blockchain = ref.read(selectedNetworkProvider);
@@ -266,19 +273,14 @@ class ReviewButton extends ConsumerWidget {
 
           if (!hasLbtcBalance) {
             final assetName = asset == Asset.depix ? 'DePIX' : 'USDT';
-            return 'Saldo de Bitcoin L2 insuficiente para taxas.\n\n'
-                'Para enviar $assetName, você precisa de Bitcoin L2 para pagar '
-                'os mineradores da rede. Use a função SWAP ou receba Bitcoin '
-                'via Lightning ou Liquid.';
+            return t.wallet_send_review_lbtc_insufficient_error(assetName);
           }
         } catch (_) {}
       }
 
-      return 'Saldo insuficiente para realizar o envio.\n\n'
-          'Verifique se você tem saldo suficiente no ativo selecionado e '
-          'Bitcoin L2 para pagar as taxas da rede.';
+      return t.wallet_send_review_insufficient_error;
     }
 
-    return 'Não foi possível preparar a transação. Tente novamente.';
+    return t.wallet_send_review_prepare_error;
   }
 }

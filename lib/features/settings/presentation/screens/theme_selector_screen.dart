@@ -1,37 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class ThemeSelectorScreen extends ConsumerWidget {
   const ThemeSelectorScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final currentMode = ref.watch(themeModeProvider);
 
     final options = [
       _ThemeOption(
         mode: ThemeMode.system,
-        label: 'Sistema',
-        icon: Icons.brightness_auto_rounded,
+        label: t.theme_system,
+        iconAsset: 'assets/icons/menu/settings/theme.svg',
       ),
       _ThemeOption(
         mode: ThemeMode.light,
-        label: 'Claro',
-        icon: Icons.light_mode_rounded,
+        label: t.theme_light,
+        iconAsset: 'assets/icons/menu/settings/sun.svg',
       ),
       _ThemeOption(
         mode: ThemeMode.dark,
-        label: 'Escuro',
-        icon: Icons.dark_mode_rounded,
+        label: t.theme_dark,
+        iconAsset: 'assets/icons/menu/settings/moon.svg',
       ),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tema'),
+        title: Text(t.settings_theme),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -46,7 +49,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
                 child: Text(
-                  'APARÊNCIA',
+                  t.settings_section_appearance,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -114,13 +117,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      option.icon,
-                      size: 20,
-                      color:
-                          isSelected
-                              ? colorScheme.primary
-                              : colorScheme.onSurface,
+                    SvgPicture.asset(
+                      option.iconAsset,
+                      width: 20,
+                      height: 20,
                     ),
                     const SizedBox(width: 20),
                     Text(
@@ -152,11 +152,11 @@ class ThemeSelectorScreen extends ConsumerWidget {
 class _ThemeOption {
   final ThemeMode mode;
   final String label;
-  final IconData icon;
+  final String iconAsset;
 
   const _ThemeOption({
     required this.mode,
     required this.label,
-    required this.icon,
+    required this.iconAsset,
   });
 }

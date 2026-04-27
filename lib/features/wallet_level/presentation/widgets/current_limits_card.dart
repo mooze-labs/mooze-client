@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
@@ -27,6 +28,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildLimitsCard(UserLevelsData data) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -36,9 +38,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.05),
@@ -69,14 +69,14 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Seus Limites Atuais',
+                    t.wallet_levels_current_limits_title,
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
-                    'Nível: ${data.currentLevelName}',
+                    t.wallet_levels_current_level(data.currentLevelName),
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -91,7 +91,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               children: [
                 Expanded(
                   child: _buildLimitInfo(
-                    'Por transação',
+                    t.wallet_levels_limit_per_transaction,
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                     Icons.trending_up,
                     colorScheme.primary,
@@ -100,7 +100,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
-                    'Limite diário',
+                    t.wallet_levels_limit_daily,
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                     Icons.flag,
                     colorScheme.secondary,
@@ -109,7 +109,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
-                    'Mínimo',
+                    t.wallet_levels_limit_minimum,
                     'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                     Icons.low_priority,
                     colorScheme.tertiary,
@@ -127,15 +127,15 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 16,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.info_outline, size: 16, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Continue usando para desbloquear o próximo nível${data.nextLevelName != null ? ' ${data.nextLevelName}' : ''}!',
+                    data.nextLevelName != null
+                        ? t.wallet_levels_next_level_hint_named(
+                          data.nextLevelName!,
+                        )
+                        : t.wallet_levels_next_level_hint,
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -150,6 +150,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildErrorCard() {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -191,7 +192,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Erro ao carregar limites',
+                      t.wallet_levels_load_limits_error_title,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
@@ -199,7 +200,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tente novamente mais tarde ou contate o suporte.',
+                      t.wallet_levels_load_limits_error_body,
                       style: textTheme.titleSmall?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
@@ -213,7 +214,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
           Align(
             alignment: Alignment.centerRight,
             child: SecondaryButton(
-              text: 'Tentar novamente',
+              text: t.common_retry,
               isLoading: _isRetrying,
               onPressed: () async {
                 setState(() => _isRetrying = true);
@@ -280,9 +281,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

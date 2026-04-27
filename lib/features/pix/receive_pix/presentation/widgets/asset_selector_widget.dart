@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
@@ -31,6 +32,7 @@ class AssetSelectorWidget extends ConsumerWidget {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        final t = AppLocalizations.of(context);
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -56,14 +58,14 @@ class AssetSelectorWidget extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Câmbio Flutuante',
+                  t.pix_floating_rate_title,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Importante: o LBTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.',
+                  t.pix_floating_rate_body,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: context.appColors.textSecondary,
@@ -72,7 +74,7 @@ class AssetSelectorWidget extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  text: 'Entendi',
+                  text: t.common_understood,
                   onPressed: () {
                     Navigator.of(context).pop(false);
                   },
@@ -81,7 +83,7 @@ class AssetSelectorWidget extends ConsumerWidget {
                   onPressed: () {
                     Navigator.of(context).pop(true);
                   },
-                  child: Text('Não exibir novamente'),
+                  child: Text(t.pix_dont_show_again),
                 ),
               ],
             ),
@@ -93,9 +95,10 @@ class AssetSelectorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final selectedAsset = ref.watch(selectedAssetProvider);
     return FloatingLabelDropdown<Asset>(
-      label: "Selecione um ativo",
+      label: t.pix_select_asset,
       value: selectedAsset,
       items: _possibleAssets,
       onChanged: (asset) async {

@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposi
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class PixDepositDetailScreen extends StatefulWidget {
   final PixDeposit deposit;
@@ -61,13 +62,14 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PlatformSafeArea(
       child: Scaffold(
         backgroundColor: context.colors.backgroundColor,
         appBar: AppBar(
           elevation: 0,
           title: Text(
-            'Detalhes do Depósito PIX',
+            t.pix_deposit_title,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -82,19 +84,19 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDepositHeader(),
+              _buildDepositHeader(t),
               const SizedBox(height: 20),
               if (_isPending) ...[
-                _buildCountdownCard(),
+                _buildCountdownCard(t),
                 const SizedBox(height: 20),
               ],
-              _buildDetailsCard(context),
+              _buildDetailsCard(context, t),
               const SizedBox(height: 20),
               if (widget.deposit.blockchainTxid != null)
                 _buildActionButton(
                   context: context,
-                  label: 'Ver no Explorer',
-                  subtitle: 'Visualizar na blockchain',
+                  label: t.pix_deposit_view_explorer,
+                  subtitle: t.pix_deposit_view_chain,
                   icon: Icons.open_in_new,
                   onPressed: _openInExplorer,
                 ),
@@ -105,7 +107,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     );
   }
 
-  Widget _buildDepositHeader() {
+  Widget _buildDepositHeader(AppLocalizations t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -133,7 +135,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Depósito PIX',
+            t.pix_deposit_label,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: Theme.of(
                 context,
@@ -177,7 +179,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
           Icon(_getStatusIcon(), size: 16, color: statusColor),
           const SizedBox(width: 6),
           Text(
-            widget.deposit.status.label,
+            widget.deposit.status.localizedLabel(context),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: statusColor,
               fontWeight: FontWeight.w700,
@@ -189,7 +191,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     );
   }
 
-  Widget _buildCountdownCard() {
+  Widget _buildCountdownCard(AppLocalizations t) {
     final isExpired = _remaining == Duration.zero;
     final isUrgent = _remaining.inMinutes < 5;
     final color =
@@ -231,7 +233,9 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isExpired ? 'Prazo expirado' : 'Tempo restante para pagar',
+                  isExpired
+                      ? t.pix_deposit_expired
+                      : t.pix_deposit_time_remaining,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(
                       context,
@@ -242,7 +246,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isExpired ? 'Este PIX não é mais válido' : '$mm:$ss',
+                  isExpired ? t.pix_deposit_invalid : '$mm:$ss',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: color,
                     fontWeight: FontWeight.w700,
@@ -278,7 +282,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     }
   }
 
-  Widget _buildDetailsCard(BuildContext context) {
+  Widget _buildDetailsCard(BuildContext context, AppLocalizations t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -290,7 +294,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informações',
+            t.pix_deposit_info,
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontSize: 18,
@@ -300,22 +304,22 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
           const SizedBox(height: 16),
           _buildInfoRow(
             icon: Icons.access_time,
-            label: 'Data',
+            label: t.pix_deposit_date,
             value: _formatDateTime(widget.deposit.createdAt),
           ),
           _buildInfoRow(
             icon: Icons.monetization_on,
-            label: 'Ativo de destino',
+            label: t.pix_deposit_target_asset,
             value: widget.deposit.asset.name,
           ),
           _buildInfoRow(
             icon: Icons.account_balance_wallet,
-            label: 'Valor',
+            label: t.pix_deposit_value,
             value: amountStr,
           ),
           _buildInfoRow(
             icon: Icons.key,
-            label: 'Chave PIX',
+            label: t.pix_deposit_pix_key,
             value: truncateHashId(widget.deposit.pixKey),
             copyable: true,
             copyFieldId: 'pixKey',
@@ -323,7 +327,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
           ),
           _buildInfoRow(
             icon: Icons.tag,
-            label: 'ID do Depósito',
+            label: t.pix_deposit_id,
             value: truncateHashId(widget.deposit.depositId),
             copyable: true,
             copyFieldId: 'depositId',
@@ -333,14 +337,14 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
               widget.deposit.status == DepositStatus.finished)
             _buildInfoRow(
               icon: Icons.arrow_downward,
-              label: 'Valor recebido',
+              label: t.pix_deposit_received_value,
               value:
                   widget.deposit.asset.formatAsSatoshis(widget.deposit.assetAmount!),
             ),
           if (widget.deposit.blockchainTxid != null)
             _buildInfoRow(
               icon: Icons.link,
-              label: 'TX ID',
+              label: t.pix_deposit_tx_id,
               value: truncateHashId(widget.deposit.blockchainTxid!),
               copyable: true,
               copyFieldId: 'txId',
@@ -600,8 +604,8 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Não foi possível abrir o navegador.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).error_open_browser),
             backgroundColor: Colors.orange,
           ),
         );

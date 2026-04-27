@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/current_limits_card.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/user_level_card.dart';
@@ -77,7 +78,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('Níveis da Carteira'),
+      title: Text(AppLocalizations.of(context).wallet_levels_title),
       leading: IconButton(
         onPressed: () {
           context.go('/menu');
@@ -166,7 +167,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'API Indisponível',
+                                          AppLocalizations.of(context)
+                                              .wallet_levels_api_down_title,
                                           style: textTheme.titleSmall?.copyWith(
                                             color: extraColors?.onWarning,
                                             fontWeight: FontWeight.w600,
@@ -174,7 +176,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Os dados podem estar desatualizados. Algumas funcionalidades estão temporariamente indisponíveis.',
+                                          AppLocalizations.of(context)
+                                              .wallet_levels_api_down_body,
                                           style: textTheme.bodySmall?.copyWith(
                                             color: colorScheme.onSurfaceVariant,
                                           ),
@@ -239,6 +242,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildError(Object error, ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
 
     return Center(
@@ -261,7 +265,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Erro ao carregar níveis da carteira',
+              t.wallet_levels_load_error_title,
               textAlign: TextAlign.center,
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -270,7 +274,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Verifique sua conexão com a internet e tente novamente',
+              t.wallet_levels_load_error_body,
               textAlign: TextAlign.center,
               style: textTheme.titleSmall?.copyWith(
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -278,7 +282,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             ),
             const SizedBox(height: 32),
             SecondaryButton(
-              text: 'Tentar Novamente',
+              text: t.common_retry,
               isLoading: _isRetrying,
               onPressed: () async {
                 setState(() {
@@ -416,6 +420,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildErrorUserLevelCard({required ColorScheme colorScheme}) {
+    final t = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
@@ -455,7 +460,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Erro ao carregar nível',
+                      t.level_load_error,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
@@ -463,7 +468,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tente novamente mais tarde.',
+                      t.level_load_retry,
                       style: textTheme.titleSmall?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
@@ -475,7 +480,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
           ),
           const SizedBox(height: 16),
           SecondaryButton(
-            text: 'Tentar novamente',
+            text: t.common_retry,
             height: 45,
             isLoading: _isRetryingUserLevel,
             onPressed: () async {

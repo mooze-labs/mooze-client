@@ -14,6 +14,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loadi
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
@@ -196,13 +197,12 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     if (_overlayEntry != null) return;
 
     _overlayEntry = OverlayEntry(
-      builder:
-          (context) => LoadingOverlayWidget(
-            circleController: _circleController,
-            circleAnimation: _circleAnimation,
-            loadingText: 'Gerando QR Code...',
-            showLoadingText: true,
-          ),
+      builder: (context) => LoadingOverlayWidget(
+        circleController: _circleController,
+        circleAnimation: _circleAnimation,
+        loadingText: AppLocalizations.of(context).pix_generating_qr,
+        showLoadingText: true,
+      ),
     );
 
     Overlay.of(context).insert(_overlayEntry!);
@@ -215,6 +215,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -273,7 +274,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                       ignoring: !validation.isValid,
                                       child: SlideToConfirmButton(
                                         onSlideComplete: _onSlideComplete,
-                                        text: 'Gerar QR Code',
+                                        text: t.merchant_generate_qr,
                                         isLoading: _isLoading,
                                         isEnabled: validation.isValid,
                                       ),
@@ -299,8 +300,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               ref.invalidate(pixDepositControllerProvider);
               ref.invalidate(depositAmountProvider);
             },
-            customMessage:
-                'Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.',
+            customMessage: t.pix_processing_unavailable,
           ),
         ],
       ),
@@ -308,6 +308,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildHeader() {
+    final t = AppLocalizations.of(context);
     final validation = ref.watch(
       merchantValidationProvider(widget.totalAmount),
     );
@@ -328,7 +329,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 ),
               ),
               Text(
-                'Receber',
+                t.merchant_charge_receive_title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
@@ -345,11 +346,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               fontWeight: FontWeight.bold,
             ),
           ),
-          if (!validation.isValid && validation.message != null)
+          if (!validation.isValid && validation.localizedMessage(t) != null)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
-                validation.message!,
+                validation.localizedMessage(t)!,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: context.appColors.editColor,
                   fontWeight: FontWeight.w500,
@@ -363,11 +364,12 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildInstructionText() {
+    final t = AppLocalizations.of(context);
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          text: 'Escolha o ativo que deseja receber na ',
+          text: t.merchant_charge_instruction_prefix,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: Theme.of(
               context,
@@ -390,6 +392,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildLimitsInfo() {
+    final t = AppLocalizations.of(context);
     return Consumer(
       builder: (context, ref, child) {
         final levelsData = ref.watch(levelsProvider);
@@ -399,17 +402,17 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               (data) => Column(
                 children: [
                   _buildLimitRow(
-                    'Limite diário',
+                    t.merchant_limit_daily,
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 8),
                   _buildLimitRow(
-                    'Por transação',
+                    t.merchant_limit_per_transaction,
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 8),
                   _buildLimitRow(
-                    'Valor mínimo',
+                    t.merchant_limit_min,
                     'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                   ),
                 ],
@@ -417,18 +420,21 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           loading:
               () => Column(
                 children: [
-                  _buildLimitRow('Limite diário', 'Carregando...'),
+                  _buildLimitRow(t.merchant_limit_daily, t.common_loading),
                   SizedBox(height: 8),
-                  _buildLimitRow('Por transação', 'Carregando...'),
+                  _buildLimitRow(
+                    t.merchant_limit_per_transaction,
+                    t.common_loading,
+                  ),
                   SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', 'Carregando...'),
+                  _buildLimitRow(t.merchant_limit_min, t.common_loading),
                 ],
               ),
           error:
               (error, stack) => Column(
                 children: [
                   _buildLimitRow(
-                    'Limite diário',
+                    t.merchant_limit_daily,
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 12),
@@ -455,7 +461,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Erro ao carregar limites',
+                                t.merchant_limits_load_error,
                                 style: Theme.of(
                                   context,
                                 ).textTheme.labelMedium?.copyWith(
@@ -487,7 +493,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                     ),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Tentar novamente',
+                                      t.common_retry,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.labelSmall?.copyWith(
@@ -550,7 +556,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Itens',
+          AppLocalizations.of(context).merchant_items_section,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
             fontSize: 18,
@@ -592,7 +598,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             ),
           ),
           Text(
-            'x${item.quantity}',
+            AppLocalizations.of(context).merchant_qty_prefix(item.quantity),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w600,

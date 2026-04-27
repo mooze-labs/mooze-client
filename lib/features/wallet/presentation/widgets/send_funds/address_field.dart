@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../providers/send_funds/address_provider.dart';
@@ -69,16 +70,18 @@ class _AddressFieldState extends ConsumerState<AddressField> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final controller = ref.watch(addressControllerProvider);
     final validationState = ref.watch(sendValidationControllerProvider);
 
-    final addressError = validationState.errors.firstWhere(
-      (error) =>
-          error.contains('endereço') ||
-          error.contains('Endereço') ||
-          error.contains('destino'),
-      orElse: () => '',
-    );
+    SendValidationError? addressError;
+    for (final error in validationState.errors) {
+      if (error.category == SendValidationErrorCategory.address ||
+          error.category == SendValidationErrorCategory.network) {
+        addressError = error;
+        break;
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +89,7 @@ class _AddressFieldState extends ConsumerState<AddressField> {
         Row(
           children: [
             Text(
-              'Endereço de destino',
+              t.wallet_send_address_label,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -98,7 +101,7 @@ class _AddressFieldState extends ConsumerState<AddressField> {
           controller: controller,
           style: Theme.of(context).textTheme.bodyMedium,
           decoration: InputDecoration(
-            hintText: 'Digite ou cole o endereço',
+            hintText: t.wallet_send_address_hint,
             hintStyle: TextStyle(
               color: Theme.of(
                 context,
@@ -110,7 +113,7 @@ class _AddressFieldState extends ConsumerState<AddressField> {
                 Icons.qr_code_scanner,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              tooltip: 'Escanear QR Code',
+              tooltip: t.wallet_send_address_scan_qr,
             ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
@@ -139,7 +142,7 @@ class _AddressFieldState extends ConsumerState<AddressField> {
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
             contentPadding: const EdgeInsets.all(16),
-            errorText: addressError.isEmpty ? null : addressError,
+            errorText: addressError?.localize(context),
           ),
           maxLines: 3,
           minLines: 1,

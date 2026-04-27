@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/themes/app_text_styles.dart';
@@ -53,26 +54,26 @@ class _HumanVerificationPaymentScreenState
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder:
-                    (dialogContext) => AlertDialog(
-                      title: const Text('Tempo Esgotado'),
-                      content: const Text(
-                        'O tempo para realizar o pagamento expirou. Por favor, tente novamente.',
+                builder: (dialogContext) {
+                  final t = AppLocalizations.of(dialogContext);
+                  return AlertDialog(
+                    title: Text(t.human_verif_time_expired_title),
+                    content: Text(t.human_verif_time_expired_body),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/human-verification');
+                          }
+                        },
+                        child: Text(t.common_ok),
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            if (context.canPop()) {
-                              context.pop();
-                            } else {
-                              context.go('/human-verification');
-                            }
-                          },
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
+                    ],
+                  );
+                },
               );
             }
           });
@@ -91,10 +92,11 @@ class _HumanVerificationPaymentScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PlatformSafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Pagamento de Verificação'),
+          title: Text(t.human_verif_payment_title),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => context.pop(),
@@ -115,16 +117,16 @@ class _HumanVerificationPaymentScreenState
                         text: TextSpan(
                           style: AppTextStyles.subtitle,
                           children: [
-                            const TextSpan(text: 'Você tem '),
+                            TextSpan(text: t.human_verif_time_remaining_prefix),
                             TextSpan(
                               text:
-                                  "${_remainingTime.inMinutes} minutos e ${_remainingTime.inSeconds % 60} segundos ",
+                                  "${_remainingTime.inMinutes} ${t.human_verif_minutes_and}${_remainingTime.inSeconds % 60} ${t.human_verif_seconds}",
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const TextSpan(text: 'para concluir o pagamento.'),
+                            TextSpan(text: t.human_verif_to_pay),
                           ],
                         ),
                       ),
@@ -210,7 +212,7 @@ class _HumanVerificationPaymentScreenState
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Chave PIX',
+                                      t.human_verif_pix_key,
                                       style: TextStyle(
                                         color: Colors.white70,
                                         fontSize: 12,
@@ -324,7 +326,7 @@ class _HumanVerificationPaymentScreenState
                                   SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      'Após o pagamento, você receberá um código na mensagem do PIX de retorno.',
+                                      t.human_verif_after_payment,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall?.copyWith(
@@ -340,7 +342,7 @@ class _HumanVerificationPaymentScreenState
                       ),
                       const SizedBox(height: 20),
                       PrimaryButton(
-                        text: 'Já fiz o pagamento',
+                        text: t.human_verif_already_paid,
                         onPressed: () {
                           context.push('/human-verification/code');
                         },

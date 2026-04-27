@@ -181,6 +181,23 @@ class ComponentThemes {
     iconColor: extraColors.textSecondary,
   );
 
+  // ── Switch ────────────────────────────────────────────────────────────────
+
+  static SwitchThemeData switchTheme(ColorScheme colorScheme) => SwitchThemeData(
+    thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+      if (states.contains(WidgetState.selected)) return colorScheme.onPrimary;
+      return colorScheme.onSurfaceVariant;
+    }),
+    trackColor: WidgetStateProperty.resolveWith<Color>((states) {
+      if (states.contains(WidgetState.selected)) return colorScheme.primary;
+      return colorScheme.surfaceContainerHighest;
+    }),
+    trackOutlineColor: WidgetStateProperty.resolveWith<Color>((states) {
+      if (states.contains(WidgetState.selected)) return colorScheme.primary;
+      return colorScheme.outline;
+    }),
+  );
+
   // ── Checkbox ──────────────────────────────────────────────────────────────
 
   static CheckboxThemeData checkboxTheme(ColorScheme colorScheme) =>

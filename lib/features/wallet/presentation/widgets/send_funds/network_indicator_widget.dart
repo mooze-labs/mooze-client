@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
 
@@ -8,6 +9,7 @@ class NetworkIndicatorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final address = ref.watch(addressStateProvider);
 
     if (address.isEmpty) {
@@ -30,7 +32,7 @@ class NetworkIndicatorWidget extends ConsumerWidget {
             Icon(Icons.error_outline, size: 16, color: Colors.red),
             const SizedBox(width: 4),
             Text(
-              'Rede não identificada',
+              t.wallet_send_network_unidentified,
               style: TextStyle(
                 color: Colors.red,
                 fontSize: 12,
@@ -59,7 +61,7 @@ class NetworkIndicatorWidget extends ConsumerWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            _getNetworkLabel(networkType),
+            _getNetworkLabel(t, networkType),
             style: TextStyle(
               color: _getNetworkColor(networkType),
               fontSize: 12,
@@ -97,16 +99,16 @@ class NetworkIndicatorWidget extends ConsumerWidget {
     }
   }
 
-  String _getNetworkLabel(NetworkType type) {
+  String _getNetworkLabel(AppLocalizations t, NetworkType type) {
     switch (type) {
       case NetworkType.bitcoin:
-        return 'Bitcoin On-chain';
+        return t.wallet_send_network_bitcoin;
       case NetworkType.lightning:
-        return 'Lightning Network';
+        return t.wallet_send_network_lightning;
       case NetworkType.liquid:
-        return 'Liquid Network';
+        return t.wallet_send_network_liquid;
       case NetworkType.unknown:
-        return 'Rede desconhecida';
+        return t.wallet_send_network_unknown;
     }
   }
 }

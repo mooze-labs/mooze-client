@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
@@ -42,6 +43,8 @@ class _HumanVerificationCodeScreenState
       _isVerifying = true;
     });
 
+    final t = AppLocalizations.of(context);
+
     try {
       await Future.delayed(const Duration(seconds: 1));
 
@@ -51,7 +54,7 @@ class _HumanVerificationCodeScreenState
         context.pushReplacement('/human-verification/success');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Código inválido. Tente novamente.')),
+          SnackBar(content: Text(t.human_verif_code_invalid)),
         );
         _codeController.clear();
       }
@@ -59,7 +62,7 @@ class _HumanVerificationCodeScreenState
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
+        ).showSnackBar(SnackBar(content: Text(t.error_generic(e.toString()))));
         _codeController.clear();
       }
     } finally {
@@ -73,10 +76,11 @@ class _HumanVerificationCodeScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
-        title: const Text('Validar Código'),
+        title: Text(t.human_verif_code_title),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -112,9 +116,9 @@ class _HumanVerificationCodeScreenState
                 text: TextSpan(
                   style: Theme.of(context).textTheme.headlineSmall,
                   children: [
-                    TextSpan(text: 'Digite o '),
+                    TextSpan(text: t.human_verif_code_prompt_prefix),
                     TextSpan(
-                      text: 'código',
+                      text: t.human_verif_code_word,
                       style: TextStyle(color: context.colors.primaryColor),
                     ),
                   ],
@@ -124,7 +128,7 @@ class _HumanVerificationCodeScreenState
               const SizedBox(height: 16),
 
               Text(
-                'Insira o código de 6 dígitos que você recebeu na mensagem do PIX de retorno.',
+                t.human_verif_code_body,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge?.copyWith(color: context.colors.textSecondary),
@@ -172,7 +176,7 @@ class _HumanVerificationCodeScreenState
               const SizedBox(height: 50),
 
               PrimaryButton(
-                text: _isVerifying ? "Verificando..." : "Validar Código",
+                text: _isVerifying ? t.common_verifying : t.human_verif_code_title,
                 onPressed: _onContinuePressed,
                 isEnabled: _isCodeValid && !_isVerifying,
               ),
@@ -199,7 +203,7 @@ class _HumanVerificationCodeScreenState
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Verifique o campo de mensagem do PIX que você recebeu de volta.',
+                        t.human_verif_code_help,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.colors.textPrimary,
                         ),
@@ -221,7 +225,7 @@ class _HumanVerificationCodeScreenState
                   size: 20,
                 ),
                 label: Text(
-                  'Voltar para o pagamento',
+                  t.human_verif_back_to_payment,
                   style: TextStyle(color: context.colors.primaryColor, fontSize: 14),
                 ),
               ),

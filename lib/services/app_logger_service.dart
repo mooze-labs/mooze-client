@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:mutex/mutex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:archive/archive.dart';
@@ -82,6 +83,9 @@ class AppLoggerService {
   final List<LogEntry> _logs = [];
   final StreamController<LogEntry> _logStreamController =
       StreamController<LogEntry>.broadcast();
+
+  // Serializes all database writes to prevent SQLite "database is locked" errors
+  final Mutex _dbMutex = Mutex();
 
   AppDatabase? _database;
 
@@ -223,16 +227,18 @@ class AppLoggerService {
         return;
       }
 
-      _database!.insertLog(
-        AppLogsCompanion.insert(
-          timestamp: entry.timestamp,
-          level: entry.level.name,
-          tag: entry.tag,
-          message: entry.message,
-          error: Value(entry.error?.toString()),
-          stackTrace: Value(entry.stackTrace?.toString()),
-        ),
-      );
+      await _dbMutex.protect(() async {
+        await _database!.insertLog(
+          AppLogsCompanion.insert(
+            timestamp: entry.timestamp,
+            level: entry.level.name,
+            tag: entry.tag,
+            message: entry.message,
+            error: Value(entry.error?.toString()),
+            stackTrace: Value(entry.stackTrace?.toString()),
+          ),
+        );
+      });
     } catch (e, stackTrace) {
       debugPrint('Error saving log to database: $e');
       debugPrint('StackTrace: $stackTrace');
@@ -316,7 +322,9 @@ class AppLoggerService {
       if (_database == null) return 0;
 
       final cutoffDate = _config.cutoffDate;
-      final deletedCount = await _database!.deleteOldLogs(cutoffDate);
+      final deletedCount = await _dbMutex.protect(
+        () => _database!.deleteOldLogs(cutoffDate),
+      );
 
       if (deletedCount > 0) {
         info(
@@ -327,7 +335,7 @@ class AppLoggerService {
 
       return deletedCount;
     } catch (e) {
-      error('AppLogger', 'Error cleaning old logs', error: e);
+      debugPrint('Error cleaning old logs: $e');
       return 0;
     }
   }

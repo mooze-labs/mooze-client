@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
@@ -164,6 +165,7 @@ class _UserLevelCardState extends State<UserLevelCard>
   }
 
   Widget _buildHeader() {
+    final t = AppLocalizations.of(context);
     return Row(
       children: [
         Icon(
@@ -173,7 +175,7 @@ class _UserLevelCardState extends State<UserLevelCard>
         ),
         const SizedBox(width: 8),
         Text(
-          'Meus Níveis',
+          t.level_my_levels,
           style: TextStyle(
             fontSize: context.responsiveFont(18),
             fontWeight: FontWeight.bold,
@@ -191,7 +193,7 @@ class _UserLevelCardState extends State<UserLevelCard>
             ),
           ),
           child: Text(
-            'Nível ${widget.currentLevel + 1}',
+            t.level_label(widget.currentLevel + 1),
             style: TextStyle(
               fontSize: context.responsiveFont(12),
               fontWeight: FontWeight.w600,
@@ -366,6 +368,7 @@ class _UserLevelCardState extends State<UserLevelCard>
   }
 
   Widget _buildCurrentLevelInfo() {
+    final t = AppLocalizations.of(context);
     final currentLevelData = UserLevels.getLevelByOrder(widget.currentLevel);
     final nextLevelData = UserLevels.getNextLevel(widget.currentLevel);
 
@@ -377,7 +380,7 @@ class _UserLevelCardState extends State<UserLevelCard>
         Row(
           children: [
             Text(
-              'Nível atual: ',
+              t.level_current,
               style: TextStyle(
                 fontSize: context.responsiveFont(14),
                 color: context.colors.textSecondary,
@@ -423,14 +426,16 @@ class _UserLevelCardState extends State<UserLevelCard>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Progresso: ${(_progressAnimation.value * 100).toInt()}%',
+                        t.level_progress(
+                          (_progressAnimation.value * 100).toInt(),
+                        ),
                         style: TextStyle(
                           fontSize: context.responsiveFont(12),
                           color: context.colors.textSecondary,
                         ),
                       ),
                       Text(
-                        'Próximo: ${nextLevelData.name}',
+                        t.level_next(nextLevelData.name),
                         style: TextStyle(
                           fontSize: context.responsiveFont(12),
                           color: nextLevelData.color.withValues(alpha: 0.8),

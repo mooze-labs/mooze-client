@@ -1,23 +1,27 @@
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
 class OnboardingPageData {
   final String title;
   final String subtitle;
 
   const OnboardingPageData({required this.title, required this.subtitle});
-  static const List<OnboardingPageData> pages = [
+
+  /// Returns the localized list of onboarding pages.
+  ///
+  /// We avoid a top-level `const` list because the strings come from
+  /// `AppLocalizations`, which requires a `BuildContext` to resolve.
+  static List<OnboardingPageData> items(AppLocalizations t) => [
     OnboardingPageData(
-      title: 'Seu dinheiro, sob seu controle',
-      subtitle:
-          'Receba, envie e gerencie Bitcoin com privacidade real. Uma carteira feita pra quem valoriza liberdade.',
+      title: t.onboarding_1_title,
+      subtitle: t.onboarding_1_body,
     ),
     OnboardingPageData(
-      title: 'Segurança em primeiro lugar',
-      subtitle:
-          'Sua chave, sua responsabilidade. Proteja seu patrimônio com criptografia e backups locais.',
+      title: t.onboarding_2_title,
+      subtitle: t.onboarding_2_body,
     ),
     OnboardingPageData(
-      title: 'Pronto para começar?',
-      subtitle:
-          'Crie ou importe sua carteira em segundos e assuma o controle do seu Bitcoin.',
+      title: t.onboarding_3_title,
+      subtitle: t.onboarding_3_body,
     ),
   ];
 }

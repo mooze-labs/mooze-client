@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../settings/price_settings_repository.dart';
 import '../../../features/wallet/presentation/providers/cached_data_provider.dart';
 import '../../../features/wallet/presentation/providers/fiat_price_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'price_service_provider.dart';
 
 final currencyControllerProvider =
@@ -36,18 +38,19 @@ class CurrencyNotifier extends StateNotifier<Currency> {
     }
   }
 
-  List<CurrencyItem> get availableCurrencies {
+  List<CurrencyItem> availableCurrencies(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return [
-      const CurrencyItem(
+      CurrencyItem(
         icon: 'R\$',
         code: 'BRL',
-        name: 'Brasil (Brasil Real)',
+        name: t.currency_brl_name,
         currency: Currency.brl,
       ),
-      const CurrencyItem(
+      CurrencyItem(
         icon: '\$',
         code: 'USD',
-        name: 'Estados Unidos (US Dólar)',
+        name: t.currency_usd_name,
         currency: Currency.usd,
       ),
     ];
