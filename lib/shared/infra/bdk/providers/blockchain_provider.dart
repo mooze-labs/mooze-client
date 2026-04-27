@@ -6,29 +6,59 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/electrum_fallback.dart';
 
+const _customFallbackKey = 'custom_fallback_enabled';
+
+Future<Blockchain> _createBlockchain(String url, {int retry = 2, int timeout = 15}) {
+  final config = BlockchainConfig.electrum(
+    config: ElectrumConfig(
+      url: url,
+      retry: retry,
+      stopGap: BigInt.from(20),
+      validateDomain: false,
+      timeout: timeout,
+    ),
+  );
+  return Blockchain.create(config: config);
+}
+
 final blockchainProvider = Provider<TaskEither<String, Blockchain>>((ref) {
   final futPrefs = Task(() => SharedPreferences.getInstance());
 
   return TaskEither.tryCatch(() async {
     final prefs = await futPrefs.run();
     final customUrl = prefs.getString('bitcoin_node_url');
+    // Defaults to true to preserve the prior behavior (custom URL = single
+    // attempt). The user can opt into "custom URL with rotation" via the
+    // node configuration screen.
+    final customFallbackEnabled = prefs.getBool(_customFallbackKey) ?? true;
 
-    // Use custom URL if available, fallback disabled when custom URL is set
-    if (customUrl != null) {
-      debugPrint('[BlockchainProvider] Using custom Bitcoin node: $customUrl');
-      final config = BlockchainConfig.electrum(
-        config: ElectrumConfig(
-          url: customUrl,
-          retry: 3,
-          stopGap: BigInt.from(20),
-          validateDomain: false,
-          timeout: 20,
-        ),
+    if (customUrl != null && customUrl.isNotEmpty) {
+      // Custom URL + fallback OFF: single attempt, current behavior preserved.
+      if (!customFallbackEnabled) {
+        debugPrint(
+          '[BlockchainProvider] Using custom Bitcoin node (no fallback): $customUrl',
+        );
+        return await _createBlockchain(customUrl, retry: 3, timeout: 20);
+      }
+
+      // Custom URL + fallback ON: try the user's node first, then walk the
+      // built-in list on failure.
+      debugPrint(
+        '[BlockchainProvider] Using custom Bitcoin node with fallback: $customUrl',
       );
-      return await Blockchain.create(config: config);
+      try {
+        final blockchain = await _createBlockchain(customUrl, retry: 2, timeout: 15);
+        return blockchain;
+      } catch (e) {
+        debugPrint(
+          '[BlockchainProvider] Custom node failed, walking fallback list: $e',
+        );
+        // Fall through to the rotation loop below.
+      }
     }
 
-    // Try with fallback servers
+    // Default mode (or custom-with-fallback after the user node failed):
+    // iterate the built-in server list with retry.
     int maxAttempts = 3;
     String? lastError;
 
@@ -39,19 +69,8 @@ final blockchainProvider = Provider<TaskEither<String, Blockchain>>((ref) {
       );
 
       try {
-        final config = BlockchainConfig.electrum(
-          config: ElectrumConfig(
-            url: serverUrl,
-            retry: 2,
-            stopGap: BigInt.from(20),
-            validateDomain: false,
-            timeout: 15,
-          ),
-        );
+        final blockchain = await _createBlockchain(serverUrl, retry: 2, timeout: 15);
 
-        final blockchain = await Blockchain.create(config: config);
-
-        // Success! Report it and return
         BitcoinElectrumFallback.reportSuccess();
         debugPrint(
           '[BlockchainProvider] Conectado com sucesso ao servidor: $serverUrl',
@@ -63,7 +82,6 @@ final blockchainProvider = Provider<TaskEither<String, Blockchain>>((ref) {
           '[BlockchainProvider] Falha na tentativa ${attempt + 1}: $lastError',
         );
 
-        // Report failure and check if we should switch servers
         final shouldSwitch = BitcoinElectrumFallback.reportFailure(lastError);
 
         if (shouldSwitch && attempt < maxAttempts - 1) {
@@ -73,14 +91,12 @@ final blockchainProvider = Provider<TaskEither<String, Blockchain>>((ref) {
           );
         }
 
-        // If not the last attempt, wait a bit before retrying
         if (attempt < maxAttempts - 1) {
           await Future.delayed(Duration(seconds: 1 + attempt));
         }
       }
     }
 
-    // All attempts failed
     throw Exception(
       'Falha ao conectar aos servidores Bitcoin Electrum após $maxAttempts tentativas. Último erro: $lastError',
     );
