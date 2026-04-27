@@ -89,10 +89,6 @@ class _LabelSettingsState extends State<LabelSettings> {
                       child: Switch.adaptive(
                         value: (widget.action as Toggle).value,
                         onChanged: (widget.action as Toggle).onChange,
-                        activeThumbColor: colorScheme.onPrimary,
-                        activeTrackColor: colorScheme.tertiary,
-                        inactiveThumbColor: colorScheme.inverseSurface,
-                        inactiveTrackColor: colorScheme.secondary,
                       ),
                     ),
                   ),
