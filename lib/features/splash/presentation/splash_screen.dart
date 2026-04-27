@@ -98,6 +98,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       wasInMerchantMode = merchantModeResult.data;
     }
 
+    // When the app restarts while merchant mode was active, reset the origin
+    // to '/home' so the exit screen always returns home, not to the previous
+    // session's origin route.
+    if (wasInMerchantMode) {
+      final activateMerchantModeUseCase = ref.read(
+        activateMerchantModeUseCaseProvider,
+      );
+      await activateMerchantModeUseCase(origin: '/home');
+    }
+
     if (kDebugMode) {
       debugPrint("[SplashScreen] Was in merchant mode: $wasInMerchantMode");
     }
