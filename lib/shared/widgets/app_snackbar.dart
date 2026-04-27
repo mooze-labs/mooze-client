@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Defines the visual type of a SnackBar notification.
-enum SnackBarType {
-  success,
-  error,
-  warning,
-  info,
-}
+enum SnackBarType { success, error, warning, info }
 
 /// Centralized SnackBar helper for consistent UI feedback across the app.
 
@@ -42,6 +37,7 @@ class AppSnackBar {
           ),
           backgroundColor: _colorFor(type),
           behavior: SnackBarBehavior.floating,
+          elevation: 0,
           duration: duration ?? _durationFor(type),
           action: action,
           shape: RoundedRectangleBorder(
