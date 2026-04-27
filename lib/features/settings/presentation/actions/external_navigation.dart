@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/action.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -30,11 +31,19 @@ class ExternalNavigation extends SettingsActions {
         );
 
         if (!launchedAlternative) {
-          AppSnackBar.error(context, 'Não foi possível abrir o link');
+          if (!context.mounted) return;
+          AppSnackBar.error(
+            context,
+            AppLocalizations.of(context).error_open_link,
+          );
         }
       }
     } catch (e) {
-      AppSnackBar.error(context, 'Erro ao tentar abrir o link');
+      if (!context.mounted) return;
+      AppSnackBar.error(
+        context,
+        AppLocalizations.of(context).error_opening_link,
+      );
     }
   }
 }
