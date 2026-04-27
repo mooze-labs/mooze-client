@@ -17,10 +17,7 @@ class ReferralRepositoryImpl implements ReferralRepository {
     try {
       return await _dataSource.getExistingReferral();
     } catch (e) {
-      return Failure(
-        'Erro ao buscar código de indicação: ${e.toString()}',
-        e as Exception?,
-      );
+      return Failure('referral_error_fetch_failed', e as Exception?);
     }
   }
 
@@ -29,10 +26,7 @@ class ReferralRepositoryImpl implements ReferralRepository {
     try {
       return await _dataSource.validateReferralCode(code);
     } catch (e) {
-      return Failure(
-        'Erro ao validar código: ${e.toString()}',
-        e as Exception?,
-      );
+      return Failure('referral_error_validate_failed', e as Exception?);
     }
   }
 
@@ -41,10 +35,7 @@ class ReferralRepositoryImpl implements ReferralRepository {
     try {
       return await _dataSource.applyReferralCode(code);
     } catch (e) {
-      return Failure(
-        'Erro ao aplicar código: ${e.toString()}',
-        e as Exception?,
-      );
+      return Failure('referral_error_apply_failed', e as Exception?);
     }
   }
 }
