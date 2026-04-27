@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/user_id_provider.dart';
 import '../widgets/support_error_widget.dart';
 import '../widgets/user_id_container_widget.dart';
+import '../widgets/user_id_loading_skeleton.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
   const SupportScreen({super.key});
@@ -214,13 +215,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           Consumer(
                             builder: (context, ref, child) {
                               final userIdAsync = ref.watch(
                                 userIdControllerProvider,
                               );
-
                               return userIdAsync.when(
                                 loading: () {
                                   if (_isRetrying &&
@@ -234,20 +233,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                       onRetry: () {},
                                     );
                                   }
-                                  return Container(
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: colorScheme.outline.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
+                                  return UserIdLoadingSkeleton(
+                                    colorScheme: colorScheme,
                                   );
                                 },
                                 error: (error, stack) {
