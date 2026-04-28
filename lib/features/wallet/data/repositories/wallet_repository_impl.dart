@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
+import 'package:mooze_mobile/features/wallet/domain/repositories/swap_audit_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
@@ -277,14 +278,17 @@ class WalletRepositoryImpl extends WalletRepository {
   final BreezWallet? _breezWallet;
   final BitcoinWallet? _bitcoinWallet;
   final LiquidWallet? _liquidWallet;
+  final SwapAuditRepository? _swapAudit;
 
   WalletRepositoryImpl(
     BreezWallet? breezWallet,
     BitcoinWallet? bitcoinWallet,
-    LiquidWallet? liquidWallet,
-  ) : _breezWallet = breezWallet,
-      _bitcoinWallet = bitcoinWallet,
-      _liquidWallet = liquidWallet;
+    LiquidWallet? liquidWallet, {
+    SwapAuditRepository? swapAudit,
+  }) : _breezWallet = breezWallet,
+       _bitcoinWallet = bitcoinWallet,
+       _liquidWallet = liquidWallet,
+       _swapAudit = swapAudit;
 
   // Helper to get Breez wallet or return error
   TaskEither<WalletError, T> _withBreez<T>(
@@ -733,11 +737,63 @@ class WalletRepositoryImpl extends WalletRepository {
           '[WalletRepository] ✅ Total AFTER processing: ${processedTransactions.length}',
         );
 
+        // Persist any internal-Liquid swaps detected by the matcher into
+        // the immutable Swaps table. Idempotent — recordCompleted skips
+        // if a row for (provider=internal_liquid, txId=sendLeg) already
+        // exists. Errors are swallowed inside the audit repo (fail-open).
+        await _persistInternalSwaps(processedTransactions);
+
         return processedTransactions;
       },
       (error, stackTrace) =>
           WalletError(WalletErrorType.sdkError, error.toString()),
     );
+  }
+
+  /// Persist swaps detected by [_identifyInternalSwapsStatic] into the
+  /// immutable Swaps table. The matcher emits a synthesized Transaction
+  /// with `type=swap` and the original send/receive leg ids in
+  /// `sendTxId`/`receiveTxId`; we record one swap row per pair.
+  ///
+  /// Idempotent: [SwapAuditRepository.recordCompleted] does an existence
+  /// check on (provider='internal_liquid', txId=<sendTxId>) so re-running
+  /// the matcher across multiple syncs does not duplicate.
+  Future<void> _persistInternalSwaps(List<Transaction> processed) async {
+    final audit = _swapAudit;
+    if (audit == null) return;
+
+    for (final tx in processed) {
+      if (tx.type != TransactionType.swap) continue;
+      // Only record if we have both legs identified — submarine swaps from
+      // Breez go through their own (currently deferred) recording path.
+      if (tx.sendTxId == null || tx.receiveTxId == null) continue;
+      // Skip if the matcher built this from Breez output (sendBlockchain
+      // crosses chains). Internal Liquid swaps stay on Liquid for both legs.
+      if (tx.sendBlockchain == Blockchain.bitcoin ||
+          tx.receiveBlockchain == Blockchain.bitcoin) {
+        continue;
+      }
+
+      final fromAsset = tx.fromAsset?.id ?? 'unknown';
+      final toAsset = tx.toAsset?.id ?? 'unknown';
+      final sendAmount = tx.sentAmount ?? tx.amount;
+      final receiveAmount = tx.receivedAmount ?? tx.amount;
+
+      await audit.recordCompleted(
+        provider: 'internal_liquid',
+        direction: 'asset_swap',
+        sendAsset: fromAsset,
+        receiveAsset: toAsset,
+        sendAmount: sendAmount,
+        receiveAmount: receiveAmount,
+        txId: tx.sendTxId,
+        metadata: {
+          'sendTxId': tx.sendTxId,
+          'receiveTxId': tx.receiveTxId,
+          'status': tx.status.name,
+        },
+      );
+    }
   }
 
   @override
