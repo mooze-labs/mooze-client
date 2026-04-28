@@ -6,15 +6,26 @@ import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository
 
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/breez.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/swap_audit_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/breez/providers.dart';
+import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 
 final walletRepositoryProvider = FutureProvider<
   Either<WalletError, WalletRepository>
 >((ref) async {
+  // Audit repo + database + logger are eagerly resolved — they have no
+  // network dependencies and the wallet wrappers below pull them in via
+  // constructor. Read (not watch) keeps wallet recreation from cycling
+  // when the audit repo identity changes (it shouldn't).
+  final swapAudit = ref.read(swapAuditRepositoryProvider);
+  final database = ref.read(appDatabaseProvider);
+  final logger = ref.read(appLoggerProvider);
+
   // Try to get each datasource independently - don't fail if one fails
   BreezWallet? breezWallet;
   LiquidWallet? liquidWallet;
@@ -31,7 +42,7 @@ final walletRepositoryProvider = FutureProvider<
         }
       },
       (b) {
-        breezWallet = BreezWallet(b);
+        breezWallet = BreezWallet(b, swapAudit: swapAudit);
         if (kDebugMode) {
           debugPrint('[WalletRepository] Breez initialized successfully');
         }
@@ -75,7 +86,11 @@ final walletRepositoryProvider = FutureProvider<
         }
       },
       (b) {
-        bitcoinWallet = BitcoinWallet(b);
+        bitcoinWallet = BitcoinWallet(
+          b,
+          database: database,
+          logger: logger,
+        );
         if (kDebugMode) {
           debugPrint('[WalletRepository] BDK initialized successfully');
         }
@@ -99,7 +114,12 @@ final walletRepositoryProvider = FutureProvider<
 
   // Create repository with available datasources
   // The repository will handle null datasources gracefully
-  final repo = WalletRepositoryImpl(breezWallet, bitcoinWallet, liquidWallet);
+  final repo = WalletRepositoryImpl(
+    breezWallet,
+    bitcoinWallet,
+    liquidWallet,
+    swapAudit: swapAudit,
+  );
 
   if (kDebugMode) {
     debugPrint('[WalletRepository] Repository created with:');
