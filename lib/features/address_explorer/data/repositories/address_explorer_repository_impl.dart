@@ -90,12 +90,18 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
         }
 
         final used = await _bitcoinAddressIsUsed(scriptHex);
+        final utxoCount = _bdk.wallet
+            .listUnspent()
+            .where((u) => !u.isSpent &&
+                _hex(u.txout.scriptPubkey.bytes) == scriptHex)
+            .length;
         return Either.right(
           AddressMatch.owned(
             address: address,
             chain: AddressChain.bitcoin,
             status: used ? AddressStatus.used : AddressStatus.unused,
             derivationIndex: foundIndex,
+            utxoCount: utxoCount,
           ),
         );
       } catch (e) {
@@ -294,9 +300,10 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
               derived.confidential == address;
           if (!matches) continue;
 
-          final usedByUtxo = utxos.any((u) =>
+          final addressUtxos = utxos.where((u) =>
               !u.isSpent && u.address.standard == derived.standard);
-          var used = usedByUtxo;
+          final utxoCount = addressUtxos.length;
+          var used = utxoCount > 0;
           if (!used) {
             for (final tx in txs) {
               if (tx.outputs
@@ -312,6 +319,7 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
               chain: AddressChain.liquid,
               status: used ? AddressStatus.used : AddressStatus.unused,
               derivationIndex: i,
+              utxoCount: utxoCount,
             ),
           );
         }
