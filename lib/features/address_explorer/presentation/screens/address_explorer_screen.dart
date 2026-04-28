@@ -94,7 +94,7 @@ class _AddressExplorerScreenState extends ConsumerState<AddressExplorerScreen>
                   onSubmitted: _runSearch,
                   decoration: InputDecoration(
                     hintText: t.address_explorer_search_hint,
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _buildSearchSuffix(),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -106,8 +106,27 @@ class _AddressExplorerScreenState extends ConsumerState<AddressExplorerScreen>
               TabBar(
                 controller: _tabs,
                 tabs: [
-                  Tab(text: t.address_explorer_tab_onchain),
-                  Tab(text: t.address_explorer_tab_liquid),
+                  Tab(
+                    icon: null,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.currency_bitcoin_rounded, size: 18),
+                        const SizedBox(width: 6),
+                        Text(t.address_explorer_tab_onchain),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.water_drop_rounded, size: 18),
+                        const SizedBox(width: 6),
+                        Text(t.address_explorer_tab_liquid),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -150,7 +169,7 @@ class _AddressExplorerScreenState extends ConsumerState<AddressExplorerScreen>
     }
     if (_searchController.text.isEmpty) return null;
     return IconButton(
-      icon: const Icon(Icons.close),
+      icon: const Icon(Icons.close_rounded),
       onPressed: _clearSearch,
     );
   }
@@ -192,25 +211,33 @@ class _SearchBanner extends ConsumerWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: ok ? scheme.primaryContainer : scheme.errorContainer,
+        color: ok
+            ? scheme.primaryContainer.withValues(alpha: 0.6)
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border.all(
+          color: ok
+              ? scheme.primary.withValues(alpha: 0.4)
+              : scheme.outlineVariant.withValues(alpha: 0.6),
+        ),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
           Icon(
             ok ? Icons.verified_rounded : Icons.cancel_outlined,
-            color: ok ? scheme.onPrimaryContainer : scheme.onErrorContainer,
+            size: 18,
+            color: ok
+                ? scheme.primary
+                : scheme.error.withValues(alpha: 0.85),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               description,
               style: TextStyle(
-                color: ok
-                    ? scheme.onPrimaryContainer
-                    : scheme.onErrorContainer,
+                color: scheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -232,6 +259,7 @@ class _AddressList extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final asyncList = ref.watch(addressListProvider(chain));
     final currentLimit = ref.watch(addressScanLimitProvider(chain));
+    final filter = ref.watch(addressFilterProvider(chain));
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -249,6 +277,7 @@ class _AddressList extends ConsumerWidget {
           addresses,
           isLoadingMore: asyncList.isLoading,
           currentLimit: currentLimit,
+          filter: filter,
         ),
       ),
     );
@@ -294,6 +323,7 @@ class _AddressList extends ConsumerWidget {
     List<WalletAddress> addresses, {
     required bool isLoadingMore,
     required int currentLimit,
+    required AddressListFilter filter,
   }) {
     if (addresses.isEmpty) {
       return ListView(
@@ -308,28 +338,42 @@ class _AddressList extends ConsumerWidget {
     final usedCount = addresses
         .where((a) => a.status == AddressStatus.used)
         .length;
+    final unusedCount = addresses.length - usedCount;
     final utxoCount =
         addresses.fold<int>(0, (sum, a) => sum + a.utxos.length);
-    // Only offer "load more" when the most recent scan returned a full
-    // window — otherwise BDK / LWK exhausted the descriptor.
     final canLoadMore = addresses.length >= currentLimit;
+    final filtered = _applyFilter(addresses, filter);
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: addresses.length + 2, // header + items + footer
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: filtered.length + 3, // header + filter chips + items + footer
       itemBuilder: (context, i) {
         if (i == 0) {
           return _SummaryHeader(
-            text: t.address_explorer_summary(
-              addresses.length,
-              usedCount,
-              utxoCount,
-            ),
+            total: addresses.length,
+            used: usedCount,
+            unused: unusedCount,
+            utxos: utxoCount,
           );
         }
-        final lastIndex = addresses.length + 1;
+        if (i == 1) {
+          return _FilterChipsRow(chain: chain, filter: filter);
+        }
+        final lastIndex = filtered.length + 2;
         if (i == lastIndex) {
+          if (filtered.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              child: Text(
+                t.address_explorer_filter_empty,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            );
+          }
           return _LoadMoreFooter(
             onTap: canLoadMore
                 ? () {
@@ -343,7 +387,7 @@ class _AddressList extends ConsumerWidget {
             loadingLabel: t.address_explorer_loading_more,
           );
         }
-        final addr = addresses[i - 1];
+        final addr = filtered[i - 2];
         return AddressTile(
           address: addr,
           highlight: highlightAddress != null &&
@@ -352,23 +396,107 @@ class _AddressList extends ConsumerWidget {
       },
     );
   }
+
+  static List<WalletAddress> _applyFilter(
+    List<WalletAddress> all,
+    AddressListFilter filter,
+  ) {
+    switch (filter) {
+      case AddressListFilter.all:
+        return all;
+      case AddressListFilter.used:
+        return all.where((a) => a.status == AddressStatus.used).toList();
+      case AddressListFilter.unused:
+        return all.where((a) => a.status == AddressStatus.unused).toList();
+      case AddressListFilter.withUtxos:
+        return all.where((a) => a.utxos.isNotEmpty).toList();
+    }
+  }
 }
 
 class _SummaryHeader extends StatelessWidget {
-  final String text;
-  const _SummaryHeader({required this.text});
+  final int total;
+  final int used;
+  final int unused;
+  final int utxos;
+
+  const _SummaryHeader({
+    required this.total,
+    required this.used,
+    required this.unused,
+    required this.utxos,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final t = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Text(
-        text,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.address_explorer_summary_addresses(total),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            t.address_explorer_summary_status(used, unused),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            t.address_explorer_summary_utxos_total(utxos),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChipsRow extends ConsumerWidget {
+  final AddressChain chain;
+  final AddressListFilter filter;
+
+  const _FilterChipsRow({required this.chain, required this.filter});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final entries = <(AddressListFilter, String)>[
+      (AddressListFilter.all, t.address_explorer_filter_all),
+      (AddressListFilter.used, t.address_explorer_filter_used),
+      (AddressListFilter.unused, t.address_explorer_filter_unused),
+      (AddressListFilter.withUtxos, t.address_explorer_filter_with_utxos),
+    ];
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        itemCount: entries.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        itemBuilder: (context, i) {
+          final (value, label) = entries[i];
+          final selected = value == filter;
+          return ChoiceChip(
+            label: Text(label),
+            selected: selected,
+            visualDensity: VisualDensity.compact,
+            onSelected: (_) {
+              ref.read(addressFilterProvider(chain).notifier).state = value;
+            },
+          );
+        },
       ),
     );
   }
