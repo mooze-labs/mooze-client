@@ -10,6 +10,7 @@ class AddressMatch {
   final AddressChain? chain;
   final AddressStatus? status;
   final int? derivationIndex;
+  final int utxoCount;
 
   const AddressMatch({
     required this.address,
@@ -17,18 +18,21 @@ class AddressMatch {
     this.chain,
     this.status,
     this.derivationIndex,
+    this.utxoCount = 0,
   });
 
   const AddressMatch.notOwned(this.address)
     : isOwned = false,
       chain = null,
       status = null,
-      derivationIndex = null;
+      derivationIndex = null,
+      utxoCount = 0;
 
   const AddressMatch.owned({
     required this.address,
     required AddressChain this.chain,
     required AddressStatus this.status,
     this.derivationIndex,
+    this.utxoCount = 0,
   }) : isOwned = true;
 }
