@@ -4358,4 +4358,235 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pix_filter_status_expired => 'Expirado';
+
+  @override
+  String get address_explorer_title => 'Direcciones y UTXOs';
+
+  @override
+  String get address_explorer_search_hint => 'Buscar dirección…';
+
+  @override
+  String get address_explorer_search_match_onchain =>
+      'Dirección encontrada en On-chain.';
+
+  @override
+  String get address_explorer_search_match_liquid =>
+      'Dirección encontrada en Liquid.';
+
+  @override
+  String address_explorer_search_match_at_index(String chain, int index) {
+    return '$chain · índice $index';
+  }
+
+  @override
+  String get address_explorer_search_no_match =>
+      'La dirección no pertenece a su billetera.';
+
+  @override
+  String get address_explorer_tab_onchain => 'On-chain';
+
+  @override
+  String get address_explorer_tab_liquid => 'Liquid';
+
+  @override
+  String address_explorer_load_more(int count) {
+    return 'Cargar $count direcciones más';
+  }
+
+  @override
+  String get address_explorer_loading_more => 'Cargando…';
+
+  @override
+  String get address_explorer_loading => 'Cargando direcciones…';
+
+  @override
+  String get address_explorer_empty => 'No se encontraron direcciones.';
+
+  @override
+  String address_explorer_load_error(String error) {
+    return 'Error al cargar direcciones: $error';
+  }
+
+  @override
+  String get address_explorer_address_copied => 'Dirección copiada';
+
+  @override
+  String get address_explorer_status_used => 'USADA';
+
+  @override
+  String get address_explorer_status_unused => 'NO USADA';
+
+  @override
+  String address_explorer_utxo_count(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count UTXOs',
+      one: '1 UTXO',
+      zero: 'sin UTXOs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get address_explorer_utxos_section => 'UTXOs';
+
+  @override
+  String get address_explorer_utxos_tap_to_expand => 'tocar para expandir';
+
+  @override
+  String get address_explorer_utxos_tap_to_collapse => 'tocar para contraer';
+
+  @override
+  String address_explorer_summary(int total, int used, int utxos) {
+    return '$total direcciones · $used usadas · $utxos UTXOs';
+  }
+
+  @override
+  String address_explorer_summary_addresses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count direcciones',
+      one: '1 dirección',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String address_explorer_summary_status(int used, int unused) {
+    return '$used usadas • $unused no usadas';
+  }
+
+  @override
+  String address_explorer_summary_utxos_total(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count UTXOs',
+      one: '1 UTXO',
+      zero: 'sin UTXOs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String address_explorer_total_received(String amount) {
+    return 'Recibido: $amount';
+  }
+
+  @override
+  String get address_explorer_filter_all => 'Todas';
+
+  @override
+  String get address_explorer_filter_used => 'Usadas';
+
+  @override
+  String get address_explorer_filter_unused => 'No usadas';
+
+  @override
+  String get address_explorer_filter_with_utxos => 'Con UTXOs';
+
+  @override
+  String get address_explorer_filter_empty =>
+      'Ninguna dirección coincide con el filtro actual.';
+
+  @override
+  String get address_explorer_full_address_title => 'Dirección';
+
+  @override
+  String get address_explorer_full_address_copy => 'Copiar dirección';
+
+  @override
+  String get address_explorer_close => 'Cerrar';
+
+  @override
+  String get address_ownership_title => 'Verificar dirección';
+
+  @override
+  String get address_ownership_description =>
+      'Pegue una dirección para verificar la propiedad';
+
+  @override
+  String get address_ownership_subtitle => 'Compatible con Bitcoin y Liquid';
+
+  @override
+  String get address_ownership_input_hint => 'bc1q… / lq1… / 1A1z…';
+
+  @override
+  String get address_ownership_paste_tooltip => 'Pegar';
+
+  @override
+  String get address_ownership_clear_tooltip => 'Limpiar';
+
+  @override
+  String get address_ownership_verify => 'Verificar';
+
+  @override
+  String get address_ownership_verifying => 'Verificando…';
+
+  @override
+  String get address_ownership_clear => 'Limpiar';
+
+  @override
+  String get address_ownership_paste_feedback => 'Pegado desde el portapapeles';
+
+  @override
+  String get address_ownership_clear_feedback => 'Limpiado';
+
+  @override
+  String address_ownership_detected(String chain) {
+    return 'Detectado: $chain';
+  }
+
+  @override
+  String get address_ownership_invalid_format =>
+      'Formato de dirección no válido';
+
+  @override
+  String get address_ownership_owned_title => 'Tu dirección';
+
+  @override
+  String get address_ownership_not_owned_title => 'No es tu dirección';
+
+  @override
+  String get address_ownership_field_type => 'Tipo';
+
+  @override
+  String get address_ownership_field_utxos => 'UTXOs';
+
+  @override
+  String get address_ownership_field_used => 'Usada';
+
+  @override
+  String get address_ownership_yes => 'Sí';
+
+  @override
+  String get address_ownership_no => 'No';
+
+  @override
+  String get address_ownership_chain_bitcoin => 'Bitcoin';
+
+  @override
+  String get address_ownership_chain_liquid => 'Liquid';
+
+  @override
+  String address_ownership_index_label(int index) {
+    return 'índice $index';
+  }
+
+  @override
+  String get address_ownership_status_used => 'usada';
+
+  @override
+  String get address_ownership_status_unused => 'no usada';
+
+  @override
+  String get settings_section_addresses => 'DIRECCIONES';
+
+  @override
+  String get settings_verify_address => 'Verificar dirección';
+
+  @override
+  String get settings_address_explorer => 'Direcciones y UTXOs';
 }

@@ -7713,6 +7713,372 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Expirado'**
   String get pix_filter_status_expired;
+
+  /// No description provided for @address_explorer_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereços e UTXOs'**
+  String get address_explorer_title;
+
+  /// No description provided for @address_explorer_search_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar endereço…'**
+  String get address_explorer_search_hint;
+
+  /// No description provided for @address_explorer_search_match_onchain.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço encontrado em On-chain.'**
+  String get address_explorer_search_match_onchain;
+
+  /// No description provided for @address_explorer_search_match_liquid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço encontrado em Liquid.'**
+  String get address_explorer_search_match_liquid;
+
+  /// No description provided for @address_explorer_search_match_at_index.
+  ///
+  /// In pt, this message translates to:
+  /// **'{chain} · índice {index}'**
+  String address_explorer_search_match_at_index(String chain, int index);
+
+  /// No description provided for @address_explorer_search_no_match.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço não pertence à sua carteira.'**
+  String get address_explorer_search_no_match;
+
+  /// No description provided for @address_explorer_tab_onchain.
+  ///
+  /// In pt, this message translates to:
+  /// **'On-chain'**
+  String get address_explorer_tab_onchain;
+
+  /// No description provided for @address_explorer_tab_liquid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Liquid'**
+  String get address_explorer_tab_liquid;
+
+  /// No description provided for @address_explorer_load_more.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregar mais {count} endereços'**
+  String address_explorer_load_more(int count);
+
+  /// No description provided for @address_explorer_loading_more.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando…'**
+  String get address_explorer_loading_more;
+
+  /// No description provided for @address_explorer_loading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando endereços…'**
+  String get address_explorer_loading;
+
+  /// No description provided for @address_explorer_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum endereço encontrado.'**
+  String get address_explorer_empty;
+
+  /// No description provided for @address_explorer_load_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao carregar endereços: {error}'**
+  String address_explorer_load_error(String error);
+
+  /// No description provided for @address_explorer_address_copied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço copiado'**
+  String get address_explorer_address_copied;
+
+  /// No description provided for @address_explorer_status_used.
+  ///
+  /// In pt, this message translates to:
+  /// **'USADO'**
+  String get address_explorer_status_used;
+
+  /// No description provided for @address_explorer_status_unused.
+  ///
+  /// In pt, this message translates to:
+  /// **'NÃO UTILIZADO'**
+  String get address_explorer_status_unused;
+
+  /// No description provided for @address_explorer_utxo_count.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{sem UTXOs} =1{1 UTXO} other{{count} UTXOs}}'**
+  String address_explorer_utxo_count(int count);
+
+  /// No description provided for @address_explorer_utxos_section.
+  ///
+  /// In pt, this message translates to:
+  /// **'UTXOs'**
+  String get address_explorer_utxos_section;
+
+  /// No description provided for @address_explorer_utxos_tap_to_expand.
+  ///
+  /// In pt, this message translates to:
+  /// **'toque para expandir'**
+  String get address_explorer_utxos_tap_to_expand;
+
+  /// No description provided for @address_explorer_utxos_tap_to_collapse.
+  ///
+  /// In pt, this message translates to:
+  /// **'toque para recolher'**
+  String get address_explorer_utxos_tap_to_collapse;
+
+  /// No description provided for @address_explorer_summary.
+  ///
+  /// In pt, this message translates to:
+  /// **'{total} endereços · {used} usados · {utxos} UTXOs'**
+  String address_explorer_summary(int total, int used, int utxos);
+
+  /// No description provided for @address_explorer_summary_addresses.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 endereço} other{{count} endereços}}'**
+  String address_explorer_summary_addresses(int count);
+
+  /// No description provided for @address_explorer_summary_status.
+  ///
+  /// In pt, this message translates to:
+  /// **'{used} usados • {unused} não utilizados'**
+  String address_explorer_summary_status(int used, int unused);
+
+  /// No description provided for @address_explorer_summary_utxos_total.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{sem UTXOs} =1{1 UTXO} other{{count} UTXOs}}'**
+  String address_explorer_summary_utxos_total(int count);
+
+  /// No description provided for @address_explorer_total_received.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebido: {amount}'**
+  String address_explorer_total_received(String amount);
+
+  /// No description provided for @address_explorer_filter_all.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get address_explorer_filter_all;
+
+  /// No description provided for @address_explorer_filter_used.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usados'**
+  String get address_explorer_filter_used;
+
+  /// No description provided for @address_explorer_filter_unused.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não utilizados'**
+  String get address_explorer_filter_unused;
+
+  /// No description provided for @address_explorer_filter_with_utxos.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com UTXOs'**
+  String get address_explorer_filter_with_utxos;
+
+  /// No description provided for @address_explorer_filter_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum endereço corresponde ao filtro atual.'**
+  String get address_explorer_filter_empty;
+
+  /// No description provided for @address_explorer_full_address_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço'**
+  String get address_explorer_full_address_title;
+
+  /// No description provided for @address_explorer_full_address_copy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar endereço'**
+  String get address_explorer_full_address_copy;
+
+  /// No description provided for @address_explorer_close.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar'**
+  String get address_explorer_close;
+
+  /// No description provided for @address_ownership_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Verificar endereço'**
+  String get address_ownership_title;
+
+  /// No description provided for @address_ownership_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cole um endereço para verificar a propriedade'**
+  String get address_ownership_description;
+
+  /// No description provided for @address_ownership_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suporta Bitcoin e Liquid'**
+  String get address_ownership_subtitle;
+
+  /// No description provided for @address_ownership_input_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'bc1q… / lq1… / 1A1z…'**
+  String get address_ownership_input_hint;
+
+  /// No description provided for @address_ownership_paste_tooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Colar'**
+  String get address_ownership_paste_tooltip;
+
+  /// No description provided for @address_ownership_clear_tooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get address_ownership_clear_tooltip;
+
+  /// No description provided for @address_ownership_verify.
+  ///
+  /// In pt, this message translates to:
+  /// **'Verificar'**
+  String get address_ownership_verify;
+
+  /// No description provided for @address_ownership_verifying.
+  ///
+  /// In pt, this message translates to:
+  /// **'Verificando…'**
+  String get address_ownership_verifying;
+
+  /// No description provided for @address_ownership_clear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get address_ownership_clear;
+
+  /// No description provided for @address_ownership_paste_feedback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Colado da área de transferência'**
+  String get address_ownership_paste_feedback;
+
+  /// No description provided for @address_ownership_clear_feedback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpo'**
+  String get address_ownership_clear_feedback;
+
+  /// No description provided for @address_ownership_detected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detectado: {chain}'**
+  String address_ownership_detected(String chain);
+
+  /// No description provided for @address_ownership_invalid_format.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato de endereço inválido'**
+  String get address_ownership_invalid_format;
+
+  /// No description provided for @address_ownership_owned_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu endereço'**
+  String get address_ownership_owned_title;
+
+  /// No description provided for @address_ownership_not_owned_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não é o seu endereço'**
+  String get address_ownership_not_owned_title;
+
+  /// No description provided for @address_ownership_field_type.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo'**
+  String get address_ownership_field_type;
+
+  /// No description provided for @address_ownership_field_utxos.
+  ///
+  /// In pt, this message translates to:
+  /// **'UTXOs'**
+  String get address_ownership_field_utxos;
+
+  /// No description provided for @address_ownership_field_used.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usado'**
+  String get address_ownership_field_used;
+
+  /// No description provided for @address_ownership_yes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sim'**
+  String get address_ownership_yes;
+
+  /// No description provided for @address_ownership_no.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não'**
+  String get address_ownership_no;
+
+  /// No description provided for @address_ownership_chain_bitcoin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bitcoin'**
+  String get address_ownership_chain_bitcoin;
+
+  /// No description provided for @address_ownership_chain_liquid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Liquid'**
+  String get address_ownership_chain_liquid;
+
+  /// No description provided for @address_ownership_index_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'índice {index}'**
+  String address_ownership_index_label(int index);
+
+  /// No description provided for @address_ownership_status_used.
+  ///
+  /// In pt, this message translates to:
+  /// **'usado'**
+  String get address_ownership_status_used;
+
+  /// No description provided for @address_ownership_status_unused.
+  ///
+  /// In pt, this message translates to:
+  /// **'não utilizado'**
+  String get address_ownership_status_unused;
+
+  /// No description provided for @settings_section_addresses.
+  ///
+  /// In pt, this message translates to:
+  /// **'ENDEREÇOS'**
+  String get settings_section_addresses;
+
+  /// No description provided for @settings_verify_address.
+  ///
+  /// In pt, this message translates to:
+  /// **'Verificar endereço'**
+  String get settings_verify_address;
+
+  /// No description provided for @settings_address_explorer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereços e UTXOs'**
+  String get settings_address_explorer;
 }
 
 class _AppLocalizationsDelegate

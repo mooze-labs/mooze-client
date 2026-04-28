@@ -2091,5 +2091,125 @@
   "pix_filter_status_pending": "Pagamento Pendente",
   "pix_filter_status_processing": "Processando 1/2",
   "pix_filter_status_finished": "Enviado",
-  "pix_filter_status_expired": "Expirado"
+  "pix_filter_status_expired": "Expirado",
+  "address_explorer_title": "Endereços e UTXOs",
+  "address_explorer_search_hint": "Buscar endereço…",
+  "address_explorer_search_match_onchain": "Endereço encontrado em On-chain.",
+  "address_explorer_search_match_liquid": "Endereço encontrado em Liquid.",
+  "address_explorer_search_match_at_index": "{chain} · índice {index}",
+  "@address_explorer_search_match_at_index": {
+    "placeholders": {
+      "chain": { "type": "String" },
+      "index": { "type": "int" }
+    }
+  },
+  "address_explorer_search_no_match": "Endereço não pertence à sua carteira.",
+  "address_explorer_tab_onchain": "On-chain",
+  "address_explorer_tab_liquid": "Liquid",
+  "address_explorer_load_more": "Carregar mais {count} endereços",
+  "@address_explorer_load_more": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "address_explorer_loading_more": "Carregando…",
+  "address_explorer_loading": "Carregando endereços…",
+  "address_explorer_empty": "Nenhum endereço encontrado.",
+  "address_explorer_load_error": "Falha ao carregar endereços: {error}",
+  "@address_explorer_load_error": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "address_explorer_address_copied": "Endereço copiado",
+  "address_explorer_status_used": "USADO",
+  "address_explorer_status_unused": "NÃO UTILIZADO",
+  "address_explorer_utxo_count": "{count, plural, =0{sem UTXOs} =1{1 UTXO} other{{count} UTXOs}}",
+  "@address_explorer_utxo_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "address_explorer_utxos_section": "UTXOs",
+  "address_explorer_utxos_tap_to_expand": "toque para expandir",
+  "address_explorer_utxos_tap_to_collapse": "toque para recolher",
+  "address_explorer_summary": "{total} endereços · {used} usados · {utxos} UTXOs",
+  "@address_explorer_summary": {
+    "placeholders": {
+      "total": { "type": "int" },
+      "used": { "type": "int" },
+      "utxos": { "type": "int" }
+    }
+  },
+  "address_explorer_summary_addresses": "{count, plural, =1{1 endereço} other{{count} endereços}}",
+  "@address_explorer_summary_addresses": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "address_explorer_summary_status": "{used} usados • {unused} não utilizados",
+  "@address_explorer_summary_status": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "unused": { "type": "int" }
+    }
+  },
+  "address_explorer_summary_utxos_total": "{count, plural, =0{sem UTXOs} =1{1 UTXO} other{{count} UTXOs}}",
+  "@address_explorer_summary_utxos_total": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "address_explorer_total_received": "Recebido: {amount}",
+  "@address_explorer_total_received": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "address_explorer_filter_all": "Todos",
+  "address_explorer_filter_used": "Usados",
+  "address_explorer_filter_unused": "Não utilizados",
+  "address_explorer_filter_with_utxos": "Com UTXOs",
+  "address_explorer_filter_empty": "Nenhum endereço corresponde ao filtro atual.",
+  "address_explorer_full_address_title": "Endereço",
+  "address_explorer_full_address_copy": "Copiar endereço",
+  "address_explorer_close": "Fechar",
+  "address_ownership_title": "Verificar endereço",
+  "address_ownership_description": "Cole um endereço para verificar a propriedade",
+  "address_ownership_subtitle": "Suporta Bitcoin e Liquid",
+  "address_ownership_input_hint": "bc1q… / lq1… / 1A1z…",
+  "address_ownership_paste_tooltip": "Colar",
+  "address_ownership_clear_tooltip": "Limpar",
+  "address_ownership_verify": "Verificar",
+  "address_ownership_verifying": "Verificando…",
+  "address_ownership_clear": "Limpar",
+  "address_ownership_paste_feedback": "Colado da área de transferência",
+  "address_ownership_clear_feedback": "Limpo",
+  "address_ownership_detected": "Detectado: {chain}",
+  "@address_ownership_detected": {
+    "placeholders": {
+      "chain": { "type": "String" }
+    }
+  },
+  "address_ownership_invalid_format": "Formato de endereço inválido",
+  "address_ownership_owned_title": "Seu endereço",
+  "address_ownership_not_owned_title": "Não é o seu endereço",
+  "address_ownership_field_type": "Tipo",
+  "address_ownership_field_utxos": "UTXOs",
+  "address_ownership_field_used": "Usado",
+  "address_ownership_yes": "Sim",
+  "address_ownership_no": "Não",
+  "address_ownership_chain_bitcoin": "Bitcoin",
+  "address_ownership_chain_liquid": "Liquid",
+  "address_ownership_index_label": "índice {index}",
+  "@address_ownership_index_label": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "address_ownership_status_used": "usado",
+  "address_ownership_status_unused": "não utilizado",
+  "settings_section_addresses": "ENDEREÇOS",
+  "settings_verify_address": "Verificar endereço",
+  "settings_address_explorer": "Endereços e UTXOs"
 }

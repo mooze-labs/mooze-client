@@ -1112,18 +1112,11 @@ class WalletRepositoryImpl extends WalletRepository {
         WalletError(WalletErrorType.sdkError, 'Bitcoin wallet not available'),
       );
     }
-    return TaskEither.tryCatch(
-      () async {
-        final addressInfo = _bitcoinWallet!.datasource.wallet.getAddress(
-          addressIndex: bdk.AddressIndex.increase(),
-        );
-        return addressInfo.address.toString();
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.sdkError,
-        'Erro ao obter endereço Bitcoin: $error',
-      ),
-    );
+    // Routing through createBitcoinInvoice keeps a single source of truth
+    // for the unused-address verification logic that lives in BitcoinWallet.
+    return _bitcoinWallet
+        .createBitcoinInvoice(const None(), const None())
+        .flatMap((req) => TaskEither.right(req.address));
   }
 
   @override

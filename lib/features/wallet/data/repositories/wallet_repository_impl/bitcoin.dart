@@ -30,21 +30,90 @@ class BitcoinWallet {
     Option<BigInt> amount,
     Option<String> description,
   ) {
-    final address =
-        _datasource.wallet
-            .getAddress(addressIndex: bdk.AddressIndex.increase())
-            .address
-            .toString();
-    final paymentRequest = PaymentRequest(
-      address: address,
-      blockchain: Blockchain.bitcoin,
-      asset: Asset.btc,
-      fees: BigInt.zero,
-      amount: amount.fold(() => null, (i) => i),
-      description: description.toNullable(),
-    );
+    return _nextUnusedReceiveAddress().flatMap((address) {
+      return TaskEither.right(
+        PaymentRequest(
+          address: address,
+          blockchain: Blockchain.bitcoin,
+          asset: Asset.btc,
+          fees: BigInt.zero,
+          amount: amount.fold(() => null, (i) => i),
+          description: description.toNullable(),
+        ),
+      );
+    });
+  }
 
-    return TaskEither.right(paymentRequest);
+  /// Returns the next receive address with no on-chain history.
+  ///
+  /// `AddressIndex.increase()` blindly advances the descriptor index without
+  /// checking history; after a wallet restore (or if BDK's internal counter
+  /// drifts), it can hand out an address that has already received funds.
+  /// This method walks the descriptor forward from BDK's `lastUnused()`
+  /// position until it finds an address whose script does not appear in any
+  /// known UTXO or historical output, and only then advances the internal
+  /// counter past it.
+  TaskEither<WalletError, String> _nextUnusedReceiveAddress() {
+    return TaskEither.tryCatch(
+      () async {
+        final usedScripts = _buildUsedScriptSet();
+
+        final last = _datasource.wallet
+            .getAddress(addressIndex: bdk.AddressIndex.lastUnused());
+        var index = last.index;
+        var addrStr = last.address.asString();
+        var scriptHex = _scriptHex(last.address.scriptPubkey().bytes);
+
+        const cap = 100;
+        var walked = 0;
+        while (usedScripts.contains(scriptHex) && walked < cap) {
+          index++;
+          walked++;
+          final info = _datasource.wallet
+              .getAddress(addressIndex: bdk.AddressIndex.peek(index: index));
+          addrStr = info.address.asString();
+          scriptHex = _scriptHex(info.address.scriptPubkey().bytes);
+        }
+
+        if (usedScripts.contains(scriptHex)) {
+          throw StateError(
+            'No unused receive address found within $cap-index window.',
+          );
+        }
+
+        // Pin BDK's internal counter past this index so subsequent
+        // .increase() calls won't return earlier addresses.
+        _datasource.wallet
+            .getAddress(addressIndex: bdk.AddressIndex.reset(index: index));
+
+        return addrStr;
+      },
+      (err, _) =>
+          WalletError(WalletErrorType.sdkError, err.toString()),
+    );
+  }
+
+  Set<String> _buildUsedScriptSet() {
+    final used = <String>{};
+    for (final u in _datasource.wallet.listUnspent()) {
+      used.add(_scriptHex(u.txout.scriptPubkey.bytes));
+    }
+    for (final tx in _datasource.wallet.listTransactions(includeRaw: true)) {
+      final raw = tx.transaction;
+      if (raw == null) continue;
+      for (final out in raw.output()) {
+        used.add(_scriptHex(out.scriptPubkey.bytes));
+      }
+    }
+    return used;
+  }
+
+  String _scriptHex(List<int> bytes) {
+    final buf = StringBuffer();
+    for (final b in bytes) {
+      buf.write((b & 0xff).toRadixString(16).padLeft(2, '0'));
+    }
+    return buf.toString();
   }
 
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
