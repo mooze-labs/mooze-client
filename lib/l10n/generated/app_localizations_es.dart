@@ -4432,8 +4432,42 @@ class AppLocalizationsEs extends AppLocalizations {
   String get address_explorer_utxos_section => 'UTXOs';
 
   @override
+  String get address_explorer_utxos_tap_to_expand => 'tocar para expandir';
+
+  @override
+  String get address_explorer_utxos_tap_to_collapse => 'tocar para contraer';
+
+  @override
   String address_explorer_summary(int total, int used, int utxos) {
     return '$total direcciones · $used usadas · $utxos UTXOs';
+  }
+
+  @override
+  String address_explorer_summary_addresses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count direcciones',
+      one: '1 dirección',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String address_explorer_summary_status(int used, int unused) {
+    return '$used usadas • $unused no usadas';
+  }
+
+  @override
+  String address_explorer_summary_utxos_total(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count UTXOs',
+      one: '1 UTXO',
+      zero: 'sin UTXOs',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -4442,17 +4476,48 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get address_explorer_filter_all => 'Todas';
+
+  @override
+  String get address_explorer_filter_used => 'Usadas';
+
+  @override
+  String get address_explorer_filter_unused => 'No usadas';
+
+  @override
+  String get address_explorer_filter_with_utxos => 'Con UTXOs';
+
+  @override
+  String get address_explorer_filter_empty =>
+      'Ninguna dirección coincide con el filtro actual.';
+
+  @override
+  String get address_explorer_full_address_title => 'Dirección';
+
+  @override
+  String get address_explorer_full_address_copy => 'Copiar dirección';
+
+  @override
+  String get address_explorer_close => 'Cerrar';
+
+  @override
   String get address_ownership_title => 'Verificar dirección';
 
   @override
   String get address_ownership_description =>
-      'Pegue una dirección para verificar si pertenece a su billetera. Bitcoin on-chain y Liquid Network son compatibles.';
+      'Pegue una dirección para verificar la propiedad';
+
+  @override
+  String get address_ownership_subtitle => 'Compatible con Bitcoin y Liquid';
 
   @override
   String get address_ownership_input_hint => 'bc1q… / lq1… / 1A1z…';
 
   @override
   String get address_ownership_paste_tooltip => 'Pegar';
+
+  @override
+  String get address_ownership_clear_tooltip => 'Limpiar';
 
   @override
   String get address_ownership_verify => 'Verificar';
@@ -4464,18 +4529,46 @@ class AppLocalizationsEs extends AppLocalizations {
   String get address_ownership_clear => 'Limpiar';
 
   @override
-  String get address_ownership_owned_title =>
-      'Esta dirección pertenece a su billetera';
+  String get address_ownership_paste_feedback => 'Pegado desde el portapapeles';
 
   @override
-  String get address_ownership_not_owned_title =>
-      'Esta dirección no pertenece a esta billetera';
+  String get address_ownership_clear_feedback => 'Limpiado';
 
   @override
-  String get address_ownership_chain_bitcoin => 'Bitcoin On-chain';
+  String address_ownership_detected(String chain) {
+    return 'Detectado: $chain';
+  }
 
   @override
-  String get address_ownership_chain_liquid => 'Liquid Network';
+  String get address_ownership_invalid_format =>
+      'Formato de dirección no válido';
+
+  @override
+  String get address_ownership_owned_title => 'Tu dirección';
+
+  @override
+  String get address_ownership_not_owned_title => 'No es tu dirección';
+
+  @override
+  String get address_ownership_field_type => 'Tipo';
+
+  @override
+  String get address_ownership_field_utxos => 'UTXOs';
+
+  @override
+  String get address_ownership_field_used => 'Usada';
+
+  @override
+  String get address_ownership_yes => 'Sí';
+
+  @override
+  String get address_ownership_no => 'No';
+
+  @override
+  String get address_ownership_chain_bitcoin => 'Bitcoin';
+
+  @override
+  String get address_ownership_chain_liquid => 'Liquid';
 
   @override
   String address_ownership_index_label(int index) {
