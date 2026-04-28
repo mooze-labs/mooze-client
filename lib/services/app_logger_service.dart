@@ -452,7 +452,13 @@ class AppLoggerService {
     }
   }
 
-  Future<String> exportLogs() async {
+  /// Build the export ZIP for the given [walletId]. Swaps and Pegs in the
+  /// structured JSON section are scoped to this wallet — pre-walletId
+  /// rows (sentinel 'unknown') are not included, matching the in-app
+  /// view. Logs and transactions are not currently wallet-scoped at the
+  /// schema level (`deleteWallet()` wipes them outright on wipe), so they
+  /// remain unscoped here.
+  Future<String> exportLogs({required String walletId}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -564,7 +570,7 @@ class AppLoggerService {
       // Structured JSON export — primary artifact for support tooling. Holds
       // logs, transactions and swaps in a single document with stable keys
       // so an automated pipeline can ingest it without parsing free text.
-      final jsonExport = await _buildStructuredExport();
+      final jsonExport = await _buildStructuredExport(walletId: walletId);
       final jsonFile = File('${exportDir.path}/mooze_export.json');
       await jsonFile.writeAsString(
         const JsonEncoder.withIndent('  ').convert(jsonExport),
@@ -674,7 +680,9 @@ class AppLoggerService {
   /// swaps come straight from the database — they have no in-memory mirror.
   /// If the database isn't initialized the corresponding sections are empty
   /// arrays rather than missing keys, so consumers can rely on shape.
-  Future<Map<String, dynamic>> _buildStructuredExport() async {
+  Future<Map<String, dynamic>> _buildStructuredExport({
+    required String walletId,
+  }) async {
     final memoryLogs = _logs.reversed.map(_logEntryToJson).toList();
 
     List<Map<String, dynamic>> dbLogJson = const [];
@@ -685,7 +693,7 @@ class AppLoggerService {
       final db = _database!;
       final dbLogs = await db.getAllLogs();
       final txs = await db.getAllTransactions();
-      final swaps = await db.getAllSwaps();
+      final swaps = await db.getAllSwaps(walletId: walletId);
 
       dbLogJson = dbLogs.map(_appLogRowToJson).toList();
 
