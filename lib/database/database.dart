@@ -45,6 +45,12 @@ class Swaps extends Table {
       text().withLength(min: 1, max: 32).withDefault(const Constant('asset_swap'))();
   TextColumn get txId => text().nullable()();
   TextColumn get metadata => text().nullable()();
+  // walletId scopes audit rows to the wallet that produced them. Sourced
+  // from WalletIdService at insert time. Default 'unknown' covers rows
+  // that pre-date the v10 → v11 migration; those rows remain on disk for
+  // audit but are not visible to any active wallet's queries.
+  TextColumn get walletId =>
+      text().withLength(min: 1, max: 64).withDefault(const Constant('unknown'))();
 }
 
 /// Immutable audit log of SideSwap peg-in / peg-out operations.
@@ -60,6 +66,9 @@ class Pegs extends Table {
   TextColumn get payoutAddress => text()();
   IntColumn get amount => integer()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  // See Swaps.walletId — same scoping policy.
+  TextColumn get walletId =>
+      text().withLength(min: 1, max: 64).withDefault(const Constant('unknown'))();
 }
 
 class Deposits extends Table {
@@ -134,7 +143,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   // ==================== Swap Operations (immutable) ====================
   //
@@ -170,20 +179,27 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<List<Swap>> getAllSwaps() => select(swaps).get();
+  /// Returns swap rows scoped to [walletId]. Pre-v11 rows carry the
+  /// sentinel walletId 'unknown' and are therefore invisible here; they
+  /// remain on disk for audit recoverability.
+  Future<List<Swap>> getAllSwaps({required String walletId}) =>
+      (select(swaps)..where((s) => s.walletId.equals(walletId))).get();
 
-  /// Idempotency primitive for the audit repository: returns true if a swap
-  /// for the given (provider, txId) already exists. Matches either an exact
-  /// txId equality or a substring inside metadata, so callers that store the
-  /// reference inside metadata (e.g. Liquid internal swaps that store both
-  /// send and receive leg ids in metadata) hit the same check.
+  /// Idempotency primitive for the audit repository, scoped per-wallet:
+  /// returns true if a swap for the given (walletId, provider, txId)
+  /// already exists. Matches either an exact txId equality or a substring
+  /// inside metadata, so callers that store the reference inside metadata
+  /// (e.g. Liquid internal swaps that store both send and receive leg ids
+  /// in metadata) hit the same check.
   Future<bool> swapExistsForTxId({
+    required String walletId,
     required String provider,
     required String txId,
   }) async {
     final pattern = '%${txId.toLowerCase()}%';
     final query =
         select(swaps)
+          ..where((s) => s.walletId.equals(walletId))
           ..where((s) => s.provider.equals(provider))
           ..where(
             (s) => s.txId.equals(txId) | s.metadata.lower().like(pattern),
@@ -193,16 +209,19 @@ class AppDatabase extends _$AppDatabase {
     return result != null;
   }
 
-  /// Lookup primitive used by the Breez peg-in completion listener: finds
-  /// the most recent pending peg-in whose metadata references the given
-  /// Bitcoin deposit address. Returns null if no match.
+  /// Lookup primitive used by the Breez peg-in completion listener, scoped
+  /// per-wallet: finds the most recent pending peg-in whose metadata
+  /// references the given Bitcoin deposit address. Returns null if no
+  /// match.
   Future<Swap?> findPendingPegInByDepositAddress({
+    required String walletId,
     required String provider,
     required String depositAddress,
   }) async {
     final pattern = '%${depositAddress.toLowerCase()}%';
     final query =
         select(swaps)
+          ..where((s) => s.walletId.equals(walletId))
           ..where((s) => s.provider.equals(provider))
           ..where((s) => s.status.equals('pending'))
           ..where((s) => s.metadata.lower().like(pattern))
@@ -214,10 +233,11 @@ class AppDatabase extends _$AppDatabase {
     return query.getSingleOrNull();
   }
 
-  /// Paginated swap query, newest first, with optional provider and
-  /// search-text filter applied at SQL level (matches sendAsset, receiveAsset,
-  /// direction, txId, metadata).
+  /// Paginated swap query, newest first, scoped by walletId, with optional
+  /// provider and search-text filter applied at SQL level (matches
+  /// sendAsset, receiveAsset, direction, txId, metadata).
   Future<List<Swap>> getSwapsPaginated({
+    required String walletId,
     required int limit,
     required int offset,
     String? provider,
@@ -225,6 +245,7 @@ class AppDatabase extends _$AppDatabase {
   }) {
     final query =
         select(swaps)
+          ..where((s) => s.walletId.equals(walletId))
           ..orderBy([
             (s) =>
                 OrderingTerm(expression: s.createdAt, mode: OrderingMode.desc),
@@ -250,9 +271,12 @@ class AppDatabase extends _$AppDatabase {
     return query.get();
   }
 
-  Future<int> getSwapsCount() async {
+  Future<int> getSwapsCount({required String walletId}) async {
     final countExp = swaps.id.count();
-    final query = selectOnly(swaps)..addColumns([countExp]);
+    final query =
+        selectOnly(swaps)
+          ..addColumns([countExp])
+          ..where(swaps.walletId.equals(walletId));
     final result = await query.getSingleOrNull();
     return result?.read(countExp) ?? 0;
   }
@@ -265,7 +289,10 @@ class AppDatabase extends _$AppDatabase {
   /// Insert a new peg audit row. Returns the auto-generated id.
   Future<int> insertPeg(PegsCompanion peg) => into(pegs).insert(peg);
 
-  Future<List<Peg>> getAllPegs() => select(pegs).get();
+  /// Pegs scoped to [walletId]; pre-v11 rows with sentinel walletId
+  /// 'unknown' are invisible.
+  Future<List<Peg>> getAllPegs({required String walletId}) =>
+      (select(pegs)..where((p) => p.walletId.equals(walletId))).get();
 
   // Log operations
   Future<int> insertLog(AppLogsCompanion log) => into(appLogs).insert(log);
@@ -390,7 +417,12 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteTransaction(String id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
 
-  /// Delete all transactions
+  /// Wipe ALL rows in the Transactions table.
+  ///
+  /// CONTRACT: only ever called from [WalletDataManager.deleteWallet].
+  /// Do NOT call from sync paths, app restart, wallet reload, or "clear
+  /// cache" UIs. Cross-wallet transaction leakage was the original reason
+  /// this is called on wipe — see DECISIONS.md ADR-010.
   Future<int> deleteAllTransactions() => delete(transactions).go();
 
   /// Delete all PIX deposits
@@ -437,6 +469,16 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteSyncMetadata(String datasource) =>
       (delete(syncMetadata)
         ..where((t) => t.datasource.equals(datasource))).go();
+
+  /// Wipe ALL rows in the SyncMetadata table.
+  ///
+  /// CONTRACT: this method is only ever called from
+  /// [WalletDataManager.deleteWallet] as part of the wallet-deletion sweep.
+  /// It must NEVER be invoked during normal sync, app restart, wallet
+  /// reload, or any other code path. If a future caller needs to "reset
+  /// sync state" without deleting the wallet, add a scoped DAO method
+  /// instead — do not reuse this one.
+  Future<int> deleteAllSyncMetadata() => delete(syncMetadata).go();
 
   /// Indexes that accelerate the logs viewer's paginated, filtered queries:
   ///   - timestamp DESC for the default ORDER BY (every page)
@@ -514,6 +556,14 @@ class AppDatabase extends _$AppDatabase {
           // table, replace this with a TableMigration that preserves rows.
           await m.deleteTable('swaps');
           await m.createTable(swaps);
+        }
+        if (from <= 10 && to >= 11) {
+          // Add walletId to Swaps and Pegs without losing existing rows.
+          // Pre-v11 rows get the sentinel 'unknown'; they remain on disk
+          // for audit recoverability but are not visible to any active
+          // wallet's scoped queries. New inserts MUST provide a walletId.
+          await m.addColumn(swaps, swaps.walletId);
+          await m.addColumn(pegs, pegs.walletId);
         }
       },
     );
