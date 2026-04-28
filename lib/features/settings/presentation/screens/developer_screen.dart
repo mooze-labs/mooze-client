@@ -21,6 +21,7 @@ import 'package:mooze_mobile/features/settings/presentation/screens/logs_viewer_
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
@@ -455,7 +456,12 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     _logger.info('DeveloperScreen', 'Exporting logs...');
 
     try {
-      final zipPath = await _logger.exportLogs();
+      // walletIdProvider lazily generates a UUID v4 on first read; we pass
+      // it into exportLogs so the swaps section is scoped to the current
+      // wallet (rows from a previously deleted wallet remain in the DB
+      // under their old walletId but are not exported).
+      final walletId = await ref.read(walletIdProvider.future);
+      final zipPath = await _logger.exportLogs(walletId: walletId);
 
       if (mounted) {
         if (exportMethod == ExportMethod.email) {
