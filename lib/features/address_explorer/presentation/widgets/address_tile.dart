@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/address_utxo.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/wallet_address.dart';
+import 'package:mooze_mobile/features/address_explorer/domain/enums/address_chain.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/enums/address_status.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
-class AddressTile extends StatelessWidget {
+class AddressTile extends StatefulWidget {
   final WalletAddress address;
   final bool highlight;
 
@@ -16,111 +17,151 @@ class AddressTile extends StatelessWidget {
   });
 
   @override
+  State<AddressTile> createState() => _AddressTileState();
+}
+
+class _AddressTileState extends State<AddressTile> {
+  bool _expanded = false;
+
+  void _toggleExpanded() {
+    setState(() => _expanded = !_expanded);
+  }
+
+  Future<void> _copyAddress() async {
+    await Clipboard.setData(ClipboardData(text: widget.address.address));
+    if (!mounted) return;
+    final t = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.removeCurrentSnackBar();
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text(t.address_explorer_address_copied),
+        duration: const Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final t = AppLocalizations.of(context);
-    final isUsed = address.status == AddressStatus.used;
-    final utxoCount = address.utxos.length;
+    final isUsed = widget.address.status == AddressStatus.used;
+    final utxoCount = widget.address.utxos.length;
+    final hasUtxos = utxoCount > 0;
+
+    final borderColor = widget.highlight
+        ? scheme.primary
+        : scheme.outlineVariant.withValues(alpha: 0.35);
+    final bg = widget.highlight
+        ? scheme.primaryContainer.withValues(alpha: 0.30)
+        : scheme.surface;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: highlight
-            ? scheme.primaryContainer.withValues(alpha: 0.35)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
-        border: highlight
-            ? Border.all(color: scheme.primary, width: 1.5)
-            : Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: borderColor,
+          width: widget.highlight ? 1.4 : 1,
+        ),
       ),
-      child: Theme(
-        data: theme.copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          shape: const Border(),
-          collapsedShape: const Border(),
-          tilePadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-          leading: _IndexBadge(index: address.derivationIndex, used: isUsed),
-          title: Text(
-            _truncate(address.address),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _StatusBadge(used: isUsed, t: t),
-                _UtxoBadge(count: utxoCount, t: t),
-                if (address.receivedSats > BigInt.zero)
-                  Text(
-                    t.address_explorer_total_received(
-                      _formatAmount(address.receivedSats),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: _toggleExpanded,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _StatusDot(used: isUsed),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _expanded
+                                ? widget.address.address
+                                : _truncate(widget.address.address),
+                            maxLines: _expanded ? null : 1,
+                            overflow: _expanded
+                                ? TextOverflow.visible
+                                : TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurface,
+                              height: _expanded ? 1.4 : 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _MetaLine(
+                            isUsed: isUsed,
+                            utxoCount: utxoCount,
+                            receivedSats: widget.address.receivedSats,
+                            chain: widget.address.chain,
+                            theme: theme,
+                            t: t,
+                          ),
+                        ],
+                      ),
                     ),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      splashRadius: 22,
+                      tooltip: t.address_explorer_address_copied,
+                      onPressed: _copyAddress,
                     ),
-                  ),
-              ],
-            ),
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.copy_outlined, size: 20),
-            tooltip: t.address_explorer_address_copied,
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: address.address));
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(t.address_explorer_address_copied),
-                  duration: const Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    AnimatedRotation(
+                      duration: const Duration(milliseconds: 180),
+                      turns: _expanded ? 0.5 : 0,
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                 ),
               ),
-              child: SelectableText(
-                address.address,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(fontFamily: 'monospace'),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                child: _expanded && hasUtxos
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                t.address_explorer_utxo_count(utxoCount),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            for (final utxo in widget.address.utxos)
+                              _UtxoRow(utxo: utxo, theme: theme),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
-            ),
-            if (address.utxos.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  t.address_explorer_utxos_section,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              for (final utxo in address.utxos) _UtxoRow(utxo: utxo),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -128,160 +169,157 @@ class AddressTile extends StatelessWidget {
 
   static String _truncate(String s) {
     if (s.length <= 26) return s;
-    return '${s.substring(0, 16)}…${s.substring(s.length - 8)}';
-  }
-
-  static String _formatAmount(BigInt sats) {
-    // Group thousands with a thin space for readability.
-    final s = sats.toString();
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-      buf.write(s[i]);
-    }
-    return '$buf sats';
+    return '${s.substring(0, 12)}…${s.substring(s.length - 8)}';
   }
 }
 
-class _IndexBadge extends StatelessWidget {
-  final int index;
+class _StatusDot extends StatelessWidget {
   final bool used;
-  const _IndexBadge({required this.index, required this.used});
+  const _StatusDot({required this.used});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final color = used ? _usedColor(scheme) : scheme.onSurfaceVariant;
+    final fill = used ? color : color.withValues(alpha: 0.25);
     return Container(
-      width: 32,
-      height: 32,
-      alignment: Alignment.center,
+      width: 10,
+      height: 10,
       decoration: BoxDecoration(
+        color: fill,
         shape: BoxShape.circle,
-        color: used ? scheme.tertiary : scheme.primary,
-      ),
-      child: Text(
-        '$index',
-        style: TextStyle(
-          color: used ? scheme.onTertiary : scheme.onPrimary,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+        border: used ? null : Border.all(color: color, width: 1),
       ),
     );
   }
+
+  static Color _usedColor(ColorScheme scheme) =>
+      scheme.brightness == Brightness.dark
+          ? const Color(0xFF4ADE80)
+          : const Color(0xFF16A34A);
 }
 
-class _StatusBadge extends StatelessWidget {
-  final bool used;
+class _MetaLine extends StatelessWidget {
+  final bool isUsed;
+  final int utxoCount;
+  final BigInt receivedSats;
+  final AddressChain chain;
+  final ThemeData theme;
   final AppLocalizations t;
-  const _StatusBadge({required this.used, required this.t});
+
+  const _MetaLine({
+    required this.isUsed,
+    required this.utxoCount,
+    required this.receivedSats,
+    required this.chain,
+    required this.theme,
+    required this.t,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = used ? scheme.tertiary : scheme.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            used
-                ? Icons.history_toggle_off_rounded
-                : Icons.fiber_new_rounded,
-            size: 12,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            used
-                ? t.address_explorer_status_used
-                : t.address_explorer_status_unused,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
+    final scheme = theme.colorScheme;
+    final parts = <String>[
+      isUsed
+          ? t.address_explorer_status_used
+          : t.address_explorer_status_unused,
+      t.address_explorer_utxo_count(utxoCount),
+    ];
+    if (receivedSats > BigInt.zero) {
+      parts.add(_formatReceived(receivedSats, chain));
+    }
+    return Text(
+      parts.join(' • '),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: scheme.onSurfaceVariant,
+        letterSpacing: 0.2,
       ),
     );
   }
-}
 
-class _UtxoBadge extends StatelessWidget {
-  final int count;
-  final AppLocalizations t;
-  const _UtxoBadge({required this.count, required this.t});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final emphasised = count > 0;
-    final color = emphasised ? scheme.secondary : scheme.onSurfaceVariant;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: emphasised ? 0.18 : 0.10),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        t.address_explorer_utxo_count(count),
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+  static String _formatReceived(BigInt sats, AddressChain chain) {
+    if (chain == AddressChain.bitcoin) return _formatBtc(sats);
+    return '${_groupThousands(sats.toString())} sats';
   }
 }
 
 class _UtxoRow extends StatelessWidget {
   final AddressUtxo utxo;
-  const _UtxoRow({required this.utxo});
+  final ThemeData theme;
+  const _UtxoRow({required this.utxo, required this.theme});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          Text(
+            '•',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              utxo.outpoint,
+              _truncateOutpoint(utxo.outpoint),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
-                color: theme.colorScheme.onSurfaceVariant,
+                color: scheme.onSurfaceVariant,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 12),
           Text(
-            _formatValue(utxo.value, utxo.assetId),
-            style: theme.textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+            _formatValue(utxo.value, utxo.assetId, utxo.chain),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
           ),
         ],
       ),
     );
   }
 
-  static String _formatValue(BigInt value, String? assetId) {
-    final s = value.toString();
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-      buf.write(s[i]);
-    }
-    return assetId == null ? '$buf sats' : buf.toString();
+  static String _truncateOutpoint(String outpoint) {
+    if (outpoint.isEmpty) return '—';
+    final colon = outpoint.indexOf(':');
+    final txid = colon < 0 ? outpoint : outpoint.substring(0, colon);
+    if (txid.length <= 16) return outpoint;
+    return '${txid.substring(0, 8)}…${txid.substring(txid.length - 4)}';
   }
+
+  static String _formatValue(BigInt value, String? assetId, AddressChain chain) {
+    if (chain == AddressChain.bitcoin) return _formatBtc(value);
+    return '${_groupThousands(value.toString())} sats';
+  }
+}
+
+String _groupThousands(String s) {
+  final buf = StringBuffer();
+  for (int i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
+
+String _formatBtc(BigInt sats) {
+  if (sats == BigInt.zero) return '0 BTC';
+  const satsPerBtc = 100000000;
+  final whole = sats ~/ BigInt.from(satsPerBtc);
+  final frac = (sats % BigInt.from(satsPerBtc))
+      .toString()
+      .padLeft(8, '0')
+      .replaceAll(RegExp(r'0+$'), '');
+  if (frac.isEmpty) return '$whole BTC';
+  return '$whole.$frac BTC';
 }

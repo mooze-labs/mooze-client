@@ -11,93 +11,91 @@ class AddressOwnershipResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
     if (!match.isOwned) {
-      return _ResultCard(
-        backgroundColor: scheme.errorContainer,
-        foregroundColor: scheme.onErrorContainer,
-        icon: Icons.cancel_outlined,
+      return _NotOwnedBanner(
         title: t.address_ownership_not_owned_title,
-        subtitle: _truncate(match.address),
+        address: _truncate(match.address),
+        theme: theme,
       );
     }
 
     final chainLabel = match.chain == AddressChain.bitcoin
         ? t.address_ownership_chain_bitcoin
         : t.address_ownership_chain_liquid;
-    final statusLabel = match.status == AddressStatus.used
-        ? t.address_ownership_status_used
-        : t.address_ownership_status_unused;
-    final indexFragment = match.derivationIndex != null
-        ? ' · ${t.address_ownership_index_label(match.derivationIndex!)}'
-        : '';
+    final isUsed = match.status == AddressStatus.used;
 
-    return _ResultCard(
-      backgroundColor: scheme.primaryContainer,
-      foregroundColor: scheme.onPrimaryContainer,
-      icon: Icons.verified_rounded,
+    return _OwnedCard(
       title: t.address_ownership_owned_title,
-      subtitle: '$chainLabel · $statusLabel$indexFragment\n${_truncate(match.address)}',
+      typeLabel: t.address_ownership_field_type,
+      typeValue: chainLabel,
+      utxosLabel: t.address_ownership_field_utxos,
+      utxosValue: match.utxoCount.toString(),
+      usedLabel: t.address_ownership_field_used,
+      usedValue: isUsed ? t.address_ownership_yes : t.address_ownership_no,
+      address: _truncate(match.address),
+      theme: theme,
     );
   }
 
-  static String _truncate(String address, {int prefix = 16, int suffix = 12}) {
+  static String _truncate(String address, {int prefix = 14, int suffix = 10}) {
     if (address.length <= prefix + suffix + 3) return address;
     return '${address.substring(0, prefix)}…${address.substring(address.length - suffix)}';
   }
 }
 
-class _ResultCard extends StatelessWidget {
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final IconData icon;
+class _NotOwnedBanner extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String address;
+  final ThemeData theme;
 
-  const _ResultCard({
-    required this.backgroundColor,
-    required this.foregroundColor,
-    required this.icon,
+  const _NotOwnedBanner({
     required this.title,
-    required this.subtitle,
+    required this.address,
+    required this.theme,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = scheme.error.withValues(alpha: 0.85);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(14),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: foregroundColor, size: 30),
-          const SizedBox(width: 14),
+          Icon(Icons.cancel_rounded, color: muted, size: 22),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: foregroundColor,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 2),
                 Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: foregroundColor,
+                  address,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
                     fontFamily: 'monospace',
-                    height: 1.4,
                   ),
                 ),
               ],
@@ -105,6 +103,137 @@ class _ResultCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OwnedCard extends StatelessWidget {
+  final String title;
+  final String typeLabel;
+  final String typeValue;
+  final String utxosLabel;
+  final String utxosValue;
+  final String usedLabel;
+  final String usedValue;
+  final String address;
+  final ThemeData theme;
+
+  const _OwnedCard({
+    required this.title,
+    required this.typeLabel,
+    required this.typeValue,
+    required this.utxosLabel,
+    required this.utxosValue,
+    required this.usedLabel,
+    required this.usedValue,
+    required this.address,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = theme.colorScheme;
+    final success = _successColor(scheme);
+    final successSurface = success.withValues(alpha: 0.10);
+    final successBorder = success.withValues(alpha: 0.35);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: successSurface,
+        border: Border.all(color: successBorder),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: success, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _DetailRow(label: typeLabel, value: typeValue, theme: theme),
+          const SizedBox(height: 6),
+          _DetailRow(label: utxosLabel, value: utxosValue, theme: theme),
+          const SizedBox(height: 6),
+          _DetailRow(label: usedLabel, value: usedValue, theme: theme),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: scheme.surface.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              address,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Color _successColor(ColorScheme scheme) {
+    return scheme.brightness == Brightness.dark
+        ? const Color(0xFF4ADE80)
+        : const Color(0xFF16A34A);
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final ThemeData theme;
+
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
