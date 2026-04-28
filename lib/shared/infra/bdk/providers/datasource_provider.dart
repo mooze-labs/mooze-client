@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/blockchain_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/network_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/wallet.dart';
+import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 
@@ -13,6 +14,7 @@ final bdkDatasourceProvider = FutureProvider<Either<String, BdkDataSource>>((
   final maybeMnemonic = ref.read(mnemonicStoreProvider).getMnemonic();
   final network = ref.read(networkProvider);
   final syncStream = ref.read(syncStreamProvider);
+  final database = ref.read(appDatabaseProvider);
 
   final mnemonic = maybeMnemonic.flatMap(
     (opt) => opt.fold(
@@ -30,6 +32,7 @@ final bdkDatasourceProvider = FutureProvider<Either<String, BdkDataSource>>((
           blockchain: b,
           syncStream: syncStream,
           ref: ref,
+          database: database,
         ),
       ),
     ),
