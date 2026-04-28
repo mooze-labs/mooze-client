@@ -381,11 +381,13 @@ class AppLoggerService {
     }
   }
 
-  /// Get logs from database with pagination (newest first)
+  /// Get logs from database with pagination (newest first). Level and search
+  /// are applied at the SQL layer so callers don't have to over-fetch.
   Future<List<AppLog>> getLogsFromDatabasePaginated({
     required int limit,
     required int offset,
     LogLevel? level,
+    String? searchQuery,
   }) async {
     try {
       if (_database == null) return [];
@@ -394,6 +396,7 @@ class AppLoggerService {
         limit: limit,
         offset: offset,
         level: level?.name,
+        searchQuery: searchQuery,
       );
     } catch (e) {
       error(
@@ -403,6 +406,35 @@ class AppLoggerService {
       );
       return [];
     }
+  }
+
+  /// Filtered view over the in-memory ring buffer (newest first).
+  /// Mirrors the database-side filter so memory and DB sources share the
+  /// same matching semantics.
+  List<LogEntry> getMemoryLogsFiltered({
+    LogLevel? level,
+    String? searchQuery,
+  }) {
+    Iterable<LogEntry> filtered = _logs.reversed;
+
+    if (level != null) {
+      filtered = filtered.where((log) => log.level == level);
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      filtered = filtered.where((log) {
+        if (log.message.toLowerCase().contains(query)) return true;
+        if (log.tag.toLowerCase().contains(query)) return true;
+        final errorText = log.error?.toString().toLowerCase();
+        if (errorText != null && errorText.contains(query)) return true;
+        final stackText = log.stackTrace?.toString().toLowerCase();
+        if (stackText != null && stackText.contains(query)) return true;
+        return false;
+      });
+    }
+
+    return filtered.toList();
   }
 
   Future<List<AppLog>> getLogsFromDatabaseByTimeRange(
