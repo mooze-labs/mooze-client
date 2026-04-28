@@ -1,18 +1,33 @@
+import 'dart:convert';
+
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:drift/drift.dart' show Value;
 import 'package:fpdart/fpdart.dart';
+// `Transaction` collides with the domain Transaction below; we only need
+// TransactionsCompanion from drift so we hide the generated row type.
+import 'package:mooze_mobile/database/database.dart' hide Transaction;
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart'
     show PreparedOnchainBitcoinTransaction;
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/bdk/wallet.dart';
 
 class BitcoinWallet {
   final BdkDataSource _datasource;
+  final AppDatabase? _database;
+  final AppLoggerService? _logger;
 
-  BitcoinWallet(BdkDataSource datasource) : _datasource = datasource;
+  BitcoinWallet(
+    BdkDataSource datasource, {
+    AppDatabase? database,
+    AppLoggerService? logger,
+  }) : _datasource = datasource,
+       _database = database,
+       _logger = logger;
 
   BdkDataSource get datasource => _datasource;
 
@@ -190,6 +205,18 @@ class BitcoinWallet {
               transaction: signedPsbt.extractTx(),
             );
 
+            // Best-effort persistence: a DB error MUST NOT fail the operation,
+            // because the broadcast already happened and the user's funds
+            // moved. The next BDK sync (BdkDataSource._processTransactions)
+            // will reconcile the row idempotently if this one is lost.
+            await _persistOutgoingTx(
+              txid: txid,
+              destination: psbt.destination,
+              amountSats: psbt.amount,
+              feeRateSatPerVByte: psbt.feeRateSatPerVByte,
+              drain: psbt.drain,
+            );
+
             return Transaction(
               id: txid,
               amount: psbt.amount,
@@ -206,6 +233,49 @@ class BitcoinWallet {
         );
       });
     });
+  }
+
+  Future<void> _persistOutgoingTx({
+    required String txid,
+    required String destination,
+    required BigInt amountSats,
+    required int? feeRateSatPerVByte,
+    required bool drain,
+  }) async {
+    if (_database == null) return;
+    try {
+      await _database.upsertTransaction(
+        TransactionsCompanion.insert(
+          id: txid,
+          assetId: 'btc',
+          amount: amountSats,
+          type: 'send',
+          status: 'pending',
+          createdAt: DateTime.now(),
+          confirmations: const Value(0),
+          txHash: Value(txid),
+          address: Value(destination),
+          metadata: Value(
+            jsonEncode({
+              'feeRateSatPerVByte': feeRateSatPerVByte,
+              'drain': drain,
+            }),
+          ),
+          blockchain: 'bitcoin',
+        ),
+      );
+      _logger?.info(
+        'BitcoinWallet',
+        'Outgoing BTC tx persisted: txid=$txid amount=$amountSats',
+      );
+    } catch (e, st) {
+      _logger?.error(
+        'BitcoinWallet',
+        'Failed to persist outgoing BTC tx $txid (broadcast already succeeded)',
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
 
   TaskEither<WalletError, List<Transaction>> getTransactions({
