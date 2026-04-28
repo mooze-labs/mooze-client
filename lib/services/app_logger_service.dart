@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:mutex/mutex.dart';
@@ -553,9 +554,27 @@ class AppLoggerService {
       infoBuffer.writeln(
         '  - logs_banco.log: Logs persistidos no banco de dados',
       );
+      infoBuffer.writeln(
+        '  - mooze_export.json: Export estruturado (logs + transactions + swaps)',
+      );
 
       await infoFile.writeAsString(infoBuffer.toString());
       debugPrint('[AppLogger] Info file created');
+
+      // Structured JSON export — primary artifact for support tooling. Holds
+      // logs, transactions and swaps in a single document with stable keys
+      // so an automated pipeline can ingest it without parsing free text.
+      final jsonExport = await _buildStructuredExport();
+      final jsonFile = File('${exportDir.path}/mooze_export.json');
+      await jsonFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(jsonExport),
+      );
+      debugPrint(
+        '[AppLogger] JSON export written: '
+        'logs=${(jsonExport['logs'] as List).length} '
+        'tx=${(jsonExport['transactions'] as List).length} '
+        'swaps=${(jsonExport['swaps'] as List).length}',
+      );
 
       final files = await exportDir.list().toList();
       debugPrint('[AppLogger] Files in export directory: ${files.length}');
@@ -638,6 +657,115 @@ class AppLoggerService {
       return log.timestamp.isAfter(start) && log.timestamp.isBefore(end);
     }).toList();
   }
+
+  /// Build the structured export document used by support tooling.
+  ///
+  /// Schema (stable — see DECISIONS.md ADR-XXX):
+  /// {
+  ///   "schemaVersion": 1,
+  ///   "exportedAt":   ISO-8601 UTC timestamp,
+  ///   "logs":         [LogEntry-shaped objects, newest first],
+  ///   "transactions": [Transaction rows, newest first],
+  ///   "swaps":        [Swap rows, newest first]
+  /// }
+  ///
+  /// Logs combine both the in-memory ring buffer (which may include levels
+  /// not persisted by [LogConfig]) and the database table. Transactions and
+  /// swaps come straight from the database — they have no in-memory mirror.
+  /// If the database isn't initialized the corresponding sections are empty
+  /// arrays rather than missing keys, so consumers can rely on shape.
+  Future<Map<String, dynamic>> _buildStructuredExport() async {
+    final memoryLogs = _logs.reversed.map(_logEntryToJson).toList();
+
+    List<Map<String, dynamic>> dbLogJson = const [];
+    List<Map<String, dynamic>> txJson = const [];
+    List<Map<String, dynamic>> swapJson = const [];
+
+    if (_database != null) {
+      final db = _database!;
+      final dbLogs = await db.getAllLogs();
+      final txs = await db.getAllTransactions();
+      final swaps = await db.getAllSwaps();
+
+      dbLogJson = dbLogs.map(_appLogRowToJson).toList();
+
+      txs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      txJson = txs.map(_transactionRowToJson).toList();
+
+      swaps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      swapJson = swaps.map(_swapRowToJson).toList();
+    }
+
+    // Memory + DB logs are merged and sorted newest-first; consumers see one
+    // unified timeline regardless of which store the entry lived in.
+    final mergedLogs = <Map<String, dynamic>>[...memoryLogs, ...dbLogJson];
+    mergedLogs.sort((a, b) {
+      final ta = DateTime.tryParse(a['timestamp'] as String? ?? '');
+      final tb = DateTime.tryParse(b['timestamp'] as String? ?? '');
+      if (ta == null || tb == null) return 0;
+      return tb.compareTo(ta);
+    });
+
+    return {
+      'schemaVersion': 1,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'logs': mergedLogs,
+      'transactions': txJson,
+      'swaps': swapJson,
+    };
+  }
+
+  Map<String, dynamic> _logEntryToJson(LogEntry e) => {
+    'source': 'memory',
+    'timestamp': e.timestamp.toUtc().toIso8601String(),
+    'level': e.level.name,
+    'tag': e.tag,
+    'message': e.message,
+    if (e.error != null) 'error': e.error.toString(),
+    if (e.stackTrace != null) 'stackTrace': e.stackTrace.toString(),
+  };
+
+  Map<String, dynamic> _appLogRowToJson(AppLog row) => {
+    'source': 'database',
+    'id': row.id,
+    'timestamp': row.timestamp.toUtc().toIso8601String(),
+    'level': row.level,
+    'tag': row.tag,
+    'message': row.message,
+    if (row.error != null) 'error': row.error,
+    if (row.stackTrace != null) 'stackTrace': row.stackTrace,
+  };
+
+  Map<String, dynamic> _transactionRowToJson(Transaction row) => {
+    'id': row.id,
+    'assetId': row.assetId,
+    // Int64 amounts are serialized as strings to preserve full precision; a
+    // signed JSON number would risk silent truncation on consumers that
+    // parse to double.
+    'amount': row.amount.toString(),
+    'type': row.type,
+    'status': row.status,
+    'blockchain': row.blockchain,
+    'createdAt': row.createdAt.toUtc().toIso8601String(),
+    'confirmations': row.confirmations,
+    if (row.txHash != null) 'txHash': row.txHash,
+    if (row.address != null) 'address': row.address,
+    if (row.metadata != null) 'metadata': row.metadata,
+  };
+
+  Map<String, dynamic> _swapRowToJson(Swap row) => {
+    'id': row.id,
+    'provider': row.provider,
+    'direction': row.direction,
+    'status': row.status,
+    'sendAsset': row.sendAsset,
+    'receiveAsset': row.receiveAsset,
+    'sendAmount': row.sendAmount.toString(),
+    'receiveAmount': row.receiveAmount.toString(),
+    'createdAt': row.createdAt.toUtc().toIso8601String(),
+    if (row.txId != null) 'txId': row.txId,
+    if (row.metadata != null) 'metadata': row.metadata,
+  };
 
   void dispose() {
     _cleanupTimer?.cancel();
