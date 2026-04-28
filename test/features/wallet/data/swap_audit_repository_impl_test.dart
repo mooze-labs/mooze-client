@@ -14,12 +14,18 @@ void main() {
   late AppLoggerService logger;
   late SwapAuditRepository audit;
 
+  const String testWalletId = 'wallet-test';
+
   setUp(() {
     db = buildInMemoryDatabase();
     // AppLoggerService is a singleton across tests — that's fine here, the
     // service tolerates being re-initialized and we only assert on DB state.
     logger = AppLoggerService();
-    audit = SwapAuditRepositoryImpl(db, logger);
+    audit = SwapAuditRepositoryImpl(
+      db,
+      logger,
+      FakeWalletIdService(testWalletId),
+    );
   });
 
   tearDown(() async {
@@ -42,7 +48,7 @@ void main() {
       final id = result.getRight().getOrElse(() => -1);
       expect(id, greaterThan(0));
 
-      final rows = await db.getAllSwaps();
+      final rows = await db.getAllSwaps(walletId: testWalletId);
       expect(rows, hasLength(1));
       final row = rows.single;
       expect(row.id, id);
@@ -66,7 +72,7 @@ void main() {
       );
       expect(r1.isRight(), isTrue);
 
-      final rows = await db.getAllSwaps();
+      final rows = await db.getAllSwaps(walletId: testWalletId);
       expect(rows.single.metadata, isNull);
     });
   });
@@ -92,7 +98,7 @@ void main() {
 
       expect(result.isRight(), isTrue);
 
-      final row = (await db.getAllSwaps()).single;
+      final row = (await db.getAllSwaps(walletId: testWalletId)).single;
       expect(row.id, id);
       expect(row.status, 'completed');
       expect(row.txId, 'btc-tx-abc');
@@ -112,7 +118,7 @@ void main() {
 
       await audit.markFinal(id: id, status: 'failed');
 
-      final row = (await db.getAllSwaps()).single;
+      final row = (await db.getAllSwaps(walletId: testWalletId)).single;
       expect(row.provider, 'breez');
       expect(row.direction, 'lbtc_to_btc');
       expect(row.sendAsset, 'LBTC');
@@ -136,7 +142,7 @@ void main() {
       await audit.markFinal(id: id, status: 'completed', txId: 'tx-1');
       await audit.markFinal(id: id, status: 'failed', txId: 'tx-2');
 
-      final rows = await db.getAllSwaps();
+      final rows = await db.getAllSwaps(walletId: testWalletId);
       expect(rows, hasLength(1));
       expect(rows.single.status, 'failed');
       expect(rows.single.txId, 'tx-2');
@@ -160,7 +166,7 @@ void main() {
         txId: 'liquid-tx-1',
       );
       expect(result.isRight(), isTrue);
-      final rows = await db.getAllSwaps();
+      final rows = await db.getAllSwaps(walletId: testWalletId);
       expect(rows, hasLength(1));
       expect(rows.single.status, 'completed');
       expect(rows.single.txId, 'liquid-tx-1');
@@ -190,7 +196,7 @@ void main() {
       final secondId = second.getRight().getOrElse(() => -2);
 
       expect(secondId, firstId);
-      expect(await db.getAllSwaps(), hasLength(1));
+      expect(await db.getAllSwaps(walletId: testWalletId), hasLength(1));
     });
 
     test(
@@ -221,7 +227,7 @@ void main() {
           txId: 'send-leg-1',
         );
         expect(second.isRight(), isTrue);
-        expect(await db.getAllSwaps(), hasLength(1));
+        expect(await db.getAllSwaps(walletId: testWalletId), hasLength(1));
       },
     );
 
@@ -246,7 +252,7 @@ void main() {
         receiveAmount: BigInt.from(95),
         txId: 'shared-tx-id',
       );
-      expect(await db.getAllSwaps(), hasLength(2));
+      expect(await db.getAllSwaps(walletId: testWalletId), hasLength(2));
     });
 
     test('without txId, every call inserts (no idempotency basis)', () async {
@@ -260,7 +266,7 @@ void main() {
           receiveAmount: BigInt.from(95),
         );
       }
-      expect(await db.getAllSwaps(), hasLength(3));
+      expect(await db.getAllSwaps(walletId: testWalletId), hasLength(3));
     });
   });
 
@@ -286,7 +292,7 @@ void main() {
         await audit.markFinal(id: id, status: 'failed', txId: 'b');
         await audit.markFinal(id: id, status: 'completed', txId: 'c');
 
-        expect(await db.getAllSwaps(), hasLength(1));
+        expect(await db.getAllSwaps(walletId: testWalletId), hasLength(1));
         // Spot-check: the public DAO surface for swaps does not expose any
         // delete-shaped method. A reflection-based test here would be
         // ideal, but Dart has no compile-time reflection — so this is
@@ -311,19 +317,32 @@ void main() {
         );
 
         expect(
-          await db.swapExistsForTxId(provider: 'internal_liquid', txId: 'send-1'),
+          await db.swapExistsForTxId(
+            walletId: testWalletId,
+            provider: 'internal_liquid',
+            txId: 'send-1',
+          ),
           isTrue,
         );
         expect(
-          await db.swapExistsForTxId(provider: 'internal_liquid', txId: 'recv-1'),
+          await db.swapExistsForTxId(
+            walletId: testWalletId,
+            provider: 'internal_liquid',
+            txId: 'recv-1',
+          ),
           isTrue,
         );
         expect(
-          await db.swapExistsForTxId(provider: 'breez', txId: 'send-1'),
+          await db.swapExistsForTxId(
+            walletId: testWalletId,
+            provider: 'breez',
+            txId: 'send-1',
+          ),
           isFalse,
         );
         expect(
           await db.swapExistsForTxId(
+            walletId: testWalletId,
             provider: 'internal_liquid',
             txId: 'unknown',
           ),
@@ -348,6 +367,7 @@ void main() {
             )).getRight().getOrElse(() => -1);
 
         final found = await db.findPendingPegInByDepositAddress(
+          walletId: testWalletId,
           provider: 'breez',
           depositAddress: 'bc1qxyz',
         );
@@ -359,6 +379,7 @@ void main() {
         await audit.markFinal(id: id1, status: 'completed', txId: 'btc-1');
 
         final found2 = await db.findPendingPegInByDepositAddress(
+          walletId: testWalletId,
           provider: 'breez',
           depositAddress: 'bc1qxyz',
         );
