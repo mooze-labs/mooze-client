@@ -798,7 +798,7 @@ TaskEither<WalletError, PaymentRequest> _createLightningPaymentRequest(
 ) {
   return _createBitcoinPaymentRequest(
     breez,
-    PaymentMethod.lightning,
+    PaymentMethod.bolt11Invoice,
     Option.of(ReceiveAmount_Bitcoin(payerAmountSat: amount)),
     description,
   );
