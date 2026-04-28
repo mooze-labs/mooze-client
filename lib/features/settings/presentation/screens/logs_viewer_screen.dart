@@ -10,7 +10,12 @@ import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_ite
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_detail_modal.dart';
 import 'package:mooze_mobile/database/database.dart';
 
-/// Screen for viewing and filtering application logs
+/// Screen for viewing and filtering application logs.
+///
+/// Filtering and search are pushed down to the data source (SQL for the
+/// database, in-memory predicate for the ring buffer) so pagination and
+/// search compose: the user sees matching rows from the very first page
+/// without having to scroll-load the entire dataset first.
 class LogsViewerScreen extends StatefulWidget {
   final AppLoggerService logger;
 
@@ -23,45 +28,44 @@ class LogsViewerScreen extends StatefulWidget {
 class _LogsViewerScreenState extends State<LogsViewerScreen> {
   LogLevel? _selectedLevel;
   String _searchQuery = '';
-  bool _autoScroll = true;
+  final bool _autoScroll = true;
   LogSource _logSource = LogSource.all;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
-  // Pagination
   static const int _pageSize = 20;
+  static const Duration _searchDebounce = Duration(milliseconds: 300);
+
   int _currentPage = 0;
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
 
-  // Combined logs from memory and database
+  // Holds the currently visible page set. Already filtered at the source.
   List<dynamic> _allLogs = [];
   bool _isInitialLoading = false;
 
-  // Stream subscription and debounce timer
+  // Monotonic token: each load increments it; stale loads (older token)
+  // discard their results so a fast typist can't get an out-of-order page.
+  int _loadToken = 0;
+
   StreamSubscription<LogEntry>? _logStreamSubscription;
   Timer? _autoScrollDebounceTimer;
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
     super.initState();
 
-    // Load logs after frame is built to avoid blocking navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _loadInitialLogs();
-      }
+      if (mounted) _loadInitialLogs();
     });
 
-    // Add scroll listener for infinite scroll
     _scrollController.addListener(_onScroll);
 
-    // Auto-scroll to bottom when new logs arrive (only in memory mode)
     _logStreamSubscription = widget.logger.logStream.listen((_) {
       if (_autoScroll && _logSource == LogSource.memory && mounted) {
         _loadInitialLogs();
 
-        // Debounce auto-scroll to avoid too many scroll operations
         _autoScrollDebounceTimer?.cancel();
         _autoScrollDebounceTimer = Timer(const Duration(milliseconds: 300), () {
           if (mounted && _scrollController.hasClients) {
@@ -82,6 +86,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     _searchController.dispose();
     _logStreamSubscription?.cancel();
     _autoScrollDebounceTimer?.cancel();
+    _searchDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -94,9 +99,10 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     }
   }
 
-  /// Load initial logs (first page)
   Future<void> _loadInitialLogs() async {
     if (!mounted) return;
+
+    final token = ++_loadToken;
 
     setState(() {
       _isInitialLoading = true;
@@ -105,59 +111,71 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
       _allLogs.clear();
     });
 
-    await _loadLogsPage();
+    await _loadLogsPage(token);
 
-    if (mounted) {
+    if (mounted && token == _loadToken) {
       setState(() => _isInitialLoading = false);
     }
   }
 
-  /// Load more logs (next page)
   Future<void> _loadMoreLogs() async {
     if (_isLoadingMore || !_hasMoreData) return;
 
     setState(() => _isLoadingMore = true);
 
     _currentPage++;
-    await _loadLogsPage();
+    await _loadLogsPage(_loadToken);
 
     if (mounted) {
       setState(() => _isLoadingMore = false);
     }
   }
 
-  /// Load a page of logs based on selected source
-  Future<void> _loadLogsPage() async {
+  /// Loads a page from the active source with the active filters applied
+  /// at the source. The [token] is matched against [_loadToken] before
+  /// committing results so superseded loads are discarded.
+  Future<void> _loadLogsPage(int token) async {
     try {
       final offset = _currentPage * _pageSize;
+      final level = _selectedLevel;
+      final searchQuery = _searchQuery.isEmpty ? null : _searchQuery;
 
       switch (_logSource) {
         case LogSource.memory:
-          // Memory logs - already in reverse order
-          final memoryLogs = widget.logger.logs.reversed.toList();
+          final filtered = widget.logger.getMemoryLogsFiltered(
+            level: level,
+            searchQuery: searchQuery,
+          );
+
+          final start = offset;
+          final end = (offset + _pageSize).clamp(0, filtered.length);
+          final page =
+              start < filtered.length
+                  ? filtered.sublist(start, end)
+                  : const <LogEntry>[];
+
+          if (token != _loadToken) return;
+
           if (_currentPage == 0) {
-            _allLogs = memoryLogs.take(_pageSize).toList();
+            _allLogs = List<dynamic>.from(page);
           } else {
-            final start = offset;
-            final end = (offset + _pageSize).clamp(0, memoryLogs.length);
-            if (start < memoryLogs.length) {
-              _allLogs.addAll(memoryLogs.sublist(start, end));
-            } else {
-              _hasMoreData = false;
-            }
+            _allLogs.addAll(page);
           }
-          _hasMoreData = _allLogs.length < memoryLogs.length;
+          _hasMoreData = end < filtered.length;
           break;
 
         case LogSource.database:
-          // Database logs - ordered by timestamp DESC in query
           final dbLogs = await widget.logger.getLogsFromDatabasePaginated(
             limit: _pageSize,
             offset: offset,
+            level: level,
+            searchQuery: searchQuery,
           );
 
+          if (token != _loadToken) return;
+
           if (_currentPage == 0) {
-            _allLogs = dbLogs;
+            _allLogs = List<dynamic>.from(dbLogs);
           } else {
             _allLogs.addAll(dbLogs);
           }
@@ -165,36 +183,48 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
           break;
 
         case LogSource.all:
-          // Combine both sources
           if (_currentPage == 0) {
-            // First page: get memory logs + first page of DB logs
-            final memoryLogs = widget.logger.logs.reversed.toList();
+            // First page combines filtered memory (newest, full ring buffer)
+            // with the first filtered DB page, then sorts by timestamp DESC.
+            final memoryLogs = widget.logger.getMemoryLogsFiltered(
+              level: level,
+              searchQuery: searchQuery,
+            );
             final dbLogs = await widget.logger.getLogsFromDatabasePaginated(
               limit: _pageSize,
               offset: 0,
+              level: level,
+              searchQuery: searchQuery,
             );
 
-            _allLogs = [...memoryLogs, ...dbLogs];
-            _allLogs.sort((a, b) {
+            if (token != _loadToken) return;
+
+            final merged = <dynamic>[...memoryLogs, ...dbLogs];
+            merged.sort((a, b) {
               final timeA =
                   a is LogEntry ? a.timestamp : (a as AppLog).timestamp;
               final timeB =
                   b is LogEntry ? b.timestamp : (b as AppLog).timestamp;
-              // Sort descending (newest first)
               return timeB.compareTo(timeA);
             });
 
-            // Limit to page size
-            if (_allLogs.length > _pageSize) {
-              _allLogs = _allLogs.take(_pageSize).toList();
-            }
-            _hasMoreData = true;
+            _allLogs =
+                merged.length > _pageSize
+                    ? merged.take(_pageSize).toList()
+                    : merged;
+            _hasMoreData =
+                dbLogs.length == _pageSize || memoryLogs.length > _pageSize;
           } else {
-            // Subsequent pages: only from database
+            // Subsequent pages stream from the DB only — memory has already
+            // been folded in on page 0.
             final dbLogs = await widget.logger.getLogsFromDatabasePaginated(
               limit: _pageSize,
-              offset: (_currentPage * _pageSize) - widget.logger.logs.length,
+              offset: _currentPage * _pageSize,
+              level: level,
+              searchQuery: searchQuery,
             );
+
+            if (token != _loadToken) return;
 
             _allLogs.addAll(dbLogs);
             _hasMoreData = dbLogs.length == _pageSize;
@@ -202,50 +232,17 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
           break;
       }
 
-      if (mounted) {
+      if (mounted && token == _loadToken) {
         setState(() {});
       }
     } catch (e) {
       debugPrint('Error loading logs page: $e');
-      if (mounted) {
+      if (mounted && token == _loadToken) {
         setState(() {
           _hasMoreData = false;
         });
       }
     }
-  }
-
-  List<dynamic> _getFilteredLogs() {
-    var logs = _allLogs;
-
-    // Filter by level
-    if (_selectedLevel != null) {
-      logs =
-          logs.where((log) {
-            final level =
-                log is LogEntry
-                    ? log.level
-                    : LogLevel.values.firstWhere(
-                      (l) => l.name == (log as AppLog).level,
-                      orElse: () => LogLevel.info,
-                    );
-            return level == _selectedLevel;
-          }).toList();
-    }
-
-    // Filter by search query
-    if (_searchQuery.isNotEmpty) {
-      logs =
-          logs.where((log) {
-            final message =
-                log is LogEntry ? log.message : (log as AppLog).message;
-            final tag = log is LogEntry ? log.tag : (log as AppLog).tag;
-            return message.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                tag.toLowerCase().contains(_searchQuery.toLowerCase());
-          }).toList();
-    }
-
-    return logs;
   }
 
   String _sourceLabel(AppLocalizations t, LogSource source) {
@@ -259,7 +256,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     }
   }
 
-  /// Convert AppLog to LogEntry for display
+  /// Convert AppLog (DB row) to LogEntry for the shared widget contract.
   LogEntry _toLogEntry(dynamic log) {
     if (log is LogEntry) return log;
 
@@ -280,12 +277,38 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     );
   }
 
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    // Debounce: avoid hitting the DB on every keystroke.
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(_searchDebounce, () {
+      if (mounted) _loadInitialLogs();
+    });
+  }
+
+  void _onLevelSelected(LogLevel? level) {
+    setState(() => _selectedLevel = level);
+    _loadInitialLogs();
+  }
+
+  void _onClearSearch() {
+    _searchController.clear();
+    _searchDebounceTimer?.cancel();
+    setState(() => _searchQuery = '');
+    _loadInitialLogs();
+  }
+
+  void _onSourceChanged(LogSource source) {
+    if (source == _logSource) return;
+    setState(() => _logSource = source);
+    _loadInitialLogs();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
-    final filteredLogs = _getFilteredLogs();
-    final t = AppLocalizations.of(context)!;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(elevation: 0, title: Text(t.logs_viewer_title)),
@@ -315,10 +338,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                             .toList(),
                     selected: {_logSource},
                     onSelectionChanged: (Set<LogSource> selected) {
-                      setState(() {
-                        _logSource = selected.first;
-                      });
-                      _loadInitialLogs();
+                      _onSourceChanged(selected.first);
                     },
                     style: ButtonStyle(
                       backgroundColor: WidgetStateProperty.resolveWith((
@@ -339,12 +359,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
             searchController: _searchController,
             searchQuery: _searchQuery,
             selectedLevel: _selectedLevel,
-            onSearchChanged: (value) => setState(() => _searchQuery = value),
-            onLevelSelected: (level) => setState(() => _selectedLevel = level),
-            onClearSearch: () {
-              _searchController.clear();
-              setState(() => _searchQuery = '');
-            },
+            onSearchChanged: _onSearchChanged,
+            onLevelSelected: _onLevelSelected,
+            onClearSearch: _onClearSearch,
           ),
           Expanded(
             child:
@@ -364,7 +381,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                         ],
                       ),
                     )
-                    : filteredLogs.isEmpty
+                    : _allLogs.isEmpty
                     ? Center(
                       child: Text(
                         t.logs_viewer_empty,
@@ -375,9 +392,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                     )
                     : ListView.builder(
                       controller: _scrollController,
-                      itemCount: filteredLogs.length + (_hasMoreData ? 1 : 0),
+                      itemCount: _allLogs.length + (_hasMoreData ? 1 : 0),
                       itemBuilder: (context, index) {
-                        if (index == filteredLogs.length) {
+                        if (index == _allLogs.length) {
                           return _isLoadingMore
                               ? const Padding(
                                 padding: EdgeInsets.all(16.0),
@@ -388,7 +405,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
                               : const SizedBox.shrink();
                         }
 
-                        final log = _toLogEntry(filteredLogs[index]);
+                        final log = _toLogEntry(_allLogs[index]);
                         return LogItem(
                           log: log,
                           onTap: () => LogDetailModal.show(context, log),
