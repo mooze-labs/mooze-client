@@ -10,12 +10,22 @@ const int kAddressInitialPageSize = 50;
 /// Increment applied each time the user taps "load more".
 const int kAddressLoadMoreSize = 50;
 
+/// Client-side filters layered on top of the loaded address list.
+enum AddressListFilter { all, used, unused, withUtxos }
+
 /// Tracks the current scan limit per chain. Tapping "load more" bumps the
 /// integer by [kAddressLoadMoreSize], which causes the dependent FutureProvider
 /// below to re-run with the new limit.
 final addressScanLimitProvider =
     StateProvider.autoDispose.family<int, AddressChain>(
   (ref, _) => kAddressInitialPageSize,
+);
+
+/// Active filter per chain. Pure UI-side state — filtering happens on the
+/// already-loaded list, so changing it never triggers a rescan.
+final addressFilterProvider =
+    StateProvider.autoDispose.family<AddressListFilter, AddressChain>(
+  (ref, _) => AddressListFilter.all,
 );
 
 /// Resolves to the current scanned address list for [chain]. Returns the
