@@ -14,6 +14,7 @@ import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/features/wallet/domain/repositories/swap_audit_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
@@ -21,8 +22,10 @@ import '../../dto/psbt_dto.dart';
 
 class BreezWallet {
   final BreezSdkLiquid _breez;
+  final SwapAuditRepository? _swapAudit;
 
-  BreezWallet(this._breez);
+  BreezWallet(this._breez, {SwapAuditRepository? swapAudit})
+    : _swapAudit = swapAudit;
 
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits() {
@@ -147,24 +150,97 @@ class BreezWallet {
 
         final prepareRes = await _breez.preparePayOnchain(req: prepareReq);
 
+        // Record audit row BEFORE the network call so a payOnchain throw
+        // still leaves a `failed` row pinned to the user's intent.
+        // sendAmount = amount sent off LBTC (receiver + fees).
+        final auditId = await _recordPegOutPending(
+          receiverAmountSat: receiverAmountSat,
+          totalFeesSat: totalFeesSat,
+          feeRateSatPerVbyte: feeRateSatPerVbyte,
+          drain: drain,
+          btcAddress: btcAddress,
+        );
+
         // Executar o peg-out
         final payReq = PayOnchainRequest(
           address: btcAddress,
           prepareResponse: prepareRes,
         );
 
-        final result = await _breez.payOnchain(req: payReq);
+        try {
+          final result = await _breez.payOnchain(req: payReq);
 
-        if (kDebugMode) {
-          print('[BreezWallet] Peg-out enviado com sucesso!');
+          if (kDebugMode) {
+            print('[BreezWallet] Peg-out enviado com sucesso!');
+          }
+
+          final tx =
+              BreezTransactionDto.fromSdk(payment: result.payment).toDomain();
+
+          await _markSwapFinal(
+            auditId: auditId,
+            status: 'completed',
+            txId: tx.id,
+          );
+
+          return tx;
+        } catch (e) {
+          await _markSwapFinal(
+            auditId: auditId,
+            status: 'failed',
+            metadata: {'error': e.toString()},
+          );
+          rethrow;
         }
-
-        return BreezTransactionDto.fromSdk(payment: result.payment).toDomain();
       },
       (err, stackTrace) => WalletError(
         WalletErrorType.transactionFailed,
         "Falha ao executar peg-out: $err",
       ),
+    );
+  }
+
+  /// Best-effort: insert the pending row and return its id, or null on
+  /// any failure. Callers must tolerate null and skip the markFinal call.
+  Future<int?> _recordPegOutPending({
+    required BigInt receiverAmountSat,
+    required BigInt totalFeesSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+    required String btcAddress,
+  }) async {
+    final audit = _swapAudit;
+    if (audit == null) return null;
+    final result = await audit.recordPending(
+      provider: 'breez',
+      direction: 'lbtc_to_btc',
+      sendAsset: 'LBTC',
+      receiveAsset: 'BTC',
+      sendAmount: receiverAmountSat + totalFeesSat,
+      receiveAmount: receiverAmountSat,
+      metadata: {
+        'btcAddress': btcAddress,
+        'totalFeesSat': totalFeesSat.toString(),
+        'feeRateSatPerVbyte': feeRateSatPerVbyte,
+        'drain': drain,
+      },
+    );
+    return result.fold((_) => null, (id) => id);
+  }
+
+  Future<void> _markSwapFinal({
+    required int? auditId,
+    required String status,
+    String? txId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final audit = _swapAudit;
+    if (audit == null || auditId == null) return;
+    await audit.markFinal(
+      id: auditId,
+      status: status,
+      txId: txId,
+      metadata: metadata,
     );
   }
 
@@ -199,6 +275,28 @@ class BreezWallet {
 
         if (kDebugMode) {
           print('[BreezWallet] Endereço BTC gerado: $bitcoinAddress');
+        }
+
+        // Record the peg-in intent. The deposit address goes into metadata
+        // so the Breez event-stream listener (see Phase 2 spec §6.3) can
+        // later look the row up via findPendingPegInByDepositAddress and
+        // call markFinal when the BTC deposit lands. If the deposit never
+        // arrives, the row stays `pending` forever — that's intentional;
+        // audit prefers stale pending over data deletion.
+        final audit = _swapAudit;
+        if (audit != null) {
+          await audit.recordPending(
+            provider: 'breez',
+            direction: 'btc_to_lbtc',
+            sendAsset: 'BTC',
+            receiveAsset: 'LBTC',
+            sendAmount: payerAmountSat,
+            receiveAmount: payerAmountSat - prepareRes.feesSat,
+            metadata: {
+              'depositAddress': bitcoinAddress,
+              'feesSat': prepareRes.feesSat.toString(),
+            },
+          );
         }
 
         return (bitcoinAddress: bitcoinAddress, feesSat: prepareRes.feesSat);
