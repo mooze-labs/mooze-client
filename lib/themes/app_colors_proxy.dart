@@ -128,7 +128,7 @@ class AppColorsProxy {
   // ── NavBar ────────────────────────────────────────────────────────────────
 
   /// Nav bar background — maps to [ColorScheme.surface].
-  Color get navBarBackground => _cs.surface;
+  Color get navBarBackground => _cs.surfaceContainerLow;
 
   /// Nav bar FAB background — from [AppExtraColors.navBarFabBackground].
   Color get navBarFabBackground => _extra.navBarFabBackground;
