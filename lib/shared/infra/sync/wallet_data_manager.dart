@@ -14,6 +14,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
 import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
@@ -1486,6 +1487,24 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       );
       final secureStorage = SecureStorageProvider.instance;
       await secureStorage.delete(key: mnemonicKey);
+
+      // Wipe the walletId at the same point as the mnemonic — they are
+      // a matched pair. The next wallet (created or imported) will lazily
+      // generate a fresh UUID on first audit-repo call. Pre-existing
+      // Swaps/Pegs rows from the old walletId remain on disk (audit
+      // immutability per ADR-008) but are scoped out of all queries.
+      try {
+        await ref.read(walletIdServiceProvider).clear();
+        _logger.info('WalletDataManager', 'WalletId cleared');
+      } catch (e, st) {
+        _logger.error(
+          'WalletDataManager',
+          'Failed to clear walletId (continuing)',
+          error: e,
+          stackTrace: st,
+        );
+      }
+
       _logger.info('WalletDataManager', 'Mnemonic deleted');
 
       // Small delay to ensure secure storage write is complete
@@ -1667,18 +1686,70 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
         );
       }
 
-      // 8. EIGHTH: Clear user verification level and PIX deposit history
+      // 8. EIGHTH: Clear user verification level and per-wallet history.
+      //
+      // The drift database itself is shared across wallets (same `mooze_db`
+      // file). We must wipe per-wallet rows here so a freshly imported
+      // wallet doesn't inherit the previous wallet's history. This is the
+      // ONLY place these wipe methods are called — see the CONTRACT note
+      // on AppDatabase.deleteAllTransactions / deleteAllSyncMetadata.
       _logger.info(
         'WalletDataManager',
-        'Step 8: Clearing user verification and PIX history...',
+        'Step 8: Clearing user verification and per-wallet history...',
       );
       final prefs = await SharedPreferences.getInstance();
       final userLevelStorage = UserLevelStorageService(prefs);
       await userLevelStorage.clearVerificationLevel();
 
-      final pixDb = PixDepositDatabase(ref.read(appDatabaseProvider));
+      final db = ref.read(appDatabaseProvider);
+      final pixDb = PixDepositDatabase(db);
       await pixDb.clearAllDeposits().run();
       _logger.info('WalletDataManager', 'PIX deposit history cleared');
+
+      try {
+        final txDeleted = await db.deleteAllTransactions();
+        _logger.info(
+          'WalletDataManager',
+          'Cleared $txDeleted transactions',
+        );
+      } catch (e, st) {
+        _logger.error(
+          'WalletDataManager',
+          'Failed to clear Transactions table',
+          error: e,
+          stackTrace: st,
+        );
+      }
+
+      try {
+        final logsDeleted = await db.deleteAllLogs();
+        _logger.info(
+          'WalletDataManager',
+          'Cleared $logsDeleted log rows',
+        );
+      } catch (e, st) {
+        _logger.error(
+          'WalletDataManager',
+          'Failed to clear AppLogs table',
+          error: e,
+          stackTrace: st,
+        );
+      }
+
+      try {
+        final syncDeleted = await db.deleteAllSyncMetadata();
+        _logger.info(
+          'WalletDataManager',
+          'Cleared $syncDeleted sync metadata rows',
+        );
+      } catch (e, st) {
+        _logger.error(
+          'WalletDataManager',
+          'Failed to clear SyncMetadata table',
+          error: e,
+          stackTrace: st,
+        );
+      }
 
       // 9. NINTH: Delete PIN
       _logger.info('WalletDataManager', 'Step 9: Deleting PIN...');
