@@ -95,7 +95,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   // Get all swaps
   Future<List<Swap>> getAllSwaps() => select(swaps).get();
@@ -130,11 +130,14 @@ class AppDatabase extends _$AppDatabase {
     return result?.read(countExp) ?? 0;
   }
 
-  /// Get logs with pagination (newest first)
+  /// Get logs with pagination (newest first), with optional level and
+  /// full-text-style search filters applied at the SQL layer so the UI
+  /// only ever receives matching rows.
   Future<List<AppLog>> getLogsPaginated({
     required int limit,
     required int offset,
     String? level,
+    String? searchQuery,
   }) {
     final query =
         select(appLogs)
@@ -148,6 +151,23 @@ class AppDatabase extends _$AppDatabase {
 
     if (level != null) {
       query.where((log) => log.level.equals(level));
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      // lower() on both sides keeps matching consistent across cases for the
+      // ASCII range, mirroring the previous Dart-side toLowerCase().contains().
+      // Search spans message, tag, error and stackTrace so users can find
+      // entries by exception text (e.g. "SocketException") not just message.
+      // For nullable columns lower(NULL) LIKE ... evaluates to NULL/false, so
+      // missing values cannot match.
+      final pattern = '%${searchQuery.toLowerCase()}%';
+      query.where(
+        (log) =>
+            log.message.lower().like(pattern) |
+            log.tag.lower().like(pattern) |
+            log.error.lower().like(pattern) |
+            log.stackTrace.lower().like(pattern),
+      );
     }
 
     return query.get();
@@ -254,10 +274,30 @@ class AppDatabase extends _$AppDatabase {
       (delete(syncMetadata)
         ..where((t) => t.datasource.equals(datasource))).go();
 
+  /// Indexes that accelerate the logs viewer's paginated, filtered queries:
+  ///   - timestamp DESC for the default ORDER BY (every page)
+  ///   - (level, timestamp DESC) for the level-filtered case (composite scan)
+  /// LIKE-based search over message/tag/error/stackTrace can't use a B-tree
+  /// index; an FTS5 virtual table would be the next step if search becomes
+  /// the dominant access pattern.
+  Future<void> _createLogIndexes() async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_app_logs_timestamp '
+      'ON app_logs(timestamp DESC)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_app_logs_level_timestamp '
+      'ON app_logs(level, timestamp DESC)',
+    );
+  }
+
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
-      onCreate: (m) => m.createAll(),
+      onCreate: (m) async {
+        await m.createAll();
+        await _createLogIndexes();
+      },
       onUpgrade: (m, from, to) async {
         if (from <= 1 && to >= 2) {
           await m.createTable(deposits);
@@ -296,6 +336,9 @@ class AppDatabase extends _$AppDatabase {
         if (from <= 7 && to >= 8) {
           await m.createTable(syncMetadata);
           await m.createTable(transactions);
+        }
+        if (from <= 8 && to >= 9) {
+          await _createLogIndexes();
         }
       },
     );
