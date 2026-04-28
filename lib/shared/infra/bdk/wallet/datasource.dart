@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:bdk_flutter/bdk_flutter.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/database/database.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_service.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
@@ -19,6 +21,11 @@ class BdkDataSource implements SyncableDataSource {
   final SyncStreamController syncStream;
   final Ref ref;
 
+  /// Optional drift database for transaction persistence. Mirrors the
+  /// LiquidDataSource pattern. When non-null, every successful sync runs
+  /// _processTransactions() to upsert BTC tx rows into Transactions.
+  final AppDatabase? database;
+
   bool _isSyncing = false;
 
   BdkDataSource({
@@ -26,6 +33,7 @@ class BdkDataSource implements SyncableDataSource {
     required this.blockchain,
     required this.syncStream,
     required this.ref,
+    this.database,
   });
 
   @override
@@ -100,6 +108,14 @@ class BdkDataSource implements SyncableDataSource {
         );
       }
 
+      // Persistence is best-effort: if it fails the user-visible sync still
+      // succeeds. Next sync tick will reconcile because upsert is idempotent.
+      try {
+        await _processTransactions();
+      } catch (e, st) {
+        debugPrint('[BdkDataSource] _processTransactions failed: $e\n$st');
+      }
+
       syncStream.updateProgress(
         SyncProgress(
           datasource: 'BDK',
@@ -139,6 +155,81 @@ class BdkDataSource implements SyncableDataSource {
         .catchError((error, stackTrace) {
           debugPrint("[BdkDataSource] Background sync failed: $error");
         });
+  }
+
+  /// Reconcile the BDK wallet's known transactions with the Transactions
+  /// table. Mirrors LiquidDataSource._processTransactions:
+  ///   - one row per BTC tx, keyed on txid
+  ///   - amount = abs(received - sent), type derived from sign of net
+  ///   - insertTransactionsBatch uses InsertMode.insertOrReplace, so reorgs
+  ///     and confirmation updates upsert in place rather than duplicate
+  ///   - rows that disappear from the BDK view are NEVER deleted (a reorg
+  ///     or temporary indexer issue could omit a tx; deletion would lose
+  ///     audit data — see Phase 2 spec §5.3)
+  Future<void> _processTransactions() async {
+    if (database == null) {
+      debugPrint(
+        '[BdkDataSource] No database provided, skipping transaction processing',
+      );
+      return;
+    }
+
+    final rawTxs = wallet.listTransactions(includeRaw: false);
+    if (rawTxs.isEmpty) {
+      debugPrint('[BdkDataSource] No BTC transactions to process');
+      return;
+    }
+
+    final companions = <TransactionsCompanion>[];
+
+    for (final tx in rawTxs) {
+      try {
+        final received = tx.received;
+        final sent = tx.sent;
+        final isSend = sent > received;
+        final amount = isSend ? (sent - received) : (received - sent);
+        final type = isSend ? 'send' : 'receive';
+        final confirmed = tx.confirmationTime != null;
+        final status = confirmed ? 'confirmed' : 'pending';
+        final createdAt =
+            confirmed
+                ? DateTime.fromMillisecondsSinceEpoch(
+                  tx.confirmationTime!.timestamp.toInt() * 1000,
+                )
+                : DateTime.now();
+
+        companions.add(
+          TransactionsCompanion.insert(
+            id: tx.txid,
+            assetId: 'btc',
+            amount: amount,
+            type: type,
+            status: status,
+            createdAt: createdAt,
+            confirmations: Value(confirmed ? 1 : 0),
+            txHash: Value(tx.txid),
+            blockchain: 'bitcoin',
+          ),
+        );
+      } catch (e, st) {
+        debugPrint(
+          '[BdkDataSource] Error processing tx ${tx.txid}: $e\n$st',
+        );
+      }
+    }
+
+    if (companions.isNotEmpty) {
+      try {
+        await database!.insertTransactionsBatch(companions);
+        debugPrint(
+          '[BdkDataSource] Persisted ${companions.length} BTC transactions',
+        );
+      } catch (e, st) {
+        debugPrint(
+          '[BdkDataSource] insertTransactionsBatch failed: $e\n$st',
+        );
+      }
+    }
   }
 }
 
