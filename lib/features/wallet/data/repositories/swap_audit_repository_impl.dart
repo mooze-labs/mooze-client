@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/database/database.dart';
+import 'package:mooze_mobile/features/wallet/data/services/wallet_id_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories/swap_audit_repository.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
@@ -14,11 +15,18 @@ const String _logTag = 'SwapAudit';
 /// [AppLoggerService], and surfaced as `Left(errorMessage)`. Callers MUST
 /// NOT propagate a Left return into the user-facing error path — record
 /// failures are best-effort by design (see Phase 2 spec §6.5, §9).
+///
+/// Every insert and every idempotency lookup is scoped by walletId so
+/// audit rows from a previous wallet on this device are not visible to the
+/// current wallet. The walletId is resolved lazily from
+/// [WalletIdService] so the repository can be constructed before the
+/// service has generated the id.
 class SwapAuditRepositoryImpl implements SwapAuditRepository {
   final AppDatabase _db;
   final AppLoggerService _logger;
+  final WalletIdService _walletIdService;
 
-  SwapAuditRepositoryImpl(this._db, this._logger);
+  SwapAuditRepositoryImpl(this._db, this._logger, this._walletIdService);
 
   @override
   Future<Either<String, int>> recordPending({
@@ -32,6 +40,7 @@ class SwapAuditRepositoryImpl implements SwapAuditRepository {
     Map<String, dynamic>? metadata,
   }) async {
     try {
+      final walletId = await _walletIdService.getOrCreate();
       final id = await _db.insertSwap(
         SwapsCompanion.insert(
           sendAsset: sendAsset,
@@ -43,6 +52,7 @@ class SwapAuditRepositoryImpl implements SwapAuditRepository {
           direction: Value(direction),
           txId: Value(txId),
           metadata: Value(_encodeMetadata(metadata)),
+          walletId: Value(walletId),
         ),
       );
       _logger.info(
@@ -107,11 +117,13 @@ class SwapAuditRepositoryImpl implements SwapAuditRepository {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      // Idempotency: if any row already references this (provider, txId)
-      // either as the top-level txId or inside metadata, we return the
-      // existing id without inserting.
+      final walletId = await _walletIdService.getOrCreate();
+      // Idempotency: if any row already references this
+      // (walletId, provider, txId) either as the top-level txId or inside
+      // metadata, we return the existing id without inserting.
       if (txId != null) {
         final exists = await _db.swapExistsForTxId(
+          walletId: walletId,
           provider: provider,
           txId: txId,
         );
@@ -123,6 +135,7 @@ class SwapAuditRepositoryImpl implements SwapAuditRepository {
           // Find the row to return its id; getSwapsPaginated with the txId
           // search returns the same row swapExistsForTxId hit on.
           final matches = await _db.getSwapsPaginated(
+            walletId: walletId,
             limit: 1,
             offset: 0,
             provider: provider,
@@ -149,6 +162,7 @@ class SwapAuditRepositoryImpl implements SwapAuditRepository {
           direction: Value(direction),
           txId: Value(txId),
           metadata: Value(_encodeMetadata(metadata)),
+          walletId: Value(walletId),
         ),
       );
       _logger.info(
