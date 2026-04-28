@@ -382,9 +382,13 @@ class BootOrchestrator extends StateNotifier<BootState> {
       final db = ref.read(appDatabaseProvider);
       debugPrint('[BootOrchestrator] Database obtained: ${db.hashCode}');
 
-      // Force a simple operation to ensure the DB is ready
-      debugPrint('[BootOrchestrator] Testing database with getAllSwaps...');
-      await db.getAllSwaps();
+      // Force a simple operation to ensure the DB is ready. A row count is
+      // an aggregate with no scoping concern (Swaps and Pegs are now
+      // walletId-scoped — see ADR-010 — so they're poor health-check
+      // candidates; the boot probe must not pretend to know a walletId
+      // before WalletIdService has had a chance to resolve one).
+      debugPrint('[BootOrchestrator] Testing database with getTransactionCount...');
+      await db.getTransactionCount();
       debugPrint('[BootOrchestrator] Database test successful');
 
       // Initialize logger with database
