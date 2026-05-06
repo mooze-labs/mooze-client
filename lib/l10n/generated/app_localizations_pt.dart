@@ -3612,16 +3612,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get sync_error_dialog_body =>
-      'Não foi possível sincronizar com a API da Mooze.';
+      'Não foi possível sincronizar os serviços Mooze.';
 
   @override
-  String get sync_error_warning =>
-      'Sem sincronização, não é possível usar o PIX';
-
-  @override
-  String sync_error_details(String message) {
-    return 'Detalhes: $message';
-  }
+  String get sync_error_warning => 'Operação não autorizada';
 
   @override
   String get pin_create_title => 'Criar PIN';

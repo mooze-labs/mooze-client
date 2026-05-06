@@ -1637,16 +1637,8 @@
   "api_down_indicator": "API Indisponível",
   "sync_error_indicator": "Erro de Sync",
   "sync_error_dialog_title": "Erro de Sincronização",
-  "sync_error_dialog_body": "Não foi possível sincronizar com a API da Mooze.",
-  "sync_error_warning": "Sem sincronização, não é possível usar o PIX",
-  "sync_error_details": "Detalhes: {message}",
-  "@sync_error_details": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
+  "sync_error_dialog_body": "Não foi possível sincronizar os serviços Mooze.",
+  "sync_error_warning": "Operação não autorizada",
   "pin_create_title": "Criar PIN",
   "pin_create_min_length": "PIN deve ter pelo menos 6 caracteres",
   "pin_create_yours": "Crie seu ",

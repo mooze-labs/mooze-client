@@ -6469,20 +6469,14 @@ abstract class AppLocalizations {
   /// No description provided for @sync_error_dialog_body.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível sincronizar com a API da Mooze.'**
+  /// **'Não foi possível sincronizar os serviços Mooze.'**
   String get sync_error_dialog_body;
 
   /// No description provided for @sync_error_warning.
   ///
   /// In pt, this message translates to:
-  /// **'Sem sincronização, não é possível usar o PIX'**
+  /// **'Operação não autorizada'**
   String get sync_error_warning;
-
-  /// No description provided for @sync_error_details.
-  ///
-  /// In pt, this message translates to:
-  /// **'Detalhes: {message}'**
-  String sync_error_details(String message);
 
   /// No description provided for @pin_create_title.
   ///
