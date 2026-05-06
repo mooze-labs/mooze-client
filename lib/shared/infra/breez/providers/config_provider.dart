@@ -44,7 +44,7 @@ final configProvider = FutureProvider<Config>((ref) async {
         precision: 8,
       ),
     ],
-    useMagicRoutingHints: true,
+    useMagicRoutingHints: true, onchainSyncPeriodSec: 20, onchainSyncRequestTimeoutSec: 10,
   );
 
   logger.info('BreezConfig', 'Breez SDK configuration created successfully');
