@@ -8,8 +8,10 @@ import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
 import 'package:mooze_mobile/shared/providers/update_provider.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync.dart'
-    hide isLoadingDataProvider;
+import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
+import 'package:mooze_mobile/app/lifecycle/app_state.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/shared/infra/sync/sync_failure_widgets.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
@@ -76,9 +78,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     _configureSystemUi();
 
-    final isLoadingData = ref.watch(isLoadingDataProvider);
-
-    ref.watch(dataRefreshTriggerProvider);
+    // Phase 2.3.3: V2-derived loading flag. App is "loading" while
+    // boot is still running; ready phase = wallet is fully usable.
+    final appPhase = ref.watch(appStateProvider).valueOrNull?.phase;
+    final isLoadingData = appPhase != AppPhase.ready;
+    // `dataRefreshTriggerProvider` removed: V2's transactions stream +
+    // balance providers re-emit on actual state changes, so a manual
+    // UI-rebuild trigger is no longer needed.
 
     return AuthInitializerWidget(
       child: Scaffold(
@@ -152,13 +158,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _refreshData() async {
     try {
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-
-      if (walletDataManager.isSyncing) {
-        return;
-      }
-
-      await walletDataManager.fullSyncWalletData();
+      // Phase 2.3.3: routes through V2 `RefreshWalletUseCase(strategy: full)`.
+      // Single-flight + mutex protection on the orchestrator side means
+      // a concurrent periodic tick is automatically deduped — no
+      // explicit `isSyncing` gate needed at the UI layer.
+      final useCase = await ref.read(refreshWalletProvider.future);
+      await useCase(strategy: SyncStrategy.full);
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(
