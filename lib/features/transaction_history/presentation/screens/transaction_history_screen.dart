@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/transaction_list.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -156,9 +156,9 @@ class _TransactionHistoryScreenState
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(transactionHistoryProvider);
+          ref.invalidate(v2LegacyTransactionsProvider);
           try {
-            await ref.read(transactionHistoryProvider.future);
+            await ref.read(v2LegacyTransactionsProvider.future);
           } catch (_) {}
         },
         child: SingleChildScrollView(
@@ -176,17 +176,14 @@ class _TransactionHistoryScreenState
               child: Consumer(
                 builder: (context, ref, _) {
                   final transactionHistory = ref.watch(
-                    transactionHistoryProvider,
+                    v2LegacyTransactionsProvider,
                   );
                   final isVisible = ref.watch(isVisibleProvider);
                   return transactionHistory.when(
-                    data:
-                        (data) => data.fold(
-                          (err) => Center(child: ErrorTransactionList()),
-                          (transactions) {
-                            final filteredTransactions = _applyFilters(
-                              transactions,
-                            );
+                    data: (transactions) {
+                          final filteredTransactions = _applyFilters(
+                            transactions,
+                          );
 
                             if (filteredTransactions.isEmpty) {
                               return Column(
@@ -284,7 +281,6 @@ class _TransactionHistoryScreenState
                               ],
                             );
                           },
-                        ),
                     error: (err, stackTrace) => ErrorTransactionList(),
                     loading: () => LoadingTransactionList(),
                   );

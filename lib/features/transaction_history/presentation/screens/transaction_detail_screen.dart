@@ -11,7 +11,7 @@ import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 class TransactionDetailScreen extends ConsumerStatefulWidget {
@@ -39,13 +39,11 @@ class _TransactionDetailScreenState
     if (widget.transaction.blockchain == Blockchain.bitcoin &&
         widget.transaction.confirmationHeight != null) {
       try {
-        final datasourceResult = await ref.read(bdkDatasourceProvider.future);
-        await datasourceResult.fold(
-          (error) async {
-            // Silently fail
-          },
-          (datasource) async {
-            final height = await datasource.blockchain.getHeight();
+        final repo = await ref.read(walletRepositoryProvider.future);
+        final heightResult = await repo.getCurrentBitcoinBlockHeight();
+        heightResult.fold(
+          (_) {/* repo unavailable — UI falls back to tx-level height */},
+          (height) {
             if (mounted) {
               setState(() {
                 _currentBlockHeight = height;
