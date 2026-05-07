@@ -1,13 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/swap/data/datasources/sideswap.dart';
 import 'package:mooze_mobile/features/swap/data/repositories/swap_repository_impl.dart';
 import 'package:mooze_mobile/features/swap/data/repositories/liquid_wallet_repository_impl.dart';
 import 'package:mooze_mobile/features/swap/domain/repositories.dart';
 import 'package:mooze_mobile/features/swap/domain/repositories/swap_repository.dart';
 import 'package:mooze_mobile/features/swap/domain/repositories/wallet_repository.dart';
-import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/lwk/sync/sync_controller.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
 
 const String _sideswapApiKey = String.fromEnvironment(
@@ -36,15 +35,10 @@ final sideswapServiceProvider = Provider<SideswapService>((ref) {
 
 final swapWalletProvider = FutureProvider.autoDispose<SwapWallet>((ref) async {
   final mnemonicStore = ref.read(mnemonicStoreProvider);
-  final dsEither = await ref.read(liquidDataSourceProvider.future);
-  final syncState = ref.watch(walletSyncControllerProvider.notifier);
-  return dsEither.match(
-    (err) => throw Exception('Erro ao inicializar carteira Liquid: $err'),
-    (ds) => LiquidWalletRepositoryImpl(
-      wallet: ds,
-      mnemonicStore: mnemonicStore,
-      syncController: syncState,
-    ),
+  final walletRepo = await ref.read(walletRepositoryProvider.future);
+  return LiquidWalletRepositoryImpl(
+    walletRepository: walletRepo,
+    mnemonicStore: mnemonicStore,
   );
 });
 
