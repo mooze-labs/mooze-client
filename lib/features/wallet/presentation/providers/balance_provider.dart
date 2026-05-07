@@ -1,105 +1,110 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
+import 'package:mooze_mobile/domain/entities/asset.dart' as v2_asset;
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/presentation/controllers/balance_controller.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 
+/// Legacy `BalanceController` factory — kept while consumers still
+/// invoke it. The controller itself wraps the legacy WalletRepository;
+/// this is part of the surface migrated in a later Stage 3 step.
 final balanceControllerProvider =
     FutureProvider.autoDispose<Either<WalletError, BalanceController>>((
       ref,
     ) async {
-      // Use watch to ensure we get updated when wallet repository changes
       final wallet = await ref.watch(walletRepositoryProvider.future);
       return wallet.flatMap((w) => Either.right(BalanceController(w)));
     });
 
+/// All-asset balance map.
+///
+/// Sourced from V2 `walletRepositoryProvider.balanceMap()` so the home
+/// screen sees Breez-Liquid–held assets (USDT, DePix, L-BTC) even when
+/// the legacy `walletRepositoryProvider` failed to wire its Breez
+/// client (which can happen if the legacy `mnemonicProvider` riverpod
+/// cache holds a stale `None` from a pre-import boot).
+///
+/// Returns `Map<legacy.Asset, BigInt>` — same shape consumers expect.
+/// Drop this adapter once `wallet_holdings_provider` and the home
+/// balance widget read V2 entities natively.
 final allBalancesProvider = FutureProvider.autoDispose<Map<Asset, BigInt>>((
   ref,
 ) async {
   final logger = ref.read(appLoggerProvider);
 
-  logger.info('AllBalancesProvider', 'Waiting for wallet repository...');
+  // React to V2 sync completions. Each successful refresh cycle bumps
+  // `syncStateProvider.lastSuccessAt`; selecting that field re-runs
+  // this provider so the home screen sees the updated Breez asset
+  // balances after the first sync populates them. Without this, an
+  // initial fetch that ran before Breez had populated `assetBalances`
+  // would cache zeros for USDT/DePix and never refresh.
+  ref.watch(v2.syncStateProvider
+      .select((async) => async.valueOrNull?.lastSuccessAt));
 
-  // Watch the provider to stay in loading state while it's loading
-  // This is KEY: the await here keeps THIS provider in loading state
-  // until walletRepositoryProvider completes
-  final walletRepository = await ref.watch(walletRepositoryProvider.future);
+  logger.info('AllBalancesProvider', 'Waiting for V2 wallet repository...');
+  final repo = await ref.watch(v2.walletRepositoryProvider.future);
 
-  logger.info(
-    'AllBalancesProvider',
-    'Wallet repository ready, fetching balances...',
-  );
+  logger.info('AllBalancesProvider', 'V2 repository ready, fetching balances');
 
-  return await walletRepository.fold(
-    (error) async {
-      // Capture stack trace for better debugging
-      final stackTrace = StackTrace.current;
+  // Map legacy Asset → V2 Asset, fan out via balanceMap, then map back.
+  final v2Assets = Asset.values.map(_legacyToV2Asset).toList();
+  final result = await repo.balanceMap(v2Assets);
+
+  return result.fold<Map<Asset, BigInt>>(
+    (failure) {
       logger.critical(
         'AllBalancesProvider',
-        'Repository error - WalletError type: ${error.runtimeType}, Details: ${error.toString()}',
-        error: error,
-        stackTrace: stackTrace,
+        'V2 balanceMap failed: ${failure.message}',
+        error: failure,
       );
-      // Wait a bit before returning empty to give the repository time to initialize
-      // This prevents showing 0.00 immediately during initialization
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Empty map preserves legacy "show 0" behaviour rather than
+      // throwing — UI renders 0 for every asset and the next sync
+      // tick refreshes silently.
       return <Asset, BigInt>{};
     },
-    (wallet) async {
-      try {
-        final balanceResult = await wallet.getBalance().run();
-
-        return balanceResult.fold(
-          (error) {
-            final stackTrace = StackTrace.current;
-            logger.critical(
-              'AllBalancesProvider',
-              'Balance fetch error - WalletError type: ${error.runtimeType}, Details: ${error.toString()}',
-              error: error,
-              stackTrace: stackTrace,
-            );
-            // Return empty map instead of throwing to prevent "N/A" in UI
-            return <Asset, BigInt>{};
-          },
-          (fetchedBalances) {
-            for (final entry in fetchedBalances.entries) {
-              logger.debug(
-                'AllBalancesProvider',
-                '${entry.key.ticker}: ${entry.value}',
-              );
-            }
-
-            logger.info(
-              'AllBalancesProvider',
-              'Loaded ${fetchedBalances.length} asset balance(s)',
-            );
-
-            return fetchedBalances;
-          },
-        );
-      } catch (e, stackTrace) {
-        logger.critical(
+    (v2Map) {
+      final legacyMap = <Asset, BigInt>{};
+      for (final entry in v2Map.entries) {
+        final legacyAsset = _v2ToLegacyAsset(entry.key);
+        legacyMap[legacyAsset] = entry.value;
+        logger.debug(
           'AllBalancesProvider',
-          'Exception while fetching balances - Type: ${e.runtimeType}, Message: $e',
-          error: e,
-          stackTrace: stackTrace,
+          '${legacyAsset.ticker}: ${entry.value}',
         );
-        // Return empty map instead of throwing to prevent "N/A" in UI
-        return <Asset, BigInt>{};
       }
+      logger.info(
+        'AllBalancesProvider',
+        'Loaded ${legacyMap.length} asset balance(s) from V2',
+      );
+      return legacyMap;
     },
   );
 });
 
-/// Provider that returns the balance of a specific asset
+/// Single-asset balance lookup. Wraps [allBalancesProvider]; behaviour
+/// preserved bit-for-bit so existing call sites (legacy controllers,
+/// per-asset widgets) keep working without change.
 final balanceProvider = FutureProvider.autoDispose
     .family<Either<WalletError, BigInt>, Asset>((ref, Asset asset) async {
-      // Watch allBalancesProvider to ensure we wait for it to complete
-      // This prevents returning zero while balances are still loading
       final allBalances = await ref.watch(allBalancesProvider.future);
       final balance = allBalances[asset] ?? BigInt.zero;
-
       return Either.right(balance);
     });
+
+v2_asset.Asset _legacyToV2Asset(Asset a) => switch (a) {
+      Asset.btc => v2_asset.Asset.btc,
+      Asset.lbtc => v2_asset.Asset.lbtc,
+      Asset.usdt => v2_asset.Asset.usdt,
+      Asset.depix => v2_asset.Asset.depix,
+    };
+
+Asset _v2ToLegacyAsset(v2_asset.Asset a) => switch (a) {
+      v2_asset.Asset.btc => Asset.btc,
+      v2_asset.Asset.lbtc => Asset.lbtc,
+      v2_asset.Asset.usdt => Asset.usdt,
+      v2_asset.Asset.depix => Asset.depix,
+    };
