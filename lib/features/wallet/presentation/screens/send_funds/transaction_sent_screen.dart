@@ -7,7 +7,8 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
@@ -118,12 +119,23 @@ class _TransactionSentScreenState extends ConsumerState<TransactionSentScreen>
     _fadeController.forward();
   }
 
-  /// Updates balances after successful send
+  /// Updates balances after successful send.
+  ///
+  /// Phase 2.3.3: routes through V2 `RefreshWalletUseCase(strategy: light)`
+  /// instead of legacy `walletDataManager.refreshWalletData`. The 1s
+  /// pre-delay is preserved (gives the broadcast tx a head start to
+  /// surface in the next sync's `listPayments` walk). Fire-and-forget —
+  /// failure to refresh is not a send failure (the broadcast already
+  /// succeeded); the orchestrator's tx stream + periodic ticker
+  /// reconcile UI state on the next emission.
   void _refreshBalances() {
-    // Wait a bit to give time for the transaction to propagate
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        ref.read(walletDataManagerProvider.notifier).refreshWalletData();
+    Future.delayed(const Duration(seconds: 1), () async {
+      if (!mounted) return;
+      try {
+        final useCase = await ref.read(refreshWalletProvider.future);
+        await useCase(strategy: SyncStrategy.light);
+      } catch (_) {
+        // Swallowed by design.
       }
     });
   }

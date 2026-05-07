@@ -4,7 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/amount_provider.dart';
@@ -90,10 +91,20 @@ class _ReviewOnchainTransactionScreenState
               }
             },
             (transaction) async {
-              // Refresh UI immediately after transaction is sent
-              ref
-                  .read(walletDataManagerProvider.notifier)
-                  .refreshAfterTransaction();
+              // Phase 2.3.3: routes through V2 `RefreshWalletUseCase(light)`.
+              // Fire-and-forget — failure to refresh is not a send failure
+              // (the broadcast already succeeded); orchestrator's tx
+              // stream + periodic ticker reconcile UI state on the next
+              // emission.
+              Future<void>.microtask(() async {
+                try {
+                  final useCase =
+                      await ref.read(refreshWalletProvider.future);
+                  await useCase(strategy: SyncStrategy.light);
+                } catch (_) {
+                  // Swallowed by design.
+                }
+              });
 
               if (mounted) {
                 TransactionSentScreen.show(

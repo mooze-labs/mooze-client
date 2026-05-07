@@ -8,7 +8,12 @@ import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+// Phase 2.3.3: hide V2's `balanceProvider` to avoid colliding with the
+// legacy `balanceProvider(Asset asset)` family this screen uses
+// throughout. Phase 2.7 cleanup migrates the screen to V2's per-asset
+// provider and removes the hide directive.
+import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -702,10 +707,19 @@ class _ReviewTransactionScreenState
             'Transaction broadcast successful — asset: ${psbt.asset.ticker}, '
             'amount: ${psbt.satoshi} sats, network: ${psbt.blockchain.name}',
           );
-          // Refresh UI immediately after transaction is sent
-          ref
-              .read(walletDataManagerProvider.notifier)
-              .refreshAfterTransaction();
+          // Phase 2.3.3: routes through V2 `RefreshWalletUseCase(light)`.
+          // Fire-and-forget — failure to refresh is not a send failure
+          // (the broadcast already succeeded); orchestrator's tx
+          // stream + periodic ticker reconcile UI state on the next
+          // emission.
+          Future<void>.microtask(() async {
+            try {
+              final useCase = await ref.read(refreshWalletProvider.future);
+              await useCase(strategy: SyncStrategy.light);
+            } catch (_) {
+              // Swallowed by design.
+            }
+          });
           _showSuccessScreen(context, psbt);
         },
       );
