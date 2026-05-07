@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/enums/blockchain.dart';
 import '../../presentation/providers/transaction_provider.dart';
@@ -88,9 +89,13 @@ class TransactionMonitorService {
 
   Future<void> _checkTransactions() async {
     try {
-      final walletStatus = _ref.read(walletDataManagerProvider);
+      // Phase 2.3.3: V2 readiness gate. Legacy `isSuccess || isRefreshing`
+      // means "wallet is initialized and either idle or syncing." V2's
+      // `AppPhase.ready` covers both states (the orchestrator's sync
+      // phases stay under `AppPhase.ready` once boot is done).
+      final appPhase = _ref.read(appStateProvider).valueOrNull?.phase;
 
-      if (!walletStatus.isSuccess && !walletStatus.isRefreshing) {
+      if (appPhase != AppPhase.ready) {
         return;
       }
 
@@ -196,9 +201,10 @@ class TransactionMonitorService {
 
   Future<void> syncPendingTransactions() async {
     try {
-      final walletStatus = _ref.read(walletDataManagerProvider);
+      // Phase 2.3.3: V2 readiness gate (same semantics as `_checkTransactions`).
+      final appPhase = _ref.read(appStateProvider).valueOrNull?.phase;
 
-      if (!walletStatus.isSuccess && !walletStatus.isRefreshing) {
+      if (appPhase != AppPhase.ready) {
         return;
       }
 
