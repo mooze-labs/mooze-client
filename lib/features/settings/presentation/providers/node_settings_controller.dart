@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/usecase_providers.dart';
-import 'package:mooze_mobile/shared/infra/bdk/providers/blockchain_provider.dart';
-import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
+import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Snapshot of the node configuration screen.
@@ -112,8 +111,16 @@ class NodeSettingsController extends AsyncNotifier<NodeSettingsState> {
 
       // Force a rebuild of the network-facing providers so the next
       // sync pass picks up the new endpoints / fallback policy.
-      ref.invalidate(blockchainProvider);
-      ref.invalidate(liquidDataSourceProvider);
+
+      try {
+        await ref
+            .read(walletDataManagerProvider.notifier)
+            .retryDataSourceConnection();
+      } catch (_) {
+        // Endpoint reconnect is best-effort — if it fails, the next
+        // periodic sync still picks up the saved settings on its own
+        // build cycle.
+      }
 
       state = AsyncData(current);
       return null;
