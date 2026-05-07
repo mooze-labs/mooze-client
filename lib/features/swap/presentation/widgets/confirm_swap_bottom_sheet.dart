@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 import '../providers/swap_controller.dart' as sc;
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
@@ -172,10 +173,15 @@ class _ConfirmSwapBottomSheetState
         (txid) {
           Navigator.of(context).pop();
 
-          // Refresh UI immediately after swap is confirmed
-          ref
-              .read(walletDataManagerProvider.notifier)
-              .refreshAfterTransaction();
+
+          Future<void>.microtask(() async {
+            try {
+              final useCase = await ref.read(refreshWalletProvider.future);
+              await useCase(strategy: SyncStrategy.light);
+            } catch (_) {
+              // Swallowed by design.
+            }
+          });
 
           widget.onSuccess?.call();
 
