@@ -11,7 +11,9 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdi
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
+import 'package:mooze_mobile/app/lifecycle/app_state.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 
 class HoldingsAsseetScreen extends ConsumerStatefulWidget {
   const HoldingsAsseetScreen({super.key});
@@ -38,10 +40,11 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoadingData = ref.watch(isLoadingDataProvider);
-
-    // Watch the refresh trigger to re-render without loading state
-    ref.watch(dataRefreshTriggerProvider);
+    // Phase 2.3.3: V2-derived loading flag (boot != ready ⇒ loading).
+    // `dataRefreshTriggerProvider` removed — V2 streams re-emit on
+    // actual state changes, so the manual UI-rebuild trigger is gone.
+    final appPhase = ref.watch(appStateProvider).valueOrNull?.phase;
+    final isLoadingData = appPhase != AppPhase.ready;
 
     return Scaffold(
       appBar: _buildAppBar(),
@@ -94,9 +97,9 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   Future<void> _refreshData() async {
     try {
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-
-      await walletDataManager.fullSyncWalletData();
+      // Phase 2.3.3: routes through V2 `RefreshWalletUseCase(strategy: full)`.
+      final useCase = await ref.read(refreshWalletProvider.future);
+      await useCase(strategy: SyncStrategy.full);
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(
