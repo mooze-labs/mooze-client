@@ -2,46 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/utils/transaction_formatters.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/utils/transaction_formatters.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
 class TransactionList extends ConsumerWidget {
   const TransactionList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(dataRefreshTriggerProvider);
-    final transactionState = ref.watch(transactionHistoryCacheProvider);
+    final transactionsAsync = ref.watch(v2LegacyTransactionsProvider);
     final isVisible = ref.watch(isVisibleProvider);
 
-    if (transactionState.transactions == null && !transactionState.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(transactionHistoryCacheProvider.notifier)
-            .fetchTransactionsInitial();
-      });
-    }
-
-    if (transactionState.transactions == null) {
-      return LoadingTransactionList();
-    }
-
-    return transactionState.transactions!.fold(
-      (err) => ErrorTransactionList(),
-      (transactions) {
-        return SuccessfulTransactionList(
-          transactions: transactions,
-          isVisible: isVisible,
-        );
-      },
+    return transactionsAsync.when(
+      loading: () => const LoadingTransactionList(),
+      error: (err, _) => const ErrorTransactionList(),
+      data:
+          (transactions) => SuccessfulTransactionList(
+            transactions: transactions,
+            isVisible: isVisible,
+          ),
     );
   }
 }
