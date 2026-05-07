@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../providers/btc_lbtc_swap_controller_provider.dart';
 import '../widgets/btc_lbtc_confirm_bottom_sheet.dart';
@@ -155,10 +156,7 @@ class BtcLbtcSwapHelper {
                       }
                     },
                     (transaction) {
-                      // Refresh UI immediately after peg-in is confirmed
-                      ref
-                          .read(walletDataManagerProvider.notifier)
-                          .refreshAfterTransaction();
+                      _refreshAfterSwap();
                       _showSuccessScreen(
                         amount,
                         fromAsset, // BTC
@@ -190,10 +188,9 @@ class BtcLbtcSwapHelper {
                       }
                     },
                     (transaction) {
-                      // Refresh UI immediately after peg-out is confirmed
-                      ref
-                          .read(walletDataManagerProvider.notifier)
-                          .refreshAfterTransaction();
+                      // Refresh UI immediately after peg-out is confirmed.
+                      // See _refreshAfterSwap docstring above.
+                      _refreshAfterSwap();
                       _showSuccessScreen(
                         amount,
                         fromAsset,
@@ -242,5 +239,20 @@ class BtcLbtcSwapHelper {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red[700]),
     );
+  }
+
+  /// Phase 2.3.3-prep-Tier3: triggers a light wallet refresh through the
+  /// V2 `RefreshWalletUseCase`. Fire-and-forget — failure is swallowed
+  /// because the swap itself already completed; the orchestrator's tx
+  /// stream + periodic ticker reconcile UI state on the next emission.
+  void _refreshAfterSwap() {
+    Future<void>.microtask(() async {
+      try {
+        final useCase = await ref.read(refreshWalletProvider.future);
+        await useCase(strategy: SyncStrategy.light);
+      } catch (_) {
+        // Swallowed by design — see method docstring.
+      }
+    });
   }
 }
