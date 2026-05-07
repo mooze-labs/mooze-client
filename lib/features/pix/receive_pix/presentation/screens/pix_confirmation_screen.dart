@@ -55,64 +55,60 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     _showLoadingOverlay();
     _circleController.forward();
 
-    final controller = await ref.read(pixDepositControllerProvider.future);
     final depositAmount = ref.read(depositAmountProvider);
     final selectedAsset = ref.read(selectedAssetProvider);
     final amountInCents = (depositAmount * 100).toInt();
     final minAnimationTime = Future.delayed(const Duration(milliseconds: 1500));
 
-    controller.fold(
-      (err) async {
-        await minAnimationTime;
-        if (!mounted) return;
-        setState(() => _isLoading = false);
-        _hideLoadingOverlay();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(err)));
-        _circleController.reset();
-      },
-      (depositController) async {
-        final result =
-            await depositController
-                .newDeposit(amountInCents, selectedAsset)
-                .run();
+    try {
+      final depositController =
+          await ref.read(pixDepositControllerProvider.future);
+      final result =
+          await depositController.newDeposit(amountInCents, selectedAsset).run();
 
-        await minAnimationTime;
+      await minAnimationTime;
 
-        result.fold(
-          (err) async {
-            if (!mounted) return;
-            setState(() => _isLoading = false);
+      result.fold(
+        (err) async {
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+          _hideLoadingOverlay();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(err)));
+          _circleController.reset();
+        },
+        (deposit) async {
+          if (!mounted) return;
+
+          setState(() => _isLoading = false);
+
+          ref.read(depositAmountProvider.notifier).state = 0.0;
+          ref.invalidate(feeRateProvider);
+          ref.invalidate(feeAmountProvider);
+          ref.invalidate(discountedFeesDepositProvider);
+          ref.invalidate(assetQuoteProvider);
+
+          // Replace /pix/confirm in the stack so pop() from the payment
+          // screen returns to /pix, not back here.
+          context.pushReplacement("/pix/payment/${deposit.depositId}");
+
+          await Future.delayed(const Duration(milliseconds: 200));
+          if (mounted) {
             _hideLoadingOverlay();
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(err)));
-            _circleController.reset();
-          },
-          (deposit) async {
-            if (!mounted) return;
-
-            setState(() => _isLoading = false);
-
-            ref.read(depositAmountProvider.notifier).state = 0.0;
-            ref.invalidate(feeRateProvider);
-            ref.invalidate(feeAmountProvider);
-            ref.invalidate(discountedFeesDepositProvider);
-            ref.invalidate(assetQuoteProvider);
-
-            // Replace /pix/confirm in the stack so pop() from the payment
-            // screen returns to /pix, not back here.
-            context.pushReplacement("/pix/payment/${deposit.depositId}");
-
-            await Future.delayed(const Duration(milliseconds: 200));
-            if (mounted) {
-              _hideLoadingOverlay();
-            }
-          },
-        );
-      },
-    );
+          }
+        },
+      );
+    } catch (e) {
+      await minAnimationTime;
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _hideLoadingOverlay();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      _circleController.reset();
+    }
   }
 
   void _showLoadingOverlay() {
