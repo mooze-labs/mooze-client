@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import 'package:mooze_mobile/features/wallet/data/models/transaction_status_event.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
 import 'package:mooze_mobile/routes.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 
 class TransactionStatusListener extends ConsumerStatefulWidget {
@@ -32,18 +33,23 @@ class _TransactionStatusListenerState
   }
 
   void _checkAndInitialize() {
-    final walletStatus = ref.read(walletDataManagerProvider);
+    // Phase 2.3.3: V2 readiness check. The wallet is "ready" when the
+    // app lifecycle controller has completed boot AND started sync.
+    // Equivalent to legacy `walletStatus.isSuccess` semantically — the
+    // app phase becomes `ready` after the same orchestration completes.
+    final appPhase =
+        ref.read(appStateProvider).valueOrNull?.phase;
 
-    if (walletStatus.isSuccess && !_isInitialized) {
+    if (appPhase == AppPhase.ready && !_isInitialized) {
       debugPrint(
-        '[TransactionStatusListener] Wallet ready (${walletStatus.state}), starting monitoring',
+        '[TransactionStatusListener] Wallet ready, starting monitoring',
       );
       _isInitialized = true;
       _setupListener();
       _startMonitoring();
     } else {
       debugPrint(
-        '[TransactionStatusListener] Wallet is not ready (${walletStatus.state}), waiting...',
+        '[TransactionStatusListener] Wallet is not ready (phase=$appPhase), waiting...',
       );
     }
   }
@@ -137,10 +143,15 @@ class _TransactionStatusListenerState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<WalletDataStatus>(walletDataManagerProvider, (previous, next) {
-      if (!_isInitialized && next.isSuccess) {
+    // Phase 2.3.3: listen to V2 `appStateProvider` (AsyncValue<AppState>)
+    // for the boot transition. When `phase == AppPhase.ready` arrives,
+    // start monitoring. Idempotent — `_isInitialized` guards against
+    // re-entry.
+    ref.listen<AsyncValue<AppState>>(appStateProvider, (previous, next) {
+      final phase = next.valueOrNull?.phase;
+      if (!_isInitialized && phase == AppPhase.ready) {
         debugPrint(
-          '[TransactionStatusListener] Wallet became ready (${next.state}), starting monitoring',
+          '[TransactionStatusListener] Wallet became ready, starting monitoring',
         );
         _isInitialized = true;
         _setupListener();
