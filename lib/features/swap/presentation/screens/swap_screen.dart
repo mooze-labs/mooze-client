@@ -19,7 +19,8 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class SwapScreen extends ConsumerStatefulWidget {
@@ -1076,8 +1077,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     try {
       if (!mounted) return;
 
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.refreshWalletData();
+      final useCase = await ref.read(refreshWalletProvider.future);
+      await useCase(strategy: SyncStrategy.light);
     } catch (e) {
       debugPrint('[Swap] Erro ao atualizar dados da carteira: $e');
     }
