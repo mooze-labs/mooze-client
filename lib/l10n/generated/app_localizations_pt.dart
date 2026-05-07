@@ -2534,6 +2534,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_import_msg_initializing => 'Inicializando carteira...';
 
   @override
+  String get wallet_import_phase_platform => 'Inicializando plataforma...';
+
+  @override
+  String get wallet_import_phase_database => 'Preparando banco de dados...';
+
+  @override
+  String get wallet_import_phase_credentials => 'Carregando credenciais...';
+
+  @override
+  String get wallet_import_phase_connecting => 'Conectando às redes...';
+
+  @override
+  String get wallet_import_phase_authenticating => 'Autenticando sessão...';
+
+  @override
+  String get wallet_import_phase_finalizing => 'Finalizando carteira...';
+
+  @override
   String get wallet_import_msg_loading_balances => 'Carregando saldos...';
 
   @override

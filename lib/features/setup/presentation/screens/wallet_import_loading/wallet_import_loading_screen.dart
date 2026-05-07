@@ -1,19 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/app/lifecycle/app_state.dart';
+import 'package:mooze_mobile/domain/services/service_state.dart';
+import 'package:mooze_mobile/features/boot/domain/boot_state.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/shared/infra/boot/boot_orchestrator.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
-import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/shared/infra/lwk/utils/cache_manager.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'dart:math' as math;
 
 class ImportMessage {
@@ -49,10 +46,20 @@ class _WalletImportLoadingScreenState
   bool _hasInitialized = false;
   bool _isHandlingSuccess = false;
 
-  final _requiredDatasources = {'liquid', 'bdk', 'breez'};
-  final _completedDatasources = <String>{};
-  bool _allSyncsCompleted = false;
-  StreamSubscription<SyncEvent>? _syncEventSubscription;
+  // Phase 2.3.3: V2 boot/sync state tracking. The legacy
+  // per-datasource completion set is gone — V2 has one merged
+  // `AppPhase.ready` signal that covers boot + first sync. We still
+  // track per-chain sync transitions to render the same "synced X"
+  // messages users expect.
+  //
+  // `_shownBootPhases` is the boot-phase analogue of `_completedChains`:
+  // the boot orchestrator emits each `BootPhase` exactly once on the
+  // forward path, but `bootStateProvider` re-delivers the same state to
+  // late subscribers. Guarding by phase prevents a duplicate "Loading
+  // credentials..." line when the listener attaches mid-boot.
+  final _completedChains = <String>{};
+  final _shownBootPhases = <BootPhase>{};
+  bool _bootStartTriggered = false;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -114,7 +121,6 @@ class _WalletImportLoadingScreenState
 
   @override
   void dispose() {
-    _syncEventSubscription?.cancel();
     _fadeController.dispose();
     _slideController.dispose();
     _checkBounceController.dispose();
@@ -126,73 +132,76 @@ class _WalletImportLoadingScreenState
     super.dispose();
   }
 
-  void _listenToSyncEvents() {
-    final controller = ref.read(syncEventControllerProvider);
+  /// Render a one-line message for the current `BootPhase`. The boot
+  /// orchestrator walks linearly through the forward phases — every
+  /// transition is interesting to the user, especially on first import
+  /// where each phase can take seconds (FFI init, Electrum connect,
+  /// Breez authentication). Renders one message per distinct phase
+  /// seen; idempotent across re-emits.
+  void _trackBootPhase(BootState state) {
+    final phase = state.phase;
+    if (_shownBootPhases.contains(phase)) return;
+    _shownBootPhases.add(phase);
 
-    final alreadyCompleted = controller.completedDatasources;
-
-    if (alreadyCompleted.isNotEmpty) {
-      for (final datasource in alreadyCompleted) {
-        if (_requiredDatasources.contains(datasource)) {
-          _completedDatasources.add(datasource);
-        }
-      }
-
-      if (_completedDatasources.containsAll(_requiredDatasources)) {
-        _allSyncsCompleted = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _handleAllSyncsCompleted();
-          }
-        });
-      }
-    }
-
-    _syncEventSubscription = controller.stream.listen((event) {
-      if (event.isCompleted) {
-        if (!_completedDatasources.contains(event.datasource)) {
-          _completedDatasources.add(event.datasource);
-          if (!mounted) return;
-          final t = AppLocalizations.of(context);
-          _showMessage(
-            t.wallet_import_msg_synced(_getDatasourceName(event.datasource)),
-          ).then((_) {
-            if (_completedDatasources.containsAll(_requiredDatasources)) {
-              _allSyncsCompleted = true;
-              _handleAllSyncsCompleted();
-            }
-          });
-        }
-      } else if (event.isFailed) {
-        if (!_completedDatasources.contains(event.datasource)) {
-          _completedDatasources.add(event.datasource);
-          if (!mounted) return;
-          final t = AppLocalizations.of(context);
-          _showMessage(
-            t.wallet_import_msg_resynced(_getDatasourceName(event.datasource)),
-            isRetry: true,
-          ).then((_) {
-            if (_completedDatasources.containsAll(_requiredDatasources)) {
-              _allSyncsCompleted = true;
-              _handleAllSyncsCompleted();
-            }
-          });
-        }
-      }
-    }, onError: (_) {});
+    final t = AppLocalizations.of(context);
+    final String? label = switch (phase) {
+      BootPhase.initializingPlatform => t.wallet_import_phase_platform,
+      BootPhase.initializingDatabase => t.wallet_import_phase_database,
+      BootPhase.loadingCredentials => t.wallet_import_phase_credentials,
+      BootPhase.connectingServices => t.wallet_import_phase_connecting,
+      BootPhase.authenticatingSession => t.wallet_import_phase_authenticating,
+      // ready / needsSetup / error / idle don't get their own line —
+      // the post-boot sequence (`_handleAllSyncsCompleted`) and the
+      // error-state listener cover those terminal transitions.
+      _ => null,
+    };
+    if (label == null) return;
+    // ignore: unawaited_futures
+    _showMessage(label);
   }
 
-  String _getDatasourceName(String datasource) {
+  /// Phase 2.3.3: per-chain sync event monitoring is now driven by
+  /// `ref.listen<AsyncValue<SyncState>>(syncStateProvider, ...)` in
+  /// `build()`. When a chain transitions from `connecting` →
+  /// `connected`, we render its "synced X" message; when all three
+  /// chains report `connected` we run the post-sync sequence.
+  ///
+  /// Idempotent — `_completedChains` guards against duplicate emits
+  /// when `syncStateProvider` re-emits the same state (e.g. on every
+  /// periodic tick after first-sync).
+  void _trackChainSyncProgress(SyncState state) {
     final t = AppLocalizations.of(context);
-    switch (datasource) {
+    state.perChain.forEach((chain, lifecycle) {
+      if (lifecycle == ServiceLifecycle.connected &&
+          !_completedChains.contains(chain.name)) {
+        _completedChains.add(chain.name);
+        // ignore: unawaited_futures
+        _showMessage(
+          t.wallet_import_msg_synced(_getChainName(chain.name)),
+        );
+      }
+    });
+    // The "all chains connected" condition is observable from the
+    // perChain map but no longer drives flow control — the
+    // `appStateProvider.phase == AppPhase.ready` listener in `build()`
+    // is the canonical "wallet is ready" signal (it covers boot
+    // completion + sync start, equivalent to legacy "all sync events
+    // received").
+  }
+
+  String _getChainName(String chain) {
+    final t = AppLocalizations.of(context);
+    switch (chain) {
       case 'liquid':
         return t.wallet_import_datasource_liquid;
+      case 'bitcoin':
       case 'bdk':
         return t.wallet_import_datasource_bitcoin;
+      case 'lightning':
       case 'breez':
         return t.wallet_import_datasource_lightning;
       default:
-        return datasource;
+        return chain;
     }
   }
 
@@ -209,8 +218,10 @@ class _WalletImportLoadingScreenState
     await _refreshBalances();
 
     await _showMessage(t.wallet_import_msg_loading_transactions);
-    await Future.delayed(const Duration(milliseconds: 500));
-
+    // Removed a 500 ms `Future.delayed` here. There was nothing to wait for —
+    // the previous `_refreshBalances()` already awaited `allBalancesProvider`
+    // and the `markExistingTransactionsAsKnown` call below reads
+    // `transactionHistoryProvider` which has its own awaited load.
     final transactionMonitor = ref.read(transactionMonitorServiceProvider);
     await transactionMonitor.markExistingTransactionsAsKnown();
 
@@ -226,39 +237,30 @@ class _WalletImportLoadingScreenState
     }
   }
 
+  /// Phase 2.3.3: post-sync UI refresh routes through V2
+  /// `RefreshWalletUseCase`. Failure is silently swallowed —
+  /// `_handleAllSyncsCompleted` is best-effort UI polish; the
+  /// orchestrator's tx stream + balance providers re-emit on actual
+  /// state changes.
   Future<void> _refreshBalances() async {
     try {
-      ref.read(balanceCacheProvider.notifier).reset();
-    } catch (_) {}
-
-    try {
-      final breezResult = await ref.read(breezClientProvider.future);
-      breezResult.fold((error) {
-        ref.invalidate(breezClientProvider);
-      }, (client) {});
+      final useCase = await ref.read(refreshWalletProvider.future);
+      await useCase(strategy: SyncStrategy.light);
     } catch (_) {
-      ref.invalidate(breezClientProvider);
+      // Swallowed by design.
     }
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    ref.invalidate(walletRepositoryProvider);
-
-    ref.invalidate(allBalancesProvider);
-
-    final assetsToRefresh = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
-    for (final asset in assetsToRefresh) {
-      ref.invalidate(balanceProvider(asset));
-    }
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    try {
-      await ref.read(allBalancesProvider.future);
-    } catch (_) {}
   }
 
+  /// Phase 2.3.3: kick the V2 `AppLifecycleController.start()` once.
+  /// The controller drives `BootOrchestrator.start()` then
+  /// `SyncOrchestrator.start()`. Boot phase transitions surface in
+  /// `bootStateProvider`; per-chain sync transitions surface in
+  /// `syncStateProvider`. Both are watched via `ref.listen` in
+  /// `build()` to drive the message stream — no need to chain `await`
+  /// calls here.
   Future<void> _startImportProcess() async {
+    if (_bootStartTriggered) return;
+    _bootStartTriggered = true;
     try {
       _progressController.forward();
 
@@ -266,69 +268,24 @@ class _WalletImportLoadingScreenState
       transactionMonitor.startImporting();
 
       if (!mounted) return;
-      final t = AppLocalizations.of(context);
 
-      await _showMessage(t.wallet_import_msg_processing);
-
-      await _showMessage(t.wallet_import_msg_verifying);
-
-      try {
-        await LwkCacheManager.clearLwkDatabase();
-      } catch (_) {}
-
-      _completedDatasources.clear();
-      _allSyncsCompleted = false;
-
-      await _syncEventSubscription?.cancel();
-      _syncEventSubscription = null;
-
-      final syncController = ref.read(syncEventControllerProvider);
-      syncController.reset();
-
-      ref.invalidate(walletDataManagerProvider);
-
-      try {
-        ref.invalidate(bootOrchestratorProvider);
-      } catch (_) {}
-
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      final freshWalletDataManager = ref.read(
-        walletDataManagerProvider.notifier,
-      );
-
-      freshWalletDataManager.invalidateAllWalletProviders();
-
-      _listenToSyncEvents();
-
-      await _showMessage(t.wallet_import_msg_initializing);
+      // Mark `_hasInitialized` immediately so the error listener in
+      // `build()` arms (it gates on this flag to avoid surfacing
+      // pre-start `AppPhase.error` from a previous run). We no longer
+      // pre-emit hardcoded "processing/verifying/initializing" lines —
+      // every progress message now reflects an actual orchestrator
+      // transition driven by `bootStateProvider` / `syncStateProvider`.
       setState(() => _hasInitialized = true);
 
-      await freshWalletDataManager.initializeWallet(
-        skipInitialSync: false,
-        runSyncInBackground: true,
-      );
-
-      final alreadyCompleted = syncController.completedDatasources;
-
-      if (alreadyCompleted.isNotEmpty) {
-        for (final datasource in alreadyCompleted) {
-          if (_requiredDatasources.contains(datasource) &&
-              !_completedDatasources.contains(datasource)) {
-            _completedDatasources.add(datasource);
-            if (!mounted) return;
-            final t2 = AppLocalizations.of(context);
-            await _showMessage(
-              t2.wallet_import_msg_synced(_getDatasourceName(datasource)),
-            );
-          }
-        }
-
-        if (_completedDatasources.containsAll(_requiredDatasources)) {
-          _allSyncsCompleted = true;
-          await _handleAllSyncsCompleted();
-        }
-      }
+      // The lifecycle controller is single-flighted — concurrent
+      // `start()` calls coalesce into one boot. We don't await the
+      // result here because the message stream is event-driven via
+      // `ref.listen`; the `start()` call returns when boot completes
+      // (or fails), at which point `appStateProvider` already emitted
+      // `AppPhase.ready` (or `AppPhase.error`).
+      final controller =
+          await ref.read(appLifecycleControllerProvider.future);
+      await controller.start();
     } catch (e) {
       if (!mounted) return;
       final errorMsg = _getErrorMessage(e);
@@ -369,9 +326,21 @@ class _WalletImportLoadingScreenState
       _currentMessageIndex = _messages.length - 1;
     });
 
+    // Drive the entry animations without awaiting their 600 ms completion.
+    // Previously this method awaited Future.wait of both controllers, which
+    // gated the entire import flow on each message's animation finishing —
+    // ~600 ms × 6 messages = ~3.6 s of pure animation wait sitting on top
+    // of real import work. The user perceived this as a freeze because
+    // the orbital/particle/glow animations on the same Ticker provider
+    // stuttered while the import thread was both doing heavy crypto/FFI
+    // work AND awaiting the message animation. The animations are still
+    // visually present — they just no longer block the next step of the
+    // import pipeline. Mirrors V2's `_BootProgressScreen` which renders
+    // messages reactively from a stream and never waits on animations.
     _fadeController.reset();
     _slideController.reset();
-    await Future.wait([_fadeController.forward(), _slideController.forward()]);
+    unawaited(_fadeController.forward());
+    unawaited(_slideController.forward());
   }
 
   String _getErrorMessage(dynamic error) {
@@ -442,31 +411,59 @@ class _WalletImportLoadingScreenState
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    ref.listen<WalletDataStatus>(walletDataManagerProvider, (
-      previous,
-      next,
-    ) async {
-      if (_hasInitialized && !_hasError && !_isCompleted && next.hasError) {
+
+    // Phase 2.3.3: error tracking via V2 `appStateProvider`. Boot
+    // failures surface as `AppPhase.error` with `state.failure`
+    // populated; UI shows a retry-capable error card.
+    ref.listen<AsyncValue<AppState>>(appStateProvider, (previous, next) async {
+      final state = next.valueOrNull;
+      if (state == null) return;
+      if (state.phase == AppPhase.error &&
+          _hasInitialized &&
+          !_hasError &&
+          !_isCompleted) {
         final errorMsg =
-            next.errorMessage ?? t.wallet_import_error_unknown;
+            state.failure?.message ?? t.wallet_import_error_unknown;
+        await _showMessage(_getErrorMessage(errorMsg), hasError: true);
+        setState(() {
+          _hasError = true;
+          _errorMessage = _getUserFriendlyErrorMessage(errorMsg);
+        });
+      }
+    });
 
-        final isRetrying =
-            errorMsg.toLowerCase().contains('tentando reconectar') ||
-            errorMsg.toLowerCase().contains('tentativas');
+    // Phase 2.3.3: granular boot-phase progress. The boot orchestrator
+    // emits a distinct `BootPhase` for each step
+    // (initializingPlatform → initializingDatabase → loadingCredentials
+    // → connectingServices → authenticatingSession → ready). Surfacing
+    // each phase to the user matters most on first import where each
+    // step can take seconds (FFI init, Electrum connect, Breez auth).
+    ref.listen<AsyncValue<BootState>>(bootStateProvider, (previous, next) {
+      final bootState = next.valueOrNull;
+      if (bootState == null) return;
+      _trackBootPhase(bootState);
+    });
 
-        if (isRetrying) {
-          await _showMessage(
-            _getErrorMessage(errorMsg),
-            hasError: false,
-            isRetry: true,
-          );
-        } else {
-          await _showMessage(_getErrorMessage(errorMsg), hasError: true);
-          setState(() {
-            _hasError = true;
-            _errorMessage = _getUserFriendlyErrorMessage(errorMsg);
-          });
-        }
+    // Phase 2.3.3: per-chain "synced X" messages from V2
+    // `syncStateProvider`. When all three operational chains report
+    // `connected` AND the orchestrator is in `cooling`/`idle` (sync
+    // tick has completed at least once), trigger the post-sync
+    // sequence.
+    ref.listen<AsyncValue<SyncState>>(syncStateProvider, (previous, next) {
+      final syncState = next.valueOrNull;
+      if (syncState == null) return;
+      _trackChainSyncProgress(syncState);
+    });
+
+    // Phase 2.3.3: when V2 reports `AppPhase.ready`, run the
+    // post-boot sequence (tx-monitor priming + completion message +
+    // navigation to home). Idempotent via `_isHandlingSuccess`.
+    ref.listen<AsyncValue<AppState>>(appStateProvider, (previous, next) {
+      final state = next.valueOrNull;
+      if (state?.phase == AppPhase.ready &&
+          !_isHandlingSuccess &&
+          !_isCompleted) {
+        _handleAllSyncsCompleted();
       }
     });
 

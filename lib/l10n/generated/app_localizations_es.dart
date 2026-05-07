@@ -2542,6 +2542,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wallet_import_msg_initializing => 'Inicializando billetera...';
 
   @override
+  String get wallet_import_phase_platform => 'Inicializando plataforma...';
+
+  @override
+  String get wallet_import_phase_database => 'Preparando base de datos...';
+
+  @override
+  String get wallet_import_phase_credentials => 'Cargando credenciales...';
+
+  @override
+  String get wallet_import_phase_connecting => 'Conectando a las redes...';
+
+  @override
+  String get wallet_import_phase_authenticating => 'Autenticando sesión...';
+
+  @override
+  String get wallet_import_phase_finalizing => 'Finalizando billetera...';
+
+  @override
   String get wallet_import_msg_loading_balances => 'Cargando saldos...';
 
   @override

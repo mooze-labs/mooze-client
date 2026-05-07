@@ -4582,6 +4582,42 @@ abstract class AppLocalizations {
   /// **'Inicializando carteira...'**
   String get wallet_import_msg_initializing;
 
+  /// No description provided for @wallet_import_phase_platform.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inicializando plataforma...'**
+  String get wallet_import_phase_platform;
+
+  /// No description provided for @wallet_import_phase_database.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preparando banco de dados...'**
+  String get wallet_import_phase_database;
+
+  /// No description provided for @wallet_import_phase_credentials.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando credenciais...'**
+  String get wallet_import_phase_credentials;
+
+  /// No description provided for @wallet_import_phase_connecting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conectando às redes...'**
+  String get wallet_import_phase_connecting;
+
+  /// No description provided for @wallet_import_phase_authenticating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Autenticando sessão...'**
+  String get wallet_import_phase_authenticating;
+
+  /// No description provided for @wallet_import_phase_finalizing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Finalizando carteira...'**
+  String get wallet_import_phase_finalizing;
+
   /// No description provided for @wallet_import_msg_loading_balances.
   ///
   /// In pt, this message translates to:
