@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_success_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/widgets/fee_chooser.dart';
@@ -213,7 +213,7 @@ class _RefundConfirmationScreenState
     );
 
     try {
-      final req = RefundRequest(
+      final params = ExecuteRefundParams(
         feeRateSatPerVbyte:
             affordableFees[selectedFeeIndex].feeRateSatPerVbyte.toInt(),
         refundAddress: widget.refundParams.toAddress,
@@ -222,7 +222,7 @@ class _RefundConfirmationScreenState
 
       final response = await ref
           .read(refundProvider.notifier)
-          .processRefund(req: req);
+          .processRefund(params: params);
 
       if (mounted) {
         // Close loading dialog

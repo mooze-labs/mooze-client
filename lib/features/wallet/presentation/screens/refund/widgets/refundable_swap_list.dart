@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/widgets/refund_item_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 

@@ -358,12 +358,11 @@ class _TransactionRefundScreenState
   Widget _buildFeeSelection(RefundState state) {
     final t = AppLocalizations.of(context);
     final fees = state.recommendedFees!;
-    final isUsingFallback =
-        state.lastFeeUpdate == null ||
-        (fees.economyFee == BigInt.from(2) &&
-            fees.hourFee == BigInt.from(5) &&
-            fees.halfHourFee == BigInt.from(10) &&
-            fees.fastestFee == BigInt.from(20));
+    final isUsingFallback = state.lastFeeUpdate == null ||
+        (fees.economyFee == 2 &&
+            fees.hourFee == 5 &&
+            fees.halfHourFee == 10 &&
+            fees.fastestFee == 20);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,9 +440,9 @@ class _TransactionRefundScreenState
 
   Widget _buildFeeOption(
     String label,
-    BigInt feeRate,
+    int feeRate,
     String estimatedTime,
-    BigInt? selectedFeeRate,
+    int? selectedFeeRate,
   ) {
     final isSelected = selectedFeeRate == feeRate;
 

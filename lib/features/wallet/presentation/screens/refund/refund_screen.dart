@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_confirmation_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';

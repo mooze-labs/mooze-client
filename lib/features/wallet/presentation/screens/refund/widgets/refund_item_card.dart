@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -341,9 +341,9 @@ class RefundItemCard extends StatelessWidget {
     return '${value.toStringAsFixed(decimalPlaces)} BTC';
   }
 
-  String _formatDate(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return DateFormat('dd/MM/yyyy').format(date);
+  String _formatDate(DateTime? timestamp) {
+    if (timestamp == null) return '—';
+    return DateFormat('dd/MM/yyyy').format(timestamp);
   }
 
   String _shortenAddress(String address) {
