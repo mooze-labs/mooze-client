@@ -6,7 +6,6 @@ import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import 'package:mooze_mobile/domain/services/service_state.dart';
 import 'package:mooze_mobile/features/boot/domain/boot_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
-import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -181,12 +180,33 @@ class _WalletImportLoadingScreenState
         );
       }
     });
-    // The "all chains connected" condition is observable from the
-    // perChain map but no longer drives flow control — the
-    // `appStateProvider.phase == AppPhase.ready` listener in `build()`
-    // is the canonical "wallet is ready" signal (it covers boot
-    // completion + sync start, equivalent to legacy "all sync events
-    // received").
+
+    // Import-screen navigation gate. The cold-start path bypasses this
+    // screen entirely (SplashScreen routes straight to /home on
+    // AppPhase.ready), so the gate here only affects the import flow:
+    // we hold the splash + animations until the first sync cycle
+    // completes. Without this gate, freshly imported wallets land on
+    // /home with an empty `transactionStore` and a "0" balance — the
+    // user just submitted their seed and needs to see their funds.
+    //
+    // The sync orchestrator transitions `SyncState.phase` to `cooling`
+    // exactly once the first refresh cycle has finished (success path
+    // sets `lastSuccessAt`; total-failure path sets `lastError`). Both
+    // are terminal-enough to navigate: with data we render the wallet,
+    // with a hard sync failure the home shows a sync-error indicator
+    // and the user is no longer stuck on the splash. We do NOT gate on
+    // `ServiceLifecycle.connected` — that's a SDK-handle signal set
+    // during BOOT (before any sync runs), so it would fire the gate
+    // immediately the moment sync started.
+    final appState = ref.read(appStateProvider).valueOrNull;
+    final firstSyncCycleDone = state.phase == SyncPhase.cooling &&
+        (state.lastSuccessAt != null || state.lastError != null);
+    if (appState?.phase == AppPhase.ready &&
+        firstSyncCycleDone &&
+        !_isHandlingSuccess &&
+        !_isCompleted) {
+      _handleAllSyncsCompleted();
+    }
   }
 
   String _getChainName(String chain) {
@@ -205,6 +225,19 @@ class _WalletImportLoadingScreenState
     }
   }
 
+  /// Progressive hydration: navigate to home as soon as
+  /// `AppLifecycleController` emits `AppPhase.ready`. Boot now reaches
+  /// ready right after services are operational (no longer blocking on
+  /// the full first-sync cycle), and balances / transactions stream
+  /// into the home screen progressively via `watchBalanceFor` /
+  /// `watchTransactions`.
+  ///
+  /// Removed from the blocking gate:
+  /// - Explicit `_refreshBalances()` call — `SyncOrchestrator.start()`
+  ///   already runs an immediate light refresh; the eager `await` here
+  ///   was redundant work that just delayed the splash exit.
+  /// - Awaited `markExistingTransactionsAsKnown()` — kept as a fire-
+  ///   and-forget so new-tx popup dedup still seeds, without gating UI.
   Future<void> _handleAllSyncsCompleted() async {
     if (_isCompleted || _isHandlingSuccess) return;
 
@@ -213,17 +246,12 @@ class _WalletImportLoadingScreenState
     if (!mounted) return;
     final t = AppLocalizations.of(context);
 
-    await _showMessage(t.wallet_import_msg_loading_balances);
-
-    await _refreshBalances();
-
-    await _showMessage(t.wallet_import_msg_loading_transactions);
-    // Removed a 500 ms `Future.delayed` here. There was nothing to wait for —
-    // the previous `_refreshBalances()` already awaited `allBalancesProvider`
-    // and the `markExistingTransactionsAsKnown` call below reads
-    // `transactionHistoryProvider` which has its own awaited load.
     final transactionMonitor = ref.read(transactionMonitorServiceProvider);
-    await transactionMonitor.markExistingTransactionsAsKnown();
+    // Best-effort priming — runs concurrently with navigation. Worst
+    // case: a few-millisecond window where the tx-status listener could
+    // fire on an already-known transaction; `_processedTransactions`
+    // dedup already prevents duplicate confirmation popups.
+    unawaited(transactionMonitor.markExistingTransactionsAsKnown());
 
     await _showMessage(t.wallet_import_msg_completed, isCompleted: true);
     await _checkBounceController.forward();
@@ -234,20 +262,6 @@ class _WalletImportLoadingScreenState
 
     if (mounted) {
       context.go("/home");
-    }
-  }
-
-  /// Phase 2.3.3: post-sync UI refresh routes through V2
-  /// `RefreshWalletUseCase`. Failure is silently swallowed —
-  /// `_handleAllSyncsCompleted` is best-effort UI polish; the
-  /// orchestrator's tx stream + balance providers re-emit on actual
-  /// state changes.
-  Future<void> _refreshBalances() async {
-    try {
-      final useCase = await ref.read(refreshWalletProvider.future);
-      await useCase(strategy: SyncStrategy.light);
-    } catch (_) {
-      // Swallowed by design.
     }
   }
 
@@ -455,17 +469,14 @@ class _WalletImportLoadingScreenState
       _trackChainSyncProgress(syncState);
     });
 
-    // Phase 2.3.3: when V2 reports `AppPhase.ready`, run the
-    // post-boot sequence (tx-monitor priming + completion message +
-    // navigation to home). Idempotent via `_isHandlingSuccess`.
-    ref.listen<AsyncValue<AppState>>(appStateProvider, (previous, next) {
-      final state = next.valueOrNull;
-      if (state?.phase == AppPhase.ready &&
-          !_isHandlingSuccess &&
-          !_isCompleted) {
-        _handleAllSyncsCompleted();
-      }
-    });
+    // Navigation to /home is driven by the sync-completion gate inside
+    // `_trackChainSyncProgress` (called from the syncStateProvider
+    // listener above). We deliberately do NOT auto-fire on
+    // `AppPhase.ready` here — that arrives at boot+~500ms before any
+    // chain has finished its first sync, and navigating then would put
+    // the freshly-imported user on /home with empty balances. The
+    // appStateProvider listener earlier in this `build()` still arms
+    // the error path; navigation itself waits for sync completion.
 
     return AnimatedOpacity(
       opacity: _isCompleted ? 0.0 : 1.0,
