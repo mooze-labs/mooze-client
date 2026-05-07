@@ -27,6 +27,13 @@ class BreezWallet {
   BreezWallet(this._breez, {SwapAuditRepository? swapAudit})
     : _swapAudit = swapAudit;
 
+  /// Direct access to the Breez SDK client. Exposed (rather than wrapped)
+  /// so the legacy `WalletRepositoryImpl` can implement V2-shaped refund
+  /// methods inline — translating Breez types to V2 domain types at the
+  /// repository boundary. Phase 2.3.3 atomic flip retires this entire
+  /// `BreezWallet` wrapper; until then this getter is the bridge.
+  BreezSdkLiquid get sdkClient => _breez;
+
   TaskEither<WalletError, LightningPaymentLimitsResponse>
   fetchLightningLimits() {
     return TaskEither.tryCatch(

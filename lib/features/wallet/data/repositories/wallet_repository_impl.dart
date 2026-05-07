@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import 'package:fpdart/fpdart.dart';
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
+import 'package:mooze_mobile/domain/entities/liquid_utxo.dart' as v2;
+import 'package:mooze_mobile/domain/entities/refund.dart' as v2;
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/bitcoin.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/breez.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
@@ -1191,6 +1194,228 @@ class WalletRepositoryImpl extends WalletRepository {
       (error, stackTrace) => WalletError(
         WalletErrorType.sdkError,
         'Erro ao obter endereço Liquid: $error',
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────── chain metadata
+
+  @override
+  TaskEither<WalletError, int> getCurrentBitcoinBlockHeight() {
+    final wallet = _bitcoinWallet;
+    if (wallet == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Bitcoin wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async => await wallet.datasource.blockchain.getHeight(),
+      (error, stackTrace) => WalletError(
+        WalletErrorType.networkError,
+        'Erro ao obter altura do bloco Bitcoin: $error',
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────── refund surface
+  //
+  // Phase 2.3.3-prep-A2/A3: refund flows route through here instead of
+  // reading `breezClientProvider` directly. Translates Breez SDK types
+  // to V2 domain types at the boundary so feature/UI layers stay free
+  // of `flutter_breez_liquid` imports.
+
+  @override
+  TaskEither<WalletError, List<v2.RefundableSwap>> listRefundableSwaps() {
+    final w = _breezWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final list = await w.sdkClient.listRefundables();
+        return list
+            .map((r) => v2.RefundableSwap(
+                  swapAddress: r.swapAddress,
+                  amountSat: r.amountSat.toInt(),
+                  lastRefundTxId: r.lastRefundTxId,
+                  timestamp: r.timestamp == 0
+                      ? null
+                      : DateTime.fromMillisecondsSinceEpoch(r.timestamp * 1000),
+                ))
+            .toList();
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.networkError,
+        'Erro ao listar reembolsos disponíveis: $error',
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, v2.MempoolFees> getRecommendedFees() {
+    final w = _breezWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final f = await w.sdkClient.recommendedFees();
+        return v2.MempoolFees(
+          minimumFee: f.minimumFee.toInt(),
+          economyFee: f.economyFee.toInt(),
+          hourFee: f.hourFee.toInt(),
+          halfHourFee: f.halfHourFee.toInt(),
+          fastestFee: f.fastestFee.toInt(),
+        );
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.networkError,
+        'Erro ao obter taxas recomendadas: $error',
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, v2.PrepareRefundOutcome> prepareRefund(
+      v2.PrepareRefundParams params) {
+    final w = _breezWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final resp = await w.sdkClient.prepareRefund(
+          req: breez.PrepareRefundRequest(
+            swapAddress: params.swapAddress,
+            refundAddress: params.refundAddress,
+            feeRateSatPerVbyte: params.feeRateSatPerVbyte,
+          ),
+        );
+        return v2.PrepareRefundOutcome(
+          txVsize: resp.txVsize,
+          feesSat: resp.txFeeSat.toInt(),
+          refundTxId: resp.lastRefundTxId,
+        );
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        'Erro ao preparar reembolso: $error',
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, v2.RefundOutcome> executeRefund(
+      v2.ExecuteRefundParams params) {
+    final w = _breezWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final resp = await w.sdkClient.refund(
+          req: breez.RefundRequest(
+            swapAddress: params.swapAddress,
+            refundAddress: params.refundAddress,
+            feeRateSatPerVbyte: params.feeRateSatPerVbyte,
+          ),
+        );
+        return v2.RefundOutcome(refundTxId: resp.refundTxId);
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        'Erro ao executar reembolso: $error',
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────── swap surface (LWK-backed)
+  //
+  // Phase 2.3.3-prep-Tier3: swap flows route through here so they no
+  // longer reach `liquidDataSourceProvider` directly. Delegates to the
+  // existing legacy LWK datasource via `_liquidWallet.datasource.wallet`.
+  // Translates LWK UTXO types to V2 domain `LiquidUtxo` at the boundary.
+
+  @override
+  TaskEither<WalletError, List<v2.LiquidUtxo>> getLiquidUtxos() {
+    final w = _liquidWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Liquid wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final utxos = await w.datasource.wallet.utxos();
+        return utxos
+            .map((u) => v2.LiquidUtxo(
+                  txid: u.outpoint.txid,
+                  vout: u.outpoint.vout,
+                  assetId: u.unblinded.asset,
+                  assetBlindingFactor: u.unblinded.assetBf,
+                  valueSat: u.unblinded.value,
+                  valueBlindingFactor: u.unblinded.valueBf,
+                ))
+            .toList();
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.sdkError,
+        'Erro ao listar UTXOs Liquid: $error',
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, String> signSwapPset({
+    required String pset,
+    required String mnemonic,
+  }) {
+    final w = _liquidWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Liquid wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final signed = await w.datasource.wallet.signedPsetWithExtraDetails(
+          network: w.datasource.network,
+          pset: pset,
+          mnemonic: mnemonic,
+        );
+        return signed;
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.transactionFailed,
+        'Erro ao assinar PSET de swap: $error',
+      ),
+    );
+  }
+
+  @override
+  TaskEither<WalletError, String> getLiquidSwapAddress() {
+    final w = _liquidWallet;
+    if (w == null) {
+      return TaskEither.left(
+        WalletError(WalletErrorType.sdkError, 'Liquid wallet not available'),
+      );
+    }
+    return TaskEither.tryCatch(
+      () async {
+        final address = await w.datasource.wallet.addressLastUnused();
+        return address.confidential;
+      },
+      (error, stackTrace) => WalletError(
+        WalletErrorType.sdkError,
+        'Erro ao obter endereço Liquid para swap: $error',
       ),
     );
   }
