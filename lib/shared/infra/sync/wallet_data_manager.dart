@@ -381,6 +381,29 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   static const int _maxDataSourceRetries = 5;
   static const Duration _initialRetryDelay = Duration(seconds: 2);
 
+  // Diagnostic counter: increments every time a WalletDataManager is built.
+  // Logged on construction / subscription / dispose so duplicate-listener
+  // cases (e.g. an old instance kept alive by a still-watching widget after
+  // walletDataManagerProvider invalidation) are visible in `flutter logs`
+  // — concretely, the V1 import path emitted "LISTENER CALLED #2" and
+  // "#25" against the same SyncStreamController hashCode, which is the
+  // signature of two managers subscribed at once.
+  static int _instanceCounter = 0;
+  final int _instanceId = ++_instanceCounter;
+
+  // Debounced/coalesced post-event refresh. A single sync of a re-imported
+  // wallet emits one TransactionEvent per discovered tx (205+ in real-world
+  // wallets); each event used to schedule its own Future.microtask running
+  // a full cache + balance refresh + pending-tx re-scan on the UI isolate.
+  // We coalesce a burst of events into ONE refresh per quiet window, and
+  // single-flight that refresh so events arriving mid-run reschedule a
+  // single follow-up instead of stacking. Mirrors V2's `SyncOrchestrator`
+  // emitting one merged refresh tick per sync cycle.
+  Timer? _refreshDebounceTimer;
+  bool _refreshInFlight = false;
+  bool _refreshPending = false;
+  static const Duration _refreshDebounceWindow = Duration(milliseconds: 250);
+
   AppLoggerService get _logger => ref.read(appLoggerProvider);
 
   /// Returns true if there's a sync operation in progress
@@ -411,14 +434,19 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     : super(const WalletDataStatus(state: WalletDataState.idle)) {
     _synchronizer = WalletSynchronizer(ref);
     _synchronizer.setManager(this);
-    debugPrint('[WalletDataManager] Constructor called, setting up listeners');
+    debugPrint(
+      '[WalletDataManager#$_instanceId] Constructor called, setting up listeners',
+    );
     _listenToSyncProgress();
     _listenToTransactionEvents();
-    debugPrint('[WalletDataManager] Constructor completed');
+    debugPrint('[WalletDataManager#$_instanceId] Constructor completed');
   }
 
   @override
   void dispose() {
+    debugPrint('[WalletDataManager#$_instanceId] Disposing');
+    _refreshDebounceTimer?.cancel();
+    _refreshDebounceTimer = null;
     _syncSubscription?.cancel();
     _transactionSubscription?.cancel();
     _periodicSyncTimer?.cancel();
@@ -429,8 +457,16 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
   int _transactionEventCount = 0;
 
   void _listenToTransactionEvents() {
-    // Cancel any existing subscription first
-    _transactionSubscription?.cancel();
+    // Cancel any existing subscription first. The cancel is asynchronous but
+    // the field is overwritten synchronously below (line where we assign
+    // `_transactionSubscription = ...listen(...)`), so the old subscription
+    // becomes unreferenced and any in-flight events on it are dropped before
+    // the new listener is attached. We null the field here so that the
+    // reconfigure-when-null check in performLightSync() doesn't see a stale
+    // reference if this method is called twice in rapid succession.
+    final old = _transactionSubscription;
+    _transactionSubscription = null;
+    old?.cancel();
     _transactionEventCount = 0;
 
     final syncStream = ref.read(syncStreamProvider);
@@ -446,10 +482,10 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
       (event) {
         _transactionEventCount++;
         debugPrint(
-          '[WalletDataManager] LISTENER CALLED #$_transactionEventCount! Event: ${event.txId}',
+          '[WalletDataManager#$_instanceId] LISTENER CALLED #$_transactionEventCount! Event: ${event.txId}',
         );
         debugPrint(
-          '[WalletDataManager] Received transaction event in listener! (controller: ${syncStream.hashCode})',
+          '[WalletDataManager#$_instanceId] Received transaction event in listener! (controller: ${syncStream.hashCode})',
         );
 
         // Ignore test events
@@ -565,64 +601,118 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
     }
   }
 
-  // Lightweight refresh triggered by transaction events
-  // Does NOT do blockchain sync (already done), just updates caches and UI
+  // Lightweight refresh triggered by transaction events.
+  //
+  // Does NOT do blockchain sync (already done by the datasource). Updates
+  // tx-history cache, balance cache, computed providers, and pending-tx
+  // store. The work inside `_runRefreshNow()` is heavy (drift scan + 4
+  // parallel balance recomputes + cascade of provider invalidations) and
+  // running it once per `TransactionEvent` melts the UI isolate when a
+  // sync produces a burst of events (initial wallet import: 200+ events).
+  //
+  // We coalesce events using a debounce window (so a burst maps to one
+  // refresh) and a single-flight flag (so events arriving while a refresh
+  // is in progress reschedule exactly one follow-up refresh). Concretely:
+  //
+  //   - Many events in <250 ms     → 1 refresh
+  //   - Events during a refresh    → exactly 1 follow-up refresh, debounced
+  //
+  // This is the same invariant V2's `SyncOrchestrator` enforces by merging
+  // per-service tx streams and emitting one merged refresh signal per
+  // sync cycle. We can't restructure to that orchestrator without
+  // touching every datasource, so we apply the invariant at this seam.
   void _refreshAfterTransactionEvent() {
-    const String _refreshTag = '[REFRESH AFTER TRANSACTION]';
+    if (!mounted) return;
+    if (_refreshInFlight) {
+      // Refresh is running. Mark a follow-up; we'll re-arm the debounce
+      // when it completes. Do NOT touch the timer here — letting the
+      // current refresh finish first guarantees the follow-up sees the
+      // settled DB state.
+      _refreshPending = true;
+      return;
+    }
+    // Reset the debounce window on every event so a burst of N events
+    // collapses to a single timer fire after the burst quiets down.
+    _refreshDebounceTimer?.cancel();
+    _refreshDebounceTimer = Timer(_refreshDebounceWindow, _runRefreshNow);
+  }
 
-    Future.microtask(() async {
-      try {
-        debugPrint('$_refreshTag Microtask INICIADA!');
-
-        _logger.info(
-          'WalletDataManager',
-          '$_refreshTag  Refreshing caches after transaction event...',
-        );
-
-        await ref.read(transactionHistoryCacheProvider.notifier).refresh();
-
-        final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
-
-        ref.invalidate(allBalancesProvider);
-
-        await ref.read(balanceCacheProvider.notifier).refresh(mainAssets);
-        debugPrint('$_refreshTag Balances refreshed!');
-
-        debugPrint('$_refreshTag Invalidating providers to force UI update...');
-        ref.invalidate(cachedTransactionHistoryProvider);
-        ref.invalidate(cachedBalanceProvider);
-        ref.invalidate(walletHoldingsProvider);
-        ref.invalidate(walletHoldingsWithBalanceProvider);
-        debugPrint('$_refreshTag Providers invalidated!');
-
-        debugPrint('$_refreshTag Triggering refresh notifier...');
-        ref.read(dataRefreshTriggerProvider.notifier).triggerRefresh();
-        debugPrint('$_refreshTag Refresh notifier triggered!');
-
-        debugPrint(
-          '$_refreshTag ⏳ Waiting 100ms before checking pending transactions...',
-        );
-        await Future.delayed(const Duration(milliseconds: 100));
-
-        debugPrint('$_refreshTag Syncing pending transactions...');
-        await _syncPendingTransactions();
-        debugPrint('$_refreshTag Pending transactions synced!');
-
-        _logger.info(
-          'WalletDataManager',
-          '$_refreshTag Event-triggered refresh completed',
-        );
-        debugPrint('$_refreshTag EVENT-TRIGGERED REFRESH COMPLETO!');
-      } catch (e, stack) {
-        debugPrint('$_refreshTag ERRO no event-triggered refresh: $e');
-        _logger.error(
-          'WalletDataManager',
-          '$_refreshTag Error in event-triggered refresh: $e',
-          error: e,
-          stackTrace: stack,
-        );
+  void _runRefreshNow() {
+    if (!mounted) return;
+    if (_refreshInFlight) {
+      _refreshPending = true;
+      return;
+    }
+    _refreshInFlight = true;
+    _refreshPending = false;
+    _doEventTriggeredRefresh().whenComplete(() {
+      _refreshInFlight = false;
+      if (!mounted) return;
+      if (_refreshPending) {
+        _refreshPending = false;
+        _refreshDebounceTimer?.cancel();
+        _refreshDebounceTimer = Timer(_refreshDebounceWindow, _runRefreshNow);
       }
     });
+  }
+
+  Future<void> _doEventTriggeredRefresh() async {
+    const String refreshTag = '[REFRESH AFTER TRANSACTION]';
+    try {
+      // Guard against the StateNotifier being disposed mid-flight (most
+      // commonly during the wallet-deletion sequence which fires
+      // statusChanged events as Breez disconnects). Without these checks
+      // ref.invalidate / ref.read after dispose throws StateError and the
+      // app crashes. Re-checked after every async gap because deletion can
+      // complete between awaits.
+      if (!mounted) return;
+      debugPrint('$refreshTag#$_instanceId Refresh started');
+
+      _logger.info(
+        'WalletDataManager',
+        '$refreshTag Refreshing caches after transaction event...',
+      );
+
+      await ref.read(transactionHistoryCacheProvider.notifier).refresh();
+      if (!mounted) return;
+
+      final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt, Asset.depix];
+
+      ref.invalidate(allBalancesProvider);
+
+      await ref.read(balanceCacheProvider.notifier).refresh(mainAssets);
+      if (!mounted) return;
+
+      ref.invalidate(cachedTransactionHistoryProvider);
+      ref.invalidate(cachedBalanceProvider);
+      ref.invalidate(walletHoldingsProvider);
+      ref.invalidate(walletHoldingsWithBalanceProvider);
+      ref.read(dataRefreshTriggerProvider.notifier).triggerRefresh();
+
+      // Removed an unconditional `await Future.delayed(100ms)` that used
+      // to sit between the cache invalidation cascade and the pending-tx
+      // re-scan. There was no operation to wait for — the invalidations
+      // are synchronous and `_syncPendingTransactions` already awaits its
+      // own DB read. With the debounce in place on top, that 100 ms × N
+      // events was a steady idle drag on every event burst.
+      if (!mounted) return;
+      await _syncPendingTransactions();
+      if (!mounted) return;
+
+      _logger.info(
+        'WalletDataManager',
+        '$refreshTag Event-triggered refresh completed',
+      );
+      debugPrint('$refreshTag#$_instanceId Refresh completed');
+    } catch (e, stack) {
+      debugPrint('$refreshTag#$_instanceId Error: $e');
+      _logger.error(
+        'WalletDataManager',
+        '$refreshTag Error in event-triggered refresh: $e',
+        error: e,
+        stackTrace: stack,
+      );
+    }
   }
 
   void _listenToSyncProgress() {
@@ -775,11 +865,24 @@ class WalletDataManager extends StateNotifier<WalletDataStatus> {
 
       _logger.info('WalletDataManager', 'Mnemonic verified and available');
 
-      await Future.delayed(const Duration(milliseconds: 500));
-
+      // Bring up the two datasources in parallel. Previously these were
+      // sequential awaits (Liquid first, BDK second), which doubled the
+      // wall-clock time the import-loading screen spent in
+      // `initializeWallet`. Both providers are independent FutureProviders,
+      // so dispatching them via `Future.wait` is safe and matches V2's
+      // `BootOrchestratorImpl._connectServices` pattern (Future.wait over
+      // [liquidF, bitcoinF, lightningF] at boot_orchestrator_impl.dart:230).
+      // The arbitrary 500 ms `Future.delayed` that previously preceded this
+      // block has been removed — there was no operation to wait for; it was
+      // a leftover spinner pacing hack that contributed directly to the
+      // perceived freeze on first-import.
       _logger.debug('WalletDataManager', 'Checking datasource availability...');
-      final liquidResult = await ref.read(liquidDataSourceProvider.future);
-      final bdkResult = await ref.read(bdkDatasourceProvider.future);
+      final results = await Future.wait([
+        ref.read(liquidDataSourceProvider.future),
+        ref.read(bdkDatasourceProvider.future),
+      ]);
+      final liquidResult = results[0];
+      final bdkResult = results[1];
 
       bool hasValidDataSource = false;
       bool liquidAvailable = false;

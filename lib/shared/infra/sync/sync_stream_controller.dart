@@ -83,21 +83,35 @@ class SyncStreamController {
   }
 
   void updateProgress(SyncProgress progress) {
-    if (!_controller.isClosed) {
+    // The isClosed check is normally sufficient because Dart is
+    // single-threaded per isolate, but in shutdown paths the dispose() of
+    // the owning provider can run between this method's entry and the
+    // `add()` call (e.g., when the wallet-deletion flow disposes the
+    // syncStreamProvider while a Breez sync result is still being emitted
+    // on a microtask). Wrap in try/catch so a late event becomes a no-op
+    // instead of an unhandled "Cannot add new events after calling close"
+    // crash that surfaces as an app-wide red screen.
+    if (_controller.isClosed) return;
+    try {
       _controller.add(progress);
+    } catch (_) {
+      return;
+    }
 
-      if (progress.transactionEvents != null &&
-          progress.transactionEvents!.isNotEmpty) {
-        for (final event in progress.transactionEvents!) {
-          emitTransactionEvent(event);
-        }
+    if (progress.transactionEvents != null &&
+        progress.transactionEvents!.isNotEmpty) {
+      for (final event in progress.transactionEvents!) {
+        emitTransactionEvent(event);
       }
     }
   }
 
   void emitTransactionEvent(TransactionEvent event) {
-    if (!_transactionController.isClosed) {
+    if (_transactionController.isClosed) return;
+    try {
       _transactionController.add(event);
+    } catch (_) {
+      // Same close-during-emit defense as in updateProgress.
     }
   }
 

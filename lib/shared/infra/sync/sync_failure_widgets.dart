@@ -1,20 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/services/service_state.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_config.dart';
 
-/// Widget de alerta de falha de sincronização
+/// Widget de alerta de falha de sincronização.
+///
+/// Phase 2.3.3: rewritten against V2 [syncStateProvider] (the legacy
+/// `hasSyncFailuresProvider` + `syncFailureDetailsProvider` lived on
+/// `WalletDataManager`, now deleted). Sync is considered "failed" when
+/// the orchestrator's last refresh produced a typed `SyncFailure` OR
+/// any chain service is in the `errored` lifecycle.
 class SyncFailureAlert extends ConsumerWidget {
   const SyncFailureAlert({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasSyncFailures = ref.watch(hasSyncFailuresProvider);
-    final failureDetails = ref.watch(syncFailureDetailsProvider);
+    final syncAsync = ref.watch(syncStateProvider);
+    final syncState = syncAsync.valueOrNull;
+    if (syncState == null) return const SizedBox.shrink();
 
-    if (!hasSyncFailures) {
-      return const SizedBox.shrink();
-    }
+    final hasSyncFailures = syncState.lastError != null ||
+        syncState.perChain.values
+            .any((lifecycle) => lifecycle == ServiceLifecycle.errored);
+    if (!hasSyncFailures) return const SizedBox.shrink();
+
+    final failureDetails = syncState.lastError?.message;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -72,7 +84,7 @@ class WalletScreenWrapper extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
-        if (showSyncAlerts) SyncFailureAlert(),
+        if (showSyncAlerts) const SyncFailureAlert(),
         Expanded(child: child),
       ],
     );
