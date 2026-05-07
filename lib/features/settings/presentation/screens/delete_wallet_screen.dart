@@ -8,7 +8,9 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -120,14 +122,19 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
                 ),
           );
 
-          // Call centralized delete method from WalletDataManager
-          final success =
-              await ref.read(walletDataManagerProvider.notifier).deleteWallet();
+          final controller =
+              await ref.read(appLifecycleControllerProvider.future);
+          final result = await controller.deleteWalletAndReimport();
 
           // Close loading dialog using captured navigator
           navigator.pop();
 
+          final success = result.isRight();
           if (success) {
+            ref.invalidate(mnemonicProvider);
+            ref.invalidate(balanceCacheProvider);
+            ref.invalidate(transactionHistoryCacheProvider);
+
             if (context.mounted) {
               context.go('/setup/first-access');
             }
