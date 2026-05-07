@@ -24,7 +24,8 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Developer tools screen with debugging and diagnostic features
@@ -248,11 +249,15 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     _logger.info('DeveloperScreen', 'Starting light wallet sync...');
 
     try {
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.lightSync();
+      final refreshUseCase = await ref.read(refreshWalletProvider.future);
+      final result = await refreshUseCase(strategy: SyncStrategy.light);
 
-      // Wait a bit to allow the state to propagate
-      await Future.delayed(const Duration(milliseconds: 500));
+      await result.match(
+        (failure) async {
+          throw Exception(failure.toString());
+        },
+        (_) async {},
+      );
 
       if (mounted) {
         _showSuccessMessage(
@@ -287,11 +292,15 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     _logger.info('DeveloperScreen', 'Starting FULL wallet sync...');
 
     try {
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.fullSyncWalletData();
+      final refreshUseCase = await ref.read(refreshWalletProvider.future);
+      final result = await refreshUseCase(strategy: SyncStrategy.full);
 
-      // Wait a bit to allow the state to propagate
-      await Future.delayed(const Duration(milliseconds: 500));
+      await result.match(
+        (failure) async {
+          throw Exception(failure.toString());
+        },
+        (_) async {},
+      );
 
       if (mounted) {
         _showSuccessMessage(
