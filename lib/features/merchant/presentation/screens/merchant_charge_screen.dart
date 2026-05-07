@@ -108,7 +108,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     _showLoadingOverlay();
     _circleController.forward();
 
-    final controller = await ref.read(pixDepositControllerProvider.future);
     final depositAmount = ref.read(depositAmountProvider);
     final selectedAsset = ref.read(selectedAssetProvider);
 
@@ -116,35 +115,15 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
     final minAnimationTime = Future.delayed(Duration(milliseconds: 1500));
 
-    controller.fold(
-      (err) async {
-        await minAnimationTime;
-        if (mounted) {
-          setState(() => _isLoading = false);
-          _hideLoadingOverlay();
-          _circleController.reset();
+    try {
+      final controller =
+          await ref.read(pixDepositControllerProvider.future);
+      final result =
+          await controller.newDeposit(amountInCents, selectedAsset).run();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              duration: Duration(seconds: 5),
-              action: SnackBarAction(
-                label: 'OK',
-                textColor: Theme.of(context).colorScheme.onError,
-                onPressed: () {},
-              ),
-            ),
-          );
-        }
-      },
-      (controller) async {
-        final result =
-            await controller.newDeposit(amountInCents, selectedAsset).run();
+      await minAnimationTime;
 
-        await minAnimationTime;
-
-        result.fold(
+      result.fold(
           (err) {
             if (mounted) {
               setState(() => _isLoading = false);
@@ -189,8 +168,26 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             }
           },
         );
-      },
-    );
+    } catch (e) {
+      await minAnimationTime;
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _hideLoadingOverlay();
+      _circleController.reset();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Theme.of(context).colorScheme.onError,
+            onPressed: () {},
+          ),
+        ),
+      );
+    }
   }
 
   void _showLoadingOverlay() {
