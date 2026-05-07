@@ -6,6 +6,7 @@ import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
+import 'package:mutex/mutex.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../key_management/providers/mnemonic_provider.dart';
@@ -15,6 +16,15 @@ import 'config_provider.dart';
 /// This is necessary because Riverpod's invalidate() doesn't call disconnect()
 BreezSdkLiquid? _currentBreezClient;
 
+/// Serializes connect / disconnect against [_currentBreezClient]. Without it,
+/// a delete-wallet flow that runs `disconnectBreezClientProvider` can race
+/// with a concurrent rebuild of `breezClientProvider` (e.g. triggered by an
+/// import-wallet flow) and the disconnect would be applied to the NEW
+/// client instead of the old one, leaving the old SDK process attached to
+/// the now-deleted SQLite database (file-handle leak + stale-data sync).
+/// Mirrors the V2 invariant `LightningWalletServiceImpl._connectMutex`.
+final _breezLifecycleMutex = Mutex();
+
 /// Provider to explicitly disconnect the Breez client before invalidating
 /// IMPORTANT: Call this BEFORE invalidating breezClientProvider
 /// Returns true if disconnection was successful or no client was connected
@@ -23,30 +33,42 @@ final disconnectBreezClientProvider = FutureProvider.autoDispose<bool>((
 ) async {
   final logger = ref.read(appLoggerProvider);
 
-  if (_currentBreezClient == null) {
-    logger.debug('BreezClient', 'No active client to disconnect');
-    return true;
-  }
+  // Serialize against breezClientProvider's connect path. See
+  // [_breezLifecycleMutex] doc — without this guard the disconnect could
+  // null-out a brand-new client that connect() just published, or run
+  // concurrently with a connect that is mid-await on the SDK.
+  return _breezLifecycleMutex.protect(() async {
+    final clientToDisconnect = _currentBreezClient;
+    if (clientToDisconnect == null) {
+      logger.debug('BreezClient', 'No active client to disconnect');
+      return true;
+    }
 
-  try {
-    logger.info('BreezClient', 'Explicitly disconnecting Breez SDK...');
-    await _currentBreezClient!.disconnect();
+    // Capture the reference and clear the global FIRST, so any subsequent
+    // sync attempt sees null and aborts (the existing
+    // `_syncBreezWithRetry` checks `_currentBreezClient == null` before
+    // each retry). The actual `disconnect()` then runs on the captured ref.
     _currentBreezClient = null;
-    logger.info('BreezClient', '✅ Breez SDK disconnected successfully');
 
-    // Wait for file handles to be released
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
-  } catch (e) {
-    logger.warning(
-      'BreezClient',
-      'Error disconnecting Breez SDK: $e',
-      error: e,
-    );
-    _currentBreezClient = null;
-    // Even if disconnect fails, clear the reference
-    return false;
-  }
+    try {
+      logger.info('BreezClient', 'Explicitly disconnecting Breez SDK...');
+      await clientToDisconnect.disconnect();
+      logger.info('BreezClient', '✅ Breez SDK disconnected successfully');
+
+      // Wait for file handles to be released
+      await Future.delayed(const Duration(milliseconds: 500));
+      return true;
+    } catch (e) {
+      logger.warning(
+        'BreezClient',
+        'Error disconnecting Breez SDK: $e',
+        error: e,
+      );
+      // Reference is already cleared above; even on failure we treat it as
+      // a best-effort detach so the next connect can proceed cleanly.
+      return false;
+    }
+  });
 });
 
 /// Provider to clean Breez data directory
@@ -205,8 +227,25 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
           final client = await connect(req: connectRequest);
           logger.info('BreezClient', '✅ Breez SDK connected successfully');
 
-          // Save global reference for cleanup
-          _currentBreezClient = client;
+          // Publish the new global reference under the lifecycle mutex so a
+          // simultaneous disconnect can't read a stale ref. If a deletion
+          // started while we were in `connect()`, abort and disconnect the
+          // freshly-built client to avoid leaking it.
+          final aborted = await _breezLifecycleMutex.protect(() async {
+            if (_isWalletBeingDeleted) return true;
+            _currentBreezClient = client;
+            return false;
+          });
+          if (aborted) {
+            logger.warning(
+              'BreezClient',
+              'Wallet deletion started during connect — disconnecting fresh client',
+            );
+            try {
+              await client.disconnect();
+            } catch (_) {}
+            return left('Wallet deletion in progress');
+          }
 
           // Sync em background (fire and forget)
           _syncBreezInBackground(client, syncStream, logger, ref);
@@ -305,8 +344,23 @@ final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
                 );
               }
 
-              // Save global reference for cleanup
-              _currentBreezClient = client;
+              // Publish global reference under the lifecycle mutex (same
+              // rationale as the primary connect path above).
+              final aborted = await _breezLifecycleMutex.protect(() async {
+                if (_isWalletBeingDeleted) return true;
+                _currentBreezClient = client;
+                return false;
+              });
+              if (aborted) {
+                logger.warning(
+                  'BreezClient',
+                  'Wallet deletion started during recovery connect — disconnecting fresh client',
+                );
+                try {
+                  await client.disconnect();
+                } catch (_) {}
+                return left('Wallet deletion in progress');
+              }
               return right(client);
             } catch (retryError) {
               logger.error(

@@ -26,7 +26,13 @@ class BdkDataSource implements SyncableDataSource {
   /// _processTransactions() to upsert BTC tx rows into Transactions.
   final AppDatabase? database;
 
-  bool _isSyncing = false;
+  // Single-flight guard — see LiquidDataSource for the full rationale. The
+  // legacy `bool _isSyncing` had a TOCTOU window that allowed BootOrchestrator's
+  // background sync, WalletDataManager's periodic light sync, and a
+  // user-initiated refresh to all proceed simultaneously, double-inserting
+  // BTC transactions and emitting conflicting started/completed events.
+  // Mirrors V2 `BitcoinWalletServiceImpl._syncMutex`.
+  Future<void>? _activeSync;
 
   BdkDataSource({
     required this.wallet,
@@ -37,14 +43,13 @@ class BdkDataSource implements SyncableDataSource {
   });
 
   @override
-  Future<void> sync() async {
-    if (_isSyncing) {
-      debugPrint("[BdkDataSource] Already syncing, skipping");
-      return;
-    }
+  Future<void> sync() {
+    // Single-flight: dedupe concurrent callers. See _activeSync field comment.
+    return _activeSync ??=
+        _doSync().whenComplete(() => _activeSync = null);
+  }
 
-    _isSyncing = true;
-
+  Future<void> _doSync() async {
     final syncEventController = ref.read(syncEventControllerProvider);
     debugPrint(
       "[BdkDataSource] SyncEventController hashCode: ${syncEventController.hashCode}",
@@ -142,8 +147,6 @@ class BdkDataSource implements SyncableDataSource {
 
       debugPrint("[BdkDataSource] Sync failed: $e\n$stack");
       rethrow;
-    } finally {
-      _isSyncing = false;
     }
   }
 

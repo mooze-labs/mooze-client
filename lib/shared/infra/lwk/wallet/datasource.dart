@@ -31,7 +31,17 @@ class LiquidDataSource implements SyncableDataSource {
   /// fallback. Defaults to true to preserve existing behavior.
   final bool useFallback;
 
-  bool _isSyncing = false;
+  // Single-flight guard: when a sync is already running, concurrent callers
+  // (e.g. BootOrchestrator background sync + WalletDataManager periodic
+  // light sync + a manual user refresh) share the same Future instead of
+  // racing. Without this guard the legacy boolean-flag approach had a TOCTOU
+  // window between `if (_isSyncing) return; _isSyncing = true;`, which
+  // allowed two callers to both proceed — causing duplicate
+  // `insertTransactionsBatch` calls (DB lock errors and double-counted
+  // balances) and conflicting `emitStarted/Completed` events on the
+  // sync stream. See V2 `LiquidWalletServiceImpl._syncMutex` for the
+  // equivalent V2 invariant.
+  Future<void>? _activeSync;
 
   LiquidDataSource({
     required this.wallet,
@@ -54,14 +64,16 @@ class LiquidDataSource implements SyncableDataSource {
   }
 
   @override
-  Future<void> sync() async {
-    if (_isSyncing) {
-      debugPrint("[LiquidDataSource] Already syncing, skipping");
-      return;
-    }
+  Future<void> sync() {
+    // Dedupe concurrent callers — they share the same Future. Assignment is
+    // atomic up to the first await inside _doSync, so there's no TOCTOU
+    // window. `whenComplete` releases the slot whether _doSync succeeds or
+    // throws (re-thrown to caller). Mirrors V2 SyncOrchestrator single-flight.
+    return _activeSync ??=
+        _doSync().whenComplete(() => _activeSync = null);
+  }
 
-    _isSyncing = true;
-
+  Future<void> _doSync() async {
     final syncEventController = ref.read(syncEventControllerProvider);
     debugPrint(
       "[LiquidDataSource] SyncEventController hashCode: ${syncEventController.hashCode}",
@@ -229,8 +241,6 @@ class LiquidDataSource implements SyncableDataSource {
 
       debugPrint("[LiquidDataSource] Sync failed: $e\n$stack");
       rethrow;
-    } finally {
-      _isSyncing = false;
     }
   }
 
@@ -260,9 +270,55 @@ class LiquidDataSource implements SyncableDataSource {
       "[LiquidDataSource] Processando ${txs.length} transações Liquid...",
     );
 
+    // OPTIMIZATION: previously this loop awaited
+    // `database.getTransactionById(tx.txid)` once per incoming tx, which on a
+    // wallet with N Liquid transactions becomes N sequential round-trips to
+    // the drift isolate. On import for a wallet with many UTXOs (200+ txs)
+    // this single loop accounted for the bulk of the "Liquid Network
+    // synchronized" freeze the user reported — each round-trip is ~1-3 ms
+    // on a real device and they were strictly serialized inside a
+    // for-loop's `await`.
+    //
+    // Replaced with ONE bulk read of all Liquid rows into an in-memory
+    // map. For the import case (empty DB) this is a single empty SELECT.
+    // For incremental syncs the result set scales with total Liquid tx
+    // count, but this is exactly the upper bound of what the loop would
+    // have queried row-by-row. Net: O(N) IPC round-trips → 1.
+    final List<Transaction> existingLiquidRows;
+    try {
+      existingLiquidRows =
+          await database!.getTransactionsByBlockchain('liquid');
+    } catch (e, st) {
+      debugPrint(
+        "[LiquidDataSource] Failed to fetch existing liquid txs in batch: $e\n$st",
+      );
+      // Treat as empty — every tx will be classified as new and upserted.
+      // `insertTransactionsBatch` uses InsertMode.insertOrReplace so this is
+      // safe even if some of the rows actually exist.
+      return _processTxsAgainst(txs, const {}, events, transactionsToSave);
+    }
+    final Map<String, Transaction> existingByTxid = {
+      for (final row in existingLiquidRows) row.id: row,
+    };
+
+    return _processTxsAgainst(
+      txs,
+      existingByTxid,
+      events,
+      transactionsToSave,
+    );
+  }
+
+  Future<List<TransactionEvent>> _processTxsAgainst(
+    List<Tx> txs,
+    Map<String, Transaction> existingByTxid,
+    List<TransactionEvent> events,
+    List<TransactionsCompanion> transactionsToSave,
+  ) async {
     for (final tx in txs) {
       try {
-        final existingTx = await database!.getTransactionById(tx.txid);
+        // O(1) hash lookup instead of an awaited per-tx round-trip.
+        final existingTx = existingByTxid[tx.txid];
 
         final isReceive = tx.balances.any((b) => b.value > 0);
         final type = isReceive ? 'receive' : 'send';
