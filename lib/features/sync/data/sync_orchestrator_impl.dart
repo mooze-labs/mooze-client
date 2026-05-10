@@ -56,6 +56,17 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
   Timer? _ticker;
   bool _started = false;
 
+  // Persistence batching. First sync of a fresh wallet can produce 200+
+  // events per chain, and `transactionStore.upsert` here calls a sync FFI
+  // sqlite3 prepare/execute on the UI isolate. Buffering events and
+  // flushing in a single SQL transaction (via `upsertAll`) collapses
+  // ~430 fsyncs into a handful and keeps the home screen jank-free.
+  // We flush on size or timer, whichever fires first.
+  static const int _flushBatchSize = 64;
+  static const Duration _flushInterval = Duration(milliseconds: 100);
+  final List<TransactionEvent> _pendingEvents = [];
+  Timer? _flushTimer;
+
   @override
   Stream<SyncState> get state => _state.stream;
   @override
@@ -315,16 +326,49 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
   }
 
   void _onTransactionEvent(TransactionEvent event) {
-    // Single writer: persist first, then republish on success.
-    transactionStore.upsert(event.transaction).then((r) {
-      r.match(
-        (f) => logger.warn('sync.tx.persist.failed',
-            {'id': event.transaction.id, 'reason': f.message}),
-        (_) {
-          if (!_txController.isClosed) _txController.add(event);
-        },
-      );
+    // Single writer, batched. Append to the pending buffer and either
+    // flush immediately when the batch is full, or arm the flush timer so
+    // bursts that don't reach `_flushBatchSize` still drain inside
+    // `_flushInterval`. Republish to `_txController` only happens after a
+    // successful flush so the persist-before-republish invariant is kept.
+    if (_txController.isClosed) return;
+    _pendingEvents.add(event);
+    if (_pendingEvents.length >= _flushBatchSize) {
+      _flushTimer?.cancel();
+      _flushTimer = null;
+      unawaited(_flushPending());
+      return;
+    }
+    _flushTimer ??= Timer(_flushInterval, () {
+      _flushTimer = null;
+      unawaited(_flushPending());
     });
+  }
+
+  Future<void> _flushPending() async {
+    if (_pendingEvents.isEmpty) return;
+    // Drain into a local list so concurrent `_onTransactionEvent` calls
+    // (legitimate during a sync) keep buffering into the next batch.
+    final batch = List<TransactionEvent>.from(_pendingEvents);
+    _pendingEvents.clear();
+
+    final txs = batch.map((e) => e.transaction).toList(growable: false);
+    final r = await transactionStore.upsertAll(txs);
+    r.match(
+      (f) {
+        logger.warn('sync.tx.persist.batch.failed',
+            {'count': batch.length, 'reason': f.message});
+        // Fail-soft: do not republish events whose persistence failed.
+        // Next sync round will re-emit them.
+      },
+      (_) {
+        logger.debug('sync.tx.persist.batch', {'count': batch.length});
+        if (_txController.isClosed) return;
+        for (final ev in batch) {
+          _txController.add(ev);
+        }
+      },
+    );
   }
 
   void _emit(SyncState s) {
@@ -342,6 +386,15 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
       await s.cancel();
     }
     _subs.clear();
+    // Drain any pending transaction events so the last batch is persisted
+    // before we stop. Without this, a stop() called right after a sync
+    // would leave the in-memory buffer unflushed and the UI would see a
+    // stale tx list until the next sync cycle.
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    if (_pendingEvents.isNotEmpty) {
+      await _flushPending();
+    }
     _emit(currentState.copyWith(phase: SyncPhase.stopped));
     logger.info('sync.stop', {});
   }
