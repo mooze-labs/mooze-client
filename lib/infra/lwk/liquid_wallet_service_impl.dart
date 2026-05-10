@@ -82,15 +82,28 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           dirResult.getOrElse((_) => throw StateError('unreachable'));
 
       try {
+        // Per-step timing: legacy boot showed LWK connect taking ~1s vs
+        // ~200ms for Breez/BDK. We log each FFI step's duration so the
+        // post-boot trace pinpoints whether descriptor derivation,
+        // wallet init, or workdir acquisition is the culprit on a
+        // given device.
+        final tDescStart = clock.now();
         final descriptor = await lwk.Descriptor.newConfidential(
           network: _toLwkNetwork(_network),
           mnemonic: credentials.mnemonic,
         );
+        logger.debug('liquid.connect.descriptor.derived', {
+          'ms': clock.now().difference(tDescStart).inMilliseconds,
+        });
+        final tWalletStart = clock.now();
         final wallet = await lwk.Wallet.init(
           network: _toLwkNetwork(_network),
           dbpath: _acquiredDirectory!,
           descriptor: descriptor,
         );
+        logger.debug('liquid.connect.wallet.init', {
+          'ms': clock.now().difference(tWalletStart).inMilliseconds,
+        });
         _wallet = wallet;
         _emit(ServiceLifecycle.connected, clearFailure: true);
         logger.info('liquid.connected', {});
@@ -334,6 +347,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   }
 
   domain.Balance _mapBalance(List<lwk.Balance> balances) {
+    logger.info('liquid.balance.map', {
+      'count': balances.length,
+      'asset_ids': balances.map((b) => b.assetId).toList(),
+    });
     final assets = balances
         .map((b) => domain.AssetBalance(
               chain: chain,
@@ -351,7 +368,8 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       final prev = _seen[tx.id];
       if (prev == null) {
         changes++;
-        _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _TxFingerprint(
+            tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.created,
           transaction: tx,
@@ -359,9 +377,18 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         ));
         continue;
       }
-      if (prev.status != tx.status) {
+      // Republish on direction/amount changes too — LWK can revise
+      // `t.kind` between syncs (e.g. an unrecognized variant resolves to
+      // 'incoming'/'outgoing' once the wallet attribution settles).
+      // Without this, the DB row would stay as `internal`/`unknown`.
+      final statusChanged = prev.status != tx.status;
+      final confirmationsChanged = prev.confirmations != tx.confirmations;
+      final attributionChanged =
+          prev.direction != tx.direction || prev.amountSat != tx.amountSat;
+      if (statusChanged || attributionChanged) {
         changes++;
-        _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _TxFingerprint(
+            tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.statusChanged,
           transaction: tx,
@@ -369,9 +396,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           previousConfirmations: prev.confirmations,
           observedAt: now,
         ));
-      } else if (prev.confirmations != tx.confirmations) {
+      } else if (confirmationsChanged) {
         changes++;
-        _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _TxFingerprint(
+            tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.confirmationsChanged,
           transaction: tx,
@@ -397,9 +425,16 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
 }
 
 class _TxFingerprint {
-  const _TxFingerprint(this.status, this.confirmations);
+  const _TxFingerprint(
+      this.status, this.confirmations, this.direction, this.amountSat);
   final domain.TransactionStatus status;
   final int confirmations;
+  // direction + amountSat are part of the fingerprint so a tx whose
+  // `t.kind` is initially unrecognized (mapped to `internal`) and later
+  // resolves to `incoming`/`outgoing` triggers a republish — without
+  // this, the DB row stays as `internal`/`unknown`.
+  final domain.TransactionDirection direction;
+  final int amountSat;
 }
 
 // Suppress unused-warning for `Platform` if we ever need to log.
