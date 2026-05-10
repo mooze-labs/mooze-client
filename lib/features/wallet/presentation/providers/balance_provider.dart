@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
 import 'package:mooze_mobile/domain/entities/asset.dart' as v2_asset;
+import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/presentation/controllers/balance_controller.dart';
@@ -36,14 +37,20 @@ final allBalancesProvider = FutureProvider.autoDispose<Map<Asset, BigInt>>((
 ) async {
   final logger = ref.read(appLoggerProvider);
 
-  // React to V2 sync completions. Each successful refresh cycle bumps
-  // `syncStateProvider.lastSuccessAt`; selecting that field re-runs
-  // this provider so the home screen sees the updated Breez asset
-  // balances after the first sync populates them. Without this, an
-  // initial fetch that ran before Breez had populated `assetBalances`
-  // would cache zeros for USDT/DePix and never refresh.
-  ref.watch(v2.syncStateProvider
-      .select((async) => async.valueOrNull?.lastSuccessAt));
+  // React to V2 sync settling. We only refetch when sync transitions back
+  // to `cooling` (the post-cycle state) — earlier we keyed on
+  // `lastSuccessAt` directly, which made the provider rebuild while
+  // chains were still mid-sync (each `sync.chain.ok` doesn't change
+  // `lastSuccessAt`, but the subscriber fires on every `valueOrNull`
+  // tick during boot before the orchestrator finishes its first round).
+  // Result: balanceMap fan-out (3 SDK FFI calls) was running 2× during
+  // boot. Now it runs at most once per settled cycle.
+  ref.watch(v2.syncStateProvider.select((async) {
+    final s = async.valueOrNull;
+    if (s == null) return null;
+    if (s.phase != SyncPhase.cooling) return null;
+    return s.lastSuccessAt;
+  }));
 
   logger.info('AllBalancesProvider', 'Waiting for V2 wallet repository...');
   final repo = await ref.watch(v2.walletRepositoryProvider.future);
