@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fpdart/fpdart.dart';
 
@@ -45,8 +46,20 @@ class FlutterSecureCredentialStore implements SecureCredentialStore {
 
   @override
   Future<Either<CredentialFailure, WalletCredentials>> load() async {
+    // The bulk of `_runCredentialsPhase` time on cold boot lives inside
+    // this single Keychain `read`. iOS Simulator's Keychain is famously
+    // slow on first access (multi-second warmup); real devices should be
+    // sub-200ms. We log the read duration so post-boot logs show whether
+    // we're hitting the simulator quirk or a real bottleneck.
+    final t0 = DateTime.now();
     try {
       final v = await _storage.read(key: mnemonicKey);
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('[FlutterSecureCredentialStore] read(mnemonicKey) '
+            '${DateTime.now().difference(t0).inMilliseconds}ms '
+            'hasValue=${v != null && v.isNotEmpty}');
+      }
       if (v == null || v.isEmpty) {
         return Right(WalletCredentials.absent(network));
       }
