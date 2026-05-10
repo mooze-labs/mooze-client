@@ -27,6 +27,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _fadeAnimation;
 
   bool _showLoader = false;
+  // Once a navigation decision has been kicked off we MUST NOT re-enter
+  // `_handleNavigation` on subsequent rebuilds — it reads onboarding /
+  // merchant-mode / hasPin providers (each potentially a separate Riverpod
+  // tick) and ends with a `context.go(...)`. Without this flag the build
+  // observed in the logs fires the whole chain 7× before the route
+  // transition, hammering secure storage with redundant PIN-salt reads.
+  bool _navigationStarted = false;
 
   static const _animationDuration = Duration(milliseconds: 800);
   static const _delayBeforeLoader = Duration(milliseconds: 300);
@@ -78,6 +85,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   /// Handles navigation based on mnemonic state
   void _handleNavigation(Option<String> mnemonic) async {
+    if (_navigationStarted) return;
+    _navigationStarted = true;
     if (kDebugMode) {
       debugPrint(
         "[SplashScreen] Handling navigation, isSome: ${mnemonic.isSome()}",
@@ -206,6 +215,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _handleError(Object error, StackTrace stackTrace) {
+    if (_navigationStarted) return;
+    _navigationStarted = true;
     if (kDebugMode) {
       debugPrint("[SplashScreen] Error from mnemonicProvider: $error");
     }
