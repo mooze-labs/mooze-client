@@ -439,8 +439,8 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       // BEFORE any UI subscriber observes it. This is the V2 replacement
       // for legacy `BitcoinWallet._persistOutgoingTx` (which wrote
       // directly to the drift Transactions table).
-      _seen[mapped.id] =
-          _BdkFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _BdkFingerprint(
+          mapped.status, mapped.confirmations, mapped.direction, mapped.amountSat);
       _lastList = [mapped, ..._lastList];
       _emitTx(TransactionEvent(
         kind: TransactionEventKind.created,
@@ -573,11 +573,23 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   domain.Transaction _mapTx(bdk.TransactionDetails t) {
     final received = t.received.toInt();
     final sent = t.sent.toInt();
-    final dir = sent > received
-        ? domain.TransactionDirection.outgoing
-        : (received > 0
-            ? domain.TransactionDirection.incoming
-            : domain.TransactionDirection.internal);
+    // Self-sends (sent > 0 && sent == received, where the user sends to
+    // their own address) and outgoing-with-change (sent > received) both
+    // count as `outgoing` from the user's perspective — they spent UTXOs.
+    // Pure receives (received > 0 && sent == 0) are `incoming`. The only
+    // truly `internal` state is when both sides are zero, which is a
+    // mid-sync artefact: BDK has discovered the tx but hasn't yet matched
+    // outputs against the wallet keychain. We still emit it (so the user
+    // sees something exists) and rely on the fingerprint diff to upsert
+    // the correct direction once attribution completes.
+    final domain.TransactionDirection dir;
+    if (sent > 0) {
+      dir = domain.TransactionDirection.outgoing;
+    } else if (received > 0) {
+      dir = domain.TransactionDirection.incoming;
+    } else {
+      dir = domain.TransactionDirection.internal;
+    }
     final amount = (received - sent).abs();
     final ct = t.confirmationTime;
     final status = ct == null
@@ -599,6 +611,12 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   }
 
   domain.Balance _mapBalance(bdk.Balance b) {
+    logger.info('bitcoin.balance.map', {
+      'total_sat': b.total.toString(),
+      'confirmed_sat': b.confirmed.toString(),
+      'trusted_pending_sat': b.trustedPending.toString(),
+      'untrusted_pending_sat': b.untrustedPending.toString(),
+    });
     final asset = domain.AssetBalance(
       chain: chain,
       amountSat: b.total.toInt(),
@@ -614,7 +632,8 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       final prev = _seen[tx.id];
       if (prev == null) {
         changes++;
-        _seen[tx.id] = _BdkFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] =
+            _BdkFingerprint(tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.created,
           transaction: tx,
@@ -622,9 +641,17 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         ));
         continue;
       }
-      if (prev.status != tx.status) {
+      // Republish on any meaningful change. `direction` + `amountSat`
+      // matter because BDK can revise these between syncs (notably the
+      // mid-sync `0/0` → `outgoing`/`incoming` correction).
+      final statusChanged = prev.status != tx.status;
+      final confirmationsChanged = prev.confirmations != tx.confirmations;
+      final attributionChanged =
+          prev.direction != tx.direction || prev.amountSat != tx.amountSat;
+      if (statusChanged || attributionChanged) {
         changes++;
-        _seen[tx.id] = _BdkFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] =
+            _BdkFingerprint(tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.statusChanged,
           transaction: tx,
@@ -632,9 +659,10 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
           previousConfirmations: prev.confirmations,
           observedAt: now,
         ));
-      } else if (prev.confirmations != tx.confirmations) {
+      } else if (confirmationsChanged) {
         changes++;
-        _seen[tx.id] = _BdkFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] =
+            _BdkFingerprint(tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.confirmationsChanged,
           transaction: tx,
@@ -660,7 +688,15 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 }
 
 class _BdkFingerprint {
-  const _BdkFingerprint(this.status, this.confirmations);
+  const _BdkFingerprint(
+      this.status, this.confirmations, this.direction, this.amountSat);
   final domain.TransactionStatus status;
   final int confirmations;
+  // Direction + amountSat are part of the fingerprint so a tx that BDK
+  // initially reports with `sent=0, received=0` (mid-sync, before
+  // input/output attribution finishes) and later reports with proper
+  // values triggers a `statusChanged` republish — without this, the DB
+  // row stays as `internal`/`unknown` until the tx confirms.
+  final domain.TransactionDirection direction;
+  final int amountSat;
 }
