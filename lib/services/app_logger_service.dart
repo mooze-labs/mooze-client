@@ -204,17 +204,13 @@ class AppLoggerService {
     unawaited(_saveToFile(entry));
 
     if (_database != null && _config.shouldSaveLevel(level)) {
-      if (kDebugMode) {
-        debugPrint(
-          'Saving ${level.name} log to DB (shouldSave: ${_config.shouldSaveLevel(level)})',
-        );
-      }
       unawaited(_saveToDatabase(entry));
-    } else if (kDebugMode) {
-      debugPrint(
-        'Skipping DB save for ${level.name} (db null: ${_database == null}, shouldSave: ${_config.shouldSaveLevel(level)})',
-      );
     }
+    // Note: when _database is null or the level isn't configured to be
+    // saved we silently drop the DB persistence — the formatted line is
+    // still printed below for debug visibility. The previous "Saving..." /
+    // "Skipping DB save..." debug noise was emitted on every single call
+    // (hundreds per boot) and obscured real signal in the log.
 
     if (kDebugMode) {
       print(entry.toFormattedString());
