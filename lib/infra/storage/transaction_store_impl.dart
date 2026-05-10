@@ -16,6 +16,12 @@ class SqliteTransactionStore implements TransactionStore {
   final StreamController<List<Transaction>> _watchController =
       StreamController<List<Transaction>>.broadcast();
   bool _disposed = false;
+  // Coalesces watch emits within a single microtask burst. Without it, a
+  // sync that upserts N batches schedules N microtasks each kicking a full
+  // re-list() in every consumer. With it, all upserts inside the same
+  // microtask burst produce one re-list — the consumer sees the final
+  // post-burst state, not an intermediate one per batch.
+  bool _emitScheduled = false;
 
   @override
   Future<Either<StorageFailure, Unit>> upsert(Transaction tx) async {
@@ -28,8 +34,16 @@ class SqliteTransactionStore implements TransactionStore {
       return Left(const StorageFailure('store disposed'));
     }
     if (txs.isEmpty) return const Right(unit);
+    // Wrap the whole batch in a single SQL transaction so SQLite issues one
+    // fsync at COMMIT instead of one per row. With 200+ events per chain on
+    // first sync this collapses ~430 fsyncs into 1, which is the dominant
+    // cost on the UI isolate (sqlite3 here is sync FFI).
+    final db = _database.db;
+    var inTransaction = false;
     try {
-      final stmt = _database.db.prepare('''
+      db.execute('BEGIN');
+      inTransaction = true;
+      final stmt = db.prepare('''
         INSERT INTO transactions
           (id, chain, direction, status, amount_sat, fee_sat, timestamp_ms,
            confirmations, asset_id, address, label)
@@ -64,9 +78,16 @@ class SqliteTransactionStore implements TransactionStore {
       } finally {
         stmt.dispose();
       }
+      db.execute('COMMIT');
+      inTransaction = false;
       _scheduleWatchEmit();
       return const Right(unit);
     } catch (e, st) {
+      if (inTransaction) {
+        try {
+          db.execute('ROLLBACK');
+        } catch (_) {/* rollback best-effort — original error wins */}
+      }
       return Left(StorageFailure('upsert failed: $e', cause: e, stackTrace: st));
     }
   }
@@ -150,8 +171,10 @@ class SqliteTransactionStore implements TransactionStore {
 
   void _scheduleWatchEmit() {
     if (_watchController.isClosed) return;
-    // Coalesce bursts: schedule on next microtask.
+    if (_emitScheduled) return;
+    _emitScheduled = true;
     scheduleMicrotask(() {
+      _emitScheduled = false;
       if (!_watchController.isClosed) _watchController.add(const []);
     });
   }
