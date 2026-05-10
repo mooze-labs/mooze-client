@@ -469,8 +469,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // single-writer pipeline persists this tx via transactionStore.upsert
       // BEFORE any UI subscriber sees it. This preserves the
       // persist-before-republish invariant on the broadcast path.
-      _seen[mapped.id] =
-          _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint(
+          mapped.status, mapped.confirmations, mapped.direction, mapped.amountSat);
       _lastList = [mapped, ..._lastList];
       _emitTx(TransactionEvent(
         kind: TransactionEventKind.created,
@@ -681,8 +681,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // `ChainId.lightning` for a Lightning payment; tx history shows
       // it as a Lightning payment, balance aggregation pulls from the
       // L-BTC pool (per the unified-balance model).
-      _seen[mapped.id] =
-          _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint(
+          mapped.status, mapped.confirmations, mapped.direction, mapped.amountSat);
       _lastList = [mapped, ..._lastList];
       _emitTx(TransactionEvent(
         kind: TransactionEventKind.created,
@@ -902,8 +902,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // Persist-before-republish: synthetic event so the orchestrator's
       // single-writer pipeline upserts this tx via transactionStore
       // BEFORE any UI subscriber sees it.
-      _seen[mapped.id] =
-          _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint(
+          mapped.status, mapped.confirmations, mapped.direction, mapped.amountSat);
       _lastList = [mapped, ..._lastList];
       _emitTx(TransactionEvent(
         kind: TransactionEventKind.created,
@@ -1136,6 +1136,12 @@ class LightningWalletServiceImpl implements LightningWalletService {
   /// (Lightning HTLCs settle into the Breez L-BTC pool immediately;
   /// LWK's electrum view is one block behind).
   domain.Balance _mapBalance(breez.GetInfoResponse info) {
+    logger.info('lightning.balance.map', {
+      'balance_sat': info.walletInfo.balanceSat.toString(),
+      'asset_balances_count': info.walletInfo.assetBalances.length,
+      'asset_ids':
+          info.walletInfo.assetBalances.map((a) => a.assetId).toList(),
+    });
     final assets = <domain.AssetBalance>[
       domain.AssetBalance(
         chain: chain,
@@ -1162,7 +1168,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       final prev = _seen[tx.id];
       if (prev == null) {
         changes++;
-        _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _LnFingerprint(
+            tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.created,
           transaction: tx,
@@ -1170,9 +1177,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
         ));
         continue;
       }
-      if (prev.status != tx.status) {
+      // Republish on direction/amount changes too — covers asset
+      // payments whose `assetInfo.amount` resolves between syncs.
+      final statusChanged = prev.status != tx.status;
+      final confirmationsChanged = prev.confirmations != tx.confirmations;
+      final attributionChanged =
+          prev.direction != tx.direction || prev.amountSat != tx.amountSat;
+      if (statusChanged || attributionChanged) {
         changes++;
-        _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _LnFingerprint(
+            tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.statusChanged,
           transaction: tx,
@@ -1180,9 +1194,10 @@ class LightningWalletServiceImpl implements LightningWalletService {
           previousConfirmations: prev.confirmations,
           observedAt: now,
         ));
-      } else if (prev.confirmations != tx.confirmations) {
+      } else if (confirmationsChanged) {
         changes++;
-        _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _LnFingerprint(
+            tx.status, tx.confirmations, tx.direction, tx.amountSat);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.confirmationsChanged,
           transaction: tx,
@@ -1208,7 +1223,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
 }
 
 class _LnFingerprint {
-  const _LnFingerprint(this.status, this.confirmations);
+  const _LnFingerprint(
+      this.status, this.confirmations, this.direction, this.amountSat);
   final domain.TransactionStatus status;
   final int confirmations;
+  // Direction + amountSat are part of the fingerprint so a tx whose
+  // direction or asset amount changes between syncs triggers a
+  // republish — Breez itself doesn't typically revise these once the
+  // payment is mapped, but the assetInfo-derived amount for asset
+  // payments (USDT/DePix) can resolve from null to the correct value
+  // mid-sync.
+  final domain.TransactionDirection direction;
+  final int amountSat;
 }
