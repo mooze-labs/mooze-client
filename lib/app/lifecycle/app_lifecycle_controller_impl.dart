@@ -126,8 +126,11 @@ class AppLifecycleControllerImpl implements AppLifecycleController {
   @override
   Future<Either<Failure, Unit>> deleteWalletAndReimport() async {
     logger.info('app.reimport.begin', {});
-    await sync.stop();
-    await boot.shutdown();
+    // `DeleteWalletUseCase.call()` already runs `sync.stop()` then
+    // `boot.shutdown()` before wiping. Calling them here too caused two
+    // shutdowns back-to-back, each paying the per-disconnect timeout
+    // budget — so a wedged liquid disconnect doubled the user-visible
+    // delete latency for no benefit.
     final r = await deleteWallet();
     if (r.isLeft()) {
       logger.error('app.reimport.delete_failed', {});
