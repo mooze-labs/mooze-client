@@ -9,7 +9,7 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_sec
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
 import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
-import 'package:mooze_mobile/app/lifecycle/app_state.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/shared/infra/sync/sync_failure_widgets.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
@@ -78,13 +78,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     _configureSystemUi();
 
-    // Phase 2.3.3: V2-derived loading flag. App is "loading" while
-    // boot is still running; ready phase = wallet is fully usable.
-    final appPhase = ref.watch(appStateProvider).valueOrNull?.phase;
-    final isLoadingData = appPhase != AppPhase.ready;
-    // `dataRefreshTriggerProvider` removed: V2's transactions stream +
-    // balance providers re-emit on actual state changes, so a manual
-    // UI-rebuild trigger is no longer needed.
+    // Stale-while-revalidate: split the boot loader from the data loader.
+    // Show the 3px top bar only during a true cold boot (`readyAt == null`)
+    // OR while a background sync is actively running. After first ready,
+    // re-entering the screen renders cached holdings/transactions
+    // immediately because the underlying providers are no longer
+    // `.autoDispose` and consumers use `skipLoadingOnRefresh: true`.
+    final appState = ref.watch(appStateProvider).valueOrNull;
+    final hasBootedOnce = appState?.readyAt != null;
+    final syncPhase = ref.watch(syncStateProvider).valueOrNull?.phase;
+    final isSyncing = syncPhase == SyncPhase.running;
+    final isLoadingData = !hasBootedOnce || isSyncing;
 
     return AuthInitializerWidget(
       child: Scaffold(
