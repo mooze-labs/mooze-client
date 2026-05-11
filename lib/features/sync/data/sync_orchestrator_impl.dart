@@ -342,6 +342,24 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
       await s.cancel();
     }
     _subs.clear();
+
+    // Drain any in-flight `_runRefresh` / `_runReconnect`. Without this,
+    // a periodic-tick refresh that fired moments before delete is still
+    // sitting inside `await s.sync(...)` for liquid — holding the chain
+    // service's `_syncMutex` and (during reconnect) its `_connectMutex`.
+    // Boot.shutdown's `liquid.disconnect()` would then queue forever.
+    // The hard timeout caps the wait — past it, the per-service
+    // `_shuttingDown` flag short-circuits the connect path and
+    // boot.shutdown's own per-disconnect timeout finishes the job.
+    try {
+      await _mutex
+          .protect(() async {})
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      logger.warn('sync.stop.drain_timeout',
+          {'reason': 'in-flight refresh/reconnect did not finish in 5s'});
+    }
+
     _emit(currentState.copyWith(phase: SyncPhase.stopped));
     logger.info('sync.stop', {});
   }
