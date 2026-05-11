@@ -1145,6 +1145,12 @@ class LightningWalletServiceImpl implements LightningWalletService {
       ),
     ];
     for (final ab in info.walletInfo.assetBalances) {
+      // Skip L-BTC: `walletInfo.balanceSat` above is already the native
+      // L-BTC balance, and current Breez Liquid SDK versions also
+      // emit L-BTC inside `assetBalances`. Adding both would double
+      // the L-BTC value because `WalletRepositoryImpl._extractAssetAmount`
+      // defensively sums every entry matching the asset id on a chain.
+      if (ab.assetId == lbtcAssetId) continue;
       assets.add(domain.AssetBalance(
         chain: chain,
         assetId: ab.assetId,

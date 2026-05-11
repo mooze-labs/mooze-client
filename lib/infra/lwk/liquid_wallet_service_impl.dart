@@ -46,6 +46,14 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   String? _acquiredDirectory;
   AppNetwork _network = AppNetwork.mainnet;
 
+  /// Set by `disconnect()` BEFORE it queues on `_connectMutex`. An
+  /// in-flight `connect()` checks this at every safe yield point and
+  /// bails early — releasing the directory guard and the mutex — so
+  /// `disconnect()` can run instead of waiting 45s for a wedged
+  /// `lwk.Wallet.init`. Reset to `false` at the start of every
+  /// `connect()` so subsequent re-imports work.
+  bool _shuttingDown = false;
+
   /// Last-seen transaction identity → used for emitting [TransactionEvent].
   final Map<String, _TxFingerprint> _seen = {};
   List<domain.Transaction> _lastList = const [];
@@ -68,34 +76,86 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   @override
   Future<Either<ServiceFailure, Unit>> connect(
       WalletCredentials credentials) async {
+    final tEnter = clock.now();
+    logger.info('liquid.connect.enter', {});
     return _connectMutex.protect(() async {
-      if (currentState.isOperational) return const Right(unit);
+      final tProtect = clock.now();
+      logger.info('liquid.connect.mutex_acquired', {
+        'wait_ms': tProtect.difference(tEnter).inMilliseconds,
+      });
+      // Fresh attempt clears any stale shutdown signal from a prior
+      // delete-and-reimport flow.
+      _shuttingDown = false;
+      if (currentState.isOperational) {
+        logger.info('liquid.connect.short_circuit', {'reason': 'operational'});
+        return const Right(unit);
+      }
       _emit(ServiceLifecycle.connecting);
       _network = credentials.network;
 
+      final tDirStart = clock.now();
       final dirResult = await directoryGuard.acquire(workingDirRelative);
+      logger.info('liquid.connect.dir_acquired', {
+        'duration_ms': clock.now().difference(tDirStart).inMilliseconds,
+        'left': dirResult.isLeft(),
+      });
+      if (_shuttingDown) {
+        if (dirResult.isRight()) {
+          await directoryGuard.release(workingDirRelative);
+        }
+        return _fail('connect cancelled: shutdown in progress');
+      }
       if (dirResult.isLeft()) {
         return _fail('workdir acquire failed: '
             '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}');
       }
       _acquiredDirectory =
           dirResult.getOrElse((_) => throw StateError('unreachable'));
+      logger.info('liquid.connect.dbpath',
+          {'dbpath': _acquiredDirectory ?? '?'});
 
       try {
+        final tDescStart = clock.now();
         final descriptor = await lwk.Descriptor.newConfidential(
           network: _toLwkNetwork(_network),
           mnemonic: credentials.mnemonic,
         );
+        logger.info('liquid.connect.descriptor_built', {
+          'duration_ms': clock.now().difference(tDescStart).inMilliseconds,
+        });
+        if (_shuttingDown) {
+          await directoryGuard.release(workingDirRelative);
+          _acquiredDirectory = null;
+          return _fail('connect cancelled: shutdown in progress');
+        }
+        final tInitStart = clock.now();
+        logger.info('liquid.connect.wallet_init.begin',
+            {'dbpath': _acquiredDirectory ?? '?'});
         final wallet = await lwk.Wallet.init(
           network: _toLwkNetwork(_network),
           dbpath: _acquiredDirectory!,
           descriptor: descriptor,
         );
+        logger.info('liquid.connect.wallet_init.end', {
+          'duration_ms': clock.now().difference(tInitStart).inMilliseconds,
+        });
+        if (_shuttingDown) {
+          // FFI returned but shutdown was signalled while we were in it.
+          // Discard the freshly initialised wallet and release the slot.
+          await directoryGuard.release(workingDirRelative);
+          _acquiredDirectory = null;
+          return _fail('connect cancelled: shutdown in progress');
+        }
         _wallet = wallet;
         _emit(ServiceLifecycle.connected, clearFailure: true);
-        logger.info('liquid.connected', {});
+        logger.info('liquid.connected', {
+          'total_ms': clock.now().difference(tEnter).inMilliseconds,
+        });
         return const Right(unit);
       } catch (e, st) {
+        logger.warn('liquid.connect.threw',
+            {'error': '$e', 'after_ms': clock.now().difference(tEnter).inMilliseconds},
+            error: e, stackTrace: st);
         await directoryGuard.release(workingDirRelative);
         _acquiredDirectory = null;
         return _fail('lwk init failed: $e', cause: e, stackTrace: st);
@@ -105,6 +165,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
 
   @override
   Future<Either<ServiceFailure, Unit>> disconnect() async {
+    // Set BEFORE queueing on `_connectMutex` so an in-flight `connect()`
+    // observes the flag at its next yield point and bails — freeing the
+    // mutex slot we are about to wait on.
+    _shuttingDown = true;
     return _connectMutex.protect(() async {
       final lc = currentState.lifecycle;
       if (lc == ServiceLifecycle.disconnected ||

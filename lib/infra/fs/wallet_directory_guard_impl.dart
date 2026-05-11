@@ -49,9 +49,21 @@ class WalletDirectoryGuardImpl implements WalletDirectoryGuard {
   Future<Either<StorageFailure, Unit>> wipe(String relativePath) async {
     try {
       final absolute = await _resolve(relativePath);
-      // Wait for any in-progress holder to release first.
-      while (_locks[absolute] != null) {
-        await _locks[absolute]!.future;
+      // Wait briefly for an in-progress holder to release; past the cap
+      // we forcibly drop the lock and proceed. The wipe is the
+      // user-visible deletion — we cannot leave it stuck because of an
+      // in-memory lock that the holder never released (e.g., V2
+      // `liquid.disconnect()` timed out without running its body
+      // because its `_connectMutex` was wedged behind a hung FFI call).
+      // On the next boot the wallet starts from a clean slate.
+      final lock = _locks[absolute];
+      if (lock != null) {
+        try {
+          await lock.future.timeout(const Duration(seconds: 3));
+        } on TimeoutException {
+          if (!lock.isCompleted) lock.complete();
+        }
+        _locks.remove(absolute);
       }
       final dir = Directory(absolute);
       if (await dir.exists()) {
