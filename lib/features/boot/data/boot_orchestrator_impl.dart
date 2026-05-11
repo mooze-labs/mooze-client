@@ -208,26 +208,53 @@ class BootOrchestratorImpl implements BootOrchestrator {
 
   Future<Either<BootFailure, Unit>> _connectServices(
       WalletCredentials creds) async {
-    final liquidF = liquid
-        .connect(creds)
-        .timeout(connectTimeout, onTimeout: () => Left(
-              ServiceFailure('liquid connect timeout',
-                  chain: liquid.chain),
-            ));
-    final bitcoinF = bitcoin
-        .connect(creds)
-        .timeout(connectTimeout, onTimeout: () => Left(
-              ServiceFailure('bitcoin connect timeout',
-                  chain: bitcoin.chain),
-            ));
-    final lightningF = lightning
-        .connect(creds)
-        .timeout(connectTimeout, onTimeout: () => Left(
-              ServiceFailure('lightning connect timeout',
-                  chain: lightning.chain),
-            ));
+    final tStart = clock.now();
+    logger.info('boot.connect.fanout_begin',
+        {'timeout_ms': connectTimeout.inMilliseconds});
+
+    Future<Either<ServiceFailure, Unit>> instrumented(
+      String chain,
+      Future<Either<ServiceFailure, Unit>> Function() body,
+    ) async {
+      final t0 = clock.now();
+      try {
+        final r = await body().timeout(
+          connectTimeout,
+          onTimeout: () {
+            logger.warn('boot.connect.service_timeout', {
+              'chain': chain,
+              'after_ms':
+                  clock.now().difference(t0).inMilliseconds,
+            });
+            return Left(ServiceFailure('$chain connect timeout',
+                chain: liquid.chain));
+          },
+        );
+        logger.info('boot.connect.service_done', {
+          'chain': chain,
+          'duration_ms':
+              clock.now().difference(t0).inMilliseconds,
+          'left': r.isLeft(),
+        });
+        return r;
+      } catch (e, st) {
+        logger.error('boot.connect.service_threw', {
+          'chain': chain,
+          'after_ms': clock.now().difference(t0).inMilliseconds,
+          'error': '$e',
+        }, error: e, stackTrace: st);
+        rethrow;
+      }
+    }
+
+    final liquidF = instrumented('liquid', () => liquid.connect(creds));
+    final bitcoinF = instrumented('bitcoin', () => bitcoin.connect(creds));
+    final lightningF = instrumented('lightning', () => lightning.connect(creds));
 
     final results = await Future.wait([liquidF, bitcoinF, lightningF]);
+    logger.info('boot.connect.fanout_end', {
+      'duration_ms': clock.now().difference(tStart).inMilliseconds,
+    });
     final liquidR = results[0];
     final bitcoinR = results[1];
     final lightningR = results[2];
@@ -309,9 +336,20 @@ class BootOrchestratorImpl implements BootOrchestrator {
   @override
   Future<void> shutdown() async {
     logger.info('boot.shutdown.begin', {});
-    await _safe(() => lightning.disconnect(), 'lightning.disconnect');
-    await _safe(() => bitcoin.disconnect(), 'bitcoin.disconnect');
-    await _safe(() => liquid.disconnect(), 'liquid.disconnect');
+    // Hard ceiling per service: a stuck FFI call (lwk.Wallet.init mid-flight,
+    // Breez SDK disconnect waiting on a network probe) must not block the
+    // delete-and-reimport flow. The directory wipe in DeleteWalletUseCase
+    // that follows is what actually deletes the wallet, so partial cleanup
+    // here is acceptable. The per-service `_shuttingDown` flag (currently
+    // only liquid) covers the cancellable path; this timeout covers the
+    // case where the underlying call is wedged inside an FFI/native frame
+    // that does not yield.
+    await _safeTimed(
+        () => lightning.disconnect(), 'lightning.disconnect', _disconnectCap);
+    await _safeTimed(
+        () => bitcoin.disconnect(), 'bitcoin.disconnect', _disconnectCap);
+    await _safeTimed(
+        () => liquid.disconnect(), 'liquid.disconnect', _disconnectCap);
     // Reset boot phase to idle so a subsequent `start()` actually runs.
     // `_runStart` early-returns on `currentState.isReady` — without this
     // reset, the orchestrator would still report `BootPhase.ready` from
@@ -324,9 +362,20 @@ class BootOrchestratorImpl implements BootOrchestrator {
     logger.info('boot.shutdown.end', {});
   }
 
-  Future<void> _safe(Future<Object?> Function() fn, String tag) async {
+  static const Duration _disconnectCap = Duration(seconds: 5);
+
+  Future<void> _safeTimed(
+    Future<Object?> Function() fn,
+    String tag,
+    Duration cap,
+  ) async {
     try {
-      await fn();
+      await fn().timeout(cap);
+    } on TimeoutException {
+      logger.warn(tag, {
+        'reason':
+            'disconnect did not finish in ${cap.inSeconds}s — proceeding',
+      });
     } catch (e, st) {
       logger.warn(tag, {'error': '$e'}, error: e, stackTrace: st);
     }
