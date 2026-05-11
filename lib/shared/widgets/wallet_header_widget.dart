@@ -84,26 +84,27 @@ class WalletHeaderWidget extends ConsumerWidget {
     }
 
     return valuesToReceiveAsync.when(
-      data:
-          (result) =>
-              result.fold((error) => const SizedBox.shrink(), (toReceiveList) {
-                if (toReceiveList.isEmpty) {
-                  return const SizedBox.shrink();
-                }
+      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
+      data: (result) =>
+          result.fold((error) => const SizedBox.shrink(), (toReceiveList) {
+            if (toReceiveList.isEmpty) {
+              return const SizedBox.shrink();
+            }
 
-                return GestureDetector(
-                  onTap: () {
-                    context.go('/asset');
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: _AnimatedPixIcon(),
-                  ),
-                );
-              }),
+            return GestureDetector(
+              onTap: () {
+                context.go('/asset');
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _AnimatedPixIcon(),
+              ),
+            );
+          }),
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
     );
@@ -147,27 +148,31 @@ class WalletHeaderWidget extends ConsumerWidget {
       onTap: () {
         ref.read(walletDisplayModeProvider.notifier).state = displayMode.next;
       },
+      // Stale-while-revalidate: the previously computed total stays
+      // visible while the underlying balance/price providers refresh in
+      // the background. The shimmer placeholder appears only on the
+      // very first cold load, never on screen re-entry or sync ticks.
       child: value.when(
-        data:
-            (either) => either.fold(
-              (error) => const Text(
-                'N/A',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-              (total) => Text(
-                isVisible ? '•••••••' : formatter(total),
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
+        data: (either) => either.fold(
+          (error) => const Text(
+            'N/A',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+          (total) => Text(
+            isVisible ? '•••••••' : formatter(total),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+        ),
         loading: () => _buildLoadingText(context),
-        error:
-            (_, _) => const Text(
-              'N/A',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
+        error: (_, _) => const Text(
+          'N/A',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -177,18 +182,19 @@ class WalletHeaderWidget extends ConsumerWidget {
     BuildContext context,
   ) {
     return totalVariation.when(
-      data:
-          (data) => data.fold((error) => const SizedBox.shrink(), (variation) {
+      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
+      data: (data) =>
+          data.fold((error) => const SizedBox.shrink(), (variation) {
             if (variation == 0.0) return const SizedBox.shrink();
 
             final isPositive = variation > 0;
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color:
-                    isPositive
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : Colors.red.withValues(alpha: 0.2),
+                color: isPositive
+                    ? Colors.green.withValues(alpha: 0.2)
+                    : Colors.red.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

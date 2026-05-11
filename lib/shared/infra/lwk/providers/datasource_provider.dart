@@ -86,10 +86,24 @@ final liquidDataSourceProvider = FutureProvider<
 
             await dbDir.stat();
 
+            // Diagnostic: legacy `Wallet.init` shares the lwk-dart FFI
+            // isolate with V2 `LiquidWalletServiceImpl.connect`. If both
+            // run concurrently they serialize on the FFI lock and one
+            // waits. These timestamps surface the contention in logs.
+            final initStart = DateTime.now();
+            debugPrint(
+              '[LiquidDataSourceProvider] Wallet.init BEGIN '
+              'dbpath=$dbpath ts=${initStart.toIso8601String()}',
+            );
             final wallet = await Wallet.init(
               network: network,
               dbpath: dbpath,
               descriptor: desc,
+            );
+            debugPrint(
+              '[LiquidDataSourceProvider] Wallet.init END '
+              'duration_ms='
+              '${DateTime.now().difference(initStart).inMilliseconds}',
             );
 
             return wallet;

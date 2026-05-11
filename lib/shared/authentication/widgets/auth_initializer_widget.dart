@@ -32,8 +32,8 @@ class AuthInitializerWidget extends ConsumerWidget {
           children: [
             child,
             Positioned(
-              top: 24,
-              right: 24,
+              top: 40,
+              right: 10,
               child: Material(
                 color: Colors.transparent,
                 child: Container(

@@ -26,10 +26,13 @@ class AssetToReceive {
   double get valueInReais => valueInCents / 100.0;
 }
 
-/// Provider that returns the values to receive grouped by asset
-final valuesToReceiveProvider = FutureProvider.autoDispose<
-  Either<String, List<AssetToReceive>>
->((ref) async {
+/// Provider that returns the values to receive grouped by asset.
+///
+/// Stale-while-revalidate: keeps the last computed list cached across
+/// screen exits so the wallet header's pending-transactions badge does
+/// not blink off and back on during background refreshes.
+final valuesToReceiveProvider =
+    FutureProvider<Either<String, List<AssetToReceive>>>((ref) async {
   final userInfo = await ref.watch(userInfoProvider.future);
   final currency = ref.watch(currencyControllerProvider);
   final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
@@ -84,9 +87,7 @@ final valuesToReceiveProvider = FutureProvider.autoDispose<
 });
 
 /// Provider that returns the total value to receive in the user's currency
-final totalValueToReceiveProvider = FutureProvider.autoDispose<double>((
-  ref,
-) async {
+final totalValueToReceiveProvider = FutureProvider<double>((ref) async {
   final valuesToReceiveResult = await ref.watch(valuesToReceiveProvider.future);
 
   return valuesToReceiveResult.fold((error) => 0.0, (toReceiveList) {
