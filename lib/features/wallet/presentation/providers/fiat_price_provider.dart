@@ -40,10 +40,13 @@ final currencyProvider = FutureProvider<Either<String, String>>((ref) async {
       .run();
 });
 
-final fiatPriceProvider = FutureProvider.autoDispose.family<
-  Either<String, double>,
-  Asset
->((ref, asset) async {
+// Stale-while-revalidate: no `.autoDispose` so the last fetched price
+// survives screen exits. This pairs with `walletHoldingsProvider` (also
+// non-autoDispose) so re-entering the home or holdings screen renders
+// cached price/value pairs immediately while the next sync refreshes
+// them in the background.
+final fiatPriceProvider =
+    FutureProvider.family<Either<String, double>, Asset>((ref, asset) async {
   try {
     final priceServiceResult = await ref.read(priceServiceProvider).run();
 

@@ -85,9 +85,14 @@ class WalletHolding {
   }
 }
 
-final walletHoldingsProvider = FutureProvider.autoDispose<
-  Either<String, List<WalletHolding>>
->((ref) async {
+// Stale-while-revalidate: this provider intentionally keeps its last
+// computed value across screen exits (no `.autoDispose`). Combined with
+// `skipLoadingOnRefresh: true` at the consumer, re-entering the home or
+// holdings screen renders cached balances immediately while the next
+// V2 sync tick refreshes data silently. Refresh is still triggered
+// reactively via `allBalancesProvider`'s watch on `syncStateProvider`.
+final walletHoldingsProvider =
+    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
   final allAssets = ref.watch(allAssetsProvider);
   ref.watch(currencyControllerProvider);
 
@@ -170,10 +175,8 @@ final walletHoldingsProvider = FutureProvider.autoDispose<
 });
 
 final walletHoldingsWithBalanceProvider =
-    FutureProvider.autoDispose<Either<String, List<WalletHolding>>>((
-      ref,
-    ) async {
-      final allHoldingsResult = await ref.read(walletHoldingsProvider.future);
+    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
+      final allHoldingsResult = await ref.watch(walletHoldingsProvider.future);
 
       return allHoldingsResult.map(
         (holdings) => holdings.where((holding) => holding.hasBalance).toList(),

@@ -6,8 +6,13 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provid
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 
+// Stale-while-revalidate: the wallet header (`WalletHeaderWidget`) needs
+// the total fiat value to remain visible across screen exits and during
+// background sync. Dropping `.autoDispose` keeps the previous total
+// cached; combined with `skipLoadingOnRefresh: true` at the consumer,
+// the shimmer is shown only on the very first cold load.
 final totalWalletValueProvider =
-    FutureProvider.autoDispose<Either<String, double>>((ref) async {
+    FutureProvider<Either<String, double>>((ref) async {
       final allAssets = ref.watch(allAssetsProvider);
       ref.watch(currencyControllerProvider);
 
@@ -59,7 +64,7 @@ final totalWalletValueProvider =
     });
 
 final totalWalletBitcoinProvider =
-    FutureProvider.autoDispose<Either<String, double>>((ref) async {
+    FutureProvider<Either<String, double>>((ref) async {
       final allAssets = ref.watch(allAssetsProvider);
       ref.watch(currencyControllerProvider);
 
@@ -110,7 +115,7 @@ final totalWalletBitcoinProvider =
     });
 
 final totalWalletSatoshisProvider =
-    Provider.autoDispose<AsyncValue<Either<String, BigInt>>>((ref) {
+    Provider<AsyncValue<Either<String, BigInt>>>((ref) {
       final bitcoinValue = ref.watch(totalWalletBitcoinProvider);
 
       return bitcoinValue.when(
@@ -129,7 +134,7 @@ final totalWalletSatoshisProvider =
     });
 
 final totalWalletVariationProvider =
-    FutureProvider.autoDispose<Either<String, double>>((ref) async {
+    FutureProvider<Either<String, double>>((ref) async {
       final allAssets = ref.watch(allAssetsProvider);
       ref.watch(currencyControllerProvider);
 

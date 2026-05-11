@@ -31,9 +31,13 @@ final balanceControllerProvider =
 /// Returns `Map<legacy.Asset, BigInt>` — same shape consumers expect.
 /// Drop this adapter once `wallet_holdings_provider` and the home
 /// balance widget read V2 entities natively.
-final allBalancesProvider = FutureProvider.autoDispose<Map<Asset, BigInt>>((
-  ref,
-) async {
+// Stale-while-revalidate: no `.autoDispose` so the last balance map
+// survives screen exits. The `select(lastSuccessAt)` watch below still
+// triggers a re-run on every successful sync, but the provider transitions
+// through `AsyncValue.data(prev, isRefreshing: true)` instead of going
+// back to `loading`, so consumers using `skipLoadingOnRefresh: true`
+// keep showing cached balances until new data arrives.
+final allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
   final logger = ref.read(appLoggerProvider);
 
   // React to V2 sync completions. Each successful refresh cycle bumps
@@ -88,12 +92,15 @@ final allBalancesProvider = FutureProvider.autoDispose<Map<Asset, BigInt>>((
 /// Single-asset balance lookup. Wraps [allBalancesProvider]; behaviour
 /// preserved bit-for-bit so existing call sites (legacy controllers,
 /// per-asset widgets) keep working without change.
-final balanceProvider = FutureProvider.autoDispose
-    .family<Either<WalletError, BigInt>, Asset>((ref, Asset asset) async {
-      final allBalances = await ref.watch(allBalancesProvider.future);
-      final balance = allBalances[asset] ?? BigInt.zero;
-      return Either.right(balance);
-    });
+final balanceProvider =
+    FutureProvider.family<Either<WalletError, BigInt>, Asset>((
+  ref,
+  Asset asset,
+) async {
+  final allBalances = await ref.watch(allBalancesProvider.future);
+  final balance = allBalances[asset] ?? BigInt.zero;
+  return Either.right(balance);
+});
 
 v2_asset.Asset _legacyToV2Asset(Asset a) => switch (a) {
       Asset.btc => v2_asset.Asset.btc,
