@@ -95,13 +95,11 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     });
 
     final t = AppLocalizations.of(context);
-    bool navigated = false;
 
     try {
       final isValid = await _authService.authenticate(_pinController.text);
 
       if (isValid) {
-        navigated = true;
         await Future.delayed(const Duration(seconds: 1));
         widget.onPinConfirmed();
       } else if (mounted) {
@@ -114,7 +112,15 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
         _pinController.clear();
       }
     } finally {
-      if (!navigated && mounted) {
+      // Always reset the spinner. Previously this was gated behind a
+      // `navigated` flag so the loading state would persist while
+      // go_router transitioned to /home — but the V2 home screen's
+      // first build does enough synchronous work that the spinner
+      // visibly stalls mid-transition, which reads as a UI freeze.
+      // Clearing the spinner immediately makes the button respond to
+      // the tap and lets the route transition handle the visual
+      // continuity on its own.
+      if (mounted) {
         setState(() {
           _isVerifying = false;
         });
@@ -135,17 +141,15 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
 
-    final result = await biometricService
-        .authenticate(reason: t.pin_biometric_access_reason)
-        .run();
+    final result =
+        await biometricService
+            .authenticate(reason: t.pin_biometric_access_reason)
+            .run();
 
     if (!mounted) return;
 
     result.fold(
-      (error) => AppSnackBar.error(
-        context,
-        t.biometric_auth_error(error),
-      ),
+      (error) => AppSnackBar.error(context, t.biometric_auth_error(error)),
       (authenticated) {
         if (authenticated) widget.onPinConfirmed();
         // If the user dismissed without authenticating the PIN form remains
@@ -173,17 +177,15 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       return;
     }
 
-    final result = await biometricService
-        .authenticate(reason: t.pin_reset_biometric_reason)
-        .run();
+    final result =
+        await biometricService
+            .authenticate(reason: t.pin_reset_biometric_reason)
+            .run();
 
     if (!mounted) return;
 
     result.fold(
-      (error) => AppSnackBar.error(
-        context,
-        t.biometric_auth_error(error),
-      ),
+      (error) => AppSnackBar.error(context, t.biometric_auth_error(error)),
       (authenticated) {
         if (authenticated) widget.onPinConfirmed();
       },
@@ -244,6 +246,8 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                     text: t.pin_validate_body,
                   ),
                 ),
+                const SizedBox(height: 50),
+                LinearProgressIndicator(),
                 const SizedBox(height: 50),
                 Pinput(
                   keyboardType: TextInputType.number,
