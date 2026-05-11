@@ -12,7 +12,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_p
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
-import 'package:mooze_mobile/app/lifecycle/app_state.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 
 class HoldingsAsseetScreen extends ConsumerStatefulWidget {
@@ -40,11 +40,17 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Phase 2.3.3: V2-derived loading flag (boot != ready ⇒ loading).
-    // `dataRefreshTriggerProvider` removed — V2 streams re-emit on
-    // actual state changes, so the manual UI-rebuild trigger is gone.
-    final appPhase = ref.watch(appStateProvider).valueOrNull?.phase;
-    final isLoadingData = appPhase != AppPhase.ready;
+    // Stale-while-revalidate: split the boot loader from the data loader.
+    // Show the 3px top bar only during a true cold boot (`readyAt == null`)
+    // OR while a background sync is actively running. Once the app has
+    // reached ready once and sync is idle, the bar stays hidden — even on
+    // re-entry — because cached holdings are rendered immediately by the
+    // non-autoDispose providers below.
+    final appState = ref.watch(appStateProvider).valueOrNull;
+    final hasBootedOnce = appState?.readyAt != null;
+    final syncPhase = ref.watch(syncStateProvider).valueOrNull?.phase;
+    final isSyncing = syncPhase == SyncPhase.running;
+    final isLoadingData = !hasBootedOnce || isSyncing;
 
     return Scaffold(
       appBar: _buildAppBar(),
@@ -179,12 +185,18 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         final t = AppLocalizations.of(context);
         final holdingsAsync = ref.watch(walletHoldingsProvider);
 
+        // `skipLoadingOnRefresh`/`skipLoadingOnReload` keep rendering the
+        // previous holdings list while the provider re-runs in the
+        // background (e.g. after a V2 sync tick or pull-to-refresh). The
+        // skeleton only appears on the very first cold load, when no
+        // cached value exists yet.
         return holdingsAsync.when(
-          data:
-              (holdingsResult) => holdingsResult.fold(
-                (error) => _buildErrorWidget(error),
-                (holdings) => _buildHoldingsList(holdings),
-              ),
+          skipLoadingOnRefresh: true,
+          skipLoadingOnReload: true,
+          data: (holdingsResult) => holdingsResult.fold(
+            (error) => _buildErrorWidget(error),
+            (holdings) => _buildHoldingsList(holdings),
+          ),
           loading: () => AssetLoading(),
           error: (error, stack) =>
               _buildErrorWidget(t.wallet_holding_unexpected_error('$error')),
