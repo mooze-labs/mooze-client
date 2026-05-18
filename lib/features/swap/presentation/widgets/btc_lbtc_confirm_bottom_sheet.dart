@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -10,6 +9,7 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_sele
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/controllers/btc_lbtc_swap_controller.dart';
+import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
@@ -196,7 +196,6 @@ class _BtcLbtcConfirmBottomSheetState
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final amountBtc = widget.amount.toDouble() / 100000000;
     final fromAsset = widget.isPegIn ? core.Asset.btc : core.Asset.lbtc;
     final toAsset = widget.isPegIn ? core.Asset.lbtc : core.Asset.btc;
 
@@ -204,8 +203,14 @@ class _BtcLbtcConfirmBottomSheetState
     final networkFeeSat = _currentFeeEstimate?.networkFeeSat ?? BigInt.zero;
     final totalFeeSat = _currentFeeEstimate?.totalFeeSat ?? BigInt.zero;
 
-    final totalFeeBtc = totalFeeSat.toDouble() / 100000000;
-    final receivedAmount = amountBtc - totalFeeBtc;
+    // Deal-card amounts: send is the user's input (known immediately);
+    // receive is send minus total fees, but only once fees have been
+    // estimated. While fees are loading, pass null so the card shimmers
+    // the receive amount — matching the regular confirm sheet's UX.
+    final sendAmountSats = widget.amount.toInt();
+    final receiveAmountSats = _isLoadingFees
+        ? null
+        : (widget.amount - totalFeeSat).toInt();
 
     return PlatformSafeArea(
       child: Container(
@@ -235,12 +240,14 @@ class _BtcLbtcConfirmBottomSheetState
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  _fromToSummary(
-                    context,
-                    fromAsset,
-                    toAsset,
-                    amountBtc,
-                    receivedAmount,
+                  SwapDealCard(
+                    sendAsset: fromAsset,
+                    sendAmountSats: sendAmountSats,
+                    receiveAsset: toAsset,
+                    receiveAmountSats: receiveAmountSats,
+                    isLoadingReceive: _isLoadingFees,
+                    sendLabel: t.swap_you_send,
+                    receiveLabel: t.swap_you_receive,
                   ),
                   const SizedBox(height: 20),
                   const Divider(),
@@ -487,97 +494,6 @@ class _BtcLbtcConfirmBottomSheetState
     }
   }
 
-  Widget _fromToSummary(
-    BuildContext context,
-    core.Asset sendAsset,
-    core.Asset receiveAsset,
-    double sendAmount,
-    double receiveAmount,
-  ) {
-    final t = AppLocalizations.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
-          colors: [
-            Theme.of(context).colorScheme.surfaceContainerLowest,
-            const Color(0xFFE91E63),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(1.5),
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(t.swap_you_send),
-                      const SizedBox(width: 10),
-                      SvgPicture.asset(
-                        sendAsset.iconPath,
-                        width: 15,
-                        height: 15,
-                      ),
-                    ],
-                  ),
-                  Text(
-                    sendAmount.toStringAsFixed(8),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(sendAsset.name.toLowerCase()),
-                ],
-              ),
-              Spacer(),
-              SvgPicture.asset(
-                'assets/icons/menu/arrow.svg',
-                width: 25,
-                height: 25,
-              ),
-              const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(t.swap_you_receive),
-                      const SizedBox(width: 10),
-                      SvgPicture.asset(
-                        receiveAsset.iconPath,
-                        width: 15,
-                        height: 15,
-                      ),
-                    ],
-                  ),
-                  Text(
-                    receiveAmount.toStringAsFixed(8),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(receiveAsset.name.toLowerCase()),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _FeeRow extends StatelessWidget {

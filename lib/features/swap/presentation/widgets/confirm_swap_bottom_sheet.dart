@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
@@ -13,6 +12,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../screens/swap_success_screen.dart';
+import 'swap_deal_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
@@ -123,7 +123,19 @@ class _ConfirmSwapBottomSheetState
                 duration: const Duration(milliseconds: 220),
                 child: Column(
                   children: [
-                    _DealCard(state: state, isLoadingReceive: isFetching),
+                    SwapDealCard(
+                      sendAsset: state.lastSendAssetId != null
+                          ? core.Asset.fromId(state.lastSendAssetId!)
+                          : core.Asset.btc,
+                      sendAmountSats: state.lastAmount?.toInt(),
+                      receiveAsset: state.lastReceiveAssetId != null
+                          ? core.Asset.fromId(state.lastReceiveAssetId!)
+                          : core.Asset.usdt,
+                      receiveAmountSats: state.receiveAmount,
+                      isLoadingReceive: isFetching,
+                      sendLabel: t.swap_you_send,
+                      receiveLabel: t.swap_you_receive,
+                    ),
                     const SizedBox(height: 14),
                     _ExchangeRateRow(state: state, t: t),
                   ],
@@ -394,194 +406,6 @@ class _ExpirationIndicator extends StatelessWidget {
     if (r >= 10000) return cs.tertiary;
     if (r >= 5000) return warning;
     return cs.error;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Deal card — receive amount is the visual hero
-// ─────────────────────────────────────────────────────────────────────
-
-class _DealCard extends StatelessWidget {
-  final sc.SwapState state;
-  final bool isLoadingReceive;
-
-  const _DealCard({required this.state, required this.isLoadingReceive});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final sendId = state.lastSendAssetId;
-    final receiveId = state.lastReceiveAssetId;
-    final sendAsset =
-        sendId != null ? core.Asset.fromId(sendId) : core.Asset.btc;
-    final receiveAsset =
-        receiveId != null ? core.Asset.fromId(receiveId) : core.Asset.usdt;
-
-    final locale = _localeStringFor(context);
-    final sendAmount = state.lastAmount != null
-        ? sendAsset.formatAmount(state.lastAmount!.toInt(), locale: locale)
-        : '0';
-    final receiveAmount = state.receiveAmount != null
-        ? receiveAsset.formatAmount(state.receiveAmount!, locale: locale)
-        : null;
-
-    final isDark = theme.brightness == Brightness.dark;
-    // `outline` lands at different luminances per theme, so the alpha
-    // needed for an equally-readable line differs. Tuned per theme:
-    // dark relies on stronger borders + a black-tinted shadow because
-    // `colorScheme.shadow` is washed out on dark surfaces; light uses
-    // slightly stronger borders too plus its existing soft shadow.
-    final borderColor =
-        isDark
-            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.45)
-            : theme.colorScheme.outline.withValues(alpha: 0.55);
-    final dividerColor =
-        isDark
-            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
-            : theme.colorScheme.outline.withValues(alpha: 0.45);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
-        boxShadow:
-            isDark
-                ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-                : [
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withValues(alpha: 0.08),
-                    blurRadius: 14,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-      ),
-      child: Column(
-        children: [
-          _AmountRow(
-            label: AppLocalizations.of(context).swap_you_send,
-            asset: sendAsset,
-            amount: sendAmount,
-            isShimmer: false,
-            isHero: false,
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: Divider(color: dividerColor, height: 1)),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.arrow_downward_rounded,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(child: Divider(color: dividerColor, height: 1)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _AmountRow(
-            label: AppLocalizations.of(context).swap_you_receive,
-            asset: receiveAsset,
-            amount: receiveAmount ?? '0',
-            isShimmer: isLoadingReceive || receiveAmount == null,
-            isHero: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AmountRow extends StatelessWidget {
-  final String label;
-  final core.Asset asset;
-  final String amount;
-  final bool isShimmer;
-  final bool isHero;
-
-  const _AmountRow({
-    required this.label,
-    required this.asset,
-    required this.amount,
-    required this.isShimmer,
-    required this.isHero,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final amountStyle =
-        isHero
-            ? theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            )
-            : theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            );
-
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(shape: BoxShape.circle),
-          child: SvgPicture.asset(asset.iconPath, width: 28, height: 28),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.colors.textSecondary,
-                  letterSpacing: 0.4,
-                ),
-              ),
-              const SizedBox(height: 2),
-              isShimmer
-                  ? _ShimmerBlock(width: 140, height: isHero ? 28 : 22)
-                  : Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          amount,
-                          style: amountStyle,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        asset.displayUnit,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: context.colors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }
 
