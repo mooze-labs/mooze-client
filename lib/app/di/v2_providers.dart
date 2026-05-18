@@ -7,15 +7,18 @@ import '../../domain/entities/asset_catalog.dart';
 import '../../domain/entities/balance.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/events/transaction_event.dart';
+import '../../domain/repositories/notified_tx_registry.dart';
 import '../../domain/repositories/secure_credential_store.dart';
 import '../../domain/repositories/transaction_store.dart';
 import '../../domain/repositories/wallet_directory_guard.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/services/bitcoin_wallet_service.dart';
+import '../../domain/services/electrum_endpoint_resolver.dart';
 import '../../domain/services/lightning_wallet_service.dart';
 import '../../domain/services/liquid_wallet_service.dart';
 import '../../domain/services/platform_initializer.dart';
 import '../../domain/services/session_authenticator.dart';
+import '../../domain/services/transaction_notifier.dart';
 import '../../features/boot/data/boot_orchestrator_impl.dart';
 import '../../features/boot/domain/boot_orchestrator.dart';
 import '../../features/boot/domain/boot_state.dart';
@@ -33,8 +36,11 @@ import '../../infra/breez/lightning_wallet_service_impl.dart';
 import '../../infra/db/transaction_database.dart';
 import '../../infra/fs/wallet_directory_guard_impl.dart';
 import '../../infra/lwk/liquid_wallet_service_impl.dart';
+import '../../infra/network/electrum_endpoint_resolver_impl.dart';
+import '../../infra/notification/transaction_notifier_impl.dart';
 import '../../infra/platform/platform_initializer_impl.dart';
 import '../../infra/storage/asset_catalog_impl.dart';
+import '../../infra/storage/notified_tx_registry_impl.dart';
 import '../../infra/storage/secure_credential_store_impl.dart';
 import '../../infra/storage/transaction_store_impl.dart';
 import '../../shared/clock/clock.dart';
@@ -42,6 +48,7 @@ import '../../shared/logging/structured_logger.dart';
 import '../lifecycle/app_lifecycle_controller.dart';
 import '../lifecycle/app_lifecycle_controller_impl.dart';
 import '../lifecycle/app_state.dart';
+import 'wallet_cleanup_hooks.dart';
 
 // ─────────────────────────────────────────── primitives
 
@@ -78,8 +85,28 @@ final transactionStoreProvider = FutureProvider<TransactionStore>((ref) async {
   return store;
 });
 
+/// Persisted dedup ledger for `V2TransactionNotifier`. Lives in the
+/// same `mooze_v2.db` as the transaction store and is wiped by
+/// `DeleteWalletUseCase` / `ImportWalletUseCase` alongside the
+/// transactions table.
+final notifiedTxRegistryProvider =
+    FutureProvider<NotifiedTxRegistry>((ref) async {
+  final db = await ref.watch(transactionDatabaseProvider.future);
+  return SqliteNotifiedTxRegistry(db);
+});
+
 final secureCredentialStoreProvider = Provider<SecureCredentialStore>(
   (_) => FlutterSecureCredentialStore(),
+);
+
+// ─────────────────────────────────────────── network resolvers
+
+/// Round-robin Electrum endpoint resolver. Single instance per app —
+/// rotation state must be shared across chains so a failure-induced
+/// rotation is observed by the next sync attempt regardless of which
+/// service instance triggers it.
+final electrumEndpointResolverProvider = Provider<ElectrumEndpointResolver>(
+  (_) => RoundRobinElectrumEndpointResolver(),
 );
 
 // ─────────────────────────────────────────── chain services
@@ -89,6 +116,7 @@ final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
+    endpointResolver: ref.read(electrumEndpointResolverProvider),
   );
   ref.onDispose(s.dispose);
   return s;
@@ -162,14 +190,17 @@ final deleteWalletUseCaseProvider =
   final boot = await ref.watch(bootOrchestratorProvider.future);
   final sync = await ref.watch(syncOrchestratorProvider.future);
   final txStore = await ref.watch(transactionStoreProvider.future);
+  final notifiedReg = await ref.watch(notifiedTxRegistryProvider.future);
   return DeleteWalletUseCase(
     boot: boot,
     sync: sync,
     credentials: ref.read(secureCredentialStoreProvider),
     transactionStore: txStore,
+    notifiedTxRegistry: notifiedReg,
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     workingDirs: const ['lwk-db', 'breez'],
     logger: ref.read(loggerProvider),
+    postDeleteHooks: buildWalletCleanupHooks(),
   );
 });
 
@@ -262,8 +293,53 @@ final refreshWalletProvider = FutureProvider<RefreshWalletUseCase>((ref) async {
   return RefreshWalletUseCase(sync);
 });
 
-final importWalletUseCaseProvider = Provider<ImportWalletUseCase>((ref) {
-  return ImportWalletUseCase(ref.read(secureCredentialStoreProvider));
+final importWalletUseCaseProvider =
+    FutureProvider<ImportWalletUseCase>((ref) async {
+  final txStore = await ref.watch(transactionStoreProvider.future);
+  final notifiedReg = await ref.watch(notifiedTxRegistryProvider.future);
+  return ImportWalletUseCase(
+    ref.read(secureCredentialStoreProvider),
+    transactionStore: txStore,
+    notifiedTxRegistry: notifiedReg,
+    directoryGuard: ref.read(walletDirectoryGuardProvider),
+    workingDirs: const ['lwk-db', 'breez'],
+    preImportHooks: buildWalletCleanupHooks(),
+    logger: ref.read(loggerProvider),
+  );
+});
+
+// ─────────────────────────────────────────── transaction notifier (G6)
+
+/// V2 transaction notifier. Subscribes to the orchestrator's merged
+/// transaction-event stream and emits a `TransactionStatusEvent` when a
+/// previously-unseen incoming receive reaches `confirmed`. Replaces the
+/// legacy `TransactionMonitorService` (which listened to legacy
+/// `syncStreamProvider` + `transactionHistoryProvider`).
+///
+/// Dedup, baseline absorption, and home/foreground gating are all
+/// implemented inside the notifier — see the abstract interface for
+/// the state-machine contract.
+final transactionNotifierProvider =
+    FutureProvider<TransactionNotifier>((ref) async {
+  final orchestrator = await ref.watch(syncOrchestratorProvider.future);
+  final registry = await ref.watch(notifiedTxRegistryProvider.future);
+  final txStore = await ref.watch(transactionStoreProvider.future);
+  final notifier = V2TransactionNotifier(
+    orchestrator: orchestrator,
+    registry: registry,
+    transactionStore: txStore,
+    logger: ref.read(loggerProvider),
+  );
+  ref.onDispose(notifier.dispose);
+  return notifier;
+});
+
+/// Stream of confirmation events for in-app notifications. Listened to
+/// by `TransactionStatusListener`.
+final transactionNotificationsStreamProvider =
+    StreamProvider.autoDispose((ref) async* {
+  final notifier = await ref.watch(transactionNotifierProvider.future);
+  yield* notifier.notifications;
 });
 
 // ─────────────────────────────────────────── asset catalog + favourites
