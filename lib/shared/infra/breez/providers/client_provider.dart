@@ -1,651 +1,209 @@
-import 'dart:io';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/services/service_state.dart';
+import 'package:mooze_mobile/infra/breez/lightning_wallet_service_impl.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
-import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync_event_stream.dart';
-import 'package:mutex/mutex.dart';
-import 'package:path_provider/path_provider.dart';
 
-import '../../../key_management/providers/mnemonic_provider.dart';
-import 'config_provider.dart';
+/// V2 BRIDGE — exposes the legacy `breezClientProvider` shape but returns
+/// the SAME `BreezSdkLiquid` instance the V2 [LightningWalletServiceImpl]
+/// owns.
+///
+/// Prior to this change the legacy provider built its own
+/// `BreezSdkLiquid`, which meant **two** Breez SDK instances pointed at
+/// the same `${appDocs}/breez/` working directory in the same process —
+/// the V2 `WalletDirectoryGuard` could not prevent that because both
+/// instances bypassed the guard. SQLite corruption was a question of
+/// timing. The bridge now points the legacy provider at the single V2
+/// client.
+///
+/// **Readiness gate.** Returns the SDK as soon as the service reaches
+/// `ServiceLifecycle.connected` and runs a cheap `getInfo()` probe to
+/// verify it responds. The probe failure is logged but doesn't block —
+/// the caller will surface the real exception via the
+/// exception-propagating handlers in `breez.dart`.
+///
+/// History: an earlier version tightened this to also require
+/// `lastSyncAt != null` on the hypothesis that the "Liquid SDK instance
+/// is not running" failures after wallet re-import were a sync race.
+/// They were not (see the stale-reference invalidation above): the gate
+/// would always pass on the second wallet because `lastSyncAt` is
+/// preserved through the disconnect/reconnect cycle on `ServiceState`.
+/// Worse, the stricter gate caused the wait loop to time out at 6s and
+/// return Left on the very first read after re-import — which produced
+/// the symptom "Breez wallet not available" in the legacy
+/// `walletRepositoryProvider`. The gate is back to `isOperational` only.
+final breezClientProvider =
+    FutureProvider<Either<String, BreezSdkLiquid>>((ref) async {
+  final logger = AppLoggerService();
+  final service = ref.watch(lightningWalletServiceProvider)
+      as LightningWalletServiceImpl;
 
-/// Global reference to the current Breez client for cleanup purposes
-/// This is necessary because Riverpod's invalidate() doesn't call disconnect()
-BreezSdkLiquid? _currentBreezClient;
-
-/// Serializes connect / disconnect against [_currentBreezClient]. Without it,
-/// a delete-wallet flow that runs `disconnectBreezClientProvider` can race
-/// with a concurrent rebuild of `breezClientProvider` (e.g. triggered by an
-/// import-wallet flow) and the disconnect would be applied to the NEW
-/// client instead of the old one, leaving the old SDK process attached to
-/// the now-deleted SQLite database (file-handle leak + stale-data sync).
-/// Mirrors the V2 invariant `LightningWalletServiceImpl._connectMutex`.
-final _breezLifecycleMutex = Mutex();
-
-/// Provider to explicitly disconnect the Breez client before invalidating
-/// IMPORTANT: Call this BEFORE invalidating breezClientProvider
-/// Returns true if disconnection was successful or no client was connected
-final disconnectBreezClientProvider = FutureProvider.autoDispose<bool>((
-  ref,
-) async {
-  final logger = ref.read(appLoggerProvider);
-
-  // Serialize against breezClientProvider's connect path. See
-  // [_breezLifecycleMutex] doc — without this guard the disconnect could
-  // null-out a brand-new client that connect() just published, or run
-  // concurrently with a connect that is mid-await on the SDK.
-  return _breezLifecycleMutex.protect(() async {
-    final clientToDisconnect = _currentBreezClient;
-    if (clientToDisconnect == null) {
-      logger.debug('BreezClient', 'No active client to disconnect');
-      return true;
-    }
-
-    // Capture the reference and clear the global FIRST, so any subsequent
-    // sync attempt sees null and aborts (the existing
-    // `_syncBreezWithRetry` checks `_currentBreezClient == null` before
-    // each retry). The actual `disconnect()` then runs on the captured ref.
-    _currentBreezClient = null;
-
-    try {
-      logger.info('BreezClient', 'Explicitly disconnecting Breez SDK...');
-      await clientToDisconnect.disconnect();
-      logger.info('BreezClient', '✅ Breez SDK disconnected successfully');
-
-      // Wait for file handles to be released
-      await Future.delayed(const Duration(milliseconds: 500));
-      return true;
-    } catch (e) {
-      logger.warning(
-        'BreezClient',
-        'Error disconnecting Breez SDK: $e',
-        error: e,
+  // **Stale-reference invalidation (added 2026-05-12 after the
+  // "Liquid SDK instance is not running" reproduction).** When the user
+  // deletes a wallet and imports a new one, `boot.shutdown()` calls
+  // `lightning.disconnect()` which sets `_client = null` on the V2
+  // service. The subsequent re-import triggers a new
+  // `lightning.connect()`, producing a *fresh* `BreezSdkLiquid`. Riverpod
+  // has no signal that the SDK instance changed — `lightningWalletServiceProvider`
+  // is a `Provider<LightningWalletService>` whose Dart-level value
+  // (the service reference) is stable across the connect/disconnect
+  // cycle. Without an explicit listener this FutureProvider keeps its
+  // cached `Right(oldClient)`, the legacy `walletRepositoryProvider`
+  // keeps the same `BreezWallet`, and every Liquid receive on the new
+  // wallet calls `prepareReceivePayment` on the disconnected SDK
+  // handle — which throws `PaymentError.generic(err: Liquid SDK
+  // instance is not running)`.
+  //
+  // The listener watches lifecycle transitions and invalidates this
+  // provider whenever the service leaves `connected`. The `lastSeen`
+  // guard ensures we don't react to the replay value emitted on
+  // subscribe (which would feedback-loop after re-evaluation).
+  ServiceLifecycle? lastSeen;
+  final lifecycleSub = service.state.listen((s) {
+    final prev = lastSeen;
+    lastSeen = s.lifecycle;
+    if (prev == ServiceLifecycle.connected &&
+        s.lifecycle != ServiceLifecycle.connected) {
+      logger.info(
+        'breezClientProvider',
+        'invalidate-self transition=connected→${s.lifecycle.name} '
+            'sdkPresent=${service.sdkClient != null} '
+            'reason=service-state-change',
       );
-      // Reference is already cleared above; even on failure we treat it as
-      // a best-effort detach so the next connect can proceed cleanly.
-      return false;
+      // Defer to the next microtask. Calling `ref.invalidateSelf()`
+      // synchronously from inside a stream listener can re-enter
+      // Riverpod's disposal machinery while the broadcast stream is
+      // mid-dispatch — observed symptom from the 2026-05-12 repro:
+      // the provider re-evaluated immediately, captured a transient
+      // `disconnected` state, hit the 6s wait-loop timeout, and
+      // returned Left("stream closed without operational state")
+      // even though the new wallet's `lightning.connect()` had already
+      // emitted `connected`. The microtask hop lets the listener
+      // callback complete, the in-flight broadcast event settle, and
+      // the service's next state emission land before we tear down
+      // and re-resolve.
+      Future.microtask(() {
+        try {
+          ref.invalidateSelf();
+        } catch (_) {
+          // Provider already disposed — nothing to invalidate.
+        }
+      });
     }
   });
-});
+  ref.onDispose(lifecycleSub.cancel);
 
-/// Provider to clean Breez data directory
-/// Call this AFTER disconnecting and BEFORE importing a new wallet
-final cleanBreezDataDirectoryProvider = FutureProvider.autoDispose<bool>((
-  ref,
-) async {
-  final logger = ref.read(appLoggerProvider);
-
-  try {
-    final workingDir = await getApplicationDocumentsDirectory();
-    final breezDir = Directory("${workingDir.path}/mooze");
-
-    if (!await breezDir.exists()) {
-      logger.debug(
-        'BreezClient',
-        'Breez directory does not exist, nothing to clean',
-      );
-      return true;
-    }
-
+  Future<Either<String, BreezSdkLiquid>> probeAndReturn(
+    BreezSdkLiquid client,
+    String reason,
+  ) async {
+    final state = service.currentState;
     logger.info(
-      'BreezClient',
-      'Cleaning Breez data directory: ${breezDir.path}',
+      'breezClientProvider',
+      'gate-passed reason=$reason '
+          'lifecycle=${state.lifecycle.name} '
+          'lastSyncAt=${state.lastSyncAt?.toIso8601String() ?? "null"} '
+          'sdkHash=${identityHashCode(client)}',
     );
-
-    const maxAttempts = 5;
-    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        await breezDir.delete(recursive: true);
-        logger.info('BreezClient', '✅ Breez directory deleted successfully');
-        return true;
-      } catch (e) {
-        if (attempt < maxAttempts) {
-          final delay = Duration(milliseconds: 500 * attempt);
-          logger.debug(
-            'BreezClient',
-            'Delete attempt $attempt/$maxAttempts failed, retrying in ${delay.inMilliseconds}ms: $e',
-          );
-          await Future.delayed(delay);
-        } else {
-          logger.error(
-            'BreezClient',
-            'Failed to delete Breez directory after $maxAttempts attempts',
-            error: e,
-          );
-        }
-      }
-    }
-
-    return false;
-  } catch (e) {
-    logger.error('BreezClient', 'Error cleaning Breez directory', error: e);
-    return false;
-  }
-});
-
-/// Global flag to indicate wallet deletion is in progress
-/// This prevents any new Breez connections during wallet deletion
-bool _isWalletBeingDeleted = false;
-
-/// Provider to set the wallet deletion flag
-/// Call this BEFORE starting wallet deletion, and reset after deletion completes
-final setWalletDeletionFlagProvider = Provider.family<void, bool>((
-  ref,
-  isDeleting,
-) {
-  _isWalletBeingDeleted = isDeleting;
-  final logger = ref.read(appLoggerProvider);
-  logger.debug('BreezClient', 'Wallet deletion flag set to: $isDeleting');
-});
-
-/// Temporary errors that can be resolved with retry
-const _retryableErrors = [
-  'Liquid tip not available',
-  'unable to open database',
-  'database is locked',
-  'storage.sql',
-  'network',
-  'timeout',
-  'connection',
-  'temporarily unavailable',
-];
-
-/// Checks if the error is temporary and can be retried
-bool _isRetryableError(String errorMessage) {
-  final lowerError = errorMessage.toLowerCase();
-  return _retryableErrors.any((e) => lowerError.contains(e.toLowerCase()));
-}
-
-final breezClientProvider = FutureProvider<Either<String, BreezSdkLiquid>>((
-  ref,
-) async {
-  final logger = ref.read(appLoggerProvider);
-
-  // Check if wallet deletion is in progress - don't connect during deletion
-  if (_isWalletBeingDeleted) {
-    logger.warning(
-      'BreezClient',
-      'Wallet deletion in progress - skipping Breez connection',
-    );
-    return left('Wallet deletion in progress');
-  }
-
-  final config = await ref.read(configProvider.future);
-  final mnemonicOption = await ref.watch(mnemonicProvider.future);
-  final syncStream = ref.read(syncStreamProvider);
-
-  return await mnemonicOption.fold(
-    () async {
-      logger.warning(
-        'BreezClient',
-        'Mnemonic not available - wallet may not be initialized or was deleted',
-      );
-      return left('Mnemonic not available');
-    },
-    (mnemonic) async {
-      // Double-check deletion flag after mnemonic check (race condition protection)
-      if (_isWalletBeingDeleted) {
-        logger.warning(
-          'BreezClient',
-          'Wallet deletion started after mnemonic read - aborting connection',
-        );
-        return left('Wallet deletion in progress');
-      }
-
-      const maxRetries = 3;
-      const initialDelay = Duration(seconds: 2);
-
-      logger.info(
-        'BreezClient',
-        'Starting Breez SDK connection (max retries: $maxRetries)',
-      );
-
-      logger.debug(
-        'BreezClient',
-        'Breez config workingDir: ${config.workingDir}',
-      );
-
-      for (int attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          final connectRequest = ConnectRequest(
-            mnemonic: mnemonic,
-            config: config,
-          );
-
-          logger.info(
-            'BreezClient',
-            'Attempting connection $attempt/$maxRetries...',
-          );
-          logger.debug(
-            'BreezClient',
-            'Using mnemonic: ${mnemonic.substring(0, 20)}...',
-          );
-
-          final client = await connect(req: connectRequest);
-          logger.info('BreezClient', '✅ Breez SDK connected successfully');
-
-          // Publish the new global reference under the lifecycle mutex so a
-          // simultaneous disconnect can't read a stale ref. If a deletion
-          // started while we were in `connect()`, abort and disconnect the
-          // freshly-built client to avoid leaking it.
-          final aborted = await _breezLifecycleMutex.protect(() async {
-            if (_isWalletBeingDeleted) return true;
-            _currentBreezClient = client;
-            return false;
-          });
-          if (aborted) {
-            logger.warning(
-              'BreezClient',
-              'Wallet deletion started during connect — disconnecting fresh client',
-            );
-            try {
-              await client.disconnect();
-            } catch (_) {}
-            return left('Wallet deletion in progress');
-          }
-
-          // Sync em background (fire and forget)
-          _syncBreezInBackground(client, syncStream, logger, ref);
-
-          return right(client);
-        } catch (e) {
-          final errorMessage = e.toString();
-
-          // Handle database errors (unable to open, migration errors, etc.)
-          final isDatabaseError =
-              errorMessage.contains('unable to open database') ||
-              errorMessage.contains('database is locked') ||
-              errorMessage.contains('storage.sql') ||
-              errorMessage.contains('rusqlite_migrate') ||
-              errorMessage.contains('duplicate column name');
-
-          if (isDatabaseError) {
-            logger.warning(
-              'BreezClient',
-              'Database error detected on attempt $attempt: $errorMessage',
-              error: e,
-            );
-
-            // Try to clean up the Breez directory before retrying
-            try {
-              final dbDir = Directory(config.workingDir);
-              if (await dbDir.exists()) {
-                logger.info(
-                  'BreezClient',
-                  'Cleaning Breez directory due to database error...',
-                );
-                await dbDir.delete(recursive: true);
-                logger.info(
-                  'BreezClient',
-                  'Breez directory cleaned, waiting before retry...',
-                );
-                // Wait for filesystem to sync
-                await Future.delayed(Duration(milliseconds: 500));
-              }
-            } catch (cleanupError) {
-              logger.warning(
-                'BreezClient',
-                'Error cleaning directory: $cleanupError',
-              );
-            }
-
-            // If this is not the last attempt, retry
-            if (attempt < maxRetries) {
-              final delay = initialDelay * attempt;
-              logger.info(
-                'BreezClient',
-                'Retrying connection in ${delay.inSeconds}s after database cleanup...',
-              );
-              await Future.delayed(delay);
-              continue;
-            }
-
-            // Last attempt with database error - try one more time with full cleanup
-            logger.warning(
-              'BreezClient',
-              'Last attempt failed with database error, trying reconnection...',
-            );
-
-            try {
-              final retryRequest = ConnectRequest(
-                mnemonic: mnemonic,
-                config: config,
-              );
-              final client = await connect(req: retryRequest);
-              logger.info('BreezClient', 'Breez SDK reconnected after cleanup');
-
-              // Try to sync after reconnection (non-blocking, with timeout)
-              try {
-                logger.info(
-                  'BreezClient',
-                  'Attempting sync after reconnection...',
-                );
-                await client.sync().timeout(
-                  Duration(seconds: 30),
-                  onTimeout: () {
-                    logger.warning(
-                      'BreezClient',
-                      'Sync timeout after reconnection (non-critical)',
-                    );
-                    throw Exception('Sync timeout after 30s');
-                  },
-                );
-                logger.info(
-                  'BreezClient',
-                  'Breez SDK synced after reconnection',
-                );
-              } catch (syncError) {
-                logger.warning(
-                  'BreezClient',
-                  'Sync failed after reconnection (non-critical): $syncError',
-                );
-              }
-
-              // Publish global reference under the lifecycle mutex (same
-              // rationale as the primary connect path above).
-              final aborted = await _breezLifecycleMutex.protect(() async {
-                if (_isWalletBeingDeleted) return true;
-                _currentBreezClient = client;
-                return false;
-              });
-              if (aborted) {
-                logger.warning(
-                  'BreezClient',
-                  'Wallet deletion started during recovery connect — disconnecting fresh client',
-                );
-                try {
-                  await client.disconnect();
-                } catch (_) {}
-                return left('Wallet deletion in progress');
-              }
-              return right(client);
-            } catch (retryError) {
-              logger.error(
-                'BreezClient',
-                'Failed to reconnect after database cleanup',
-                error: retryError,
-              );
-              return left(
-                'Failed to connect to Breez SDK after database cleanup: ${retryError.toString()}',
-              );
-            }
-          }
-
-          // For temporary errors, retry with exponential backoff
-          if (_isRetryableError(errorMessage) && attempt < maxRetries) {
-            final delay = initialDelay * (1 << (attempt - 1)); // 2s, 4s, 8s
-            logger.warning(
-              'BreezClient',
-              'Temporary error detected. Retrying in ${delay.inSeconds}s...',
-              error: e,
-            );
-            await Future.delayed(delay);
-            continue;
-          }
-
-          // Unrecoverable error or last attempt
-          logger.error(
-            'BreezClient',
-            'Failed to connect to Breez SDK',
-            error: e,
-          );
-          return left('Failed to connect to Breez SDK: $errorMessage');
-        }
-      }
-
-      // Should not reach here, but for safety
-      final stackTrace = StackTrace.current;
-      logger.critical(
-        'BreezClient',
-        'Exhausted all retry attempts without success',
-        stackTrace: stackTrace,
-      );
-      return left('Failed to connect to Breez SDK after $maxRetries attempts');
-    },
-  );
-});
-
-void _syncBreezInBackground(
-  BreezSdkLiquid client,
-  SyncStreamController syncStream,
-  AppLoggerService logger,
-  Ref ref,
-) async {
-  // Check mnemonic availability before starting sync
-  final mnemonicOption = await ref.read(mnemonicProvider.future);
-  if (mnemonicOption.isNone()) {
-    logger.warning(
-      'BreezClient',
-      'Mnemonic not available - skipping background sync silently (wallet may have been deleted)',
-    );
-    // Emit completed (not error) so the boot orchestrator can proceed normally
-    // and no error is shown to the user during wallet import flow
-    syncStream.updateProgress(
-      SyncProgress(
-        datasource: 'Breez',
-        status: SyncStatus.completed,
-        timestamp: DateTime.now(),
-      ),
-    );
-    return;
-  }
-
-  syncStream.updateProgress(
-    SyncProgress(
-      datasource: 'Breez',
-      status: SyncStatus.syncing,
-      timestamp: DateTime.now(),
-    ),
-  );
-
-  final syncEventController = ref.read(syncEventControllerProvider);
-  syncEventController.emitStarted('breez');
-
-  logger.info('BreezClient', 'Starting background sync with retry logic...');
-
-  _syncBreezWithRetry(
-        client: client,
-        logger: logger,
-        maxAttempts: 4, // Try up to 4 times
-        initialDelay: Duration(seconds: 4),
-      )
-      .then((_) {
-        logger.info('BreezClient', 'Background sync completed successfully');
-        syncStream.updateProgress(
-          SyncProgress(
-            datasource: 'Breez',
-            status: SyncStatus.completed,
-            timestamp: DateTime.now(),
-          ),
-        );
-        syncEventController.emitCompleted('breez');
-      })
-      .catchError((e, stack) {
-        final errorMsg = e.toString();
-
-        // Detect errors caused by wallet deletion / SDK disconnection
-        // These are expected during the wallet import flow and must NOT be shown to the user
-        final isWalletDeletedError =
-            errorMsg.contains('Mnemonic not available') ||
-            errorMsg.contains('Wallet deletion in progress') ||
-            errorMsg.contains('Breez client disconnected') ||
-            errorMsg.contains('Breez SDK not started') ||
-            errorMsg.contains('sync aborted') ||
-            errorMsg.contains('notStarted') ||
-            errorMsg.contains('SdkError.notStarted');
-
-        if (isWalletDeletedError) {
-          // Log as warning only - this is expected when the user deletes a wallet
-          logger.warning(
-            'BreezClient',
-            'Background sync skipped (wallet deleted or SDK disconnected): $errorMsg',
-          );
-          // Emit completed so the boot orchestrator can finish normally
-          // and the user can proceed to import a new seed without seeing errors
-          syncStream.updateProgress(
-            SyncProgress(
-              datasource: 'Breez',
-              status: SyncStatus.completed,
-              timestamp: DateTime.now(),
-            ),
-          );
-          syncEventController.emitCompleted('breez');
-          return;
-        }
-
-        // Real sync error - log and propagate normally
-        if (_isRetryableError(errorMsg)) {
-          logger.warning(
-            'BreezClient',
-            'Background sync failed after retries (temporary issue): $e',
-            error: e,
-          );
-        } else {
-          logger.error(
-            'BreezClient',
-            'Background sync failed: $e',
-            error: e,
-            stackTrace: stack,
-          );
-        }
-
-        syncStream.updateProgress(
-          SyncProgress(
-            datasource: 'Breez',
-            status: SyncStatus.error,
-            errorMessage: errorMsg,
-            timestamp: DateTime.now(),
-          ),
-        );
-        syncEventController.emitFailed('breez', errorMsg);
-      });
-}
-
-/// Performs Breez sync with exponential backoff retry logic
-Future<void> _syncBreezWithRetry({
-  required BreezSdkLiquid client,
-  required AppLoggerService logger,
-  required int maxAttempts,
-  required Duration initialDelay,
-}) async {
-  String? lastError;
-
-  for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-    // Check if wallet deletion is in progress - abort sync
-    if (_isWalletBeingDeleted) {
-      logger.warning(
-        'BreezClient',
-        'Wallet deletion in progress - aborting sync attempt $attempt',
-      );
-      throw Exception('Wallet deletion in progress - sync aborted');
-    }
-
-    // Check if Breez client was disconnected (e.g. wallet deleted) - abort sync
-    if (_currentBreezClient == null) {
-      logger.warning(
-        'BreezClient',
-        'Breez client is null (disconnected) - aborting sync attempt $attempt',
-      );
-      throw Exception('Breez client disconnected - sync aborted');
-    }
-
     try {
-      logger.info('BreezClient', 'Sync attempt $attempt/$maxAttempts...');
-
-      // Try sync with timeout
-      await client.sync().timeout(
-        Duration(seconds: 45),
-        onTimeout: () {
-          throw Exception('Breez sync timeout after 45s');
-        },
-      );
-
-      // Success!
-      logger.info('BreezClient', 'Sync successful on attempt $attempt');
-      return;
-    } catch (e) {
-      lastError = e.toString();
-
+      // Cheap probe — getInfo is what every balance/receive call leans on.
+      // If the SDK is half-initialized this will surface the real cause in
+      // the log timeline, but we still return the client so the caller
+      // sees the same error path with the propagating handlers.
+      await client.getInfo();
+      logger.info('breezClientProvider', 'probe-ok getInfo() returned');
+    } catch (e, st) {
       logger.warning(
-        'BreezClient',
-        'Sync attempt $attempt/$maxAttempts failed: $lastError',
+        'breezClientProvider',
+        'probe-failed getInfo() threw — handing client back anyway so the '
+            'caller surfaces the real error: $e',
+        error: e,
+        stackTrace: st,
       );
+    }
+    return Right(client);
+  }
 
-      // If SDK is not started (wallet deleted / disconnected), abort immediately
-      if (lastError.contains('notStarted') ||
-          lastError.contains('not_started') ||
-          lastError.contains('SdkError.notStarted')) {
-        logger.warning(
-          'BreezClient',
-          'SDK not started (client disconnected) - aborting sync immediately',
-        );
-        throw Exception(
-          'Breez SDK not started - sync aborted (wallet may have been deleted)',
-        );
-      }
+  if (service.currentState.isOperational && service.sdkClient != null) {
+    return probeAndReturn(service.sdkClient!, 'fast-path-operational');
+  }
 
-      // Check if this is a database-related error that needs directory cleanup
-      final isDatabaseError =
-          lastError.contains('unable to open database') ||
-          lastError.contains('database is locked') ||
-          lastError.contains('storage.sql') ||
-          lastError.contains('rusqlite');
+  final s0 = service.currentState;
+  logger.info(
+    'breezClientProvider',
+    'awaiting-operational '
+        'lifecycle=${s0.lifecycle.name} '
+        'lastSyncAt=${s0.lastSyncAt?.toIso8601String() ?? "null"} '
+        'sdkPresent=${service.sdkClient != null}',
+  );
 
-      // If it's a database error and not the last attempt, try cleanup
-      if (isDatabaseError && attempt < maxAttempts) {
-        logger.warning(
-          'BreezClient',
-          'Database error detected - this might need manual intervention',
-        );
-        // Note: Can't clean directory here since we don't have access to config
-        // The cleanup should happen at connection time
-
-        // Wait longer for database errors
-        final delay = initialDelay * (attempt + 1);
-        logger.info(
-          'BreezClient',
-          'Retrying in ${delay.inSeconds}s... (database error)',
-        );
-        await Future.delayed(delay);
-        continue;
-      }
-
-      // If this is not the last attempt and error is retryable, wait and retry
-      if (attempt < maxAttempts && _isRetryableError(lastError)) {
-        // Exponential backoff: 3s, 6s, 12s, 24s
-        final delay = initialDelay * (1 << (attempt - 1));
-        logger.info(
-          'BreezClient',
-          'Retrying in ${delay.inSeconds}s... (retryable error detected)',
-        );
-        await Future.delayed(delay);
-        continue;
-      }
-
-      // If this is not the last attempt, try one more time even if not officially retryable
-      // Sometimes transient issues resolve themselves
-      if (attempt < maxAttempts) {
-        final delay = initialDelay * attempt;
-        logger.info(
-          'BreezClient',
-          'Retrying in ${delay.inSeconds}s... (attempt $attempt/$maxAttempts)',
-        );
-        await Future.delayed(delay);
-        continue;
-      }
-
-      // Last attempt failed - throw with full context
-      throw Exception(
-        'Breez sync failed after $maxAttempts attempts. Last error: $lastError',
+  // Wait up to 30s for the service to reach operational. The boot
+  // orchestrator's connect timeout is 45s, so this is generous enough
+  // for the common case (cold boot ~500ms, re-import ~250ms in the
+  // 2026-05-12 traces) and short enough to surface a real failure as
+  // Left rather than hang the receive screen forever.
+  final stateStream = service.state.timeout(
+    const Duration(seconds: 30),
+    onTimeout: (sink) {
+      logger.warning(
+        'breezClientProvider',
+        'state-stream 30s timeout — service never reached operational',
       );
+      sink.close();
+    },
+  );
+
+  await for (final s in stateStream) {
+    if (s.lifecycle == ServiceLifecycle.errored) {
+      logger.error(
+        'breezClientProvider',
+        'lightning service errored: ${s.failure?.message ?? "unknown"}',
+      );
+      return Left(s.failure?.message ?? 'lightning connect failed');
+    }
+    if (s.isOperational && service.sdkClient != null) {
+      return probeAndReturn(service.sdkClient!, 'wait-operational');
     }
   }
 
-  // Should not reach here, but for safety
-  throw Exception(
-    'Breez sync failed after $maxAttempts attempts. Last error: $lastError',
+  if (service.currentState.isOperational && service.sdkClient != null) {
+    return probeAndReturn(
+      service.sdkClient!,
+      'post-timeout-operational',
+    );
+  }
+  logger.error(
+    'breezClientProvider',
+    'stream closed without ever reaching operational state '
+        'finalLifecycle=${service.currentState.lifecycle.name} '
+        'sdkPresent=${service.sdkClient != null}',
   );
-}
+  return const Left('lightning service stream closed without operational state');
+});
+
+/// Legacy disconnect-Breez bridge. V2 owns lifecycle now, so this delegates
+/// to [LightningWalletServiceImpl.disconnect()]. Kept for legacy call
+/// sites that still expect `ref.read(disconnectBreezClientProvider.future)`.
+final disconnectBreezClientProvider =
+    FutureProvider.autoDispose<bool>((ref) async {
+  final service = ref.read(lightningWalletServiceProvider)
+      as LightningWalletServiceImpl;
+  final result = await service.disconnect();
+  return result.isRight();
+});
+
+/// Legacy "clean breez data dir" bridge. V2's `WalletDirectoryGuard.wipe`
+/// is the canonical surface; legacy callers (if any remain) get a
+/// successful no-op since `DeleteWalletUseCase` already wipes the dir
+/// after `boot.shutdown()`.
+final cleanBreezDataDirectoryProvider =
+    FutureProvider.autoDispose<bool>((_) async => true);
+
+/// Legacy "is the wallet currently being deleted?" flag. The V2 pipeline
+/// uses orchestrator state instead, but a few legacy code paths still
+/// read this provider so we keep it as an always-false no-op.
+final setWalletDeletionFlagProvider =
+    Provider.family<void, bool>((ref, value) {});

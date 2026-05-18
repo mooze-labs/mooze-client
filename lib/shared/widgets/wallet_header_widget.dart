@@ -13,7 +13,7 @@ import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/data_refresh_trigger.dart';
 
 class WalletHeaderWidget extends ConsumerWidget {
   const WalletHeaderWidget({super.key});
