@@ -124,13 +124,15 @@ class _ConfirmSwapBottomSheetState
                 child: Column(
                   children: [
                     SwapDealCard(
-                      sendAsset: state.lastSendAssetId != null
-                          ? core.Asset.fromId(state.lastSendAssetId!)
-                          : core.Asset.btc,
+                      sendAsset:
+                          state.lastSendAssetId != null
+                              ? core.Asset.fromId(state.lastSendAssetId!)
+                              : core.Asset.btc,
                       sendAmountSats: state.lastAmount?.toInt(),
-                      receiveAsset: state.lastReceiveAssetId != null
-                          ? core.Asset.fromId(state.lastReceiveAssetId!)
-                          : core.Asset.usdt,
+                      receiveAsset:
+                          state.lastReceiveAssetId != null
+                              ? core.Asset.fromId(state.lastReceiveAssetId!)
+                              : core.Asset.usdt,
                       receiveAmountSats: state.receiveAmount,
                       isLoadingReceive: isFetching,
                       sendLabel: t.swap_you_send,
