@@ -456,47 +456,44 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   ? () async {
                                     if (_isBtcLbtcSwap) {
                                       _handleBtcLbtcSwap();
-                                    } else {
-                                      final currentState = ref.read(
-                                        swapControllerProvider,
-                                      );
-                                      final quote = currentState.currentQuote;
-
-                                      if (quote != null) {
-                                        final isSendAssetCorrect =
-                                            currentState.lastSendAssetId ==
-                                            _fromAsset.id;
-                                        final isReceiveAssetCorrect =
-                                            currentState.lastReceiveAssetId ==
-                                            _toAsset.id;
-
-                                        if (!isSendAssetCorrect ||
-                                            !isReceiveAssetCorrect) {
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  t.swap_updating_quote,
-                                                ),
-                                                duration: const Duration(
-                                                  seconds: 2,
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                          _requestQuoteDebounced();
-                                          return;
-                                        }
-                                      }
-
-                                      ConfirmSwapBottomSheet.show(
-                                        context,
-                                        onSuccess: _clearSwapFields,
-                                        onError: _clearSwapFields,
-                                      );
+                                      return;
                                     }
+
+                                    // First click: the debounced quote
+                                    // from typing is already on screen,
+                                    // so open the sheet immediately —
+                                    // no extra round-trip.
+                                    await ConfirmSwapBottomSheet.show(
+                                      context,
+                                      onSuccess: _clearSwapFields,
+                                      onError: _clearSwapFields,
+                                    );
+
+                                    if (!mounted) return;
+
+                                    // After the sheet closes, refresh
+                                    // the quote subscription so the next
+                                    // open starts with a fresh quote_id
+                                    // and a full TTL. Skip if the swap
+                                    // succeeded or errored (both clear
+                                    // the input via _clearSwapFields).
+                                    final remaining = BigInt.tryParse(
+                                      _fromAmountController.text.trim(),
+                                    );
+                                    if (remaining == null ||
+                                        remaining <= BigInt.zero) {
+                                      return;
+                                    }
+                                    final controller = ref.read(
+                                      swapControllerProvider.notifier,
+                                    );
+                                    await controller.resetQuote();
+                                    if (!mounted) return;
+                                    await controller.startQuote(
+                                      sendAsset: _fromAsset.id,
+                                      receiveAsset: _toAsset.id,
+                                      amount: remaining,
+                                    );
                                   }
                                   : null,
                         ),

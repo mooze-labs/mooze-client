@@ -150,25 +150,28 @@ class SwapController extends StateNotifier<SwapState> {
   final _log = AppLoggerService();
   static const _tag = 'Swap';
 
+  // SideSwap quote_ids carry a ~40s server-side TTL, but for a tighter
+  // confirmation UX we cap the displayed countdown at 15s. If the server
+  // ever returns a shorter TTL we honor that instead.
+  static const int _maxDisplayTtlMs = 15000;
+
   Future<void> resetQuote() async {
     _log.debug(_tag, 'Resetting quote state');
     _ttlTimer?.cancel();
     _quoteSub?.cancel();
+    _ttlTimer = null;
+    _quoteSub = null;
     _ttlDeadline = null;
     final repository = await _repositoryFuture;
     repository.stopQuote();
     if (!mounted) return;
-    state = state.copyWith(
-      currentQuote: null,
-      activeQuoteId: null,
-      ttlMilliseconds: null,
-      millisecondsRemaining: null,
-      lastSendAssetId: null,
-      lastReceiveAssetId: null,
-      lastAmount: null,
-      isInverseMarket: null,
-      feeAssetId: null,
-      error: null,
+    // copyWith treats null as "keep existing" via `?? this.x`, so passing
+    // nulls cannot clear transient fields. Construct SwapState directly to
+    // truly invalidate the session.
+    state = SwapState(
+      loading: false,
+      assets: state.assets,
+      markets: state.markets,
     );
   }
 
@@ -275,16 +278,21 @@ class SwapController extends StateNotifier<SwapState> {
     final repository = await _repositoryFuture;
     if (!mounted) return;
     _quoteSub?.cancel();
-    state = state.copyWith(
-      loading: true,
-      error: null,
-      currentQuote: null,
-      activeQuoteId: null,
-      ttlMilliseconds: null,
-      millisecondsRemaining: null,
-    );
+    _quoteSub = null;
     _ttlTimer?.cancel();
+    _ttlTimer = null;
     _ttlDeadline = null;
+    // Reset transient quote fields and seed the user's intent so the
+    // bottom sheet can render the requested asset pair + amount while the
+    // first quote is in flight.
+    state = SwapState(
+      loading: true,
+      assets: state.assets,
+      markets: state.markets,
+      lastSendAssetId: sendAsset,
+      lastReceiveAssetId: receiveAsset,
+      lastAmount: amount,
+    );
 
     var normalizedParams = repository.normalizeSwapParams(
       sendAsset: sendAsset,
@@ -426,10 +434,43 @@ class SwapController extends StateNotifier<SwapState> {
             );
           }
 
-          final ttlMs = quote.quote?.ttl;
+          final rawTtlMs = quote.quote?.ttl;
+          // Cap displayed TTL — honor a shorter server TTL but clamp any
+          // longer one down to _maxDisplayTtlMs so the confirmation
+          // countdown stays tight.
+          final ttlMs = rawTtlMs == null
+              ? null
+              : (rawTtlMs > _maxDisplayTtlMs ? _maxDisplayTtlMs : rawTtlMs);
+          final newQuote = quote.quote;
+          final prevQuote = state.currentQuote?.quote;
+
+          // SideSwap streams a fresh quote_id every ~3s on the same
+          // subscription (~40s TTL per quote_id). While we're still inside
+          // the locked TTL window of the first quote of this cycle, treat
+          // every push as a rolling refresh — silently adopt the latest
+          // quote_id for signing fallback, but DO NOT replace the displayed
+          // quote, reset the countdown, or surface rate drift to the UI.
+          // The displayed amounts and timer stay anchored to the locked
+          // quote until its TTL naturally expires; the next push after
+          // expiry starts a fresh cycle. Works uniformly for stable pegs
+          // and volatile pairs.
+          final isWithinLockWindow =
+              _ttlDeadline != null && DateTime.now().isBefore(_ttlDeadline!);
+          final isRollingRefresh = swapErr == null &&
+              newQuote != null &&
+              prevQuote != null &&
+              isWithinLockWindow;
+
+          if (isRollingRefresh) {
+            if (!mounted) return;
+            state = state.copyWith(
+              loading: false,
+              activeQuoteId: newQuote.quoteId,
+            );
+            return;
+          }
+
           final shouldStartTimer = _ttlDeadline == null && ttlMs != null;
-          // Always update deadline with latest quote TTL so the countdown
-          // stays fresh while the server keeps pushing updates (~every 3s).
           if (ttlMs != null) {
             _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
           }
@@ -439,12 +480,12 @@ class SwapController extends StateNotifier<SwapState> {
               _tag,
               'Quote stream received error: code=${swapErr.code}, raw=$rawMsg',
             );
-          } else if (quote.quote != null) {
+          } else if (newQuote != null) {
             _log.debug(
               _tag,
-              'Quote update — id: ${quote.quote!.quoteId}, '
-              'baseAmount: ${quote.quote!.baseAmount} sats, '
-              'quoteAmount: ${quote.quote!.quoteAmount} sats, '
+              'Quote update — id: ${newQuote.quoteId}, '
+              'baseAmount: ${newQuote.baseAmount} sats, '
+              'quoteAmount: ${newQuote.quoteAmount} sats, '
               'ttl: ${ttlMs}ms',
             );
           }
@@ -454,7 +495,7 @@ class SwapController extends StateNotifier<SwapState> {
             loading: false,
             currentQuote: quote,
             error: swapErr,
-            activeQuoteId: quote.quote?.quoteId,
+            activeQuoteId: newQuote?.quoteId,
             ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
             lastSendAssetId: sendAsset,
             lastReceiveAssetId: receiveAsset,
@@ -489,11 +530,18 @@ class SwapController extends StateNotifier<SwapState> {
           'Quote TTL expired — clearing quote state, waiting for user action',
         );
         if (!mounted) return;
-        state = state.copyWith(
+        // Construct directly: copyWith would silently keep the old quote
+        // fields because nulls flow through `?? this.x`.
+        state = SwapState(
+          loading: state.loading,
+          assets: state.assets,
+          markets: state.markets,
           millisecondsRemaining: 0,
-          currentQuote: null,
-          activeQuoteId: null,
-          ttlMilliseconds: null,
+          lastSendAssetId: state.lastSendAssetId,
+          lastReceiveAssetId: state.lastReceiveAssetId,
+          lastAmount: state.lastAmount,
+          isInverseMarket: state.isInverseMarket,
+          feeAssetId: state.feeAssetId,
         );
       } else {
         if (!mounted) return;
@@ -540,20 +588,21 @@ class SwapController extends StateNotifier<SwapState> {
       );
     }
     final quote = state.currentQuote?.quote;
-    if (quote == null) {
+    final signingQuoteId = state.activeQuoteId ?? quote?.quoteId;
+    if (quote == null || signingQuoteId == null) {
       _log.warning(_tag, 'confirmSwap: no active quote found');
       return Either.left(const SwapError(code: SwapErrorCode.noActiveQuote));
     }
-    _log.debug(_tag, 'Confirming swap with quote id=${quote.quoteId}');
+    _log.debug(_tag, 'Confirming swap with quote id=$signingQuoteId');
     state = state.copyWith(loading: true, error: null);
 
     try {
       _log.debug(
         _tag,
-        'Executing swap with 60s timeout — quoteId=${quote.quoteId}',
+        'Executing swap with 60s timeout — quoteId=$signingQuoteId',
       );
       final result = await Future.any([
-        _performSwap(repository, quote.quoteId),
+        _performSwap(repository, signingQuoteId),
         Future.delayed(const Duration(seconds: 60), () {
           _log.error(
             _tag,
