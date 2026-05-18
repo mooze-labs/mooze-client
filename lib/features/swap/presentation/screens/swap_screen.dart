@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:fpdart/fpdart.dart' show Either;
+import 'package:mooze_mobile/shared/prices/models.dart' show Currency;
 
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
@@ -147,6 +150,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     final exchangeRate = swapState.exchangeRate;
 
+    final currency = ref.watch(currencyControllerProvider.notifier);
+    final canToggleFiatMode = _cachedFromPrice != null && _cachedFromPrice! > 0;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -154,10 +160,20 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         appBar: AppBar(
           title: Text(t.swap_title),
           actions: [
+            _FiatModeSwitch(
+              isFiatMode: _isFiatMode,
+              currencyIcon: currency.icon,
+              enabled: canToggleFiatMode,
+              onChanged: (value) {
+                if (!canToggleFiatMode) return;
+                if (value == _isFiatMode) return;
+                _toggleFiatMode();
+              },
+            ),
             OfflineIndicator(
               onTap: () => OfflinePriceInfoOverlay.show(context),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
           ],
         ),
         body: Padding(
@@ -316,7 +332,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   Expanded(
                                     child: Text(
                                       t.swap_insufficient_balance,
-                                      style: const TextStyle(color: Colors.orange),
+                                      style: const TextStyle(
+                                        color: Colors.orange,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -358,17 +376,18 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       }
                     },
                   ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 16),
                 Center(
                   child: Text(
                     _isBtcLbtcSwap
                         ? 'Powered by breez.technology'
                         : 'Powered by sideswap.io',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: context.colors.textTertiary,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                _buildFiatModeToggle(),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
 
                 FutureBuilder<bool>(
                   future: _hasInsufficientBalance(),
@@ -497,6 +516,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   Widget _from(BuildContext context) {
     final t = AppLocalizations.of(context);
     final currency = ref.read(currencyControllerProvider.notifier);
+    final currencyEnum = ref.watch(currencyControllerProvider);
 
     final fromOptions = () {
       if (_toAsset == core.Asset.btc) {
@@ -545,38 +565,46 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   FutureBuilder<Either<String, double>>(
                     future: ref.watch(fiatPriceProvider(_fromAsset).future),
                     builder: (context, snapshot) {
+                      final secondaryStyle = Theme.of(context)
+                          .textTheme
+                          .labelMedium
+                          ?.copyWith(color: context.colors.textSecondary);
                       if (snapshot.hasData) {
-                        return snapshot.data!.fold((error) => Text('0.00'), (
-                          price,
-                        ) {
-                          _cachedFromPrice = price;
-                          final amount =
-                              BigInt.tryParse(
-                                _fromAmountController.text.trim(),
-                              ) ??
-                              BigInt.zero;
-                          if (_isFiatMode) {
-                            final isBtcOrLbtc =
-                                _fromAsset == core.Asset.btc ||
-                                _fromAsset == core.Asset.lbtc;
-                            final assetDisplay = isBtcOrLbtc
-                                ? '${amount.toString()} SATS'
-                                : '${(amount.toDouble() / 100000000).toStringAsFixed(2)} ${_fromAsset.ticker}';
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 250),
-                              child: Text(
-                                amount > BigInt.zero ? '≈ $assetDisplay' : '',
-                                key: ValueKey('fiat_$assetDisplay'),
-                              ),
+                        return snapshot.data!.fold(
+                          (error) => Text('0.00', style: secondaryStyle),
+                          (price) {
+                            _cachedFromPrice = price;
+                            final amount =
+                                BigInt.tryParse(
+                                  _fromAmountController.text.trim(),
+                                ) ??
+                                BigInt.zero;
+                            if (_isFiatMode) {
+                              final isBtcOrLbtc =
+                                  _fromAsset == core.Asset.btc ||
+                                  _fromAsset == core.Asset.lbtc;
+                              final assetDisplay =
+                                  isBtcOrLbtc
+                                      ? '${amount.toString()} SATS'
+                                      : '${(amount.toDouble() / 100000000).toStringAsFixed(2)} ${_fromAsset.ticker}';
+                              return AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: Text(
+                                  amount > BigInt.zero ? '≈ $assetDisplay' : '',
+                                  key: ValueKey('fiat_$assetDisplay'),
+                                  style: secondaryStyle,
+                                ),
+                              );
+                            }
+                            final usd = _fromAsset.toUsd(amount, price);
+                            return Text(
+                              '${currency.icon}${usd.toStringAsFixed(2)}',
+                              style: secondaryStyle,
                             );
-                          }
-                          final usd = _fromAsset.toUsd(amount, price);
-                          return Text(
-                            '${currency.icon}${usd.toStringAsFixed(2)}',
-                          );
-                        });
+                          },
+                        );
                       }
-                      return const Text('...');
+                      return Text('...', style: secondaryStyle);
                     },
                   ),
                   SizedBox(width: 5),
@@ -596,10 +624,16 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       if (_isFiatMode &&
                           _cachedFromPrice != null &&
                           _cachedFromPrice! > 0) {
-                        final fiatValue =
-                            _fromAsset.toUsd(balance, _cachedFromPrice!);
+                        final fiatValue = _fromAsset.toUsd(
+                          balance,
+                          _cachedFromPrice!,
+                        );
                         _fromAmountDecimalController.text =
-                            fiatValue.toStringAsFixed(2);
+                            _formatFiatFromDouble(
+                              fiatValue,
+                              currencyEnum,
+                              withSymbol: true,
+                            );
                       }
                       setState(() {
                         _useDrain = true;
@@ -664,11 +698,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     Expanded(
                       child: TextField(
                         controller: _fromAmountDecimalController,
-                        keyboardType: _isFiatMode
-                            ? const TextInputType.numberWithOptions(
-                                decimal: true,
-                              )
-                            : (_fromAsset == core.Asset.btc ||
+                        keyboardType:
+                            _isFiatMode
+                                ? const TextInputType.numberWithOptions(
+                                  decimal: false,
+                                  signed: false,
+                                )
+                                : (_fromAsset == core.Asset.btc ||
                                     _fromAsset == core.Asset.lbtc)
                                 ? const TextInputType.numberWithOptions(
                                   decimal: false,
@@ -676,8 +712,11 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                 : const TextInputType.numberWithOptions(
                                   decimal: true,
                                 ),
-                        textAlign:
-                            _isFiatMode ? TextAlign.start : TextAlign.end,
+                        textAlign: TextAlign.end,
+                        inputFormatters:
+                            _isFiatMode
+                                ? [_FiatCentInputFormatter(currencyEnum)]
+                                : null,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -691,20 +730,15 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           contentPadding: EdgeInsets.zero,
                           fillColor: Colors.transparent,
                           filled: true,
-                          hintText: _isFiatMode ? '0,00' : '0',
-                          hintStyle: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-                          prefix: _isFiatMode
-                              ? Text(
-                                  '${currency.icon} ',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          hintText: _isFiatMode
+                              ? _formatFiatFromCents(
+                                  BigInt.zero,
+                                  currencyEnum,
+                                  withSymbol: true,
                                 )
-                              : null,
+                              : '0',
+                          hintStyle: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: context.colors.textTertiary),
                         ),
                         onChanged: (value) {
                           if (_isSyncingDecimal) return;
@@ -720,11 +754,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                           }
 
                           if (_isFiatMode) {
-                            final fiatAmount =
-                                double.tryParse(
-                                  value.replaceAll(',', '.'),
-                                ) ??
-                                0;
+                            final fiatAmount = _parseFiatToDouble(value);
                             if (_cachedFromPrice != null &&
                                 _cachedFromPrice! > 0) {
                               final sats = _fromAsset.fromUsd(
@@ -746,16 +776,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                               sats = BigInt.tryParse(value) ?? BigInt.zero;
                             } else {
                               double parsed =
-                                  double.tryParse(
-                                    value.replaceAll(',', '.'),
-                                  ) ??
+                                  double.tryParse(value.replaceAll(',', '.')) ??
                                   0;
-                              sats =
-                                  BigInt.from((parsed * 100000000).round());
+                              sats = BigInt.from((parsed * 100000000).round());
                             }
 
-                            if (_fromAmountController.text !=
-                                sats.toString()) {
+                            if (_fromAmountController.text != sats.toString()) {
                               _fromAmountController.text = sats.toString();
                             }
                           }
@@ -1277,33 +1303,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  Widget _buildFiatModeToggle() {
-    final t = AppLocalizations.of(context);
-    final currency = ref.read(currencyControllerProvider.notifier);
-    return Center(
-      child: GestureDetector(
-        onTap: _toggleFiatMode,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-          child: Text(
-            _isFiatMode
-                ? t.swap_use_asset_value
-                : t.swap_use_currency_value(currency.icon),
-            key: ValueKey(_isFiatMode),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: context.colors.primaryColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _toggleFiatMode() {
     if (_cachedFromPrice == null || _cachedFromPrice! <= 0) return;
     setState(() {
@@ -1322,7 +1321,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           _cachedFromPrice != null &&
           _cachedFromPrice! > 0) {
         final fiatValue = _fromAsset.toUsd(sats, _cachedFromPrice!);
-        _fromAmountDecimalController.text = fiatValue.toStringAsFixed(2);
+        final currencyEnum = ref.read(currencyControllerProvider);
+        _fromAmountDecimalController.text = _formatFiatFromDouble(
+          fiatValue,
+          currencyEnum,
+          withSymbol: true,
+        );
       } else {
         _fromAmountDecimalController.text = '';
       }
@@ -1339,8 +1343,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           if (isBtcOrLbtc) {
             _fromAmountDecimalController.text = amount.toString();
           } else {
-            _fromAmountDecimalController.text =
-                (amount.toDouble() / 100000000).toStringAsFixed(2);
+            _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
+                .toStringAsFixed(2);
           }
         } else {
           _fromAmountDecimalController.text = '';
@@ -1377,6 +1381,129 @@ class _SwapIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SvgPicture.asset('assets/icons/menu/swap.svg');
+  }
+}
+
+String _localeForCurrency(Currency currency) {
+  switch (currency) {
+    case Currency.brl:
+      return 'pt_BR';
+    case Currency.usd:
+      return 'en_US';
+  }
+}
+
+String _symbolForCurrency(Currency currency) {
+  switch (currency) {
+    case Currency.brl:
+      return r'R$';
+    case Currency.usd:
+      return r'$';
+  }
+}
+
+String _formatFiatFromCents(
+  BigInt cents,
+  Currency currency, {
+  bool withSymbol = false,
+}) {
+  final value = cents.toDouble() / 100.0;
+  final fmt = NumberFormat('#,##0.00', _localeForCurrency(currency));
+  final body = fmt.format(value);
+  return withSymbol ? '${_symbolForCurrency(currency)}$body' : body;
+}
+
+String _formatFiatFromDouble(
+  double value,
+  Currency currency, {
+  bool withSymbol = false,
+}) {
+  final cents = BigInt.from((value * 100).round());
+  return _formatFiatFromCents(cents, currency, withSymbol: withSymbol);
+}
+
+double _parseFiatToDouble(String text) {
+  final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return 0.0;
+  final cents = BigInt.tryParse(digits) ?? BigInt.zero;
+  return cents.toDouble() / 100.0;
+}
+
+class _FiatCentInputFormatter extends TextInputFormatter {
+  final Currency currency;
+
+  const _FiatCentInputFormatter(this.currency);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+    final cents = BigInt.tryParse(digits) ?? BigInt.zero;
+    final formatted =
+        _formatFiatFromCents(cents, currency, withSymbol: true);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+class _FiatModeSwitch extends StatelessWidget {
+  final bool isFiatMode;
+  final String currencyIcon;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  const _FiatModeSwitch({
+    required this.isFiatMode,
+    required this.currencyIcon,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor =
+        !enabled
+            ? context.colors.textTertiary
+            : isFiatMode
+            ? context.colors.primaryColor
+            : context.colors.textSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            style: Theme.of(context).textTheme.labelLarge!.copyWith(
+              color: labelColor,
+              fontWeight: FontWeight.w600,
+            ),
+            child: Text(currencyIcon),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 44,
+            height: 28,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: Switch.adaptive(
+                value: isFiatMode,
+                onChanged: enabled ? onChanged : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
