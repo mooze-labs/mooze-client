@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -65,6 +66,7 @@ class _BtcLbtcConfirmBottomSheetState
     extends ConsumerState<BtcLbtcConfirmBottomSheet> {
   bool _isConfirming = false;
   bool _isLoadingFees = true;
+  bool _feesExpanded = false;
   FeeSpeed _selectedFeeSpeed = FeeSpeed.medium;
   BitcoinFeeEstimate? _feeEstimate;
   BtcLbtcFeeEstimate? _currentFeeEstimate;
@@ -373,83 +375,121 @@ class _BtcLbtcConfirmBottomSheetState
     required bool isLoading,
   }) {
     final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+
+    String formatSats(BigInt s) =>
+        '${NumberFormat('#,##0', locale).format(s.toInt())} sats';
+
+    // ── Total fees row (collapsible) ──────────────────────────────────
+    // Mirrors `_FeesSection` in `confirm_swap_bottom_sheet.dart`:
+    // one row showing the total, tap to expand → Boltz + Tx breakdown.
+    // The "sending" / "receiving" rows that used to live here have
+    // been removed because the SwapDealCard already surfaces both
+    // amounts above this section.
+    final Widget totalValue = isLoading
+        ? _ShimmerBlock(width: 80, height: 16)
+        : Text(
+            formatSats(totalFeeSat),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          t.swap_confirm_estimate,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
-            fontWeight: FontWeight.w500,
-          ),
+        // Estimate — kept as a small helper because peg swaps take
+        // minutes (unlike Sideswap which is instant), so users still
+        // need this context.
+        Row(
+          children: [
+            Icon(
+              Icons.schedule,
+              size: 14,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${t.swap_confirm_estimate} · ${_getEstimatedTime()}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(_getEstimatedTime(), style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: 20),
-
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
+        const SizedBox(height: 12),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading
+                ? null
+                : () => setState(() => _feesExpanded = !_feesExpanded),
             borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              _FeeRow(
-                label: t.swap_confirm_sending,
-                value: '${widget.amount} sats',
-                valueColor: Theme.of(context).colorScheme.onSurface,
-                isBold: false,
-                isLoading: isLoading,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        t.swap_confirm_total_fees_short,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      totalValue,
+                      const SizedBox(width: 4),
+                      if (!isLoading)
+                        AnimatedRotation(
+                          turns: _feesExpanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 180),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    child: (_feesExpanded && !isLoading)
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 10, left: 24),
+                            child: Column(
+                              children: [
+                                _BreakdownRow(
+                                  label: t.swap_confirm_boltz_fee,
+                                  value: formatSats(boltzFeeSat),
+                                ),
+                                const SizedBox(height: 6),
+                                _BreakdownRow(
+                                  label: t.swap_confirm_tx_fee,
+                                  value: formatSats(networkFeeSat),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              if (!isLoading && boltzFeeSat > BigInt.zero || isLoading) ...[
-                _FeeRow(
-                  label: t.swap_confirm_boltz_fee,
-                  value: isLoading ? '' : '-$boltzFeeSat sats',
-                  valueColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  isBold: false,
-                  isLoading: isLoading,
-                ),
-              ],
-              _FeeRow(
-                label: t.swap_confirm_tx_fee,
-                value: isLoading ? '' : '-$networkFeeSat sats',
-                valueColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                isBold: false,
-                isLoading: isLoading,
-              ),
-              _FeeRow(
-                label: t.swap_confirm_total_fees,
-                value: isLoading ? '' : '-${networkFeeSat + boltzFeeSat} sats',
-                valueColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                isBold: false,
-                isLoading: isLoading,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                height: 1,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.12),
-              ),
-              const SizedBox(height: 16),
-              _FeeRow(
-                label: t.swap_confirm_receiving,
-                value: isLoading ? '' : '${widget.amount - totalFeeSat} sats',
-                valueColor: Theme.of(context).colorScheme.onSurface,
-                isBold: true,
-                isLoading: isLoading,
-              ),
-            ],
+            ),
           ),
         ),
       ],
@@ -496,59 +536,61 @@ class _BtcLbtcConfirmBottomSheetState
 
 }
 
-class _FeeRow extends StatelessWidget {
+/// Single breakdown row inside the expanded fees panel
+/// ("Boltz fee · 80 sats", "Tx fee · 2,546 sats"). Mirrors `_SubFeeRow`
+/// in the Sideswap confirm sheet.
+class _BreakdownRow extends StatelessWidget {
   final String label;
   final String value;
-  final Color? valueColor;
-  final bool isBold;
-  final bool isLoading;
-
-  const _FeeRow({
-    required this.label,
-    required this.value,
-    this.valueColor,
-    required this.isBold,
-    this.isLoading = false,
-  });
+  const _BreakdownRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = context.colors.baseColor;
-    final highlightColor = context.colors.highlightColor;
-
+    final theme = Theme.of(context);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
           ),
         ),
-        isLoading
-            ? Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Container(
-                width: 80,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: baseColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            )
-            : Text(
-              value,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              ),
-              textAlign: TextAlign.end,
-            ),
+        const Spacer(),
+        Text(
+          value,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+/// Shimmer placeholder used while fees are being estimated. Matches the
+/// shape used by the Sideswap confirm sheet's `_ShimmerBlock` so both
+/// loading states feel like the same component.
+class _ShimmerBlock extends StatelessWidget {
+  final double width;
+  final double height;
+
+  const _ShimmerBlock({required this.width, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = context.colors.baseColor;
+    final highlight = context.colors.highlightColor;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: base,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
     );
   }
 }
