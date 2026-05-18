@@ -313,6 +313,11 @@ class SwapController extends StateNotifier<SwapState> {
     _staleTimer?.cancel();
     _staleTimer = null;
     _ttlDeadline = null;
+    // Hygiene: tell SideSwap to stop the prior subscription before we
+    // open a new one. The controller's listener filter is the actual
+    // correctness guard, but explicitly stopping reduces the volume of
+    // orphan emissions we'd otherwise be discarding.
+    repository.stopQuote();
     // Reset transient quote fields and seed the user's intent so the
     // bottom sheet can render the requested asset pair + amount while the
     // first quote is in flight.
@@ -436,11 +441,69 @@ class SwapController extends StateNotifier<SwapState> {
       (stream) {
         _quoteSub = stream.listen((quote) {
           if (!mounted) return;
+
+          // ── Subscription-identity filter ─────────────────────────
+          // `sideswapService.quoteResponseStream` is a single broadcast
+          // firehose that receives EVERY quote message on the
+          // SideSwap WebSocket — including emissions from previous
+          // subscriptions whose `quote_sub_id` we never explicitly
+          // stopped. Without this guard the controller would happily
+          // process a quote answering an old request (different pair
+          // or different amount) as if it were the current one,
+          // producing the cross-pair / cross-amount UI mismatch
+          // captured in the 200→200000→2000-sat repro.
+          //
+          // Required match: same base + quote asset, AND same
+          // requested amount. We're inside the closure that owns the
+          // current request, so `baseAsset` / `quoteAsset` / `amount`
+          // are the correct ground truth.
+          final identityMatches = quote.matchesRequest(
+            baseAssetId: baseAsset,
+            quoteAssetId: quoteAsset,
+            requestedAmount: amount.toInt(),
+          );
+          if (!identityMatches) {
+            _log.debug(
+              _tag,
+              'Dropped stale stream emission: pair='
+                  '${quote.baseAssetId}/${quote.quoteAssetId}, '
+                  'amount=${quote.requestedAmount} '
+                  '(active: $baseAsset/$quoteAsset, ${amount.toInt()})',
+            );
+            return;
+          }
+
           final rawMsg = quote.error?.errorMessage;
           SwapError? swapErr;
 
           if (rawMsg != null) {
             final lower = rawMsg.toLowerCase();
+
+            // ── Silently retry recoverable upstream timeouts ──────────
+            // SideSwap occasionally returns "Tempo limite excedido..." /
+            // "timeout" for a single quote push while the underlying
+            // subscription is still alive — subsequent pushes usually
+            // succeed without intervention. Surface nothing to the UI:
+            // no error banner, no state churn, no flicker. If timeouts
+            // persist long enough that no quote ever lands, the
+            // soft-expiry → `stale` mechanism will eventually surface
+            // an explicit retry to the user. The subscription's natural
+            // flow is the retry; this branch just suppresses the
+            // transient noise.
+            final isRecoverableTimeout =
+                lower.contains('tempo limite') ||
+                lower.contains('timeout') ||
+                lower.contains('timed out') ||
+                lower.contains('tiempo límite') ||
+                lower.contains('tiempo agotado');
+            if (isRecoverableTimeout) {
+              _log.debug(
+                _tag,
+                'Suppressed recoverable upstream timeout: $rawMsg',
+              );
+              return;
+            }
+
             if (lower.contains('invalid utxo') ||
                 lower.contains('unknown utxo') ||
                 lower.contains('wait for wallet sync')) {

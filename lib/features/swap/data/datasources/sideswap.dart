@@ -771,11 +771,17 @@ class SideswapService {
           '[DEBUG] SideswapService.startQuote: Failed to reconnect, releasing lock',
         );
         _isQuoteInProgress = false;
+        // Stamp identity so downstream filters (which now require the
+        // emission to match the requested pair + amount) let this
+        // synthetic error through to the active listener.
         _quoteResponseController.add(
           QuoteResponse(
             error: QuoteError(
               errorMessage: 'Erro de conexão. Tente novamente.',
             ),
+            baseAssetId: baseAsset,
+            quoteAssetId: quoteAsset,
+            requestedAmount: amount.toInt(),
           ),
         );
         return;
@@ -804,6 +810,9 @@ class SideswapService {
             error: QuoteError(
               errorMessage: 'Tempo limite excedido. Tente novamente.',
             ),
+            baseAssetId: baseAsset,
+            quoteAssetId: quoteAsset,
+            requestedAmount: amount.toInt(),
           ),
         );
       }
