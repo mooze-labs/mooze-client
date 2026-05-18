@@ -253,16 +253,18 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     _fromAmountController.text.isNotEmpty &&
                     swapState.currentQuote?.quote != null) ...[
                   _RateIndicator(
-                    remainingMs: swapState.millisecondsRemaining ??
+                    remainingMs:
+                        swapState.millisecondsRemaining ??
                         swapState.ttlMilliseconds,
                     totalMs: swapState.ttlMilliseconds,
                     showShimmer:
                         swapState.status == QuoteStatus.fetching ||
-                            swapState.status == QuoteStatus.refreshing,
+                        swapState.status == QuoteStatus.refreshing,
                     rateText: _rateLineText(exchangeRate),
-                    onTap: ref
-                        .read(swapControllerProvider.notifier)
-                        .requestFreshQuote,
+                    onTap:
+                        ref
+                            .read(swapControllerProvider.notifier)
+                            .requestFreshQuote,
                   ),
                 ],
                 if (error != null) const SizedBox(height: 8),
@@ -967,11 +969,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         _toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc;
     final scale = isReceiveBtc ? 100000000.0 : 1.0;
     final scaled = rate * scale;
-    final formatted = isReceiveBtc
-        // BTC/LBTC sats are always integer-valued for rate display —
-        // skip decimal noise like ".00".
-        ? NumberFormat('#,##0', _locale).format(scaled)
-        : _formatRate(scaled);
+    final formatted =
+        isReceiveBtc
+            // BTC/LBTC sats are always integer-valued for rate display —
+            // skip decimal noise like ".00".
+            ? NumberFormat('#,##0', _locale).format(scaled)
+            : _formatRate(scaled);
     return '1 ${_fromAsset.ticker} = $formatted ${_toAsset.displayUnit}';
   }
 
@@ -1236,8 +1239,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           final isBtcOrLbtc =
               _fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc;
           if (isBtcOrLbtc) {
-            _fromAmountDecimalController.text =
-                NumberFormat('#,##0', _locale).format(amount.toInt());
+            _fromAmountDecimalController.text = NumberFormat(
+              '#,##0',
+              _locale,
+            ).format(amount.toInt());
           } else {
             _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
                 .toStringAsFixed(2);
@@ -1303,9 +1308,10 @@ class _RateIndicator extends StatelessWidget {
     );
 
     // Fills from 0 → 1 as the TTL drains.
-    final progress = (remainingMs == null || totalMs == null || totalMs == 0)
-        ? null
-        : (1.0 - (remainingMs! / totalMs!)).clamp(0.0, 1.0);
+    final progress =
+        (remainingMs == null || totalMs == null || totalMs == 0)
+            ? null
+            : (1.0 - (remainingMs! / totalMs!)).clamp(0.0, 1.0);
     final isLoading = showShimmer || remainingMs == null;
 
     return Center(
@@ -1511,9 +1517,10 @@ BoxDecoration _swapCardDecoration(BuildContext context) {
     // gray block against the near-black scaffold. Pair with a stronger
     // border to keep edges defined.
     // Light mode: keep the higher elevation; the contrast is correct.
-    color: isDark
-        ? theme.colorScheme.surfaceContainerHigh
-        : theme.colorScheme.surfaceContainerHighest,
+    color:
+        isDark
+            ? theme.colorScheme.surfaceContainerHigh
+            : theme.colorScheme.surfaceContainerHighest,
     borderRadius: BorderRadius.circular(18),
     border: Border.all(
       color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.75 : 0.55),
@@ -1521,15 +1528,16 @@ BoxDecoration _swapCardDecoration(BuildContext context) {
     // Light mode keeps a soft drop shadow; in dark mode shadows on a
     // dark scaffold are invisible, so the elevation cue lives in the
     // brighter border instead.
-    boxShadow: isDark
-        ? null
-        : [
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.08),
-              blurRadius: 14,
-              offset: const Offset(0, 3),
-            ),
-          ],
+    boxShadow:
+        isDark
+            ? null
+            : [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 3),
+              ),
+            ],
   );
 }
 
@@ -1663,9 +1671,10 @@ class _SwapDirectionChipState extends State<_SwapDirectionChip>
   void _handleTap() {
     final start = _accumulatedTurns;
     _accumulatedTurns += 0.5;
-    _turns = Tween<double>(begin: start, end: _accumulatedTurns).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _turns = Tween<double>(
+      begin: start,
+      end: _accumulatedTurns,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _scale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(
@@ -1692,9 +1701,7 @@ class _SwapDirectionChipState extends State<_SwapDirectionChip>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dividerColor = theme.colorScheme.outline.withValues(
-      alpha: isDark ? 0.5 : 0.45,
-    );
+    final dividerColor = theme.colorScheme.outline;
 
     return GestureDetector(
       onTap: _handleTap,
@@ -1703,7 +1710,8 @@ class _SwapDirectionChipState extends State<_SwapDirectionChip>
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            Expanded(child: Divider(color: dividerColor, height: 1)),
+            // Expanded(child: Divider(color: dividerColor, height: 1)),
+            Expanded(child: Divider(color: dividerColor, height: 8)),
             const SizedBox(width: 12),
             ScaleTransition(
               scale: _scale,
@@ -1726,7 +1734,7 @@ class _SwapDirectionChipState extends State<_SwapDirectionChip>
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Divider(color: dividerColor, height: 1)),
+            Expanded(child: Divider(color: dividerColor, height: 8)),
           ],
         ),
       ),
