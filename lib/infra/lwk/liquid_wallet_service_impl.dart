@@ -674,25 +674,36 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     // ─── P1: explicit LWK redeposit ────────────────────────────────
     if (t.kind == 'redeposit') {
       direction = domain.TransactionDirection.selfTransfer;
-      amountSat = feeSat;
-      mainAssetId = lbtcAssetId;
+      final subject = _detectSelfTransferSubject(t);
+      amountSat = subject?.grossSat ?? feeSat;
+      mainAssetId = subject?.assetId ?? lbtcAssetId;
       reason = 'lwk-kind-redeposit';
     }
     // ─── P2: nothing moved net, but a fee was paid ─────────────────
     else if (nonZero.isEmpty && feeSat > 0) {
       direction = domain.TransactionDirection.selfTransfer;
-      amountSat = feeSat;
-      mainAssetId = lbtcAssetId;
+      final subject = _detectSelfTransferSubject(t);
+      amountSat = subject?.grossSat ?? feeSat;
+      mainAssetId = subject?.assetId ?? lbtcAssetId;
       reason = 'fee-only-empty-balances';
     }
     // ─── P3: single-asset L-BTC self-transfer equal to -fee ────────
+    //
+    // Net L-BTC change is exactly the fee — i.e., only the fee was paid
+    // in L-BTC. Any non-L-BTC asset visible on inputs/outputs is the
+    // economic subject of the tx (a self-transfer / redeposit of that
+    // asset whose net is zero because send and change both land in our
+    // wallet). `_detectSelfTransferSubject` walks the unblinded outputs
+    // to recover the gross amount that flowed; if none, this is a pure
+    // L-BTC consolidation and we fall back to (lbtc, feeSat).
     else if (nonZero.length == 1 &&
         nonZero.first.assetId == lbtcAssetId &&
         nonZero.first.value == -feeSat &&
         feeSat > 0) {
       direction = domain.TransactionDirection.selfTransfer;
-      amountSat = feeSat;
-      mainAssetId = lbtcAssetId;
+      final subject = _detectSelfTransferSubject(t);
+      amountSat = subject?.grossSat ?? feeSat;
+      mainAssetId = subject?.assetId ?? lbtcAssetId;
       reason = 'lbtc-balance-equals-neg-fee';
     }
     // ─── P4: mixed-sign multi-asset → swap ─────────────────────────
@@ -813,6 +824,39 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     if (id == null) return 'null';
     if (id == lbtcAssetId) return 'lbtc';
     return id.length > 8 ? id.substring(0, 8) : id;
+  }
+
+
+  ({String assetId, int grossSat})? _detectSelfTransferSubject(lwk.Tx t) {
+    final candidates = <String>{};
+    for (final b in t.balances) {
+      if (b.assetId != lbtcAssetId) candidates.add(b.assetId);
+    }
+    for (final o in t.outputs) {
+      if (o.unblinded.asset != lbtcAssetId) candidates.add(o.unblinded.asset);
+    }
+    for (final i in t.inputs) {
+      if (i.unblinded.asset != lbtcAssetId) candidates.add(i.unblinded.asset);
+    }
+    if (candidates.isEmpty) return null;
+
+    String? winner;
+    int winnerGross = 0;
+    for (final id in candidates) {
+      final inSum = t.inputs
+          .where((o) => o.unblinded.asset == id)
+          .fold<int>(0, (s, o) => s + o.unblinded.value.toInt());
+      final outSum = t.outputs
+          .where((o) => o.unblinded.asset == id)
+          .fold<int>(0, (s, o) => s + o.unblinded.value.toInt());
+      final gross = inSum > outSum ? inSum : outSum;
+      if (gross > winnerGross) {
+        winnerGross = gross;
+        winner = id;
+      }
+    }
+    if (winner == null || winnerGross == 0) return null;
+    return (assetId: winner, grossSat: winnerGross);
   }
 
   /// Pick the "headline" balance from a list of wallet-side balance
