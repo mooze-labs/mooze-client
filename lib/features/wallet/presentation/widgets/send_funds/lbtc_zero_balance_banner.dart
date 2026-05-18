@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 /// Banner shown on the Send screen when the user has zero L-BTC balance.
@@ -24,8 +25,22 @@ class LbtcZeroBalanceBanner extends ConsumerWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (either) {
         final balance = either.fold((_) => BigInt.zero, (b) => b);
-        // if (balance > BigInt.zero) return const SizedBox.shrink();
-
+        // Original gate, restored after the 2026-05-12 repro. The line was
+        // committed already commented out in `d8b2a2c9` — looked like a
+        // forgotten visual-test leftover. With the gate disabled, the
+        // banner rendered on every DEPIX/USDT send regardless of actual
+        // L-BTC balance, so users saw a "you don't have L-BTC" prompt
+        // even with 1.2M sats in the L-BTC pool.
+        if (balance > BigInt.zero) {
+          return const SizedBox.shrink();
+        }
+        try {
+          AppLoggerService().info(
+            'LbtcZeroBalanceBanner',
+            'rendering banner asset=${selectedAsset.ticker} '
+                'lbtcBalanceSats=$balance',
+          );
+        } catch (_) {}
         return _LbtcZeroBalanceBannerContent();
       },
     );

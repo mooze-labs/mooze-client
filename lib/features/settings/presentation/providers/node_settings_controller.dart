@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/entities/chain.dart';
+import 'package:mooze_mobile/domain/entities/wallet_credentials.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/usecase_providers.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
 
 /// Snapshot of the node configuration screen.
@@ -78,9 +82,9 @@ class NodeSettingsController extends AsyncNotifier<NodeSettingsState> {
   }
 
   /// Persists the current form state. Returns null on success or a
-  /// human-readable error string on failure. Invalidates the BDK and
-  /// LWK datasource providers so the next sync picks up the new
-  /// endpoints.
+  /// human-readable error string on failure. After persistence runs a V2
+  /// reconnect so chain services pick up the new endpoint policy on the
+  /// next refresh tick.
   Future<String?> save() async {
     final current = state.value;
     if (current == null) return 'State not loaded';
@@ -109,17 +113,26 @@ class NodeSettingsController extends AsyncNotifier<NodeSettingsState> {
           .call(current.fallbackEnabled);
       if (fallbackResult is Failure<void>) return fallbackResult.message;
 
-      // Force a rebuild of the network-facing providers so the next
-      // sync pass picks up the new endpoints / fallback policy.
-
+      // V2 reconnect: walks every chain service, idempotently disconnects
+      // any that are not operational, reconnects with the current
+      // mnemonic, and runs a light refresh. Serialised with the periodic
+      // ticker by the orchestrator's `SingleFlight`. Best-effort — if the
+      // mnemonic is missing or the orchestrator can't be reached, the
+      // next periodic sync still picks up the saved endpoints.
       try {
-        await ref
-            .read(walletDataManagerProvider.notifier)
-            .retryDataSourceConnection();
+        final mnemonicOption = await ref.read(mnemonicProvider.future);
+        final mnemonic = mnemonicOption.toNullable();
+        if (mnemonic != null) {
+          final sync = await ref.read(syncOrchestratorProvider.future);
+          await sync.reconnect(
+            credentials: WalletCredentials(
+              mnemonic: mnemonic,
+              network: AppNetwork.mainnet,
+            ),
+          );
+        }
       } catch (_) {
-        // Endpoint reconnect is best-effort — if it fails, the next
-        // periodic sync still picks up the saved settings on its own
-        // build cycle.
+        // Endpoint reconnect is best-effort.
       }
 
       state = AsyncData(current);

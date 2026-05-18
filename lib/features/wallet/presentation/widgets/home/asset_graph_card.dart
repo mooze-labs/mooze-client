@@ -10,7 +10,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/data_refresh_trigger.dart';
 
 class AssetCardList extends ConsumerWidget {
   const AssetCardList({super.key});

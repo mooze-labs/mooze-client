@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_prov
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 class QRGenerationState {
   final bool isLoading;
@@ -46,11 +47,30 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
     String? description,
   }) async {
     state = const AsyncValue.loading();
+    final log = AppLoggerService();
+
+    // Trace the exact origin of every receive request. This is the only
+    // entry point to `walletRepository.createXxxInvoice` from the receive
+    // funds screen — anything else hitting `WalletErrorType.networkError`
+    // is coming from a different path.
+    log.info(
+      'qrGenerationController',
+      'generateQRCode network=${network.name} asset=${asset.ticker} '
+          'amount=${amount?.toString() ?? "null"} '
+          'descriptionPresent=${description != null} '
+          'origin=legacy(walletRepositoryProvider in features/wallet/di) '
+          'targetRepo=WalletRepositoryImpl(legacy)',
+    );
 
     try {
       if (amount != null && amount > 0) {
         final validationError = await _validateAmountLimits(amount, network);
         if (validationError != null) {
+          log.warning(
+            'qrGenerationController',
+            'amount-limit-rejected network=${network.name} amount=$amount '
+                'reason=${validationError.description}',
+          );
           state = AsyncValue.error(validationError, StackTrace.current);
           return;
         }
@@ -60,11 +80,23 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
         walletRepositoryProvider.future,
       );
       final walletRepository = walletRepositoryResult.fold(
-        (error) =>
-            throw Exception(
-              'Failed to get wallet repository: ${error.description}',
-            ),
-        (repository) => repository,
+        (error) {
+          log.error(
+            'qrGenerationController',
+            'walletRepositoryProvider returned Left: ${error.description}',
+          );
+          throw Exception(
+            'Failed to get wallet repository: ${error.description}',
+          );
+        },
+        (repository) {
+          log.info(
+            'qrGenerationController',
+            'walletRepositoryProvider resolved repoType=${repository.runtimeType} '
+                'repoHash=${identityHashCode(repository)}',
+          );
+          return repository;
+        },
       );
 
       final result = switch (network) {
@@ -110,13 +142,37 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
       final finalResult = await result.run();
 
       finalResult.fold(
-        (error) =>
-            state = AsyncValue.data(
-              QRGenerationState(isLoading: false, error: error.description),
-            ),
-        (qrState) => state = AsyncValue.data(qrState),
+        (error) {
+          // The customDescription now carries the underlying SDK error
+          // (Breez exception text), unlike the previous behaviour of a
+          // bare "Conexão falhou." with no cause. Log both halves so a
+          // log export from a failing user shows everything triage needs.
+          log.error(
+            'qrGenerationController',
+            'invoice-generation FAILED type=${error.type} '
+                'description=${error.description} '
+                'customDescription=${error.customDescription ?? "n/a"}',
+          );
+          state = AsyncValue.data(
+            QRGenerationState(isLoading: false, error: error.description),
+          );
+        },
+        (qrState) {
+          log.info(
+            'qrGenerationController',
+            'invoice-generation ok displayAddress.length='
+                '${qrState.displayAddress?.length ?? 0}',
+          );
+          state = AsyncValue.data(qrState);
+        },
       );
-    } catch (e) {
+    } catch (e, st) {
+      log.error(
+        'qrGenerationController',
+        'generateQRCode threw unhandled exception: $e',
+        error: e,
+        stackTrace: st,
+      );
       state = AsyncValue.data(
         QRGenerationState(isLoading: false, error: 'Erro ao gerar QR code: $e'),
       );

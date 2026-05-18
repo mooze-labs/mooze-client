@@ -12,7 +12,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
-import 'package:mooze_mobile/shared/infra/breez/providers.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_info_card.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_action_grid.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
@@ -25,6 +24,8 @@ import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dar
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/entities/balance.dart';
+import 'package:mooze_mobile/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
@@ -151,57 +152,32 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     if (!mounted) return;
 
     try {
-      final breezClientResult = await ref.read(breezClientProvider.future);
+      final repo = await ref.read(walletRepositoryProvider.future);
 
       if (!mounted) return;
 
-      await breezClientResult.fold(
-        (error) async {
-          _logger.warning(
-            'DeveloperScreen',
-            'Breez client not available: $error',
-          );
-          if (mounted) {
-            setState(() {
-              _sdkVersion = 'SDK not connected';
-              _walletBalance = 'N/A';
-              _pendingBalance = 'N/A';
-            });
-          }
-        },
-        (breezSdk) async {
-          try {
-            final info = await breezSdk.getInfo();
+      // Aggregate balance across all chains (BTC + L-BTC + Lightning).
+      final balanceResult = await repo.aggregateBalance();
+      // Bitcoin tip used as a proxy for chain-tip reporting; V2 LWK
+      // service does not expose Liquid tip directly.
+      final btcTipResult = await repo.getCurrentBitcoinBlockHeight();
 
-            if (mounted) {
-              setState(() {
-                _sdkVersion =
-                    'Breez SDK Liquid ${info.blockchainInfo.liquidTip}';
-                _walletBalance = info.walletInfo.balanceSat.toString();
-                _pendingBalance =
-                    (info.walletInfo.pendingReceiveSat +
-                            info.walletInfo.pendingSendSat)
-                        .toString();
-              });
-            }
+      if (!mounted) return;
 
-            _logger.info('DeveloperScreen', 'Wallet info loaded successfully');
-          } catch (e) {
-            _logger.error(
-              'DeveloperScreen',
-              'Error getting wallet info',
-              error: e,
-            );
-            if (mounted) {
-              setState(() {
-                _sdkVersion = 'Error loading SDK';
-                _walletBalance = 'N/A';
-                _pendingBalance = 'N/A';
-              });
-            }
-          }
-        },
-      );
+      final balance = balanceResult.getOrElse((_) => Balance.empty());
+      final btcTip = btcTipResult.getOrElse((_) => 0);
+      final totalSat =
+          balance.assets.fold<int>(0, (sum, a) => sum + a.amountSat);
+
+      setState(() {
+        _sdkVersion = btcTip > 0
+            ? 'V2 services @ BTC tip #$btcTip'
+            : 'V2 services (tip unavailable)';
+        _walletBalance = totalSat.toString();
+        _pendingBalance = '—';
+      });
+
+      _logger.info('DeveloperScreen', 'Wallet info loaded successfully');
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error loading wallet info', error: e);
       if (mounted) {
@@ -333,23 +309,22 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     _logger.info('DeveloperScreen', 'Starting onchain swaps rescan...');
 
     try {
-      final breezClientResult = await ref.read(breezClientProvider.future);
+      // V2 SyncStrategy.full instructs the orchestrator to run
+      // `LightningWalletService.rescan(window)` on top of the normal
+      // light refresh — exactly the legacy behaviour that called
+      // `breezSdk.rescanOnchainSwaps()` directly.
+      final refreshUseCase = await ref.read(refreshWalletProvider.future);
+      final result = await refreshUseCase(strategy: SyncStrategy.full);
 
-      await breezClientResult.fold(
-        (error) async {
-          throw Exception('Breez client not available: $error');
+      await result.match(
+        (failure) async {
+          throw Exception(failure.message);
         },
-        (breezSdk) async {
-          await breezSdk.rescanOnchainSwaps();
-
-          // Check if still mounted before invalidating providers
+        (_) async {
           if (!mounted) return;
 
-          // Invalidate providers to force refresh
           _invalidateWalletProviders();
-
-          // Check for refundable swaps
-          await _checkRefundables(breezSdk);
+          await _checkRefundables();
 
           if (mounted) {
             _showSuccessMessage(
@@ -401,9 +376,11 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
   }
 
   /// Checks for refundable swaps and navigates to refund screen if any exist
-  Future<void> _checkRefundables(dynamic breezSdk) async {
+  Future<void> _checkRefundables() async {
     try {
-      final refundables = await breezSdk.listRefundables();
+      final repo = await ref.read(walletRepositoryProvider.future);
+      final result = await repo.listRefundableSwaps();
+      final refundables = result.getOrElse((_) => const []);
 
       _logger.info(
         'DeveloperScreen',
@@ -470,7 +447,26 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       // wallet (rows from a previously deleted wallet remain in the DB
       // under their old walletId but are not exported).
       final walletId = await ref.read(walletIdProvider.future);
-      final zipPath = await _logger.exportLogs(walletId: walletId);
+
+      // V2 sync writes transactions to `mooze_v2.db`, not the legacy
+      // drift `Transactions` table the logger sees. Pull the V2 snapshot
+      // here and hand it to the export so the `transactions` section is
+      // populated. Fail-soft: a store error logs and proceeds with an
+      // empty list — better an export without txs than no export at all.
+      final txStore = await ref.read(transactionStoreProvider.future);
+      final txResult = await txStore.list();
+      final v2Txs = txResult.fold((failure) {
+        _logger.warning(
+          'DeveloperScreen',
+          'V2 transaction store unavailable for export: ${failure.message}',
+        );
+        return const <Transaction>[];
+      }, (list) => list);
+
+      final zipPath = await _logger.exportLogs(
+        walletId: walletId,
+        v2Transactions: v2Txs,
+      );
 
       if (mounted) {
         if (exportMethod == ExportMethod.email) {

@@ -37,18 +37,37 @@ final walletRepositoryProvider = FutureProvider<
     final breez = await ref.watch(breezClientProvider.future);
     breez.fold(
       (err) {
+        // Surface the actual Left reason in the log export. Previously
+        // this only printed in kDebugMode and never reached the
+        // AppLogger, which is why the 2026-05-12 "breez=false" repro
+        // could not be diagnosed from the log file — the reason was
+        // invisible to anyone not attached to a Dart VM.
+        logger.error(
+          'walletRepositoryProvider(legacy)',
+          'breez-bridge returned Left: $err',
+        );
         if (kDebugMode) {
           debugPrint('[WalletRepository] Breez failed: $err');
         }
       },
       (b) {
         breezWallet = BreezWallet(b, swapAudit: swapAudit);
+        logger.info(
+          'walletRepositoryProvider(legacy)',
+          'breez-bridge ok sdkHash=${identityHashCode(b)}',
+        );
         if (kDebugMode) {
           debugPrint('[WalletRepository] Breez initialized successfully');
         }
       },
     );
-  } catch (e) {
+  } catch (e, st) {
+    logger.error(
+      'walletRepositoryProvider(legacy)',
+      'breez-bridge threw exception: $e',
+      error: e,
+      stackTrace: st,
+    );
     if (kDebugMode) {
       debugPrint('[WalletRepository] Breez exception: $e');
     }
@@ -59,6 +78,10 @@ final walletRepositoryProvider = FutureProvider<
     final liquidDatasource = await ref.watch(liquidDataSourceProvider.future);
     liquidDatasource.fold(
       (err) {
+        logger.error(
+          'walletRepositoryProvider(legacy)',
+          'liquid-bridge returned Left: $err',
+        );
         if (kDebugMode) {
           debugPrint('[WalletRepository] Liquid failed: $err');
         }
@@ -70,7 +93,13 @@ final walletRepositoryProvider = FutureProvider<
         }
       },
     );
-  } catch (e) {
+  } catch (e, st) {
+    logger.error(
+      'walletRepositoryProvider(legacy)',
+      'liquid-bridge threw exception: $e',
+      error: e,
+      stackTrace: st,
+    );
     if (kDebugMode) {
       debugPrint('[WalletRepository] Liquid exception: $e');
     }
@@ -81,6 +110,10 @@ final walletRepositoryProvider = FutureProvider<
     final bdkDatasource = await ref.watch(bdkDatasourceProvider.future);
     bdkDatasource.fold(
       (err) {
+        logger.error(
+          'walletRepositoryProvider(legacy)',
+          'bdk-bridge returned Left: $err',
+        );
         if (kDebugMode) {
           debugPrint('[WalletRepository] BDK failed: $err');
         }
@@ -96,7 +129,13 @@ final walletRepositoryProvider = FutureProvider<
         }
       },
     );
-  } catch (e) {
+  } catch (e, st) {
+    logger.error(
+      'walletRepositoryProvider(legacy)',
+      'bdk-bridge threw exception: $e',
+      error: e,
+      stackTrace: st,
+    );
     if (kDebugMode) {
       debugPrint('[WalletRepository] BDK exception: $e');
     }
@@ -127,6 +166,20 @@ final walletRepositoryProvider = FutureProvider<
     debugPrint('  - Liquid: ${liquidWallet != null ? "✓" : "✗"}');
     debugPrint('  - BDK: ${bitcoinWallet != null ? "✓" : "✗"}');
   }
+
+  // Persisted log so a failing receive can be traced from the log export
+  // without needing kDebugMode. Names every resolved datasource and ties
+  // them back to the V2-owned SDK instances (the legacy adapters are
+  // bridges around V2 service clients — see the *_BRIDGE comments in
+  // shared/infra/*/providers/*.dart).
+  logger.info(
+    'walletRepositoryProvider(legacy)',
+    'resolved repoHash=${identityHashCode(repo)} '
+        'breez=${breezWallet != null} '
+        'liquid=${liquidWallet != null} '
+        'bdk=${bitcoinWallet != null} '
+        'note=all-datasources-are-v2-bridges',
+  );
 
   return Either.right(repo);
 });

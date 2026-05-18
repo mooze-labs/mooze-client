@@ -16,6 +16,7 @@ import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories/swap_audit_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../../dto/psbt_dto.dart';
@@ -319,6 +320,12 @@ class BreezWallet {
     Option<BigInt> amount,
     Option<String> description,
   ) {
+    _logReceiveEntry(
+      flow: 'createBitcoinInvoice',
+      paymentMethod: PaymentMethod.bitcoinAddress,
+      amount: amount.toNullable(),
+      description: description.toNullable(),
+    );
     return _createOnchainBitcoinPaymentRequest(_breez, amount, description);
   }
 
@@ -326,6 +333,12 @@ class BreezWallet {
     BigInt amount,
     Option<String> description,
   ) {
+    _logReceiveEntry(
+      flow: 'createLightningInvoice',
+      paymentMethod: PaymentMethod.bolt11Invoice,
+      amount: amount,
+      description: description.toNullable(),
+    );
     return _createLightningPaymentRequest(_breez, amount, description);
   }
 
@@ -333,6 +346,12 @@ class BreezWallet {
     Option<BigInt> amount,
     Option<String> description,
   ) {
+    _logReceiveEntry(
+      flow: 'createLiquidBitcoinInvoice',
+      paymentMethod: PaymentMethod.liquidAddress,
+      amount: amount.toNullable(),
+      description: description.toNullable(),
+    );
     return _createLiquidBitcoinPaymentRequest(_breez, amount, description);
   }
 
@@ -341,7 +360,44 @@ class BreezWallet {
     Option<BigInt> amount,
     Option<String> description,
   ) {
+    _logReceiveEntry(
+      flow: 'createStablecoinInvoice',
+      paymentMethod: PaymentMethod.liquidAddress,
+      amount: amount.toNullable(),
+      description: description.toNullable(),
+      assetId: asset.id,
+    );
     return _createAssetPaymentRequest(_breez, asset.id, amount, description);
+  }
+
+  /// Snapshot the SDK state at the start of every receive call. Surfaces the
+  /// concrete origin (legacy `BreezWallet` wrapper, not V2
+  /// `LightningWalletServiceImpl`), the lifecycle, whether a sync has
+  /// happened yet, and the request parameters. With this in the log timeline,
+  /// the next "Conexão falhou." reproduction can be triaged from the export
+  /// without needing to attach a debugger.
+  void _logReceiveEntry({
+    required String flow,
+    required PaymentMethod paymentMethod,
+    BigInt? amount,
+    String? description,
+    String? assetId,
+  }) {
+    try {
+      final log = AppLoggerService();
+      log.info(
+        'BreezWallet.receive',
+        'entry flow=$flow '
+            'paymentMethod=${paymentMethod.name} '
+            'origin=legacy(BreezWallet via WalletRepositoryImpl) '
+            'sdkHash=${identityHashCode(_breez)} '
+            'amountSat=${amount?.toString() ?? "null"} '
+            'descriptionPresent=${description != null} '
+            'assetId=${assetId ?? "n/a"}',
+      );
+    } catch (_) {
+      // Logger must never break the receive flow.
+    }
   }
 
   TaskEither<WalletError, PreparedStablecoinTransaction>
@@ -893,8 +949,30 @@ TaskEither<WalletError, PrepareReceiveResponse> _prepareReceiveResponse(
       );
       return result;
     },
+    // Previously this discarded `err` and `stackTrace` and returned a bare
+    // `WalletError(WalletErrorType.networkError)` ("Conexão falhou."), masking
+    // any real cause — SDK auth failure, asset registry not loaded,
+    // working-directory lock, network mismatch — as a generic connection
+    // error. The customDescription now carries the original SDK message so
+    // the UI snackbar surfaces what actually failed.
     (err, stackTrace) {
-      return WalletError(WalletErrorType.networkError);
+      try {
+        AppLoggerService().error(
+          'BreezWallet.prepareReceive',
+          'prepareReceivePayment FAILED paymentMethod=${paymentMethod.name} '
+              'sdkHash=${identityHashCode(breez)} '
+              'errType=${err.runtimeType} err=$err',
+          error: err,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {}
+      if (kDebugMode) {
+        debugPrint(
+          '[BreezWallet._prepareReceiveResponse] '
+          '$paymentMethod failed (${err.runtimeType}): $err\n$stackTrace',
+        );
+      }
+      return WalletError(WalletErrorType.networkError, err.toString());
     },
   );
 }
@@ -914,10 +992,27 @@ TaskEither<WalletError, ReceivePaymentResponse> _receivePayment(
       );
       return result;
     },
+    // Same fix as `_prepareReceiveResponse`: surface the SDK exception
+    // instead of collapsing it into a hard-coded Portuguese string.
     (err, stackTrace) {
+      try {
+        AppLoggerService().error(
+          'BreezWallet.receivePayment',
+          'receivePayment FAILED sdkHash=${identityHashCode(breez)} '
+              'errType=${err.runtimeType} err=$err',
+          error: err,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {}
+      if (kDebugMode) {
+        debugPrint(
+          '[BreezWallet._receivePayment] failed (${err.runtimeType}): '
+          '$err\n$stackTrace',
+        );
+      }
       return WalletError(
         WalletErrorType.transactionFailed,
-        "Falha ao gerar endereço de pagamento",
+        err.toString(),
       );
     },
   );

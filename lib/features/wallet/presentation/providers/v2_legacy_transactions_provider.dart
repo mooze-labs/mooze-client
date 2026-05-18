@@ -23,13 +23,19 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 /// - Asset is resolved by `assetId` for Liquid txs, defaults to L-BTC
 ///   for assetId-less Liquid/Lightning entries (matches the unified
 ///   L2 balance model: Lightning is a rail on top of L-BTC).
-/// - V2's `TransactionDirection.internal` maps to legacy `unknown`
-///   because legacy only has send/receive/swap/submarine/redeposit.
-///   Internal transfers (Breez fee txs etc.) render as "unknown".
-/// - Legacy swap-pair fields (fromAsset/toAsset/sentAmount/
-///   receivedAmount) are left null. V2 represents swap legs as
-///   separate transactions; a future Stage 3 step will reintroduce
-///   one-row swap rendering by joining via `swap_audit`.
+/// - V2's `TransactionDirection.selfTransfer` maps to the legacy
+///   `TransactionType.redeposit` — the home transaction list renders
+///   that as "Redeposit <TICKER>". `amountSat` is the fee.
+/// - V2's `TransactionDirection.swap` (added Phase 2b) maps to
+///   `TransactionType.swap` and propagates the four swap-pair fields
+///   (`fromAsset`/`toAsset`/`sentAmount`/`receivedAmount`) so the home
+///   list's existing swap-row rendering (`HomeTransactionItem.
+///   _buildSwapSubtitle`, `_buildSwapIcon`) lights up. Single-tx
+///   swaps only — cross-tx pairing (e.g. BTC L1 ↔ Liquid LBTC peg)
+///   is deferred to a future iteration.
+/// - V2's `TransactionDirection.internal` still maps to legacy
+///   `unknown` for Breez fee adjustments / unresolvable LWK kinds /
+///   issuance/burn/reissuance.
 final v2LegacyTransactionsProvider =
     StreamProvider<List<legacy.Transaction>>((ref) async* {
   final repo = await ref.watch(walletRepositoryProvider.future);
@@ -62,6 +68,8 @@ legacy.Transaction _v2ToLegacy(v2.Transaction t) {
   final type = switch (t.direction) {
     v2.TransactionDirection.incoming => legacy.TransactionType.receive,
     v2.TransactionDirection.outgoing => legacy.TransactionType.send,
+    v2.TransactionDirection.selfTransfer => legacy.TransactionType.redeposit,
+    v2.TransactionDirection.swap => legacy.TransactionType.swap,
     v2.TransactionDirection.internal => legacy.TransactionType.unknown,
   };
 
@@ -70,6 +78,29 @@ legacy.Transaction _v2ToLegacy(v2.Transaction t) {
     v2.TransactionStatus.confirmed => legacy.TransactionStatus.confirmed,
     v2.TransactionStatus.failed => legacy.TransactionStatus.failed,
   };
+
+  // Swap-pair pass-through. `Asset.fromId` throws on unknown asset ids
+  // (e.g., a Liquid asset the wallet doesn't recognise); the
+  // try/catch keeps the row renderable as a generic swap rather than
+  // failing the whole adapter.
+  Asset? fromAsset;
+  Asset? toAsset;
+  if (t.fromAssetId != null) {
+    try {
+      fromAsset = Asset.fromId(t.fromAssetId!);
+    } catch (_) {/* unknown asset id — leave null */}
+  }
+  if (t.toAssetId != null) {
+    try {
+      toAsset = Asset.fromId(t.toAssetId!);
+    } catch (_) {/* unknown asset id — leave null */}
+  }
+  final sentAmount = t.sentAmountSat == null
+      ? null
+      : BigInt.from(t.sentAmountSat!);
+  final receivedAmount = t.receivedAmountSat == null
+      ? null
+      : BigInt.from(t.receivedAmountSat!);
 
   return legacy.Transaction(
     id: t.id,
@@ -81,5 +112,9 @@ legacy.Transaction _v2ToLegacy(v2.Transaction t) {
     createdAt: t.timestamp,
     destination: t.address,
     confirmationHeight: null,
+    fromAsset: fromAsset,
+    toAsset: toAsset,
+    sentAmount: sentAmount,
+    receivedAmount: receivedAmount,
   );
 }

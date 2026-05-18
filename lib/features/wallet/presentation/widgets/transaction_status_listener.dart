@@ -3,13 +3,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/app/lifecycle/app_state.dart';
+import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
 import 'package:mooze_mobile/features/wallet/data/models/transaction_status_event.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
 import 'package:mooze_mobile/routes.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 
+/// V2 tree-wide listener. Subscribes to [transactionNotifierProvider]
+/// once the app reaches `AppPhase.ready`, then shows the
+/// `TransactionConfirmedScreen` modal each time the notifier emits a
+/// (gated, persisted-dedup) confirmation event.
+///
+/// **Dedup is now the notifier's job** — see `V2TransactionNotifier` —
+/// so this widget no longer keeps an in-memory `Set<String>` of
+/// processed transaction ids. It also no longer guards against
+/// pre-home / pre-foreground events because the notifier holds them in
+/// its `_pendingEmissions` buffer and only releases them once both
+/// gates open.
+///
+/// Two things this widget DOES gate locally:
+///   1. **Merchant mode** — when merchant mode is active the listener
+///      drops events without showing the modal. Notifier remains
+///      domain-pure and unaware of presentation modes.
+///   2. **Subscription lifecycle** — the `StreamSubscription` is
+///      attached once `appLifecycleControllerProvider` resolves and
+///      cancelled in `dispose()`. `_isInitialized` keeps the attach
+///      idempotent against Riverpod rebuilds.
 class TransactionStatusListener extends ConsumerStatefulWidget {
   final Widget child;
 
@@ -23,139 +43,111 @@ class TransactionStatusListener extends ConsumerStatefulWidget {
 class _TransactionStatusListenerState
     extends ConsumerState<TransactionStatusListener> {
   StreamSubscription<TransactionStatusEvent>? _subscription;
-  final Set<String> _processedTransactions = {};
   bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _checkAndInitialize();
+    _maybeStart();
   }
 
-  void _checkAndInitialize() {
-    // Phase 2.3.3: V2 readiness check. The wallet is "ready" when the
-    // app lifecycle controller has completed boot AND started sync.
-    // Equivalent to legacy `walletStatus.isSuccess` semantically — the
-    // app phase becomes `ready` after the same orchestration completes.
-    final appPhase =
-        ref.read(appStateProvider).valueOrNull?.phase;
-
+  void _maybeStart() {
+    final appPhase = ref.read(appStateProvider).valueOrNull?.phase;
     if (appPhase == AppPhase.ready && !_isInitialized) {
-      debugPrint(
-        '[TransactionStatusListener] Wallet ready, starting monitoring',
-      );
       _isInitialized = true;
-      _setupListener();
-      _startMonitoring();
-    } else {
-      debugPrint(
-        '[TransactionStatusListener] Wallet is not ready (phase=$appPhase), waiting...',
-      );
+      _attachListener();
     }
   }
 
-  void _startMonitoring() {
-    final service = ref.read(transactionMonitorServiceProvider);
-
-    debugPrint('[TransactionStatusListener] Starting monitoring...');
-
-    // Sync pending transactions on start
-    service.syncPendingTransactions().then((_) {
-      debugPrint(
-        '[TransactionStatusListener] Pending transactions synchronized',
-      );
-    });
-
-    // Start monitoring
-    service.startMonitoring();
-
-    debugPrint('[TransactionStatusListener] Monitoring started');
-  }
-
-  void _setupListener() {
-    final service = ref.read(transactionMonitorServiceProvider);
-
-    debugPrint('[TransactionStatusListener] Setting up event listener');
-
-    _subscription = service.statusUpdates.listen((event) {
-      debugPrint(
-        '[TransactionStatusListener] Event received: ${event.transactionId}',
-      );
-
-      if (_processedTransactions.contains(event.transactionId)) {
-        debugPrint(
-          '[TransactionStatusListener] Event already processed, ignoring',
-        );
+  Future<void> _attachListener() async {
+    try {
+      final notifier = await ref.read(transactionNotifierProvider.future);
+      if (!mounted) {
+        // Widget unmounted while awaiting notifier construction —
+        // ensure we don't leak a subscription on the rebuilt instance.
         return;
       }
+      _subscription = notifier.notifications.listen(_onEvent);
+    } catch (e) {
+      debugPrint('[TransactionStatusListener] notifier wire failed: $e');
+    }
+  }
 
-      if (mounted) {
-        _processedTransactions.add(event.transactionId);
+  Future<void> _onEvent(TransactionStatusEvent event) async {
+    if (!mounted) return;
 
-        ref.invalidate(userInfoProvider);
+    // Merchant-mode suppression. The PIX listener owns merchant-mode
+    // confirmations separately; this listener must stay silent for
+    // generic on-chain receives while the merchant flow is active.
+    if (await _isMerchantModeActive()) {
+      return;
+    }
 
-        debugPrint(
-          '[TransactionStatusListener] Waiting 300ms before showing screen...',
+    ref.invalidate(userInfoProvider);
+
+    // The Future.delayed gives the navigator a frame to settle if the
+    // user just arrived at /home. The notifier already gated on
+    // `homeReached`, so the navigator should always have a context;
+    // the null check is belt-and-suspenders.
+    //
+    // `rootNavigatorKey.currentContext` is resolved freshly inside the
+    // callback (not captured across the async gap), so the lint's
+    // concern doesn't apply — `mounted` is also re-checked. Suppress
+    // the false positive at the call site.
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      final navigatorContext = rootNavigatorKey.currentContext;
+      if (navigatorContext == null) return;
+      try {
+        final asset = Asset.fromId(event.assetId);
+        TransactionConfirmedScreen.show(
+          // ignore: use_build_context_synchronously
+          navigatorContext,
+          asset: asset,
+          amount: event.amount,
+          transactionId: event.transactionId,
         );
-
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (!mounted) {
-            debugPrint('[TransactionStatusListener] Widget is not mounted');
-            return;
-          }
-
-          final navigatorContext = rootNavigatorKey.currentContext;
-          if (navigatorContext != null && mounted) {
-            try {
-              final asset = Asset.fromId(event.assetId);
-
-              debugPrint(
-                '[TransactionStatusListener] Showing TransactionConfirmedScreen',
-              );
-
-              TransactionConfirmedScreen.show(
-                navigatorContext,
-                asset: asset,
-                amount: event.amount,
-                transactionId: event.transactionId,
-              );
-            } catch (e, stack) {
-              debugPrint('Error showing confirmation screen: $e');
-              debugPrint('Stack: $stack');
-            }
-          } else {
-            debugPrint('Navigator context not available');
-          }
-        });
+      } catch (e) {
+        debugPrint('Error showing confirmation screen: $e');
       }
     });
+  }
 
-    debugPrint('[TransactionStatusListener] Listener successfully configured');
+  Future<bool> _isMerchantModeActive() async {
+    try {
+      final usecase = ref.read(checkMerchantModeUseCaseProvider);
+      final result = await usecase();
+      // The `Result` wrapper used here is Success<bool>/Failure<bool>.
+      // Defensive: if the call throws or returns failure, treat as
+      // "not merchant" and let the modal show — matches prior
+      // behaviour where merchant gating did not exist at all.
+      try {
+        // ignore: avoid_dynamic_calls
+        final dynamic dyn = result;
+        if (dyn is bool) return dyn;
+        if (dyn.data is bool) return dyn.data as bool;
+      } catch (_) {}
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
-    final service = ref.read(transactionMonitorServiceProvider);
-    service.stopMonitoring();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Phase 2.3.3: listen to V2 `appStateProvider` (AsyncValue<AppState>)
-    // for the boot transition. When `phase == AppPhase.ready` arrives,
-    // start monitoring. Idempotent — `_isInitialized` guards against
-    // re-entry.
+    // Start listening once the orchestrator is up. Idempotent — gated on
+    // `_isInitialized`.
     ref.listen<AsyncValue<AppState>>(appStateProvider, (previous, next) {
       final phase = next.valueOrNull?.phase;
       if (!_isInitialized && phase == AppPhase.ready) {
-        debugPrint(
-          '[TransactionStatusListener] Wallet became ready, starting monitoring',
-        );
         _isInitialized = true;
-        _setupListener();
-        _startMonitoring();
+        _attachListener();
       }
     });
 

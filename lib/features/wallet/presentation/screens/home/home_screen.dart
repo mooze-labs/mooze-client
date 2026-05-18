@@ -11,7 +11,7 @@ import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync_failure_widgets.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/sync_failure_alert.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
@@ -39,7 +39,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialDataFromCache();
       _loadInitialData();
+      _markNotifierHomeReached();
     });
+  }
+
+  /// Open the V2 transaction notifier's home-reached gate. Sticky for
+  /// the session — flips `homeReached=true` so any pending or future
+  /// confirmation events can surface as modals. Without this call the
+  /// notifier holds events forever and the user never sees them.
+  ///
+  /// Best-effort: if the notifier is not yet constructed (rare race
+  /// when /home is the first route the V2 boot resolves to), the
+  /// future eventually completes and the call lands.
+  void _markNotifierHomeReached() {
+    ref.read(transactionNotifierProvider.future).then((notifier) {
+      notifier.setHomeReached();
+    }).catchError((_) {/* notifier not ready — will be picked up on resume */});
   }
 
   @override

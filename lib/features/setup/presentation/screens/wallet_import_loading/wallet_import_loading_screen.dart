@@ -6,7 +6,6 @@ import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import 'package:mooze_mobile/domain/services/service_state.dart';
 import 'package:mooze_mobile/features/boot/domain/boot_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_monitor_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:go_router/go_router.dart';
@@ -246,17 +245,17 @@ class _WalletImportLoadingScreenState
     if (!mounted) return;
     final t = AppLocalizations.of(context);
 
-    final transactionMonitor = ref.read(transactionMonitorServiceProvider);
-    // Best-effort priming — runs concurrently with navigation. Worst
-    // case: a few-millisecond window where the tx-status listener could
-    // fire on an already-known transaction; `_processedTransactions`
-    // dedup already prevents duplicate confirmation popups.
-    unawaited(transactionMonitor.markExistingTransactionsAsKnown());
+    // Notification suppression during the import burst used to be a
+    // manual `setImportInProgress(true/false)` flip here. With the
+    // persisted dedup ledger + baseline-absorb pass inside the V2
+    // notifier (2026-05-12 redesign), the notifier handles this
+    // intrinsically: every tx the orchestrator persists during this
+    // window is silently registered without emitting until the user
+    // reaches `/home` (HomeScreen calls `notifier.setHomeReached()`).
+    // No manual UI-driven coordination needed here anymore.
 
     await _showMessage(t.wallet_import_msg_completed, isCompleted: true);
     await _checkBounceController.forward();
-
-    transactionMonitor.finishImporting();
 
     setState(() => _isCompleted = true);
 
@@ -278,8 +277,10 @@ class _WalletImportLoadingScreenState
     try {
       _progressController.forward();
 
-      final transactionMonitor = ref.read(transactionMonitorServiceProvider);
-      transactionMonitor.startImporting();
+      // (Removed: `notifier.setImportInProgress(true)` — the V2
+      // notifier now uses persisted dedup + an internal baseline phase
+      // that is sticky until the user reaches `/home`. See the comment
+      // in `_handleAllSyncsCompleted`.)
 
       if (!mounted) return;
 
