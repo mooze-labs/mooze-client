@@ -3220,6 +3220,42 @@ abstract class AppLocalizations {
   /// **'Usar valor em {currency}'**
   String swap_use_currency_value(String currency);
 
+  /// No description provided for @swap_expires_in.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expira em {seconds}s'**
+  String swap_expires_in(int seconds);
+
+  /// No description provided for @swap_quote_refreshing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizando cotação...'**
+  String get swap_quote_refreshing;
+
+  /// No description provided for @swap_quote_outdated_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cotação desatualizada'**
+  String get swap_quote_outdated_title;
+
+  /// No description provided for @swap_quote_outdated_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em atualizar para obter a cotação mais recente.'**
+  String get swap_quote_outdated_body;
+
+  /// No description provided for @swap_refresh_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar'**
+  String get swap_refresh_action;
+
+  /// No description provided for @swap_rate_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cotação'**
+  String get swap_rate_label;
+
   /// No description provided for @swap_confirm_title.
   ///
   /// In pt, this message translates to:

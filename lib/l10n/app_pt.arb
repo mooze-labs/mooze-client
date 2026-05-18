@@ -729,6 +729,19 @@
       }
     }
   },
+  "swap_expires_in": "Expira em {seconds}s",
+  "@swap_expires_in": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "swap_quote_refreshing": "Atualizando cotação...",
+  "swap_quote_outdated_title": "Cotação desatualizada",
+  "swap_quote_outdated_body": "Toque em atualizar para obter a cotação mais recente.",
+  "swap_refresh_action": "Atualizar",
+  "swap_rate_label": "Cotação",
   "swap_confirm_title": "Confirmar Swap",
   "swap_confirm_estimate": "Estimativa",
   "swap_confirm_sending": "Enviando:",

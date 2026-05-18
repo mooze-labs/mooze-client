@@ -11,6 +11,18 @@ import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider
 import 'package:mooze_mobile/features/swap/domain/entities.dart';
 import 'package:mooze_mobile/features/swap/data/models.dart';
 
+/// Lifecycle of a quote subscription against the SideSwap stream.
+///
+/// - [idle]        : no quote, no subscription.
+/// - [fetching]    : subscription is open but the first quote hasn't arrived.
+/// - [valid]       : a quote is displayed and signable; countdown active.
+/// - [refreshing]  : the displayed quote's TTL hit zero, but we keep the
+///                   numbers visible (faded) while we wait for the next
+///                   stream push to promote into a fresh cycle.
+/// - [stale]       : we've been [refreshing] long enough that no new push
+///                   arrived — surface a manual retry to the user.
+enum QuoteStatus { idle, fetching, valid, refreshing, stale }
+
 /// Stable error categories for swap failures, decoupled from user-facing copy
 enum SwapErrorCode {
   noLiquidity,
@@ -64,6 +76,9 @@ class SwapError {
 }
 
 class SwapState {
+  /// `true` while a confirmation/sign-and-broadcast is in flight. Separate
+  /// from the quote-lifecycle [status] because they're orthogonal: the
+  /// quote can be valid while we're loading the swap submission.
   final bool loading;
   final List<SideswapAsset> assets;
   final List<SideswapMarket> markets;
@@ -77,6 +92,7 @@ class SwapState {
   final BigInt? lastAmount;
   final bool? isInverseMarket;
   final String? feeAssetId;
+  final QuoteStatus status;
 
   const SwapState({
     required this.loading,
@@ -92,6 +108,7 @@ class SwapState {
     this.lastAmount,
     this.isInverseMarket,
     this.feeAssetId,
+    this.status = QuoteStatus.idle,
   });
 
   int? get sendAmount {
@@ -127,6 +144,7 @@ class SwapState {
     BigInt? lastAmount,
     bool? isInverseMarket,
     String? feeAssetId,
+    QuoteStatus? status,
   }) => SwapState(
     loading: loading ?? this.loading,
     assets: assets ?? this.assets,
@@ -141,6 +159,7 @@ class SwapState {
     lastAmount: lastAmount ?? this.lastAmount,
     isInverseMarket: isInverseMarket ?? this.isInverseMarket,
     feeAssetId: feeAssetId ?? this.feeAssetId,
+    status: status ?? this.status,
   );
 
   static const initial = SwapState(loading: false, assets: [], markets: []);
@@ -155,12 +174,20 @@ class SwapController extends StateNotifier<SwapState> {
   // ever returns a shorter TTL we honor that instead.
   static const int _maxDisplayTtlMs = 15000;
 
+  // While in [QuoteStatus.refreshing], how long we wait for the next
+  // stream push before giving up and showing the user an explicit retry.
+  static const int _staleAfterRefreshingMs = 8000;
+
+  Timer? _staleTimer;
+
   Future<void> resetQuote() async {
     _log.debug(_tag, 'Resetting quote state');
     _ttlTimer?.cancel();
     _quoteSub?.cancel();
+    _staleTimer?.cancel();
     _ttlTimer = null;
     _quoteSub = null;
+    _staleTimer = null;
     _ttlDeadline = null;
     final repository = await _repositoryFuture;
     repository.stopQuote();
@@ -172,6 +199,7 @@ class SwapController extends StateNotifier<SwapState> {
       loading: false,
       assets: state.assets,
       markets: state.markets,
+      status: QuoteStatus.idle,
     );
   }
 
@@ -181,6 +209,7 @@ class SwapController extends StateNotifier<SwapState> {
       'Forcing WebSocket reconnect and resetting all swap state',
     );
     _ttlTimer?.cancel();
+    _staleTimer?.cancel();
     _quoteSub?.cancel();
     _ttlDeadline = null;
 
@@ -281,6 +310,8 @@ class SwapController extends StateNotifier<SwapState> {
     _quoteSub = null;
     _ttlTimer?.cancel();
     _ttlTimer = null;
+    _staleTimer?.cancel();
+    _staleTimer = null;
     _ttlDeadline = null;
     // Reset transient quote fields and seed the user's intent so the
     // bottom sheet can render the requested asset pair + amount while the
@@ -292,6 +323,7 @@ class SwapController extends StateNotifier<SwapState> {
       lastSendAssetId: sendAsset,
       lastReceiveAssetId: receiveAsset,
       lastAmount: amount,
+      status: QuoteStatus.fetching,
     );
 
     var normalizedParams = repository.normalizeSwapParams(
@@ -459,17 +491,59 @@ class SwapController extends StateNotifier<SwapState> {
           final isRollingRefresh = swapErr == null &&
               newQuote != null &&
               prevQuote != null &&
-              isWithinLockWindow;
+              isWithinLockWindow &&
+              state.status == QuoteStatus.valid;
 
+          // ── Rolling refresh ───────────────────────────────────────
+          // SideSwap rotates the quote_id every ~3s on the same
+          // subscription. While the displayed quote's TTL is still
+          // alive, treat the push as a silent renewal — only the
+          // signable id moves forward, everything else stays anchored.
           if (isRollingRefresh) {
             if (!mounted) return;
-            state = state.copyWith(
-              loading: false,
-              activeQuoteId: newQuote.quoteId,
-            );
+            state = state.copyWith(activeQuoteId: newQuote.quoteId);
             return;
           }
 
+          // ── Promotion from `refreshing` ───────────────────────────
+          // Our soft-expiry handler left displayedQuote on screen but
+          // flipped status to `refreshing`. The first push after that
+          // becomes the new locked quote and we re-arm the countdown.
+          final isPromotingFromRefreshing =
+              swapErr == null &&
+              newQuote != null &&
+              state.status == QuoteStatus.refreshing;
+
+          if (isPromotingFromRefreshing) {
+            _staleTimer?.cancel();
+            _staleTimer = null;
+            if (ttlMs != null) {
+              _ttlDeadline = DateTime.now().add(
+                Duration(milliseconds: ttlMs),
+              );
+            }
+            _log.debug(
+              _tag,
+              'Promoting refreshed quote — id: ${newQuote.quoteId}, '
+              'ttl: ${ttlMs}ms',
+            );
+            if (!mounted) return;
+            state = state.copyWith(
+              loading: false,
+              currentQuote: quote,
+              activeQuoteId: newQuote.quoteId,
+              ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
+              millisecondsRemaining: ttlMs,
+              isInverseMarket: isInverse,
+              feeAssetId: feeAsset,
+              status: QuoteStatus.valid,
+              error: null,
+            );
+            _startTtlCountdown();
+            return;
+          }
+
+          // ── First quote of a cycle / error / unrelated push ──────
           final shouldStartTimer = _ttlDeadline == null && ttlMs != null;
           if (ttlMs != null) {
             _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
@@ -491,6 +565,11 @@ class SwapController extends StateNotifier<SwapState> {
           }
 
           if (!mounted) return;
+          final nextStatus = swapErr != null
+              ? state.status // keep prior status; error is surfaced separately
+              : newQuote != null
+                  ? QuoteStatus.valid
+                  : state.status;
           state = state.copyWith(
             loading: false,
             currentQuote: quote,
@@ -502,6 +581,7 @@ class SwapController extends StateNotifier<SwapState> {
             lastAmount: amount,
             isInverseMarket: isInverse,
             feeAssetId: feeAsset,
+            status: nextStatus,
           );
           if (shouldStartTimer) {
             _startTtlCountdown();
@@ -527,21 +607,31 @@ class SwapController extends StateNotifier<SwapState> {
         _ttlDeadline = null;
         _log.info(
           _tag,
-          'Quote TTL expired — clearing quote state, waiting for user action',
+          'Quote TTL expired — entering refreshing, awaiting next push',
         );
         if (!mounted) return;
-        // Construct directly: copyWith would silently keep the old quote
-        // fields because nulls flow through `?? this.x`.
-        state = SwapState(
-          loading: state.loading,
-          assets: state.assets,
-          markets: state.markets,
+        // Soft expiry: KEEP the displayed quote on screen and flip
+        // status to `refreshing`. The bottom sheet will fade the card,
+        // disable confirm, and shimmer the timer. The next stream push
+        // promotes into a fresh cycle. If no push arrives within
+        // [_staleAfterRefreshingMs], we fall back to `stale` so the
+        // user gets an explicit retry.
+        state = state.copyWith(
           millisecondsRemaining: 0,
-          lastSendAssetId: state.lastSendAssetId,
-          lastReceiveAssetId: state.lastReceiveAssetId,
-          lastAmount: state.lastAmount,
-          isInverseMarket: state.isInverseMarket,
-          feeAssetId: state.feeAssetId,
+          status: QuoteStatus.refreshing,
+        );
+        _staleTimer?.cancel();
+        _staleTimer = Timer(
+          const Duration(milliseconds: _staleAfterRefreshingMs),
+          () {
+            if (!mounted) return;
+            if (state.status != QuoteStatus.refreshing) return;
+            _log.warning(
+              _tag,
+              'Quote refresh stalled — surfacing manual retry',
+            );
+            state = state.copyWith(status: QuoteStatus.stale);
+          },
         );
       } else {
         if (!mounted) return;
@@ -550,19 +640,74 @@ class SwapController extends StateNotifier<SwapState> {
     });
   }
 
+  /// Re-open the subscription with the current send/receive/amount.
+  ///
+  /// Called from:
+  /// - the bottom sheet's timer chip tap (user wants a fresher quote)
+  /// - the stale-state retry button
+  /// - any other "give me a new quote" affordance
+  Future<void> requestFreshQuote() async {
+    final sendId = state.lastSendAssetId;
+    final receiveId = state.lastReceiveAssetId;
+    final amount = state.lastAmount;
+    if (sendId == null || receiveId == null || amount == null ||
+        amount <= BigInt.zero) {
+      _log.warning(_tag, 'requestFreshQuote: missing context — aborting');
+      return;
+    }
+    _log.info(_tag, 'Manual quote refresh requested');
+    await resetQuote();
+    if (!mounted) return;
+    await startQuote(
+      sendAsset: sendId,
+      receiveAsset: receiveId,
+      amount: amount,
+    );
+  }
+
+  /// If the currently-displayed quote is about to die (remaining TTL
+  /// under [thresholdMs]), preempt by transitioning to `refreshing`
+  /// immediately so the bottom sheet doesn't show a 1–2 second "expired"
+  /// flicker right after opening. The subscription is left running; the
+  /// next push promotes naturally.
+  ///
+  /// Called by the bottom sheet on first build.
+  void preemptIfLowTtl({int thresholdMs = 5000}) {
+    if (state.status != QuoteStatus.valid) return;
+    final remaining = state.millisecondsRemaining ?? 0;
+    if (remaining >= thresholdMs) return;
+    _log.debug(
+      _tag,
+      'Preempting low-TTL quote (${remaining}ms remaining) → refreshing',
+    );
+    _ttlTimer?.cancel();
+    _ttlTimer = null;
+    _ttlDeadline = null;
+    if (!mounted) return;
+    state = state.copyWith(
+      millisecondsRemaining: 0,
+      status: QuoteStatus.refreshing,
+    );
+    _staleTimer?.cancel();
+    _staleTimer = Timer(
+      const Duration(milliseconds: _staleAfterRefreshingMs),
+      () {
+        if (!mounted) return;
+        if (state.status != QuoteStatus.refreshing) return;
+        state = state.copyWith(status: QuoteStatus.stale);
+      },
+    );
+  }
+
   void cancelQuote() {
     _log.info(_tag, 'Quote cancelled by user');
     _ttlTimer?.cancel();
+    _staleTimer?.cancel();
     _repositoryFuture.then((r) => r.stopQuote());
     _quoteSub?.cancel();
     _ttlDeadline = null;
     if (!mounted) return;
-    state = state.copyWith(
-      currentQuote: null,
-      activeQuoteId: null,
-      ttlMilliseconds: null,
-      millisecondsRemaining: null,
-    );
+    state = state.copyWith(status: QuoteStatus.idle);
   }
 
   Future<Either<SwapError, String>> confirmSwap() async {
@@ -768,6 +913,7 @@ class SwapController extends StateNotifier<SwapState> {
     _mounted = false;
     _quoteSub?.cancel();
     _ttlTimer?.cancel();
+    _staleTimer?.cancel();
 
     _repositoryFuture
         .then((r) {

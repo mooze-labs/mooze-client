@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
@@ -9,7 +10,6 @@ import 'package:shimmer/shimmer.dart';
 import '../providers/swap_controller.dart' as sc;
 import 'package:mooze_mobile/features/swap/data/models.dart' show SideswapQuote;
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
-import 'package:mooze_mobile/shared/widgets/info_row.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../screens/swap_success_screen.dart';
@@ -21,19 +21,37 @@ class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
 
   const ConfirmSwapBottomSheet({super.key, this.onSuccess, this.onError});
 
-  static Future<void> show(
+  /// Sheet-open guard. We only allow one confirm-swap sheet to be visible
+  /// at any time — a rapid double-tap on the Swap button would otherwise
+  /// stack modal routes and confuse the controller's lifecycle. The flag
+  /// is module-private and cleared once the bottom sheet's future resolves.
+  static bool _isOpen = false;
+
+  /// Returns `true` if the sheet was actually opened, `false` if a second
+  /// call collided with an already-open sheet (which we suppress). Callers
+  /// can use the return value to skip post-dismiss work that shouldn't run
+  /// when no sheet ever opened — e.g. the background-refresh step in the
+  /// Swap-button handler.
+  static Future<bool> show(
     BuildContext context, {
     VoidCallback? onSuccess,
     VoidCallback? onError,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) =>
-              ConfirmSwapBottomSheet(onSuccess: onSuccess, onError: onError),
-    );
+  }) async {
+    if (_isOpen) return false;
+    _isOpen = true;
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder:
+            (context) =>
+                ConfirmSwapBottomSheet(onSuccess: onSuccess, onError: onError),
+      );
+      return true;
+    } finally {
+      _isOpen = false;
+    }
   }
 
   @override
@@ -44,6 +62,19 @@ class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
 class _ConfirmSwapBottomSheetState
     extends ConsumerState<ConfirmSwapBottomSheet> {
   bool _isConfirming = false;
+  bool _feesExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If the cached quote is about to die (< 5s remaining) when the user
+    // opens the sheet, preempt immediately so we don't show "00:02 →
+    // expired" right after the modal lands.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(sc.swapControllerProvider.notifier).preemptIfLowTtl();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,148 +82,115 @@ class _ConfirmSwapBottomSheetState
     final state = ref.watch(sc.swapControllerProvider);
     final controller = ref.read(sc.swapControllerProvider.notifier);
     final quote = state.currentQuote?.quote;
+    final status = state.status;
+
+    final isFetching = status == sc.QuoteStatus.fetching;
+    final isRefreshing = status == sc.QuoteStatus.refreshing;
+    final isStale = status == sc.QuoteStatus.stale;
+    final canConfirm =
+        status == sc.QuoteStatus.valid &&
+        !_isConfirming &&
+        !state.loading &&
+        quote != null;
+
     final millisecondsRemaining =
         state.millisecondsRemaining ?? state.ttlMilliseconds;
-    final isLoadingQuote = quote == null;
 
     return PlatformSafeArea(
       child: Container(
         constraints: BoxConstraints(
           minHeight: MediaQuery.of(context).size.height * 0.4,
-          maxHeight: MediaQuery.of(context).size.height * 0.75,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _DragHandle(),
+              const SizedBox(height: 16),
+              _Header(t: t),
+              const SizedBox(height: 20),
+              AnimatedOpacity(
+                opacity: isRefreshing ? 0.55 : 1.0,
+                duration: const Duration(milliseconds: 220),
+                child: Column(
+                  children: [
+                    _DealCard(state: state, isLoadingReceive: isFetching),
+                    const SizedBox(height: 14),
+                    _ExchangeRateRow(state: state, t: t),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              t.swap_confirm_title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: _TimerChip(
-                millisecondsRemaining: millisecondsRemaining,
-                isLoading: isLoadingQuote,
-                formatted:
-                    millisecondsRemaining != null
-                        ? _formatDuration(millisecondsRemaining)
-                        : null,
+              const SizedBox(height: 16),
+              Builder(
+                builder: (context) {
+                  final theme = Theme.of(context);
+                  final alpha =
+                      theme.brightness == Brightness.dark ? 0.45 : 0.4;
+                  return Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: theme.colorScheme.outline.withValues(alpha: alpha),
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 20),
-            _fromToSummary(context, state, isLoadingQuote),
-            if (state.error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  state.error!.localize(context),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+              const SizedBox(height: 4),
+              _FeesSection(
+                state: state,
+                quote: quote,
+                isLoadingQuote: isFetching,
+                expanded: _feesExpanded,
+                onToggle: () => setState(() => _feesExpanded = !_feesExpanded),
+                t: t,
+              ),
+              if (isStale) ...[
+                const SizedBox(height: 14),
+                _StaleBanner(t: t, onRetry: controller.requestFreshQuote),
+              ],
+              if (state.error != null) ...[
+                const SizedBox(height: 14),
+                _ErrorCard(
+                  message: state.error!.localize(context),
+                  onRetry: controller.requestFreshQuote,
+                  t: t,
                 ),
+              ],
+              const SizedBox(height: 12),
+              _ExpirationIndicator(
+                remainingMs: millisecondsRemaining,
+                totalMs: state.ttlMilliseconds,
+                showShimmer: isFetching || isRefreshing,
+                onTap: controller.requestFreshQuote,
+                t: t,
               ),
-            const SizedBox(height: 20),
-            _feesSection(context, state, quote, isLoadingQuote, t),
-            const SizedBox(height: 24),
-            SlideToConfirmButton(
-              text:
-                  _isConfirming || state.loading
-                      ? t.common_confirming
-                      : t.swap_confirm_title,
-              isLoading: _isConfirming || state.loading || isLoadingQuote,
-              onSlideComplete:
-                  _isConfirming || state.loading || isLoadingQuote
-                      ? () {}
-                      : () => _confirmSwap(context, controller),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 12),
+              SlideToConfirmButton(
+                text:
+                    _isConfirming || state.loading
+                        ? t.common_confirming
+                        : t.swap_confirm_title,
+                isLoading: _isConfirming || state.loading || isFetching,
+                onSlideComplete:
+                    canConfirm
+                        ? () => _confirmSwap(context, controller)
+                        : () {},
+              ),
+              const SizedBox(height: 14),
+              _PoweredBy(),
+              const SizedBox(height: 4),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  Widget _feesSection(
-    BuildContext context,
-    sc.SwapState state,
-    SideswapQuote? quote,
-    bool isLoadingQuote,
-    AppLocalizations t,
-  ) {
-    if (isLoadingQuote) {
-      return Column(
-        children: [
-          const Divider(),
-          const SizedBox(height: 4),
-          ShimmerInfoRow(label: t.swap_confirm_server_fee, shimmerWidth: 90),
-          const SizedBox(height: 6),
-          ShimmerInfoRow(label: t.swap_confirm_fixed_fee, shimmerWidth: 80),
-          const SizedBox(height: 6),
-          ShimmerInfoRow(
-            label: t.swap_confirm_total_fees_short,
-            labelFontWeight: FontWeight.w600,
-            shimmerWidth: 100,
-          ),
-        ],
-      );
-    }
-
-    final q = quote!;
-    return Column(
-      children: [
-        const Divider(),
-        const SizedBox(height: 4),
-        InfoRow(
-          label: t.swap_confirm_server_fee,
-          value: _formatFee(state, q.serverFee),
-        ),
-        const SizedBox(height: 6),
-        InfoRow(
-          label: t.swap_confirm_fixed_fee,
-          value: _formatFee(state, q.fixedFee),
-        ),
-        const SizedBox(height: 6),
-        InfoRow(
-          label: t.swap_confirm_total_fees_short,
-          value: _formatFee(state, q.serverFee + q.fixedFee),
-          valueFontWeight: FontWeight.bold,
-        ),
-      ],
-    );
-  }
-
-  String _formatFee(sc.SwapState state, int feeSats) {
-    final feeId = state.feeAssetId;
-    final asset = feeId != null ? core.Asset.fromId(feeId) : core.Asset.btc;
-    if (asset == core.Asset.btc || asset == core.Asset.lbtc) {
-      return '$feeSats SATS';
-    } else {
-      final value = feeSats / 100000000;
-      return '${value.toStringAsFixed(4)} ${asset.ticker}';
-    }
   }
 
   Future<void> _confirmSwap(
@@ -213,9 +211,7 @@ class _ConfirmSwapBottomSheetState
       result.match(
         (err) {
           Navigator.of(context).pop();
-
           widget.onError?.call();
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(err.localize(context)),
@@ -248,7 +244,6 @@ class _ConfirmSwapBottomSheetState
           if (sendAmount != null && receiveAmount != null) {
             final amountSent = sendAmount.toDouble() / 100000000;
             final amountReceived = receiveAmount.toDouble() / 100000000;
-
             SwapSuccessScreen.show(
               context,
               fromAsset: sendAsset,
@@ -264,21 +259,157 @@ class _ConfirmSwapBottomSheetState
       if (mounted) setState(() => _isConfirming = false);
     }
   }
+}
 
-  String _formatDuration(int millis) {
-    if (millis <= 0) return '00:00';
-    final totalSeconds = (millis / 1000).ceil();
-    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+// ─────────────────────────────────────────────────────────────────────
+// Header
+// ─────────────────────────────────────────────────────────────────────
+
+class _DragHandle extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  final AppLocalizations t;
+  const _Header({required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      t.swap_confirm_title,
+      style: Theme.of(
+        context,
+      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Timer chip — tone escalates with remaining time, tap to refresh
+// ─────────────────────────────────────────────────────────────────────
+
+/// Minimal expiration indicator: small circular progress ring that fills
+/// up as the quote's TTL drains, alongside a tone-colored "expires in Ns"
+/// label. The whole row is tappable to manually refresh the quote.
+class _ExpirationIndicator extends StatelessWidget {
+  final int? remainingMs;
+  final int? totalMs;
+  final bool showShimmer;
+  final Future<void> Function() onTap;
+  final AppLocalizations t;
+
+  const _ExpirationIndicator({
+    required this.remainingMs,
+    required this.totalMs,
+    required this.showShimmer,
+    required this.onTap,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = _toneColor(
+      remainingMs,
+      theme.colorScheme,
+      context.appColors.warning,
+    );
+
+    // Fills up as time runs out: 0.0 at the start of the cycle,
+    // approaching 1.0 at expiry.
+    final progress =
+        (remainingMs == null || totalMs == null || totalMs == 0)
+            ? null
+            : (1.0 - (remainingMs! / totalMs!)).clamp(0.0, 1.0);
+
+    final isLoading = showShimmer || remainingMs == null;
+    final seconds = ((remainingMs ?? 0) / 1000).ceil();
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(),
+          borderRadius: BorderRadius.circular(999),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    value: isLoading ? null : progress,
+                    strokeWidth: 2,
+                    backgroundColor: color.withValues(alpha: 0.15),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (isLoading)
+                  Text(
+                    t.swap_quote_refreshing,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                else
+                  Text(
+                    t.swap_expires_in(seconds),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Icon(Icons.refresh_rounded, size: 14, color: color),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget _fromToSummary(
-    BuildContext context,
-    sc.SwapState state,
-    bool isLoadingQuote,
-  ) {
-    final t = AppLocalizations.of(context);
+  /// Tone color derives from theme tokens so both light and dark themes
+  /// pick up appropriate contrast levels:
+  /// - success      → [ColorScheme.tertiary]
+  /// - warning      → [AppExtraColors.warning]
+  /// - urgent / red → [ColorScheme.error]
+  static Color _toneColor(int? remainingMs, ColorScheme cs, Color warning) {
+    final r = remainingMs ?? 0;
+    if (r >= 10000) return cs.tertiary;
+    if (r >= 5000) return warning;
+    return cs.error;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Deal card — receive amount is the visual hero
+// ─────────────────────────────────────────────────────────────────────
+
+class _DealCard extends StatelessWidget {
+  final sc.SwapState state;
+  final bool isLoadingReceive;
+
+  const _DealCard({required this.state, required this.isLoadingReceive});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final sendId = state.lastSendAssetId;
     final receiveId = state.lastReceiveAssetId;
     final sendAsset =
@@ -286,73 +417,320 @@ class _ConfirmSwapBottomSheetState
     final receiveAsset =
         receiveId != null ? core.Asset.fromId(receiveId) : core.Asset.usdt;
 
-    String formatAmount(int amountSats) {
-      final v = amountSats.toDouble() / 100000000;
-      return v.toStringAsFixed(8);
-    }
+    final sendAmount =
+        state.lastAmount != null
+            ? _formatAssetAmount(sendAsset, state.lastAmount!.toInt())
+            : '0';
+    final receiveAmount =
+        state.receiveAmount != null
+            ? _formatAssetAmount(receiveAsset, state.receiveAmount!)
+            : null;
+
+    final isDark = theme.brightness == Brightness.dark;
+    // `outline` lands at different luminances per theme, so the alpha
+    // needed for an equally-readable line differs. Tuned per theme:
+    // dark relies on stronger borders + a black-tinted shadow because
+    // `colorScheme.shadow` is washed out on dark surfaces; light uses
+    // slightly stronger borders too plus its existing soft shadow.
+    final borderColor =
+        isDark
+            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.45)
+            : theme.colorScheme.outline.withValues(alpha: 0.55);
+    final dividerColor =
+        isDark
+            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
+            : theme.colorScheme.outline.withValues(alpha: 0.45);
 
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
-          colors: [
-            Theme.of(context).colorScheme.surfaceContainerLowest,
-            Theme.of(context).colorScheme.primary,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+        boxShadow:
+            isDark
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+                : [
+                  BoxShadow(
+                    color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(1.5),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(14),
+      child: Column(
+        children: [
+          _AmountRow(
+            label: AppLocalizations.of(context).swap_you_send,
+            asset: sendAsset,
+            amount: sendAmount,
+            isShimmer: false,
+            isHero: false,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          const SizedBox(height: 14),
+          Row(
             children: [
-              Expanded(
-                child: _SummaryColumn(
-                  label: t.swap_you_send,
-                  asset: sendAsset,
-                  amount:
-                      state.lastAmount != null
-                          ? formatAmount(state.lastAmount!.toInt())
-                          : '0',
-                  showShimmer: false,
+              Expanded(child: Divider(color: dividerColor, height: 1)),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_downward_rounded,
+                  size: 18,
+                  color: theme.colorScheme.primary,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/icons/menu/arrow.svg',
-                    width: 22,
-                    height: 22,
-                  ),
+              const SizedBox(width: 10),
+              Expanded(child: Divider(color: dividerColor, height: 1)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _AmountRow(
+            label: AppLocalizations.of(context).swap_you_receive,
+            asset: receiveAsset,
+            amount: receiveAmount ?? '0',
+            isShimmer: isLoadingReceive || receiveAmount == null,
+            isHero: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountRow extends StatelessWidget {
+  final String label;
+  final core.Asset asset;
+  final String amount;
+  final bool isShimmer;
+  final bool isHero;
+
+  const _AmountRow({
+    required this.label,
+    required this.asset,
+    required this.amount,
+    required this.isShimmer,
+    required this.isHero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final amountStyle =
+        isHero
+            ? theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            )
+            : theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            );
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(shape: BoxShape.circle),
+          child: SvgPicture.asset(asset.iconPath, width: 28, height: 28),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.colors.textSecondary,
+                  letterSpacing: 0.4,
                 ),
               ),
-              Expanded(
-                child: _SummaryColumn(
-                  label: t.swap_you_receive,
-                  asset: receiveAsset,
-                  amount:
-                      state.receiveAmount != null
-                          ? formatAmount(state.receiveAmount!)
-                          : '0',
-                  showShimmer: isLoadingQuote || state.receiveAmount == null,
-                  alignEnd: true,
-                ),
+              const SizedBox(height: 2),
+              isShimmer
+                  ? _ShimmerBlock(width: 140, height: isHero ? 28 : 22)
+                  : Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          amount,
+                          style: amountStyle,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        asset.ticker.toUpperCase(),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: context.colors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Exchange-rate row
+// ─────────────────────────────────────────────────────────────────────
+
+class _ExchangeRateRow extends StatelessWidget {
+  final sc.SwapState state;
+  final AppLocalizations t;
+
+  const _ExchangeRateRow({required this.state, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final sendId = state.lastSendAssetId;
+    final receiveId = state.lastReceiveAssetId;
+    final rate = state.exchangeRate;
+
+    if (sendId == null || receiveId == null || rate == null) {
+      return const SizedBox.shrink();
+    }
+    final sendAsset = core.Asset.fromId(sendId);
+    final receiveAsset = core.Asset.fromId(receiveId);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.swap_horiz, size: 14, color: context.colors.textSecondary),
+        const SizedBox(width: 6),
+        Text(
+          '${t.swap_rate_label} · ${t.swap_rate_line(sendAsset.ticker, _formatRate(rate), receiveAsset.ticker)}',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _formatRate(double rate) {
+    if (rate == 0) return '0';
+    if (rate < 0.0001) return rate.toStringAsFixed(8);
+    if (rate < 1) return rate.toStringAsFixed(6);
+    return rate.toStringAsFixed(4);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Fees — one row by default, tap to expand breakdown
+// ─────────────────────────────────────────────────────────────────────
+
+class _FeesSection extends StatelessWidget {
+  final sc.SwapState state;
+  final SideswapQuote? quote;
+  final bool isLoadingQuote;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final AppLocalizations t;
+
+  const _FeesSection({
+    required this.state,
+    required this.quote,
+    required this.isLoadingQuote,
+    required this.expanded,
+    required this.onToggle,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final totalLabel = t.swap_confirm_total_fees_short;
+
+    final Widget totalValue;
+    if (isLoadingQuote || quote == null) {
+      totalValue = _ShimmerBlock(width: 80, height: 16);
+    } else {
+      final q = quote!;
+      totalValue = Text(
+        _formatFee(state, q.serverFee + q.fixedFee),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: (isLoadingQuote || quote == null) ? null : onToggle,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 16,
+                    color: context.colors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    totalLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  totalValue,
+                  const SizedBox(width: 4),
+                  if (quote != null)
+                    AnimatedRotation(
+                      turns: expanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 180),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                child:
+                    (expanded && quote != null)
+                        ? Padding(
+                          padding: const EdgeInsets.only(top: 10, left: 24),
+                          child: Column(
+                            children: [
+                              _SubFeeRow(
+                                label: t.swap_confirm_server_fee,
+                                value: _formatFee(state, quote!.serverFee),
+                              ),
+                              const SizedBox(height: 6),
+                              _SubFeeRow(
+                                label: t.swap_confirm_fixed_fee,
+                                value: _formatFee(state, quote!.fixedFee),
+                              ),
+                            ],
+                          ),
+                        )
+                        : const SizedBox.shrink(),
               ),
             ],
           ),
@@ -362,114 +740,159 @@ class _ConfirmSwapBottomSheetState
   }
 }
 
-class _SummaryColumn extends StatelessWidget {
+class _SubFeeRow extends StatelessWidget {
   final String label;
-  final core.Asset asset;
-  final String amount;
-  final bool showShimmer;
-  final bool alignEnd;
-
-  const _SummaryColumn({
-    required this.label,
-    required this.asset,
-    required this.amount,
-    required this.showShimmer,
-    this.alignEnd = false,
-  });
+  final String value;
+  const _SubFeeRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final cross = alignEnd
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
-    final textAlign = alignEnd ? TextAlign.end : TextAlign.start;
-
-    final labelRowChildren = <Widget>[
-      Text(
-        label,
-        style: textTheme.labelMedium?.copyWith(
-          color: context.colors.textSecondary,
-        ),
-      ),
-      const SizedBox(width: 8),
-      SvgPicture.asset(asset.iconPath, width: 15, height: 15),
-    ];
-
-    return Column(
-      crossAxisAlignment: cross,
+    final theme = Theme.of(context);
+    return Row(
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: alignEnd
-              ? labelRowChildren.reversed.toList()
-              : labelRowChildren,
-        ),
-        const SizedBox(height: 6),
-        showShimmer
-            ? _ShimmerBlock(width: 96, height: 18)
-            : Text(
-                amount,
-                textAlign: textAlign,
-                style: textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-        const SizedBox(height: 2),
         Text(
-          asset.name.toLowerCase(),
-          textAlign: textAlign,
-          style: textTheme.labelSmall?.copyWith(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
             color: context.colors.textTertiary,
           ),
-          overflow: TextOverflow.ellipsis,
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: context.colors.textSecondary,
+          ),
         ),
       ],
     );
   }
 }
 
-class _TimerChip extends StatelessWidget {
-  final int? millisecondsRemaining;
-  final bool isLoading;
-  final String? formatted;
+// ─────────────────────────────────────────────────────────────────────
+// Stale-quote banner + error card — both surface an explicit retry
+// ─────────────────────────────────────────────────────────────────────
 
-  const _TimerChip({
-    required this.millisecondsRemaining,
-    required this.isLoading,
-    required this.formatted,
+class _StaleBanner extends StatelessWidget {
+  final AppLocalizations t;
+  final Future<void> Function() onRetry;
+
+  const _StaleBanner({required this.t, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final warning = context.appColors.warning;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: warning.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: warning.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: warning, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.swap_quote_outdated_title,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: warning,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  t.swap_quote_outdated_body,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => onRetry(),
+            style: TextButton.styleFrom(
+              foregroundColor: warning,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(t.swap_refresh_action),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+  final AppLocalizations t;
+
+  const _ErrorCard({
+    required this.message,
+    required this.onRetry,
+    required this.t,
   });
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final bg = primary.withValues(alpha: 0.12);
-
+    final theme = Theme.of(context);
+    final error = theme.colorScheme.error;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: primary.withValues(alpha: 0.25)),
+        color: error.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: error.withValues(alpha: 0.4)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.timer_outlined, size: 14, color: primary),
-          const SizedBox(width: 6),
-          if (isLoading || formatted == null)
-            const _ShimmerBlock(width: 44, height: 14)
-          else
-            Text(
-              formatted!,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: primary,
-                fontWeight: FontWeight.w600,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+          Icon(Icons.error_outline, color: error, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(color: error),
             ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => onRetry(),
+            style: TextButton.styleFrom(
+              foregroundColor: error,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(t.common_retry),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Footer + shimmer block
+// ─────────────────────────────────────────────────────────────────────
+
+class _PoweredBy extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      'Powered by sideswap.io',
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: context.colors.textTertiary,
       ),
     );
   }
@@ -498,4 +921,42 @@ class _ShimmerBlock extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Asset-native amount formatting
+// ─────────────────────────────────────────────────────────────────────
+
+/// Renders [sats] in the asset's natural display unit and precision.
+///
+/// - BTC / LBTC → 8 decimals, treated as BTC.
+/// - USDT / DEPIX → 2 decimals (these are fiat-pegged stablecoins; the
+///   extra 6 decimals from the satoshi-converted storage are noise).
+///
+/// Uses [NumberFormat] in the active locale so thousands separators
+/// follow the user's language (e.g. `1.240,12` in pt-BR, `1,240.12` in
+/// en-US).
+String _formatAssetAmount(core.Asset asset, int sats) {
+  final inAsset = sats / 100000000.0;
+  switch (asset) {
+    case core.Asset.btc:
+    case core.Asset.lbtc:
+      return NumberFormat(
+        '#,##0.########',
+        Intl.getCurrentLocale(),
+      ).format(inAsset);
+    case core.Asset.usdt:
+    case core.Asset.depix:
+      return NumberFormat('#,##0.00', Intl.getCurrentLocale()).format(inAsset);
+  }
+}
+
+String _formatFee(sc.SwapState state, int feeSats) {
+  final feeId = state.feeAssetId;
+  final asset = feeId != null ? core.Asset.fromId(feeId) : core.Asset.btc;
+  final formatter = NumberFormat('#,##0', Intl.getCurrentLocale());
+  if (asset == core.Asset.btc || asset == core.Asset.lbtc) {
+    return '${formatter.format(feeSats)} sats';
+  }
+  return '${_formatAssetAmount(asset, feeSats)} ${asset.ticker}';
 }

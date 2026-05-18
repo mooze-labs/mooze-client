@@ -618,6 +618,19 @@
   "swap_no_liquidity_body": "There is no liquidity available on Sideswap for this operation right now.",
   "swap_use_asset_value": "Use asset amount",
   "swap_use_currency_value": "Use {currency} amount",
+  "swap_expires_in": "Expires in {seconds}s",
+  "@swap_expires_in": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "swap_quote_refreshing": "Refreshing quote...",
+  "swap_quote_outdated_title": "Quote outdated",
+  "swap_quote_outdated_body": "Tap refresh to get the latest market rate.",
+  "swap_refresh_action": "Refresh",
+  "swap_rate_label": "Rate",
   "swap_confirm_title": "Confirm Swap",
   "swap_confirm_estimate": "Estimate",
   "swap_confirm_sending": "Sending:",

@@ -618,6 +618,19 @@
   "swap_no_liquidity_body": "En este momento no hay liquidez disponible en Sideswap para realizar esta operación.",
   "swap_use_asset_value": "Usar monto en activo",
   "swap_use_currency_value": "Usar monto en {currency}",
+  "swap_expires_in": "Expira en {seconds}s",
+  "@swap_expires_in": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "swap_quote_refreshing": "Actualizando cotización...",
+  "swap_quote_outdated_title": "Cotización desactualizada",
+  "swap_quote_outdated_body": "Toca actualizar para obtener la cotización más reciente.",
+  "swap_refresh_action": "Actualizar",
+  "swap_rate_label": "Tasa",
   "swap_confirm_title": "Confirmar Swap",
   "swap_confirm_estimate": "Estimación",
   "swap_confirm_sending": "Enviando:",

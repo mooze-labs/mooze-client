@@ -462,14 +462,18 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                     // First click: the debounced quote
                                     // from typing is already on screen,
                                     // so open the sheet immediately —
-                                    // no extra round-trip.
-                                    await ConfirmSwapBottomSheet.show(
-                                      context,
-                                      onSuccess: _clearSwapFields,
-                                      onError: _clearSwapFields,
-                                    );
+                                    // no extra round-trip. `show` returns
+                                    // false if a sheet is already visible
+                                    // (rapid double-tap guard).
+                                    final didOpen =
+                                        await ConfirmSwapBottomSheet.show(
+                                          context,
+                                          onSuccess: _clearSwapFields,
+                                          onError: _clearSwapFields,
+                                        );
 
                                     if (!mounted) return;
+                                    if (!didOpen) return;
 
                                     // After the sheet closes, refresh
                                     // the quote subscription so the next

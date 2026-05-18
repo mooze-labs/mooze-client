@@ -1760,6 +1760,27 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String swap_expires_in(int seconds) {
+    return 'Expira en ${seconds}s';
+  }
+
+  @override
+  String get swap_quote_refreshing => 'Actualizando cotización...';
+
+  @override
+  String get swap_quote_outdated_title => 'Cotización desactualizada';
+
+  @override
+  String get swap_quote_outdated_body =>
+      'Toca actualizar para obtener la cotización más reciente.';
+
+  @override
+  String get swap_refresh_action => 'Actualizar';
+
+  @override
+  String get swap_rate_label => 'Tasa';
+
+  @override
   String get swap_confirm_title => 'Confirmar Swap';
 
   @override
