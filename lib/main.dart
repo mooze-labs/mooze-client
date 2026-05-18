@@ -5,6 +5,7 @@ import 'package:safe_device/safe_device_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/app/lifecycle/app_foreground_observer.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/locale_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -67,9 +68,10 @@ class _MyAppState extends ConsumerState<MyApp> {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     return LevelChangeListener(
-      child: TransactionStatusListener(
-        child: PixStatusListener(
-          child: MaterialApp.router(
+      child: AppForegroundObserver(
+        child: TransactionStatusListener(
+          child: PixStatusListener(
+            child: MaterialApp.router(
             title: 'Mooze',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme(context),
@@ -87,6 +89,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               return const Locale('en');
             },
             routerConfig: router,
+            ),
           ),
         ),
       ),
