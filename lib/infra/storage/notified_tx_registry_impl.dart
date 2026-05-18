@@ -14,6 +14,7 @@ class SqliteNotifiedTxRegistry implements NotifiedTxRegistry {
 
   static const String _kBaselineKey = 'baseline_completed';
   static const String _kBaselineValueTrue = '1';
+  static const String _kImportedAtKey = 'wallet_imported_at_ms';
 
   @override
   Future<Either<StorageFailure, bool>> markIfNew({
@@ -118,6 +119,51 @@ class SqliteNotifiedTxRegistry implements NotifiedTxRegistry {
     } catch (e, st) {
       return Left(StorageFailure(
         'notifiedTxRegistry.setBaselineComplete failed: $e',
+        cause: e,
+        stackTrace: st,
+      ));
+    }
+  }
+
+  @override
+  Future<Either<StorageFailure, int?>> getImportedAtMs() async {
+    try {
+      final rows = _database.db.select(
+        'SELECT meta_value FROM notification_meta WHERE meta_key = ? LIMIT 1',
+        [_kImportedAtKey],
+      );
+      if (rows.isEmpty) return const Right(null);
+      final raw = rows.first['meta_value'] as String?;
+      if (raw == null) return const Right(null);
+      final parsed = int.tryParse(raw);
+      return Right(parsed);
+    } catch (e, st) {
+      return Left(StorageFailure(
+        'notifiedTxRegistry.getImportedAtMs failed: $e',
+        cause: e,
+        stackTrace: st,
+      ));
+    }
+  }
+
+  @override
+  Future<Either<StorageFailure, Unit>> setImportedAtMs(
+    int millisSinceEpoch,
+  ) async {
+    try {
+      final stmt = _database.db.prepare(
+        'INSERT OR REPLACE INTO notification_meta '
+        '(meta_key, meta_value) VALUES (?, ?)',
+      );
+      try {
+        stmt.execute([_kImportedAtKey, millisSinceEpoch.toString()]);
+      } finally {
+        stmt.dispose();
+      }
+      return const Right(unit);
+    } catch (e, st) {
+      return Left(StorageFailure(
+        'notifiedTxRegistry.setImportedAtMs failed: $e',
         cause: e,
         stackTrace: st,
       ));

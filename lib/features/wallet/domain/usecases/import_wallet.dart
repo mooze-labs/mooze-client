@@ -85,7 +85,11 @@ class ImportWalletUseCase {
     // 2b. Wipe notification dedup ledger + baseline flag so the new
     //     wallet's first sync correctly enters the baseline-absorb
     //     path and does not get masked by a previous wallet's "already
-    //     notified" rows.
+    //     notified" rows. Immediately stamp `wallet_imported_at_ms` so
+    //     the notifier can filter out any transaction with an on-chain
+    //     timestamp predating this import — those are historical txs
+    //     restored from the chain and must not surface as "received"
+    //     modals on first sync (or any subsequent re-sync).
     final notifyReg = notifiedTxRegistry;
     if (notifyReg != null) {
       final wipe = await notifyReg.clear();
@@ -93,6 +97,14 @@ class ImportWalletUseCase {
         (f) => logger?.warn(
             'wallet.import.notified_wipe_failed', {'reason': f.message}),
         (_) => logger?.info('wallet.import.notified_wiped', {}),
+      );
+      final importedAtMs = DateTime.now().millisecondsSinceEpoch;
+      final stamp = await notifyReg.setImportedAtMs(importedAtMs);
+      stamp.match(
+        (f) => logger?.warn(
+            'wallet.import.stamp_failed', {'reason': f.message}),
+        (_) => logger?.info(
+            'wallet.import.stamped', {'imported_at_ms': importedAtMs}),
       );
     }
 

@@ -71,6 +71,15 @@ class V2TransactionNotifier implements TransactionNotifier {
   bool _homeReached = false;
   bool _foregrounded = true;
 
+  /// Epoch-ms stamp written by `ImportWalletUseCase` when the current
+  /// wallet's mnemonic was persisted. Any incoming confirmed tx whose
+  /// on-chain `timestamp` is strictly older than this is treated as
+  /// wallet history restored from the chain — silently marked in the
+  /// dedup ledger and dropped without emitting. `null` means the stamp
+  /// is missing (legacy install pre-dating the filter); we then defer
+  /// fully to the baseline-absorb + dedup mechanism.
+  int? _importedAtMs;
+
   /// Events that arrived while baseline was still initializing. Drained
   /// once init completes, then this stays empty for the notifier's
   /// lifetime.
@@ -134,6 +143,16 @@ class V2TransactionNotifier implements TransactionNotifier {
   /// arrived after the snapshot will flow through normally.
   Future<void> _runBaselineInit() async {
     try {
+      // Load the wallet-import stamp once at init. The notifier is
+      // re-constructed on import (provider rebuild), so this captures
+      // the freshly-written value. Failures are non-fatal: a null
+      // stamp simply disables the timestamp filter and we fall back
+      // to baseline absorb + dedup.
+      final stampEither = await _registry.getImportedAtMs();
+      _importedAtMs = stampEither.getOrElse((_) => null);
+      _logger.info('tx_notifier.imported_at_loaded',
+          {'imported_at_ms': _importedAtMs});
+
       final baselineEither = await _registry.isBaselineComplete();
       final alreadyDone =
           baselineEither.getOrElse((_) => false);
@@ -240,6 +259,24 @@ class V2TransactionNotifier implements TransactionNotifier {
     );
     final isFreshlyMarked = markResult.getOrElse((_) => false);
     if (!isFreshlyMarked) return;
+
+    // Import-timestamp filter. A transaction whose on-chain timestamp
+    // (block / confirmation time) predates the current wallet's import
+    // is wallet history restored from the chain, not a fresh receive.
+    // It has now been marked in the dedup ledger above, so it will
+    // never re-enter this path — that satisfies the "resync / reopen
+    // app after import" requirement without any extra bookkeeping.
+    final importedAt = _importedAtMs;
+    if (importedAt != null &&
+        tx.timestamp.millisecondsSinceEpoch < importedAt) {
+      _logger.info('tx_notifier.pre_import_drop', {
+        'tx_id': tx.id,
+        'chain': tx.chain.name,
+        'tx_ts_ms': tx.timestamp.millisecondsSinceEpoch,
+        'imported_at_ms': importedAt,
+      });
+      return;
+    }
 
     final assetId = tx.assetId ?? _defaultAssetIdForChain(tx);
     if (assetId == null) {

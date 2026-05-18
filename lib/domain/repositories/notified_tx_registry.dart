@@ -37,6 +37,19 @@ abstract interface class NotifiedTxRegistry {
   Future<Either<StorageFailure, bool>> isBaselineComplete();
   Future<Either<StorageFailure, Unit>> setBaselineComplete();
 
+  /// Wall-clock instant (epoch ms) when the current wallet's mnemonic
+  /// was persisted by `ImportWalletUseCase`. Used by the notifier to
+  /// silently absorb any transaction whose on-chain timestamp predates
+  /// the import — those are wallet history restored from the chain,
+  /// not freshly received funds, and must not surface as "transaction
+  /// received" modals.
+  ///
+  /// `null` means no stamp has been recorded yet (legacy wallets that
+  /// existed before the import-timestamp filter shipped). Callers fall
+  /// back to the baseline-absorb mechanism in that case.
+  Future<Either<StorageFailure, int?>> getImportedAtMs();
+  Future<Either<StorageFailure, Unit>> setImportedAtMs(int millisSinceEpoch);
+
   /// Wipe both the dedup ledger and the baseline flag. Called from
   /// `DeleteWalletUseCase` and `ImportWalletUseCase` so a re-import on
   /// the same device starts with a clean state.
