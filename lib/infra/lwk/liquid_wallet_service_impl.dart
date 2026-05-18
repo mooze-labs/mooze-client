@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:lwk/lwk.dart' as lwk;
 
+import '../../domain/entities/asset.dart' show lbtcAssetId;
 import '../../domain/entities/balance.dart' as domain;
 import '../../domain/entities/chain.dart';
 import '../../domain/entities/liquid_utxo.dart' as domain;
@@ -13,6 +14,7 @@ import '../../domain/events/sync_outcome.dart';
 import '../../domain/events/transaction_event.dart';
 import '../../domain/failures/failure.dart';
 import '../../domain/repositories/wallet_directory_guard.dart';
+import '../../domain/services/electrum_endpoint_resolver.dart';
 import '../../domain/services/liquid_wallet_service.dart';
 import '../../domain/services/service_state.dart';
 import '../../shared/clock/clock.dart';
@@ -27,6 +29,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     required this.directoryGuard,
     required this.logger,
     required this.clock,
+    this.endpointResolver,
     this.electrumUrl = 'blockstream.info:995',
     this.validateDomain = true,
     this.workingDirRelative = 'lwk-db',
@@ -35,6 +38,16 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   final WalletDirectoryGuard directoryGuard;
   final StructuredLogger logger;
   final Clock clock;
+
+  /// Per-instance Electrum rotation. When non-null the service consults
+  /// `resolver.current(ChainId.liquid)` for every sync and reports
+  /// success / failure to advance rotation. When null the service falls
+  /// back to [electrumUrl] (used by tests and pre-G12 wiring).
+  final ElectrumEndpointResolver? endpointResolver;
+
+  /// Fallback endpoint when [endpointResolver] is null. Production wiring
+  /// always supplies a resolver; this default exists so tests can
+  /// continue to construct the service without one.
   final String electrumUrl;
   final bool validateDomain;
   final String workingDirRelative;
@@ -72,6 +85,20 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   ServiceState get currentState => _state.value;
   @override
   Stream<TransactionEvent> get transactions => _txController.stream;
+
+  /// Underlying LWK wallet handle. `null` until `connect()` succeeds and
+  /// after `disconnect()`. Exposed so legacy `WalletRepositoryImpl/liquid.dart`
+  /// and `address_explorer_repository_impl.dart` can reuse the same
+  /// `lwk.Wallet` instance V2 owns — eliminating the duplicate-SDK-instance
+  /// SQLite corruption risk that existed when the legacy
+  /// `liquidDataSourceProvider` constructed its own wallet (both would try
+  /// to open `${appDocs}/lwk-db` concurrently).
+  lwk.Wallet? get sdkClient => _wallet;
+
+  /// Electrum endpoint the service is currently using. Used by the legacy
+  /// `LiquidDataSource` bridge for diagnostic display.
+  String get currentElectrumUrl =>
+      endpointResolver?.current(ChainId.liquid) ?? electrumUrl;
 
   @override
   Future<Either<ServiceFailure, Unit>> connect(
@@ -115,10 +142,23 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           {'dbpath': _acquiredDirectory ?? '?'});
 
       try {
+        // Bug A diagnostic (2026-05-18): the LWK FFI sometimes wedges
+        // between `dbpath` and a return, with no further logs until the
+        // boot orchestrator's 45s timeout fires. We can't tell from the
+        // current logs *which* FFI call hung — Descriptor.newConfidential
+        // (in-memory key derivation, should be ms) or Wallet.init (opens
+        // the lwk-db sqlite and may replay the persisted update queue —
+        // the suspected culprit). `_withFfiTick` emits a `ffi_tick` log
+        // every 5s while a FFI call is in-flight, with `phase` +
+        // `elapsed_ms`, so the next reproduction tells us exactly which
+        // call is the wedge.
         final tDescStart = clock.now();
-        final descriptor = await lwk.Descriptor.newConfidential(
-          network: _toLwkNetwork(_network),
-          mnemonic: credentials.mnemonic,
+        final descriptor = await _withFfiTick(
+          phase: 'descriptor_new_confidential',
+          body: () => lwk.Descriptor.newConfidential(
+            network: _toLwkNetwork(_network),
+            mnemonic: credentials.mnemonic,
+          ),
         );
         logger.info('liquid.connect.descriptor_built', {
           'duration_ms': clock.now().difference(tDescStart).inMilliseconds,
@@ -131,10 +171,13 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         final tInitStart = clock.now();
         logger.info('liquid.connect.wallet_init.begin',
             {'dbpath': _acquiredDirectory ?? '?'});
-        final wallet = await lwk.Wallet.init(
-          network: _toLwkNetwork(_network),
-          dbpath: _acquiredDirectory!,
-          descriptor: descriptor,
+        final wallet = await _withFfiTick(
+          phase: 'wallet_init',
+          body: () => lwk.Wallet.init(
+            network: _toLwkNetwork(_network),
+            dbpath: _acquiredDirectory!,
+            descriptor: descriptor,
+          ),
         );
         logger.info('liquid.connect.wallet_init.end', {
           'duration_ms': clock.now().difference(tInitStart).inMilliseconds,
@@ -153,14 +196,208 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         });
         return const Right(unit);
       } catch (e, st) {
+        final desc = _describeLwkError(e);
         logger.warn('liquid.connect.threw',
-            {'error': '$e', 'after_ms': clock.now().difference(tEnter).inMilliseconds},
+            {
+              'error': desc,
+              'errType': e.runtimeType.toString(),
+              'after_ms': clock.now().difference(tEnter).inMilliseconds,
+            },
             error: e, stackTrace: st);
+
+        // Self-healing recovery for persisted-state inconsistencies.
+        //
+        // `lwk_wollet::Wollet::new` replays the on-disk update queue and
+        // checks that each update's `wollet_status` matches the
+        // in-memory wollet's current status. A previous session that was
+        // killed mid-write (no graceful shutdown observer wired in the
+        // app's lifecycle) can leave the update queue and the wollet
+        // snapshot at inconsistent state hashes — every subsequent cold
+        // boot then throws `UpdateOnDifferentStatus` on init and the
+        // wallet stays in `errored` indefinitely.
+        //
+        // The lwk-db is a derived cache: descriptor is rebuilt from the
+        // mnemonic on every connect, transactions are repopulated from
+        // electrum on the next sync, and no signing material lives in
+        // the db. Wiping it once and retrying is therefore a safe
+        // recovery — at worst the user pays one sync cycle.
+        //
+        // Bounded to a single retry per `connect()` call. If the retry
+        // also fails the original error path is taken and the chain
+        // ends up in `errored`, surfacing via `SyncFailureAlert`.
+        if (_isRecoverableLwkPersistenceError(desc)) {
+          logger.warn('liquid.connect.recover_attempt', {
+            'reason': desc,
+            'action': 'wipe-lwk-db-and-retry',
+          });
+          // Release the current lock so wipe can run cleanly, then
+          // wipe, re-acquire, and re-init with the same descriptor.
+          await directoryGuard.release(workingDirRelative);
+          _acquiredDirectory = null;
+          final wipeResult = await directoryGuard.wipe(workingDirRelative);
+          if (wipeResult.isLeft()) {
+            final f = wipeResult.swap().getOrElse(
+                (_) => const StorageFailure('wipe failed'));
+            logger.error('liquid.connect.recover_wipe_failed',
+                {'reason': f.message});
+            return _fail('lwk init failed (wipe recovery failed): $desc',
+                cause: e, stackTrace: st);
+          }
+          logger.info('liquid.connect.recover_wiped', {});
+          final reAcquire = await directoryGuard.acquire(workingDirRelative);
+          if (reAcquire.isLeft()) {
+            final f = reAcquire.swap().getOrElse(
+                (_) => const StorageFailure('reacquire failed'));
+            return _fail(
+                'lwk init failed (re-acquire after wipe failed): ${f.message}',
+                cause: e, stackTrace: st);
+          }
+          _acquiredDirectory =
+              reAcquire.getOrElse((_) => throw StateError('unreachable'));
+          try {
+            final retryStart = clock.now();
+            // Rebuild descriptor in this scope — the original was local
+            // to the failed `try` block above. Descriptor construction
+            // is in-memory only (no fs/network), so re-running it is
+            // safe and adds <50ms.
+            final retryDescriptor = await lwk.Descriptor.newConfidential(
+              network: _toLwkNetwork(_network),
+              mnemonic: credentials.mnemonic,
+            );
+            final wallet = await lwk.Wallet.init(
+              network: _toLwkNetwork(_network),
+              dbpath: _acquiredDirectory!,
+              descriptor: retryDescriptor,
+            );
+            logger.info('liquid.connect.recover_ok', {
+              'duration_ms':
+                  clock.now().difference(retryStart).inMilliseconds,
+            });
+            if (_shuttingDown) {
+              await directoryGuard.release(workingDirRelative);
+              _acquiredDirectory = null;
+              return _fail('connect cancelled: shutdown in progress');
+            }
+            _wallet = wallet;
+            _emit(ServiceLifecycle.connected, clearFailure: true);
+            logger.info('liquid.connected', {
+              'total_ms': clock.now().difference(tEnter).inMilliseconds,
+              'recovered_from': 'lwk-db-wipe',
+            });
+            return const Right(unit);
+          } catch (e2, st2) {
+            final desc2 = _describeLwkError(e2);
+            logger.error('liquid.connect.recover_failed',
+                {'error': desc2, 'errType': e2.runtimeType.toString()},
+                error: e2, stackTrace: st2);
+            await directoryGuard.release(workingDirRelative);
+            _acquiredDirectory = null;
+            return _fail('lwk init failed after wipe recovery: $desc2',
+                cause: e2, stackTrace: st2);
+          }
+        }
+
         await directoryGuard.release(workingDirRelative);
         _acquiredDirectory = null;
-        return _fail('lwk init failed: $e', cause: e, stackTrace: st);
+        return _fail('lwk init failed: $desc', cause: e, stackTrace: st);
       }
     });
+  }
+
+  /// Run an LWK FFI call with a periodic "still in progress" tick log.
+  ///
+  /// Bug A diagnostic (2026-05-18). LWK FFI calls can hang silently —
+  /// the boot orchestrator's 45s budget elapses and we have no way to
+  /// tell whether the call took 44.9s or has been wedged for the
+  /// entire window. Without a periodic tick, all we get is a single
+  /// `service_timeout` log with no granularity.
+  ///
+  /// This helper races the FFI Future against a 5-second
+  /// `Timer.periodic` that emits `liquid.connect.ffi_tick` while the
+  /// call is still pending. On normal completion the timer is cancelled
+  /// in the `finally` block, so successful calls emit zero tick logs.
+  /// On hang, the timer keeps firing until the outer boot timeout
+  /// gives up — giving us a precise picture of which phase wedged
+  /// and for how long.
+  ///
+  /// Phase strings used:
+  ///   - `descriptor_new_confidential` — `lwk.Descriptor.newConfidential`
+  ///   - `wallet_init` — `lwk.Wallet.init`
+  Future<T> _withFfiTick<T>({
+    required String phase,
+    required Future<T> Function() body,
+  }) async {
+    final start = clock.now();
+    bool done = false;
+    final ticker = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (done) return;
+      logger.warn('liquid.connect.ffi_tick', {
+        'phase': phase,
+        'elapsed_ms': clock.now().difference(start).inMilliseconds,
+      });
+    });
+    try {
+      return await body();
+    } finally {
+      done = true;
+      ticker.cancel();
+    }
+  }
+
+  /// Returns true if `desc` (the unwrapped `LwkError.msg`) corresponds to
+  /// a `lwk_wollet::Error` variant that signals on-disk state has drifted
+  /// from the on-disk update queue. These are recoverable by wiping the
+  /// db dir and rebuilding from the descriptor + a fresh electrum sync.
+  ///
+  /// Conservative match list — only variants that are demonstrably
+  /// derived-cache problems, not anything that could mask a deeper
+  /// issue (e.g. descriptor mismatch, key derivation failure):
+  ///
+  ///   - `UpdateOnDifferentStatus { wollet_status, update_status }` —
+  ///     persisted update at index N expects a wollet state hash that
+  ///     no longer matches the snapshot. Confirmed cause of the
+  ///     2026-05-12 repro.
+  ///   - `UpdateHeightTooOld { update_tip_height, store_tip_height }` —
+  ///     persisted update is for a chain tip older than the store's
+  ///     own tip. Same root mechanism (mid-write death of a prior
+  ///     session); same safe recovery.
+  static bool _isRecoverableLwkPersistenceError(String desc) {
+    return desc.contains('UpdateOnDifferentStatus') ||
+        desc.contains('UpdateHeightTooOld');
+  }
+
+  /// Unwrap the message from FFI-thrown errors. `lwk.LwkError` (and the
+  /// flutter_rust_bridge-generated equivalents) do not override
+  /// `toString()`, so a bare `'$e'` resolves to the useless
+  /// `"Instance of 'LwkError'"` — masking the actual Rust panic / sqlite
+  /// error / network failure. This helper inspects the runtime type and
+  /// extracts `.msg` when present (via the public field on the generated
+  /// class) so logs and the propagated `ServiceFailure.message` carry the
+  /// real cause.
+  ///
+  /// Repro (2026-05-12): boot trace showed
+  /// `liquid.connect.threw error="Instance of 'LwkError'"` with no clue
+  /// what LWK was complaining about — possibly a stale lwk-db file from a
+  /// prior delete + re-import, a descriptor/network mismatch, or an
+  /// underlying sqlite error. Without the message, triage was blind.
+  static String _describeLwkError(Object e) {
+    if (e is lwk.LwkError) {
+      return 'LwkError(${e.msg})';
+    }
+    // Some FRB-generated errors are private subclasses (`_$LwkError`) or
+    // anonymous frb_exception types; their toString() is also useless.
+    // Best-effort extract via dynamic access to a `msg` field if it
+    // exists at runtime — this is the same shape the generated class
+    // uses.
+    try {
+      final dynamic dyn = e;
+      // ignore: avoid_dynamic_calls
+      final msg = dyn.msg;
+      if (msg is String && msg.isNotEmpty) {
+        return '${e.runtimeType}($msg)';
+      }
+    } catch (_) {/* not a msg-bearing error */}
+    return e.toString();
   }
 
   @override
@@ -189,7 +426,8 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         logger.info('liquid.disconnected', {});
         return const Right(unit);
       } catch (e, st) {
-        return _fail('lwk disconnect failed: $e', cause: e, stackTrace: st);
+        return _fail('lwk disconnect failed: ${_describeLwkError(e)}',
+            cause: e, stackTrace: st);
       }
     });
   }
@@ -202,10 +440,12 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         return Left(ServiceFailure('not connected', chain: chain));
       }
       final t0 = clock.now();
+      final url = endpointResolver?.current(ChainId.liquid) ?? electrumUrl;
       try {
         await w
-            .sync_(electrumUrl: electrumUrl, validateDomain: validateDomain)
+            .sync_(electrumUrl: url, validateDomain: validateDomain)
             .timeout(timeout ?? const Duration(seconds: 60));
+        endpointResolver?.reportSuccess(ChainId.liquid);
 
         final txs = await w.txs();
         final balances = await w.balances();
@@ -226,10 +466,12 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           duration: clock.now().difference(t0),
         ));
       } on TimeoutException catch (e, st) {
+        endpointResolver?.reportFailure(ChainId.liquid, e);
         return Left(ServiceFailure('lwk sync timeout',
             chain: chain, cause: e, stackTrace: st));
       } catch (e, st) {
-        return Left(ServiceFailure('lwk sync failed: $e',
+        endpointResolver?.reportFailure(ChainId.liquid, e);
+        return Left(ServiceFailure('lwk sync failed: ${_describeLwkError(e)}',
             chain: chain, cause: e, stackTrace: st));
       }
     });
@@ -255,7 +497,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       _lastBalance = _mapBalance(balances);
       return Right(_lastBalance);
     } catch (e, st) {
-      return Left(ServiceFailure('lwk balance failed: $e',
+      return Left(ServiceFailure('lwk balance failed: ${_describeLwkError(e)}',
           chain: chain, cause: e, stackTrace: st));
     }
   }
@@ -289,7 +531,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           .toList();
       return Right(mapped);
     } catch (e, st) {
-      return Left(ServiceFailure('lwk getUtxos failed: $e',
+      return Left(ServiceFailure('lwk getUtxos failed: ${_describeLwkError(e)}',
           chain: chain, cause: e, stackTrace: st));
     }
   }
@@ -311,7 +553,8 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       );
       return Right(signed);
     } catch (e, st) {
-      return Left(ServiceFailure('lwk signSwapPset failed: $e',
+      return Left(ServiceFailure(
+          'lwk signSwapPset failed: ${_describeLwkError(e)}',
           chain: chain, cause: e, stackTrace: st));
     }
   }
@@ -326,7 +569,8 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       final address = await w.addressLastUnused();
       return Right(address.confidential);
     } catch (e, st) {
-      return Left(ServiceFailure('lwk getReceiveAddress failed: $e',
+      return Left(ServiceFailure(
+          'lwk getReceiveAddress failed: ${_describeLwkError(e)}',
           chain: chain, cause: e, stackTrace: st));
     }
   }
@@ -364,36 +608,243 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         AppNetwork.regtest => lwk.Network.testnet,
       };
 
-  /// Translates an LWK [Tx] into a domain [Transaction]. The `kind` field
-  /// can be 'incoming' / 'outgoing' / 'unknown'.
+  /// Translates an LWK [Tx] into a domain [Transaction].
+  ///
+  /// **Classification priority** — strictly ordered, mutually exclusive.
+  /// The earlier a branch fires, the higher its precedence. This order
+  /// is deliberate: `selfTransfer` MUST come before `swap` so a
+  /// fee-only consolidation that happens to touch multiple asset
+  /// columns (e.g., consolidating L-BTC + zero-net asset rounds)
+  /// doesn't get misclassified as a swap.
+  ///
+  ///   P1. `t.kind == 'redeposit'`                       → selfTransfer
+  ///   P2. `nonZero.isEmpty && feeSat > 0`               → selfTransfer
+  ///   P3. single L-BTC entry equal to -feeSat           → selfTransfer
+  ///   P4. mixed-sign multi-asset (positive AND negative
+  ///       non-zero entries with ≥2 unique asset ids)    → swap
+  ///   P5. all non-zero balances > 0                     → incoming
+  ///   P6. all non-zero balances < 0                     → outgoing
+  ///   P7. anything else                                 → internal
+  ///
+  /// **Swap detail synthesis (P4)** mirrors the legacy
+  /// `wallet_repository_impl/liquid.dart::ToTransaction.type` heuristic
+  /// that V2 had previously regressed:
+  ///   - `toAssetId`  = largest positive non-L-BTC entry by value
+  ///                    (falls back to any positive entry).
+  ///   - `fromAssetId`= largest negative non-L-BTC entry by abs value
+  ///                    (falls back to any negative entry).
+  ///   - `sentAmountSat`     = abs(fromAsset balance value)
+  ///   - `receivedAmountSat` = positive value of toAsset balance
+  ///   - `amountSat`         = sentAmountSat (headline)
+  ///   - `assetId`           = fromAssetId (so consumers reading
+  ///                            `tx.assetId` see the "from" side)
+  ///
+  /// **Amount selection (P5/P6/P7)**: largest abs-value non-zero
+  /// balance, preferring non-L-BTC so a "Send 100 USDT" surfaces the
+  /// USDT amount rather than the L-BTC fee leg.
+  ///
+  /// Every decision emits a structured `tx.classify` log entry for
+  /// post-hoc triage.
   domain.Transaction _mapTx(lwk.Tx t) {
-    final dir = switch (t.kind) {
-      'incoming' => domain.TransactionDirection.incoming,
-      'outgoing' => domain.TransactionDirection.outgoing,
-      _ => domain.TransactionDirection.internal,
-    };
+    final feeSat = t.fee.toInt();
     final status = t.height == null
         ? domain.TransactionStatus.pending
         : domain.TransactionStatus.confirmed;
     final ts = t.timestamp != null
         ? DateTime.fromMillisecondsSinceEpoch(t.timestamp! * 1000)
         : clock.now();
-    final amount = t.balances.isEmpty
-        ? 0
-        : t.balances.first.value
-            .toInt()
-            .abs();
-    final assetId = t.balances.isEmpty ? null : t.balances.first.assetId;
+
+    final nonZero = t.balances.where((b) => b.value != 0).toList();
+    final positives =
+        nonZero.where((b) => b.value > 0).toList(growable: false);
+    final negatives =
+        nonZero.where((b) => b.value < 0).toList(growable: false);
+    final uniqueAssets =
+        nonZero.map((b) => b.assetId).toSet();
+
+    final domain.TransactionDirection direction;
+    final int amountSat;
+    final String? mainAssetId;
+    String? fromAssetId;
+    String? toAssetId;
+    int? sentAmountSat;
+    int? receivedAmountSat;
+    final String reason;
+
+    // ─── P1: explicit LWK redeposit ────────────────────────────────
+    if (t.kind == 'redeposit') {
+      direction = domain.TransactionDirection.selfTransfer;
+      amountSat = feeSat;
+      mainAssetId = lbtcAssetId;
+      reason = 'lwk-kind-redeposit';
+    }
+    // ─── P2: nothing moved net, but a fee was paid ─────────────────
+    else if (nonZero.isEmpty && feeSat > 0) {
+      direction = domain.TransactionDirection.selfTransfer;
+      amountSat = feeSat;
+      mainAssetId = lbtcAssetId;
+      reason = 'fee-only-empty-balances';
+    }
+    // ─── P3: single-asset L-BTC self-transfer equal to -fee ────────
+    else if (nonZero.length == 1 &&
+        nonZero.first.assetId == lbtcAssetId &&
+        nonZero.first.value == -feeSat &&
+        feeSat > 0) {
+      direction = domain.TransactionDirection.selfTransfer;
+      amountSat = feeSat;
+      mainAssetId = lbtcAssetId;
+      reason = 'lbtc-balance-equals-neg-fee';
+    }
+    // ─── P4: mixed-sign multi-asset → swap ─────────────────────────
+    //
+    // Conditions: both positive AND negative entries exist AND ≥2
+    // unique asset ids are involved. The "≥2" constraint rules out
+    // the degenerate case where a single asset somehow has both
+    // signs (shouldn't happen, but guards against weird LWK output).
+    //
+    // Note this fires AFTER selfTransfer/redeposit, so a P3 case
+    // where lbtc moved by exactly -fee never lands here even if
+    // some other asset row had a tiny non-zero residual.
+    else if (positives.isNotEmpty &&
+        negatives.isNotEmpty &&
+        uniqueAssets.length >= 2) {
+      final pickFromPositives = positives
+          .where((b) => b.assetId != lbtcAssetId)
+          .toList(growable: false);
+      final pickFromNegatives = negatives
+          .where((b) => b.assetId != lbtcAssetId)
+          .toList(growable: false);
+
+      final toBal = (pickFromPositives.isNotEmpty
+              ? pickFromPositives
+              : positives)
+          .reduce((a, b) => a.value > b.value ? a : b);
+      final fromBal = (pickFromNegatives.isNotEmpty
+              ? pickFromNegatives
+              : negatives)
+          .reduce((a, b) => a.value.abs() > b.value.abs() ? a : b);
+
+      direction = domain.TransactionDirection.swap;
+      fromAssetId = fromBal.assetId;
+      toAssetId = toBal.assetId;
+      sentAmountSat = fromBal.value.abs();
+      receivedAmountSat = toBal.value;
+      // Headline: the "from" side. Mirrors what users think of as
+      // "I swapped X for Y" — X is the amount they sent out.
+      amountSat = sentAmountSat;
+      mainAssetId = fromAssetId;
+      reason = 'mixed-sign-multi-asset';
+    }
+    // ─── P5: pure incoming ─────────────────────────────────────────
+    else if (nonZero.isNotEmpty && nonZero.every((b) => b.value > 0)) {
+      final main = _pickMainBalance(nonZero, preferNonLbtc: true);
+      direction = domain.TransactionDirection.incoming;
+      amountSat = main.value.abs();
+      mainAssetId = main.assetId;
+      reason = 'all-positive';
+    }
+    // ─── P6: pure outgoing ─────────────────────────────────────────
+    else if (nonZero.isNotEmpty && nonZero.every((b) => b.value < 0)) {
+      final main = _pickMainBalance(nonZero, preferNonLbtc: true);
+      direction = domain.TransactionDirection.outgoing;
+      amountSat = main.value.abs();
+      mainAssetId = main.assetId;
+      reason = 'all-negative';
+    }
+    // ─── P7: catch-all (issuance / burn / reissuance / unknown) ────
+    else {
+      final source = nonZero.isNotEmpty ? nonZero : t.balances;
+      if (source.isEmpty) {
+        direction = domain.TransactionDirection.internal;
+        amountSat = 0;
+        mainAssetId = null;
+        reason = 'empty';
+      } else {
+        final main = _pickMainBalance(source, preferNonLbtc: true);
+        direction = domain.TransactionDirection.internal;
+        amountSat = main.value.abs();
+        mainAssetId = main.assetId;
+        reason = 'fallback';
+      }
+    }
+
+    logger.debug('tx.classify', {
+      'chain': 'liquid',
+      'txid': t.txid,
+      'lwkKind': t.kind,
+      'balanceCount': t.balances.length,
+      'nonZeroCount': nonZero.length,
+      'uniqueAssets': uniqueAssets.length,
+      'direction': direction.name,
+      'amountSat': amountSat,
+      'feeSat': feeSat,
+      'mainAssetId': _assetIdLabel(mainAssetId),
+      if (fromAssetId != null) 'fromAsset': _assetIdLabel(fromAssetId),
+      if (toAssetId != null) 'toAsset': _assetIdLabel(toAssetId),
+      if (sentAmountSat != null) 'sentAmountSat': sentAmountSat,
+      if (receivedAmountSat != null)
+        'receivedAmountSat': receivedAmountSat,
+      'reason': reason,
+    });
+
     return domain.Transaction(
       id: t.txid,
       chain: chain,
-      direction: dir,
+      direction: direction,
       status: status,
-      amountSat: amount,
-      feeSat: t.fee.toInt(),
+      amountSat: amountSat,
+      feeSat: feeSat,
       timestamp: ts,
       confirmations: t.height == null ? 0 : 1,
-      assetId: assetId,
+      assetId: mainAssetId,
+      fromAssetId: fromAssetId,
+      toAssetId: toAssetId,
+      sentAmountSat: sentAmountSat,
+      receivedAmountSat: receivedAmountSat,
+      // LWK is the authoritative source for chain=liquid. The source
+      // tag tells the upsert merge that subsequent non-LWK writes
+      // (from Breez seeing the same descriptor) MUST NOT overwrite
+      // direction/status/amountSat/feeSat/confirmations/assetId/timestamp.
+      source: domain.TransactionSource.lwk,
+    );
+  }
+
+  String _assetIdLabel(String? id) {
+    if (id == null) return 'null';
+    if (id == lbtcAssetId) return 'lbtc';
+    return id.length > 8 ? id.substring(0, 8) : id;
+  }
+
+  /// Pick the "headline" balance from a list of wallet-side balance
+  /// entries. Preference order:
+  ///   1. If only one entry, return it.
+  ///   2. If `preferNonLbtc` is true and any non-L-BTC entry exists,
+  ///      pick the non-L-BTC entry with the largest absolute value.
+  ///   3. Otherwise pick the entry with the largest absolute value
+  ///      across all entries.
+  ///
+  /// Rationale: a USDT/DePix transfer typically also includes the
+  /// L-BTC fee leg, but the L-BTC delta is tiny compared to the asset
+  /// movement. The user thinks of the transaction as "Sent 100 USDT",
+  /// not "Sent 100 sats of L-BTC". Preferring non-L-BTC surfaces the
+  /// economically meaningful number.
+  lwk.Balance _pickMainBalance(
+    List<lwk.Balance> balances, {
+    required bool preferNonLbtc,
+  }) {
+    if (balances.length == 1) return balances.first;
+    if (preferNonLbtc) {
+      final nonLbtc = balances
+          .where((b) => b.assetId != lbtcAssetId)
+          .toList(growable: false);
+      if (nonLbtc.isNotEmpty) {
+        return nonLbtc.reduce(
+          (a, b) => a.value.abs() > b.value.abs() ? a : b,
+        );
+      }
+    }
+    return balances.reduce(
+      (a, b) => a.value.abs() > b.value.abs() ? a : b,
     );
   }
 

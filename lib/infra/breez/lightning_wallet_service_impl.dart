@@ -71,6 +71,15 @@ class LightningWalletServiceImpl implements LightningWalletService {
   @override
   Stream<TransactionEvent> get transactions => _txController.stream;
 
+  /// Underlying Breez Liquid SDK client. `null` until `connect()` succeeds
+  /// and after `disconnect()`. Exposed so the legacy
+  /// `WalletRepositoryImpl/breez.dart` wrapper can reuse the same SDK
+  /// instance V2 owns — eliminating the duplicate-instance SQLite
+  /// corruption risk that existed when the legacy `breezClientProvider`
+  /// constructed its own client (both would try to open the breez working
+  /// directory concurrently).
+  breez.BreezSdkLiquid? get sdkClient => _client;
+
   @override
   Future<Either<ServiceFailure, Unit>> connect(
       WalletCredentials credentials) async {
@@ -162,7 +171,34 @@ class LightningWalletServiceImpl implements LightningWalletService {
             .listPayments(req: const breez.ListPaymentsRequest());
         final info = await c.getInfo();
 
-        final mapped = payments.map(_mapPayment).whereType<domain.Transaction>().toList()
+        // **Source-aware emission (2026-05-18 redesign).**
+        //
+        // Pre-2026-05-18 this path filtered out `chain == ChainId.liquid`
+        // entirely — making LWK the *exclusive* writer for Liquid txs.
+        // That broke when LWK was degraded / wedged / timing out: the
+        // user saw an empty transaction list even though Breez was
+        // operational and had perfectly usable Liquid tx data.
+        //
+        // The filter is gone. Breez now emits Liquid txs again,
+        // tagged with `source = TransactionSource.breez`. The
+        // source-aware upsert merge in `transaction_store_impl.dart`
+        // resolves the conflict deterministically:
+        //
+        //   - LWK is AUTHORITATIVE for chain=liquid. Once a row has
+        //     `source='lwk'`, Breez's subsequent writes cannot
+        //     overwrite the authoritative fields (direction, status,
+        //     amount, fee, confirmations, asset, timestamp).
+        //   - Breez can still update its own metadata (address, label)
+        //     and fill in fields LWK left null, via COALESCE.
+        //   - Pre-LWK (degraded mode), Breez writes flow through
+        //     normally and the user sees the list populate.
+        //
+        // No filter needed here. The "rows mutate after a few seconds"
+        // bug is prevented by the upsert merge, not by the filter.
+        final mapped = payments
+            .map(_mapPayment)
+            .whereType<domain.Transaction>()
+            .toList()
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
         final changed = _diffAndEmit(mapped);
         _lastList = mapped;
@@ -1043,6 +1079,14 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // balance in the home tx list. Lightning + Bitcoin payments stay
       // assetId-null (their identity is the chain itself).
       assetId: _assetIdFromDetails(p.details),
+      // Source tag: Breez is authoritative for chain=lightning (only
+      // writer there) and tentative for chain=liquid (the source-aware
+      // upsert merge lets LWK overwrite the authoritative fields when
+      // LWK eventually classifies the same row). For chain=bitcoin
+      // (peg-in/out swap settlements) Breez writes the swap-settlement
+      // metadata; BDK handles user-initiated sends/receives — the two
+      // typically have different (id, chain) keys so no conflict.
+      source: domain.TransactionSource.breez,
     );
   }
 

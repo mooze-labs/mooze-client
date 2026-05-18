@@ -68,6 +68,22 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   @override
   Stream<TransactionEvent> get transactions => _txController.stream;
 
+  /// Underlying BDK wallet handle. `null` until `connect()` succeeds and
+  /// after `disconnect()`. Exposed so legacy `WalletRepositoryImpl/bitcoin.dart`
+  /// can reuse the same `bdk.Wallet` instance V2 owns — eliminating the
+  /// duplicate-SDK-instance corruption risk that existed when the legacy
+  /// `bdkDatasourceProvider` constructed its own wallet.
+  ///
+  /// Callers MUST NOT mutate this handle directly. The V2 service owns the
+  /// wallet's lifecycle; any sync / persistence / fingerprinting goes
+  /// through this class.
+  bdk.Wallet? get sdkClient => _wallet;
+
+  /// Underlying BDK Electrum blockchain handle. Required by the legacy
+  /// `BdkDataSource.sync()` shim. Same constraints as [sdkClient] —
+  /// V2 owns the lifecycle.
+  bdk.Blockchain? get sdkBlockchain => _blockchain;
+
   @override
   Future<Either<ServiceFailure, Unit>> connect(
       WalletCredentials credentials) async {
@@ -431,6 +447,7 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         confirmations: 0,
         address: request.destination,
         label: request.label,
+        source: domain.TransactionSource.bdk,
       );
 
       // Step 5: persist-before-republish. Same pattern as Liquid: update
@@ -570,15 +587,71 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
     return buf.toString();
   }
 
+  /// Classify a BDK transaction.
+  ///
+  /// **Parity with LWK** (post 2026-05-13 audit). BDK's
+  /// `TransactionDetails` exposes `received` and `sent`, both
+  /// wallet-side. Self-transfers / consolidations have `received > 0`
+  /// AND `sent > 0` with `received ≈ sent - fee` (the change UTXO
+  /// equals the inputs minus the network fee). Pre-fix the code
+  /// classified those as `outgoing` with `amount = fee`, which is
+  /// not strictly wrong but renders as "Sent BTC <fee>" in the home
+  /// list — confusing alongside Liquid's new "Redeposit BTC L2"
+  /// surface for the same conceptual action. The new logic detects
+  /// the self-transfer and maps it to [TransactionDirection.selfTransfer]
+  /// so both chains render consistently as "Redeposit" in the UI.
+  ///
+  /// Decision order:
+  ///   1. Both `sent > 0` and `received > 0` with the difference
+  ///      equal to (or within a small slack of) the fee → selfTransfer.
+  ///   2. `sent > received` → outgoing.
+  ///   3. `received > 0` → incoming.
+  ///   4. Both zero → internal (defensive; shouldn't happen for txs
+  ///      surfaced by BDK).
+  ///
+  /// Slack handling: BDK fee reporting can be slightly off the
+  /// arithmetic `sent - received` (RBF reconstructions, BIP-69
+  /// reordering). We allow `|sent - received - fee| <= max(1, fee/100)`
+  /// to absorb that without misclassifying.
   domain.Transaction _mapTx(bdk.TransactionDetails t) {
     final received = t.received.toInt();
     final sent = t.sent.toInt();
-    final dir = sent > received
-        ? domain.TransactionDirection.outgoing
-        : (received > 0
-            ? domain.TransactionDirection.incoming
-            : domain.TransactionDirection.internal);
-    final amount = (received - sent).abs();
+    final feeSat = (t.fee ?? BigInt.zero).toInt();
+
+    final domain.TransactionDirection direction;
+    final int amountSat;
+    final String reason;
+
+    if (sent > 0 && received > 0) {
+      final delta = sent - received;
+      final slack = feeSat > 100 ? feeSat ~/ 100 : 1;
+      if ((delta - feeSat).abs() <= slack) {
+        direction = domain.TransactionDirection.selfTransfer;
+        amountSat = feeSat;
+        reason = 'self-transfer-fee-only';
+      } else if (sent > received) {
+        direction = domain.TransactionDirection.outgoing;
+        amountSat = delta.abs();
+        reason = 'sent-greater-than-received';
+      } else {
+        direction = domain.TransactionDirection.incoming;
+        amountSat = (received - sent).abs();
+        reason = 'received-greater-than-sent';
+      }
+    } else if (sent > 0) {
+      direction = domain.TransactionDirection.outgoing;
+      amountSat = sent;
+      reason = 'sent-only';
+    } else if (received > 0) {
+      direction = domain.TransactionDirection.incoming;
+      amountSat = received;
+      reason = 'received-only';
+    } else {
+      direction = domain.TransactionDirection.internal;
+      amountSat = 0;
+      reason = 'both-zero';
+    }
+
     final ct = t.confirmationTime;
     final status = ct == null
         ? domain.TransactionStatus.pending
@@ -586,15 +659,33 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
     final ts = ct == null
         ? clock.now()
         : DateTime.fromMillisecondsSinceEpoch(ct.timestamp.toInt() * 1000);
+
+    logger.debug('tx.classify', {
+      'chain': 'bitcoin',
+      'txid': t.txid,
+      'received': received,
+      'sent': sent,
+      'feeSat': feeSat,
+      'direction': direction.name,
+      'amountSat': amountSat,
+      'reason': reason,
+    });
+
     return domain.Transaction(
       id: t.txid,
       chain: chain,
-      direction: dir,
+      direction: direction,
       status: status,
-      amountSat: amount,
-      feeSat: (t.fee ?? BigInt.zero).toInt(),
+      amountSat: amountSat,
+      feeSat: feeSat,
       timestamp: ts,
       confirmations: ct == null ? 0 : 1,
+      // BDK is the only writer for chain=bitcoin user-initiated
+      // sends/receives. Breez peg-in/out swap settlements typically
+      // use different (id, chain=bitcoin) keys so no conflict; if
+      // they ever overlap, the source-aware merge keeps both views
+      // semantically distinct via the priority CASE WHEN.
+      source: domain.TransactionSource.bdk,
     );
   }
 
