@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 const btcAssetId = 'btc-native-blockchain';
 const lbtcAssetId =
     '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
@@ -166,6 +168,45 @@ enum Asset {
     } else {
       return formatAsAsset(amountInSats);
     }
+  }
+
+  /// Numeric-only display amount in the asset's natural display unit, with
+  /// locale-aware thousands separators. **Does not include the unit string**
+  /// — pair with [displayUnit] when rendering, e.g.:
+  ///
+  /// ```dart
+  /// final locale = Localizations.localeOf(context).toString();
+  /// final n = asset.formatAmount(sats, locale: locale);   // "4,080,401"
+  /// final u = asset.displayUnit;                           // "SATS"
+  /// // → "4,080,401 SATS"
+  /// ```
+  ///
+  /// Display semantics:
+  /// - BTC / LBTC → integer sats, no decimal point (e.g. `4,080,401`)
+  /// - USDT / DEPIX → 2 decimals of the natural unit (e.g. `3,120.96`)
+  ///
+  /// Pass [locale] as a BCP-47-ish underscore string (e.g. `pt_BR`,
+  /// `en_US`) — typically `Localizations.localeOf(context).toString()`.
+  String formatAmount(int sats, {required String locale}) {
+    return switch (this) {
+      Asset.btc ||
+      Asset.lbtc => NumberFormat('#,##0', locale).format(sats),
+      Asset.usdt ||
+      Asset.depix => NumberFormat(
+          '#,##0.00',
+          locale,
+        ).format(sats / 100000000.0),
+    };
+  }
+
+  /// The unit suffix to render next to a bare amount from [formatAmount].
+  /// - BTC / LBTC → `SATS` (the amount is already in sats)
+  /// - USDT / DEPIX → uppercase ticker (`USDT`, `DEPIX`)
+  String get displayUnit {
+    return switch (this) {
+      Asset.btc || Asset.lbtc => 'SATS',
+      Asset.usdt || Asset.depix => ticker.toUpperCase(),
+    };
   }
 
   /// Formats a quote-calculated amount (BRL / BRL-per-asset) for display.

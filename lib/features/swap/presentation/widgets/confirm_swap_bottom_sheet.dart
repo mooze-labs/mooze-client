@@ -417,14 +417,13 @@ class _DealCard extends StatelessWidget {
     final receiveAsset =
         receiveId != null ? core.Asset.fromId(receiveId) : core.Asset.usdt;
 
-    final sendAmount =
-        state.lastAmount != null
-            ? _formatAssetAmount(sendAsset, state.lastAmount!.toInt())
-            : '0';
-    final receiveAmount =
-        state.receiveAmount != null
-            ? _formatAssetAmount(receiveAsset, state.receiveAmount!)
-            : null;
+    final locale = _localeStringFor(context);
+    final sendAmount = state.lastAmount != null
+        ? sendAsset.formatAmount(state.lastAmount!.toInt(), locale: locale)
+        : '0';
+    final receiveAmount = state.receiveAmount != null
+        ? receiveAsset.formatAmount(state.receiveAmount!, locale: locale)
+        : null;
 
     final isDark = theme.brightness == Brightness.dark;
     // `outline` lands at different luminances per theme, so the alpha
@@ -570,7 +569,7 @@ class _AmountRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        asset.ticker.toUpperCase(),
+                        asset.displayUnit,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: context.colors.textSecondary,
                           fontWeight: FontWeight.w600,
@@ -664,7 +663,7 @@ class _FeesSection extends StatelessWidget {
     } else {
       final q = quote!;
       totalValue = Text(
-        _formatFee(state, q.serverFee + q.fixedFee),
+        _formatFee(context, state, q.serverFee + q.fixedFee),
         style: theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w700,
         ),
@@ -720,12 +719,20 @@ class _FeesSection extends StatelessWidget {
                             children: [
                               _SubFeeRow(
                                 label: t.swap_confirm_server_fee,
-                                value: _formatFee(state, quote!.serverFee),
+                                value: _formatFee(
+                                  context,
+                                  state,
+                                  quote!.serverFee,
+                                ),
                               ),
                               const SizedBox(height: 6),
                               _SubFeeRow(
                                 label: t.swap_confirm_fixed_fee,
-                                value: _formatFee(state, quote!.fixedFee),
+                                value: _formatFee(
+                                  context,
+                                  state,
+                                  quote!.fixedFee,
+                                ),
                               ),
                             ],
                           ),
@@ -924,39 +931,30 @@ class _ShimmerBlock extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Asset-native amount formatting
+// Locale + fee formatting
+//
+// Asset-native amount formatting and unit suffixes live on the Asset
+// enum itself (`Asset.formatAmount` / `Asset.displayUnit`) so display
+// rules are centralized. This file only owns the bottom-sheet–specific
+// composition: locale resolution + the fee row's lowercase "sats" style.
 // ─────────────────────────────────────────────────────────────────────
 
-/// Renders [sats] in the asset's natural display unit and precision.
-///
-/// - BTC / LBTC → 8 decimals, treated as BTC.
-/// - USDT / DEPIX → 2 decimals (these are fiat-pegged stablecoins; the
-///   extra 6 decimals from the satoshi-converted storage are noise).
-///
-/// Uses [NumberFormat] in the active locale so thousands separators
-/// follow the user's language (e.g. `1.240,12` in pt-BR, `1,240.12` in
-/// en-US).
-String _formatAssetAmount(core.Asset asset, int sats) {
-  final inAsset = sats / 100000000.0;
-  switch (asset) {
-    case core.Asset.btc:
-    case core.Asset.lbtc:
-      return NumberFormat(
-        '#,##0.########',
-        Intl.getCurrentLocale(),
-      ).format(inAsset);
-    case core.Asset.usdt:
-    case core.Asset.depix:
-      return NumberFormat('#,##0.00', Intl.getCurrentLocale()).format(inAsset);
-  }
-}
+/// Resolves the active app locale in the `intl`-compatible underscore
+/// form (`pt_BR`, `en_US`). `Locale.toString()` already produces this
+/// shape; we avoid `Intl.getCurrentLocale()` because that returns the
+/// package default (`en_US`) unless someone called `Intl.defaultLocale = …`.
+String _localeStringFor(BuildContext context) =>
+    Localizations.localeOf(context).toString();
 
-String _formatFee(sc.SwapState state, int feeSats) {
+/// Formats a fee value. Bitcoin-flavored fees get the lowercase "sats"
+/// presentation used by financial UIs; token-flavored fees fall through
+/// to the asset's native formatting + ticker.
+String _formatFee(BuildContext context, sc.SwapState state, int feeSats) {
   final feeId = state.feeAssetId;
   final asset = feeId != null ? core.Asset.fromId(feeId) : core.Asset.btc;
-  final formatter = NumberFormat('#,##0', Intl.getCurrentLocale());
+  final locale = _localeStringFor(context);
   if (asset == core.Asset.btc || asset == core.Asset.lbtc) {
-    return '${formatter.format(feeSats)} sats';
+    return '${NumberFormat('#,##0', locale).format(feeSats)} sats';
   }
-  return '${_formatAssetAmount(asset, feeSats)} ${asset.ticker}';
+  return '${asset.formatAmount(feeSats, locale: locale)} ${asset.ticker}';
 }
