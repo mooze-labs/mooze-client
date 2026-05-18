@@ -1220,7 +1220,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         _fromAmountDecimalController.text = '';
       }
     } else {
-      // Switching TO asset mode: convert sats back to asset decimal
+      // Switching TO asset mode: convert sats back to asset decimal.
+      // Programmatic `.text = ...` assignments bypass the field's
+      // `_IntegerThousandsFormatter` (formatters run on user input
+      // only), so the formatting must be reapplied here — otherwise
+      // toggling fiat off would drop the locale-aware thousands
+      // separators and the user would see "1312123" instead of
+      // "1,312,123". Mirrors the path in `_syncDecimalFromAmount`.
       final text = _fromAmountController.text.trim();
       if (text.isEmpty) {
         _fromAmountDecimalController.text = '';
@@ -1230,7 +1236,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           final isBtcOrLbtc =
               _fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc;
           if (isBtcOrLbtc) {
-            _fromAmountDecimalController.text = amount.toString();
+            _fromAmountDecimalController.text =
+                NumberFormat('#,##0', _locale).format(amount.toInt());
           } else {
             _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
                 .toStringAsFixed(2);
