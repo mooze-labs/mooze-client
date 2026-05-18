@@ -313,10 +313,23 @@ class SwapController extends StateNotifier<SwapState> {
     List<SwapUtxo>? explicitUtxos,
     String? explicitReceiveAddress,
     String? explicitChangeAddress,
+    // When `true`, the displayed quote (`state.currentQuote`) stays on
+    // screen while we open a new subscription — status transitions to
+    // [QuoteStatus.refreshing] rather than wiping to
+    // [QuoteStatus.fetching]. The UI fades the deal card to 55%
+    // opacity (matching the soft-expiry path) instead of replacing
+    // values with shimmer. The first matching emission promotes
+    // through the existing `refreshing → valid` listener path.
+    //
+    // Used by manual refresh (e.g. user tapping the expiration
+    // indicator). For the initial request and after errors, leave
+    // this `false` so the user sees a fresh-fetch state.
+    bool preserveDisplayedQuote = false,
   }) async {
     _log.info(
       _tag,
-      'Starting quote — send: $sendAsset, receive: $receiveAsset, amount: $amount sats',
+      'Starting quote — send: $sendAsset, receive: $receiveAsset, '
+      'amount: $amount sats, preserveDisplayed: $preserveDisplayedQuote',
     );
     final repository = await _repositoryFuture;
     if (!mounted) return;
@@ -334,45 +347,82 @@ class SwapController extends StateNotifier<SwapState> {
     // correctness guard, but explicitly stopping reduces the volume of
     // orphan emissions we'd otherwise be discarding.
     repository.stopQuote();
-    // Reset transient quote fields and seed the user's intent so the
-    // bottom sheet can render the requested asset pair + amount while the
-    // first quote is in flight.
-    state = SwapState(
-      loading: true,
-      assets: state.assets,
-      markets: state.markets,
-      lastSendAssetId: sendAsset,
-      lastReceiveAssetId: receiveAsset,
-      lastAmount: amount,
-      status: QuoteStatus.fetching,
-    );
 
-    // Arm the fetching watchdog. If a matching emission lands the
-    // listener cancels it; otherwise it fires at [_fetchingTimeoutMs]
-    // and surfaces a timeout error so the UI escapes the shimmer state.
-    _fetchingWatchdog = Timer(
-      const Duration(milliseconds: _fetchingTimeoutMs),
-      () {
-        if (!mounted) return;
-        if (state.status != QuoteStatus.fetching) return;
-        _log.warning(
-          _tag,
-          'Fetching watchdog tripped — no matching quote within '
-          '${_fetchingTimeoutMs}ms. Surfacing timeout error.',
-        );
-        _quoteSub?.cancel();
-        _quoteSub = null;
-        // Don't call `repository.stopQuote()` — sending on a flaky
-        // WebSocket is likely what got us here. Local cleanup is
-        // sufficient; the user will retry which triggers a fresh
-        // `resetQuote + startQuote` cycle that handles reconnection.
-        state = state.copyWith(
-          loading: false,
-          status: QuoteStatus.idle,
-          error: const SwapError(code: SwapErrorCode.timeout),
-        );
-      },
-    );
+    // The soft path is only meaningful when we actually have a quote
+    // to keep visible. If `preserveDisplayedQuote` was requested but
+    // there's nothing on screen yet, fall through to the hard reset
+    // so the UI doesn't end up in an awkward "refreshing nothing"
+    // state.
+    final canSoftRefresh =
+        preserveDisplayedQuote && state.currentQuote?.quote != null;
+
+    if (canSoftRefresh) {
+      // Keep displayed values intact; transition to `refreshing` so
+      // the deal card fades but doesn't unmount. Stale fallback fires
+      // if no matching emission lands within
+      // [_staleAfterRefreshingMs].
+      state = state.copyWith(
+        loading: false,
+        lastSendAssetId: sendAsset,
+        lastReceiveAssetId: receiveAsset,
+        lastAmount: amount,
+        status: QuoteStatus.refreshing,
+        millisecondsRemaining: 0,
+        error: null,
+      );
+      _staleTimer = Timer(
+        const Duration(milliseconds: _staleAfterRefreshingMs),
+        () {
+          if (!mounted) return;
+          if (state.status != QuoteStatus.refreshing) return;
+          _log.warning(
+            _tag,
+            'Soft-refresh stalled — surfacing manual retry',
+          );
+          state = state.copyWith(status: QuoteStatus.stale);
+        },
+      );
+    } else {
+      // Hard path: full reset to `fetching` + shimmer. Used for the
+      // first quote of a session and for recovery from idle/error.
+      state = SwapState(
+        loading: true,
+        assets: state.assets,
+        markets: state.markets,
+        lastSendAssetId: sendAsset,
+        lastReceiveAssetId: receiveAsset,
+        lastAmount: amount,
+        status: QuoteStatus.fetching,
+      );
+
+      // Arm the fetching watchdog. If a matching emission lands the
+      // listener cancels it; otherwise it fires at
+      // [_fetchingTimeoutMs] and surfaces a timeout error so the UI
+      // escapes the shimmer state.
+      _fetchingWatchdog = Timer(
+        const Duration(milliseconds: _fetchingTimeoutMs),
+        () {
+          if (!mounted) return;
+          if (state.status != QuoteStatus.fetching) return;
+          _log.warning(
+            _tag,
+            'Fetching watchdog tripped — no matching quote within '
+            '${_fetchingTimeoutMs}ms. Surfacing timeout error.',
+          );
+          _quoteSub?.cancel();
+          _quoteSub = null;
+          // Don't call `repository.stopQuote()` — sending on a flaky
+          // WebSocket is likely what got us here. Local cleanup is
+          // sufficient; the user will retry which triggers a fresh
+          // `resetQuote + startQuote` cycle that handles reconnection.
+          state = state.copyWith(
+            loading: false,
+            status: QuoteStatus.idle,
+            error: const SwapError(code: SwapErrorCode.timeout),
+          );
+        },
+      );
+    }
 
     var normalizedParams = repository.normalizeSwapParams(
       sendAsset: sendAsset,
@@ -781,6 +831,16 @@ class SwapController extends StateNotifier<SwapState> {
   /// - the bottom sheet's timer chip tap (user wants a fresher quote)
   /// - the stale-state retry button
   /// - any other "give me a new quote" affordance
+  ///
+  /// **Soft vs. hard path:** if a quote is currently displayed,
+  /// passes `preserveDisplayedQuote: true` to [startQuote]. The deal
+  /// card stays on screen and fades to 55 % opacity (via
+  /// [QuoteStatus.refreshing]) until the next matching emission
+  /// promotes through to `valid` — same UX as the soft-expiry path.
+  /// If there's no displayed quote (e.g. we're recovering from an
+  /// error/idle state), we fall back to the full
+  /// `resetQuote + startQuote` so the shimmer state correctly signals
+  /// "we're fetching from scratch".
   Future<void> requestFreshQuote() async {
     final sendId = state.lastSendAssetId;
     final receiveId = state.lastReceiveAssetId;
@@ -791,6 +851,21 @@ class SwapController extends StateNotifier<SwapState> {
       return;
     }
     _log.info(_tag, 'Manual quote refresh requested');
+
+    final hasDisplayedQuote = state.currentQuote?.quote != null;
+    if (hasDisplayedQuote) {
+      // Soft path — keep the deal card on screen while fetching.
+      await startQuote(
+        sendAsset: sendId,
+        receiveAsset: receiveId,
+        amount: amount,
+        preserveDisplayedQuote: true,
+      );
+      return;
+    }
+
+    // No quote to preserve — full reset so the user sees a clean
+    // fetch state.
     await resetQuote();
     if (!mounted) return;
     await startQuote(
