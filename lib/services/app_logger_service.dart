@@ -9,6 +9,7 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' hide JsonKey;
 import 'package:mooze_mobile/database/database.dart';
+import 'package:mooze_mobile/domain/entities/transaction.dart' as v2;
 import 'package:mooze_mobile/services/log_config.dart';
 
 enum LogLevel {
@@ -103,6 +104,14 @@ class AppLoggerService {
   static const int maxLogFileSize = 5 * 1024 * 1024;
 
   Future<void> initialize(AppDatabase database, {LogConfig? config}) async {
+    if (_database != null) {
+      // Already wired. Re-running would leak a second cleanup timer.
+      if (config != null) {
+        _config = config;
+      }
+      return;
+    }
+
     debugPrint('[AppLogger] initialize() called - Setting database...');
     debugPrint('[AppLogger] Database instance: ${database.hashCode}');
 
@@ -455,10 +464,20 @@ class AppLoggerService {
   /// Build the export ZIP for the given [walletId]. Swaps and Pegs in the
   /// structured JSON section are scoped to this wallet — pre-walletId
   /// rows (sentinel 'unknown') are not included, matching the in-app
-  /// view. Logs and transactions are not currently wallet-scoped at the
-  /// schema level (`deleteWallet()` wipes them outright on wipe), so they
-  /// remain unscoped here.
-  Future<String> exportLogs({required String walletId}) async {
+  /// view. Logs are not currently wallet-scoped at the schema level
+  /// (`deleteWallet()` wipes them outright on wipe), so they remain
+  /// unscoped here.
+  ///
+  /// [v2Transactions] is the V2 `TransactionStore` snapshot. After the V2
+  /// migration the legacy `Transactions` drift table is no longer
+  /// populated (V2 services write to `mooze_v2.db` instead), so callers
+  /// must pass V2 rows in to keep the export's `transactions` section
+  /// non-empty. When omitted, the export falls back to the legacy table
+  /// for backwards compatibility with rows written before the V2 cutover.
+  Future<String> exportLogs({
+    required String walletId,
+    List<v2.Transaction>? v2Transactions,
+  }) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -570,7 +589,10 @@ class AppLoggerService {
       // Structured JSON export — primary artifact for support tooling. Holds
       // logs, transactions and swaps in a single document with stable keys
       // so an automated pipeline can ingest it without parsing free text.
-      final jsonExport = await _buildStructuredExport(walletId: walletId);
+      final jsonExport = await _buildStructuredExport(
+        walletId: walletId,
+        v2Transactions: v2Transactions,
+      );
       final jsonFile = File('${exportDir.path}/mooze_export.json');
       await jsonFile.writeAsString(
         const JsonEncoder.withIndent('  ').convert(jsonExport),
@@ -682,6 +704,7 @@ class AppLoggerService {
   /// arrays rather than missing keys, so consumers can rely on shape.
   Future<Map<String, dynamic>> _buildStructuredExport({
     required String walletId,
+    List<v2.Transaction>? v2Transactions,
   }) async {
     final memoryLogs = _logs.reversed.map(_logEntryToJson).toList();
 
@@ -692,16 +715,29 @@ class AppLoggerService {
     if (_database != null) {
       final db = _database!;
       final dbLogs = await db.getAllLogs();
-      final txs = await db.getAllTransactions();
       final swaps = await db.getAllSwaps(walletId: walletId);
 
       dbLogJson = dbLogs.map(_appLogRowToJson).toList();
 
-      txs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      txJson = txs.map(_transactionRowToJson).toList();
-
       swaps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       swapJson = swaps.map(_swapRowToJson).toList();
+
+      // V2 transactions take precedence over the legacy table. Post-V2
+      // sync writes to `mooze_v2.db`, leaving the drift `Transactions`
+      // table empty for fresh installs. Only fall back to legacy rows
+      // when V2 didn't provide a snapshot (e.g. dev tools called the
+      // export without ref access).
+      if (v2Transactions == null) {
+        final txs = await db.getAllTransactions();
+        txs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        txJson = txs.map(_transactionRowToJson).toList();
+      }
+    }
+
+    if (v2Transactions != null) {
+      final sorted = [...v2Transactions]
+        ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      txJson = sorted.map(_v2TransactionToJson).toList();
     }
 
     // Memory + DB logs are merged and sorted newest-first; consumers see one
@@ -760,6 +796,42 @@ class AppLoggerService {
     if (row.address != null) 'address': row.address,
     if (row.metadata != null) 'metadata': row.metadata,
   };
+
+  /// V2 transactions live in `mooze_v2.db` and use a different schema
+  /// from the legacy drift `Transactions` table. The export keeps the
+  /// legacy-shaped keys (`type`, `blockchain`, `amount`) so support
+  /// tooling that parsed the v1 export keeps working; V2-only fields
+  /// (`feeSat`, `chain`, raw `direction`) are added alongside without
+  /// bumping `schemaVersion`.
+  ///
+  /// Direction → type mapping mirrors `v2_legacy_transactions_provider`:
+  /// incoming → "receive", outgoing → "send", selfTransfer → "redeposit",
+  /// swap → "swap", internal → "internal".
+  Map<String, dynamic> _v2TransactionToJson(v2.Transaction tx) {
+    final type = switch (tx.direction) {
+      v2.TransactionDirection.incoming => 'receive',
+      v2.TransactionDirection.outgoing => 'send',
+      v2.TransactionDirection.selfTransfer => 'redeposit',
+      v2.TransactionDirection.swap => 'swap',
+      v2.TransactionDirection.internal => 'internal',
+    };
+    final blockchain = tx.chain.name;
+    return {
+      'id': tx.id,
+      if (tx.assetId != null) 'assetId': tx.assetId,
+      'amount': tx.amountSat.toString(),
+      'feeSat': tx.feeSat.toString(),
+      'type': type,
+      'direction': tx.direction.name,
+      'status': tx.status.name,
+      'blockchain': blockchain,
+      'chain': tx.chain.name,
+      'createdAt': tx.timestamp.toUtc().toIso8601String(),
+      'confirmations': tx.confirmations,
+      if (tx.address != null) 'address': tx.address,
+      if (tx.label != null) 'label': tx.label,
+    };
+  }
 
   Map<String, dynamic> _swapRowToJson(Swap row) => {
     'id': row.id,
