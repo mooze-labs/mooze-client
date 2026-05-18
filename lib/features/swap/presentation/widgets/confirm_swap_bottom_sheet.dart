@@ -177,14 +177,21 @@ class _ConfirmSwapBottomSheetState
                   t: t,
                 ),
               ],
-              const SizedBox(height: 12),
-              _ExpirationIndicator(
-                remainingMs: millisecondsRemaining,
-                totalMs: state.ttlMilliseconds,
-                showShimmer: isFetching || isRefreshing,
-                onTap: controller.requestFreshQuote,
-                t: t,
-              ),
+              // Indicator only makes sense while a quote session is
+              // active. Hide it on `idle` — that status now also covers
+              // the "fetching watchdog tripped" case, where there's no
+              // countdown to render and the `_ErrorCard` above carries
+              // the actionable signal instead.
+              if (status != sc.QuoteStatus.idle) ...[
+                const SizedBox(height: 12),
+                _ExpirationIndicator(
+                  remainingMs: millisecondsRemaining,
+                  totalMs: state.ttlMilliseconds,
+                  showShimmer: isFetching || isRefreshing,
+                  onTap: controller.requestFreshQuote,
+                  t: t,
+                ),
+              ],
               const SizedBox(height: 12),
               SlideToConfirmButton(
                 text:

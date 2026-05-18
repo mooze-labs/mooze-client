@@ -178,16 +178,28 @@ class SwapController extends StateNotifier<SwapState> {
   // stream push before giving up and showing the user an explicit retry.
   static const int _staleAfterRefreshingMs = 8000;
 
+  // Upper bound on how long [QuoteStatus.fetching] is allowed to last
+  // before we declare the request lost. Belt-and-suspenders against:
+  //  - WebSocket dropping during/after `start_quotes` send (the server
+  //    never registers the subscription, no quote ever returns),
+  //  - SideswapService's `_isQuoteInProgress` lock being released
+  //    early by stale quote emissions, defeating its own 8s timeout,
+  //  - any other path that prevents a matching emission from arriving.
+  static const int _fetchingTimeoutMs = 10000;
+
   Timer? _staleTimer;
+  Timer? _fetchingWatchdog;
 
   Future<void> resetQuote() async {
     _log.debug(_tag, 'Resetting quote state');
     _ttlTimer?.cancel();
     _quoteSub?.cancel();
     _staleTimer?.cancel();
+    _fetchingWatchdog?.cancel();
     _ttlTimer = null;
     _quoteSub = null;
     _staleTimer = null;
+    _fetchingWatchdog = null;
     _ttlDeadline = null;
     final repository = await _repositoryFuture;
     repository.stopQuote();
@@ -210,6 +222,8 @@ class SwapController extends StateNotifier<SwapState> {
     );
     _ttlTimer?.cancel();
     _staleTimer?.cancel();
+    _fetchingWatchdog?.cancel();
+    _fetchingWatchdog = null;
     _quoteSub?.cancel();
     _ttlDeadline = null;
 
@@ -312,6 +326,8 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlTimer = null;
     _staleTimer?.cancel();
     _staleTimer = null;
+    _fetchingWatchdog?.cancel();
+    _fetchingWatchdog = null;
     _ttlDeadline = null;
     // Hygiene: tell SideSwap to stop the prior subscription before we
     // open a new one. The controller's listener filter is the actual
@@ -329,6 +345,33 @@ class SwapController extends StateNotifier<SwapState> {
       lastReceiveAssetId: receiveAsset,
       lastAmount: amount,
       status: QuoteStatus.fetching,
+    );
+
+    // Arm the fetching watchdog. If a matching emission lands the
+    // listener cancels it; otherwise it fires at [_fetchingTimeoutMs]
+    // and surfaces a timeout error so the UI escapes the shimmer state.
+    _fetchingWatchdog = Timer(
+      const Duration(milliseconds: _fetchingTimeoutMs),
+      () {
+        if (!mounted) return;
+        if (state.status != QuoteStatus.fetching) return;
+        _log.warning(
+          _tag,
+          'Fetching watchdog tripped — no matching quote within '
+          '${_fetchingTimeoutMs}ms. Surfacing timeout error.',
+        );
+        _quoteSub?.cancel();
+        _quoteSub = null;
+        // Don't call `repository.stopQuote()` — sending on a flaky
+        // WebSocket is likely what got us here. Local cleanup is
+        // sufficient; the user will retry which triggers a fresh
+        // `resetQuote + startQuote` cycle that handles reconnection.
+        state = state.copyWith(
+          loading: false,
+          status: QuoteStatus.idle,
+          error: const SwapError(code: SwapErrorCode.timeout),
+        );
+      },
     );
 
     var normalizedParams = repository.normalizeSwapParams(
@@ -473,6 +516,11 @@ class SwapController extends StateNotifier<SwapState> {
             return;
           }
 
+          // The request's stream is producing for us — the watchdog
+          // armed in [startQuote] is no longer needed.
+          _fetchingWatchdog?.cancel();
+          _fetchingWatchdog = null;
+
           final rawMsg = quote.error?.errorMessage;
           SwapError? swapErr;
 
@@ -483,13 +531,13 @@ class SwapController extends StateNotifier<SwapState> {
             // SideSwap occasionally returns "Tempo limite excedido..." /
             // "timeout" for a single quote push while the underlying
             // subscription is still alive — subsequent pushes usually
-            // succeed without intervention. Surface nothing to the UI:
-            // no error banner, no state churn, no flicker. If timeouts
-            // persist long enough that no quote ever lands, the
-            // soft-expiry → `stale` mechanism will eventually surface
-            // an explicit retry to the user. The subscription's natural
-            // flow is the retry; this branch just suppresses the
-            // transient noise.
+            // succeed without intervention. Suppression only makes
+            // sense when we already have a working subscription whose
+            // next push can recover us (status is `valid` or
+            // `refreshing`). During `fetching` we never received a
+            // first quote in this cycle — silently swallowing the
+            // timeout would leave the UI stuck in shimmer forever, so
+            // we fall through and surface it as a real error instead.
             final isRecoverableTimeout =
                 lower.contains('tempo limite') ||
                 lower.contains('timeout') ||
@@ -497,14 +545,27 @@ class SwapController extends StateNotifier<SwapState> {
                 lower.contains('tiempo límite') ||
                 lower.contains('tiempo agotado');
             if (isRecoverableTimeout) {
-              _log.debug(
+              final hasWorkingSubscription =
+                  state.status == QuoteStatus.valid ||
+                  state.status == QuoteStatus.refreshing;
+              if (hasWorkingSubscription) {
+                _log.debug(
+                  _tag,
+                  'Suppressed recoverable upstream timeout: $rawMsg',
+                );
+                return;
+              }
+              _log.warning(
                 _tag,
-                'Suppressed recoverable upstream timeout: $rawMsg',
+                'Timeout during initial fetch — surfacing as error: $rawMsg',
               );
-              return;
-            }
-
-            if (lower.contains('invalid utxo') ||
+              swapErr = SwapError(
+                code: SwapErrorCode.timeout,
+                rawMessage: rawMsg,
+              );
+              // Fall through to the normal error-handling path below;
+              // do not re-classify in the subsequent else-if chain.
+            } else if (lower.contains('invalid utxo') ||
                 lower.contains('unknown utxo') ||
                 lower.contains('wait for wallet sync')) {
               swapErr = const SwapError(code: SwapErrorCode.utxoBusy);
@@ -628,11 +689,22 @@ class SwapController extends StateNotifier<SwapState> {
           }
 
           if (!mounted) return;
-          final nextStatus = swapErr != null
-              ? state.status // keep prior status; error is surfaced separately
-              : newQuote != null
-                  ? QuoteStatus.valid
-                  : state.status;
+          // An error during `fetching` means we never received a first
+          // successful quote — staying in `fetching` would leave the
+          // UI in shimmer alongside the error banner. Exit to `idle`
+          // so the error card stands alone. For other statuses (valid /
+          // refreshing) we already have something on screen, so a
+          // transient error doesn't reset the displayed quote.
+          final QuoteStatus nextStatus;
+          if (swapErr != null) {
+            nextStatus = state.status == QuoteStatus.fetching
+                ? QuoteStatus.idle
+                : state.status;
+          } else if (newQuote != null) {
+            nextStatus = QuoteStatus.valid;
+          } else {
+            nextStatus = state.status;
+          }
           state = state.copyWith(
             loading: false,
             currentQuote: quote,
@@ -766,6 +838,8 @@ class SwapController extends StateNotifier<SwapState> {
     _log.info(_tag, 'Quote cancelled by user');
     _ttlTimer?.cancel();
     _staleTimer?.cancel();
+    _fetchingWatchdog?.cancel();
+    _fetchingWatchdog = null;
     _repositoryFuture.then((r) => r.stopQuote());
     _quoteSub?.cancel();
     _ttlDeadline = null;
@@ -977,6 +1051,7 @@ class SwapController extends StateNotifier<SwapState> {
     _quoteSub?.cancel();
     _ttlTimer?.cancel();
     _staleTimer?.cancel();
+    _fetchingWatchdog?.cancel();
 
     _repositoryFuture
         .then((r) {
