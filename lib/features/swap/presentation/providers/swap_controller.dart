@@ -187,8 +187,19 @@ class SwapController extends StateNotifier<SwapState> {
   //  - any other path that prevents a matching emission from arriving.
   static const int _fetchingTimeoutMs = 10000;
 
+  // Connection-error / timeout auto-retry policy. The WebSocket layer
+  // already reconnects on its own; we just need to stop surfacing
+  // transient transport errors to the user while that's happening.
+  // Each retry replays the full `startQuote` (fresh UTXOs / receive
+  // address / `start_quotes` send) with the same user intent.
+  // Backoff schedule is `[1s, 2s]` — after `_maxStartupRetries`
+  // failures we give up and surface the error so the user can decide.
+  static const int _maxStartupRetries = 2;
+
   Timer? _staleTimer;
   Timer? _fetchingWatchdog;
+  Timer? _startupRetryTimer;
+  int _consecutiveStartupTimeouts = 0;
 
   Future<void> resetQuote() async {
     _log.debug(_tag, 'Resetting quote state');
@@ -196,10 +207,13 @@ class SwapController extends StateNotifier<SwapState> {
     _quoteSub?.cancel();
     _staleTimer?.cancel();
     _fetchingWatchdog?.cancel();
+    _startupRetryTimer?.cancel();
     _ttlTimer = null;
     _quoteSub = null;
     _staleTimer = null;
     _fetchingWatchdog = null;
+    _startupRetryTimer = null;
+    _consecutiveStartupTimeouts = 0;
     _ttlDeadline = null;
     final repository = await _repositoryFuture;
     repository.stopQuote();
@@ -224,6 +238,9 @@ class SwapController extends StateNotifier<SwapState> {
     _staleTimer?.cancel();
     _fetchingWatchdog?.cancel();
     _fetchingWatchdog = null;
+    _startupRetryTimer?.cancel();
+    _startupRetryTimer = null;
+    _consecutiveStartupTimeouts = 0;
     _quoteSub?.cancel();
     _ttlDeadline = null;
 
@@ -325,11 +342,18 @@ class SwapController extends StateNotifier<SwapState> {
     // indicator). For the initial request and after errors, leave
     // this `false` so the user sees a fresh-fetch state.
     bool preserveDisplayedQuote = false,
+    // Internal — set by the auto-retry timer when re-issuing a failed
+    // startup attempt. Public callers should leave this `false` so each
+    // user-initiated fetch begins with a fresh retry budget. When
+    // `true`, [_consecutiveStartupTimeouts] is preserved so the backoff
+    // strategy can escalate across attempts.
+    bool isAutomaticRetry = false,
   }) async {
     _log.info(
       _tag,
       'Starting quote — send: $sendAsset, receive: $receiveAsset, '
-      'amount: $amount sats, preserveDisplayed: $preserveDisplayedQuote',
+      'amount: $amount sats, preserveDisplayed: $preserveDisplayedQuote, '
+      'autoRetry: $isAutomaticRetry',
     );
     final repository = await _repositoryFuture;
     if (!mounted) return;
@@ -341,6 +365,17 @@ class SwapController extends StateNotifier<SwapState> {
     _staleTimer = null;
     _fetchingWatchdog?.cancel();
     _fetchingWatchdog = null;
+    _startupRetryTimer?.cancel();
+    _startupRetryTimer = null;
+    // Reset the auto-retry budget for any non-retry entry into
+    // startQuote — typing-debounced refetches, manual swap clicks,
+    // resetQuote-then-startQuote — so each user-initiated attempt
+    // starts with the full budget. The retry path passes
+    // `isAutomaticRetry: true` to preserve the counter across
+    // backoff attempts.
+    if (!isAutomaticRetry) {
+      _consecutiveStartupTimeouts = 0;
+    }
     _ttlDeadline = null;
     // Hygiene: tell SideSwap to stop the prior subscription before we
     // open a new one. The controller's listener filter is the actual
@@ -577,38 +612,81 @@ class SwapController extends StateNotifier<SwapState> {
           if (rawMsg != null) {
             final lower = rawMsg.toLowerCase();
 
-            // ── Silently retry recoverable upstream timeouts ──────────
-            // SideSwap occasionally returns "Tempo limite excedido..." /
-            // "timeout" for a single quote push while the underlying
-            // subscription is still alive — subsequent pushes usually
-            // succeed without intervention. Suppression only makes
-            // sense when we already have a working subscription whose
-            // next push can recover us (status is `valid` or
-            // `refreshing`). During `fetching` we never received a
-            // first quote in this cycle — silently swallowing the
-            // timeout would leave the UI stuck in shimmer forever, so
-            // we fall through and surface it as a real error instead.
-            final isRecoverableTimeout =
+            // ── Transient transport errors ────────────────────────────
+            // Two related classes of error end up here:
+            //   • "Tempo limite excedido…" — SideswapService's 8 s
+            //     watchdog firing because no quote response arrived
+            //     (typically caused by a flaky / reconnecting WS).
+            //   • "Erro de conexão…" — synthetic emission when
+            //     `ensureConnection()` couldn't bring the WS back up.
+            // The WebSocket layer is already retrying its connect on
+            // its own. We just need to stop surfacing these to the
+            // user while that's happening:
+            //   - If a working subscription exists (status valid /
+            //     refreshing), the next stream push will recover us
+            //     naturally — suppress silently.
+            //   - Otherwise (still in `fetching`), attempt a few
+            //     automatic retries with exponential backoff before
+            //     giving up. The UI stays in shimmer the whole time
+            //     so the user doesn't see error flashes for what is
+            //     essentially a reconnect cycle.
+            final isTransient =
                 lower.contains('tempo limite') ||
                 lower.contains('timeout') ||
                 lower.contains('timed out') ||
                 lower.contains('tiempo límite') ||
-                lower.contains('tiempo agotado');
-            if (isRecoverableTimeout) {
+                lower.contains('tiempo agotado') ||
+                lower.contains('erro de conexão') ||
+                lower.contains('connection error') ||
+                lower.contains('disconnected');
+            if (isTransient) {
               final hasWorkingSubscription =
                   state.status == QuoteStatus.valid ||
                   state.status == QuoteStatus.refreshing;
               if (hasWorkingSubscription) {
                 _log.debug(
                   _tag,
-                  'Suppressed recoverable upstream timeout: $rawMsg',
+                  'Suppressed recoverable upstream transient: $rawMsg',
                 );
                 return;
               }
+              // No working subscription — auto-retry before surfacing.
+              if (_consecutiveStartupTimeouts < _maxStartupRetries) {
+                _consecutiveStartupTimeouts++;
+                final delaySeconds = _consecutiveStartupTimeouts;
+                _log.info(
+                  _tag,
+                  'Transient transport error during fetching '
+                  '(attempt $_consecutiveStartupTimeouts/$_maxStartupRetries) — '
+                  'auto-retrying in ${delaySeconds}s: $rawMsg',
+                );
+                _fetchingWatchdog?.cancel();
+                _fetchingWatchdog = null;
+                _startupRetryTimer?.cancel();
+                _startupRetryTimer = Timer(
+                  Duration(seconds: delaySeconds),
+                  () {
+                    if (!mounted) return;
+                    // Use closure-captured params (the original
+                    // request) and pass `isAutomaticRetry: true` so
+                    // the budget isn't reset inside startQuote.
+                    startQuote(
+                      sendAsset: sendAsset,
+                      receiveAsset: receiveAsset,
+                      amount: amount,
+                      isAutomaticRetry: true,
+                    );
+                  },
+                );
+                return;
+              }
+              // Budget exhausted — surface so the user can react.
               _log.warning(
                 _tag,
-                'Timeout during initial fetch — surfacing as error: $rawMsg',
+                'Auto-retry budget exhausted after '
+                '$_consecutiveStartupTimeouts attempts — surfacing: $rawMsg',
               );
+              _consecutiveStartupTimeouts = 0;
               swapErr = SwapError(
                 code: SwapErrorCode.timeout,
                 rawMessage: rawMsg,
@@ -691,6 +769,8 @@ class SwapController extends StateNotifier<SwapState> {
           if (isPromotingFromRefreshing) {
             _staleTimer?.cancel();
             _staleTimer = null;
+            // Successful promotion ends the auto-retry cycle.
+            _consecutiveStartupTimeouts = 0;
             if (ttlMs != null) {
               _ttlDeadline = DateTime.now().add(
                 Duration(milliseconds: ttlMs),
@@ -739,6 +819,10 @@ class SwapController extends StateNotifier<SwapState> {
           }
 
           if (!mounted) return;
+          // A successful first quote ends the auto-retry cycle.
+          if (swapErr == null && newQuote != null) {
+            _consecutiveStartupTimeouts = 0;
+          }
           // An error during `fetching` means we never received a first
           // successful quote — staying in `fetching` would leave the
           // UI in shimmer alongside the error banner. Exit to `idle`
@@ -915,6 +999,9 @@ class SwapController extends StateNotifier<SwapState> {
     _staleTimer?.cancel();
     _fetchingWatchdog?.cancel();
     _fetchingWatchdog = null;
+    _startupRetryTimer?.cancel();
+    _startupRetryTimer = null;
+    _consecutiveStartupTimeouts = 0;
     _repositoryFuture.then((r) => r.stopQuote());
     _quoteSub?.cancel();
     _ttlDeadline = null;
@@ -1127,6 +1214,7 @@ class SwapController extends StateNotifier<SwapState> {
     _ttlTimer?.cancel();
     _staleTimer?.cancel();
     _fetchingWatchdog?.cancel();
+    _startupRetryTimer?.cancel();
 
     _repositoryFuture
         .then((r) {
