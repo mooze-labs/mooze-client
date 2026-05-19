@@ -11,9 +11,12 @@ import 'wallet_service.dart';
 /// a typed [ServiceFailure]. There is no Lightning lane on this service;
 /// Lightning lives on `LightningWalletService` (Breez Liquid SDK).
 ///
-/// Lifecycle: BDK uses an in-memory `DatabaseConfig.memory()`, so unlike
-/// LWK and Breez there is no working-directory FS lock — connect/disconnect
-/// only need a per-instance mutex to serialise SDK initialization.
+/// Lifecycle: BDK runs against a persistent sqlite store under the
+/// `bdk-db` working directory (acquired via `WalletDirectoryGuard`,
+/// same pattern as LWK / Breez). On connect, the wallet replays its
+/// on-disk state and the service primes `_lastBalance` / `_lastList`
+/// from local reads so the UI never sees a transient zero-balance
+/// flash on cold start before the first electrum sync completes.
 abstract interface class BitcoinWalletService
     implements WalletService, SpendableWalletService {
   /// Current Bitcoin chain tip height, fetched from the connected

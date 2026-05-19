@@ -124,6 +124,7 @@ final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
 
 final bitcoinWalletServiceProvider = Provider<BitcoinWalletService>((ref) {
   final s = BitcoinWalletServiceImpl(
+    directoryGuard: ref.read(walletDirectoryGuardProvider),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
   );
@@ -198,7 +199,7 @@ final deleteWalletUseCaseProvider =
     transactionStore: txStore,
     notifiedTxRegistry: notifiedReg,
     directoryGuard: ref.read(walletDirectoryGuardProvider),
-    workingDirs: const ['lwk-db', 'breez'],
+    workingDirs: const ['lwk-db', 'breez', 'bdk-db'],
     logger: ref.read(loggerProvider),
     postDeleteHooks: buildWalletCleanupHooks(),
   );
@@ -302,7 +303,7 @@ final importWalletUseCaseProvider =
     transactionStore: txStore,
     notifiedTxRegistry: notifiedReg,
     directoryGuard: ref.read(walletDirectoryGuardProvider),
-    workingDirs: const ['lwk-db', 'breez'],
+    workingDirs: const ['lwk-db', 'breez', 'bdk-db'],
     preImportHooks: buildWalletCleanupHooks(),
     logger: ref.read(loggerProvider),
   );

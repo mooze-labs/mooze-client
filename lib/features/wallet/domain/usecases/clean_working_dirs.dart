@@ -44,9 +44,10 @@ class CleanWorkingDirsUseCase {
   final WalletDirectoryGuard directoryGuard;
 
   /// The working-directory relative paths to wipe. Production wiring uses
-  /// `['lwk-db', 'breez']` to match the chain-service constructors. Bitcoin
-  /// uses `DatabaseConfig.memory()` and has no on-disk dir, so it's
-  /// excluded by default.
+  /// `['lwk-db', 'breez', 'bdk-db']` to match the three chain-service
+  /// constructors. BDK was added once it moved off `DatabaseConfig.memory()`
+  /// to persistent sqlite, so its wallet.sqlite needs to be wiped on
+  /// delete-and-reimport like the LWK / Breez working dirs.
   final List<String> workingDirs;
 
   Future<Either<Failure, Unit>> call() async {

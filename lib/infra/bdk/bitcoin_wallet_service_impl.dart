@@ -14,6 +14,7 @@ import '../../domain/entities/wallet_credentials.dart';
 import '../../domain/events/sync_outcome.dart';
 import '../../domain/events/transaction_event.dart';
 import '../../domain/failures/failure.dart';
+import '../../domain/repositories/wallet_directory_guard.dart';
 import '../../domain/services/bitcoin_wallet_service.dart';
 import '../../domain/services/service_state.dart';
 import '../../shared/clock/clock.dart';
@@ -23,8 +24,10 @@ import '../../shared/streams/replay_value_stream.dart';
 
 class BitcoinWalletServiceImpl implements BitcoinWalletService {
   BitcoinWalletServiceImpl({
+    required this.directoryGuard,
     required this.logger,
     required this.clock,
+    this.workingDirRelative = 'bdk-db',
     this.electrumUrl = 'ssl://electrum.blockstream.info:50002',
     this.stopGap = 20,
     this.retry = 5,
@@ -32,8 +35,10 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
     this.validateDomain = true,
   });
 
+  final WalletDirectoryGuard directoryGuard;
   final StructuredLogger logger;
   final Clock clock;
+  final String workingDirRelative;
   final String electrumUrl;
   final int stopGap;
   final int retry;
@@ -42,6 +47,7 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 
   static const _externalDerivationPath = "m/84h/0h/0h/0";
   static const _internalDerivationPath = "m/84h/0h/0h/1";
+  static const _walletDbFilename = 'wallet.sqlite';
 
   final Mutex _connectMutex = Mutex();
   final Mutex _syncMutex = Mutex();
@@ -49,6 +55,7 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   bdk.Wallet? _wallet;
   bdk.Blockchain? _blockchain;
   AppNetwork _network = AppNetwork.mainnet;
+  String? _acquiredDirectory;
 
   final Map<String, _BdkFingerprint> _seen = {};
   List<domain.Transaction> _lastList = const [];
@@ -92,6 +99,25 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       _emit(ServiceLifecycle.connecting);
       _network = credentials.network;
       try {
+        // Persistent sqlite store under the wallet directory. Previously
+        // BDK ran with `DatabaseConfig.memory()`, which meant `_lastBalance`
+        // was always zero on cold start until the first electrum sync
+        // completed (~3s) — and any UI surface that read getBalance()
+        // synchronously during that window contended with `sync()`'s
+        // mutex on BDK's `#[frb(sync)]` getBalance binding, freezing the
+        // dart isolate. With on-disk state, BDK replays the persisted
+        // wallet on `Wallet.create` and a single non-contended
+        // `getBalance()` here populates the cache before any UI reads.
+        final dirResult = await directoryGuard.acquire(workingDirRelative);
+        if (dirResult.isLeft()) {
+          return _fail('workdir acquire failed: '
+              '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}');
+        }
+        _acquiredDirectory =
+            dirResult.getOrElse((_) => throw StateError('unreachable'));
+        final dbPath = '$_acquiredDirectory/$_walletDbFilename';
+        logger.info('bitcoin.connect.dbpath', {'dbpath': dbPath});
+
         final mnemonic = await bdk.Mnemonic.fromString(credentials.mnemonic);
         final secret = await bdk.DescriptorSecretKey.create(
           network: _toBdkNetwork(_network),
@@ -106,7 +132,9 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
           descriptor: externalDesc,
           changeDescriptor: internalDesc,
           network: _toBdkNetwork(_network),
-          databaseConfig: const bdk.DatabaseConfig.memory(),
+          databaseConfig: bdk.DatabaseConfig.sqlite(
+            config: bdk.SqliteDbConfiguration(path: dbPath),
+          ),
         );
 
         final blockchain = await bdk.Blockchain.create(
@@ -123,10 +151,46 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 
         _wallet = wallet;
         _blockchain = blockchain;
+
+        // Cold-restore: BDK's `getBalance` and `listTransactions` are
+        // local reads against the just-opened sqlite db, so they return
+        // the last-known state from the previous session without an
+        // electrum round-trip. We're inside `_connectMutex` and `sync()`
+        // hasn't started, so `_syncMutex` is free — the `#[frb(sync)]`
+        // FFI call won't contend. `_seen` is primed from the restored
+        // tx list so the first post-sync `_diffAndEmit` only fires
+        // events for actual changes, not a full replay.
+        try {
+          _lastBalance = _mapBalance(wallet.getBalance());
+          final txs = wallet.listTransactions(includeRaw: false);
+          final mapped = txs.map(_mapTx).toList()
+            ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          _lastList = mapped;
+          for (final tx in mapped) {
+            _seen[tx.id] = _BdkFingerprint(tx.status, tx.confirmations);
+          }
+          logger.info('bitcoin.cold_restore', {
+            'txs': mapped.length,
+            'balance_sat':
+                _lastBalance.assets.fold<int>(0, (s, a) => s + a.amountSat),
+          });
+        } catch (e, st) {
+          // Cold restore is best-effort: an empty / corrupt db leaves
+          // _lastBalance + _lastList in their initial empty state, and
+          // the first sync will populate them. Log so we can spot
+          // pathological restore failures, but never block connect.
+          logger.warn('bitcoin.cold_restore.failed',
+              {'error': '$e'}, error: e, stackTrace: st);
+        }
+
         _emit(ServiceLifecycle.connected, clearFailure: true);
         logger.info('bitcoin.connected', {});
         return const Right(unit);
       } catch (e, st) {
+        if (_acquiredDirectory != null) {
+          await directoryGuard.release(workingDirRelative);
+          _acquiredDirectory = null;
+        }
         return _fail('bdk init failed: $e', cause: e, stackTrace: st);
       }
     });
@@ -154,6 +218,15 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       _wallet = null;
       _blockchain = null;
       _seen.clear();
+      // Clear cached snapshots so a subsequent reconnect (e.g.
+      // delete + re-import with a different mnemonic) doesn't surface
+      // wallet-1's data while wallet-2's cold restore hasn't run yet.
+      _lastBalance = domain.Balance.empty();
+      _lastList = const [];
+      if (_acquiredDirectory != null) {
+        await directoryGuard.release(workingDirRelative);
+        _acquiredDirectory = null;
+      }
       _emit(ServiceLifecycle.disconnected, clearFailure: true);
       logger.info('bitcoin.disconnected', {});
       return const Right(unit);
