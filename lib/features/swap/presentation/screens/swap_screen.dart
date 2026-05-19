@@ -120,6 +120,29 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           if (!mounted) return;
           ref.read(swapControllerProvider.notifier).cancelQuote();
         });
+      } else if (!wasVisible &&
+          isVisible &&
+          _lastVisiblePageIndex != null) {
+        // Re-entering the swap tab AFTER having been away (we skip
+        // the initial mount transition where `_lastVisiblePageIndex`
+        // is null — `initState`'s own [loadMetadata] already covers
+        // that path). While we were off-screen, [build] returned a
+        // SizedBox and stopped watching `swapControllerProvider`, so
+        // the entire sideswap autoDispose chain
+        // (controller → repo → service → WS) tore down. The next
+        // `ref.watch(...)` in build() will reconstruct it lazily —
+        // but the freshly built controller starts with empty
+        // assets/markets. Kick off [loadMetadata] explicitly so the
+        // user sees populated pickers instead of a shimmering empty
+        // card.
+        debugPrint(
+          '[SwapScreen] Page visible (index $_lastVisiblePageIndex → '
+          '$currentPage) — refreshing metadata',
+        );
+        Future.microtask(() {
+          if (!mounted) return;
+          ref.read(swapControllerProvider.notifier).loadMetadata();
+        });
       }
       _lastVisiblePageIndex = currentPage;
     }
@@ -187,6 +210,26 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+
+    // Lifecycle gate: while the swap tab is off-screen we deliberately
+    // do NOT watch `swapControllerProvider`. The PageView keeps every
+    // tab in the widget tree, so we'd otherwise hold the autoDispose
+    // chain (controller → repo → sideswap service → api → WS) alive
+    // indefinitely. By skipping the watch we let Riverpod tear the
+    // whole chain down, which closes the SideSwap WebSocket and
+    // cancels its reconnect/idle timers — the source of the
+    // "TimeoutException: Connection timeout" loop the user reported
+    // when leaving this screen. Re-entering the page resumes the
+    // watch and reconstructs everything from scratch.
+    final currentPage = PageVisibilityProvider.of(context);
+    // `null` defaults to "visible" so this screen still renders in
+    // tests or contexts where no PageVisibilityProvider is mounted.
+    final isVisible = currentPage == null || currentPage == _swapPageIndex;
+
+    if (!isVisible) {
+      return const SizedBox.shrink();
+    }
+
     final swapState = ref.watch(swapControllerProvider);
 
     final isLoading = swapState.loading;

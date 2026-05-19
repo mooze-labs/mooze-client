@@ -12,6 +12,7 @@ const String sideswapApiUrl = 'wss://api.sideswap.io/json-rpc-ws';
 
 class SideswapApi {
   late WebSocketService _wsService;
+  StreamSubscription<dynamic>? _wsSub;
   final _loginController = StreamController<Map<String, dynamic>>.broadcast();
   final _pegController = StreamController<Map<String, dynamic>>.broadcast();
   final _pegStatusController =
@@ -27,7 +28,7 @@ class SideswapApi {
   final _assetsController = StreamController<Map<String, dynamic>>.broadcast();
   final _marketController = StreamController<Map<String, dynamic>>.broadcast();
 
-  bool _isInitialized = false;
+  bool _isDisposed = false;
 
   Stream<Map<String, dynamic>> get loginStream => _loginController.stream;
   Stream<Map<String, dynamic>> get pegStream => _pegController.stream;
@@ -49,9 +50,14 @@ class SideswapApi {
     _setupStreamListeners();
   }
 
+  bool get isConnected => _wsService.isConnected;
+
+  Stream<WebSocketConnectionState> get connectionStates => _wsService.states;
+
   void _setupStreamListeners() {
-    _wsService.stream.listen(
+    _wsSub = _wsService.stream.listen(
       (message) {
+        if (_isDisposed) return;
         try {
           if (message is String &&
               (message.trim() == 'ping' || message.trim() == 'pong')) {
@@ -71,6 +77,7 @@ class SideswapApi {
         }
       },
       onError: (error) {
+        if (_isDisposed) return;
         debugPrint('WebSocket stream error: $error');
       },
     );
@@ -193,16 +200,19 @@ class SideswapApi {
   }
 
   void connect() {
-    if (_isInitialized) return;
-    _isInitialized = true;
-    _wsService.ensureConnected();
+    if (_isDisposed) return;
+    _wsService.connect();
+  }
+
+  Future<bool> ensureConnected() {
+    if (_isDisposed) return Future.value(false);
+    return _wsService.ensureConnected();
   }
 
   Future<void> forceReconnect() async {
+    if (_isDisposed) return;
     debugPrint('[SideswapApi] Forcing reconnection...');
-    _isInitialized = false;
     await _wsService.forceReconnect();
-    _isInitialized = true;
   }
 
   void login(String apiKey) {
@@ -362,6 +372,14 @@ class SideswapApi {
   }
 
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    debugPrint('[SideswapApi] dispose');
+    // Cancel the upstream WS data subscription before closing the
+    // fan-out controllers so no late message can be added to a
+    // closing controller.
+    _wsSub?.cancel();
+    _wsSub = null;
     _loginController.close();
     _pegController.close();
     _pegStatusController.close();
@@ -379,7 +397,12 @@ class SideswapService {
   final SideswapApi _api;
   final String _apiKey;
   bool _isInitialized = false;
-  bool _isConnectionActive = false;
+  bool _isDisposed = false;
+
+  // Listener subscriptions on the api's raw streams. Tracked so they
+  // can be cancelled in [dispose] — otherwise leftover callbacks
+  // would keep firing across screen tear-downs/rebuilds.
+  final List<StreamSubscription<dynamic>> _internalSubs = [];
 
   // Transformed streams
   late Stream<ServerStatus> serverStatusStream;
@@ -405,13 +428,13 @@ class SideswapService {
     : _api = api,
       _apiKey = apiKey;
 
-  /// Initialize the repository by connecting to the service
-  /// and setting up stream transformations
+  /// Initialize the service: dial the WS, send the login frame, and
+  /// wire up the per-method stream transformations.
   void init() {
+    if (_isDisposed) return;
     if (_isInitialized) return;
-    if (_isConnectionActive) return;
 
-    print("Starting Sideswap connection");
+    debugPrint('[SideswapService] init');
 
     _api.connect();
     _api.login(_apiKey);
@@ -420,27 +443,21 @@ class SideswapService {
     _setupStreamTransformations();
 
     _isInitialized = true;
-    _isConnectionActive = true;
   }
 
+  /// Synchronous gate for callers that need a quick "ready?" check.
+  /// When the WS is down this triggers a non-blocking ensureConnected
+  /// on the underlying transport and returns `false` so the caller
+  /// can surface a connection-error response immediately rather than
+  /// queueing a frame into the void.
   bool ensureConnection() {
-    if (_isConnectionActive && _api._wsService.isConnected) return true;
-
-    try {
-      debugPrint("[Sideswap] Connection check - reconnecting");
-
-      if (_isConnectionActive && !_api._wsService.isConnected) {
-        debugPrint("[Sideswap] Resetting stale connection state");
-        _isConnectionActive = false;
-        _isInitialized = false;
-      }
-
-      init();
-      return true;
-    } catch (e) {
-      debugPrint("[Sideswap] Connection check failed: $e");
-      return false;
-    }
+    if (_isDisposed) return false;
+    if (_api.isConnected) return true;
+    debugPrint('[SideswapService] WS not connected — requesting reconnect');
+    // Fire-and-forget — the WebSocketService owns its own backoff &
+    // state machine; we just nudge it to come back online.
+    unawaited(_api.ensureConnected());
+    return false;
   }
 
   /// Set up the transformations from JSON to model objects
@@ -480,48 +497,58 @@ class SideswapService {
         });
 
     // Quote responses
-    _api.marketStream
-        .where(
-          (data) =>
-              data.containsKey('params') && data['params'].containsKey('quote'),
-        )
-        .listen((data) {
-          try {
-            final quoteData = data['params']['quote'];
-            final quoteResponse = QuoteResponse.fromJson(quoteData);
-            _quoteResponseController.add(quoteResponse);
-            _isQuoteInProgress = false;
-          } catch (e) {
-            debugPrint('Error parsing quote response: $e');
-            _isQuoteInProgress = false;
-          }
-        });
+    _internalSubs.add(
+      _api.marketStream
+          .where(
+            (data) =>
+                data.containsKey('params') &&
+                data['params'].containsKey('quote'),
+          )
+          .listen((data) {
+            if (_isDisposed || _quoteResponseController.isClosed) return;
+            try {
+              final quoteData = data['params']['quote'];
+              final quoteResponse = QuoteResponse.fromJson(quoteData);
+              _quoteResponseController.add(quoteResponse);
+              _isQuoteInProgress = false;
+            } catch (e) {
+              debugPrint('Error parsing quote response: $e');
+              _isQuoteInProgress = false;
+            }
+          }),
+    );
     quoteResponseStream = _quoteResponseController.stream;
 
     // Peg responses
-    _api.pegStream.where((data) => data.containsKey('result')).listen((data) {
-      try {
-        final pegData = data['result'];
-        final pegResponse = PegOrderResponse.fromJson(pegData);
-        _pegResponseController.add(pegResponse);
-      } catch (e) {
-        debugPrint('Error parsing peg response: $e');
-      }
-    });
+    _internalSubs.add(
+      _api.pegStream.where((data) => data.containsKey('result')).listen((data) {
+        if (_isDisposed || _pegResponseController.isClosed) return;
+        try {
+          final pegData = data['result'];
+          final pegResponse = PegOrderResponse.fromJson(pegData);
+          _pegResponseController.add(pegResponse);
+        } catch (e) {
+          debugPrint('Error parsing peg response: $e');
+        }
+      }),
+    );
     pegResponseStream = _pegResponseController.stream;
 
     // Peg status
-    _api.pegStatusStream.where((data) => data.containsKey('result')).listen((
-      data,
-    ) {
-      try {
-        final statusData = data['result'];
-        final pegStatus = PegOrderStatus.fromJson(statusData);
-        _pegStatusController.add(pegStatus);
-      } catch (e) {
-        debugPrint('Error parsing peg status: $e');
-      }
-    });
+    _internalSubs.add(
+      _api.pegStatusStream.where((data) => data.containsKey('result')).listen((
+        data,
+      ) {
+        if (_isDisposed || _pegStatusController.isClosed) return;
+        try {
+          final statusData = data['result'];
+          final pegStatus = PegOrderStatus.fromJson(statusData);
+          _pegStatusController.add(pegStatus);
+        } catch (e) {
+          debugPrint('Error parsing peg status: $e');
+        }
+      }),
+    );
     pegStatusStream = _pegStatusController.stream;
 
     // Wallet balance (from subscribe_value)
@@ -762,7 +789,7 @@ class SideswapService {
       '[DEBUG] SideswapService: Calling _api.startQuotes with tradeDir=$tradeDir',
     );
 
-    if (!_isConnectionActive) {
+    if (!_api.isConnected) {
       debugPrint(
         '[DEBUG] SideswapService.startQuote: Connection not active, attempting to reconnect',
       );
@@ -955,19 +982,32 @@ class SideswapService {
   }
 
   Future<void> forceReconnect() async {
+    if (_isDisposed) return;
     debugPrint('[SideswapService] Forcing reconnection...');
-    _isConnectionActive = false;
-    _isInitialized = false;
     resetQuoteProgress();
     await _api.forceReconnect();
-    init();
+    if (_isDisposed) return;
+    // Re-issue the login frame on the fresh transport. The
+    // stream transformations are still wired to the same api
+    // controllers (which were never torn down here), so we don't
+    // need to re-run [_setupStreamTransformations].
+    _api.login(_apiKey);
   }
 
   /// Clean up resources
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    debugPrint('[SideswapService] dispose');
+    for (final sub in _internalSubs) {
+      try {
+        sub.cancel();
+      } catch (_) {}
+    }
+    _internalSubs.clear();
     _pegResponseController.close();
     _pegStatusController.close();
     _quoteResponseController.close();
-    _isConnectionActive = false;
+    _isInitialized = false;
   }
 }
