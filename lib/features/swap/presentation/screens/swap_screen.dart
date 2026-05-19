@@ -56,13 +56,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   /// [didChangeDependencies] whenever Flutter's locale changes.
   String _locale = 'en_US';
 
-  /// Last observed PageView index from [PageVisibilityProvider].
-  /// Tracked so [didChangeDependencies] can detect a transition out
-  /// of the swap page (PageView swipe or bottom-nav tap) and tear
-  /// down the SideSwap WebSocket subscription that would otherwise
-  /// keep emitting quotes while the user is on a different tab.
-  /// `null` until the provider has been read for the first time.
-  int? _lastVisiblePageIndex;
+  bool _lifecycleArmed = true;
+
+
+  ValueNotifier<double>? _pageFloatNotifier;
 
   static const int _minBtcLbtcSwapSats = 25000;
 
@@ -90,61 +87,40 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     super.didChangeDependencies();
     _locale = Localizations.localeOf(context).toString();
 
-    // PageView keeps every child in the tree, so `deactivate()` never
-    // fires on a swipe or bottom-nav switch — the SideSwap WS
-    // subscription would happily keep streaming `market` emissions to
-    // a screen the user can no longer see. Hook the
-    // `PageVisibilityProvider` notifier and explicitly cancel the
-    // quote subscription when we transition off index 3. Returning to
-    // index 3 is a no-op here; the user's next amount edit (or a
-    // manual retry tap) restarts the quote naturally, and metadata is
-    // still cached on the controller from the initial `loadMetadata`.
-    final currentPage = PageVisibilityProvider.of(context);
-    if (currentPage != null && currentPage != _lastVisiblePageIndex) {
-      final wasVisible = _lastVisiblePageIndex == _swapPageIndex;
-      final isVisible = currentPage == _swapPageIndex;
-      if (wasVisible && !isVisible) {
-        debugPrint(
-          '[SwapScreen] Page hidden (index $_lastVisiblePageIndex → '
-          '$currentPage) — cancelling quote subscription',
-        );
-        // Riverpod forbids mutating a provider during a lifecycle
-        // method (this is what raises "Tried to modify a provider
-        // while the widget tree was building"). Defer to the next
-        // microtask so the call lands after build completes. We
-        // still grab `ref.read(...)` outside of any async gap, and
-        // re-check `mounted` before the actual mutation in case the
-        // screen has been disposed between the notifier change and
-        // the microtask firing.
-        Future.microtask(() {
-          if (!mounted) return;
-          ref.read(swapControllerProvider.notifier).cancelQuote();
-        });
-      } else if (!wasVisible &&
-          isVisible &&
-          _lastVisiblePageIndex != null) {
-        // Re-entering the swap tab AFTER having been away (we skip
-        // the initial mount transition where `_lastVisiblePageIndex`
-        // is null — `initState`'s own [loadMetadata] already covers
-        // that path). While we were off-screen, [build] returned a
-        // SizedBox and stopped watching `swapControllerProvider`, so
-        // the entire sideswap autoDispose chain
-        // (controller → repo → service → WS) tore down. The next
-        // `ref.watch(...)` in build() will reconstruct it lazily —
-        // but the freshly built controller starts with empty
-        // assets/markets. Kick off [loadMetadata] explicitly so the
-        // user sees populated pickers instead of a shimmering empty
-        // card.
-        debugPrint(
-          '[SwapScreen] Page visible (index $_lastVisiblePageIndex → '
-          '$currentPage) — refreshing metadata',
-        );
-        Future.microtask(() {
-          if (!mounted) return;
-          ref.read(swapControllerProvider.notifier).loadMetadata();
-        });
-      }
-      _lastVisiblePageIndex = currentPage;
+
+    final newNotifier = PageVisibilityProvider.pageFloatOf(context);
+    if (!identical(_pageFloatNotifier, newNotifier)) {
+      _pageFloatNotifier?.removeListener(_onPageFloatChanged);
+      _pageFloatNotifier = newNotifier;
+      _pageFloatNotifier?.addListener(_onPageFloatChanged);
+      _onPageFloatChanged();
+    }
+  }
+
+  void _onPageFloatChanged() {
+    if (!mounted) return;
+    final notifier = _pageFloatNotifier;
+    if (notifier == null) return;
+    final overlap = (notifier.value - _swapPageIndex).abs() < 1.0;
+    if (overlap == _lifecycleArmed) return;
+
+    final wasDisarmed = !_lifecycleArmed;
+    setState(() => _lifecycleArmed = overlap);
+
+    if (overlap && wasDisarmed) {
+      debugPrint(
+        '[SwapScreen] viewport entered (page=${notifier.value}) — '
+        'refreshing metadata on fresh chain',
+      );
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(swapControllerProvider.notifier).loadMetadata();
+      });
+    } else if (!overlap) {
+      debugPrint(
+        '[SwapScreen] viewport exited (page=${notifier.value}) — '
+        'disarming WS',
+      );
     }
   }
 
@@ -201,6 +177,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _pageFloatNotifier?.removeListener(_onPageFloatChanged);
+    _pageFloatNotifier = null;
     _fromAmountController.removeListener(_syncDecimalFromAmount);
     _fromAmountController.dispose();
     _fromAmountDecimalController.dispose();
@@ -211,22 +189,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
 
-    // Lifecycle gate: while the swap tab is off-screen we deliberately
-    // do NOT watch `swapControllerProvider`. The PageView keeps every
-    // tab in the widget tree, so we'd otherwise hold the autoDispose
-    // chain (controller → repo → sideswap service → api → WS) alive
-    // indefinitely. By skipping the watch we let Riverpod tear the
-    // whole chain down, which closes the SideSwap WebSocket and
-    // cancels its reconnect/idle timers — the source of the
-    // "TimeoutException: Connection timeout" loop the user reported
-    // when leaving this screen. Re-entering the page resumes the
-    // watch and reconstructs everything from scratch.
-    final currentPage = PageVisibilityProvider.of(context);
-    // `null` defaults to "visible" so this screen still renders in
-    // tests or contexts where no PageVisibilityProvider is mounted.
-    final isVisible = currentPage == null || currentPage == _swapPageIndex;
-
-    if (!isVisible) {
+    if (!_lifecycleArmed) {
       return const SizedBox.shrink();
     }
 

@@ -20,15 +20,25 @@ import 'package:mooze_mobile/shared/widgets.dart';
 class PageVisibilityProvider extends InheritedNotifier<ValueNotifier<int>> {
   PageVisibilityProvider({
     required ValueNotifier<int> currentPage,
+    required this.pageFloat,
     required super.child,
     super.key,
   }) : super(notifier: currentPage);
+
+  final ValueNotifier<double> pageFloat;
 
   static int? of(BuildContext context) {
     return context
         .dependOnInheritedWidgetOfExactType<PageVisibilityProvider>()
         ?.notifier
         ?.value;
+  }
+
+
+  static ValueNotifier<double>? pageFloatOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<PageVisibilityProvider>()
+        ?.pageFloat;
   }
 }
 
@@ -49,6 +59,7 @@ class _MainNavigationScaffold extends StatefulWidget {
 class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
   late final PageController _pageController;
   late final ValueNotifier<int> _currentPageNotifier;
+  late final ValueNotifier<double> _pageFloatNotifier;
   bool _isPageChanging = false;
 
   @override
@@ -57,6 +68,7 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
     final initialPage = _getIndexFromLocation(widget.currentLocation);
     _pageController = PageController(initialPage: initialPage);
     _currentPageNotifier = ValueNotifier<int>(initialPage);
+    _pageFloatNotifier = ValueNotifier<double>(initialPage.toDouble());
     _pageController.addListener(_onPageScroll);
   }
 
@@ -66,9 +78,13 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
     }
 
     if (_pageController.hasClients && _pageController.page != null) {
-      final currentPage = _pageController.page!.round();
+      final page = _pageController.page!;
+      if (_pageFloatNotifier.value != page) {
+        _pageFloatNotifier.value = page;
+      }
+      final currentPage = page.round();
       if (_currentPageNotifier.value != currentPage &&
-          (_pageController.page! - currentPage).abs() < 0.1) {
+          (page - currentPage).abs() < 0.1) {
         _currentPageNotifier.value = currentPage;
       }
     }
@@ -79,6 +95,7 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
     _pageController.removeListener(_onPageScroll);
     _pageController.dispose();
     _currentPageNotifier.dispose();
+    _pageFloatNotifier.dispose();
     super.dispose();
   }
 
@@ -116,6 +133,7 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
 
     return PageVisibilityProvider(
       currentPage: _currentPageNotifier,
+      pageFloat: _pageFloatNotifier,
       child: PlatformSafeArea(
         child: Scaffold(
           body: PageView(
