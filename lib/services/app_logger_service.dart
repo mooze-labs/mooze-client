@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:mutex/mutex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:archive/archive.dart';
@@ -70,24 +69,25 @@ class LogEntry {
 
 class AppLoggerService {
   static final AppLoggerService _instance = AppLoggerService._internal();
-  factory AppLoggerService() {
-    debugPrint(
-      '[AppLogger] factory() called - returning instance ${_instance.hashCode}',
-    );
-    debugPrint('[AppLogger] _database is null? ${_instance._database == null}');
-    return _instance;
-  }
+  factory AppLoggerService() => _instance;
 
-  AppLoggerService._internal() {
-    debugPrint('[AppLogger] Singleton instance created: ${hashCode}');
-  }
+  AppLoggerService._internal();
 
   final List<LogEntry> _logs = [];
   final StreamController<LogEntry> _logStreamController =
       StreamController<LogEntry>.broadcast();
 
-  // Serializes all database writes to prevent SQLite "database is locked" errors
-  final Mutex _dbMutex = Mutex();
+  // Pending entries staged for the next flush window. Logger calls hit
+  // this list, then a 200ms periodic timer drains it into SQLite + the
+  // log file in a single batched write per sink. This keeps file/DB
+  // I/O off the UI isolate's per-call hot path during HomeScreen mount.
+  final List<LogEntry> _pendingLogs = [];
+  Timer? _flushTimer;
+  bool _flushInFlight = false;
+
+  // Cached at initialize() so per-log calls don't pay the
+  // path_provider channel cost on every write.
+  File? _cachedLogFile;
 
   AppDatabase? _database;
 
@@ -103,6 +103,8 @@ class AppLoggerService {
 
   static const int maxLogFileSize = 5 * 1024 * 1024;
 
+  static const Duration _flushInterval = Duration(milliseconds: 200);
+
   Future<void> initialize(AppDatabase database, {LogConfig? config}) async {
     if (_database != null) {
       // Already wired. Re-running would leak a second cleanup timer.
@@ -112,27 +114,31 @@ class AppLoggerService {
       return;
     }
 
-    debugPrint('[AppLogger] initialize() called - Setting database...');
-    debugPrint('[AppLogger] Database instance: ${database.hashCode}');
-
     _database = database;
-
-    debugPrint(
-      '[AppLogger] Database set. _database is null? ${_database == null}',
-    );
 
     if (config != null) {
       _config = config;
+    }
+
+    // Pre-resolve the log file path so per-call writes never hit
+    // path_provider's platform channel.
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      _cachedLogFile = File('${directory.path}/app_logs.txt');
+    } catch (_) {
+      // Path resolution failure leaves _cachedLogFile null; flush
+      // gracefully no-ops the file sink until the next cold boot.
     }
 
     _cleanupTimer = Timer.periodic(const Duration(hours: 24), (_) {
       cleanOldLogs();
     });
 
-    await cleanOldLogs();
+    _flushTimer = Timer.periodic(_flushInterval, (_) => _flushPendingLogs());
 
-    debugPrint('[AppLogger] Initialization complete!');
-    info('AppLogger', 'Logger initialized with database and config: $_config');
+    await cleanOldLogs();
+    // Flush any logs buffered before initialize() completed.
+    unawaited(_flushPendingLogs());
   }
 
   void updateConfig(LogConfig config) {
@@ -210,74 +216,89 @@ class AppLoggerService {
       _logs.removeRange(0, _logs.length - maxLogsInMemory);
     }
 
-    unawaited(_saveToFile(entry));
-
-    if (_database != null && _config.shouldSaveLevel(level)) {
-      if (kDebugMode) {
-        debugPrint(
-          'Saving ${level.name} log to DB (shouldSave: ${_config.shouldSaveLevel(level)})',
-        );
-      }
-      unawaited(_saveToDatabase(entry));
-    } else if (kDebugMode) {
-      debugPrint(
-        'Skipping DB save for ${level.name} (db null: ${_database == null}, shouldSave: ${_config.shouldSaveLevel(level)})',
-      );
-    }
-
-    if (kDebugMode) {
-      print(entry.toFormattedString());
+    // Stage for the next flush window. Critical events are flushed
+    // immediately so a crash can't lose them; everything else rides the
+    // 200ms timer batch.
+    _pendingLogs.add(entry);
+    if (level == LogLevel.critical) {
+      unawaited(_flushPendingLogs());
     }
   }
 
-  Future<void> _saveToDatabase(LogEntry entry) async {
+  /// Drains [_pendingLogs] in one DB batch + one file append. Runs on
+  /// the periodic timer (200ms) and on critical/dispose paths. Guarded
+  /// against concurrent flushes so a slow disk write can't cause two
+  /// batches to interleave and reorder entries.
+  Future<void> _flushPendingLogs() async {
+    if (_flushInFlight) return;
+    if (_pendingLogs.isEmpty) return;
+
+    _flushInFlight = true;
     try {
-      if (_database == null) {
-        debugPrint('Database is null, cannot save log');
-        return;
-      }
+      final pending = List<LogEntry>.from(_pendingLogs);
+      _pendingLogs.clear();
 
-      await _dbMutex.protect(() async {
-        await _database!.insertLog(
-          AppLogsCompanion.insert(
-            timestamp: entry.timestamp,
-            level: entry.level.name,
-            tag: entry.tag,
-            message: entry.message,
-            error: Value(entry.error?.toString()),
-            stackTrace: Value(entry.stackTrace?.toString()),
-          ),
-        );
-      });
-    } catch (e, stackTrace) {
-      debugPrint('Error saving log to database: $e');
-      debugPrint('StackTrace: $stackTrace');
-    }
-  }
-
-  Future<void> _saveToFile(LogEntry entry) async {
-    try {
-      final file = await _getLogFile();
-
-      if (await file.exists()) {
-        final size = await file.length();
-        if (size > maxLogFileSize) {
-          await _rotateLogFile();
+      // DB sink — single transaction, one round-trip across drift's
+      // worker isolate instead of one per entry.
+      final db = _database;
+      if (db != null) {
+        final saveable = pending
+            .where((e) => _config.shouldSaveLevel(e.level))
+            .toList();
+        if (saveable.isNotEmpty) {
+          try {
+            await db.batch((batch) {
+              for (final entry in saveable) {
+                batch.insert(
+                  db.appLogs,
+                  AppLogsCompanion.insert(
+                    timestamp: entry.timestamp,
+                    level: entry.level.name,
+                    tag: entry.tag,
+                    message: entry.message,
+                    error: Value(entry.error?.toString()),
+                    stackTrace: Value(entry.stackTrace?.toString()),
+                  ),
+                );
+              }
+            });
+          } catch (e) {
+            if (kDebugMode) debugPrint('Error batch-saving logs to DB: $e');
+          }
         }
       }
 
-      await file.writeAsString(
-        entry.toFormattedString(),
-        mode: FileMode.append,
-      );
-    } catch (e) {
-      debugPrint('Error saving log to file: $e');
+      // File sink — single append for the whole batch. Rotation check
+      // runs once per flush, not once per entry.
+      final file = _cachedLogFile;
+      if (file != null) {
+        try {
+          if (await file.exists()) {
+            final size = await file.length();
+            if (size > maxLogFileSize) {
+              await _rotateLogFile();
+            }
+          }
+          final buffer = StringBuffer();
+          for (final entry in pending) {
+            buffer.write(entry.toFormattedString());
+          }
+          await file.writeAsString(buffer.toString(), mode: FileMode.append);
+        } catch (e) {
+          if (kDebugMode) debugPrint('Error appending logs to file: $e');
+        }
+      }
+    } finally {
+      _flushInFlight = false;
     }
   }
 
   Future<File> _getLogFile() async {
+    if (_cachedLogFile != null) return _cachedLogFile!;
     final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/app_logs.txt');
+    final file = File('${directory.path}/app_logs.txt');
+    _cachedLogFile = file;
+    return file;
   }
 
   Future<void> _rotateLogFile() async {
@@ -332,9 +353,7 @@ class AppLoggerService {
       if (_database == null) return 0;
 
       final cutoffDate = _config.cutoffDate;
-      final deletedCount = await _dbMutex.protect(
-        () => _database!.deleteOldLogs(cutoffDate),
-      );
+      final deletedCount = await _database!.deleteOldLogs(cutoffDate);
 
       if (deletedCount > 0) {
         info(
@@ -849,6 +868,10 @@ class AppLoggerService {
 
   void dispose() {
     _cleanupTimer?.cancel();
+    _flushTimer?.cancel();
+    // Best-effort final flush so logs buffered right before shutdown
+    // still reach the DB / file sink.
+    unawaited(_flushPendingLogs());
     _logStreamController.close();
   }
 }

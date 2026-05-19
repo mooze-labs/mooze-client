@@ -12,13 +12,11 @@ import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/sync_failure_alert.dart';
+import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
-
 import '../../widgets/widgets.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -30,16 +28,27 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   late final ScrollController _scrollController;
+  Stopwatch? _mountStopwatch;
+  int _buildCount = 0;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _mountStopwatch = Stopwatch()..start();
 
+    // Two-phase initial load. Phase 1 runs after the first frame and
+    // touches only the V2 transaction notifier gate — cheap, non-blocking,
+    // required for confirmation modals. Phase 2 (deferred ~250ms) prefetches
+    // the price-history cache (the only cache provider actually consumed
+    // by the home tree, via AssetGraphCard) and kicks the update check.
+    // Balances/transactions are NOT touched here — they're driven by
+    // `totalWalletValueProvider` (header) and `v2LegacyTransactionsProvider`
+    // (list) which subscribe themselves the moment those widgets mount.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialDataFromCache();
-      _loadInitialData();
       _markNotifierHomeReached();
+      _logMountTime();
+      _scheduleDeferredLoads();
     });
   }
 
@@ -52,9 +61,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// when /home is the first route the V2 boot resolves to), the
   /// future eventually completes and the call lands.
   void _markNotifierHomeReached() {
-    ref.read(transactionNotifierProvider.future).then((notifier) {
-      notifier.setHomeReached();
-    }).catchError((_) {/* notifier not ready — will be picked up on resume */});
+    ref
+        .read(transactionNotifierProvider.future)
+        .then((notifier) {
+          notifier.setHomeReached();
+        })
+        .catchError((_) {
+          /* notifier not ready — will be picked up on resume */
+        });
+  }
+
+  void _logMountTime() {
+    final sw = _mountStopwatch;
+    if (sw == null) return;
+    sw.stop();
+    final ms = sw.elapsedMilliseconds;
+    final logger = ref.read(appLoggerProvider);
+    logger.info('HomeScreen', 'first-frame ready in ${ms}ms');
+    _mountStopwatch = null;
+  }
+
+  /// Defers the version-update check off the first frame. Price-history
+  /// prefetch is NOT scheduled here — `AssetGraphCard.build` already
+  /// triggers `fetchAssetPriceHistory(asset)` itself on a cache miss
+  /// via its own post-frame callback, so duplicating the call here only
+  /// causes redundant network work. Balances and transactions are
+  /// driven by `totalWalletValueProvider` / `v2LegacyTransactionsProvider`
+  /// which subscribe themselves when the header / list widgets mount.
+  void _scheduleDeferredLoads() {
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      _loadInitialData();
+    });
   }
 
   @override
@@ -63,35 +101,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  void _loadInitialDataFromCache() {
-    if (!mounted) return;
-
-    final transactionCache = ref.read(transactionHistoryCacheProvider.notifier);
-    final balanceCache = ref.read(balanceCacheProvider.notifier);
-    final assetPriceCache = ref.read(assetPriceHistoryCacheProvider.notifier);
-
-    if (ref.read(transactionHistoryCacheProvider).transactions == null) {
-      transactionCache.fetchTransactionsInitial();
-    }
-
-    final mainAssets = [Asset.lbtc, Asset.btc, Asset.usdt];
-    for (final asset in mainAssets) {
-      if (ref.read(balanceCacheProvider).balances[asset] == null) {
-        balanceCache.fetchBalanceInitial(asset);
-      }
-    }
-
-    for (final asset in mainAssets) {
-      if (ref.read(assetPriceHistoryCacheProvider).priceHistory[asset] ==
-          null) {
-        assetPriceCache.fetchAssetPriceHistoryInitial(asset);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     _configureSystemUi();
+    // Lightweight rebuild counter — fires periodically so a rebuild
+    // storm is visible in the log feed without flooding on every
+    // build (e.g. each balance/sync tick).
+    _buildCount++;
+    if (_buildCount % 10 == 0) {
+      ref
+          .read(appLoggerProvider)
+          .info('HomeScreen', 'rebuild count: $_buildCount');
+    }
 
     // Stale-while-revalidate: split the boot loader from the data loader.
     // Show the 3px top bar only during a true cold boot (`readyAt == null`)

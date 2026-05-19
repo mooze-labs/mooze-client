@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
 import 'package:mooze_mobile/domain/entities/asset.dart' as v2_asset;
+import 'package:mooze_mobile/features/sync/domain/sync_state.dart' as v2_sync;
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/presentation/controllers/balance_controller.dart';
@@ -40,15 +41,26 @@ final balanceControllerProvider =
 final allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
   final logger = ref.read(appLoggerProvider);
 
-  // React to V2 sync completions. Each successful refresh cycle bumps
-  // `syncStateProvider.lastSuccessAt`; selecting that field re-runs
-  // this provider so the home screen sees the updated Breez asset
-  // balances after the first sync populates them. Without this, an
-  // initial fetch that ran before Breez had populated `assetBalances`
-  // would cache zeros for USDT/DePix and never refresh.
-  ref.watch(v2.syncStateProvider
-      .select((async) => async.valueOrNull?.lastSuccessAt));
+  // React to V2 sync completions WITHOUT triggering a re-run during the
+  // first frame. The previous `ref.watch(syncState.select(lastSuccessAt))`
+  // re-fired whenever sync emitted a new lastSuccessAt — including the
+  // first emission after HomeScreen mount, which produced two
+  // back-to-back balance fetches per home entry (each one fanning out
+  // across all V2 datasources). `ref.listen` doesn't fire on initial
+  // subscribe; it only fires when sync forward-progresses past the
+  // last-seen timestamp, so we refresh exactly once per completed sync.
+  ref.listen<AsyncValue<v2_sync.SyncState>>(
+    v2.syncStateProvider,
+    (prev, next) {
+      final prevTs = prev?.valueOrNull?.lastSuccessAt;
+      final nextTs = next.valueOrNull?.lastSuccessAt;
+      if (nextTs == null) return;
+      if (nextTs == prevTs) return;
+      ref.invalidateSelf();
+    },
+  );
 
+  final sw = Stopwatch()..start();
   logger.info('AllBalancesProvider', 'Waiting for V2 wallet repository...');
   final repo = await ref.watch(v2.walletRepositoryProvider.future);
 
@@ -57,6 +69,7 @@ final allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
   // Map legacy Asset → V2 Asset, fan out via balanceMap, then map back.
   final v2Assets = Asset.values.map(_legacyToV2Asset).toList();
   final result = await repo.balanceMap(v2Assets);
+  sw.stop();
 
   return result.fold<Map<Asset, BigInt>>(
     (failure) {
@@ -82,7 +95,7 @@ final allBalancesProvider = FutureProvider<Map<Asset, BigInt>>((ref) async {
       }
       logger.info(
         'AllBalancesProvider',
-        'Loaded ${legacyMap.length} asset balance(s) from V2',
+        'Loaded ${legacyMap.length} asset balance(s) from V2 in ${sw.elapsedMilliseconds}ms',
       );
       return legacyMap;
     },

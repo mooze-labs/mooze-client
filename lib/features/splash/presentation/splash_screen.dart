@@ -28,6 +28,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   bool _showLoader = false;
 
+  bool _navigationStarted = false;
+
   static const _animationDuration = Duration(milliseconds: 800);
   static const _delayBeforeLoader = Duration(milliseconds: 300);
   static const double _logoWidth = 256.0;
@@ -258,20 +260,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     // Watch the mnemonic provider and handle navigation
-    if (_showLoader) {
-      if (kDebugMode) {
-        debugPrint(
-          "[SplashScreen] Loader is shown, watching mnemonicProvider...",
-        );
-      }
-
+    if (_showLoader && !_navigationStarted) {
       final currentLocation = GoRouterState.of(context).uri.toString();
       if (currentLocation.startsWith('/setup/')) {
-        if (kDebugMode) {
-          debugPrint(
-            "[SplashScreen] Already in setup route ($currentLocation), skipping navigation",
-          );
-        }
         return _buildScaffold();
       }
 
@@ -279,19 +270,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       mnemonicAsync.when(
         data: (mnemonic) {
-          if (kDebugMode) {
-            debugPrint(
-              "[SplashScreen] Data received from mnemonicProvider, isSome: ${mnemonic.isSome()}",
-            );
-          }
+          if (_navigationStarted) return;
+          _navigationStarted = true;
           _handleNavigation(mnemonic);
         },
-        loading: () {
-          if (kDebugMode) {
-            debugPrint("[SplashScreen] mnemonicProvider still loading...");
-          }
-        },
+        loading: () {},
         error: (error, stackTrace) {
+          if (_navigationStarted) return;
+          _navigationStarted = true;
           _handleError(error, stackTrace);
         },
       );
