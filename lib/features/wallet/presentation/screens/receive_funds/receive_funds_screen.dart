@@ -28,6 +28,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
@@ -37,7 +38,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
       child: PlatformSafeArea(
         child: Scaffold(
           appBar: AppBar(
-            title: Text(AppLocalizations.of(context).receive_title),
+            title: Text(t.receive_title),
             leading: IconButton(
               onPressed: () {
                 _clearProviders(ref);
@@ -95,7 +96,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
 
   void _showInfoOverlay(BuildContext context) {
     late OverlayEntry overlayEntry;
-
+    final t = AppLocalizations.of(context);
     overlayEntry = OverlayEntry(
       builder:
           (context) => Stack(
@@ -130,7 +131,7 @@ class ReceiveFundsScreen extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Como receber ativos',
+                                t.receive_info_title,
                                 style: Theme.of(
                                   context,
                                 ).textTheme.titleLarge?.copyWith(
@@ -154,22 +155,22 @@ class ReceiveFundsScreen extends ConsumerWidget {
                         _buildInfoStep(
                           context,
                           '1',
-                          AppLocalizations.of(context).receive_info_step1_title,
-                          AppLocalizations.of(context).receive_info_step1_desc,
+                          t.receive_info_step1_title,
+                          t.receive_info_step1_desc,
                         ),
                         const SizedBox(height: 12),
                         _buildInfoStep(
                           context,
                           '2',
-                          AppLocalizations.of(context).receive_info_step2_title,
-                          AppLocalizations.of(context).receive_info_step2_desc,
+                          t.receive_info_step2_title,
+                          t.receive_info_step2_desc,
                         ),
                         const SizedBox(height: 12),
                         _buildInfoStep(
                           context,
                           '3',
-                          AppLocalizations.of(context).receive_info_step3_title,
-                          AppLocalizations.of(context).receive_info_step3_desc,
+                          t.receive_info_step3_title,
+                          t.receive_info_step3_desc,
                         ),
                         const SizedBox(height: 16),
                         Container(
