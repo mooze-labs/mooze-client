@@ -358,31 +358,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
   @override
   Future<Either<ServiceFailure, domain.Balance>> getBalance() async {
-    final c = _client;
-    if (c == null || !currentState.isOperational) {
+    // Cache-only read. `c.getInfo()` is needless work on this path —
+    // `sync()` already refreshes `_lastBalance` from a single `getInfo`
+    // while holding `_syncMutex`, which is also where the Breez
+    // mid-sync `assetBalances == []` race used to surface. Reading the
+    // cache here means callers never observe that transient state and
+    // never pay an extra Breez RPC on hot paths like Home rebuild.
+    if (!currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
-    try {
-      final info = await c.getInfo();
-      final fresh = _mapBalance(info);
-      // Race-mitigation: Breez's `getInfo` occasionally returns
-      // `walletInfo.assetBalances == []` mid-sync, which would map to a
-      // balance with only the L-BTC entry — making USDT/DePix appear to
-      // disappear in the UI a moment after they were displayed. When we
-      // already have a `_lastBalance` snapshot with more entries than
-      // the fresh one, treat the fresh fetch as transient and keep the
-      // last-good snapshot. The next successful `s.sync()` (or the next
-      // non-regressing `getBalance` call) updates the cache normally.
-      if (fresh.assets.length < _lastBalance.assets.length &&
-          _lastBalance.assets.isNotEmpty) {
-        return Right(_lastBalance);
-      }
-      _lastBalance = fresh;
-      return Right(_lastBalance);
-    } catch (e, st) {
-      return Left(ServiceFailure('breez balance failed: $e',
-          chain: chain, cause: e, stackTrace: st));
-    }
+    return Right(_lastBalance);
   }
 
   // ─────────────────────────────────────────── SpendableWalletService

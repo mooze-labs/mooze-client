@@ -72,23 +72,23 @@ class _MyAppState extends ConsumerState<MyApp> {
         child: TransactionStatusListener(
           child: PixStatusListener(
             child: MaterialApp.router(
-            title: 'Mooze',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme(context),
-            darkTheme: AppTheme.darkTheme(context),
-            themeMode: themeMode,
-            locale: locale,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            localeResolutionCallback: (deviceLocale, supported) {
-              if (deviceLocale != null) {
-                for (final l in supported) {
-                  if (l.languageCode == deviceLocale.languageCode) return l;
+              title: 'Mooze',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme(context),
+              darkTheme: AppTheme.darkTheme(context),
+              themeMode: themeMode,
+              locale: locale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localeResolutionCallback: (deviceLocale, supported) {
+                if (deviceLocale != null) {
+                  for (final l in supported) {
+                    if (l.languageCode == deviceLocale.languageCode) return l;
+                  }
                 }
-              }
-              return const Locale('en');
-            },
-            routerConfig: router,
+                return const Locale('en');
+              },
+              routerConfig: router,
             ),
           ),
         ),

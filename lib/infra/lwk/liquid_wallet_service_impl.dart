@@ -488,18 +488,16 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
 
   @override
   Future<Either<ServiceFailure, domain.Balance>> getBalance() async {
-    final w = _wallet;
-    if (w == null || !currentState.isOperational) {
+    // Cache-only read. `w.balances()` is async at the dart layer but
+    // still serializes against LWK's internal wallet state machine and
+    // is needless work when `sync()` already refreshed and persisted
+    // `_lastBalance` while holding `_syncMutex`. Cache stays at least as
+    // fresh as the most recent successful sync; observers wanting live
+    // updates subscribe via `watchBalanceFor`.
+    if (!currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
-    try {
-      final balances = await w.balances();
-      _lastBalance = _mapBalance(balances);
-      return Right(_lastBalance);
-    } catch (e, st) {
-      return Left(ServiceFailure('lwk balance failed: ${_describeLwkError(e)}',
-          chain: chain, cause: e, stackTrace: st));
-    }
+    return Right(_lastBalance);
   }
 
   // ─────────────────────────────────────────── swap surface
