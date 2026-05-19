@@ -192,9 +192,11 @@ class SwapController extends StateNotifier<SwapState> {
   // transient transport errors to the user while that's happening.
   // Each retry replays the full `startQuote` (fresh UTXOs / receive
   // address / `start_quotes` send) with the same user intent.
-  // Backoff schedule is `[1s, 2s]` — after `_maxStartupRetries`
+  // Backoff schedule is `[1s, 2s, 3s]` — after `_maxStartupRetries`
   // failures we give up and surface the error so the user can decide.
-  static const int _maxStartupRetries = 2;
+  // Three retries covers WS reconnect windows of ~30-40s, which is the
+  // observed worst case before the underlying transport recovers.
+  static const int _maxStartupRetries = 5;
 
   Timer? _staleTimer;
   Timer? _fetchingWatchdog;
@@ -432,8 +434,10 @@ class SwapController extends StateNotifier<SwapState> {
 
       // Arm the fetching watchdog. If a matching emission lands the
       // listener cancels it; otherwise it fires at
-      // [_fetchingTimeoutMs] and surfaces a timeout error so the UI
-      // escapes the shimmer state.
+      // [_fetchingTimeoutMs] and routes through the shared retry
+      // helper — same backoff budget as transient stream errors, so
+      // the UI stays in shimmer until the budget is exhausted instead
+      // of flashing an error the user just has to retry manually.
       _fetchingWatchdog = Timer(
         const Duration(milliseconds: _fetchingTimeoutMs),
         () {
@@ -442,18 +446,13 @@ class SwapController extends StateNotifier<SwapState> {
           _log.warning(
             _tag,
             'Fetching watchdog tripped — no matching quote within '
-            '${_fetchingTimeoutMs}ms. Surfacing timeout error.',
+            '${_fetchingTimeoutMs}ms.',
           );
-          _quoteSub?.cancel();
-          _quoteSub = null;
-          // Don't call `repository.stopQuote()` — sending on a flaky
-          // WebSocket is likely what got us here. Local cleanup is
-          // sufficient; the user will retry which triggers a fresh
-          // `resetQuote + startQuote` cycle that handles reconnection.
-          state = state.copyWith(
-            loading: false,
-            status: QuoteStatus.idle,
-            error: const SwapError(code: SwapErrorCode.timeout),
+          _scheduleStartupRetryOrSurface(
+            sendAsset: sendAsset,
+            receiveAsset: receiveAsset,
+            amount: amount,
+            reason: 'fetching watchdog tripped',
           );
         },
       );
@@ -480,12 +479,25 @@ class SwapController extends StateNotifier<SwapState> {
     }
 
     if (normalizedParams == null) {
-      _log.error(
+      // `getMarkets()` couldn't repopulate the list — almost always
+      // means the WebSocket is currently down. Route through the
+      // shared retry helper so the user gets the same auto-retry
+      // budget here as for stream-side transient errors. Without
+      // this, the fetching watchdog would still trip at 10s but the
+      // markets-reload code path would have already silently set
+      // `loading: false` and exited, leaving inconsistent state.
+      _log.warning(
         _tag,
-        'Trading pair not found even after reloading markets — send=$sendAsset, receive=$receiveAsset',
+        'Trading pair not found even after reloading markets — '
+        'send=$sendAsset, receive=$receiveAsset',
       );
       if (!mounted) return;
-      state = state.copyWith(loading: false, error: null);
+      _scheduleStartupRetryOrSurface(
+        sendAsset: sendAsset,
+        receiveAsset: receiveAsset,
+        amount: amount,
+        reason: 'markets reload failed',
+      );
       return;
     }
 
@@ -650,49 +662,16 @@ class SwapController extends StateNotifier<SwapState> {
                 );
                 return;
               }
-              // No working subscription — auto-retry before surfacing.
-              if (_consecutiveStartupTimeouts < _maxStartupRetries) {
-                _consecutiveStartupTimeouts++;
-                final delaySeconds = _consecutiveStartupTimeouts;
-                _log.info(
-                  _tag,
-                  'Transient transport error during fetching '
-                  '(attempt $_consecutiveStartupTimeouts/$_maxStartupRetries) — '
-                  'auto-retrying in ${delaySeconds}s: $rawMsg',
-                );
-                _fetchingWatchdog?.cancel();
-                _fetchingWatchdog = null;
-                _startupRetryTimer?.cancel();
-                _startupRetryTimer = Timer(
-                  Duration(seconds: delaySeconds),
-                  () {
-                    if (!mounted) return;
-                    // Use closure-captured params (the original
-                    // request) and pass `isAutomaticRetry: true` so
-                    // the budget isn't reset inside startQuote.
-                    startQuote(
-                      sendAsset: sendAsset,
-                      receiveAsset: receiveAsset,
-                      amount: amount,
-                      isAutomaticRetry: true,
-                    );
-                  },
-                );
-                return;
-              }
-              // Budget exhausted — surface so the user can react.
-              _log.warning(
-                _tag,
-                'Auto-retry budget exhausted after '
-                '$_consecutiveStartupTimeouts attempts — surfacing: $rawMsg',
+              // No working subscription — route through the shared
+              // auto-retry helper (same budget as the watchdog path
+              // and the markets-reload-failed path).
+              _scheduleStartupRetryOrSurface(
+                sendAsset: sendAsset,
+                receiveAsset: receiveAsset,
+                amount: amount,
+                reason: 'stream transient: $rawMsg',
               );
-              _consecutiveStartupTimeouts = 0;
-              swapErr = SwapError(
-                code: SwapErrorCode.timeout,
-                rawMessage: rawMsg,
-              );
-              // Fall through to the normal error-handling path below;
-              // do not re-classify in the subsequent else-if chain.
+              return;
             } else if (lower.contains('invalid utxo') ||
                 lower.contains('unknown utxo') ||
                 lower.contains('wait for wallet sync')) {
@@ -907,6 +886,71 @@ class SwapController extends StateNotifier<SwapState> {
         state = state.copyWith(millisecondsRemaining: remainingMs);
       }
     });
+  }
+
+  /// Either schedule an automatic retry of the current `startQuote`
+  /// with backoff, or — if the retry budget is exhausted — surface
+  /// the failure to the user as a [SwapErrorCode.timeout].
+  ///
+  /// Three different failure paths funnel through here so the auto-
+  /// retry behavior is consistent across them:
+  ///
+  /// - The quote-stream listener catching a transient transport error
+  ///   ("Tempo limite excedido…", "Erro de conexão…").
+  /// - The fetching watchdog tripping because no matching emission
+  ///   landed within `_fetchingTimeoutMs`.
+  /// - `startQuote`'s own preflight failing to normalize the asset
+  ///   pair after a markets-reload attempt (typically because the
+  ///   WebSocket is down and `getMarkets()` couldn't return).
+  ///
+  /// In all three cases the user's intent is preserved (we re-issue
+  /// `startQuote` with the same send/receive/amount) and the UI stays
+  /// in `fetching` shimmer rather than flashing an error banner the
+  /// user would just have to dismiss and tap retry on.
+  void _scheduleStartupRetryOrSurface({
+    required String sendAsset,
+    required String receiveAsset,
+    required BigInt amount,
+    required String reason,
+  }) {
+    _fetchingWatchdog?.cancel();
+    _fetchingWatchdog = null;
+    _quoteSub?.cancel();
+    _quoteSub = null;
+
+    if (_consecutiveStartupTimeouts < _maxStartupRetries) {
+      _consecutiveStartupTimeouts++;
+      final delaySeconds = _consecutiveStartupTimeouts;
+      _log.info(
+        _tag,
+        'Auto-retry $_consecutiveStartupTimeouts/$_maxStartupRetries '
+        'in ${delaySeconds}s ($reason)',
+      );
+      _startupRetryTimer?.cancel();
+      _startupRetryTimer = Timer(Duration(seconds: delaySeconds), () {
+        if (!mounted) return;
+        startQuote(
+          sendAsset: sendAsset,
+          receiveAsset: receiveAsset,
+          amount: amount,
+          isAutomaticRetry: true,
+        );
+      });
+      return;
+    }
+
+    _log.warning(
+      _tag,
+      'Auto-retry budget exhausted after $_consecutiveStartupTimeouts '
+      'attempts — surfacing timeout ($reason)',
+    );
+    _consecutiveStartupTimeouts = 0;
+    if (!mounted) return;
+    state = state.copyWith(
+      loading: false,
+      status: QuoteStatus.idle,
+      error: const SwapError(code: SwapErrorCode.timeout),
+    );
   }
 
   /// Re-open the subscription with the current send/receive/amount.
