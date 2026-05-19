@@ -24,7 +24,12 @@ import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart'
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/features/wallet/routes.dart' show PageVisibilityProvider;
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
+/// PageView index of the swap screen in [_MainNavigationScaffold].
+/// Kept in sync with the `children:` order in `wallet/routes.dart`.
+const int _swapPageIndex = 3;
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -51,6 +56,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   /// [didChangeDependencies] whenever Flutter's locale changes.
   String _locale = 'en_US';
 
+  /// Last observed PageView index from [PageVisibilityProvider].
+  /// Tracked so [didChangeDependencies] can detect a transition out
+  /// of the swap page (PageView swipe or bottom-nav tap) and tear
+  /// down the SideSwap WebSocket subscription that would otherwise
+  /// keep emitting quotes while the user is on a different tab.
+  /// `null` until the provider has been read for the first time.
+  int? _lastVisiblePageIndex;
+
   static const int _minBtcLbtcSwapSats = 25000;
 
   bool get _isBtcLbtcSwap {
@@ -76,6 +89,40 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _locale = Localizations.localeOf(context).toString();
+
+    // PageView keeps every child in the tree, so `deactivate()` never
+    // fires on a swipe or bottom-nav switch — the SideSwap WS
+    // subscription would happily keep streaming `market` emissions to
+    // a screen the user can no longer see. Hook the
+    // `PageVisibilityProvider` notifier and explicitly cancel the
+    // quote subscription when we transition off index 3. Returning to
+    // index 3 is a no-op here; the user's next amount edit (or a
+    // manual retry tap) restarts the quote naturally, and metadata is
+    // still cached on the controller from the initial `loadMetadata`.
+    final currentPage = PageVisibilityProvider.of(context);
+    if (currentPage != null && currentPage != _lastVisiblePageIndex) {
+      final wasVisible = _lastVisiblePageIndex == _swapPageIndex;
+      final isVisible = currentPage == _swapPageIndex;
+      if (wasVisible && !isVisible) {
+        debugPrint(
+          '[SwapScreen] Page hidden (index $_lastVisiblePageIndex → '
+          '$currentPage) — cancelling quote subscription',
+        );
+        // Riverpod forbids mutating a provider during a lifecycle
+        // method (this is what raises "Tried to modify a provider
+        // while the widget tree was building"). Defer to the next
+        // microtask so the call lands after build completes. We
+        // still grab `ref.read(...)` outside of any async gap, and
+        // re-check `mounted` before the actual mutation in case the
+        // screen has been disposed between the notifier change and
+        // the microtask firing.
+        Future.microtask(() {
+          if (!mounted) return;
+          ref.read(swapControllerProvider.notifier).cancelQuote();
+        });
+      }
+      _lastVisiblePageIndex = currentPage;
+    }
   }
 
   void _syncDecimalFromAmount() {

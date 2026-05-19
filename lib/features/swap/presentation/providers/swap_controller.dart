@@ -126,7 +126,7 @@ class SwapState {
   double? get exchangeRate {
     final send = sendAmount;
     final receive = receiveAmount;
-    if (send == null || receive == null || send == BigInt.zero) return null;
+    if (send == null || receive == null || send == 0) return null;
     return receive.toDouble() / send.toDouble();
   }
 
@@ -202,6 +202,30 @@ class SwapController extends StateNotifier<SwapState> {
   Timer? _fetchingWatchdog;
   Timer? _startupRetryTimer;
   int _consecutiveStartupTimeouts = 0;
+
+  // Generation counter for in-flight [startQuote] invocations.
+  // Each invocation captures the current value at its synchronous
+  // entry, then re-checks after every `await`. If a newer invocation
+  // has incremented the counter in the meantime, the older one
+  // aborts before sending an outdated `start_quotes` to the server.
+  //
+  // Why this exists:
+  //   The user can trigger `startQuote` faster than the preflight
+  //   completes — typing into the amount field, switching the asset
+  //   pair, toggling fiat mode, manual refresh, the auto-retry timer,
+  //   and `loadMetadata` all funnel here. Each invocation does an
+  //   `await getNewAddress()` and `await selectUtxos()` between the
+  //   token-free entry and the actual `repository.startQuote()` send.
+  //   With nothing serializing concurrent invocations, two of them
+  //   interleave: the older one wins the race to `repository.startQuote()`,
+  //   sets the service-side `_isQuoteInProgress` lock with its own
+  //   `(base,quote,amount)`, and when the newer one finally calls
+  //   `repository.startQuote()` the lock is held so the SideSwap
+  //   service drops the call on the floor — no `start_quotes` is sent
+  //   for the user's latest intent. Controller installs a listener
+  //   for that latest intent, no matching emission ever arrives,
+  //   watchdog trips at 10s, user sees infinite shimmer.
+  int _startQuoteToken = 0;
 
   Future<void> resetQuote() async {
     _log.debug(_tag, 'Resetting quote state');
@@ -351,14 +375,28 @@ class SwapController extends StateNotifier<SwapState> {
     // strategy can escalate across attempts.
     bool isAutomaticRetry = false,
   }) async {
+    // Capture the token synchronously at function entry, BEFORE any
+    // `await`. Any later invocation will increment `_startQuoteToken`
+    // synchronously at its own entry, so the post-await checks below
+    // can detect that this invocation has been superseded.
+    final myToken = ++_startQuoteToken;
     _log.info(
       _tag,
-      'Starting quote — send: $sendAsset, receive: $receiveAsset, '
-      'amount: $amount sats, preserveDisplayed: $preserveDisplayedQuote, '
+      'Starting quote (token=$myToken) — send: $sendAsset, '
+      'receive: $receiveAsset, amount: $amount sats, '
+      'preserveDisplayed: $preserveDisplayedQuote, '
       'autoRetry: $isAutomaticRetry',
     );
     final repository = await _repositoryFuture;
     if (!mounted) return;
+    if (myToken != _startQuoteToken) {
+      _log.debug(
+        _tag,
+        'startQuote token=$myToken superseded by '
+        '$_startQuoteToken — aborting at _repositoryFuture',
+      );
+      return;
+    }
     _quoteSub?.cancel();
     _quoteSub = null;
     _ttlTimer?.cancel();
@@ -470,6 +508,13 @@ class SwapController extends StateNotifier<SwapState> {
       );
       final marketsRes = await repository.getMarkets().run();
       if (!mounted) return;
+      if (myToken != _startQuoteToken) {
+        _log.debug(
+          _tag,
+          'startQuote token=$myToken superseded — aborting after getMarkets',
+        );
+        return;
+      }
       if (marketsRes.isRight()) {
         normalizedParams = repository.normalizeSwapParams(
           sendAsset: sendAsset,
@@ -480,18 +525,35 @@ class SwapController extends StateNotifier<SwapState> {
 
     if (normalizedParams == null) {
       // `getMarkets()` couldn't repopulate the list — almost always
-      // means the WebSocket is currently down. Route through the
-      // shared retry helper so the user gets the same auto-retry
-      // budget here as for stream-side transient errors. Without
-      // this, the fetching watchdog would still trip at 10s but the
-      // markets-reload code path would have already silently set
-      // `loading: false` and exited, leaving inconsistent state.
+      // means the WebSocket is currently down. We can't open a fresh
+      // subscription right now, but a previously-opened subscription
+      // for the same pair / amount may still be emitting matching
+      // quotes on the shared broadcast stream (SideSwap pushes a
+      // rolling quote_id every ~3s). Attach a permissive listener so
+      // those in-flight emissions can be adopted as the active quote
+      // — without it, valid quotes flow past the controller and the
+      // user stays stuck in shimmer / retry loops.
+      //
+      // We still schedule the auto-retry so that if no emission
+      // lands, we eventually re-attempt the full subscription path
+      // (the retry will tear down this permissive listener and
+      // either succeed via a fresh `start_quotes` or attach another
+      // permissive listener if markets are still empty).
       _log.warning(
         _tag,
         'Trading pair not found even after reloading markets — '
+        'attaching permissive listener and scheduling retry. '
         'send=$sendAsset, receive=$receiveAsset',
       );
       if (!mounted) return;
+      _quoteSub = repository.quoteStream.listen((q) {
+        _handleQuoteEmission(
+          q,
+          sendAsset: sendAsset,
+          receiveAsset: receiveAsset,
+          amount: amount,
+        );
+      });
       _scheduleStartupRetryOrSurface(
         sendAsset: sendAsset,
         receiveAsset: receiveAsset,
@@ -505,10 +567,6 @@ class SwapController extends StateNotifier<SwapState> {
     final quoteAsset = normalizedParams.quoteAsset;
     final direction = normalizedParams.direction;
     final assetType = normalizedParams.assetType;
-
-    final isInverse = assetType == 'Quote';
-
-    final feeAsset = baseAsset;
 
     final utxoAsset = assetType == 'Base' ? baseAsset : quoteAsset;
 
@@ -537,6 +595,22 @@ class SwapController extends StateNotifier<SwapState> {
     final utxosRes =
         await repository.selectUtxos(assetId: utxoAsset, amount: amount).run();
     if (!mounted) return;
+    // The two awaits above can take long enough (UTXO selection
+    // sometimes 100–500 ms on slow devices) that a later
+    // `startQuote` invocation has fully landed by the time we resume.
+    // Abort here so we never reach the synchronous
+    // `repository.startQuote(...)` below — that would set the
+    // SideSwap service's `_isQuoteInProgress` lock for our stale
+    // intent and silently block the newer invocation's `start_quotes`
+    // from being sent, leaving the UI stuck in shimmer.
+    if (myToken != _startQuoteToken) {
+      _log.debug(
+        _tag,
+        'startQuote token=$myToken superseded — '
+        'aborting after address/utxo selection',
+      );
+      return;
+    }
     if (addrRes.isLeft() || utxosRes.isLeft()) {
       final err = addrRes.match(
         (l) => l,
@@ -567,7 +641,7 @@ class SwapController extends StateNotifier<SwapState> {
     _log.debug(
       _tag,
       'Quote request sent — baseAsset=$baseAsset, quoteAsset=$quoteAsset, '
-      'assetType=$assetType, direction=$direction, isInverse=$isInverse',
+      'assetType=$assetType, direction=$direction',
     );
     result.match(
       (err) {
@@ -580,263 +654,300 @@ class SwapController extends StateNotifier<SwapState> {
       },
       (stream) {
         _quoteSub = stream.listen((quote) {
-          if (!mounted) return;
-
-          // ── Subscription-identity filter ─────────────────────────
-          // `sideswapService.quoteResponseStream` is a single broadcast
-          // firehose that receives EVERY quote message on the
-          // SideSwap WebSocket — including emissions from previous
-          // subscriptions whose `quote_sub_id` we never explicitly
-          // stopped. Without this guard the controller would happily
-          // process a quote answering an old request (different pair
-          // or different amount) as if it were the current one,
-          // producing the cross-pair / cross-amount UI mismatch
-          // captured in the 200→200000→2000-sat repro.
-          //
-          // Required match: same base + quote asset, AND same
-          // requested amount. We're inside the closure that owns the
-          // current request, so `baseAsset` / `quoteAsset` / `amount`
-          // are the correct ground truth.
-          final identityMatches = quote.matchesRequest(
-            baseAssetId: baseAsset,
-            quoteAssetId: quoteAsset,
-            requestedAmount: amount.toInt(),
+          _handleQuoteEmission(
+            quote,
+            sendAsset: sendAsset,
+            receiveAsset: receiveAsset,
+            amount: amount,
           );
-          if (!identityMatches) {
-            _log.debug(
-              _tag,
-              'Dropped stale stream emission: pair='
-                  '${quote.baseAssetId}/${quote.quoteAssetId}, '
-                  'amount=${quote.requestedAmount} '
-                  '(active: $baseAsset/$quoteAsset, ${amount.toInt()})',
-            );
-            return;
-          }
-
-          // The request's stream is producing for us — the watchdog
-          // armed in [startQuote] is no longer needed.
-          _fetchingWatchdog?.cancel();
-          _fetchingWatchdog = null;
-
-          final rawMsg = quote.error?.errorMessage;
-          SwapError? swapErr;
-
-          if (rawMsg != null) {
-            final lower = rawMsg.toLowerCase();
-
-            // ── Transient transport errors ────────────────────────────
-            // Two related classes of error end up here:
-            //   • "Tempo limite excedido…" — SideswapService's 8 s
-            //     watchdog firing because no quote response arrived
-            //     (typically caused by a flaky / reconnecting WS).
-            //   • "Erro de conexão…" — synthetic emission when
-            //     `ensureConnection()` couldn't bring the WS back up.
-            // The WebSocket layer is already retrying its connect on
-            // its own. We just need to stop surfacing these to the
-            // user while that's happening:
-            //   - If a working subscription exists (status valid /
-            //     refreshing), the next stream push will recover us
-            //     naturally — suppress silently.
-            //   - Otherwise (still in `fetching`), attempt a few
-            //     automatic retries with exponential backoff before
-            //     giving up. The UI stays in shimmer the whole time
-            //     so the user doesn't see error flashes for what is
-            //     essentially a reconnect cycle.
-            final isTransient =
-                lower.contains('tempo limite') ||
-                lower.contains('timeout') ||
-                lower.contains('timed out') ||
-                lower.contains('tiempo límite') ||
-                lower.contains('tiempo agotado') ||
-                lower.contains('erro de conexão') ||
-                lower.contains('connection error') ||
-                lower.contains('disconnected');
-            if (isTransient) {
-              final hasWorkingSubscription =
-                  state.status == QuoteStatus.valid ||
-                  state.status == QuoteStatus.refreshing;
-              if (hasWorkingSubscription) {
-                _log.debug(
-                  _tag,
-                  'Suppressed recoverable upstream transient: $rawMsg',
-                );
-                return;
-              }
-              // No working subscription — route through the shared
-              // auto-retry helper (same budget as the watchdog path
-              // and the markets-reload-failed path).
-              _scheduleStartupRetryOrSurface(
-                sendAsset: sendAsset,
-                receiveAsset: receiveAsset,
-                amount: amount,
-                reason: 'stream transient: $rawMsg',
-              );
-              return;
-            } else if (lower.contains('invalid utxo') ||
-                lower.contains('unknown utxo') ||
-                lower.contains('wait for wallet sync')) {
-              swapErr = const SwapError(code: SwapErrorCode.utxoBusy);
-            } else if (lower.contains('no matching orders') ||
-                lower.contains('matching orders')) {
-              swapErr = const SwapError(code: SwapErrorCode.noLiquidity);
-            } else {
-              swapErr = SwapError(
-                code: SwapErrorCode.upstream,
-                rawMessage: rawMsg,
-              );
-            }
-          }
-
-          if (swapErr == null && quote.lowBalance != null) {
-            final lb = quote.lowBalance!;
-            final totalFees = lb.fixedFee + lb.serverFee;
-            swapErr = SwapError(
-              code: SwapErrorCode.insufficientBalance,
-              available: lb.available,
-              required: lb.baseAmount + totalFees,
-            );
-          }
-
-          final rawTtlMs = quote.quote?.ttl;
-          // Cap displayed TTL — honor a shorter server TTL but clamp any
-          // longer one down to _maxDisplayTtlMs so the confirmation
-          // countdown stays tight.
-          final ttlMs = rawTtlMs == null
-              ? null
-              : (rawTtlMs > _maxDisplayTtlMs ? _maxDisplayTtlMs : rawTtlMs);
-          final newQuote = quote.quote;
-          final prevQuote = state.currentQuote?.quote;
-
-          // SideSwap streams a fresh quote_id every ~3s on the same
-          // subscription (~40s TTL per quote_id). While we're still inside
-          // the locked TTL window of the first quote of this cycle, treat
-          // every push as a rolling refresh — silently adopt the latest
-          // quote_id for signing fallback, but DO NOT replace the displayed
-          // quote, reset the countdown, or surface rate drift to the UI.
-          // The displayed amounts and timer stay anchored to the locked
-          // quote until its TTL naturally expires; the next push after
-          // expiry starts a fresh cycle. Works uniformly for stable pegs
-          // and volatile pairs.
-          final isWithinLockWindow =
-              _ttlDeadline != null && DateTime.now().isBefore(_ttlDeadline!);
-          final isRollingRefresh = swapErr == null &&
-              newQuote != null &&
-              prevQuote != null &&
-              isWithinLockWindow &&
-              state.status == QuoteStatus.valid;
-
-          // ── Rolling refresh ───────────────────────────────────────
-          // SideSwap rotates the quote_id every ~3s on the same
-          // subscription. While the displayed quote's TTL is still
-          // alive, treat the push as a silent renewal — only the
-          // signable id moves forward, everything else stays anchored.
-          if (isRollingRefresh) {
-            if (!mounted) return;
-            state = state.copyWith(activeQuoteId: newQuote.quoteId);
-            return;
-          }
-
-          // ── Promotion from `refreshing` ───────────────────────────
-          // Our soft-expiry handler left displayedQuote on screen but
-          // flipped status to `refreshing`. The first push after that
-          // becomes the new locked quote and we re-arm the countdown.
-          final isPromotingFromRefreshing =
-              swapErr == null &&
-              newQuote != null &&
-              state.status == QuoteStatus.refreshing;
-
-          if (isPromotingFromRefreshing) {
-            _staleTimer?.cancel();
-            _staleTimer = null;
-            // Successful promotion ends the auto-retry cycle.
-            _consecutiveStartupTimeouts = 0;
-            if (ttlMs != null) {
-              _ttlDeadline = DateTime.now().add(
-                Duration(milliseconds: ttlMs),
-              );
-            }
-            _log.debug(
-              _tag,
-              'Promoting refreshed quote — id: ${newQuote.quoteId}, '
-              'ttl: ${ttlMs}ms',
-            );
-            if (!mounted) return;
-            state = state.copyWith(
-              loading: false,
-              currentQuote: quote,
-              activeQuoteId: newQuote.quoteId,
-              ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
-              millisecondsRemaining: ttlMs,
-              isInverseMarket: isInverse,
-              feeAssetId: feeAsset,
-              status: QuoteStatus.valid,
-              error: null,
-            );
-            _startTtlCountdown();
-            return;
-          }
-
-          // ── First quote of a cycle / error / unrelated push ──────
-          final shouldStartTimer = _ttlDeadline == null && ttlMs != null;
-          if (ttlMs != null) {
-            _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
-          }
-
-          if (swapErr != null) {
-            _log.warning(
-              _tag,
-              'Quote stream received error: code=${swapErr.code}, raw=$rawMsg',
-            );
-          } else if (newQuote != null) {
-            _log.debug(
-              _tag,
-              'Quote update — id: ${newQuote.quoteId}, '
-              'baseAmount: ${newQuote.baseAmount} sats, '
-              'quoteAmount: ${newQuote.quoteAmount} sats, '
-              'ttl: ${ttlMs}ms',
-            );
-          }
-
-          if (!mounted) return;
-          // A successful first quote ends the auto-retry cycle.
-          if (swapErr == null && newQuote != null) {
-            _consecutiveStartupTimeouts = 0;
-          }
-          // An error during `fetching` means we never received a first
-          // successful quote — staying in `fetching` would leave the
-          // UI in shimmer alongside the error banner. Exit to `idle`
-          // so the error card stands alone. For other statuses (valid /
-          // refreshing) we already have something on screen, so a
-          // transient error doesn't reset the displayed quote.
-          final QuoteStatus nextStatus;
-          if (swapErr != null) {
-            nextStatus = state.status == QuoteStatus.fetching
-                ? QuoteStatus.idle
-                : state.status;
-          } else if (newQuote != null) {
-            nextStatus = QuoteStatus.valid;
-          } else {
-            nextStatus = state.status;
-          }
-          state = state.copyWith(
-            loading: false,
-            currentQuote: quote,
-            error: swapErr,
-            activeQuoteId: newQuote?.quoteId,
-            ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
-            lastSendAssetId: sendAsset,
-            lastReceiveAssetId: receiveAsset,
-            lastAmount: amount,
-            isInverseMarket: isInverse,
-            feeAssetId: feeAsset,
-            status: nextStatus,
-          );
-          if (shouldStartTimer) {
-            _startTtlCountdown();
-          }
         });
       },
     );
+  }
+
+  /// Process one emission from the shared SideSwap broadcast stream.
+  ///
+  /// Called from two attachment points:
+  /// - the per-request `stream.listen` installed after a successful
+  ///   `start_quotes` send, and
+  /// - the permissive `repository.quoteStream` listener installed by
+  ///   the markets-reload-failed branch, where we couldn't open a new
+  ///   subscription but want to adopt any matching in-flight emission.
+  ///
+  /// The identity filter is intentionally permissive on base/quote
+  /// ordering: the user's intent is `sendAsset` → `receiveAsset`, but
+  /// SideSwap may have a market in either direction. We accept any
+  /// emission whose `{baseAssetId, quoteAssetId}` set equals
+  /// `{sendAsset, receiveAsset}` and whose `requestedAmount` matches
+  /// the user's amount. The emission itself dictates `isInverse` and
+  /// `feeAsset` for this cycle, derived from `baseAssetId == sendAsset`
+  /// (direct) vs `baseAssetId == receiveAsset` (inverse).
+  void _handleQuoteEmission(
+    QuoteResponse quote, {
+    required String sendAsset,
+    required String receiveAsset,
+    required BigInt amount,
+  }) {
+    if (!mounted) return;
+
+    // ── Permissive subscription-identity filter ─────────────────────
+    // `sideswapService.quoteResponseStream` is a single broadcast
+    // firehose that receives EVERY quote message on the SideSwap WS
+    // — including emissions from previous subscriptions whose
+    // `quote_sub_id` we never explicitly stopped. Without this guard
+    // the controller would happily process a quote answering an old
+    // request (different pair or different amount) as if it were the
+    // current one.
+    //
+    // We accept an emission if (a) its requested amount matches and
+    // (b) its asset pair equals {sendAsset, receiveAsset} in either
+    // order. The directionality (`isInverse`) and fee asset are then
+    // derived from the emission's own `baseAssetId` — that way an
+    // emission from a previously-opened subscription can still drive
+    // the active cycle even if `normalizeSwapParams` is unavailable.
+    final emissionBase = quote.baseAssetId;
+    final emissionQuote = quote.quoteAssetId;
+    final pairMatches = emissionBase != null &&
+        emissionQuote != null &&
+        ((emissionBase == sendAsset && emissionQuote == receiveAsset) ||
+            (emissionBase == receiveAsset && emissionQuote == sendAsset));
+    final amountMatches = quote.requestedAmount == amount.toInt();
+    if (!pairMatches || !amountMatches) {
+      _log.debug(
+        _tag,
+        'Dropped stale stream emission: pair='
+            '${quote.baseAssetId}/${quote.quoteAssetId}, '
+            'amount=${quote.requestedAmount} '
+            '(intent: $sendAsset→$receiveAsset, ${amount.toInt()})',
+      );
+      return;
+    }
+
+    final emissionIsInverse = emissionBase != sendAsset;
+    final emissionFeeAsset = emissionBase;
+
+    // A matching emission is in flight — the fetching watchdog is no
+    // longer needed and any pending startup retry should be cancelled
+    // (we no longer need to re-issue the subscription; the current
+    // broadcast stream is producing the quote we wanted).
+    _fetchingWatchdog?.cancel();
+    _fetchingWatchdog = null;
+    _startupRetryTimer?.cancel();
+    _startupRetryTimer = null;
+
+    final rawMsg = quote.error?.errorMessage;
+    SwapError? swapErr;
+
+    if (rawMsg != null) {
+      final lower = rawMsg.toLowerCase();
+
+      // ── Transient transport errors ────────────────────────────
+      // Two related classes of error end up here:
+      //   • "Tempo limite excedido…" — SideswapService's 8 s
+      //     watchdog firing because no quote response arrived
+      //     (typically caused by a flaky / reconnecting WS).
+      //   • "Erro de conexão…" — synthetic emission when
+      //     `ensureConnection()` couldn't bring the WS back up.
+      // The WebSocket layer is already retrying its connect on
+      // its own. We just need to stop surfacing these to the
+      // user while that's happening:
+      //   - If a working subscription exists (status valid /
+      //     refreshing), the next stream push will recover us
+      //     naturally — suppress silently.
+      //   - Otherwise (still in `fetching`), attempt a few
+      //     automatic retries with exponential backoff before
+      //     giving up. The UI stays in shimmer the whole time
+      //     so the user doesn't see error flashes for what is
+      //     essentially a reconnect cycle.
+      final isTransient = lower.contains('tempo limite') ||
+          lower.contains('timeout') ||
+          lower.contains('timed out') ||
+          lower.contains('tiempo límite') ||
+          lower.contains('tiempo agotado') ||
+          lower.contains('erro de conexão') ||
+          lower.contains('connection error') ||
+          lower.contains('disconnected');
+      if (isTransient) {
+        final hasWorkingSubscription = state.status == QuoteStatus.valid ||
+            state.status == QuoteStatus.refreshing;
+        if (hasWorkingSubscription) {
+          _log.debug(
+            _tag,
+            'Suppressed recoverable upstream transient: $rawMsg',
+          );
+          return;
+        }
+        // No working subscription — route through the shared
+        // auto-retry helper (same budget as the watchdog path
+        // and the markets-reload-failed path).
+        _scheduleStartupRetryOrSurface(
+          sendAsset: sendAsset,
+          receiveAsset: receiveAsset,
+          amount: amount,
+          reason: 'stream transient: $rawMsg',
+        );
+        return;
+      } else if (lower.contains('invalid utxo') ||
+          lower.contains('unknown utxo') ||
+          lower.contains('wait for wallet sync')) {
+        swapErr = const SwapError(code: SwapErrorCode.utxoBusy);
+      } else if (lower.contains('no matching orders') ||
+          lower.contains('matching orders')) {
+        swapErr = const SwapError(code: SwapErrorCode.noLiquidity);
+      } else {
+        swapErr = SwapError(
+          code: SwapErrorCode.upstream,
+          rawMessage: rawMsg,
+        );
+      }
+    }
+
+    if (swapErr == null && quote.lowBalance != null) {
+      final lb = quote.lowBalance!;
+      final totalFees = lb.fixedFee + lb.serverFee;
+      swapErr = SwapError(
+        code: SwapErrorCode.insufficientBalance,
+        available: lb.available,
+        required: lb.baseAmount + totalFees,
+      );
+    }
+
+    final rawTtlMs = quote.quote?.ttl;
+    // Cap displayed TTL — honor a shorter server TTL but clamp any
+    // longer one down to _maxDisplayTtlMs so the confirmation
+    // countdown stays tight.
+    final ttlMs = rawTtlMs == null
+        ? null
+        : (rawTtlMs > _maxDisplayTtlMs ? _maxDisplayTtlMs : rawTtlMs);
+    final newQuote = quote.quote;
+    final prevQuote = state.currentQuote?.quote;
+
+    // SideSwap streams a fresh quote_id every ~3s on the same
+    // subscription (~40s TTL per quote_id). While we're still inside
+    // the locked TTL window of the first quote of this cycle, treat
+    // every push as a rolling refresh — silently adopt the latest
+    // quote_id for signing fallback, but DO NOT replace the displayed
+    // quote, reset the countdown, or surface rate drift to the UI.
+    // The displayed amounts and timer stay anchored to the locked
+    // quote until its TTL naturally expires; the next push after
+    // expiry starts a fresh cycle. Works uniformly for stable pegs
+    // and volatile pairs.
+    final isWithinLockWindow =
+        _ttlDeadline != null && DateTime.now().isBefore(_ttlDeadline!);
+    final isRollingRefresh = swapErr == null &&
+        newQuote != null &&
+        prevQuote != null &&
+        isWithinLockWindow &&
+        state.status == QuoteStatus.valid;
+
+    // ── Rolling refresh ───────────────────────────────────────
+    // SideSwap rotates the quote_id every ~3s on the same
+    // subscription. While the displayed quote's TTL is still
+    // alive, treat the push as a silent renewal — only the
+    // signable id moves forward, everything else stays anchored.
+    if (isRollingRefresh) {
+      if (!mounted) return;
+      state = state.copyWith(activeQuoteId: newQuote.quoteId);
+      return;
+    }
+
+    // ── Promotion from `refreshing` ───────────────────────────
+    // Our soft-expiry handler left displayedQuote on screen but
+    // flipped status to `refreshing`. The first push after that
+    // becomes the new locked quote and we re-arm the countdown.
+    final isPromotingFromRefreshing = swapErr == null &&
+        newQuote != null &&
+        state.status == QuoteStatus.refreshing;
+
+    if (isPromotingFromRefreshing) {
+      _staleTimer?.cancel();
+      _staleTimer = null;
+      // Successful promotion ends the auto-retry cycle.
+      _consecutiveStartupTimeouts = 0;
+      if (ttlMs != null) {
+        _ttlDeadline = DateTime.now().add(
+          Duration(milliseconds: ttlMs),
+        );
+      }
+      _log.debug(
+        _tag,
+        'Promoting refreshed quote — id: ${newQuote.quoteId}, '
+        'ttl: ${ttlMs}ms',
+      );
+      if (!mounted) return;
+      state = state.copyWith(
+        loading: false,
+        currentQuote: quote,
+        activeQuoteId: newQuote.quoteId,
+        ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
+        millisecondsRemaining: ttlMs,
+        isInverseMarket: emissionIsInverse,
+        feeAssetId: emissionFeeAsset,
+        status: QuoteStatus.valid,
+        error: null,
+      );
+      _startTtlCountdown();
+      return;
+    }
+
+    // ── First quote of a cycle / error / unrelated push ──────
+    final shouldStartTimer = _ttlDeadline == null && ttlMs != null;
+    if (ttlMs != null) {
+      _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
+    }
+
+    if (swapErr != null) {
+      _log.warning(
+        _tag,
+        'Quote stream received error: code=${swapErr.code}, raw=$rawMsg',
+      );
+    } else if (newQuote != null) {
+      _log.debug(
+        _tag,
+        'Quote update — id: ${newQuote.quoteId}, '
+        'baseAmount: ${newQuote.baseAmount} sats, '
+        'quoteAmount: ${newQuote.quoteAmount} sats, '
+        'ttl: ${ttlMs}ms',
+      );
+    }
+
+    if (!mounted) return;
+    // A successful first quote ends the auto-retry cycle.
+    if (swapErr == null && newQuote != null) {
+      _consecutiveStartupTimeouts = 0;
+    }
+    // An error during `fetching` means we never received a first
+    // successful quote — staying in `fetching` would leave the
+    // UI in shimmer alongside the error banner. Exit to `idle`
+    // so the error card stands alone. For other statuses (valid /
+    // refreshing) we already have something on screen, so a
+    // transient error doesn't reset the displayed quote.
+    final QuoteStatus nextStatus;
+    if (swapErr != null) {
+      nextStatus = state.status == QuoteStatus.fetching
+          ? QuoteStatus.idle
+          : state.status;
+    } else if (newQuote != null) {
+      nextStatus = QuoteStatus.valid;
+    } else {
+      nextStatus = state.status;
+    }
+    state = state.copyWith(
+      loading: false,
+      currentQuote: quote,
+      error: swapErr,
+      activeQuoteId: newQuote?.quoteId,
+      ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
+      lastSendAssetId: sendAsset,
+      lastReceiveAssetId: receiveAsset,
+      lastAmount: amount,
+      isInverseMarket: emissionIsInverse,
+      feeAssetId: emissionFeeAsset,
+      status: nextStatus,
+    );
+    if (shouldStartTimer) {
+      _startTtlCountdown();
+    }
   }
 
   void _startTtlCountdown() {
@@ -915,8 +1026,14 @@ class SwapController extends StateNotifier<SwapState> {
   }) {
     _fetchingWatchdog?.cancel();
     _fetchingWatchdog = null;
-    _quoteSub?.cancel();
-    _quoteSub = null;
+    // Intentionally do NOT cancel `_quoteSub` here. We want any
+    // currently-attached listener (per-subscription OR the permissive
+    // broadcast listener installed by the markets-fail branch) to
+    // stay alive during the backoff window — if a matching emission
+    // lands before the retry fires, `_handleQuoteEmission` will
+    // adopt it and cancel the retry timer. The next call to
+    // `startQuote` (from either the retry or a user action) cancels
+    // and re-creates the listener cleanly at its preamble.
 
     if (_consecutiveStartupTimeouts < _maxStartupRetries) {
       _consecutiveStartupTimeouts++;
