@@ -25,8 +25,9 @@ class PaymentDetailsDisplay extends ConsumerWidget {
     final discountedAmount = ref.read(
       discountedFeesDepositProvider(depositAmountInReais).future,
     );
+    final locale = Localizations.localeOf(context).toString();
     final assetQuantity = discountedAmount.then(
-      (amount) => _getAssetQuantity(assetQuote, amount, deposit.asset),
+      (amount) => _getAssetQuantity(assetQuote, amount, deposit.asset, locale),
     );
 
     return Container(
@@ -193,13 +194,14 @@ Future<String> _getAssetQuantity(
   Future<Either<String, Option<double>>> futureEitherOptionQuote,
   double amountAfterFees,
   Asset asset,
+  String locale,
 ) {
   return futureEitherOptionQuote.then(
     (x) => x.fold(
       (err) => "N/A",
       (optionQuote) => optionQuote.fold(() => "N/A", (quote) {
         final quantity = amountAfterFees / quote;
-        return asset.formatQuoteAmount(quantity);
+        return asset.formatQuoteAmount(quantity, locale: locale);
       }),
     ),
   );

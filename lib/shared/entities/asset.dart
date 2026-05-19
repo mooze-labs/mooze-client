@@ -212,11 +212,16 @@ enum Asset {
   /// Formats a quote-calculated amount (BRL / BRL-per-asset) for display.
   /// BTC/LBTC: converts to satoshis and labels sat/sats.
   /// DEPIX: 2 decimal places. USDT: 8 decimal places.
-  String formatQuoteAmount(double amount) {
+  ///
+  /// [locale] controls thousands-separator grouping for the sats display
+  /// (e.g. `pt_BR` → `1.234.567`, `en_US` → `1,234,567`). When null, the
+  /// system default locale is used.
+  String formatQuoteAmount(double amount, {String? locale}) {
     return switch (this) {
       Asset.btc || Asset.lbtc => () {
         final sats = (amount * 100000000).round();
-        return "≈ $sats ${sats == 1 ? 'sat' : 'sats'}";
+        final formattedSats = NumberFormat('#,##0', locale).format(sats);
+        return "≈ $formattedSats ${sats == 1 ? 'sat' : 'sats'}";
       }(),
       Asset.depix => "${amount.toStringAsFixed(2)} ${ticker.toUpperCase()}",
       Asset.usdt => "${amount.toStringAsFixed(8)} ${ticker.toUpperCase()}",

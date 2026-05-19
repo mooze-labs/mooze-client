@@ -66,8 +66,9 @@ class AssetAmountDisplay extends ConsumerWidget {
           (quote) => discountedDepositAmount.when(
             data: (depositAmount) {
               final amount = depositAmount / quote;
+              final locale = Localizations.localeOf(context).toString();
               return Text(
-                selectedAsset.formatQuoteAmount(amount),
+                selectedAsset.formatQuoteAmount(amount, locale: locale),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,

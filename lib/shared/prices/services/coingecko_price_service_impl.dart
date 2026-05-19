@@ -54,11 +54,11 @@ class CoingeckoPriceServiceImpl extends PriceService {
       ticker,
     ) {
       return _coingeckoDataSource
-          .getCoinPrice([ticker], _currency.name)
+          .getCoinPrice([ticker], currency.name)
           .map(
             (fetched) => fetched.match(
               () => Option.none(),
-              (some) => Option.fromNullable(some[ticker]?[_currency.name]),
+              (some) => Option.fromNullable(some[ticker]?[currency.name]),
             ),
           );
     });
