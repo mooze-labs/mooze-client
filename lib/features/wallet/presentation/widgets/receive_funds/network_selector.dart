@@ -193,18 +193,15 @@ class _NetworkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final cs = theme.colorScheme;
 
     final borderColor = isSelected
         ? cs.primary
-        : isDark
-            ? cs.outlineVariant.withValues(alpha: 0.45)
-            : cs.outline.withValues(alpha: 0.45);
+        : cs.onSurface.withValues(alpha: 0.08);
 
     final cardBg = isSelected
         ? cs.primary.withValues(alpha: 0.08)
-        : cs.onSurface.withValues(alpha: 0.04);
+        : cs.onSurface.withValues(alpha: 0.05);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -328,10 +325,13 @@ class _NetworkInfoRow extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
+        color: cs.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: cs.onSurface.withValues(alpha: 0.08),
+        ),
       ),
       child: Row(
         children: [
