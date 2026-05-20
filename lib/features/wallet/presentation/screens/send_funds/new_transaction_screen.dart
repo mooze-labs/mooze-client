@@ -136,7 +136,6 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
                     SizedBox(height: 16),
                     FeeSpeedSelectionWidget(),
                     ValidationErrorsWidget(),
-                    SizedBox(height: 16),
                     FeeEstimationWidget(),
                     ReviewButton(),
                   ],
