@@ -160,6 +160,16 @@ class ReceiveConversionController extends StateNotifier<void> {
     _syncValuesOnTypeChange(newType, selectedAsset);
   }
 
+  void resetForAssetChange() {
+    ref.read(receiveAmountProvider.notifier).state = '';
+    ref.read(receiveAssetValueProvider.notifier).state = '';
+    ref.read(receiveSatsValueProvider.notifier).state = '';
+    ref.read(receiveFiatValueProvider.notifier).state = '';
+    ref.read(receiveConversionLoadingProvider.notifier).state = false;
+    ref.read(receiveConversionTypeProvider.notifier).state =
+        ReceiveConversionType.asset;
+  }
+
   /// Clears the mode-specific value providers OTHER than the one
   /// currently being edited. Called when the final amount drops to
   /// zero so a later mode switch doesn't read a stale conversion left
