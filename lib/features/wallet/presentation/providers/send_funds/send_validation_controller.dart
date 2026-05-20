@@ -341,10 +341,35 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     List<SendValidationError> errors,
   ) async {
     if (asset == Asset.btc) {
-      _log.debug(
-        _tag,
-        'Skipping balance+fee validation for BTC (handled by SDK)',
-      );
+      try {
+        final balanceResult = await ref.read(
+          selectedAssetBalanceRawProvider.future,
+        );
+        balanceResult.fold(
+          (_) {},
+          (balance) {
+            if (BigInt.from(amount) > balance) {
+              _log.warning(
+                _tag,
+                'BTC validation: amount $amount sats exceeds raw balance $balance sats',
+              );
+              errors.add(
+                const SendValidationError(
+                  code: SendValidationErrorCode.amountExceedsBalance,
+                  category: SendValidationErrorCategory.balance,
+                ),
+              );
+            }
+          },
+        );
+      } catch (e, stackTrace) {
+        _log.warning(
+          _tag,
+          'BTC balance pre-check failed (deferring to SDK): $e',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
       return;
     }
     try {
