@@ -59,34 +59,27 @@ class ReceiveFundsScreen extends ConsumerWidget {
           body: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.opaque,
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    16,
-                    16,
-                    MediaQuery.of(context).padding.bottom + 112,
-                  ),
-                  child: const _GroupedSurface(
-                    children: [
-                      _Section(child: AssetSelectorReceive()),
-                      _SoftDivider(),
-                      _Section(child: NetworkSelector()),
-                      _SoftDivider(),
-                      _Section(child: AmountFieldReceive()),
-                      _SoftDivider(),
-                      _Section(child: DescriptionFieldReceive()),
-                    ],
-                  ),
-                ),
-                const Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _StickyActionBar(),
-                ),
-              ],
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                20,
+                16,
+                24 + MediaQuery.of(context).padding.bottom,
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AssetSelectorReceive(),
+                  SizedBox(height: 28),
+                  NetworkSelector(),
+                  SizedBox(height: 28),
+                  AmountFieldReceive(),
+                  SizedBox(height: 28),
+                  DescriptionFieldReceive(),
+                  SizedBox(height: 32),
+                  GenerateQRButton(),
+                ],
+              ),
             ),
           ),
         ),
@@ -96,11 +89,14 @@ class ReceiveFundsScreen extends ConsumerWidget {
 
   void _showInfoSheet(BuildContext context) {
     final t = AppLocalizations.of(context);
-    showModalBottomSheet(
+    showGeneralDialog<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _InfoSheet(
+      barrierDismissible: true,
+      barrierLabel:
+          MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (ctx, _, _) => _FloatingInfoCard(
         title: t.receive_info_title,
         steps: [
           (t.receive_info_step1_title, t.receive_info_step1_desc),
@@ -109,123 +105,29 @@ class ReceiveFundsScreen extends ConsumerWidget {
         ],
         hint: t.receive_info_close_hint,
       ),
-    );
-  }
-}
-
-class _GroupedSurface extends StatelessWidget {
-  final List<Widget> children;
-  const _GroupedSurface({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHigh
-            : theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark
-              ? theme.colorScheme.outlineVariant.withValues(alpha: 0.45)
-              : theme.colorScheme.outline.withValues(alpha: 0.55),
-        ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  final Widget child;
-  const _Section({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: child,
-    );
-  }
-}
-
-class _SoftDivider extends StatelessWidget {
-  const _SoftDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: isDark
-          ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
-          : theme.colorScheme.outline.withValues(alpha: 0.45),
-    );
-  }
-}
-
-class _StickyActionBar extends StatelessWidget {
-  const _StickyActionBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bg = theme.scaffoldBackgroundColor;
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Soft top fade so scroll content blurs into the bar instead of
-        // crashing into a hard edge. Uses the scaffold background so the
-        // solid section below is visually identical to the page bg in
-        // both light and dark themes — no seam, no "panel" effect.
-        IgnorePointer(
-          child: Container(
-            height: 28,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  bg.withValues(alpha: 0.0),
-                  bg,
-                ],
-              ),
-            ),
+      transitionBuilder: (ctx, anim, _, child) {
+        final curve = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curve,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.06),
+              end: Offset.zero,
+            ).animate(curve),
+            child: child,
           ),
-        ),
-        Container(
-          color: bg,
-          padding: EdgeInsets.fromLTRB(16, 4, 16, 12 + bottomInset),
-          child: const GenerateQRButton(),
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-class _InfoSheet extends StatelessWidget {
+class _FloatingInfoCard extends StatelessWidget {
   final String title;
   final List<(String, String)> steps;
   final String hint;
 
-  const _InfoSheet({
+  const _FloatingInfoCard({
     required this.title,
     required this.steps,
     required this.hint,
@@ -235,73 +137,116 @@ class _InfoSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return PlatformSafeArea(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 18),
-            for (var i = 0; i < steps.length; i++) ...[
-              _InfoStep(
-                index: i + 1,
-                title: steps[i].$1,
-                description: steps[i].$2,
-              ),
-              if (i < steps.length - 1) const SizedBox(height: 14),
-            ],
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(12),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 80, 16, 24),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.tips_and_updates_outlined,
-                    color: theme.colorScheme.primary,
-                    size: 18,
+                color: theme.colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      hint,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
+                      _CloseButton(
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  for (var i = 0; i < steps.length; i++) ...[
+                    _InfoStep(
+                      index: i + 1,
+                      title: steps[i].$1,
+                      description: steps[i].$2,
+                    ),
+                    if (i < steps.length - 1) const SizedBox(height: 14),
+                  ],
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.tips_and_updates_outlined,
+                          color: theme.colorScheme.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            hint,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CloseButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CloseButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: cs.onSurface.withValues(alpha: 0.06),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.close_rounded,
+            size: 18,
+            color: cs.onSurface.withValues(alpha: 0.7),
+          ),
         ),
       ),
     );
