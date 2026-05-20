@@ -3796,6 +3796,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wallet_send_address_scan_qr => 'Escanear código QR';
 
   @override
+  String get wallet_send_address_paste => 'Pegar';
+
+  @override
+  String get wallet_send_address_clear => 'Borrar';
+
+  @override
+  String get wallet_send_address_paste_empty => 'Portapapeles vacío';
+
+  @override
   String get wallet_send_select_asset => 'Selecciona un activo';
 
   @override
@@ -3987,7 +3996,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get wallet_send_review_insufficient_error =>
-      'Saldo insuficiente para realizar el envío.\n\nVerifica que tengas saldo suficiente en el activo seleccionado y Bitcoin L2 para pagar las tarifas de la red.';
+      'Saldo insuficiente para realizar el envío.\n\nAsegúrate de tener saldo suficiente para cubrir el monto y las tarifas de la red.';
 
   @override
   String get wallet_send_review_prepare_error =>

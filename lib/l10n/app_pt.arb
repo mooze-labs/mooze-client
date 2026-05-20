@@ -1706,6 +1706,9 @@
   "wallet_send_address_label": "Endereço de destino",
   "wallet_send_address_hint": "Digite ou cole o endereço",
   "wallet_send_address_scan_qr": "Escanear QR Code",
+  "wallet_send_address_paste": "Colar",
+  "wallet_send_address_clear": "Limpar",
+  "wallet_send_address_paste_empty": "Área de transferência vazia",
   "wallet_send_select_asset": "Selecione um ativo",
   "wallet_send_available_balance": "Saldo disponível",
   "wallet_send_balance_unavailable": "Indisponível",
@@ -1802,7 +1805,7 @@
       }
     }
   },
-  "wallet_send_review_insufficient_error": "Saldo insuficiente para realizar o envio.\n\nVerifique se você tem saldo suficiente no ativo selecionado e Bitcoin L2 para pagar as taxas da rede.",
+  "wallet_send_review_insufficient_error": "Saldo insuficiente para realizar o envio.\n\nVerifique se você tem saldo suficiente para cobrir o valor e as taxas da rede.",
   "wallet_send_review_prepare_error": "Não foi possível preparar a transação. Tente novamente.",
   "wallet_send_loading_conversions": "Carregando conversões...",
   "wallet_send_equivalent_conversions": "Conversões equivalentes:",

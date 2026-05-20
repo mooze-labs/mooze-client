@@ -6796,6 +6796,24 @@ abstract class AppLocalizations {
   /// **'Escanear QR Code'**
   String get wallet_send_address_scan_qr;
 
+  /// No description provided for @wallet_send_address_paste.
+  ///
+  /// In pt, this message translates to:
+  /// **'Colar'**
+  String get wallet_send_address_paste;
+
+  /// No description provided for @wallet_send_address_clear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get wallet_send_address_clear;
+
+  /// No description provided for @wallet_send_address_paste_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Área de transferência vazia'**
+  String get wallet_send_address_paste_empty;
+
   /// No description provided for @wallet_send_select_asset.
   ///
   /// In pt, this message translates to:
@@ -7123,7 +7141,7 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_review_insufficient_error.
   ///
   /// In pt, this message translates to:
-  /// **'Saldo insuficiente para realizar o envio.\n\nVerifique se você tem saldo suficiente no ativo selecionado e Bitcoin L2 para pagar as taxas da rede.'**
+  /// **'Saldo insuficiente para realizar o envio.\n\nVerifique se você tem saldo suficiente para cobrir o valor e as taxas da rede.'**
   String get wallet_send_review_insufficient_error;
 
   /// No description provided for @wallet_send_review_prepare_error.
