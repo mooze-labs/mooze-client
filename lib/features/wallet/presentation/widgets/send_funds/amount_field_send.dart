@@ -89,7 +89,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     super.dispose();
   }
 
-
   String _formatDisplay({
     required int sats,
     required SendConversionType mode,
@@ -116,8 +115,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
       case SendConversionType.sats:
         return SatsInputFormatter.parseValue(value);
       case SendConversionType.asset:
-        final assetValue =
-            double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+        final assetValue = double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
         if (assetValue <= 0) return 0;
         return (assetValue * 100000000).toInt();
       case SendConversionType.fiat:
@@ -188,7 +186,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     }
   }
 
-
   void _setMaxAmount(Asset asset, int satsAmount) {
     _lastPushedSats = null;
     ref.read(amountStateProvider.notifier).state = satsAmount;
@@ -201,7 +198,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     }
     _scheduleResync();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -216,10 +212,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
       sendConversionTypeProvider,
       (_, _) => _scheduleResync(),
     );
-    ref.listen<Asset>(
-      selectedAssetProvider,
-      (_, _) => _scheduleResync(),
-    );
+    ref.listen<Asset>(selectedAssetProvider, (_, _) => _scheduleResync());
     ref.listen(bitcoinPriceProvider, (_, _) => _scheduleResync());
     ref.listen(selectedAssetPriceProvider, (_, _) => _scheduleResync());
 
@@ -248,9 +241,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
       decoration: BoxDecoration(
         color: cs.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cs.onSurface.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(
@@ -286,14 +277,15 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
             alignment: Alignment.topCenter,
-            child: showInfo
-                ? _InfoBlock(
-                    network: selectedNetwork,
-                    selectedAsset: selectedAsset,
-                    btcAmount: btcAmount,
-                    amountInSats: amountInSats,
-                  )
-                : const SizedBox.shrink(),
+            child:
+                showInfo
+                    ? _InfoBlock(
+                      network: selectedNetwork,
+                      selectedAsset: selectedAsset,
+                      btcAmount: btcAmount,
+                      amountInSats: amountInSats,
+                    )
+                    : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -326,19 +318,17 @@ class _MaxButton extends ConsumerWidget {
     final state = context.findAncestorStateOfType<_AmountFieldSendState>();
 
     return selectedAssetBalance.when(
-      data: (data) => data.fold(
-        (_) => const SizedBox.shrink(),
-        (amount) {
-          if (amount <= BigInt.zero || state == null) {
-            return const SizedBox.shrink();
-          }
-          return _ChipAction(
-            label: 'MAX',
-            isActive: isActive,
-            onTap: () => state._setMaxAmount(selectedAsset, amount.toInt()),
-          );
-        },
-      ),
+      data:
+          (data) => data.fold((_) => const SizedBox.shrink(), (amount) {
+            if (amount <= BigInt.zero || state == null) {
+              return const SizedBox.shrink();
+            }
+            return _ChipAction(
+              label: 'MAX',
+              isActive: isActive,
+              onTap: () => state._setMaxAmount(selectedAsset, amount.toInt()),
+            );
+          }),
       error: (_, _) => const SizedBox.shrink(),
       loading: () => const SizedBox.shrink(),
     );
@@ -368,15 +358,16 @@ class _ChipAction extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: isActive
-            ? [
-                BoxShadow(
-                  color: cs.primary.withValues(alpha: 0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+        boxShadow:
+            isActive
+                ? [
+                  BoxShadow(
+                    color: cs.primary.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -399,7 +390,6 @@ class _ChipAction extends StatelessWidget {
     );
   }
 }
-
 
 class _AmountRow extends StatelessWidget {
   final Asset? asset;
@@ -444,12 +434,10 @@ class _AmountRow extends StatelessWidget {
         final currentText = controller.text.isEmpty ? '0' : controller.text;
         final effectiveChars = currentText.length.clamp(1, 20).toDouble();
 
-        final availableRight =
-            (constraints.maxWidth - leftReserved - gap).clamp(
-          60.0,
-          double.infinity,
-        );
-        final naturalFontSize = availableRight /
+        final availableRight = (constraints.maxWidth - leftReserved - gap)
+            .clamp(60.0, double.infinity);
+        final naturalFontSize =
+            availableRight /
             (maxScale * scaleFactor * effectiveChars * charRatio);
         final fontSize = naturalFontSize.clamp(minFontSize, maxFontSize);
 
@@ -474,8 +462,9 @@ class _AmountRow extends StatelessWidget {
                     maxLines: 1,
                     scrollPhysics: const NeverScrollableScrollPhysics(),
                     textAlign: TextAlign.right,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: inputFormatters,
                     style: TextStyle(
                       color: valueColor,
@@ -547,15 +536,6 @@ class _UnitColumn extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        Text(
-          asset?.name ?? '',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: muted,
-            letterSpacing: 0.2,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
       ],
     );
   }
@@ -571,31 +551,32 @@ class _InlineError extends StatelessWidget {
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
-      child: (message == null || message!.isEmpty)
-          ? const SizedBox.shrink()
-          : Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.error_outline_rounded,
-                    size: 14,
-                    color: theme.colorScheme.error,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      message!,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.w500,
+      child:
+          (message == null || message!.isEmpty)
+              ? const SizedBox.shrink()
+              : Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 14,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        message!,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
     );
   }
 }
@@ -617,12 +598,12 @@ class _InfoBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dividerColor = isDark
-        ? theme.colorScheme.outlineVariant.withValues(alpha: 0.25)
-        : theme.colorScheme.outline.withValues(alpha: 0.25);
+    final dividerColor =
+        isDark
+            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.25)
+            : theme.colorScheme.outline.withValues(alpha: 0.25);
     final t = AppLocalizations.of(context);
-    final isBtcLike =
-        selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
+    final isBtcLike = selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,11 +676,7 @@ class _Chip extends StatelessWidget {
   final String text;
   final Color color;
 
-  const _Chip({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
+  const _Chip({required this.icon, required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
