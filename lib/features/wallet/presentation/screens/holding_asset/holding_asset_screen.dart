@@ -40,12 +40,6 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Stale-while-revalidate: split the boot loader from the data loader.
-    // Show the 3px top bar only during a true cold boot (`readyAt == null`)
-    // OR while a background sync is actively running. Once the app has
-    // reached ready once and sync is idle, the bar stays hidden — even on
-    // re-entry — because cached holdings are rendered immediately by the
-    // non-autoDispose providers below.
     final appState = ref.watch(appStateProvider).valueOrNull;
     final hasBootedOnce = appState?.readyAt != null;
     final syncPhase = ref.watch(syncStateProvider).valueOrNull?.phase;
