@@ -1387,6 +1387,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receive_description_hint => 'e.g. Lunch payment';
 
   @override
+  String get receive_description_add => 'Add description';
+
+  @override
   String get receive_generate_qr => 'Generate invoice';
 
   @override
@@ -4128,6 +4131,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wallet_asset_chart_load_error => 'Could not load the chart';
+
+  @override
+  String get wallet_asset_stats_high => 'High';
+
+  @override
+  String get wallet_asset_stats_low => 'Low';
+
+  @override
+  String get wallet_asset_stats_current => 'Current';
 
   @override
   String get wallet_holding_appbar_title => 'Assets';

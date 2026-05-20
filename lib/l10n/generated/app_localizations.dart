@@ -2572,6 +2572,12 @@ abstract class AppLocalizations {
   /// **'Ex: Pagamento do almoço'**
   String get receive_description_hint;
 
+  /// No description provided for @receive_description_add.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar descrição'**
+  String get receive_description_add;
+
   /// No description provided for @receive_generate_qr.
   ///
   /// In pt, this message translates to:
@@ -7401,6 +7407,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível carregar o gráfico'**
   String get wallet_asset_chart_load_error;
+
+  /// No description provided for @wallet_asset_stats_high.
+  ///
+  /// In pt, this message translates to:
+  /// **'Máxima'**
+  String get wallet_asset_stats_high;
+
+  /// No description provided for @wallet_asset_stats_low.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mínima'**
+  String get wallet_asset_stats_low;
+
+  /// No description provided for @wallet_asset_stats_current.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atual'**
+  String get wallet_asset_stats_current;
 
   /// No description provided for @wallet_holding_appbar_title.
   ///

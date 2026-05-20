@@ -1398,6 +1398,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get receive_description_hint => 'Ex: Pagamento do almoço';
 
   @override
+  String get receive_description_add => 'Adicionar descrição';
+
+  @override
   String get receive_generate_qr => 'Gerar fatura';
 
   @override
@@ -4166,6 +4169,15 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get wallet_asset_chart_load_error =>
       'Não foi possível carregar o gráfico';
+
+  @override
+  String get wallet_asset_stats_high => 'Máxima';
+
+  @override
+  String get wallet_asset_stats_low => 'Mínima';
+
+  @override
+  String get wallet_asset_stats_current => 'Atual';
 
   @override
   String get wallet_holding_appbar_title => 'Ativos';
