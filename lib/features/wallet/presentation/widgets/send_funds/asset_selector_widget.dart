@@ -6,25 +6,19 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/dropdown_button.dart';
 
-import '../../providers/send_funds/selected_asset_provider.dart';
-import '../../providers/send_funds/amount_provider.dart';
-import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/address_provider.dart';
-import 'amount_field_send.dart';
+import '../../providers/send_funds/amount_provider.dart';
+import '../../providers/send_funds/detected_amount_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
 
 void clearAllFields(WidgetRef ref) {
-  final addressController = ref.read(addressControllerProvider);
-  addressController.clear();
-
+  ref.read(addressControllerProvider).clear();
   ref.read(syncedAddressControllerProvider.notifier).clear();
-
   ref.read(addressStateProvider.notifier).state = '';
 
-  ref.read(sendAssetValueProvider.notifier).state = '';
-  ref.read(sendSatsValueProvider.notifier).state = '';
-  ref.read(sendFiatValueProvider.notifier).state = '';
-  ref.read(sendConversionLoadingProvider.notifier).state = false;
+  ref.read(amountStateProvider.notifier).state = 0;
+  ref.read(maxSendRequestedProvider.notifier).state = false;
 }
 
 class AssetSelectorWidget extends ConsumerWidget {
@@ -50,10 +44,7 @@ class AssetSelectorWidget extends ConsumerWidget {
       onChanged: (val) {
         if (val != null && val != selectedAsset) {
           clearAllFields(ref);
-
-          ref.read(amountStateProvider.notifier).state = 0;
           ref.invalidate(detectedAmountProvider);
-
           ref.read(selectedAssetProvider.notifier).state = val;
         }
       },
