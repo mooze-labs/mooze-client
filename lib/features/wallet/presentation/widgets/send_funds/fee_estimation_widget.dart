@@ -24,7 +24,6 @@ class FeeEstimationWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-
     if (validationState.errors.isNotEmpty) {
       final hasOnlyBalanceErrors = validationState.errors.every(
         (error) => error.category == SendValidationErrorCategory.balance,
@@ -175,13 +174,12 @@ class _Surface extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: cs.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cs.onSurface.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       child: child,
     );
