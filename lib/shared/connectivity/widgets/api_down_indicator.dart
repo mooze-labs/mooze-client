@@ -19,11 +19,7 @@ void _showApiDownDialog(
       return AlertDialog(
         title: Row(
           children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              color: Colors.orange[300],
-              size: 28,
-            ),
+            Icon(Icons.cloud_off_rounded, color: Colors.orange[300], size: 28),
             const SizedBox(width: 12),
             Text(t.api_down_dialog_title),
           ],
@@ -100,9 +96,7 @@ void _showApiDownDialog(
             },
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: Text(t.common_retry),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.orange[700],
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange[700]),
           ),
         ],
       );
