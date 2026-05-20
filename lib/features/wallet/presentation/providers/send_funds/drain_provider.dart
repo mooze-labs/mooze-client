@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
-import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
+import 'amount_provider.dart';
 import 'clean_address_provider.dart';
 import 'selected_asset_provider.dart';
 import 'selected_network_provider.dart';
-import 'amount_provider.dart';
 
 final drainTransactionProvider =
     FutureProvider<Either<WalletError, PartiallySignedTransaction>>((
@@ -22,7 +22,6 @@ final drainTransactionProvider =
       final asset = ref.watch(selectedAssetProvider);
       final blockchain = ref.watch(selectedNetworkProvider);
 
-      // Validate destination
       if (destination.isEmpty) {
         return Either.left(
           WalletError(
@@ -51,7 +50,6 @@ final drainTransactionProvider =
                   .run();
           }
         } else {
-          // For stablecoins/assets, use the drain stablecoin method
           return await repository
               .buildDrainStablecoinTransaction(destination, asset)
               .run();
@@ -65,63 +63,13 @@ final isDrainAvailableProvider = Provider<bool>((ref) {
 });
 
 final isDrainTransactionProvider = Provider<bool>((ref) {
+  if (!ref.watch(maxSendRequestedProvider)) return false;
+
   final destination = ref.watch(cleanAddressProvider);
-  final currentAmount = ref.watch(finalAmountProvider);
-  final maxAmountAsync = ref.watch(maxAvailableAmountProvider);
+  if (destination.isEmpty) return false;
 
-  print('[DEBUG isDrainTransactionProvider] destination: $destination');
-  print('[DEBUG isDrainTransactionProvider] currentAmount: $currentAmount');
+  final amount = ref.watch(finalAmountProvider);
+  if (amount <= 0) return false;
 
-  if (destination.isEmpty) {
-    print('[DEBUG isDrainTransactionProvider] No destination, returning false');
-    return false;
-  }
-
-  return maxAmountAsync.when(
-    data:
-        (maxAmountResult) => maxAmountResult.fold(
-          (error) {
-            return false;
-          },
-          (maxAmount) {
-            final currentAmountBigInt = BigInt.from(currentAmount);
-            final threshold = (maxAmount * BigInt.from(99)) ~/ BigInt.from(100);
-
-            if (currentAmountBigInt > maxAmount) {
-              return false;
-            }
-
-            final isDrain =
-                currentAmountBigInt >= threshold && maxAmount > BigInt.zero;
-            return isDrain;
-          },
-        ),
-    loading: () {
-      print(
-        '[DEBUG isDrainTransactionProvider] Loading max amount, returning false',
-      );
-      return false;
-    },
-    error: (error, stackTrace) => false,
-  );
-});
-
-final maxAvailableAmountProvider = FutureProvider<Either<WalletError, BigInt>>((
-  ref,
-) async {
-  final walletRepositoryResult = await ref.read(
-    walletRepositoryProvider.future,
-  );
-  final asset = ref.watch(selectedAssetProvider);
-
-  return walletRepositoryResult.fold((error) => Either.left(error), (
-    repository,
-  ) async {
-    final balanceResult = await repository.getBalance().run();
-
-    return balanceResult.map((balance) {
-      final assetBalance = balance[asset];
-      return assetBalance ?? BigInt.zero;
-    });
-  });
+  return true;
 });
