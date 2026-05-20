@@ -136,8 +136,11 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: cs.onSurface.withValues(alpha: 0.04),
+            color: cs.onSurface.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: cs.onSurface.withValues(alpha: 0.08),
+            ),
           ),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
           child: Column(
