@@ -65,9 +65,9 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Payment info — flat panel, identity + (optional) hero amount +
-  // (optional) description. Sections separated by hairline dividers,
-  // not nested cards, so the visual weight stays low.
+  // Payment info — Pix-inspired compact layout: identity on the left,
+  // amount on the right, both sharing a single row. Optional
+  // description collapses into a toggleable section below.
   // ─────────────────────────────────────────────────────────────────
 
   Widget _buildPaymentInfo() {
@@ -79,26 +79,33 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         color: cs.onSurface.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _IdentityRow(asset: widget.asset, networkLabel: _networkLabel()),
-          if (hasAmount) ...[
-            const SizedBox(height: 14),
-            _SoftHairline(),
-            const SizedBox(height: 14),
-            _AmountBlock(amount: widget.amount!, asset: widget.asset),
-          ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _IdentitySide(
+                  asset: widget.asset,
+                  networkLabel: _networkLabel(),
+                ),
+              ),
+              if (hasAmount) ...[
+                const SizedBox(width: 12),
+                _AmountSide(amount: widget.amount!, asset: widget.asset),
+              ],
+            ],
+          ),
           if (hasDescription) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _SoftHairline(),
-            const SizedBox(height: 14),
-            _DescriptionBlock(text: widget.description!),
+            _DescriptionExpandable(text: widget.description!),
           ],
         ],
       ),
@@ -223,21 +230,22 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
 // Sub-widgets — kept private to this file.
 // ─────────────────────────────────────────────────────────────────────
 
-class _IdentityRow extends StatelessWidget {
+class _IdentitySide extends StatelessWidget {
   final Asset asset;
   final String networkLabel;
 
-  const _IdentityRow({required this.asset, required this.networkLabel});
+  const _IdentitySide({required this.asset, required this.networkLabel});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: cs.onSurface.withValues(alpha: 0.06),
@@ -245,20 +253,20 @@ class _IdentityRow extends StatelessWidget {
           alignment: Alignment.center,
           child: SvgPicture.asset(
             asset.iconPath,
-            width: 26,
-            height: 26,
+            width: 24,
+            height: 24,
             fit: BoxFit.contain,
           ),
         ),
-        const SizedBox(width: 14),
-        Expanded(
+        const SizedBox(width: 12),
+        Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 asset.name,
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.2,
                 ),
@@ -268,7 +276,7 @@ class _IdentityRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 networkLabel,
-                style: theme.textTheme.labelMedium?.copyWith(
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: context.colors.textSecondary,
                   letterSpacing: 0.2,
                 ),
@@ -283,16 +291,15 @@ class _IdentityRow extends StatelessWidget {
   }
 }
 
-class _AmountBlock extends StatelessWidget {
+class _AmountSide extends StatelessWidget {
   final double amount;
   final Asset asset;
 
-  const _AmountBlock({required this.amount, required this.asset});
+  const _AmountSide({required this.amount, required this.asset});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
     final isBtcLike = asset == Asset.btc || asset == Asset.lbtc;
     final assetStr = _formatAssetAmount(amount, isBtcLike);
     final satsStr = isBtcLike
@@ -300,42 +307,32 @@ class _AmountBlock extends StatelessWidget {
         : null;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          _stripTrailingColon(t.receive_qr_amount_label),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: context.colors.textSecondary,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
         Row(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
             Flexible(
               child: Text(
                 assetStr,
-                style: theme.textTheme.headlineSmall?.copyWith(
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.4,
+                  letterSpacing: -0.3,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 6),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Text(
-                asset.ticker,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: context.colors.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
+            const SizedBox(width: 4),
+            Text(
+              asset.ticker,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -344,7 +341,7 @@ class _AmountBlock extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '$satsStr sats',
-            style: theme.textTheme.labelMedium?.copyWith(
+            style: theme.textTheme.labelSmall?.copyWith(
               color: context.colors.textSecondary,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
@@ -372,31 +369,76 @@ class _AmountBlock extends StatelessWidget {
   }
 }
 
-class _DescriptionBlock extends StatelessWidget {
+class _DescriptionExpandable extends StatefulWidget {
   final String text;
-  const _DescriptionBlock({required this.text});
+  const _DescriptionExpandable({required this.text});
+
+  @override
+  State<_DescriptionExpandable> createState() => _DescriptionExpandableState();
+}
+
+class _DescriptionExpandableState extends State<_DescriptionExpandable> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _stripTrailingColon(t.receive_qr_description_label),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: context.colors.textSecondary,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
+    final muted = context.colors.textSecondary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _expanded = !_expanded),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    _stripTrailingColon(t.receive_qr_description_label),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: muted,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const Spacer(),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: muted,
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: _expanded
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          widget.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.35,
+                          ),
+                        ),
+                      )
+                    : const SizedBox(width: double.infinity),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          text,
-          style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -441,11 +483,10 @@ class _IconChip extends StatelessWidget {
   }
 }
 
-/// Chunked monospace address renderer. Inserts narrow zero-width
-/// space points every 6 characters so the text wraps cleanly inside
-/// the row but stays one logical word for `Text`'s line-breaker. The
-/// visible separation comes from a Wrap of small Text spans which
-/// keeps long lightning invoices readable on narrow screens.
+/// Continuous monospace address renderer. The full address is kept
+/// intact (no chunking, no inserted spaces) so the user can verify it
+/// character-by-character and copy a portion via selection without
+/// accidentally including separator whitespace.
 class _AddressMono extends StatelessWidget {
   final String text;
   const _AddressMono({required this.text});
@@ -453,7 +494,6 @@ class _AddressMono extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final chunks = _chunk(text, 6);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -461,32 +501,17 @@ class _AddressMono extends StatelessWidget {
         color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        alignment: WrapAlignment.center,
-        children: [
-          for (final c in chunks)
-            Text(
-              c,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontFamily: 'monospace',
-                fontSize: 13,
-                height: 1.2,
-                letterSpacing: 0.4,
-              ),
-            ),
-        ],
+      child: SelectableText(
+        text,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          height: 1.4,
+          letterSpacing: 0.2,
+        ),
       ),
     );
-  }
-
-  static List<String> _chunk(String s, int size) {
-    final out = <String>[];
-    for (var i = 0; i < s.length; i += size) {
-      out.add(s.substring(i, (i + size).clamp(0, s.length)));
-    }
-    return out;
   }
 }
 
