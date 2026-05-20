@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
@@ -65,6 +66,7 @@ class AssetStatsWidget extends ConsumerWidget {
     List<double> klines,
     WidgetRef ref,
   ) {
+    final t = AppLocalizations.of(context);
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
     final current = klines.last;
     final high = klines.reduce((a, b) => a > b ? a : b);
@@ -75,7 +77,7 @@ class AssetStatsWidget extends ConsumerWidget {
         Expanded(
           child: _buildStatCard(
             context,
-            label: 'Máxima',
+            label: t.wallet_asset_stats_high,
             value: '$icon ${_numberFormat.format(high)}',
             icon: Icons.arrow_upward_rounded,
             iconColor: context.colors.positiveColor,
@@ -85,7 +87,7 @@ class AssetStatsWidget extends ConsumerWidget {
         Expanded(
           child: _buildStatCard(
             context,
-            label: 'Mínima',
+            label: t.wallet_asset_stats_low,
             value: '$icon ${_numberFormat.format(low)}',
             icon: Icons.arrow_downward_rounded,
             iconColor: context.colors.negativeColor,
@@ -95,7 +97,7 @@ class AssetStatsWidget extends ConsumerWidget {
         Expanded(
           child: _buildStatCard(
             context,
-            label: 'Atual',
+            label: t.wallet_asset_stats_current,
             value: '$icon ${_numberFormat.format(current)}',
             icon: Icons.radio_button_checked_rounded,
             iconColor: context.colors.primaryColor,
@@ -185,12 +187,13 @@ class AssetStatsWidget extends ConsumerWidget {
   }
 
   Widget _buildErrorStats(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             context,
-            label: 'Máxima',
+            label: t.wallet_asset_stats_high,
             value: 'N/A',
             icon: Icons.arrow_upward_rounded,
             iconColor: context.colors.positiveColor,
@@ -200,7 +203,7 @@ class AssetStatsWidget extends ConsumerWidget {
         Expanded(
           child: _buildStatCard(
             context,
-            label: 'Mínima',
+            label: t.wallet_asset_stats_low,
             value: 'N/A',
             icon: Icons.arrow_downward_rounded,
             iconColor: context.colors.negativeColor,
@@ -210,7 +213,7 @@ class AssetStatsWidget extends ConsumerWidget {
         Expanded(
           child: _buildStatCard(
             context,
-            label: 'Atual',
+            label: t.wallet_asset_stats_current,
             value: 'N/A',
             icon: Icons.radio_button_checked_rounded,
             iconColor: context.colors.primaryColor,
