@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 final receiveDescriptionProvider = StateProvider<String>((ref) => '');
 
@@ -30,6 +31,8 @@ class _DescriptionFieldReceiveState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final description = ref.watch(receiveDescriptionProvider);
 
     if (description.isEmpty && _controller.text.isNotEmpty) {
@@ -40,12 +43,12 @@ class _DescriptionFieldReceiveState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppLocalizations.of(context).receive_description_label,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          t.receive_description_label,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         TextFormField(
           controller: _controller,
           onChanged: (value) {
@@ -53,47 +56,50 @@ class _DescriptionFieldReceiveState
           },
           maxLines: 2,
           maxLength: 100,
+          style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
-            hintText: AppLocalizations.of(context).receive_description_hint,
-            hintStyle: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            hintText: t.receive_description_hint,
+            hintStyle: theme.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textTertiary,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 2,
-              ),
-            ),
+            border: _border(context),
+            enabledBorder: _border(context),
+            focusedBorder: _border(context, focused: true),
+            disabledBorder: _border(context),
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-            contentPadding: const EdgeInsets.all(16),
-            counterStyle: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 12,
+            fillColor: _fillColor(context),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            counterStyle: theme.textTheme.labelSmall?.copyWith(
+              color: context.colors.textTertiary,
             ),
           ),
-          style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],
     );
   }
+}
+
+Color _fillColor(BuildContext context) {
+  final theme = Theme.of(context);
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surfaceContainerHighest
+      : theme.colorScheme.surface;
+}
+
+OutlineInputBorder _border(BuildContext context, {bool focused = false}) {
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  final cs = theme.colorScheme;
+  final color = focused
+      ? cs.primary
+      : isDark
+          ? cs.outlineVariant.withValues(alpha: 0.45)
+          : cs.outline.withValues(alpha: 0.45);
+  return OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: BorderSide(color: color, width: focused ? 1.5 : 1),
+  );
 }
