@@ -83,6 +83,8 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                       child: Material(
                         elevation: 4.0,
                         borderRadius: BorderRadius.circular(8),
+                        color: widget.backgroundColor ??
+                            Theme.of(context).colorScheme.surfaceContainerLow,
                         child: Container(
                           constraints: const BoxConstraints(maxHeight: 300),
                           child: ListView(
