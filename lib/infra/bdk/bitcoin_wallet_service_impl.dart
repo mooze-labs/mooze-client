@@ -763,10 +763,12 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   }
 
   domain.Balance _mapBalance(bdk.Balance b) {
+    final pending = (b.trustedPending + b.untrustedPending + b.immature).toInt();
     final asset = domain.AssetBalance(
       chain: chain,
       amountSat: b.total.toInt(),
       ticker: 'BTC',
+      pendingSat: pending,
     );
     return domain.Balance(assets: [asset], snapshotAt: clock.now());
   }
