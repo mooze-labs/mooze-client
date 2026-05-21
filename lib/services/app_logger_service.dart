@@ -9,6 +9,7 @@ import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' hide JsonKey;
 import 'package:mooze_mobile/database/database.dart';
 import 'package:mooze_mobile/domain/entities/transaction.dart' as v2;
+import 'package:mooze_mobile/services/debug_header.dart';
 import 'package:mooze_mobile/services/log_config.dart';
 
 enum LogLevel {
@@ -495,6 +496,7 @@ class AppLoggerService {
   /// for backwards compatibility with rows written before the V2 cutover.
   Future<String> exportLogs({
     required String walletId,
+    required DebugHeader debugHeader,
     List<v2.Transaction>? v2Transactions,
   }) async {
     try {
@@ -508,8 +510,16 @@ class AppLoggerService {
 
       debugPrint('[AppLogger] Export directory created: ${exportDir.path}');
 
+      // Render the standardised debug header once and reuse it across
+      // every text artifact in the export so the `Generated:` timestamp
+      // matches across files. The structured `mooze_export.json` is
+      // excluded — that file is a financial export, not a debug payload.
+      final headerText = debugHeader.format();
+
       final memoryLogsFile = File('${exportDir.path}/logs_memoria.log');
       final memoryBuffer = StringBuffer();
+      memoryBuffer.write(headerText);
+      memoryBuffer.writeln();
       memoryBuffer.writeln('=== LOGS DA MEMÓRIA ===');
       memoryBuffer.writeln(
         'Exportado em: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}',
@@ -532,6 +542,8 @@ class AppLoggerService {
 
       final dbLogsFile = File('${exportDir.path}/logs_banco.log');
       final dbBuffer = StringBuffer();
+      dbBuffer.write(headerText);
+      dbBuffer.writeln();
       dbBuffer.writeln('=== LOGS DO BANCO DE DADOS ===');
       dbBuffer.writeln(
         'Exportado em: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}',
@@ -576,6 +588,8 @@ class AppLoggerService {
 
       final infoFile = File('${exportDir.path}/info.txt');
       final infoBuffer = StringBuffer();
+      infoBuffer.write(headerText);
+      infoBuffer.writeln();
       infoBuffer.writeln('=== INFORMAÇÕES DA EXPORTAÇÃO ===');
       infoBuffer.writeln(
         'Data/Hora: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}',
@@ -599,15 +613,18 @@ class AppLoggerService {
         '  - logs_banco.log: Logs persistidos no banco de dados',
       );
       infoBuffer.writeln(
-        '  - mooze_export.json: Export estruturado (logs + transactions + swaps)',
+        '  - mooze_export.json: Financial export (transactions + swaps only — '
+        'no logs or diagnostics)',
       );
 
       await infoFile.writeAsString(infoBuffer.toString());
       debugPrint('[AppLogger] Info file created');
 
-      // Structured JSON export — primary artifact for support tooling. Holds
-      // logs, transactions and swaps in a single document with stable keys
-      // so an automated pipeline can ingest it without parsing free text.
+      // Structured financial export — user-facing artifact carrying only
+      // transactions and swaps. Logs / diagnostics / runtime state are
+      // deliberately excluded; those live in the sibling `.log` files
+      // and the `info.txt` header so this JSON stays compact and free
+      // of privacy-sensitive payload.
       final jsonExport = await _buildStructuredExport(
         walletId: walletId,
         v2Transactions: v2Transactions,
@@ -618,7 +635,6 @@ class AppLoggerService {
       );
       debugPrint(
         '[AppLogger] JSON export written: '
-        'logs=${(jsonExport['logs'] as List).length} '
         'tx=${(jsonExport['transactions'] as List).length} '
         'swaps=${(jsonExport['swaps'] as List).length}',
       );
@@ -705,38 +721,37 @@ class AppLoggerService {
     }).toList();
   }
 
-  /// Build the structured export document used by support tooling.
+  /// Build the user-facing financial export document.
   ///
-  /// Schema (stable — see DECISIONS.md ADR-XXX):
+  /// Schema (v2 — see DECISIONS.md, breaking change from v1):
+  /// ```
   /// {
-  ///   "schemaVersion": 1,
+  ///   "schemaVersion": 2,
   ///   "exportedAt":   ISO-8601 UTC timestamp,
-  ///   "logs":         [LogEntry-shaped objects, newest first],
   ///   "transactions": [Transaction rows, newest first],
   ///   "swaps":        [Swap rows, newest first]
   /// }
+  /// ```
   ///
-  /// Logs combine both the in-memory ring buffer (which may include levels
-  /// not persisted by [LogConfig]) and the database table. Transactions and
-  /// swaps come straight from the database — they have no in-memory mirror.
-  /// If the database isn't initialized the corresponding sections are empty
+  /// **Logs are intentionally absent.** v1 of this schema mixed log
+  /// entries, transactions and swaps in one payload, which made the file
+  /// large, noisy, and a privacy hazard. From v2 onwards logs ship as
+  /// plain text in the sibling `logs_memoria.log` / `logs_banco.log`
+  /// files inside the same ZIP — the JSON is purely a financial export.
+  ///
+  /// Transactions and swaps come straight from the database. If the
+  /// database isn't initialized the corresponding sections are empty
   /// arrays rather than missing keys, so consumers can rely on shape.
   Future<Map<String, dynamic>> _buildStructuredExport({
     required String walletId,
     List<v2.Transaction>? v2Transactions,
   }) async {
-    final memoryLogs = _logs.reversed.map(_logEntryToJson).toList();
-
-    List<Map<String, dynamic>> dbLogJson = const [];
     List<Map<String, dynamic>> txJson = const [];
     List<Map<String, dynamic>> swapJson = const [];
 
     if (_database != null) {
       final db = _database!;
-      final dbLogs = await db.getAllLogs();
       final swaps = await db.getAllSwaps(walletId: walletId);
-
-      dbLogJson = dbLogs.map(_appLogRowToJson).toList();
 
       swaps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       swapJson = swaps.map(_swapRowToJson).toList();
@@ -759,45 +774,13 @@ class AppLoggerService {
       txJson = sorted.map(_v2TransactionToJson).toList();
     }
 
-    // Memory + DB logs are merged and sorted newest-first; consumers see one
-    // unified timeline regardless of which store the entry lived in.
-    final mergedLogs = <Map<String, dynamic>>[...memoryLogs, ...dbLogJson];
-    mergedLogs.sort((a, b) {
-      final ta = DateTime.tryParse(a['timestamp'] as String? ?? '');
-      final tb = DateTime.tryParse(b['timestamp'] as String? ?? '');
-      if (ta == null || tb == null) return 0;
-      return tb.compareTo(ta);
-    });
-
     return {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
-      'logs': mergedLogs,
       'transactions': txJson,
       'swaps': swapJson,
     };
   }
-
-  Map<String, dynamic> _logEntryToJson(LogEntry e) => {
-    'source': 'memory',
-    'timestamp': e.timestamp.toUtc().toIso8601String(),
-    'level': e.level.name,
-    'tag': e.tag,
-    'message': e.message,
-    if (e.error != null) 'error': e.error.toString(),
-    if (e.stackTrace != null) 'stackTrace': e.stackTrace.toString(),
-  };
-
-  Map<String, dynamic> _appLogRowToJson(AppLog row) => {
-    'source': 'database',
-    'id': row.id,
-    'timestamp': row.timestamp.toUtc().toIso8601String(),
-    'level': row.level,
-    'tag': row.tag,
-    'message': row.message,
-    if (row.error != null) 'error': row.error,
-    if (row.stackTrace != null) 'stackTrace': row.stackTrace,
-  };
 
   Map<String, dynamic> _transactionRowToJson(Transaction row) => {
     'id': row.id,
