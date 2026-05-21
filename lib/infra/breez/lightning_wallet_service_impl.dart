@@ -1165,12 +1165,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
   /// (Lightning HTLCs settle into the Breez L-BTC pool immediately;
   /// LWK's electrum view is one block behind).
   domain.Balance _mapBalance(breez.GetInfoResponse info) {
+    final pending = (info.walletInfo.pendingSendSat +
+            info.walletInfo.pendingReceiveSat)
+        .toInt();
     final assets = <domain.AssetBalance>[
       domain.AssetBalance(
         chain: chain,
         assetId: lbtcAssetId,
         amountSat: info.walletInfo.balanceSat.toInt(),
         ticker: 'BTC',
+        pendingSat: pending,
       ),
     ];
     for (final ab in info.walletInfo.assetBalances) {
