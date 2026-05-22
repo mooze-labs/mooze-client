@@ -82,8 +82,6 @@ class SuccessfulAssetCard extends ConsumerWidget {
   });
 
   @override
-  static final _numberFormat = NumberFormat('#,##0.00', 'en_US');
-
   Widget build(BuildContext context, WidgetRef ref) {
     final spotPrice = ref.watch(
       priceQuotesProvider.select((s) => s.priceFor(asset)),
@@ -93,6 +91,10 @@ class SuccessfulAssetCard extends ConsumerWidget {
     final assetValue = spotPrice ?? klines.last;
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
     final colorScheme = context.colorScheme;
+    final numberFormat = NumberFormat(
+      '#,##0.00',
+      Localizations.localeOf(context).toString(),
+    );
 
     return GestureDetector(
       onTap: () {
@@ -131,7 +133,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                "$icon ${_numberFormat.format(assetValue)}",
+                "$icon ${numberFormat.format(assetValue)}",
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.bold),
