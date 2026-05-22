@@ -8,6 +8,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_
 import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/asset_detail_screen.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/data_refresh_trigger.dart';
@@ -84,9 +85,12 @@ class SuccessfulAssetCard extends ConsumerWidget {
   static final _numberFormat = NumberFormat('#,##0.00', 'en_US');
 
   Widget build(BuildContext context, WidgetRef ref) {
+    final spotPrice = ref.watch(
+      priceQuotesProvider.select((s) => s.priceFor(asset)),
+    );
     final percentage = ((klines.last - klines.first) / klines.first) * 100;
     final isPositive = klines.last > klines.first;
-    final assetValue = klines.last;
+    final assetValue = spotPrice ?? klines.last;
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
     final colorScheme = context.colorScheme;
 
