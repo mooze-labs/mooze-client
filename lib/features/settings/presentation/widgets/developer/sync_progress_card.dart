@@ -73,11 +73,13 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const [0.0, 0.55, 1.0],
             colors: [
-              cs.primary.withValues(alpha: 0.10),
               cs.primary.withValues(alpha: 0.02),
+              cs.primary.withValues(alpha: 0.08),
+              cs.primary.withValues(alpha: 0.1),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
@@ -185,11 +187,11 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
   }
 
   String _chainName(ChainId c) => switch (c) {
-        ChainId.liquid => 'Liquid',
-        ChainId.bitcoin => 'Bitcoin',
-        ChainId.lightning => 'Lightning',
-        ChainId.aggregate => 'all chains',
-      };
+    ChainId.liquid => 'Liquid',
+    ChainId.bitcoin => 'Bitcoin',
+    ChainId.lightning => 'Lightning',
+    ChainId.aggregate => 'all chains',
+  };
 }
 
 class _AnimatedSyncGlyph extends StatelessWidget {
@@ -330,13 +332,14 @@ class _ChainPill extends StatelessWidget {
     final isErrored = lifecycle == ServiceLifecycle.errored;
     final isWorking = lifecycle == ServiceLifecycle.connecting;
 
-    final dotColor = isErrored
-        ? cs.error
-        : isActive
+    final dotColor =
+        isErrored
+            ? cs.error
+            : isActive
             ? cs.tertiary
             : isWorking
-                ? cs.primary
-                : extra.textTertiary.withValues(alpha: 0.6);
+            ? cs.primary
+            : extra.textTertiary.withValues(alpha: 0.6);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -365,11 +368,11 @@ class _ChainPill extends StatelessWidget {
   }
 
   static String _label(ChainId c) => switch (c) {
-        ChainId.liquid => 'Liquid',
-        ChainId.bitcoin => 'Bitcoin',
-        ChainId.lightning => 'Lightning',
-        ChainId.aggregate => 'Aggregate',
-      };
+    ChainId.liquid => 'Liquid',
+    ChainId.bitcoin => 'Bitcoin',
+    ChainId.lightning => 'Lightning',
+    ChainId.aggregate => 'Aggregate',
+  };
 }
 
 class _StatusDot extends StatefulWidget {
@@ -425,15 +428,16 @@ class _StatusDotState extends State<_StatusDot>
           decoration: BoxDecoration(
             color: widget.color.withValues(alpha: t),
             shape: BoxShape.circle,
-            boxShadow: widget.animating
-                ? [
-                    BoxShadow(
-                      color: widget.color.withValues(alpha: 0.4 * t),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : null,
+            boxShadow:
+                widget.animating
+                    ? [
+                      BoxShadow(
+                        color: widget.color.withValues(alpha: 0.4 * t),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                    : null,
           ),
         );
       },
