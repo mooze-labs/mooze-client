@@ -6,7 +6,9 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_p
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -79,11 +81,13 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
     }
   }
 
-  String _formatPrice(double price) {
-    if (price >= 1000) {
-      return NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(price);
-    }
-    return NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(price);
+  String _formatPrice(BuildContext context, WidgetRef ref, double price) {
+    final icon = ref.watch(currencyControllerProvider.notifier).icon;
+    final formatter = NumberFormat(
+      '#,##0.00',
+      Localizations.localeOf(context).toString(),
+    );
+    return '$icon ${formatter.format(price)}';
   }
 
   String _getPeriodLabel(TimePeriod period) {
@@ -142,8 +146,11 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
     final textTheme = context.textTheme;
     final colorScheme = context.colorScheme;
 
+    final spotPrice = ref.watch(
+      priceQuotesProvider.select((s) => s.priceFor(widget.asset)),
+    );
     final activeIndex = _touchedIndex ?? klines.length - 1;
-    final displayPrice = _touchedPrice ?? klines.last;
+    final displayPrice = _touchedPrice ?? spotPrice ?? klines.last;
     final displayTime = _getTimestampForIndex(
       activeIndex.clamp(0, klines.length - 1),
       klines.length,
@@ -191,7 +198,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  _formatPrice(displayPrice),
+                  _formatPrice(context, ref, displayPrice),
                   style: textTheme.titleSmall?.copyWith(
                     color: lineColor,
                     fontWeight: FontWeight.w600,
