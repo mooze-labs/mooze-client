@@ -33,7 +33,6 @@ import 'package:mooze_mobile/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
-
 class DeveloperScreen extends ConsumerStatefulWidget {
   const DeveloperScreen({super.key});
 
@@ -532,9 +531,10 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
   }
 
   DebugHeader _buildDebugHeader() {
-    final btcEquivalentSats = _balance == null
-        ? 0
-        : _balance!.assets.fold<int>(0, (sum, a) => sum + a.amountSat);
+    final btcEquivalentSats =
+        _balance == null
+            ? 0
+            : _balance!.assets.fold<int>(0, (sum, a) => sum + a.amountSat);
     final sdkVersions =
         ref.read(sdkVersionsProvider).valueOrNull ?? SdkVersions.unavailable;
 
@@ -595,20 +595,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.topCenter,
-                  child:
-                      _activeOperation == null
-                          ? const SizedBox.shrink()
-                          : Padding(
-                            padding: const EdgeInsets.only(bottom: 18),
-                            child: SyncProgressCard(
-                              operation: _activeOperation!,
-                            ),
-                          ),
-                ),
                 BalanceOverviewCard(
                   balance: _balance,
                   loading: _balance == null,
@@ -631,6 +617,20 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
                   onViewLogs: _viewLogs,
                 ),
                 const SizedBox(height: 16),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  child:
+                      _activeOperation == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                            padding: const EdgeInsets.only(bottom: 18),
+                            child: SyncProgressCard(
+                              operation: _activeOperation!,
+                            ),
+                          ),
+                ),
                 DeveloperActionGrid(
                   activeOperation: _activeOperation,
                   onSync: _syncWallet,
