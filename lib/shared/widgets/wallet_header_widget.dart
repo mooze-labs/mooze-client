@@ -124,7 +124,10 @@ class WalletHeaderWidget extends ConsumerWidget {
     late AsyncValue value;
     late String Function(dynamic) formatter;
 
-    final numberFormat = NumberFormat('#,##0.00', 'pt_BR');
+    final numberFormat = NumberFormat(
+      '#,##0.00',
+      Localizations.localeOf(context).toString(),
+    );
 
     switch (displayMode) {
       case WalletDisplayMode.fiat:
