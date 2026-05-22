@@ -2,18 +2,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/services/hybrid_price_service.dart';
 import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 
 class AssetCacheInfo {
   final Asset asset;
   final bool hasCache;
   final int? ageInMinutes;
   final double? lastPrice;
+  final String currencySymbol;
 
   AssetCacheInfo({
     required this.asset,
     required this.hasCache,
     this.ageInMinutes,
     this.lastPrice,
+    this.currencySymbol = 'R\$',
   });
 
   String get formattedAge {
@@ -32,14 +35,21 @@ class AssetCacheInfo {
 
   String get formattedPrice {
     if (lastPrice == null) return 'N/A';
-    return 'R\$ ${lastPrice!.toStringAsFixed(2)}';
+    return '$currencySymbol ${lastPrice!.toStringAsFixed(2)}';
   }
 }
 
 final cacheInfoProvider = FutureProvider<List<AssetCacheInfo>>((ref) async {
   final mainAssets = [Asset.btc, Asset.usdt, Asset.depix];
 
-  final priceService = HybridPriceService(Currency.brl, PriceSource.coingecko);
+
+  final currency = ref.watch(priceQuotesProvider).currency;
+  final currencySymbol = switch (currency) {
+    Currency.brl => 'R\$',
+    Currency.usd => '\$',
+  };
+
+  final priceService = HybridPriceService(currency, PriceSource.coingecko);
   final List<AssetCacheInfo> cacheInfoList = [];
 
   for (final asset in mainAssets) {
@@ -51,7 +61,11 @@ final cacheInfoProvider = FutureProvider<List<AssetCacheInfo>>((ref) async {
       );
 
       if (!hasCache) {
-        cacheInfoList.add(AssetCacheInfo(asset: asset, hasCache: false));
+        cacheInfoList.add(AssetCacheInfo(
+          asset: asset,
+          hasCache: false,
+          currencySymbol: currencySymbol,
+        ));
         continue;
       }
 
@@ -73,10 +87,15 @@ final cacheInfoProvider = FutureProvider<List<AssetCacheInfo>>((ref) async {
           hasCache: true,
           ageInMinutes: ageInMinutes,
           lastPrice: lastPrice,
+          currencySymbol: currencySymbol,
         ),
       );
     } catch (e) {
-      cacheInfoList.add(AssetCacheInfo(asset: asset, hasCache: false));
+      cacheInfoList.add(AssetCacheInfo(
+        asset: asset,
+        hasCache: false,
+        currencySymbol: currencySymbol,
+      ));
     }
   }
 
