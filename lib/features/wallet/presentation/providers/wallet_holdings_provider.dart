@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provid
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 
 class WalletHolding {
@@ -44,26 +45,27 @@ class WalletHolding {
     required BigInt balance,
     required double fiatPrice,
     required String currencySymbol,
+    required String locale,
   }) {
     final hasBalance = balance > BigInt.zero;
     final balanceInMainUnit = balance.toDouble() / satsPerBtc;
     final fiatValue = balanceInMainUnit * fiatPrice;
+    final fiatFormatter = NumberFormat('#,##0.00', locale);
 
     return WalletHolding(
       asset: asset,
       balance: balance,
       fiatPrice: fiatPrice,
       fiatValue: fiatValue,
-      formattedBalance: _formatBalance(balance, asset),
-      formattedFiatValue:
-          hasBalance
-              ? '$currencySymbol ${fiatValue.toStringAsFixed(2)}'
-              : '$currencySymbol 0,00',
+      formattedBalance: _formatBalance(balance, asset, locale),
+      formattedFiatValue: hasBalance
+          ? '$currencySymbol ${fiatFormatter.format(fiatValue)}'
+          : '$currencySymbol ${fiatFormatter.format(0)}',
       hasBalance: hasBalance,
     );
   }
 
-  static String _formatBalance(BigInt balance, Asset asset) {
+  static String _formatBalance(BigInt balance, Asset asset, String locale) {
     if (balance == BigInt.zero) {
       if (asset == Asset.btc || asset == Asset.lbtc) {
         return '0 sat';
@@ -75,12 +77,11 @@ class WalletHolding {
       final satoshis = balance.toInt();
       if (satoshis == 1) return '1 sat';
 
-      final formatter = NumberFormat('#,##0', 'pt_BR');
-      return '${formatter.format(satoshis)} sats';
+      return '${NumberFormat('#,##0', locale).format(satoshis)} sats';
     }
 
     final amount = balance.toDouble() / satsPerBtc;
-    return '${amount.toStringAsFixed(2)} ${asset.ticker}';
+    return '${NumberFormat('#,##0.00', locale).format(amount)} ${asset.ticker}';
   }
 }
 
@@ -91,6 +92,8 @@ final walletHoldingsProvider =
   final allBalances = await ref.watch(allBalancesProvider.future);
   final quotes = ref.watch(priceQuotesProvider);
   final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+  final locale = ref.watch(localeStringProvider);
+  final zeroFiat = NumberFormat('#,##0.00', locale).format(0);
 
   final List<WalletHolding> holdings = [];
 
@@ -104,7 +107,7 @@ final walletHoldingsProvider =
         balance: balance,
         fiatPrice: null,
         fiatValue: null,
-        formattedBalance: WalletHolding._formatBalance(balance, asset),
+        formattedBalance: WalletHolding._formatBalance(balance, asset, locale),
         formattedFiatValue: 'Preço indisponível',
         hasBalance: balance > BigInt.zero,
       ));
@@ -117,8 +120,8 @@ final walletHoldingsProvider =
         balance: balance,
         fiatPrice: 0,
         fiatValue: 0,
-        formattedBalance: WalletHolding._formatBalance(balance, asset),
-        formattedFiatValue: '$currencyIcon 0,00',
+        formattedBalance: WalletHolding._formatBalance(balance, asset, locale),
+        formattedFiatValue: '$currencyIcon $zeroFiat',
         hasBalance: balance > BigInt.zero,
       ));
       continue;
@@ -129,6 +132,7 @@ final walletHoldingsProvider =
       balance: balance,
       fiatPrice: price,
       currencySymbol: currencyIcon,
+      locale: locale,
     ));
   }
 
