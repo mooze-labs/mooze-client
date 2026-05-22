@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
@@ -116,11 +117,13 @@ class AssetHeaderWidget extends ConsumerWidget {
     );
   }
 
-  static final _numberFormat = NumberFormat('#,##0.00', 'en_US');
-
   Widget _buildCurrentPrice(BuildContext context, String icon, double price) {
+    final formatter = NumberFormat(
+      '#,##0.00',
+      Localizations.localeOf(context).toString(),
+    );
     return Text(
-      '$icon ${_numberFormat.format(price)}',
+      '$icon ${formatter.format(price)}',
       style: context.textTheme.headlineLarge?.copyWith(
         fontWeight: FontWeight.bold,
         letterSpacing: -0.5,
@@ -159,13 +162,22 @@ class AssetHeaderWidget extends ConsumerWidget {
     List<double> klines,
     WidgetRef ref,
   ) {
-    final percentage = ((klines.last - klines.first) / klines.first) * 100;
-    final isPositive = klines.last >= klines.first;
-    final change = klines.last - klines.first;
+
+    final spotPrice = ref.watch(
+      priceQuotesProvider.select((s) => s.priceFor(asset)),
+    );
+    final reference = spotPrice ?? klines.last;
+    final percentage = ((reference - klines.first) / klines.first) * 100;
+    final isPositive = reference >= klines.first;
+    final change = reference - klines.first;
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
     final lineColor = isPositive
         ? context.colors.positiveColor
         : context.colors.negativeColor;
+    final formatter = NumberFormat(
+      '#,##0.00',
+      Localizations.localeOf(context).toString(),
+    );
 
     return Row(
       children: [
@@ -197,7 +209,7 @@ class AssetHeaderWidget extends ConsumerWidget {
         ),
         const SizedBox(width: 10),
         Text(
-          '${isPositive ? '+' : ''}$icon ${_numberFormat.format(change.abs())}',
+          '${isPositive ? '+' : ''}$icon ${formatter.format(change.abs())}',
           style: context.textTheme.bodyMedium?.copyWith(
             color: context.colors.textSecondary,
           ),
