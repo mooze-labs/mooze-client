@@ -7,6 +7,7 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -59,8 +60,6 @@ class AssetStatsWidget extends ConsumerWidget {
     }
   }
 
-  static final _numberFormat = NumberFormat('#,##0.00', 'en_US');
-
   Widget _buildSuccessStats(
     BuildContext context,
     List<double> klines,
@@ -68,7 +67,14 @@ class AssetStatsWidget extends ConsumerWidget {
   ) {
     final t = AppLocalizations.of(context);
     final icon = ref.watch(currencyControllerProvider.notifier).icon;
-    final current = klines.last;
+    final formatter = NumberFormat(
+      '#,##0.00',
+      Localizations.localeOf(context).toString(),
+    );
+    final spotPrice = ref.watch(
+      priceQuotesProvider.select((s) => s.priceFor(asset)),
+    );
+    final current = spotPrice ?? klines.last;
     final high = klines.reduce((a, b) => a > b ? a : b);
     final low = klines.reduce((a, b) => a < b ? a : b);
 
@@ -78,7 +84,7 @@ class AssetStatsWidget extends ConsumerWidget {
           child: _buildStatCard(
             context,
             label: t.wallet_asset_stats_high,
-            value: '$icon ${_numberFormat.format(high)}',
+            value: '$icon ${formatter.format(high)}',
             icon: Icons.arrow_upward_rounded,
             iconColor: context.colors.positiveColor,
           ),
@@ -88,7 +94,7 @@ class AssetStatsWidget extends ConsumerWidget {
           child: _buildStatCard(
             context,
             label: t.wallet_asset_stats_low,
-            value: '$icon ${_numberFormat.format(low)}',
+            value: '$icon ${formatter.format(low)}',
             icon: Icons.arrow_downward_rounded,
             iconColor: context.colors.negativeColor,
           ),
@@ -98,7 +104,7 @@ class AssetStatsWidget extends ConsumerWidget {
           child: _buildStatCard(
             context,
             label: t.wallet_asset_stats_current,
-            value: '$icon ${_numberFormat.format(current)}',
+            value: '$icon ${formatter.format(current)}',
             icon: Icons.radio_button_checked_rounded,
             iconColor: context.colors.primaryColor,
           ),
