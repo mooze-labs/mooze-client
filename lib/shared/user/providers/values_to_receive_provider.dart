@@ -5,6 +5,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
+import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 
 /// Model for values to receive for each asset
@@ -36,7 +37,7 @@ final valuesToReceiveProvider =
   final userInfo = await ref.watch(userInfoProvider.future);
   final currency = ref.watch(currencyControllerProvider);
   final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
-  final formatter = NumberFormat('#,##0.00', 'pt_BR');
+  final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
 
   double brlToUsdRate = 1.0;
   if (currency == Currency.usd) {
