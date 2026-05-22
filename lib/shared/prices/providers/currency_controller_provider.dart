@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../settings/price_settings_repository.dart';
 import '../../../features/wallet/presentation/providers/cached_data_provider.dart';
-import '../../../features/wallet/presentation/providers/fiat_price_provider.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import 'price_service_provider.dart';
 
 final currencyControllerProvider =
     StateNotifierProvider<CurrencyNotifier, Currency>((ref) {
@@ -70,18 +68,11 @@ class CurrencyNotifier extends StateNotifier<Currency> {
   Future<void> setCurrency(Currency currency) async {
     final result = await _repo.setPriceCurrency(currency).run();
     result.match((err) => null, (_) {
-      state = currency;
-      _invalidatePriceCache();
+
+      try {
+        ref.invalidate(assetPriceHistoryCacheProvider);
+      } catch (_) {}
     });
-  }
-
-  void _invalidatePriceCache() {
-    try {
-      ref.invalidate(assetPriceHistoryCacheProvider);
-
-      ref.invalidate(fiatPriceProvider);
-      ref.invalidate(priceServiceProvider);
-    } catch (e) {}
   }
 
   Currency? currencyFromCode(String code) {
