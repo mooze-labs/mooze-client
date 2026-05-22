@@ -1,12 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 
 class WalletHolding {
   final Asset asset;
@@ -85,93 +84,65 @@ class WalletHolding {
   }
 }
 
-// Stale-while-revalidate: this provider intentionally keeps its last
-// computed value across screen exits (no `.autoDispose`). Combined with
-// `skipLoadingOnRefresh: true` at the consumer, re-entering the home or
-// holdings screen renders cached balances immediately while the next
-// V2 sync tick refreshes data silently. Refresh is still triggered
-// reactively via `allBalancesProvider`'s watch on `syncStateProvider`.
+
 final walletHoldingsProvider =
     FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
   final allAssets = ref.watch(allAssetsProvider);
-  ref.watch(currencyControllerProvider);
-
-  // IMPORTANT: Wait for all balances to load first
-  // This ensures we stay in loading state until data is ready
   final allBalances = await ref.watch(allBalancesProvider.future);
+  final quotes = ref.watch(priceQuotesProvider);
+  final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
 
   final List<WalletHolding> holdings = [];
 
-  try {
-    final currency = ref.watch(currencyControllerProvider.notifier);
+  for (final asset in allAssets) {
+    final balance = allBalances[asset] ?? BigInt.zero;
+    final price = quotes.priceFor(asset);
 
-    for (final asset in allAssets) {
-      final balance = allBalances[asset] ?? BigInt.zero;
-      final priceResult = await ref.watch(fiatPriceProvider(asset).future);
-
-      debugPrint(
-        '[WalletHoldingsProvider] ${asset.ticker}: balance=$balance, price=$priceResult',
-      );
-
-      final holding = priceResult.fold(
-        (error) {
-          debugPrint(
-            '[WalletHoldingsProvider] ${asset.ticker}: Price error: $error. Using balance without price.',
-          );
-          // Even without price, we show the balance if available
-          return WalletHolding(
-            asset: asset,
-            balance: balance,
-            fiatPrice: null,
-            fiatValue: null,
-            formattedBalance: WalletHolding._formatBalance(balance, asset),
-            formattedFiatValue: 'Preço indisponível',
-            hasBalance: balance > BigInt.zero,
-          );
-        },
-        (price) {
-          if (price == 0) {
-            debugPrint(
-              '[WalletHoldingsProvider] ${asset.ticker}: Price is zero. Using balance without price.',
-            );
-            // Even with zero price, we show the balance
-            return WalletHolding(
-              asset: asset,
-              balance: balance,
-              fiatPrice: 0,
-              fiatValue: 0,
-              formattedBalance: WalletHolding._formatBalance(balance, asset),
-              formattedFiatValue: '${currency.icon} 0,00',
-              hasBalance: balance > BigInt.zero,
-            );
-          }
-
-          return WalletHolding.fromData(
-            asset: asset,
-            balance: balance,
-            fiatPrice: price,
-            currencySymbol: currency.icon,
-          );
-        },
-      );
-
-      holdings.add(holding);
+    if (price == null) {
+      holdings.add(WalletHolding(
+        asset: asset,
+        balance: balance,
+        fiatPrice: null,
+        fiatValue: null,
+        formattedBalance: WalletHolding._formatBalance(balance, asset),
+        formattedFiatValue: 'Preço indisponível',
+        hasBalance: balance > BigInt.zero,
+      ));
+      continue;
     }
 
-    holdings.sort((a, b) {
-      if (a.hasBalance && !b.hasBalance) return -1;
-      if (!a.hasBalance && b.hasBalance) return 1;
-      if (!a.hasBalance && !b.hasBalance) return 0;
+    if (price == 0) {
+      holdings.add(WalletHolding(
+        asset: asset,
+        balance: balance,
+        fiatPrice: 0,
+        fiatValue: 0,
+        formattedBalance: WalletHolding._formatBalance(balance, asset),
+        formattedFiatValue: '$currencyIcon 0,00',
+        hasBalance: balance > BigInt.zero,
+      ));
+      continue;
+    }
 
-      final aValue = a.fiatValue ?? 0.0;
-      final bValue = b.fiatValue ?? 0.0;
-      return bValue.compareTo(aValue);
-    });
-
-    return Either.right(holdings);
-  } catch (e) {
-    return Either.left('Error loading wallet assets: $e');
+    holdings.add(WalletHolding.fromData(
+      asset: asset,
+      balance: balance,
+      fiatPrice: price,
+      currencySymbol: currencyIcon,
+    ));
   }
+
+  holdings.sort((a, b) {
+    if (a.hasBalance && !b.hasBalance) return -1;
+    if (!a.hasBalance && b.hasBalance) return 1;
+    if (!a.hasBalance && !b.hasBalance) return 0;
+
+    final aValue = a.fiatValue ?? 0.0;
+    final bValue = b.fiatValue ?? 0.0;
+    return bValue.compareTo(aValue);
+  });
+
+  return Right(holdings);
 });
 
 final walletHoldingsWithBalanceProvider =

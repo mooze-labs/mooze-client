@@ -4,8 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
-import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
-import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 
 class AssetPriceHistoryParams {
   final Asset asset;
@@ -40,60 +39,21 @@ final currencyProvider = FutureProvider<Either<String, String>>((ref) async {
       .run();
 });
 
-// Stale-while-revalidate: no `.autoDispose` so the last fetched price
-// survives screen exits. This pairs with `walletHoldingsProvider` (also
-// non-autoDispose) so re-entering the home or holdings screen renders
-// cached price/value pairs immediately while the next sync refreshes
-// them in the background.
+
 final fiatPriceProvider =
     FutureProvider.family<Either<String, double>, Asset>((ref, asset) async {
-  try {
-    final priceServiceResult = await ref.read(priceServiceProvider).run();
+  final quotes = ref.watch(priceQuotesProvider);
+  final cached = quotes.priceFor(asset);
+  if (cached != null) return Right(cached);
 
-    return await priceServiceResult.fold(
-      (error) {
-        // Erro no serviço - marca como offline
-        ref.read(connectivityProvider.notifier).markOffline();
-        return Left(error);
-      },
-      (svc) async {
-        final priceResult = await svc.getCoinPrice(asset).run();
-
-        return await priceResult.fold(
-          (error) async {
-            // Erro na API - marca como offline se conseguirmos dados de cache
-            ref.read(connectivityProvider.notifier).markOffline();
-
-            final currentCurrency = svc.currency.toLowerCase();
-            final alternateCurrency =
-                currentCurrency == 'brl' ? Currency.usd : Currency.brl;
-            final alternateResult =
-                await svc
-                    .getCoinPrice(asset, optionalCurrency: alternateCurrency)
-                    .run();
-
-            return alternateResult.flatMap(
-              (optDouble) => optDouble.fold(
-                () => const Left("Preço não disponível em nenhuma moeda"),
-                (val) {
-                  return Right(val);
-                },
-              ),
-            );
-          },
-          (optDouble) =>
-              optDouble.fold(() => const Left("Preço não disponível"), (val) {
-                ref.read(connectivityProvider.notifier).markOnline();
-                return Right(val);
-              }),
-        );
-      },
-    );
-  } catch (e) {
-    // Exceção - marca como offline
-    ref.read(connectivityProvider.notifier).markOffline();
-    return Left('Erro ao obter preço: $e');
+  if (quotes.warming) {
+    // Wait for the first disk seed (sub-millisecond on warm boot).
+    await ref.read(priceQuotesProvider.notifier).waitFirstReady();
+    final after = ref.read(priceQuotesProvider).priceFor(asset);
+    if (after != null) return Right(after);
   }
+
+  return const Left('Preço indisponível');
 });
 
 final assetPriceHistoryProvider = FutureProvider.autoDispose
