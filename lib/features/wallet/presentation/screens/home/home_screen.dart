@@ -16,6 +16,7 @@ import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../widgets/widgets.dart';
 
@@ -203,7 +204,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // a concurrent periodic tick is automatically deduped — no
       // explicit `isSyncing` gate needed at the UI layer.
       final useCase = await ref.read(refreshWalletProvider.future);
-      await useCase(strategy: SyncStrategy.full);
+
+      await Future.wait([
+        useCase(strategy: SyncStrategy.full),
+        ref.read(priceQuotesProvider.notifier).refresh(),
+      ]);
 
       if (_scrollController.hasClients) {
         await _scrollController.animateTo(
