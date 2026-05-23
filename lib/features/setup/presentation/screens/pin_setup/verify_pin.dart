@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
@@ -54,9 +55,15 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   }
 
   Future<void> _checkSession() async {
+    BootTracer.mark('pin.check_session.begin');
     final hasValidSession = await _authService.hasValidSession();
     final isPinSetup = await _authService.isPinSetup();
     final isStoreMode = await StoreModeHandler().isStoreMode();
+    BootTracer.mark('pin.check_session.done', {
+      'has_session': hasValidSession,
+      'pin_setup': isPinSetup,
+      'store_mode': isStoreMode,
+    });
 
     final noScreenshot = NoScreenshot.instance;
     await noScreenshot.screenshotOn();
@@ -64,6 +71,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     if ((isStoreMode && !widget.forceAuth) ||
         (hasValidSession && !widget.forceAuth) ||
         !isPinSetup) {
+      BootTracer.mark('pin.confirmed.session_short_circuit');
       widget.onPinConfirmed();
       return;
     }
@@ -100,7 +108,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       final isValid = await _authService.authenticate(_pinController.text);
 
       if (isValid) {
+        BootTracer.mark('pin.authenticated.manual');
         await Future.delayed(const Duration(seconds: 1));
+        BootTracer.mark('pin.confirmed.manual');
         widget.onPinConfirmed();
       } else if (mounted) {
         AppSnackBar.error(context, t.pin_incorrect);
@@ -151,7 +161,10 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     result.fold(
       (error) => AppSnackBar.error(context, t.biometric_auth_error(error)),
       (authenticated) {
-        if (authenticated) widget.onPinConfirmed();
+        if (authenticated) {
+          BootTracer.mark('pin.confirmed.biometric');
+          widget.onPinConfirmed();
+        }
         // If the user dismissed without authenticating the PIN form remains
         // visible — no action needed.
       },
@@ -187,7 +200,10 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     result.fold(
       (error) => AppSnackBar.error(context, t.biometric_auth_error(error)),
       (authenticated) {
-        if (authenticated) widget.onPinConfirmed();
+        if (authenticated) {
+          BootTracer.mark('pin.confirmed.device_credential');
+          widget.onPinConfirmed();
+        }
       },
     );
   }
