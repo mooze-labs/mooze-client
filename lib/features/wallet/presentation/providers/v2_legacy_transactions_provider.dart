@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart';
@@ -6,6 +7,8 @@ import 'package:mooze_mobile/domain/entities/transaction.dart' as v2;
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart'
     as legacy;
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/features/wallet/presentation/utils/swap_unifier.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 /// Bridges the V2 `walletRepository.watchTransactions()` stream to the
@@ -36,13 +39,116 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 /// - V2's `TransactionDirection.internal` still maps to legacy
 ///   `unknown` for Breez fee adjustments / unresolvable LWK kinds /
 ///   issuance/burn/reissuance.
+/// Lists at or above this size are adapted + unified in a background
+/// isolate via `compute`. Below the threshold, the work runs inline:
+/// for small lists the isolate spawn + copy overhead (~5-20ms on
+/// mobile) dominates the actual processing time.
+///
+/// The first emission after PIN entry runs the full
+/// `SELECT * FROM transactions` against sqlite on the UI isolate
+/// (see `TransactionStoreImpl.watch`) — for wallets with non-trivial
+/// history, processing that list synchronously was blocking the UI
+/// thread long enough to be perceived as a freeze.
+const _isolateThreshold = 50;
+
 final v2LegacyTransactionsProvider =
     StreamProvider<List<legacy.Transaction>>((ref) async* {
+  BootTracer.mark('v2_legacy_txs.resolving_repo');
   final repo = await ref.watch(walletRepositoryProvider.future);
+  BootTracer.mark('v2_legacy_txs.repo_resolved');
+
+  // The underlying `transactionStore.watch()` stream re-emits the
+  // whole list on every sync tick (Breez chain swap progress, BDK
+  // mempool refresh, LWK rescan), often with identical content.
+  // Fingerprint the input and short-circuit when nothing the unifier
+  // depends on has changed — we hand back the *same* `List` reference,
+  // so Riverpod's downstream listeners see reference equality and
+  // skip rebuilding the home transaction list entirely.
+  int? lastFingerprint;
+  List<legacy.Transaction>? lastResult;
+  var emissionSeq = 0;
+
   await for (final txs in repo.watchTransactions()) {
-    yield txs.map(_v2ToLegacy).toList();
+    emissionSeq += 1;
+    BootTracer.mark('v2_legacy_txs.emit', {
+      'n': emissionSeq,
+      'len': txs.length,
+    });
+    final fingerprint = _fingerprint(txs);
+    if (fingerprint == lastFingerprint && lastResult != null) {
+      BootTracer.mark('v2_legacy_txs.cache_hit', {'n': emissionSeq});
+      yield lastResult;
+      continue;
+    }
+
+    final List<legacy.Transaction> result;
+    if (txs.length >= _isolateThreshold) {
+      result = await BootTracer.measureAsync(
+        'v2_legacy_txs.compute(n=$emissionSeq,len=${txs.length})',
+        () => compute(_adaptAndUnify, txs),
+      );
+    } else {
+      BootTracer.mark('v2_legacy_txs.inline.before', {
+        'n': emissionSeq,
+        'len': txs.length,
+      });
+      result = _adaptAndUnify(txs);
+      BootTracer.mark('v2_legacy_txs.inline.after', {'n': emissionSeq});
+    }
+
+    lastFingerprint = fingerprint;
+    lastResult = result;
+    BootTracer.mark('v2_legacy_txs.yield', {
+      'n': emissionSeq,
+      'len': result.length,
+    });
+    yield result;
   }
 });
+
+/// Top-level entry point so it can be handed to `compute` (which
+/// requires a static / top-level callable). Runs the V2→legacy
+/// adaptation and the peg-swap unification in one pass — keeping
+/// them together means the isolate sees the data once and the only
+/// thing crossing isolates is the input list in and the unified
+/// list out.
+List<legacy.Transaction> _adaptAndUnify(List<v2.Transaction> input) {
+  // Collapse Breez peg-in / peg-out clusters (anchor + BDK leg +
+  // LWK/Breez leg + duplicate cross-chain views) into a single
+  // swap row before reaching the home transaction list. See
+  // `swap_unifier.dart` for the matching rules.
+  return unifyPegSwaps(input.map(_v2ToLegacy).toList(growable: false));
+}
+
+/// Content fingerprint over the fields the adapter + unifier read.
+/// Cheap (one pass, no allocations) and stable: two upstream emissions
+/// that produce the same UI list collapse to the same int.
+int _fingerprint(List<v2.Transaction> txs) {
+  // FNV-1a-style accumulator over the dimensions the downstream
+  // pipeline actually consumes. Anything else changing upstream is
+  // invisible to the home list and can safely be ignored.
+  var h = 0x811C9DC5;
+  for (final t in txs) {
+    h = _mix(h, t.id.hashCode);
+    h = _mix(h, t.status.index);
+    h = _mix(h, t.direction.index);
+    h = _mix(h, t.amountSat);
+    h = _mix(h, t.timestamp.millisecondsSinceEpoch);
+    final sa = t.sentAmountSat;
+    final ra = t.receivedAmountSat;
+    if (sa != null) h = _mix(h, sa);
+    if (ra != null) h = _mix(h, ra);
+  }
+  // Mix the length too so an extra trailing item with all-default
+  // values still flips the fingerprint.
+  return _mix(h, txs.length);
+}
+
+int _mix(int h, int value) {
+  // Truncate to 32 bits to keep the accumulator stable across web
+  // (where ints are doubles) and native.
+  return ((h ^ value) * 0x01000193) & 0xFFFFFFFF;
+}
 
 legacy.Transaction _v2ToLegacy(v2.Transaction t) {
   final Asset asset;
