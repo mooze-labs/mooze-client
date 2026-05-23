@@ -15,11 +15,14 @@ import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_status
 import 'package:mooze_mobile/features/wallet/presentation/widgets/transaction_status_listener.dart';
 import 'package:mooze_mobile/shared/user/widgets/level_change_listener.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 
 import 'routes.dart';
 
 void main() async {
+  BootTracer.start();
   WidgetsFlutterBinding.ensureInitialized();
+  BootTracer.mark('main.bindings_ready');
 
   // Platform FFI inits (LibLwk + FlutterBreezLiquid) are owned by the V2
   // `PlatformInitializerImpl` and run during V2 boot. Calling them here
@@ -27,7 +30,9 @@ void main() async {
   // twice` the first time V2 boot starts.
 
   SafeDevice.init(SafeDeviceConfig(mockLocationCheckEnabled: false));
+  BootTracer.mark('main.safe_device_init');
   final sharedPreferences = await SharedPreferences.getInstance();
+  BootTracer.mark('main.shared_prefs_ready');
 
   runApp(
     ProviderScope(
@@ -37,6 +42,7 @@ void main() async {
       child: const MyApp(),
     ),
   );
+  BootTracer.mark('main.runApp_returned');
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -53,6 +59,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     if (!_v2BootStarted) {
       _v2BootStarted = true;
+      BootTracer.mark('app.first_build');
       // Trigger V2 lifecycle exactly once on first build. The controller's
       // own state machine handles existing-wallet vs. needs-setup branching:
       // for an existing wallet this runs the full boot pipeline; for a
@@ -60,8 +67,11 @@ class _MyAppState extends ConsumerState<MyApp> {
       // for the setup flow (import_button / create-wallet) to invoke
       // `start()` again after the mnemonic is persisted.
       Future.microtask(() async {
+        BootTracer.mark('app.controller.resolving');
         final c = await ref.read(appLifecycleControllerProvider.future);
+        BootTracer.mark('app.controller.resolved');
         await c.start();
+        BootTracer.mark('app.controller.start_returned');
       });
     }
     ref.read(connectivityProvider);
