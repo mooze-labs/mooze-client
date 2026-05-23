@@ -9,6 +9,7 @@ import '../../features/sync/domain/sync_orchestrator.dart';
 import '../../features/wallet/domain/usecases/delete_wallet.dart';
 import '../../shared/clock/clock.dart';
 import '../../shared/concurrency/single_flight.dart';
+import '../../shared/diagnostics/boot_tracer.dart';
 import '../../shared/logging/structured_logger.dart';
 import '../../shared/streams/replay_value_stream.dart';
 import 'app_lifecycle_controller.dart';
@@ -54,7 +55,12 @@ class AppLifecycleControllerImpl implements AppLifecycleController {
     ));
 
     logger.info('app.start.boot_begin', {});
+    BootTracer.mark('lifecycle.boot.start');
     final r = await boot.start();
+    BootTracer.mark('lifecycle.boot.end', {
+      'phase': boot.currentState.phase.name,
+      'either': r.isLeft() ? 'left' : 'right',
+    });
     logger.info('app.start.boot_end', {
       'boot_phase': boot.currentState.phase.name,
       'either': r.isLeft() ? 'left' : 'right',
@@ -94,6 +100,7 @@ class AppLifecycleControllerImpl implements AppLifecycleController {
     // sync progress via `syncStateProvider` if it wants to render an
     // indicator.
     logger.info('app.start.ready', {});
+    BootTracer.mark('lifecycle.ready');
     _emit(currentState.copyWith(
       phase: AppPhase.ready,
       readyAt: clock.now(),
@@ -105,10 +112,13 @@ class AppLifecycleControllerImpl implements AppLifecycleController {
 
   Future<void> _kickoffSyncInBackground() async {
     logger.info('app.start.sync_begin', {});
+    BootTracer.mark('lifecycle.sync.begin');
     try {
       await sync.start();
+      BootTracer.mark('lifecycle.sync.settled');
       logger.info('app.start.sync_settled', {});
     } catch (e, st) {
+      BootTracer.mark('lifecycle.sync.failed', {'err': '$e'});
       logger.error('app.sync.start.failed',
           {'error': '$e'}, error: e, stackTrace: st);
     }
