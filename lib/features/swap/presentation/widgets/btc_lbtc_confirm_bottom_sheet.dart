@@ -18,7 +18,10 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
   final bool isPegIn;
   final BtcLbtcSwapController controller;
-  final Future<void> Function(int? feeRateSatPerVByte) onConfirm;
+  final Future<void> Function(
+    int? feeRateSatPerVByte,
+    BigInt totalFeeSat,
+  ) onConfirm;
   final VoidCallback? onCancel;
   final bool drain;
 
@@ -37,7 +40,10 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     required BigInt amount,
     required bool isPegIn,
     required BtcLbtcSwapController controller,
-    required Future<void> Function(int? feeRateSatPerVByte) onConfirm,
+    required Future<void> Function(
+      int? feeRateSatPerVByte,
+      BigInt totalFeeSat,
+    ) onConfirm,
     VoidCallback? onCancel,
     bool drain = false,
   }) {
@@ -526,7 +532,11 @@ class _BtcLbtcConfirmBottomSheetState
     setState(() => _isConfirming = true);
 
     try {
-      await widget.onConfirm(_getSelectedFeeRate());
+      // SlideToConfirmButton is disabled while `_isLoadingFees` is
+      // true, so `_currentFeeEstimate` is always non-null here in
+      // practice. Default to zero just to keep the callback total.
+      final totalFee = _currentFeeEstimate?.totalFeeSat ?? BigInt.zero;
+      await widget.onConfirm(_getSelectedFeeRate(), totalFee);
     } finally {
       if (mounted) {
         setState(() => _isConfirming = false);
