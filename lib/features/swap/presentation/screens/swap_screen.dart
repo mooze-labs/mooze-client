@@ -1128,6 +1128,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       fromAsset: _fromAsset,
       toAsset: _toAsset,
       drain: _useDrain && _isBtcLbtcSwap,
+      onSuccess: _clearSwapFields,
+      onError: _clearSwapFields,
     );
   }
 
