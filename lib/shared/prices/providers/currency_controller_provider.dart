@@ -66,13 +66,24 @@ class CurrencyNotifier extends StateNotifier<Currency> {
   }
 
   Future<void> setCurrency(Currency currency) async {
-    final result = await _repo.setPriceCurrency(currency).run();
-    result.match((err) => null, (_) {
+    if (state == currency) return;
 
-      try {
-        ref.invalidate(assetPriceHistoryCacheProvider);
-      } catch (_) {}
-    });
+
+    final previous = state;
+    state = currency;
+
+    final result = await _repo.setPriceCurrency(currency).run();
+    result.match(
+      (_) {
+        state = previous;
+      },
+      (_) {
+
+        try {
+          ref.invalidate(assetPriceHistoryCacheProvider);
+        } catch (_) {}
+      },
+    );
   }
 
   Currency? currencyFromCode(String code) {
