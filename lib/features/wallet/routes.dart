@@ -4,6 +4,8 @@ import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_main_s
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/dev/swap_simulator_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
@@ -33,7 +35,6 @@ class PageVisibilityProvider extends InheritedNotifier<ValueNotifier<int>> {
         ?.notifier
         ?.value;
   }
-
 
   static ValueNotifier<double>? pageFloatOf(BuildContext context) {
     return context
@@ -165,6 +166,21 @@ class _MainNavigationScaffoldState extends State<_MainNavigationScaffold> {
 }
 
 final walletRoutes = [
+  // Live detail surface for an in-progress peg-in / peg-out. Reads
+  // the optimistic row from `pendingSwapsProvider` by localId so the
+  // screen updates as the phase machine advances; gracefully shows a
+  // "completed" view when the reconciler retires the row mid-view.
+  GoRoute(
+    path: '/dev/swap-simulator',
+    builder: (context, state) => const SwapSimulatorScreen(),
+  ),
+  GoRoute(
+    path: '/swap/converting/:localId',
+    builder: (context, state) {
+      final localId = state.pathParameters['localId']!;
+      return ConvertingDetailsScreen(localId: localId);
+    },
+  ),
   GoRoute(
     path: '/send-asset',
     pageBuilder:

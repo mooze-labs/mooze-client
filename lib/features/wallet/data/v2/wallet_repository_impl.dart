@@ -334,6 +334,17 @@ class WalletRepositoryImpl implements WalletRepository {
   }
 
   @override
+  Future<Either<Failure, String?>> findBreezChainSwapId({
+    required String lockupTxId,
+  }) async {
+    final r = await lightning.findChainSwapIdByLockup(lockupTxId: lockupTxId);
+    return r.fold(
+      (f) => Left<Failure, String?>(f),
+      (id) => Right<Failure, String?>(id),
+    );
+  }
+
+  @override
   Future<Either<Failure, MempoolFees>> getRecommendedFees() async {
     final r = await lightning.recommendedFees();
     return r.fold(

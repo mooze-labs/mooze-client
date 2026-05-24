@@ -167,6 +167,15 @@ abstract interface class WalletRepository {
 
   Future<Either<Failure, List<RefundableSwap>>> listRefundableSwaps();
 
+  /// Look up Breez's short opaque chain-swap id (`wCaunaTNZaHv`-style)
+  /// for a lockup tx we just broadcast. Returns `null` when Breez has
+  /// not yet observed the lockup in `listPayments` — caller should
+  /// retry on the next poll. See `LightningWalletService
+  /// .findChainSwapIdByLockup` for the underlying lookup semantics.
+  Future<Either<Failure, String?>> findBreezChainSwapId({
+    required String lockupTxId,
+  });
+
   Future<Either<Failure, MempoolFees>> getRecommendedFees();
 
   Future<Either<Failure, PrepareRefundOutcome>> prepareRefund(

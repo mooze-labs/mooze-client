@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
@@ -129,6 +131,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return AuthInitializerWidget(
       child: Scaffold(
+        // Debug-only entry point to the swap simulator. Compiled out
+        // of release builds via the `kDebugMode` const, so end users
+        // never see it. Lets you drive the optimistic peg-in /
+        // peg-out row through every phase + the reconciler handoff
+        // without paying real swap fees.
+        floatingActionButton:
+            kDebugMode
+                ? FloatingActionButton.small(
+                  heroTag: 'dev-swap-sim',
+                  tooltip: 'Swap simulator (dev)',
+                  backgroundColor: Colors.deepPurple,
+                  onPressed: () => context.push('/dev/swap-simulator'),
+                  child: const Icon(Icons.bug_report, color: Colors.white),
+                )
+                : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
         body: PlatformSafeArea(
           iosTop: true,
           androidTop: true,

@@ -531,7 +531,13 @@ class _TransactionDetailScreenState
               label: t.tx_detail_blockchain,
               value: _getBlockchainLabel(),
             ),
-            if (widget.transaction.id.isNotEmpty)
+            // Refunded peg (`{sendId}_{receiveId}_refund` synthetic
+            // id, NOT a chain txid) → render the two real txids
+            // separately instead of leaking the synthetic id to the
+            // user as if it were valid.
+            if (_isRefundedSwap())
+              ..._buildRefundedSwapIds()
+            else if (widget.transaction.id.isNotEmpty)
               _buildInfoRow(
                 icon: Icons.tag,
                 label: t.tx_id,
@@ -606,6 +612,8 @@ class _TransactionDetailScreenState
 
           if (isSwap && _isCrossChainSwap())
             ..._buildCrossChainSwapIds()
+          else if (isSwap && _isRefundedSwap())
+            ..._buildRefundedSwapIds()
           else
             _buildInfoRow(
               icon: Icons.tag,
@@ -967,6 +975,41 @@ class _TransactionDetailScreenState
       );
     }
 
+    // Refunded peg: same chain on both sides but two distinct txids.
+    // The default branch below would try to open the synthetic
+    // `{send}_{receive}_refund` id in a block explorer and 404 — give
+    // the user one button per real txid instead.
+    if (_isRefundedSwap()) {
+      final chainName = widget.transaction.sendBlockchain == null
+          ? ''
+          : _getBlockchainName(widget.transaction.sendBlockchain!);
+      return Column(
+        children: [
+          _buildActionButton(
+            context: context,
+            label: 'View send transaction',
+            subtitle: chainName,
+            icon: Icons.call_made,
+            onPressed: () => _openInExplorer(
+              txId: widget.transaction.sendTxId,
+              blockchain: widget.transaction.sendBlockchain,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildActionButton(
+            context: context,
+            label: 'View refund transaction',
+            subtitle: chainName,
+            icon: Icons.assignment_return,
+            onPressed: () => _openInExplorer(
+              txId: widget.transaction.receiveTxId,
+              blockchain: widget.transaction.receiveBlockchain,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         _buildActionButton(
@@ -1265,6 +1308,20 @@ class _TransactionDetailScreenState
             widget.transaction.receiveBlockchain;
   }
 
+  /// Refunded-peg attempt as produced by `swap_unifier.dart`:
+  /// same-asset, same-chain pair (BTC→BTC or LBTC→LBTC) where both
+  /// the lockup tx and the refund tx are present. The screen needs
+  /// to render BOTH txids — the synthetic `{send}_{receive}_refund`
+  /// id we use internally for dedup is not a valid txid and should
+  /// never be displayed as one.
+  bool _isRefundedSwap() {
+    return widget.transaction.type == TransactionType.swap &&
+        widget.transaction.fromAsset != null &&
+        widget.transaction.fromAsset == widget.transaction.toAsset &&
+        widget.transaction.sendTxId != null &&
+        widget.transaction.receiveTxId != null;
+  }
+
   List<Widget> _buildCrossChainSwapIds() {
     final t = AppLocalizations.of(context);
     return [
@@ -1286,6 +1343,34 @@ class _TransactionDetailScreenState
         value: truncateHashId(widget.transaction.receiveTxId!),
         copyable: true,
         copyFieldId: 'receive_tx_id',
+        copyValue: widget.transaction.receiveTxId!,
+      ),
+    ];
+  }
+
+  /// Refund-specific dual id rendering. Labels lean on the
+  /// existing send/receive l10n keys but explicitly mention "refund"
+  /// in the receive slot so the user understands the second tx is
+  /// not the swap's destination credit, it's the funds coming back.
+  List<Widget> _buildRefundedSwapIds() {
+    final chainSuffix = widget.transaction.sendBlockchain == null
+        ? ''
+        : ' (${_getBlockchainName(widget.transaction.sendBlockchain!)})';
+    return [
+      _buildInfoRow(
+        icon: Icons.call_made,
+        label: 'Send TX ID$chainSuffix',
+        value: truncateHashId(widget.transaction.sendTxId!),
+        copyable: true,
+        copyFieldId: 'send_tx_id',
+        copyValue: widget.transaction.sendTxId!,
+      ),
+      _buildInfoRow(
+        icon: Icons.assignment_return,
+        label: 'Refund TX ID$chainSuffix',
+        value: truncateHashId(widget.transaction.receiveTxId!),
+        copyable: true,
+        copyFieldId: 'refund_tx_id',
         copyValue: widget.transaction.receiveTxId!,
       ),
     ];

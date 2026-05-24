@@ -239,15 +239,26 @@ class V2TransactionNotifier implements TransactionNotifier {
   Future<void> _processEvent(TransactionEvent event) async {
     final tx = event.transaction;
 
-    // Only notify on incoming receives that have just reached "confirmed".
+    // Notify on any tx that *credits* the user once confirmed:
+    //   - `incoming`: plain receive on any chain.
+    //   - `internal`: classifier catch-all that still nets positive.
+    //   - `swap`: single Liquid tx that moved one asset out and a
+    //     different asset in (DePix↔LBTC, USDT↔LBTC, etc.). The user
+    //     initiated the swap, so we don't surface the *sent* leg —
+    //     but the destination credit is the user-meaningful "you got
+    //     X" moment and deserves a modal. Without this branch the
+    //     receive-toast was racy: it only fired when LWK briefly
+    //     classified the tx as `outgoing→incoming` before settling on
+    //     `swap`, so half of all asset swaps surfaced no modal at all.
+    //
     // We treat both `created` events that arrive already-confirmed
-    // (re-imports, late tx push) and `statusChanged` from pending→confirmed
-    // the same way. Outgoing sends, self-transfers / consolidations,
-    // swaps (user-initiated), and unconfirmed events are ignored.
-    final isUserFacingReceive =
-        tx.direction == TransactionDirection.incoming ||
-            tx.direction == TransactionDirection.internal;
-    if (!isUserFacingReceive) return;
+    // (re-imports, late tx push) and `statusChanged` from
+    // pending→confirmed the same way. Outgoing sends, self-transfers /
+    // consolidations, and unconfirmed events are still ignored.
+    final isPlainReceive = tx.direction == TransactionDirection.incoming ||
+        tx.direction == TransactionDirection.internal;
+    final isSwap = tx.direction == TransactionDirection.swap;
+    if (!isPlainReceive && !isSwap) return;
     if (tx.status != TransactionStatus.confirmed) return;
 
     // Persisted dedup: atomic INSERT OR IGNORE. If the row already
@@ -278,18 +289,45 @@ class V2TransactionNotifier implements TransactionNotifier {
       return;
     }
 
-    final assetId = tx.assetId ?? _defaultAssetIdForChain(tx);
-    if (assetId == null) {
-      _logger.debug('tx_notifier.no_asset_id_drop',
-          {'tx_id': tx.id, 'chain': tx.chain.name});
-      return;
+    // Asset + amount the modal will show.
+    //   - For plain receives: the row's `amountSat` / `assetId` are
+    //     the credited side.
+    //   - For swaps: the V2 entity stores the *sent* leg in
+    //     `amountSat` / `assetId` to keep the home list's swap row
+    //     consistent with its arrow direction. The "you received X"
+    //     story lives in `toAssetId` / `receivedAmountSat` — surface
+    //     those instead. A swap missing either is malformed (LWK
+    //     classifier bug) and silently dropped.
+    final String? assetId;
+    final BigInt amount;
+    if (isSwap) {
+      final toAssetId = tx.toAssetId;
+      final receivedSat = tx.receivedAmountSat;
+      if (toAssetId == null || receivedSat == null || receivedSat <= 0) {
+        _logger.debug('tx_notifier.swap_missing_credit_drop', {
+          'tx_id': tx.id,
+          'to_asset_id': toAssetId,
+          'received_amount_sat': receivedSat,
+        });
+        return;
+      }
+      assetId = toAssetId;
+      amount = BigInt.from(receivedSat);
+    } else {
+      assetId = tx.assetId ?? _defaultAssetIdForChain(tx);
+      if (assetId == null) {
+        _logger.debug('tx_notifier.no_asset_id_drop',
+            {'tx_id': tx.id, 'chain': tx.chain.name});
+        return;
+      }
+      amount = BigInt.from(tx.amountSat);
     }
 
     final statusEvent = TransactionStatusEvent(
       transactionId: tx.id,
       assetId: assetId,
       assetTicker: _tickerFor(assetId),
-      amount: BigInt.from(tx.amountSat),
+      amount: amount,
       confirmedAt: event.observedAt,
     );
 

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/pending_swap_item.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -19,17 +21,94 @@ class TransactionList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(v2LegacyTransactionsProvider);
     final isVisible = ref.watch(isVisibleProvider);
+    final pendingSwaps = ref.watch(pendingSwapsProvider);
+    // Side-effect provider — drops optimistic rows once the persisted
+    // store catches up. Watching here keeps the listener alive for
+    // the lifetime of the home screen.
+    ref.watch(pendingSwapsReconciliationProvider);
 
     return transactionsAsync.when(
-      loading: () => const LoadingTransactionList(),
-      error: (err, _) => const ErrorTransactionList(),
-      data:
-          (transactions) => SuccessfulTransactionList(
-            transactions: transactions,
-            isVisible: isVisible,
-          ),
+      loading: () => pendingSwaps.isEmpty
+          ? const LoadingTransactionList()
+          : _TransactionListBody(
+              transactions: const [],
+              pendingSwaps: pendingSwaps,
+              isVisible: isVisible,
+            ),
+      error: (err, _) => pendingSwaps.isEmpty
+          ? const ErrorTransactionList()
+          : _TransactionListBody(
+              transactions: const [],
+              pendingSwaps: pendingSwaps,
+              isVisible: isVisible,
+            ),
+      data: (transactions) => _TransactionListBody(
+        transactions: transactions,
+        pendingSwaps: pendingSwaps,
+        isVisible: isVisible,
+      ),
     );
   }
+}
+
+class _TransactionListBody extends StatelessWidget {
+  final List<Transaction> transactions;
+  final List<PendingSwap> pendingSwaps;
+  final bool isVisible;
+
+  const _TransactionListBody({
+    required this.transactions,
+    required this.pendingSwaps,
+    required this.isVisible,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // While an optimistic peg-in/out row is alive, hide the raw send
+    // leg that belongs to it from the persisted list — otherwise the
+    // user briefly sees two rows for the same operation (the
+    // animated optimistic card + a plain "BTC sent" / "LBTC sent"
+    // entry) for the ~minutes-to-hours gap between the lockup tx
+    // appearing and the unifier pairing both legs.
+    final filtered = _hideInFlightLegs(transactions, pendingSwaps);
+
+    if (pendingSwaps.isEmpty && filtered.isEmpty) {
+      return const EmptyTransactionList();
+    }
+
+    return Column(
+      children: [
+        for (final swap in pendingSwaps) PendingSwapItem(swap: swap),
+        if (filtered.isNotEmpty)
+          SuccessfulTransactionList(
+            transactions: filtered,
+            isVisible: isVisible,
+          ),
+      ],
+    );
+  }
+}
+
+List<Transaction> _hideInFlightLegs(
+  List<Transaction> persisted,
+  List<PendingSwap> pendingSwaps,
+) {
+  if (pendingSwaps.isEmpty || persisted.isEmpty) return persisted;
+
+  final lockupTxIds = <String>{};
+  for (final p in pendingSwaps) {
+    final id = p.breezTxId;
+    if (id != null) lockupTxIds.add(id);
+  }
+  if (lockupTxIds.isEmpty) return persisted;
+
+  return [
+    for (final t in persisted)
+      if (!lockupTxIds.contains(t.id) &&
+          !(t.sendTxId != null && lockupTxIds.contains(t.sendTxId)) &&
+          !(t.receiveTxId != null && lockupTxIds.contains(t.receiveTxId)))
+        t,
+  ];
 }
 
 class SuccessfulTransactionList extends ConsumerWidget {
@@ -56,7 +135,6 @@ class SuccessfulTransactionList extends ConsumerWidget {
             final amountStr = TransactionValueFormatter.formatTransactionValue(
               transaction: transaction,
             );
-
             return GestureDetector(
               onTap: () {
                 context.push('/transactions/details', extra: transaction);
@@ -80,6 +158,13 @@ class SuccessfulTransactionList extends ConsumerWidget {
         transaction.toAsset != null &&
         transaction.sentAmount != null &&
         transaction.receivedAmount != null) {
+      // Same-asset swap = a refunded peg attempt: the conversion
+      // never completed; the funds came back (minus the swap-service
+      // refund fee). Render it as a refund instead of as a regular
+      // swap so the user can tell at a glance.
+      if (transaction.fromAsset == transaction.toAsset) {
+        return 'Refunded ${transaction.asset.ticker} swap';
+      }
       return t.wallet_tx_swap_pair(
         transaction.fromAsset!.ticker,
         transaction.toAsset!.ticker,
@@ -401,6 +486,48 @@ class HomeTransactionItem extends StatelessWidget {
   }
 
   Widget _buildSwapIcon() {
+    // Refunded peg: same asset on both sides. Showing two identical
+    // BTC icons reads as a bug — render a single asset icon with a
+    // small orange refund badge instead.
+    final isRefund = transaction!.fromAsset == transaction!.toAsset;
+    if (isRefund) {
+      return SizedBox(
+        width: 50,
+        height: 50,
+        child: Stack(
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SvgPicture.asset(
+                  transaction!.fromAsset!.iconPath,
+                  width: 40,
+                  height: 40,
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.orangeAccent,
+                ),
+                child: const Icon(
+                  Icons.assignment_return,
+                  size: 12,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SizedBox(
       width: 50,
       height: 50,

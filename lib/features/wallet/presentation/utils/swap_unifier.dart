@@ -77,6 +77,32 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
     unified.add(_buildFallbackSwap(tx, cp));
   }
 
+  // Refunded-peg detection: a *same-chain* self-pair where the
+  // receive comes after the send with a refund-shaped amount
+  // discount means a peg attempt that ended up refunded. The V2
+  // store has no schema field linking the BDK lockup tx to the
+  // BDK refund tx — we pair them here so the history shows a
+  // single "Refunded swap" row instead of two unrelated BTC
+  // entries. Runs *after* cross-chain pairing so a legitimate
+  // successful peg-in/out is never misclassified as a refund.
+  for (final send in buckets.btcSends) {
+    if (consumed.contains(send.id)) continue;
+    final refund = _findRefundCounterpart(send, buckets.btcReceives, consumed);
+    if (refund == null) continue;
+    consumed.add(send.id);
+    consumed.add(refund.id);
+    unified.add(_buildRefundedSwap(send, refund));
+  }
+  for (final send in buckets.lbtcSends) {
+    if (consumed.contains(send.id)) continue;
+    final refund =
+        _findRefundCounterpart(send, buckets.lbtcReceives, consumed);
+    if (refund == null) continue;
+    consumed.add(send.id);
+    consumed.add(refund.id);
+    unified.add(_buildRefundedSwap(send, refund));
+  }
+
   // No work landed — return the input list unchanged (callers can rely
   // on reference equality to short-circuit downstream rebuilds).
   if (consumed.isEmpty && unified.isEmpty && deduped.length == input.length) {
@@ -158,8 +184,12 @@ class _Indexed {
 /// Single linear scan that decides whether `input` contains anything
 /// peg-shaped at all — so we can bail out cheaply on the common case
 /// of a stream tick from a wallet with no Breez chain swaps.
+///
+/// Threshold is low (1k sats) so the unifier wakes up for refunded
+/// peg detection too, where the lockup amount can be well under the
+/// 25k chain-swap minimum (e.g. the 3k refund-test path).
 _Indexed _indexAndProbe(List<Transaction> input) {
-  final minAmount = BigInt.from(25000);
+  final minAmount = BigInt.from(1000);
   bool anchor = false;
   bool send = false;
   bool dup = false;
@@ -471,6 +501,70 @@ Transaction _buildFallbackSwap(Transaction send, Transaction receive) {
         ? TransactionStatus.confirmed
         : TransactionStatus.pending,
     createdAt: earliest,
+    fromAsset: send.asset,
+    toAsset: receive.asset,
+    sentAmount: send.amount,
+    receivedAmount: receive.amount,
+    sendTxId: send.id,
+    receiveTxId: receive.id,
+    sendBlockchain: send.blockchain,
+    receiveBlockchain: receive.blockchain,
+    destination: receive.destination,
+  );
+}
+
+/// Detect a refunded peg: same-chain self-pair where the receive
+/// comes *after* the send, the amount is *less* than what was sent
+/// (Boltz refund fee + miner fee), and both are within a tight
+/// window. Conservative on purpose — a normal back-and-forth between
+/// the user's own wallet and another party shouldn't collapse into
+/// a "refund" row.
+Transaction? _findRefundCounterpart(
+  Transaction send,
+  List<Transaction> receiveBucket,
+  Set<String> consumed,
+) {
+  // Threshold mirrors the chain-swap minimum the SDK enforces; below
+  // it, the row is more likely a legitimate small payment than a
+  // peg attempt. Set deliberately low (1k sats, not 25k like the
+  // happy-path matcher) so the refund test case — a 3k-sat lockup
+  // returning ~2.8k — is still detected.
+  if (send.amount < BigInt.from(1000)) return null;
+  const window = Duration(hours: 24);
+
+  for (final cand in receiveBucket) {
+    if (cand.id == send.id || consumed.contains(cand.id)) continue;
+    final delta = cand.createdAt.difference(send.createdAt);
+    if (delta < Duration.zero || delta > window) continue;
+    // Receive must be *strictly less* than send (refund fee taken)
+    // but not implausibly less (drop below ~0.5 and the pair is
+    // probably unrelated, not a refund).
+    final ratio = cand.amount.toDouble() / send.amount.toDouble();
+    if (ratio < 0.50 || ratio >= 1.0) continue;
+    return cand;
+  }
+  return null;
+}
+
+Transaction _buildRefundedSwap(Transaction send, Transaction receive) {
+  final earliest = send.createdAt.isBefore(receive.createdAt)
+      ? send.createdAt
+      : receive.createdAt;
+  return Transaction(
+    id: '${send.id}_${receive.id}_refund',
+    amount: receive.amount,
+    blockchain: receive.blockchain,
+    asset: receive.asset,
+    type: TransactionType.swap,
+    status: send.status == TransactionStatus.confirmed &&
+            receive.status == TransactionStatus.confirmed
+        ? TransactionStatus.confirmed
+        : TransactionStatus.pending,
+    createdAt: earliest,
+    // Same-asset on both sides is the signal the UI uses to render
+    // this row as a refund instead of a successful swap. The V2
+    // legacy `Transaction` doesn't have a dedicated refund flag, so
+    // we lean on the asset identity invariant.
     fromAsset: send.asset,
     toAsset: receive.asset,
     sentAmount: send.amount,

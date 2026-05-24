@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/app/di/v2_providers.dart';
-import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/features/swap/presentation/utils/post_swap_refresh.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -244,14 +243,11 @@ class _ConfirmSwapBottomSheetState
         (txid) {
           Navigator.of(context).pop();
 
-          Future<void>.microtask(() async {
-            try {
-              final useCase = await ref.read(refreshWalletProvider.future);
-              await useCase(strategy: SyncStrategy.light);
-            } catch (_) {
-              // Swallowed by design.
-            }
-          });
+          // Staggered post-swap refresh — see `post_swap_refresh.dart`.
+          // Fires immediately + at +3s + +15s so the home stream
+          // catches the new tx whether it lands during the SDK call
+          // or during the next chain backend reconciliation.
+          triggerPostSwapRefresh(ref);
 
           widget.onSuccess?.call();
 

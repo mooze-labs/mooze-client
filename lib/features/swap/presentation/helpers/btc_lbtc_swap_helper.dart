@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:mooze_mobile/app/di/v2_providers.dart';
-import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/features/swap/presentation/utils/post_swap_refresh.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -133,7 +133,25 @@ class BtcLbtcSwapHelper {
           controller: controller,
           drain: drain,
           onConfirm: (feeRateSatPerVByte) async {
+            // Surface the swap in the home transaction list the instant
+            // the user confirms. The optimistic row carries the
+            // "where did my money go" answer while Breez SDK works
+            // through the chain swap; `pendingSwapsReconciliationProvider`
+            // drops it as soon as the persisted store catches up.
+            final pendingSwaps =
+                ref.read(pendingSwapsProvider.notifier);
+            final localId = pendingSwaps.start(
+              fromAsset: fromAsset,
+              toAsset: toAsset,
+              sentAmount: amount,
+              // No fee-aware estimate available here; show the gross
+              // amount and let the real row replace it with the
+              // post-fee figure once Breez emits.
+              estimatedReceivedAmount: amount,
+            );
+
             try {
+              pendingSwaps.markBroadcasting(localId);
               if (isPegIn) {
                 final result =
                     await controller
@@ -149,6 +167,7 @@ class BtcLbtcSwapHelper {
 
                   result.match(
                     (error) {
+                      pendingSwaps.markFailed(localId, error: error);
                       if (_isPendingPaymentsError(error)) {
                         _showPendingPaymentsDialog();
                       } else {
@@ -156,6 +175,17 @@ class BtcLbtcSwapHelper {
                       }
                     },
                     (transaction) {
+                      pendingSwaps.markBroadcasted(
+                        localId,
+                        // `transaction.id` here is the BDK (peg-in) /
+                        // LWK (peg-out) lockup tx id, NOT the Breez
+                        // short swap id. Store it as `breezTxId` only
+                        // and leave `breezSwapId` null — the polling
+                        // watcher resolves the real swap id (e.g.
+                        // `wCaunaTNZaHv`) shortly afterwards via
+                        // `findBreezChainSwapId`.
+                        breezTxId: transaction.sendTxId ?? transaction.id,
+                      );
                       _refreshAfterSwap();
                       _showSuccessScreen(
                         amount,
@@ -181,6 +211,7 @@ class BtcLbtcSwapHelper {
 
                   result.match(
                     (error) {
+                      pendingSwaps.markFailed(localId, error: error);
                       if (_isPendingPaymentsError(error)) {
                         _showPendingPaymentsDialog();
                       } else {
@@ -188,6 +219,17 @@ class BtcLbtcSwapHelper {
                       }
                     },
                     (transaction) {
+                      pendingSwaps.markBroadcasted(
+                        localId,
+                        // `transaction.id` here is the BDK (peg-in) /
+                        // LWK (peg-out) lockup tx id, NOT the Breez
+                        // short swap id. Store it as `breezTxId` only
+                        // and leave `breezSwapId` null — the polling
+                        // watcher resolves the real swap id (e.g.
+                        // `wCaunaTNZaHv`) shortly afterwards via
+                        // `findBreezChainSwapId`.
+                        breezTxId: transaction.sendTxId ?? transaction.id,
+                      );
                       // Refresh UI immediately after peg-out is confirmed.
                       // See _refreshAfterSwap docstring above.
                       _refreshAfterSwap();
@@ -202,6 +244,7 @@ class BtcLbtcSwapHelper {
                 }
               }
             } catch (e) {
+              pendingSwaps.markFailed(localId, error: e.toString());
               if (context.mounted) {
                 Navigator.of(context).pop();
                 _showErrorSnackBar(
@@ -241,18 +284,13 @@ class BtcLbtcSwapHelper {
     );
   }
 
-  /// Phase 2.3.3-prep-Tier3: triggers a light wallet refresh through the
-  /// V2 `RefreshWalletUseCase`. Fire-and-forget — failure is swallowed
-  /// because the swap itself already completed; the orchestrator's tx
-  /// stream + periodic ticker reconcile UI state on the next emission.
+  /// Fire-and-forget staggered wallet refresh — see
+  /// [triggerPostSwapRefresh] for the schedule. Replaces the older
+  /// single-shot light refresh: the first tick still fires
+  /// immediately so balances catch up the moment the SDK returns,
+  /// and a couple of follow-up ticks catch BDK/LWK reconciliations
+  /// and on-chain confirmations that land a few seconds later.
   void _refreshAfterSwap() {
-    Future<void>.microtask(() async {
-      try {
-        final useCase = await ref.read(refreshWalletProvider.future);
-        await useCase(strategy: SyncStrategy.light);
-      } catch (_) {
-        // Swallowed by design — see method docstring.
-      }
-    });
+    triggerPostSwapRefresh(ref);
   }
 }

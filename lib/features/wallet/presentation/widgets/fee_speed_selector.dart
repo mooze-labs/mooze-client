@@ -58,6 +58,16 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             ],
             Expanded(
               child: _FeeSpeedOption(
+                title: t.wallet_fee_economic,
+                subtitle: t.wallet_fee_economic_eta,
+                feeRate: widget.lowFeeSatPerVByte ?? 1,
+                isSelected: widget.selectedSpeed == FeeSpeed.low,
+                onTap: () => widget.onSpeedChanged(FeeSpeed.low),
+                isLoading: widget.lowFeeSatPerVByte == null,
+              ),
+            ),
+            Expanded(
+              child: _FeeSpeedOption(
                 title: t.wallet_fee_normal,
                 subtitle: t.wallet_fee_normal_eta,
                 feeRate: widget.mediumFeeSatPerVByte ?? 3,
@@ -128,7 +138,10 @@ class _FeeSpeedOption extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFFE91E63) : Theme.of(context).colorScheme.onSurface,
+                color:
+                    isSelected
+                        ? const Color(0xFFE91E63)
+                        : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -147,16 +160,18 @@ class _FeeSpeedOption extends StatelessWidget {
                 )
                 : Text(
                   '$feeRate sat/vB',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],

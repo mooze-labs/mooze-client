@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
 import 'package:fpdart/fpdart.dart';
 
@@ -251,6 +252,36 @@ class LightningWalletServiceImpl implements LightningWalletService {
       return Right(mapped);
     } catch (e, st) {
       return Left(ServiceFailure('breez listRefundables failed: $e',
+          chain: chain, cause: e, stackTrace: st));
+    }
+  }
+
+  @override
+  Future<Either<ServiceFailure, String?>> findChainSwapIdByLockup({
+    required String lockupTxId,
+  }) async {
+    final c = _client;
+    if (c == null || !currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    try {
+      // Scan the SDK payment list for the chain swap whose lockup tx
+      // we just broadcast. `lockupTxId` is the BDK-side txid the
+      // helper captured on peg-in (or the LWK-side txid on peg-out).
+      // Matching the payment by lockup is the only way to recover the
+      // Breez short swap id (`wCaunaTNZaHv`-style) — `prepareReceive
+      // Payment` doesn't surface it at prepare time.
+      final payments =
+          await c.listPayments(req: const breez.ListPaymentsRequest());
+      for (final p in payments) {
+        final d = p.details;
+        if (d is breez.PaymentDetails_Bitcoin && d.lockupTxId == lockupTxId) {
+          return Right(d.swapId);
+        }
+      }
+      return const Right(null);
+    } catch (e, st) {
+      return Left(ServiceFailure('breez findChainSwapIdByLockup failed: $e',
           chain: chain, cause: e, stackTrace: st));
     }
   }
@@ -1036,6 +1067,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
   /// Returns null only if the payment has no usable identifier (which in
   /// practice never happens for a Breez-emitted payment — defensive).
   domain.Transaction? _mapPayment(breez.Payment p) {
+    _logBreezPaymentV2(p);
     final id = _resolvePaymentId(p);
     if (id.isEmpty) return null;
     final dir = p.paymentType == breez.PaymentType.receive
@@ -1250,4 +1282,40 @@ class _LnFingerprint {
   const _LnFingerprint(this.status, this.confirmations);
   final domain.TransactionStatus status;
   final int confirmations;
+}
+
+/// Dumps every Breez Payment that flows through the V2 mapper.
+///
+/// Tag: `[BREEZ-TX-V2]`. The V2 path collapses `PaymentState.refundable`
+/// into `TransactionStatus.pending` (see the switch at the top of
+/// `_mapPayment`), so the only way to see a refundable swap from this
+/// pipeline is to inspect the raw `p.status` here — that's the whole
+/// point of the dump.
+void _logBreezPaymentV2(breez.Payment p) {
+  if (!kDebugMode) return;
+  final d = p.details;
+  String detailsLine;
+  if (d is breez.PaymentDetails_Bitcoin) {
+    detailsLine =
+        'Bitcoin{swapId=${d.swapId}, addr=${d.bitcoinAddress}, '
+        'lockupTx=${d.lockupTxId}, claimTx=${d.claimTxId}, '
+        'refundTx=${d.refundTxId}, refundAmtSat=${d.refundTxAmountSat}}';
+  } else if (d is breez.PaymentDetails_Lightning) {
+    final inv = d.invoice;
+    detailsLine = 'Lightning{swapId=${d.swapId}, '
+        'invoice=${inv == null ? "null" : "${inv.substring(0, inv.length.clamp(0, 20))}…"}, '
+        'preimage=${d.preimage}, claimTx=${d.claimTxId}, '
+        'refundTx=${d.refundTxId}}';
+  } else if (d is breez.PaymentDetails_Liquid) {
+    detailsLine = 'Liquid{dest=${d.destination}, assetId=${d.assetId}}';
+  } else {
+    detailsLine = 'unknown(${d.runtimeType})';
+  }
+
+  debugPrint(
+    '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
+    'amountSat=${p.amountSat} feesSat=${p.feesSat} '
+    'txId=${p.txId} ts=${p.timestamp} '
+    'details=$detailsLine',
+  );
 }

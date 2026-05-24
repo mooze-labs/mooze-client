@@ -1076,7 +1076,6 @@ class WalletRepositoryImpl extends WalletRepository {
                   final cleanAddress = _cleanBitcoinAddress(
                     pegInResult.bitcoinAddress,
                   );
-
                   return _bitcoinWallet!
                       .buildOnchainBitcoinPaymentTransaction(
                         cleanAddress,
@@ -1236,14 +1235,19 @@ class WalletRepositoryImpl extends WalletRepository {
       () async {
         final list = await w.sdkClient.listRefundables();
         return list
-            .map((r) => v2.RefundableSwap(
-                  swapAddress: r.swapAddress,
-                  amountSat: r.amountSat.toInt(),
-                  lastRefundTxId: r.lastRefundTxId,
-                  timestamp: r.timestamp == 0
-                      ? null
-                      : DateTime.fromMillisecondsSinceEpoch(r.timestamp * 1000),
-                ))
+            .map(
+              (r) => v2.RefundableSwap(
+                swapAddress: r.swapAddress,
+                amountSat: r.amountSat.toInt(),
+                lastRefundTxId: r.lastRefundTxId,
+                timestamp:
+                    r.timestamp == 0
+                        ? null
+                        : DateTime.fromMillisecondsSinceEpoch(
+                          r.timestamp * 1000,
+                        ),
+              ),
+            )
             .toList();
       },
       (error, stackTrace) => WalletError(
@@ -1281,7 +1285,8 @@ class WalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, v2.PrepareRefundOutcome> prepareRefund(
-      v2.PrepareRefundParams params) {
+    v2.PrepareRefundParams params,
+  ) {
     final w = _breezWallet;
     if (w == null) {
       return TaskEither.left(
@@ -1312,7 +1317,8 @@ class WalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, v2.RefundOutcome> executeRefund(
-      v2.ExecuteRefundParams params) {
+    v2.ExecuteRefundParams params,
+  ) {
     final w = _breezWallet;
     if (w == null) {
       return TaskEither.left(
@@ -1356,14 +1362,16 @@ class WalletRepositoryImpl extends WalletRepository {
       () async {
         final utxos = await w.datasource.wallet.utxos();
         return utxos
-            .map((u) => v2.LiquidUtxo(
-                  txid: u.outpoint.txid,
-                  vout: u.outpoint.vout,
-                  assetId: u.unblinded.asset,
-                  assetBlindingFactor: u.unblinded.assetBf,
-                  valueSat: u.unblinded.value,
-                  valueBlindingFactor: u.unblinded.valueBf,
-                ))
+            .map(
+              (u) => v2.LiquidUtxo(
+                txid: u.outpoint.txid,
+                vout: u.outpoint.vout,
+                assetId: u.unblinded.asset,
+                assetBlindingFactor: u.unblinded.assetBf,
+                valueSat: u.unblinded.value,
+                valueBlindingFactor: u.unblinded.valueBf,
+              ),
+            )
             .toList();
       },
       (error, stackTrace) => WalletError(

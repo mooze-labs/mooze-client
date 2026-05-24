@@ -55,6 +55,22 @@ abstract interface class LightningWalletService
   /// List swaps eligible for refund. Empty list means nothing pending.
   Future<Either<ServiceFailure, List<RefundableSwap>>> listRefundables();
 
+  /// Look up the Breez chain-swap id that owns [lockupTxId] (the BDK
+  /// peg-in send or LWK peg-out send broadcasted to a Boltz lockup
+  /// address). Returns the short opaque id Breez uses internally —
+  /// e.g. `wCaunaTNZaHv` — or `null` if no matching payment exists
+  /// yet (Breez has not observed the lockup in `listPayments`).
+  ///
+  /// Used by the optimistic-swap watcher to enrich its locally-
+  /// stored pending row with the real swap id once Breez has wired
+  /// the lockup tx to a Payment record. Without this, the UI would
+  /// keep showing the lockup txid as the "Swap ID" — which is wrong:
+  /// the lockup tx and the swap are different entities with
+  /// different lifecycles.
+  Future<Either<ServiceFailure, String?>> findChainSwapIdByLockup({
+    required String lockupTxId,
+  });
+
   /// Current mempool-policy fee suggestions, used to populate refund fee
   /// pickers. UI should treat failure as "use fallback values" and
   /// degrade gracefully — refunds without recommended fees still work,
