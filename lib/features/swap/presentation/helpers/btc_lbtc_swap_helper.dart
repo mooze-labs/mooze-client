@@ -104,6 +104,8 @@ class BtcLbtcSwapHelper {
     required core.Asset fromAsset,
     required core.Asset toAsset,
     bool drain = false,
+    VoidCallback? onSuccess,
+    VoidCallback? onError,
   }) async {
     final isPegIn = fromAsset == core.Asset.btc;
 
@@ -132,22 +134,22 @@ class BtcLbtcSwapHelper {
           isPegIn: isPegIn,
           controller: controller,
           drain: drain,
-          onConfirm: (feeRateSatPerVByte) async {
+          onConfirm: (int? feeRateSatPerVByte, BigInt totalFeeSat) async {
             // Surface the swap in the home transaction list the instant
             // the user confirms. The optimistic row carries the
             // "where did my money go" answer while Breez SDK works
             // through the chain swap; `pendingSwapsReconciliationProvider`
             // drops it as soon as the persisted store catches up.
+            final estimatedReceive = amount > totalFeeSat
+                ? amount - totalFeeSat
+                : amount;
             final pendingSwaps =
                 ref.read(pendingSwapsProvider.notifier);
             final localId = pendingSwaps.start(
               fromAsset: fromAsset,
               toAsset: toAsset,
               sentAmount: amount,
-              // No fee-aware estimate available here; show the gross
-              // amount and let the real row replace it with the
-              // post-fee figure once Breez emits.
-              estimatedReceivedAmount: amount,
+              estimatedReceivedAmount: estimatedReceive,
             );
 
             try {
@@ -173,6 +175,7 @@ class BtcLbtcSwapHelper {
                       } else {
                         _showErrorSnackBar(error);
                       }
+                      onError?.call();
                     },
                     (transaction) {
                       pendingSwaps.markBroadcasted(
@@ -188,11 +191,13 @@ class BtcLbtcSwapHelper {
                       );
                       _refreshAfterSwap();
                       _showSuccessScreen(
-                        amount,
-                        fromAsset, // BTC
-                        toAsset, // LBTC
-                        transaction.id,
+                        sentAmount: amount,
+                        receivedAmount: estimatedReceive,
+                        fromAsset: fromAsset, // BTC
+                        toAsset: toAsset, // LBTC
+                        txId: transaction.id,
                       );
+                      onSuccess?.call();
                     },
                   );
                 }
@@ -217,6 +222,7 @@ class BtcLbtcSwapHelper {
                       } else {
                         _showErrorSnackBar(error);
                       }
+                      onError?.call();
                     },
                     (transaction) {
                       pendingSwaps.markBroadcasted(
@@ -234,11 +240,13 @@ class BtcLbtcSwapHelper {
                       // See _refreshAfterSwap docstring above.
                       _refreshAfterSwap();
                       _showSuccessScreen(
-                        amount,
-                        fromAsset,
-                        toAsset,
-                        transaction.id,
+                        sentAmount: amount,
+                        receivedAmount: estimatedReceive,
+                        fromAsset: fromAsset,
+                        toAsset: toAsset,
+                        txId: transaction.id,
                       );
+                      onSuccess?.call();
                     },
                   );
                 }
@@ -260,20 +268,28 @@ class BtcLbtcSwapHelper {
     );
   }
 
-  void _showSuccessScreen(
-    BigInt amount,
-    core.Asset fromAsset,
-    core.Asset toAsset,
-    String txId,
-  ) {
-    final amountInBtc = amount.toDouble() / 100000000;
+  void _showSuccessScreen({
+    required BigInt sentAmount,
+    required BigInt receivedAmount,
+    required core.Asset fromAsset,
+    required core.Asset toAsset,
+    required String txId,
+  }) {
+    // Both legs of a chain swap are denominated in sats and rendered
+    // with 8-decimal precision (mirrors the Bitcoin convention the
+    // success screen displays). `receivedAmount` is the post-fee
+    // estimate computed at confirm time — without this split the
+    // success screen used to show the gross sent amount on both
+    // sides, hiding the Boltz + network fee deduction from the user.
+    final sentInBtc = sentAmount.toDouble() / 100000000;
+    final receivedInBtc = receivedAmount.toDouble() / 100000000;
 
     SwapSuccessScreen.show(
       context,
       fromAsset: fromAsset,
       toAsset: toAsset,
-      amountSent: amountInBtc,
-      amountReceived: amountInBtc,
+      amountSent: sentInBtc,
+      amountReceived: receivedInBtc,
       txid: txId,
     );
   }
