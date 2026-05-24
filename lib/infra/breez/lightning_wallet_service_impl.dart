@@ -83,7 +83,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
   @override
   Future<Either<ServiceFailure, Unit>> connect(
-      WalletCredentials credentials) async {
+    WalletCredentials credentials,
+  ) async {
     return _connectMutex.protect(() async {
       if (currentState.isOperational) return const Right(unit);
       _emit(ServiceLifecycle.connecting);
@@ -91,11 +92,14 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
       final dirResult = await directoryGuard.acquire(workingDirRelative);
       if (dirResult.isLeft()) {
-        return _fail('workdir acquire failed: '
-            '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}');
+        return _fail(
+          'workdir acquire failed: '
+          '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}',
+        );
       }
-      _acquiredDirectory =
-          dirResult.getOrElse((_) => throw StateError('unreachable'));
+      _acquiredDirectory = dirResult.getOrElse(
+        (_) => throw StateError('unreachable'),
+      );
 
       try {
         final config = await BreezConfigFactory(
@@ -168,8 +172,9 @@ class LightningWalletServiceImpl implements LightningWalletService {
       try {
         await c.sync().timeout(timeout ?? const Duration(seconds: 45));
 
-        final payments = await c
-            .listPayments(req: const breez.ListPaymentsRequest());
+        final payments = await c.listPayments(
+          req: const breez.ListPaymentsRequest(),
+        );
         final info = await c.getInfo();
 
         // **Source-aware emission (2026-05-18 redesign).**
@@ -196,30 +201,45 @@ class LightningWalletServiceImpl implements LightningWalletService {
         //
         // No filter needed here. The "rows mutate after a few seconds"
         // bug is prevented by the upsert merge, not by the filter.
-        final mapped = payments
-            .map(_mapPayment)
-            .whereType<domain.Transaction>()
-            .toList()
-          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        final mapped =
+            payments.map(_mapPayment).whereType<domain.Transaction>().toList()
+              ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
         final changed = _diffAndEmit(mapped);
         _lastList = mapped;
         _lastBalance = _mapBalance(info);
 
-        _emit(ServiceLifecycle.connected,
-            lastSyncAt: clock.now(), clearFailure: true);
+        _emit(
+          ServiceLifecycle.connected,
+          lastSyncAt: clock.now(),
+          clearFailure: true,
+        );
 
-        return Right(SyncOutcome(
-          chain: chain,
-          fetched: mapped.length,
-          changed: changed,
-          duration: clock.now().difference(t0),
-        ));
+        return Right(
+          SyncOutcome(
+            chain: chain,
+            fetched: mapped.length,
+            changed: changed,
+            duration: clock.now().difference(t0),
+          ),
+        );
       } on TimeoutException catch (e, st) {
-        return Left(ServiceFailure('breez sync timeout',
-            chain: chain, cause: e, stackTrace: st));
+        return Left(
+          ServiceFailure(
+            'breez sync timeout',
+            chain: chain,
+            cause: e,
+            stackTrace: st,
+          ),
+        );
       } catch (e, st) {
-        return Left(ServiceFailure('breez sync failed: $e',
-            chain: chain, cause: e, stackTrace: st));
+        return Left(
+          ServiceFailure(
+            'breez sync failed: $e',
+            chain: chain,
+            cause: e,
+            stackTrace: st,
+          ),
+        );
       }
     });
   }
@@ -232,27 +252,39 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
   @override
   Future<Either<ServiceFailure, List<domain.RefundableSwap>>>
-      listRefundables() async {
+  listRefundables() async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
       final breezList = await c.listRefundables();
-      final mapped = breezList
-          .map((r) => domain.RefundableSwap(
-                swapAddress: r.swapAddress,
-                amountSat: r.amountSat.toInt(),
-                lastRefundTxId: r.lastRefundTxId,
-                timestamp: r.timestamp == 0
-                    ? null
-                    : DateTime.fromMillisecondsSinceEpoch(r.timestamp * 1000),
-              ))
-          .toList();
+      final mapped =
+          breezList
+              .map(
+                (r) => domain.RefundableSwap(
+                  swapAddress: r.swapAddress,
+                  amountSat: r.amountSat.toInt(),
+                  lastRefundTxId: r.lastRefundTxId,
+                  timestamp:
+                      r.timestamp == 0
+                          ? null
+                          : DateTime.fromMillisecondsSinceEpoch(
+                            r.timestamp * 1000,
+                          ),
+                ),
+              )
+              .toList();
       return Right(mapped);
     } catch (e, st) {
-      return Left(ServiceFailure('breez listRefundables failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez listRefundables failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -271,8 +303,9 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // Matching the payment by lockup is the only way to recover the
       // Breez short swap id (`wCaunaTNZaHv`-style) — `prepareReceive
       // Payment` doesn't surface it at prepare time.
-      final payments =
-          await c.listPayments(req: const breez.ListPaymentsRequest());
+      final payments = await c.listPayments(
+        req: const breez.ListPaymentsRequest(),
+      );
       for (final p in payments) {
         final d = p.details;
         if (d is breez.PaymentDetails_Bitcoin && d.lockupTxId == lockupTxId) {
@@ -281,8 +314,14 @@ class LightningWalletServiceImpl implements LightningWalletService {
       }
       return const Right(null);
     } catch (e, st) {
-      return Left(ServiceFailure('breez findChainSwapIdByLockup failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez findChainSwapIdByLockup failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -294,22 +333,31 @@ class LightningWalletServiceImpl implements LightningWalletService {
     }
     try {
       final f = await c.recommendedFees();
-      return Right(domain.MempoolFees(
-        minimumFee: f.minimumFee.toInt(),
-        economyFee: f.economyFee.toInt(),
-        hourFee: f.hourFee.toInt(),
-        halfHourFee: f.halfHourFee.toInt(),
-        fastestFee: f.fastestFee.toInt(),
-      ));
+      return Right(
+        domain.MempoolFees(
+          minimumFee: f.minimumFee.toInt(),
+          economyFee: f.economyFee.toInt(),
+          hourFee: f.hourFee.toInt(),
+          halfHourFee: f.halfHourFee.toInt(),
+          fastestFee: f.fastestFee.toInt(),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez recommendedFees failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez recommendedFees failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, domain.PrepareRefundOutcome>> prepareRefund(
-      domain.PrepareRefundParams params) async {
+    domain.PrepareRefundParams params,
+  ) async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
@@ -322,20 +370,29 @@ class LightningWalletServiceImpl implements LightningWalletService {
           feeRateSatPerVbyte: params.feeRateSatPerVbyte,
         ),
       );
-      return Right(domain.PrepareRefundOutcome(
-        txVsize: resp.txVsize,
-        feesSat: resp.txFeeSat.toInt(),
-        refundTxId: resp.lastRefundTxId,
-      ));
+      return Right(
+        domain.PrepareRefundOutcome(
+          txVsize: resp.txVsize,
+          feesSat: resp.txFeeSat.toInt(),
+          refundTxId: resp.lastRefundTxId,
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez prepareRefund failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez prepareRefund failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, domain.RefundOutcome>> executeRefund(
-      domain.ExecuteRefundParams params) async {
+    domain.ExecuteRefundParams params,
+  ) async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
@@ -354,13 +411,21 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // ~2-min sync delay is acceptable UX.)
       return Right(domain.RefundOutcome(refundTxId: resp.refundTxId));
     } catch (e, st) {
-      return Left(ServiceFailure('breez executeRefund failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez executeRefund failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
-  Future<Either<ServiceFailure, Unit>> rescan({required Duration window}) async {
+  Future<Either<ServiceFailure, Unit>> rescan({
+    required Duration window,
+  }) async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
@@ -370,19 +435,27 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // window control; full forced rescan APIs vary by version. As a
       // baseline we re-call sync(); higher-fidelity rescan can be wired by
       // swapping this for `c.rescanOnchainSwaps()` if exposed.
-      await c.sync().timeout(window > const Duration(seconds: 60)
-          ? const Duration(seconds: 60)
-          : window);
+      await c.sync().timeout(
+        window > const Duration(seconds: 60)
+            ? const Duration(seconds: 60)
+            : window,
+      );
       return const Right(unit);
     } catch (e, st) {
-      return Left(ServiceFailure('breez rescan failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez rescan failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, List<domain.Transaction>>>
-      listTransactions() async {
+  listTransactions() async {
     if (currentState.isOperational) return Right(_lastList);
     return Left(ServiceFailure('not connected', chain: chain));
   }
@@ -418,32 +491,44 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
   @override
   Future<Either<ServiceFailure, domain.FeeEstimate>> estimateFee(
-      domain.SendRequest request) async {
+    domain.SendRequest request,
+  ) async {
     if (request.chain != ChainId.liquid) {
-      return Left(ServiceFailure(
-        'lightning service only handles Liquid on-chain estimates '
-        '(got: ${request.chain.name})',
-        chain: chain,
-      ));
+      return Left(
+        ServiceFailure(
+          'lightning service only handles Liquid on-chain estimates '
+          '(got: ${request.chain.name})',
+          chain: chain,
+        ),
+      );
     }
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
-      final prepareResp =
-          await c.prepareSendPayment(req: _buildPrepareSendRequest(request));
-      return Right(domain.FeeEstimate(
-        chain: ChainId.liquid,
-        priority: request.feePriority,
-        absoluteFeeSat: (prepareResp.feesSat ?? BigInt.zero).toInt(),
-        // Breez Liquid does not surface a sat/vB rate to the client —
-        // fee is the absolute amount the SDK computed for this specific
-        // payment shape. Leave the rate null; UI shows the absolute fee.
-      ));
+      final prepareResp = await c.prepareSendPayment(
+        req: _buildPrepareSendRequest(request),
+      );
+      return Right(
+        domain.FeeEstimate(
+          chain: ChainId.liquid,
+          priority: request.feePriority,
+          absoluteFeeSat: (prepareResp.feesSat ?? BigInt.zero).toInt(),
+          // Breez Liquid does not surface a sat/vB rate to the client —
+          // fee is the absolute amount the SDK computed for this specific
+          // payment shape. Leave the rate null; UI shows the absolute fee.
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez prepareSend failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez prepareSend failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -459,9 +544,10 @@ class LightningWalletServiceImpl implements LightningWalletService {
     try {
       final prepareReq = breez.PrepareReceiveRequest(
         paymentMethod: breez.PaymentMethod.liquidAddress,
-        amount: assetId == null
-            ? null
-            : breez.ReceiveAmount_Asset(assetId: assetId),
+        amount:
+            assetId == null
+                ? null
+                : breez.ReceiveAmount_Asset(assetId: assetId),
       );
       final prepareResp = await c.prepareReceivePayment(req: prepareReq);
       final receiveResp = await c.receivePayment(
@@ -470,27 +556,38 @@ class LightningWalletServiceImpl implements LightningWalletService {
           description: label,
         ),
       );
-      return Right(domain.ReceiveAddress(
-        chain: ChainId.liquid,
-        address: receiveResp.destination,
-        assetId: assetId,
-        label: label,
-      ));
+      return Right(
+        domain.ReceiveAddress(
+          chain: ChainId.liquid,
+          address: receiveResp.destination,
+          assetId: assetId,
+          label: label,
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez receivePayment (liquid) failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez receivePayment (liquid) failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, domain.BroadcastResult>> sendOnchain(
-      domain.SendRequest request) async {
+    domain.SendRequest request,
+  ) async {
     if (request.chain != ChainId.liquid) {
-      return Left(ServiceFailure(
-        'lightning service only handles Liquid on-chain sends '
-        '(got: ${request.chain.name})',
-        chain: chain,
-      ));
+      return Left(
+        ServiceFailure(
+          'lightning service only handles Liquid on-chain sends '
+          '(got: ${request.chain.name})',
+          chain: chain,
+        ),
+      );
     }
     final c = _client;
     if (c == null || !currentState.isOperational) {
@@ -500,8 +597,9 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // Step 1: prepare. Same call as estimateFee, but we keep the
       // PrepareSendResponse to feed into sendPayment so the SDK doesn't
       // re-prepare and risk picking different UTXOs / a stale fee.
-      final prepareResp =
-          await c.prepareSendPayment(req: _buildPrepareSendRequest(request));
+      final prepareResp = await c.prepareSendPayment(
+        req: _buildPrepareSendRequest(request),
+      );
 
       // Step 2: send. Returns a SendPaymentResponse whose `payment` is the
       // newly-broadcast Payment. Breez emits this same payment via its
@@ -512,33 +610,45 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
       final mapped = _mapPayment(sendResp.payment);
       if (mapped == null) {
-        return Left(ServiceFailure(
+        return Left(
+          ServiceFailure(
             'breez sendPayment returned an unmappable Payment',
-            chain: chain));
+            chain: chain,
+          ),
+        );
       }
 
       // Update local view + emit synthetic event so the orchestrator's
       // single-writer pipeline persists this tx via transactionStore.upsert
       // BEFORE any UI subscriber sees it. This preserves the
       // persist-before-republish invariant on the broadcast path.
-      _seen[mapped.id] =
-          _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint(mapped.status, mapped.confirmations);
       _lastList = [mapped, ..._lastList];
-      _emitTx(TransactionEvent(
-        kind: TransactionEventKind.created,
-        transaction: mapped,
-        observedAt: clock.now(),
-      ));
+      _emitTx(
+        TransactionEvent(
+          kind: TransactionEventKind.created,
+          transaction: mapped,
+          observedAt: clock.now(),
+        ),
+      );
 
-      return Right(domain.BroadcastResult(
-        chain: ChainId.liquid,
-        txId: mapped.id,
-        transaction: mapped,
-        feePaidSat: (prepareResp.feesSat ?? BigInt.zero).toInt(),
-      ));
+      return Right(
+        domain.BroadcastResult(
+          chain: ChainId.liquid,
+          txId: mapped.id,
+          transaction: mapped,
+          feePaidSat: (prepareResp.feesSat ?? BigInt.zero).toInt(),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez sendPayment (liquid) failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez sendPayment (liquid) failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -568,17 +678,20 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
   @override
   Future<Either<ServiceFailure, domain.PreparedLightningSend>> prepareSend(
-      domain.LightningSendRequest request) async {
+    domain.LightningSendRequest request,
+  ) async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     final destination = request.bolt11 ?? request.lnurl ?? request.lnAddress;
     if (destination == null || destination.isEmpty) {
-      return Left(ServiceFailure(
-        'LightningSendRequest requires exactly one of bolt11 / lnurl / lnAddress',
-        chain: chain,
-      ));
+      return Left(
+        ServiceFailure(
+          'LightningSendRequest requires exactly one of bolt11 / lnurl / lnAddress',
+          chain: chain,
+        ),
+      );
     }
     try {
       final inputType = await c.parse(input: destination);
@@ -586,15 +699,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
       if (inputType is breez.InputType_Bolt11) {
         // BOLT-11 invoice. Amount comes from the invoice unless it's a
         // zero-amount one, in which case `request.amountSat` is required.
-        final invoiceAmount =
-            inputType.invoice.amountMsat?.toInt() ?? 0;
+        final invoiceAmount = inputType.invoice.amountMsat?.toInt() ?? 0;
         final invoiceAmountSat =
             invoiceAmount > 0 ? (invoiceAmount ~/ 1000) : null;
         if (invoiceAmountSat == null && request.amountSat == null) {
-          return Left(ServiceFailure(
-            'zero-amount invoice requires amountSat',
-            chain: chain,
-          ));
+          return Left(
+            ServiceFailure(
+              'zero-amount invoice requires amountSat',
+              chain: chain,
+            ),
+          );
         }
         final effectiveAmountSat = invoiceAmountSat ?? request.amountSat!;
         final prepareResp = await c.prepareSendPayment(
@@ -603,23 +717,26 @@ class LightningWalletServiceImpl implements LightningWalletService {
             // For zero-amount invoices, supply the amount; for
             // amount-encoded ones, omit (Breez ignores any override and
             // uses the invoice's encoded amount).
-            amount: invoiceAmountSat == null
-                ? breez.PayAmount_Bitcoin(
-                    receiverAmountSat: BigInt.from(effectiveAmountSat),
-                  )
-                : null,
+            amount:
+                invoiceAmountSat == null
+                    ? breez.PayAmount_Bitcoin(
+                      receiverAmountSat: BigInt.from(effectiveAmountSat),
+                    )
+                    : null,
           ),
         );
-        return Right(domain.PreparedLightningSend(
-          opaqueToken: prepareResp,
-          amountSat: effectiveAmountSat,
-          feeEstimate: domain.FeeEstimate(
-            chain: ChainId.lightning,
-            priority: domain.FeePriority.medium,
-            absoluteFeeSat: (prepareResp.feesSat ?? BigInt.zero).toInt(),
+        return Right(
+          domain.PreparedLightningSend(
+            opaqueToken: prepareResp,
+            amountSat: effectiveAmountSat,
+            feeEstimate: domain.FeeEstimate(
+              chain: ChainId.lightning,
+              priority: domain.FeePriority.medium,
+              absoluteFeeSat: (prepareResp.feesSat ?? BigInt.zero).toInt(),
+            ),
+            destinationDescription: 'BOLT-11 invoice',
           ),
-          destinationDescription: 'BOLT-11 invoice',
-        ));
+        );
       }
 
       if (inputType is breez.InputType_LnUrlPay) {
@@ -629,10 +746,12 @@ class LightningWalletServiceImpl implements LightningWalletService {
         // endpoint's data on prepare.
         final amountSat = request.amountSat;
         if (amountSat == null) {
-          return Left(ServiceFailure(
-            'LNURL-pay / Lightning Address requires amountSat',
-            chain: chain,
-          ));
+          return Left(
+            ServiceFailure(
+              'LNURL-pay / Lightning Address requires amountSat',
+              chain: chain,
+            ),
+          );
         }
         final prepareResp = await c.prepareLnurlPay(
           req: breez.PrepareLnUrlPayRequest(
@@ -645,32 +764,42 @@ class LightningWalletServiceImpl implements LightningWalletService {
             validateSuccessActionUrl: true,
           ),
         );
-        return Right(domain.PreparedLightningSend(
-          opaqueToken: prepareResp,
-          amountSat: amountSat,
-          feeEstimate: domain.FeeEstimate(
-            chain: ChainId.lightning,
-            priority: domain.FeePriority.medium,
-            absoluteFeeSat: prepareResp.feesSat.toInt(),
+        return Right(
+          domain.PreparedLightningSend(
+            opaqueToken: prepareResp,
+            amountSat: amountSat,
+            feeEstimate: domain.FeeEstimate(
+              chain: ChainId.lightning,
+              priority: domain.FeePriority.medium,
+              absoluteFeeSat: prepareResp.feesSat.toInt(),
+            ),
+            destinationDescription: request.lnAddress ?? 'LNURL-pay endpoint',
           ),
-          destinationDescription:
-              request.lnAddress ?? 'LNURL-pay endpoint',
-        ));
+        );
       }
 
-      return Left(ServiceFailure(
-        'unsupported Lightning destination type: ${inputType.runtimeType}',
-        chain: chain,
-      ));
+      return Left(
+        ServiceFailure(
+          'unsupported Lightning destination type: ${inputType.runtimeType}',
+          chain: chain,
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez prepare lightning send failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez prepare lightning send failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, domain.BroadcastResult>> sendLightning(
-      domain.PreparedLightningSend prepared) async {
+    domain.PreparedLightningSend prepared,
+  ) async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
@@ -698,34 +827,45 @@ class LightningWalletServiceImpl implements LightningWalletService {
         if (result is breez.LnUrlPayResult_EndpointSuccess) {
           payment = result.data.payment;
         } else if (result is breez.LnUrlPayResult_PayError) {
-          return Left(ServiceFailure(
-            'LNURL-pay endpoint rejected: ${result.data.reason}',
-            chain: chain,
-          ));
+          return Left(
+            ServiceFailure(
+              'LNURL-pay endpoint rejected: ${result.data.reason}',
+              chain: chain,
+            ),
+          );
         } else if (result is breez.LnUrlPayResult_EndpointError) {
-          return Left(ServiceFailure(
-            'LNURL-pay endpoint error: ${result.data.reason}',
-            chain: chain,
-          ));
+          return Left(
+            ServiceFailure(
+              'LNURL-pay endpoint error: ${result.data.reason}',
+              chain: chain,
+            ),
+          );
         } else {
-          return Left(ServiceFailure(
-            'LNURL-pay returned unknown result: ${result.runtimeType}',
-            chain: chain,
-          ));
+          return Left(
+            ServiceFailure(
+              'LNURL-pay returned unknown result: ${result.runtimeType}',
+              chain: chain,
+            ),
+          );
         }
       } else {
-        return Left(ServiceFailure(
-          'PreparedLightningSend.opaqueToken has unsupported type '
-          '(${token.runtimeType}) — was it constructed by prepareSend?',
-          chain: chain,
-        ));
+        return Left(
+          ServiceFailure(
+            'PreparedLightningSend.opaqueToken has unsupported type '
+            '(${token.runtimeType}) — was it constructed by prepareSend?',
+            chain: chain,
+          ),
+        );
       }
 
       final mapped = _mapPayment(payment);
       if (mapped == null) {
-        return Left(ServiceFailure(
+        return Left(
+          ServiceFailure(
             'breez Lightning send returned an unmappable Payment',
-            chain: chain));
+            chain: chain,
+          ),
+        );
       }
 
       // Persist-before-republish — same invariant as Liquid + Bitcoin.
@@ -733,14 +873,15 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // `ChainId.lightning` for a Lightning payment; tx history shows
       // it as a Lightning payment, balance aggregation pulls from the
       // L-BTC pool (per the unified-balance model).
-      _seen[mapped.id] =
-          _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint(mapped.status, mapped.confirmations);
       _lastList = [mapped, ..._lastList];
-      _emitTx(TransactionEvent(
-        kind: TransactionEventKind.created,
-        transaction: mapped,
-        observedAt: clock.now(),
-      ));
+      _emitTx(
+        TransactionEvent(
+          kind: TransactionEventKind.created,
+          transaction: mapped,
+          observedAt: clock.now(),
+        ),
+      );
 
       // Extract preimage if available (proves payment for BOLT-11).
       String? preimage;
@@ -749,16 +890,24 @@ class LightningWalletServiceImpl implements LightningWalletService {
         preimage = details.preimage;
       }
 
-      return Right(domain.BroadcastResult(
-        chain: ChainId.lightning,
-        txId: mapped.id,
-        transaction: mapped,
-        feePaidSat: payment.feesSat.toInt(),
-        preimage: preimage,
-      ));
+      return Right(
+        domain.BroadcastResult(
+          chain: ChainId.lightning,
+          txId: mapped.id,
+          transaction: mapped,
+          feePaidSat: payment.feesSat.toInt(),
+          preimage: preimage,
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez sendLightning failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez sendLightning failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -787,58 +936,82 @@ class LightningWalletServiceImpl implements LightningWalletService {
         ),
       );
       // Breez returns the invoice in `destination` for BOLT-11 receives.
-      return Right(domain.ReceiveAddress(
-        chain: ChainId.lightning,
-        bolt11: receiveResp.destination,
-        amountSat: amountSat,
-        label: description,
-        expiresAt: expiry == null ? null : clock.now().add(expiry),
-      ));
+      return Right(
+        domain.ReceiveAddress(
+          chain: ChainId.lightning,
+          bolt11: receiveResp.destination,
+          amountSat: amountSat,
+          label: description,
+          expiresAt: expiry == null ? null : clock.now().add(expiry),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez createInvoice failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez createInvoice failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, spendable.LightningPaymentLimits>>
-      fetchLightningLimits() async {
+  fetchLightningLimits() async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
       final limits = await c.fetchLightningLimits();
-      return Right(spendable.LightningPaymentLimits(
-        minSendSat: limits.send.minSat.toInt(),
-        maxSendSat: limits.send.maxSat.toInt(),
-        minReceiveSat: limits.receive.minSat.toInt(),
-        maxReceiveSat: limits.receive.maxSat.toInt(),
-      ));
+      return Right(
+        spendable.LightningPaymentLimits(
+          minSendSat: limits.send.minSat.toInt(),
+          maxSendSat: limits.send.maxSat.toInt(),
+          minReceiveSat: limits.receive.minSat.toInt(),
+          maxReceiveSat: limits.receive.maxSat.toInt(),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez fetchLightningLimits failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez fetchLightningLimits failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   @override
   Future<Either<ServiceFailure, spendable.OnchainPaymentLimits>>
-      fetchOnchainLimits() async {
+  fetchOnchainLimits() async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
       final limits = await c.fetchOnchainLimits();
-      return Right(spendable.OnchainPaymentLimits(
-        minSendSat: limits.send.minSat.toInt(),
-        maxSendSat: limits.send.maxSat.toInt(),
-        minReceiveSat: limits.receive.minSat.toInt(),
-        maxReceiveSat: limits.receive.maxSat.toInt(),
-      ));
+      return Right(
+        spendable.OnchainPaymentLimits(
+          minSendSat: limits.send.minSat.toInt(),
+          maxSendSat: limits.send.maxSat.toInt(),
+          minReceiveSat: limits.receive.minSat.toInt(),
+          maxReceiveSat: limits.receive.maxSat.toInt(),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez fetchOnchainLimits failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez fetchOnchainLimits failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -855,10 +1028,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
   // path.
 
   @override
-  Future<Either<
-      ServiceFailure,
-      ({String bitcoinAddress, int breezFeesSat})>> preparePegInDeposit(
-      {required int payerAmountSat}) async {
+  Future<Either<ServiceFailure, ({String bitcoinAddress, int breezFeesSat})>>
+  preparePegInDeposit({required int payerAmountSat}) async {
     final c = _client;
     if (c == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
@@ -879,8 +1050,14 @@ class LightningWalletServiceImpl implements LightningWalletService {
         breezFeesSat: prepareResp.feesSat.toInt(),
       ));
     } catch (e, st) {
-      return Left(ServiceFailure('breez preparePegInDeposit failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez preparePegInDeposit failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -893,24 +1070,33 @@ class LightningWalletServiceImpl implements LightningWalletService {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
-      final amount = request.drain
-          ? breez.PayAmount_Drain()
-          : breez.PayAmount_Bitcoin(
-              receiverAmountSat: BigInt.from(request.receiverAmountSat),
-            );
+      final amount =
+          request.drain
+              ? breez.PayAmount_Drain()
+              : breez.PayAmount_Bitcoin(
+                receiverAmountSat: BigInt.from(request.receiverAmountSat),
+              );
       final prepareResp = await c.preparePayOnchain(
         req: breez.PreparePayOnchainRequest(
           amount: amount,
           feeRateSatPerVbyte: request.feeRateSatPerVByte?.toInt(),
         ),
       );
-      return Right(domain.PegOutQuote(
-        receiverAmountSat: prepareResp.receiverAmountSat.toInt(),
-        totalFeesSat: prepareResp.totalFeesSat.toInt(),
-      ));
+      return Right(
+        domain.PegOutQuote(
+          receiverAmountSat: prepareResp.receiverAmountSat.toInt(),
+          totalFeesSat: prepareResp.totalFeesSat.toInt(),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez preparePegOut failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez preparePegOut failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -926,11 +1112,12 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // Re-derive the prepare response from the canonical request — V2
       // stateless philosophy. UTXO selection / fee rate runs against
       // the current wallet state, not against a stale prepared object.
-      final amount = request.drain
-          ? breez.PayAmount_Drain()
-          : breez.PayAmount_Bitcoin(
-              receiverAmountSat: BigInt.from(request.receiverAmountSat),
-            );
+      final amount =
+          request.drain
+              ? breez.PayAmount_Drain()
+              : breez.PayAmount_Bitcoin(
+                receiverAmountSat: BigInt.from(request.receiverAmountSat),
+              );
       final prepareResp = await c.preparePayOnchain(
         req: breez.PreparePayOnchainRequest(
           amount: amount,
@@ -946,59 +1133,81 @@ class LightningWalletServiceImpl implements LightningWalletService {
 
       final mapped = _mapPayment(payResp.payment);
       if (mapped == null) {
-        return Left(ServiceFailure(
+        return Left(
+          ServiceFailure(
             'breez payOnchain returned an unmappable Payment',
-            chain: chain));
+            chain: chain,
+          ),
+        );
       }
 
       // Persist-before-republish: synthetic event so the orchestrator's
       // single-writer pipeline upserts this tx via transactionStore
       // BEFORE any UI subscriber sees it.
-      _seen[mapped.id] =
-          _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint(mapped.status, mapped.confirmations);
       _lastList = [mapped, ..._lastList];
-      _emitTx(TransactionEvent(
-        kind: TransactionEventKind.created,
-        transaction: mapped,
-        observedAt: clock.now(),
-      ));
+      _emitTx(
+        TransactionEvent(
+          kind: TransactionEventKind.created,
+          transaction: mapped,
+          observedAt: clock.now(),
+        ),
+      );
 
-      return Right(domain.BroadcastResult(
-        chain: ChainId.bitcoin,
-        txId: mapped.id,
-        transaction: mapped,
-        feePaidSat: prepareResp.totalFeesSat.toInt(),
-      ));
+      return Right(
+        domain.BroadcastResult(
+          chain: ChainId.bitcoin,
+          txId: mapped.id,
+          transaction: mapped,
+          feePaidSat: prepareResp.totalFeesSat.toInt(),
+        ),
+      );
     } catch (e, st) {
-      return Left(ServiceFailure('breez payOnchain failed: $e',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'breez payOnchain failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   // ─────────────────────────────────────────── helpers
 
-  void _emit(ServiceLifecycle l,
-      {DateTime? lastSyncAt,
-      ServiceFailure? failure,
-      bool clearFailure = false}) {
+  void _emit(
+    ServiceLifecycle l, {
+    DateTime? lastSyncAt,
+    ServiceFailure? failure,
+    bool clearFailure = false,
+  }) {
     if (_state.isClosed) return;
-    _state.add(currentState.copyWith(
-      lifecycle: l,
-      lastSyncAt: lastSyncAt,
-      failure: failure,
-      clearFailure: clearFailure,
-    ));
+    _state.add(
+      currentState.copyWith(
+        lifecycle: l,
+        lastSyncAt: lastSyncAt,
+        failure: failure,
+        clearFailure: clearFailure,
+      ),
+    );
   }
 
-  Either<ServiceFailure, T> _fail<T>(String msg,
-      {Object? cause, StackTrace? stackTrace}) {
-    final f = ServiceFailure(msg,
-        chain: chain, cause: cause, stackTrace: stackTrace);
+  Either<ServiceFailure, T> _fail<T>(
+    String msg, {
+    Object? cause,
+    StackTrace? stackTrace,
+  }) {
+    final f = ServiceFailure(
+      msg,
+      chain: chain,
+      cause: cause,
+      stackTrace: stackTrace,
+    );
     if (!_state.isClosed) {
-      _state.add(currentState.copyWith(
-        lifecycle: ServiceLifecycle.errored,
-        failure: f,
-      ));
+      _state.add(
+        currentState.copyWith(lifecycle: ServiceLifecycle.errored, failure: f),
+      );
     }
     logger.warn('lightning.fail', {'reason': msg});
     return Left(f);
@@ -1024,7 +1233,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
   /// stable, say), this conversion needs revisiting; tracked as a
   /// follow-up to the Asset entity.
   breez.PrepareSendRequest _buildPrepareSendRequest(
-      domain.SendRequest request) {
+    domain.SendRequest request,
+  ) {
     final breez.PayAmount payAmount;
     if (request.drain || request.subtractFeeFromAmount) {
       payAmount = breez.PayAmount_Drain();
@@ -1070,9 +1280,10 @@ class LightningWalletServiceImpl implements LightningWalletService {
     _logBreezPaymentV2(p);
     final id = _resolvePaymentId(p);
     if (id.isEmpty) return null;
-    final dir = p.paymentType == breez.PaymentType.receive
-        ? domain.TransactionDirection.incoming
-        : domain.TransactionDirection.outgoing;
+    final dir =
+        p.paymentType == breez.PaymentType.receive
+            ? domain.TransactionDirection.incoming
+            : domain.TransactionDirection.outgoing;
     final status = switch (p.status) {
       breez.PaymentState.complete => domain.TransactionStatus.confirmed,
       breez.PaymentState.failed => domain.TransactionStatus.failed,
@@ -1197,9 +1408,9 @@ class LightningWalletServiceImpl implements LightningWalletService {
   /// (Lightning HTLCs settle into the Breez L-BTC pool immediately;
   /// LWK's electrum view is one block behind).
   domain.Balance _mapBalance(breez.GetInfoResponse info) {
-    final pending = (info.walletInfo.pendingSendSat +
-            info.walletInfo.pendingReceiveSat)
-        .toInt();
+    final pending =
+        (info.walletInfo.pendingSendSat + info.walletInfo.pendingReceiveSat)
+            .toInt();
     final assets = <domain.AssetBalance>[
       domain.AssetBalance(
         chain: chain,
@@ -1216,12 +1427,14 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // the L-BTC value because `WalletRepositoryImpl._extractAssetAmount`
       // defensively sums every entry matching the asset id on a chain.
       if (ab.assetId == lbtcAssetId) continue;
-      assets.add(domain.AssetBalance(
-        chain: chain,
-        assetId: ab.assetId,
-        amountSat: ab.balanceSat.toInt(),
-        ticker: ab.ticker,
-      ));
+      assets.add(
+        domain.AssetBalance(
+          chain: chain,
+          assetId: ab.assetId,
+          amountSat: ab.balanceSat.toInt(),
+          ticker: ab.ticker,
+        ),
+      );
     }
     return domain.Balance(assets: assets, snapshotAt: clock.now());
   }
@@ -1234,33 +1447,39 @@ class LightningWalletServiceImpl implements LightningWalletService {
       if (prev == null) {
         changes++;
         _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
-        _emitTx(TransactionEvent(
-          kind: TransactionEventKind.created,
-          transaction: tx,
-          observedAt: now,
-        ));
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.created,
+            transaction: tx,
+            observedAt: now,
+          ),
+        );
         continue;
       }
       if (prev.status != tx.status) {
         changes++;
         _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
-        _emitTx(TransactionEvent(
-          kind: TransactionEventKind.statusChanged,
-          transaction: tx,
-          previousStatus: prev.status,
-          previousConfirmations: prev.confirmations,
-          observedAt: now,
-        ));
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.statusChanged,
+            transaction: tx,
+            previousStatus: prev.status,
+            previousConfirmations: prev.confirmations,
+            observedAt: now,
+          ),
+        );
       } else if (prev.confirmations != tx.confirmations) {
         changes++;
         _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
-        _emitTx(TransactionEvent(
-          kind: TransactionEventKind.confirmationsChanged,
-          transaction: tx,
-          previousStatus: prev.status,
-          previousConfirmations: prev.confirmations,
-          observedAt: now,
-        ));
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.confirmationsChanged,
+            transaction: tx,
+            previousStatus: prev.status,
+            previousConfirmations: prev.confirmations,
+            observedAt: now,
+          ),
+        );
       }
     }
     return changes;
@@ -1302,7 +1521,8 @@ void _logBreezPaymentV2(breez.Payment p) {
         'refundTx=${d.refundTxId}, refundAmtSat=${d.refundTxAmountSat}}';
   } else if (d is breez.PaymentDetails_Lightning) {
     final inv = d.invoice;
-    detailsLine = 'Lightning{swapId=${d.swapId}, '
+    detailsLine =
+        'Lightning{swapId=${d.swapId}, '
         'invoice=${inv == null ? "null" : "${inv.substring(0, inv.length.clamp(0, 20))}…"}, '
         'preimage=${d.preimage}, claimTx=${d.claimTxId}, '
         'refundTx=${d.refundTxId}}';
@@ -1312,10 +1532,10 @@ void _logBreezPaymentV2(breez.Payment p) {
     detailsLine = 'unknown(${d.runtimeType})';
   }
 
-  debugPrint(
-    '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
-    'amountSat=${p.amountSat} feesSat=${p.feesSat} '
-    'txId=${p.txId} ts=${p.timestamp} '
-    'details=$detailsLine',
-  );
+  // debugPrint(
+  //   '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
+  //   'amountSat=${p.amountSat} feesSat=${p.feesSat} '
+  //   'txId=${p.txId} ts=${p.timestamp} '
+  //   'details=$detailsLine',
+  // );
 }
