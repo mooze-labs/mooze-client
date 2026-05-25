@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/app/lifecycle/app_state.dart';
-import 'package:mooze_mobile/domain/services/service_state.dart';
+import 'package:mooze_mobile/domain/entities/chain.dart';
 import 'package:mooze_mobile/features/boot/domain/boot_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
@@ -158,48 +159,63 @@ class _WalletImportLoadingScreenState
     _showMessage(label);
   }
 
-  /// Phase 2.3.3: per-chain sync event monitoring is now driven by
-  /// `ref.listen<AsyncValue<SyncState>>(syncStateProvider, ...)` in
-  /// `build()`. When a chain transitions from `connecting` →
-  /// `connected`, we render its "synced X" message; when all three
-  /// chains report `connected` we run the post-sync sequence.
+  /// Per-chain sync progress messaging (2026-05-24 redesign).
+  ///
+  /// Previously this method watched `state.perChain[chain] ==
+  /// ServiceLifecycle.connected`, but that lifecycle flips to
+  /// `connected` during BOOT — the moment each SDK handle is alive,
+  /// well before its first network sync returns. The visible
+  /// consequence was all three "synced X" lines firing simultaneously
+  /// the instant boot finished, so the user perceived the loading
+  /// screen as "going too fast" without actually reflecting the
+  /// per-chain network work.
+  ///
+  /// The orchestrator now exposes a separate signal,
+  /// `SyncState.firstSyncedChains`, which is populated as each chain
+  /// finishes its first sync cycle (success OR failure). Iterating
+  /// THIS set gives one message per chain at the moment that chain
+  /// actually has fresh data sitting in the store.
   ///
   /// Idempotent — `_completedChains` guards against duplicate emits
-  /// when `syncStateProvider` re-emits the same state (e.g. on every
-  /// periodic tick after first-sync).
+  /// when `syncStateProvider` re-emits the same state on subsequent
+  /// periodic ticks.
   void _trackChainSyncProgress(SyncState state) {
     final t = AppLocalizations.of(context);
-    state.perChain.forEach((chain, lifecycle) {
-      if (lifecycle == ServiceLifecycle.connected &&
-          !_completedChains.contains(chain.name)) {
-        _completedChains.add(chain.name);
-        // ignore: unawaited_futures
-        _showMessage(
-          t.wallet_import_msg_synced(_getChainName(chain.name)),
-        );
-      }
-    });
+    for (final chain in state.firstSyncedChains) {
+      if (_completedChains.contains(chain.name)) continue;
+      _completedChains.add(chain.name);
+      // ignore: unawaited_futures
+      _showMessage(
+        t.wallet_import_msg_synced(_getChainName(chain.name)),
+      );
+    }
 
     // Import-screen navigation gate. The cold-start path bypasses this
     // screen entirely (SplashScreen routes straight to /home on
     // AppPhase.ready), so the gate here only affects the import flow:
-    // we hold the splash + animations until the first sync cycle
-    // completes. Without this gate, freshly imported wallets land on
-    // /home with an empty `transactionStore` and a "0" balance — the
-    // user just submitted their seed and needs to see their funds.
+    // we hold the splash + animations until the chain whose data the
+    // user is most likely to look for first has settled.
     //
-    // The sync orchestrator transitions `SyncState.phase` to `cooling`
-    // exactly once the first refresh cycle has finished (success path
-    // sets `lastSuccessAt`; total-failure path sets `lastError`). Both
-    // are terminal-enough to navigate: with data we render the wallet,
-    // with a hard sync failure the home shows a sync-error indicator
-    // and the user is no longer stuck on the splash. We do NOT gate on
-    // `ServiceLifecycle.connected` — that's a SDK-handle signal set
-    // during BOOT (before any sync runs), so it would fire the gate
-    // immediately the moment sync started.
+    // Gate condition (2026-05-24): wait specifically for Lightning
+    // (Breez). Rationale: Breez is the source of Liquid asset swaps,
+    // which is the data the user typically wants to see immediately
+    // after importing — Liquid native (LWK) txs and Bitcoin (BDK) txs
+    // surface fine via progressive hydration once the home mounts.
+    // If Lightning fails, its entry still lands in `firstSyncedChains`
+    // (the orchestrator counts a failure as "we got an answer"), so
+    // the gate releases.
+    //
+    // Belt-and-suspenders: also release on `phase == cooling`
+    // (everything settled) or `lastError` (all chains hard-failed) so
+    // we never strand the user if Lightning hangs in a non-timeout
+    // state.
     final appState = ref.read(appStateProvider).valueOrNull;
-    final firstSyncCycleDone = state.phase == SyncPhase.cooling &&
+    final lightningSettled =
+        state.firstSyncedChains.contains(ChainId.lightning);
+    final allSettled = state.phase == SyncPhase.cooling &&
         (state.lastSuccessAt != null || state.lastError != null);
+    final firstSyncCycleDone =
+        lightningSettled || allSettled || state.lastError != null;
     if (appState?.phase == AppPhase.ready &&
         firstSyncCycleDone &&
         !_isHandlingSuccess &&
@@ -298,9 +314,13 @@ class _WalletImportLoadingScreenState
       // `ref.listen`; the `start()` call returns when boot completes
       // (or fails), at which point `appStateProvider` already emitted
       // `AppPhase.ready` (or `AppPhase.error`).
+      BootTracer.mark('import_loading.controller.resolve.begin');
       final controller =
           await ref.read(appLifecycleControllerProvider.future);
+      BootTracer.mark('import_loading.controller.resolve.end');
+      BootTracer.mark('import_loading.controller.start.begin');
       await controller.start();
+      BootTracer.mark('import_loading.controller.start.end');
     } catch (e) {
       if (!mounted) return;
       final errorMsg = _getErrorMessage(e);

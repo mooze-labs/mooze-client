@@ -58,6 +58,16 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             ],
             Expanded(
               child: _FeeSpeedOption(
+                title: t.wallet_fee_economic,
+                subtitle: t.wallet_fee_economic_eta,
+                feeRate: widget.lowFeeSatPerVByte ?? 1,
+                isSelected: widget.selectedSpeed == FeeSpeed.low,
+                onTap: () => widget.onSpeedChanged(FeeSpeed.low),
+                isLoading: widget.lowFeeSatPerVByte == null,
+              ),
+            ),
+            Expanded(
+              child: _FeeSpeedOption(
                 title: t.wallet_fee_normal,
                 subtitle: t.wallet_fee_normal_eta,
                 feeRate: widget.mediumFeeSatPerVByte ?? 3,

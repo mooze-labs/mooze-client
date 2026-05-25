@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
@@ -59,7 +60,9 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
     }
 
     final pinSetupRepository = ref.read(pinSetupRepositoryProvider);
+    BootTracer.mark('pin_confirm.create.begin');
     final result = await pinSetupRepository.createPin(inputPin).run();
+    BootTracer.mark('pin_confirm.create.end', {'ok': result.isRight()});
 
     result.match(
       (failure) => ScaffoldMessenger.of(
@@ -67,12 +70,15 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
       ).showSnackBar(SnackBar(content: Text(failure.toString()))),
       (_) async {
         // Invalidate hasPinProvider after PIN creation
+        BootTracer.mark('pin_confirm.invalidate.has_pin');
         ref.invalidate(hasPinProvider);
 
         // Always clear the session after a PIN save so the next app open
         // requires the new PIN — whether this is initial setup or a change.
         // Without this, the old session allows bypassing PIN entry entirely.
+        BootTracer.mark('pin_confirm.session_invalidate.begin');
         await AuthenticationService().invalidateSession();
+        BootTracer.mark('pin_confirm.session_invalidate.end');
 
         if (!mounted) return;
 
@@ -90,8 +96,10 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
           if (!mounted) return;
 
           if (isAvailable) {
+            BootTracer.mark('pin_confirm.nav.biometric');
             context.go('/setup/biometric');
           } else {
+            BootTracer.mark('pin_confirm.nav.import_loading');
             context.go('/setup/wallet-import-loading');
           }
         }

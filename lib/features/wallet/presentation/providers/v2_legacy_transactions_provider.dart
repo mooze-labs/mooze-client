@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,70 +42,153 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 ///   `unknown` for Breez fee adjustments / unresolvable LWK kinds /
 ///   issuance/burn/reissuance.
 /// Lists at or above this size are adapted + unified in a background
-/// isolate via `compute`. Below the threshold, the work runs inline:
-/// for small lists the isolate spawn + copy overhead (~5-20ms on
-/// mobile) dominates the actual processing time.
+/// isolate via `compute`. Below the threshold, the work runs inline.
+///
+/// Threshold calibration (2026-05-24): traces consistently showed that
+/// `compute()` runs of 225-tx lists took ~2200 ms wall-clock with the
+/// actual `unifier.done` reporting `dur_ms=4`. The 2196 ms delta is
+/// PURE OVERHEAD — spawning a fresh isolate plus serializing 225
+/// `Transaction` objects through the `SendPort` (an O(n) deep-copy
+/// that runs on the UI isolate, blocking the heartbeat). Inline,
+/// the same workload finishes in single-digit ms.
+///
+/// At 1500, even larger wallets adapt+unify on the UI thread in well
+/// under one frame (16ms budget) thanks to `_adaptAndUnify` being
+/// pure transforms over already-decoded lists. The isolate path is
+/// reserved for genuinely huge tx tables where the math would visibly
+/// stutter the frame; for everyday wallets the inline path is faster
+/// AND smoother.
 ///
 /// The first emission after PIN entry runs the full
 /// `SELECT * FROM transactions` against sqlite on the UI isolate
 /// (see `TransactionStoreImpl.watch`) — for wallets with non-trivial
 /// history, processing that list synchronously was blocking the UI
-/// thread long enough to be perceived as a freeze.
-const _isolateThreshold = 50;
+/// thread long enough to be perceived as a freeze, but the unifier
+/// itself isn't the bottleneck anymore.
+const _isolateThreshold = 1500;
 
 final v2LegacyTransactionsProvider =
-    StreamProvider<List<legacy.Transaction>>((ref) async* {
-  BootTracer.mark('v2_legacy_txs.resolving_repo');
-  final repo = await ref.watch(walletRepositoryProvider.future);
-  BootTracer.mark('v2_legacy_txs.repo_resolved');
+    StreamProvider<List<legacy.Transaction>>((ref) {
+  // We use a manual StreamController instead of `async*` so we can
+  // implement drop-intermediate semantics: while a compute() is in
+  // flight, additional upstream emissions don't queue a new compute
+  // each — they just stash themselves as "latest pending input". When
+  // the in-flight compute finishes, if the latest pending differs
+  // from what we just processed, we kick off one more compute. This
+  // collapses a storm of N upstream emissions during a sync into at
+  // most 2 computes (the one in flight when the storm started + one
+  // for the final state).
+  final controller = StreamController<List<legacy.Transaction>>();
 
-  // The underlying `transactionStore.watch()` stream re-emits the
-  // whole list on every sync tick (Breez chain swap progress, BDK
-  // mempool refresh, LWK rescan), often with identical content.
-  // Fingerprint the input and short-circuit when nothing the unifier
-  // depends on has changed — we hand back the *same* `List` reference,
-  // so Riverpod's downstream listeners see reference equality and
-  // skip rebuilding the home transaction list entirely.
+  // Cache state — same shape as before (fingerprint + length tuple +
+  // last result).
   int? lastFingerprint;
+  int? lastLength;
   List<legacy.Transaction>? lastResult;
   var emissionSeq = 0;
 
-  await for (final txs in repo.watchTransactions()) {
-    emissionSeq += 1;
-    BootTracer.mark('v2_legacy_txs.emit', {
-      'n': emissionSeq,
-      'len': txs.length,
-    });
-    final fingerprint = _fingerprint(txs);
-    if (fingerprint == lastFingerprint && lastResult != null) {
-      BootTracer.mark('v2_legacy_txs.cache_hit', {'n': emissionSeq});
-      yield lastResult;
-      continue;
-    }
+  List<v2.Transaction>? pending;
+  bool processing = false;
+  bool cancelled = false;
 
-    final List<legacy.Transaction> result;
-    if (txs.length >= _isolateThreshold) {
-      result = await BootTracer.measureAsync(
-        'v2_legacy_txs.compute(n=$emissionSeq,len=${txs.length})',
-        () => compute(_adaptAndUnify, txs),
-      );
-    } else {
-      BootTracer.mark('v2_legacy_txs.inline.before', {
-        'n': emissionSeq,
-        'len': txs.length,
-      });
-      result = _adaptAndUnify(txs);
-      BootTracer.mark('v2_legacy_txs.inline.after', {'n': emissionSeq});
-    }
+  Future<void> drain() async {
+    if (processing) return;
+    processing = true;
+    try {
+      while (!cancelled && pending != null) {
+        final txs = pending!;
+        pending = null;
+        emissionSeq += 1;
+        final seq = emissionSeq;
+        BootTracer.mark('v2_legacy_txs.process', {
+          'n': seq,
+          'len': txs.length,
+        });
 
-    lastFingerprint = fingerprint;
-    lastResult = result;
-    BootTracer.mark('v2_legacy_txs.yield', {
-      'n': emissionSeq,
-      'len': result.length,
-    });
-    yield result;
+        final fingerprint = _fingerprint(txs);
+        final hit = fingerprint == lastFingerprint &&
+            txs.length == lastLength &&
+            lastResult != null;
+        if (hit) {
+          BootTracer.mark('v2_legacy_txs.cache_hit', {
+            'n': seq,
+            'len': txs.length,
+          });
+          if (!controller.isClosed) controller.add(lastResult!);
+          continue;
+        }
+        if (txs.isEmpty) {
+          BootTracer.mark('v2_legacy_txs.empty_emit', {
+            'n': seq,
+            'prior_len': lastLength,
+          });
+        }
+
+        final List<legacy.Transaction> result;
+        if (txs.length >= _isolateThreshold) {
+          result = await BootTracer.measureAsync(
+            'v2_legacy_txs.compute(n=$seq,len=${txs.length})',
+            () => compute(_adaptAndUnify, txs),
+          );
+        } else {
+          BootTracer.mark('v2_legacy_txs.inline.before', {
+            'n': seq,
+            'len': txs.length,
+          });
+          final tAdapt = DateTime.now();
+          final adapted = txs.map(_v2ToLegacy).toList(growable: false);
+          final adaptMs = DateTime.now().difference(tAdapt).inMilliseconds;
+          final tUnify = DateTime.now();
+          result = unifyPegSwaps(adapted);
+          final unifyMs = DateTime.now().difference(tUnify).inMilliseconds;
+          BootTracer.mark('v2_legacy_txs.inline.after', {
+            'n': seq,
+            'adapt_ms': adaptMs,
+            'unify_ms': unifyMs,
+          });
+        }
+
+        lastFingerprint = fingerprint;
+        lastLength = txs.length;
+        lastResult = result;
+        BootTracer.mark('v2_legacy_txs.yield', {
+          'n': seq,
+          'len': result.length,
+        });
+        if (!controller.isClosed) controller.add(result);
+      }
+    } finally {
+      processing = false;
+    }
   }
+
+  StreamSubscription<List<v2.Transaction>>? sub;
+  BootTracer.mark('v2_legacy_txs.resolving_repo');
+  ref.watch(walletRepositoryProvider.future).then((repo) {
+    BootTracer.mark('v2_legacy_txs.repo_resolved');
+    if (cancelled) return;
+    sub = repo.watchTransactions().listen((txs) {
+      // Always overwrite — older pending inputs are stale by definition,
+      // we want to process the freshest state. Logging the drop is
+      // useful for confirming the optimization is actually firing.
+      if (pending != null) {
+        BootTracer.mark('v2_legacy_txs.drop_intermediate', {
+          'prior_len': pending!.length,
+          'new_len': txs.length,
+        });
+      }
+      pending = txs;
+      drain();
+    });
+  });
+
+  ref.onDispose(() async {
+    cancelled = true;
+    await sub?.cancel();
+    await controller.close();
+  });
+
+  return controller.stream;
 });
 
 /// Top-level entry point so it can be handed to `compute` (which

@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
+import '../entities/balance.dart';
 import '../entities/liquid_utxo.dart';
 import '../failures/failure.dart';
 import 'wallet_service.dart';
@@ -47,4 +48,19 @@ abstract interface class LiquidWalletService implements WalletService {
   /// is signed by LWK and the receive output has to be derivable from
   /// the same descriptor that produced the signing keys.
   Future<Either<ServiceFailure, String>> getReceiveAddress();
+
+  /// Re-read LWK's local balance view (`w.balances()`) and update the
+  /// cached `_lastBalance` WITHOUT running a full electrum sync. LWK
+  /// holds balances in its persistent store, so this is essentially a
+  /// hot cache refresh — cheap, never hits the network.
+  Future<Either<ServiceFailure, Balance>> refreshBalance();
+
+  /// Apply known per-asset deltas to the cached `_lastBalance` for
+  /// instant UI feedback. Used after a SideSwap broadcast where the
+  /// LWK electrum view has not yet indexed the new tx but we already
+  /// know the asset deltas from the PSET. Cache is overwritten on
+  /// the next successful `sync()`.
+  Future<Either<ServiceFailure, Balance>> applyOptimisticBalanceDelta({
+    required Map<String, int> deltas,
+  });
 }

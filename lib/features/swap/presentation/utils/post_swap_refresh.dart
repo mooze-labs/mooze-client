@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/domain/usecases/refresh_wallet.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 
 /// Stagger times for the post-swap refresh sequence. The first tick
 /// catches the swap row the chain backends have *already* observed
@@ -23,6 +24,79 @@ const _refreshSchedule = <Duration>[
   Duration(seconds: 3),
   Duration(seconds: 15),
 ];
+
+/// Apply known asset deltas to the cached service balances so the
+/// home screen reflects the swap immediately, then invalidate the
+/// balance providers so the UI re-pulls the freshly-mutated cache.
+///
+/// Why this is separate from [triggerPostSwapRefresh]: SideSwap
+/// broadcasts the tx via its own server, NOT via Breez SDK. Neither
+/// `c.getInfo()` (Breez) nor `w.balances()` (LWK) reflect the new
+/// state until the corresponding electrum endpoint indexes the
+/// mempool tx — which can take 5–30 s in practice. Until then,
+/// every `sync()` returns `changed=0` and the UI shows the
+/// pre-swap balance.
+///
+/// The fix: directly mutate the cached `_lastBalance` on both
+/// services with the known swap deltas (-send, +receive). The
+/// next successful sync overwrites the cache with the real values,
+/// so the optimistic update is *transparently* corrected if the
+/// swap details we computed turn out to be off (e.g. server fee
+/// differs from what the UI showed).
+///
+/// Best-effort: any failure here is logged and swallowed — the
+/// caller's `triggerPostSwapRefresh` still runs as the fallback.
+void triggerPostSwapOptimisticBalanceUpdate(
+  WidgetRef ref, {
+  required String sendAssetId,
+  required int sendAmountSat,
+  required String receiveAssetId,
+  required int receiveAmountSat,
+}) {
+  if (sendAmountSat <= 0 && receiveAmountSat <= 0) return;
+  // Apply the same deltas to both services. Breez is the primary
+  // resolver for all Liquid assets at the home screen (see
+  // `Asset.<x>.resolutionChains == [lightning, liquid]`), so its
+  // cache is the one users actually see; LWK is updated for parity
+  // and so screens that read LWK directly (e.g. utxo / debug views)
+  // also see consistent state.
+  // Accumulate per-asset deltas so a (nonsensical but defensible)
+  // same-asset swap doesn't clobber itself on the second key write.
+  final deltas = <String, int>{};
+  deltas.update(
+    sendAssetId,
+    (prev) => prev - sendAmountSat,
+    ifAbsent: () => -sendAmountSat,
+  );
+  deltas.update(
+    receiveAssetId,
+    (prev) => prev + receiveAmountSat,
+    ifAbsent: () => receiveAmountSat,
+  );
+
+  Future<void>.microtask(() async {
+    try {
+      final lightning = ref.read(lightningWalletServiceProvider);
+      final liquid = ref.read(liquidWalletServiceProvider);
+      await Future.wait([
+        lightning.applyOptimisticBalanceDelta(deltas: deltas),
+        liquid.applyOptimisticBalanceDelta(deltas: deltas),
+      ]);
+      // Nudge the home screen to re-read the freshly-mutated cache.
+      // `allBalancesProvider` is the unified read used by the home
+      // balance widget; invalidating it re-runs the fan-out and
+      // surfaces our optimistic numbers in the same frame.
+      ref.invalidate(allBalancesProvider);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[post-swap-balance] optimistic update failed: $e — falling back to '
+          'next sync',
+        );
+      }
+    }
+  });
+}
 
 /// Fire-and-forget staggered wallet refresh used by every swap
 /// completion path (peg-in, peg-out, single-tx Liquid asset swap,

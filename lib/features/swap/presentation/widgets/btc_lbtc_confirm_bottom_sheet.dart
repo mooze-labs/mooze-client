@@ -18,10 +18,8 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
   final bool isPegIn;
   final BtcLbtcSwapController controller;
-  final Future<void> Function(
-    int? feeRateSatPerVByte,
-    BigInt totalFeeSat,
-  ) onConfirm;
+  final Future<void> Function(int? feeRateSatPerVByte, BigInt totalFeeSat)
+  onConfirm;
   final VoidCallback? onCancel;
   final bool drain;
 
@@ -40,10 +38,8 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     required BigInt amount,
     required bool isPegIn,
     required BtcLbtcSwapController controller,
-    required Future<void> Function(
-      int? feeRateSatPerVByte,
-      BigInt totalFeeSat,
-    ) onConfirm,
+    required Future<void> Function(int? feeRateSatPerVByte, BigInt totalFeeSat)
+    onConfirm,
     VoidCallback? onCancel,
     bool drain = false,
   }) {
@@ -216,9 +212,8 @@ class _BtcLbtcConfirmBottomSheetState
     // estimated. While fees are loading, pass null so the card shimmers
     // the receive amount — matching the regular confirm sheet's UX.
     final sendAmountSats = widget.amount.toInt();
-    final receiveAmountSats = _isLoadingFees
-        ? null
-        : (widget.amount - totalFeeSat).toInt();
+    final receiveAmountSats =
+        _isLoadingFees ? null : (widget.amount - totalFeeSat).toInt();
 
     return PlatformSafeArea(
       child: Container(
@@ -393,14 +388,15 @@ class _BtcLbtcConfirmBottomSheetState
     // The "sending" / "receiving" rows that used to live here have
     // been removed because the SwapDealCard already surfaces both
     // amounts above this section.
-    final Widget totalValue = isLoading
-        ? _ShimmerBlock(width: 80, height: 16)
-        : Text(
-            formatSats(totalFeeSat),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          );
+    final Widget totalValue =
+        isLoading
+            ? _ShimmerBlock(width: 80, height: 16)
+            : Text(
+              formatSats(totalFeeSat),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,9 +424,10 @@ class _BtcLbtcConfirmBottomSheetState
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: isLoading
-                ? null
-                : () => setState(() => _feesExpanded = !_feesExpanded),
+            onTap:
+                isLoading
+                    ? null
+                    : () => setState(() => _feesExpanded = !_feesExpanded),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -474,24 +471,25 @@ class _BtcLbtcConfirmBottomSheetState
                   AnimatedSize(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOutCubic,
-                    child: (_feesExpanded && !isLoading)
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 10, left: 24),
-                            child: Column(
-                              children: [
-                                _BreakdownRow(
-                                  label: t.swap_confirm_boltz_fee,
-                                  value: formatSats(boltzFeeSat),
-                                ),
-                                const SizedBox(height: 6),
-                                _BreakdownRow(
-                                  label: t.swap_confirm_tx_fee,
-                                  value: formatSats(networkFeeSat),
-                                ),
-                              ],
-                            ),
-                          )
-                        : const SizedBox.shrink(),
+                    child:
+                        (_feesExpanded && !isLoading)
+                            ? Padding(
+                              padding: const EdgeInsets.only(top: 10, left: 24),
+                              child: Column(
+                                children: [
+                                  _BreakdownRow(
+                                    label: t.swap_confirm_boltz_fee,
+                                    value: formatSats(boltzFeeSat),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _BreakdownRow(
+                                    label: t.swap_confirm_tx_fee,
+                                    value: formatSats(networkFeeSat),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : const SizedBox.shrink(),
                   ),
                 ],
               ),
@@ -543,7 +541,6 @@ class _BtcLbtcConfirmBottomSheetState
       }
     }
   }
-
 }
 
 /// Single breakdown row inside the expanded fees panel

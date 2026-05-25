@@ -8,17 +8,41 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_tr
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/pending_swap_item.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/transaction_formatters.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 
-class TransactionList extends ConsumerWidget {
+class TransactionList extends ConsumerStatefulWidget {
   const TransactionList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TransactionList> createState() => _TransactionListState();
+}
+
+class _TransactionListState extends ConsumerState<TransactionList> {
+  // Captured at first paint so we don't spam the trace with a mark per
+  // rebuild. Use cases: distinguish "first time home renders txs" from
+  // ongoing stream-driven rebuilds.
+  bool _markedFirstPaint = false;
+  int? _markedLength;
+
+  void _onPaint(int len, {required String source}) {
+    if (!_markedFirstPaint) {
+      _markedFirstPaint = true;
+      BootTracer.mark('home.tx_list.first_paint',
+          {'len': len, 'source': source});
+    } else if (_markedLength != len) {
+      BootTracer.mark('home.tx_list.length_change',
+          {'len': len, 'prev': _markedLength, 'source': source});
+    }
+    _markedLength = len;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(v2LegacyTransactionsProvider);
     final isVisible = ref.watch(isVisibleProvider);
     final pendingSwaps = ref.watch(pendingSwapsProvider);
@@ -28,25 +52,36 @@ class TransactionList extends ConsumerWidget {
     ref.watch(pendingSwapsReconciliationProvider);
 
     return transactionsAsync.when(
-      loading: () => pendingSwaps.isEmpty
-          ? const LoadingTransactionList()
-          : _TransactionListBody(
-              transactions: const [],
-              pendingSwaps: pendingSwaps,
-              isVisible: isVisible,
-            ),
-      error: (err, _) => pendingSwaps.isEmpty
-          ? const ErrorTransactionList()
-          : _TransactionListBody(
-              transactions: const [],
-              pendingSwaps: pendingSwaps,
-              isVisible: isVisible,
-            ),
-      data: (transactions) => _TransactionListBody(
-        transactions: transactions,
-        pendingSwaps: pendingSwaps,
-        isVisible: isVisible,
-      ),
+      loading: () {
+        if (pendingSwaps.isEmpty) {
+          return const LoadingTransactionList();
+        }
+        _onPaint(pendingSwaps.length, source: 'loading+pending');
+        return _TransactionListBody(
+          transactions: const [],
+          pendingSwaps: pendingSwaps,
+          isVisible: isVisible,
+        );
+      },
+      error: (err, _) {
+        if (pendingSwaps.isEmpty) {
+          return const ErrorTransactionList();
+        }
+        _onPaint(pendingSwaps.length, source: 'error+pending');
+        return _TransactionListBody(
+          transactions: const [],
+          pendingSwaps: pendingSwaps,
+          isVisible: isVisible,
+        );
+      },
+      data: (transactions) {
+        _onPaint(transactions.length + pendingSwaps.length, source: 'data');
+        return _TransactionListBody(
+          transactions: transactions,
+          pendingSwaps: pendingSwaps,
+          isVisible: isVisible,
+        );
+      },
     );
   }
 }
@@ -83,6 +118,11 @@ class _TransactionListBody extends StatelessWidget {
           SuccessfulTransactionList(
             transactions: filtered,
             isVisible: isVisible,
+            // Home preview: cap at 5 most-recent rows. The full list
+            // lives on `/transactions-history`. Without this cap a
+            // 218-tx wallet builds ~545ms of off-screen rows on every
+            // first paint of /home — a measured UI-thread block.
+            limit: 5,
           ),
       ],
     );
@@ -115,10 +155,26 @@ class SuccessfulTransactionList extends ConsumerWidget {
   final List<Transaction> transactions;
   final bool isVisible;
 
+  /// Maximum number of rows to render. When non-null, only the first
+  /// `limit` transactions of [transactions] are built; the rest are
+  /// ignored. Caller is responsible for ordering [transactions] by
+  /// recency so the surfaced subset is the most useful slice.
+  ///
+  /// Rationale: the home screen renders this list inside a
+  /// `SingleChildScrollView` (no virtualization). Without a cap, a
+  /// wallet with 218 historical txs paid ~545ms of UI-thread layout
+  /// on first paint just to materialize rows the user couldn't see
+  /// without scrolling. Passing `limit: 5` on the home keeps the
+  /// "preview" cheap and the full list lives on
+  /// `/transactions-history`, which has its own pull-to-refresh and
+  /// filter UI for the long-tail use case.
+  final int? limit;
+
   const SuccessfulTransactionList({
     super.key,
     required this.transactions,
     required this.isVisible,
+    this.limit,
   });
 
   @override
@@ -128,10 +184,14 @@ class SuccessfulTransactionList extends ConsumerWidget {
     }
 
     final t = AppLocalizations.of(context);
+    final lim = limit;
+    final source = (lim != null && transactions.length > lim)
+        ? transactions.sublist(0, lim)
+        : transactions;
 
     return Column(
       children:
-          transactions.map((transaction) {
+          source.map((transaction) {
             final amountStr = TransactionValueFormatter.formatTransactionValue(
               transaction: transaction,
             );

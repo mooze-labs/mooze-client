@@ -11,6 +11,7 @@ class SyncState {
     this.lastError,
     this.lastSuccessAt,
     this.lastDuration,
+    this.firstSyncedChains = const <ChainId>{},
   });
 
   final SyncPhase phase;
@@ -19,12 +20,22 @@ class SyncState {
   final DateTime? lastSuccessAt;
   final Duration? lastDuration;
 
+  /// Chains that have completed at least one sync cycle in the current
+  /// session (success OR failure — both count as "we got an answer from
+  /// the network for this chain"). Distinct from [perChain], which only
+  /// reflects the SDK connection lifecycle (a chain can be `connected`
+  /// at the SDK level for many seconds before its first sync returns).
+  /// Drives per-chain "synced X" UX messaging and the import-loading
+  /// gate that waits for specific chains' first sync.
+  final Set<ChainId> firstSyncedChains;
+
   SyncState copyWith({
     SyncPhase? phase,
     Map<ChainId, ServiceLifecycle>? perChain,
     SyncFailure? lastError,
     DateTime? lastSuccessAt,
     Duration? lastDuration,
+    Set<ChainId>? firstSyncedChains,
     bool clearError = false,
   }) {
     return SyncState(
@@ -33,6 +44,7 @@ class SyncState {
       lastError: clearError ? null : (lastError ?? this.lastError),
       lastSuccessAt: lastSuccessAt ?? this.lastSuccessAt,
       lastDuration: lastDuration ?? this.lastDuration,
+      firstSyncedChains: firstSyncedChains ?? this.firstSyncedChains,
     );
   }
 

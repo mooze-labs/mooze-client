@@ -243,6 +243,26 @@ class _ConfirmSwapBottomSheetState
         (txid) {
           Navigator.of(context).pop();
 
+          // Instant optimistic balance update: SideSwap broadcasts via
+          // its own server, so neither Breez nor LWK see the new tx
+          // until their electrum endpoints index the mempool entry.
+          // Apply the known deltas to the cached `_lastBalance` on
+          // both services so the home shows the post-swap numbers
+          // immediately. The next successful sync overwrites with
+          // truth.
+          if (sendId != null &&
+              receiveId != null &&
+              sendAmount != null &&
+              receiveAmount != null) {
+            triggerPostSwapOptimisticBalanceUpdate(
+              ref,
+              sendAssetId: sendId,
+              sendAmountSat: sendAmount,
+              receiveAssetId: receiveId,
+              receiveAmountSat: receiveAmount,
+            );
+          }
+
           // Staggered post-swap refresh — see `post_swap_refresh.dart`.
           // Fires immediately + at +3s + +15s so the home stream
           // catches the new tx whether it lands during the SDK call

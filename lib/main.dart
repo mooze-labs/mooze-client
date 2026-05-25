@@ -16,6 +16,8 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/transaction_st
 import 'package:mooze_mobile/shared/user/widgets/level_change_listener.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
+import 'package:mooze_mobile/shared/platform/platform_warmup.dart';
+import 'package:mooze_mobile/shared/storage/mnemonic_prefetch.dart';
 
 import 'routes.dart';
 
@@ -24,10 +26,30 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   BootTracer.mark('main.bindings_ready');
 
-  // Platform FFI inits (LibLwk + FlutterBreezLiquid) are owned by the V2
-  // `PlatformInitializerImpl` and run during V2 boot. Calling them here
-  // too produces `Bad state: Should not initialize flutter_rust_bridge
-  // twice` the first time V2 boot starts.
+  // Kick off the iOS Keychain read for the wallet mnemonic NOW, before
+  // anything else awaits it. On a cold simulator the platform-channel
+  // round-trip can cost seconds — overlapping it with `runApp` /
+  // widget-tree mount / Riverpod provider setup pulls that cost out
+  // of the critical path. Both downstream consumers
+  // (`KeyStoreImpl.getKey` for the splash screen and
+  // `FlutterSecureCredentialStore.load` for the V2 boot orchestrator)
+  // now await this single future instead of issuing their own reads.
+  MnemonicPrefetch.start();
+  BootTracer.mark('main.mnemonic_prefetch_started');
+
+  // Platform FFI inits (LibLwk + FlutterBreezLiquid) — kick them off in
+  // parallel with everything else. They each load a Rust dynamic library
+  // + register flutter_rust_bridge codegen; profiled iOS-simulator boots
+  // showed the two combined costing ~900 ms of UI-thread blocking when
+  // they ran sequentially during V2 boot's `platform` phase. By starting
+  // them HERE (cached as Futures inside `PlatformWarmup`), they overlap
+  // with the mnemonic prefetch, SharedPreferences load, runApp, and
+  // widget-tree mount. The V2 boot orchestrator's `PlatformInitializerImpl`
+  // now awaits the same Futures instead of calling init directly, so the
+  // "Should not initialize flutter_rust_bridge twice" invariant is
+  // preserved — there is still only one call per library per process.
+  PlatformWarmup.start();
+  BootTracer.mark('main.platform_warmup_started');
 
   SafeDevice.init(SafeDeviceConfig(mockLocationCheckEnabled: false));
   BootTracer.mark('main.safe_device_init');

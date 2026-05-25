@@ -16,6 +16,7 @@ import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/sync_failure_alert.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
+import 'package:mooze_mobile/shared/widgets/background_sync_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
@@ -130,79 +131,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isLoadingData = !hasBootedOnce || isSyncing;
 
     return AuthInitializerWidget(
-      child: Scaffold(
-        // Debug-only entry point to the swap simulator. Compiled out
-        // of release builds via the `kDebugMode` const, so end users
-        // never see it. Lets you drive the optimistic peg-in /
-        // peg-out row through every phase + the reconciler handoff
-        // without paying real swap fees.
-        floatingActionButton:
-            kDebugMode
-                ? FloatingActionButton.small(
-                  heroTag: 'dev-swap-sim',
-                  tooltip: 'Swap simulator (dev)',
-                  backgroundColor: Colors.deepPurple,
-                  onPressed: () => context.push('/dev/swap-simulator'),
-                  child: const Icon(Icons.bug_report, color: Colors.white),
-                )
-                : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
-        body: PlatformSafeArea(
-          iosTop: true,
-          androidTop: true,
-          androidBottom: false,
-          child: WalletScreenWrapper(
-            child: Stack(
-              children: [
-                RefreshIndicator(
-                  onRefresh: () => _refreshData(),
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          LogoHeader(),
-                          StatusIndicators(
-                            onRetrySync: () {
-                              ref.invalidate(ensureAuthSessionProvider);
-                              ref.invalidate(levelsProvider);
-                              ref.invalidate(walletLevelsProvider);
-                              ref.invalidate(userDataProvider);
-                              _refreshData();
-                            },
-                          ),
-                          WalletHeaderWidget(),
-                          UpdateNotificationWidget(),
-                          const SizedBox(height: 15),
-                          _buildActionButtons(),
-                          const SizedBox(height: 32),
-                          AssetSection(),
-                          TransactionSection(),
-                          SizedBox(height: 120),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (isLoadingData)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: SizedBox(
-                      height: 3,
-                      child: LinearProgressIndicator(
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).primaryColor,
+      child: BackgroundSyncIndicator(
+        child: Scaffold(
+          // Debug-only entry point to the swap simulator. Compiled out
+          // of release builds via the `kDebugMode` const, so end users
+          // never see it. Lets you drive the optimistic peg-in /
+          // peg-out row through every phase + the reconciler handoff
+          // without paying real swap fees.
+          floatingActionButton:
+              kDebugMode
+                  ? FloatingActionButton.small(
+                    heroTag: 'dev-swap-sim',
+                    tooltip: 'Swap simulator (dev)',
+                    backgroundColor: Colors.deepPurple,
+                    onPressed: () => context.push('/dev/swap-simulator'),
+                    child: const Icon(Icons.bug_report, color: Colors.white),
+                  )
+                  : null,
+          floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
+          body: PlatformSafeArea(
+            iosTop: true,
+            androidTop: true,
+            androidBottom: false,
+            child: WalletScreenWrapper(
+              child: Stack(
+                children: [
+                  RefreshIndicator(
+                    onRefresh: () => _refreshData(),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            LogoHeader(),
+                            StatusIndicators(
+                              onRetrySync: () {
+                                ref.invalidate(ensureAuthSessionProvider);
+                                ref.invalidate(levelsProvider);
+                                ref.invalidate(walletLevelsProvider);
+                                ref.invalidate(userDataProvider);
+                                _refreshData();
+                              },
+                            ),
+                            WalletHeaderWidget(),
+                            UpdateNotificationWidget(),
+                            const SizedBox(height: 15),
+                            _buildActionButtons(),
+                            const SizedBox(height: 32),
+                            AssetSection(),
+                            TransactionSection(),
+                            SizedBox(height: 120),
+                          ],
                         ),
                       ),
                     ),
                   ),
-              ],
+                  if (isLoadingData)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SizedBox(
+                        height: 3,
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.transparent,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

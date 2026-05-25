@@ -19,6 +19,7 @@ import '../../domain/services/liquid_wallet_service.dart';
 import '../../domain/services/service_state.dart';
 import '../../shared/clock/clock.dart';
 import '../../shared/concurrency/mutex.dart';
+import '../../shared/diagnostics/boot_tracer.dart';
 import '../../shared/logging/structured_logger.dart';
 import '../../shared/streams/replay_value_stream.dart';
 
@@ -103,10 +104,14 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   @override
   Future<Either<ServiceFailure, Unit>> connect(
       WalletCredentials credentials) async {
+    BootTracer.mark('liquid.connect.entered');
     final tEnter = clock.now();
     logger.info('liquid.connect.enter', {});
     return _connectMutex.protect(() async {
       final tProtect = clock.now();
+      BootTracer.mark('liquid.connect.mutex_acquired', {
+        'wait_ms': tProtect.difference(tEnter).inMilliseconds,
+      });
       logger.info('liquid.connect.mutex_acquired', {
         'wait_ms': tProtect.difference(tEnter).inMilliseconds,
       });
@@ -121,9 +126,13 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       _network = credentials.network;
 
       final tDirStart = clock.now();
+      BootTracer.mark('liquid.connect.dir_acquire.begin');
       final dirResult = await directoryGuard.acquire(workingDirRelative);
+      final dirMs = clock.now().difference(tDirStart).inMilliseconds;
+      BootTracer.mark('liquid.connect.dir_acquire.end',
+          {'dur_ms': dirMs, 'ok': dirResult.isRight()});
       logger.info('liquid.connect.dir_acquired', {
-        'duration_ms': clock.now().difference(tDirStart).inMilliseconds,
+        'duration_ms': dirMs,
         'left': dirResult.isLeft(),
       });
       if (_shuttingDown) {
@@ -153,6 +162,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         // `elapsed_ms`, so the next reproduction tells us exactly which
         // call is the wedge.
         final tDescStart = clock.now();
+        BootTracer.mark('liquid.descriptor_build.begin');
         final descriptor = await _withFfiTick(
           phase: 'descriptor_new_confidential',
           body: () => lwk.Descriptor.newConfidential(
@@ -160,8 +170,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
             mnemonic: credentials.mnemonic,
           ),
         );
+        final descMs = clock.now().difference(tDescStart).inMilliseconds;
+        BootTracer.mark('liquid.descriptor_build.end', {'dur_ms': descMs});
         logger.info('liquid.connect.descriptor_built', {
-          'duration_ms': clock.now().difference(tDescStart).inMilliseconds,
+          'duration_ms': descMs,
         });
         if (_shuttingDown) {
           await directoryGuard.release(workingDirRelative);
@@ -169,6 +181,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           return _fail('connect cancelled: shutdown in progress');
         }
         final tInitStart = clock.now();
+        BootTracer.mark('liquid.wallet_init.begin');
         logger.info('liquid.connect.wallet_init.begin',
             {'dbpath': _acquiredDirectory ?? '?'});
         final wallet = await _withFfiTick(
@@ -179,8 +192,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
             descriptor: descriptor,
           ),
         );
+        final initMs = clock.now().difference(tInitStart).inMilliseconds;
+        BootTracer.mark('liquid.wallet_init.end', {'dur_ms': initMs});
         logger.info('liquid.connect.wallet_init.end', {
-          'duration_ms': clock.now().difference(tInitStart).inMilliseconds,
+          'duration_ms': initMs,
         });
         if (_shuttingDown) {
           // FFI returned but shutdown was signalled while we were in it.
@@ -191,8 +206,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         }
         _wallet = wallet;
         _emit(ServiceLifecycle.connected, clearFailure: true);
+        final totalMs = clock.now().difference(tEnter).inMilliseconds;
+        BootTracer.mark('liquid.connected', {'total_ms': totalMs});
         logger.info('liquid.connected', {
-          'total_ms': clock.now().difference(tEnter).inMilliseconds,
+          'total_ms': totalMs,
         });
         return const Right(unit);
       } catch (e, st) {
@@ -418,6 +435,15 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         // the workdir lock is sufficient.
         _wallet = null;
         _seen.clear();
+        // CRITICAL (2026-05-24): clear cached snapshots. Without this,
+        // a delete + re-import cycle leaves the previous wallet's
+        // balance and transaction list in memory; the brief window
+        // between the new wallet's `connect()` returning and its
+        // first `sync()` completing surfaces wallet-1's data as
+        // wallet-2's data on the home. Bitcoin and Lightning already
+        // do this on their `disconnect()`; Liquid was missing it.
+        _lastBalance = domain.Balance.empty();
+        _lastList = const [];
         if (_acquiredDirectory != null) {
           await directoryGuard.release(workingDirRelative);
           _acquiredDirectory = null;
@@ -441,23 +467,77 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       }
       final t0 = clock.now();
       final url = endpointResolver?.current(ChainId.liquid) ?? electrumUrl;
+      BootTracer.mark('liquid.sync.begin', {'url': url});
       try {
+        // ── Phase 1: LWK electrum sync (network + db write inside Rust) ──
+        final tElectrum = clock.now();
+        BootTracer.mark('liquid.sync.electrum.begin');
         await w
             .sync_(electrumUrl: url, validateDomain: validateDomain)
             .timeout(timeout ?? const Duration(seconds: 60));
+        final electrumMs =
+            clock.now().difference(tElectrum).inMilliseconds;
+        BootTracer.mark('liquid.sync.electrum.end', {'dur_ms': electrumMs});
         endpointResolver?.reportSuccess(ChainId.liquid);
 
+        // ── Phase 2: pull tx list + balances out of LWK ──
+        final tFetch = clock.now();
+        BootTracer.mark('liquid.sync.fetch.begin');
         final txs = await w.txs();
+        final txsFetchMs = clock.now().difference(tFetch).inMilliseconds;
+        BootTracer.mark('liquid.sync.fetch.txs', {
+          'len': txs.length,
+          'dur_ms': txsFetchMs,
+        });
+        final tBalances = clock.now();
         final balances = await w.balances();
+        final balancesMs =
+            clock.now().difference(tBalances).inMilliseconds;
+        BootTracer.mark('liquid.sync.fetch.balances', {
+          'len': balances.length,
+          'dur_ms': balancesMs,
+        });
 
-        final mapped = txs.map(_mapTx).toList()
-          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        // ── Phase 3: classify (per-tx _mapTx) + sort. CPU-bound on UI iso. ──
+        final tClassify = clock.now();
+        BootTracer.mark('liquid.sync.classify.begin', {'n': txs.length});
+        final mapped = txs.map(_mapTx).toList();
+        final classifyMs =
+            clock.now().difference(tClassify).inMilliseconds;
+        BootTracer.mark('liquid.sync.classify.end', {
+          'n': mapped.length,
+          'dur_ms': classifyMs,
+          'per_tx_us':
+              mapped.isEmpty ? 0 : (classifyMs * 1000) ~/ mapped.length,
+        });
+        final tSort = clock.now();
+        mapped.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        BootTracer.mark('liquid.sync.sort.end',
+            {'dur_ms': clock.now().difference(tSort).inMilliseconds});
+
+        // ── Phase 4: diff against previous + emit one event per change ──
+        final tDiff = clock.now();
+        BootTracer.mark('liquid.sync.diff.begin', {'n': mapped.length});
         final changed = _diffAndEmit(mapped);
+        BootTracer.mark('liquid.sync.diff.end', {
+          'changed': changed,
+          'dur_ms': clock.now().difference(tDiff).inMilliseconds,
+        });
+
         _lastList = mapped;
         _lastBalance = _mapBalance(balances);
 
         _emit(ServiceLifecycle.connected,
             lastSyncAt: clock.now(), clearFailure: true);
+
+        final totalMs = clock.now().difference(t0).inMilliseconds;
+        BootTracer.mark('liquid.sync.end', {
+          'total_ms': totalMs,
+          'electrum_ms': electrumMs,
+          'classify_ms': classifyMs,
+          'fetched': mapped.length,
+          'changed': changed,
+        });
 
         return Right(SyncOutcome(
           chain: chain,
@@ -555,6 +635,81 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           'lwk signSwapPset failed: ${_describeLwkError(e)}',
           chain: chain, cause: e, stackTrace: st));
     }
+  }
+
+  @override
+  Future<Either<ServiceFailure, domain.Balance>> refreshBalance() async {
+    final w = _wallet;
+    if (w == null || !currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    return _syncMutex.protect(() async {
+      try {
+        final t0 = clock.now();
+        final balances = await w.balances();
+        _lastBalance = _mapBalance(balances);
+        BootTracer.mark('liquid.refresh_balance.ok', {
+          'dur_ms': clock.now().difference(t0).inMilliseconds,
+          'asset_count': _lastBalance.assets.length,
+        });
+        return Right(_lastBalance);
+      } catch (e, st) {
+        logger.warn('liquid.refresh_balance.failed', {'error': '$e'});
+        return Left(
+          ServiceFailure(
+            'lwk refreshBalance failed: ${_describeLwkError(e)}',
+            chain: chain,
+            cause: e,
+            stackTrace: st,
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Future<Either<ServiceFailure, domain.Balance>> applyOptimisticBalanceDelta({
+    required Map<String, int> deltas,
+  }) async {
+    if (!currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    if (deltas.isEmpty) return Right(_lastBalance);
+    final prev = _lastBalance;
+    final byId = <String?, domain.AssetBalance>{
+      for (final ab in prev.assets) ab.assetId: ab,
+    };
+    deltas.forEach((assetId, deltaSat) {
+      final existing = byId[assetId];
+      if (existing == null) {
+        if (deltaSat <= 0) return;
+        byId[assetId] = domain.AssetBalance(
+          chain: chain,
+          assetId: assetId,
+          amountSat: deltaSat,
+          ticker: assetId == lbtcAssetId ? 'L-BTC' : null,
+        );
+        return;
+      }
+      final next = existing.amountSat + deltaSat;
+      byId[assetId] = domain.AssetBalance(
+        chain: existing.chain,
+        assetId: existing.assetId,
+        amountSat: next < 0 ? 0 : next,
+        precision: existing.precision,
+        ticker: existing.ticker,
+        pendingSat: existing.pendingSat,
+      );
+    });
+    _lastBalance = domain.Balance(
+      assets: byId.values.toList(growable: false),
+      snapshotAt: clock.now(),
+    );
+    BootTracer.mark('liquid.optimistic_delta.applied', {
+      'delta_count': deltas.length,
+      'asset_count': _lastBalance.assets.length,
+    });
+    return Right(_lastBalance);
   }
 
   @override
@@ -903,11 +1058,15 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
 
   int _diffAndEmit(List<domain.Transaction> incoming) {
     var changes = 0;
+    var created = 0;
+    var statusChanged = 0;
+    var confirmationsChanged = 0;
     final now = clock.now();
     for (final tx in incoming) {
       final prev = _seen[tx.id];
       if (prev == null) {
         changes++;
+        created++;
         _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.created,
@@ -918,6 +1077,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       }
       if (prev.status != tx.status) {
         changes++;
+        statusChanged++;
         _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.statusChanged,
@@ -928,6 +1088,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         ));
       } else if (prev.confirmations != tx.confirmations) {
         changes++;
+        confirmationsChanged++;
         _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
         _emitTx(TransactionEvent(
           kind: TransactionEventKind.confirmationsChanged,
@@ -937,6 +1098,14 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           observedAt: now,
         ));
       }
+    }
+    if (changes > 0) {
+      BootTracer.mark('liquid.diff.breakdown', {
+        'created': created,
+        'status_changed': statusChanged,
+        'conf_changed': confirmationsChanged,
+        'seen_total': _seen.length,
+      });
     }
     return changes;
   }

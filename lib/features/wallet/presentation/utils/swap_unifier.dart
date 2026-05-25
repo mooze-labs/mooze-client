@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -24,6 +26,12 @@ enum SwapDirection { pegIn, pegOut }
 List<Transaction> unifyPegSwaps(List<Transaction> input) {
   if (input.isEmpty) return input;
 
+  // Self-timing so the cost shows up regardless of which isolate this
+  // ran on. The `BootTracer` stopwatch is per-isolate (only started on
+  // the UI isolate) so timestamps from a `compute` isolate would be
+  // bogus — we emit a stand-alone debugPrint with the delta in ms.
+  final sw = Stopwatch()..start();
+
   // Bucket on the original list while also checking the cheap
   // existence predicates. We do both passes inline so we only walk
   // `input` once before deciding whether to bail out.
@@ -33,6 +41,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
   // work, skip the final sort. The vast majority of stream ticks for
   // an unswap'd wallet land here.
   if (!indexed.hasAnchorCandidate && !indexed.hasPairableSend) {
+    final ms = sw.elapsedMilliseconds;
+    if (ms >= 2) {
+      debugPrint('[MARK unifier.fastpath n=${input.length} dur_ms=$ms]');
+    }
     return input;
   }
 
@@ -106,6 +118,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
   // No work landed — return the input list unchanged (callers can rely
   // on reference equality to short-circuit downstream rebuilds).
   if (consumed.isEmpty && unified.isEmpty && deduped.length == input.length) {
+    final ms = sw.elapsedMilliseconds;
+    if (ms >= 2) {
+      debugPrint('[MARK unifier.noop n=${input.length} dur_ms=$ms]');
+    }
     return input;
   }
 
@@ -120,6 +136,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
   if (unified.isNotEmpty) {
     result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
+  final ms = sw.elapsedMilliseconds;
+  debugPrint('[MARK unifier.done '
+      'n_in=${input.length} n_out=${result.length} '
+      'consumed=${consumed.length} merged=${unified.length} dur_ms=$ms]');
   return result;
 }
 

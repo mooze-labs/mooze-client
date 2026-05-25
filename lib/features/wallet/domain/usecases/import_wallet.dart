@@ -6,6 +6,7 @@ import '../../../../domain/repositories/notified_tx_registry.dart';
 import '../../../../domain/repositories/secure_credential_store.dart';
 import '../../../../domain/repositories/transaction_store.dart';
 import '../../../../domain/repositories/wallet_directory_guard.dart';
+import '../../../../shared/diagnostics/boot_tracer.dart';
 import '../../../../shared/logging/structured_logger.dart';
 
 /// Stores a fresh mnemonic into the secure credential store. The caller
@@ -58,10 +59,12 @@ class ImportWalletUseCase {
   final StructuredLogger? logger;
 
   Future<Either<CredentialFailure, Unit>> call(WalletCredentials creds) async {
+    BootTracer.mark('import.usecase.begin');
     logger?.info('wallet.import.begin', {});
 
     // 1. Run injected pre-import hooks (PIN delete, pending-tx wipe,
     //    wallet-id clear). Best-effort — any failure is logged.
+    BootTracer.mark('import.hooks.begin', {'count': preImportHooks.length});
     for (final hook in preImportHooks) {
       try {
         await hook();
@@ -69,12 +72,16 @@ class ImportWalletUseCase {
         logger?.warn('wallet.import.hook_failed', {'error': '$e'});
       }
     }
+    BootTracer.mark('import.hooks.end');
 
     // 2. Wipe V2 transaction store so we don't surface the previous
     //    wallet's txs. Best-effort.
     final txStore = transactionStore;
     if (txStore != null) {
+      BootTracer.mark('import.tx_wipe.begin');
       final wipe = await txStore.deleteAll();
+      BootTracer.mark('import.tx_wipe.end',
+          {'ok': wipe.isRight()});
       wipe.match(
         (f) => logger?.warn(
             'wallet.import.tx_wipe_failed', {'reason': f.message}),
@@ -92,14 +99,19 @@ class ImportWalletUseCase {
     //     modals on first sync (or any subsequent re-sync).
     final notifyReg = notifiedTxRegistry;
     if (notifyReg != null) {
+      BootTracer.mark('import.notify_wipe.begin');
       final wipe = await notifyReg.clear();
+      BootTracer.mark('import.notify_wipe.end',
+          {'ok': wipe.isRight()});
       wipe.match(
         (f) => logger?.warn(
             'wallet.import.notified_wipe_failed', {'reason': f.message}),
         (_) => logger?.info('wallet.import.notified_wiped', {}),
       );
       final importedAtMs = DateTime.now().millisecondsSinceEpoch;
+      BootTracer.mark('import.stamp.begin');
       final stamp = await notifyReg.setImportedAtMs(importedAtMs);
+      BootTracer.mark('import.stamp.end', {'ok': stamp.isRight()});
       stamp.match(
         (f) => logger?.warn(
             'wallet.import.stamp_failed', {'reason': f.message}),
@@ -116,7 +128,10 @@ class ImportWalletUseCase {
     final guard = directoryGuard;
     if (guard != null) {
       for (final dir in workingDirs) {
+        BootTracer.mark('import.dir_wipe.begin', {'dir': dir});
         final wipe = await guard.wipe(dir);
+        BootTracer.mark('import.dir_wipe.end',
+            {'dir': dir, 'ok': wipe.isRight()});
         wipe.match(
           (f) => logger?.warn('wallet.import.dir_wipe_failed',
               {'dir': dir, 'reason': f.message}),
@@ -128,11 +143,14 @@ class ImportWalletUseCase {
     // 4. Persist the fresh mnemonic. THIS is the only step whose failure
     //    aborts the import — without credentials the next boot cannot
     //    proceed.
+    BootTracer.mark('import.creds_save.begin');
     final saveResult = await _store.save(creds);
+    BootTracer.mark('import.creds_save.end', {'ok': saveResult.isRight()});
     saveResult.match(
       (f) => logger?.error('wallet.import.save_failed', {'reason': f.message}),
       (_) => logger?.info('wallet.import.end', {}),
     );
+    BootTracer.mark('import.usecase.end', {'ok': saveResult.isRight()});
     return saveResult;
   }
 }

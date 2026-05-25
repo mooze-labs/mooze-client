@@ -19,6 +19,7 @@ import '../../domain/services/bitcoin_wallet_service.dart';
 import '../../domain/services/service_state.dart';
 import '../../shared/clock/clock.dart';
 import '../../shared/concurrency/mutex.dart';
+import '../../shared/diagnostics/boot_tracer.dart';
 import '../../shared/logging/structured_logger.dart';
 import '../../shared/streams/replay_value_stream.dart';
 
@@ -94,8 +95,15 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   @override
   Future<Either<ServiceFailure, Unit>> connect(
       WalletCredentials credentials) async {
+    BootTracer.mark('bitcoin.connect.entered');
+    final tEnter = clock.now();
     return _connectMutex.protect(() async {
-      if (currentState.isOperational) return const Right(unit);
+      BootTracer.mark('bitcoin.connect.mutex_acquired',
+          {'wait_ms': clock.now().difference(tEnter).inMilliseconds});
+      if (currentState.isOperational) {
+        BootTracer.mark('bitcoin.connect.short_circuit');
+        return const Right(unit);
+      }
       _emit(ServiceLifecycle.connecting);
       _network = credentials.network;
       try {
@@ -108,7 +116,13 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         // dart isolate. With on-disk state, BDK replays the persisted
         // wallet on `Wallet.create` and a single non-contended
         // `getBalance()` here populates the cache before any UI reads.
+        BootTracer.mark('bitcoin.dir_acquire.begin');
+        final tDir = clock.now();
         final dirResult = await directoryGuard.acquire(workingDirRelative);
+        BootTracer.mark('bitcoin.dir_acquire.end', {
+          'dur_ms': clock.now().difference(tDir).inMilliseconds,
+          'ok': dirResult.isRight(),
+        });
         if (dirResult.isLeft()) {
           return _fail('workdir acquire failed: '
               '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}');
@@ -117,17 +131,29 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
             dirResult.getOrElse((_) => throw StateError('unreachable'));
         final dbPath = '$_acquiredDirectory/$_walletDbFilename';
         logger.info('bitcoin.connect.dbpath', {'dbpath': dbPath});
+        BootTracer.mark('bitcoin.connect.dbpath');
 
+        BootTracer.mark('bitcoin.mnemonic_parse.begin');
+        final tMn = clock.now();
         final mnemonic = await bdk.Mnemonic.fromString(credentials.mnemonic);
         final secret = await bdk.DescriptorSecretKey.create(
           network: _toBdkNetwork(_network),
           mnemonic: mnemonic,
         );
+        BootTracer.mark('bitcoin.mnemonic_parse.end',
+            {'dur_ms': clock.now().difference(tMn).inMilliseconds});
+
+        BootTracer.mark('bitcoin.descriptors_build.begin');
+        final tDesc = clock.now();
         final externalDesc = await _buildDescriptor(
             secret, _externalDerivationPath, _toBdkNetwork(_network));
         final internalDesc = await _buildDescriptor(
             secret, _internalDerivationPath, _toBdkNetwork(_network));
+        BootTracer.mark('bitcoin.descriptors_build.end',
+            {'dur_ms': clock.now().difference(tDesc).inMilliseconds});
 
+        BootTracer.mark('bitcoin.wallet_create.begin');
+        final tWal = clock.now();
         final wallet = await bdk.Wallet.create(
           descriptor: externalDesc,
           changeDescriptor: internalDesc,
@@ -136,7 +162,11 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
             config: bdk.SqliteDbConfiguration(path: dbPath),
           ),
         );
+        BootTracer.mark('bitcoin.wallet_create.end',
+            {'dur_ms': clock.now().difference(tWal).inMilliseconds});
 
+        BootTracer.mark('bitcoin.blockchain_create.begin');
+        final tBc = clock.now();
         final blockchain = await bdk.Blockchain.create(
           config: bdk.BlockchainConfig.electrum(
             config: bdk.ElectrumConfig(
@@ -148,6 +178,8 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
             ),
           ),
         );
+        BootTracer.mark('bitcoin.blockchain_create.end',
+            {'dur_ms': clock.now().difference(tBc).inMilliseconds});
 
         _wallet = wallet;
         _blockchain = blockchain;
@@ -161,6 +193,8 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         // tx list so the first post-sync `_diffAndEmit` only fires
         // events for actual changes, not a full replay.
         try {
+          BootTracer.mark('bitcoin.cold_restore.begin');
+          final tCold = clock.now();
           _lastBalance = _mapBalance(wallet.getBalance());
           final txs = wallet.listTransactions(includeRaw: false);
           final mapped = txs.map(_mapTx).toList()
@@ -169,6 +203,10 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
           for (final tx in mapped) {
             _seen[tx.id] = _BdkFingerprint(tx.status, tx.confirmations);
           }
+          BootTracer.mark('bitcoin.cold_restore.end', {
+            'dur_ms': clock.now().difference(tCold).inMilliseconds,
+            'txs': mapped.length,
+          });
           logger.info('bitcoin.cold_restore', {
             'txs': mapped.length,
             'balance_sat':
@@ -184,7 +222,9 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         }
 
         _emit(ServiceLifecycle.connected, clearFailure: true);
-        logger.info('bitcoin.connected', {});
+        final totalMs = clock.now().difference(tEnter).inMilliseconds;
+        BootTracer.mark('bitcoin.connected', {'total_ms': totalMs});
+        logger.info('bitcoin.connected', {'total_ms': totalMs});
         return const Right(unit);
       } catch (e, st) {
         if (_acquiredDirectory != null) {

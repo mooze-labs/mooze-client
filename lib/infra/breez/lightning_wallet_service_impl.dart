@@ -20,6 +20,7 @@ import '../../domain/events/transaction_event.dart';
 import '../../domain/failures/failure.dart';
 import '../../domain/repositories/wallet_directory_guard.dart';
 import '../../domain/services/lightning_wallet_service.dart';
+import '../../shared/diagnostics/boot_tracer.dart';
 import '../../domain/services/service_state.dart';
 import '../../domain/services/spendable_wallet_service.dart' as spendable;
 import '../../shared/clock/clock.dart';
@@ -63,6 +64,24 @@ class LightningWalletServiceImpl implements LightningWalletService {
   final StreamController<TransactionEvent> _txController =
       StreamController<TransactionEvent>.broadcast();
 
+  /// Subscription to the Breez SDK's live event stream
+  /// (`PaymentSucceeded`, `PaymentRefundable`, `Synced`, etc). The SDK
+  /// emits these the moment its internal state machine observes a
+  /// change — typically seconds before our periodic `sync()` would
+  /// notice. Without this, an asset swap completion (LBTC → DePix,
+  /// for example) shows up as a "transaction confirmed" modal on
+  /// whichever periodic / post-swap-refresh sync happens to land
+  /// after Breez registered it, but the cached `_lastBalance` only
+  /// updates on that sync's `c.getInfo()` call. Users saw the modal
+  /// well before the home balance refreshed.
+  StreamSubscription<breez.SdkEvent>? _eventSub;
+
+  /// Debounce timer for the live-event → sync trigger. Breez can fire
+  /// several events per state transition (e.g. `PaymentPending` then
+  /// `PaymentSucceeded`); collapsing them into a single sync avoids
+  /// thrashing the orchestrator.
+  Timer? _eventSyncDebounce;
+
   @override
   ChainId get chain => ChainId.lightning;
   @override
@@ -85,12 +104,26 @@ class LightningWalletServiceImpl implements LightningWalletService {
   Future<Either<ServiceFailure, Unit>> connect(
     WalletCredentials credentials,
   ) async {
+    BootTracer.mark('lightning.connect.entered');
+    final tEnter = clock.now();
     return _connectMutex.protect(() async {
-      if (currentState.isOperational) return const Right(unit);
+      BootTracer.mark('lightning.connect.mutex_acquired', {
+        'wait_ms': clock.now().difference(tEnter).inMilliseconds,
+      });
+      if (currentState.isOperational) {
+        BootTracer.mark('lightning.connect.short_circuit');
+        return const Right(unit);
+      }
       _emit(ServiceLifecycle.connecting);
       _network = credentials.network;
 
+      BootTracer.mark('lightning.dir_acquire.begin');
+      final tDir = clock.now();
       final dirResult = await directoryGuard.acquire(workingDirRelative);
+      BootTracer.mark('lightning.dir_acquire.end', {
+        'dur_ms': clock.now().difference(tDir).inMilliseconds,
+        'ok': dirResult.isRight(),
+      });
       if (dirResult.isLeft()) {
         return _fail(
           'workdir acquire failed: '
@@ -102,19 +135,44 @@ class LightningWalletServiceImpl implements LightningWalletService {
       );
 
       try {
+        BootTracer.mark('lightning.config_build.begin');
+        final tCfg = clock.now();
         final config = await BreezConfigFactory(
           workingDir: _acquiredDirectory!,
           apiKey: apiKey,
         ).build(_network);
+        BootTracer.mark('lightning.config_build.end', {
+          'dur_ms': clock.now().difference(tCfg).inMilliseconds,
+        });
 
+        BootTracer.mark('lightning.sdk_connect.begin');
+        final tSdk = clock.now();
         final client = await breez.connect(
           req: breez.ConnectRequest(
             mnemonic: credentials.mnemonic,
             config: config,
           ),
         );
+        BootTracer.mark('lightning.sdk_connect.end', {
+          'dur_ms': clock.now().difference(tSdk).inMilliseconds,
+        });
         _client = client;
+        // Subscribe to Breez's live event stream. Each event indicates
+        // the SDK's local state machine just advanced (payment
+        // succeeded, swap refundable, full network sync completed,
+        // etc.) — schedule a debounced `sync()` so our cached
+        // `_lastBalance` + `_lastList` follow without waiting for the
+        // next periodic tick. See [_onBreezEvent].
+        _eventSub = client.addEventListener().listen(
+          _onBreezEvent,
+          onError: (Object e, StackTrace st) {
+            logger.warn('lightning.event_stream.error',
+                {'error': '$e'}, error: e, stackTrace: st);
+          },
+        );
         _emit(ServiceLifecycle.connected, clearFailure: true);
+        final totalMs = clock.now().difference(tEnter).inMilliseconds;
+        BootTracer.mark('lightning.connected', {'total_ms': totalMs});
         logger.info('lightning.connected', {});
         return const Right(unit);
       } catch (e, st) {
@@ -138,6 +196,15 @@ class LightningWalletServiceImpl implements LightningWalletService {
         final c = _client;
         _client = null;
         _seen.clear();
+        // Tear down the live event listener and any pending
+        // debounced sync — both reference the SDK client we're about
+        // to drop. Cancelling first avoids a "use after disconnect"
+        // race where an event arrives mid-disconnect and triggers
+        // `_scheduleEventSync` on a stale `_client` reference.
+        await _eventSub?.cancel();
+        _eventSub = null;
+        _eventSyncDebounce?.cancel();
+        _eventSyncDebounce = null;
         // Clear cached snapshots so a subsequent reconnect (e.g.,
         // delete + re-import with a different mnemonic) doesn't surface
         // wallet-1's data while wallet-2's first sync is still pending.
@@ -169,13 +236,40 @@ class LightningWalletServiceImpl implements LightningWalletService {
         return Left(ServiceFailure('not connected', chain: chain));
       }
       final t0 = clock.now();
+      final effectiveTimeout = timeout ?? const Duration(seconds: 45);
+      BootTracer.mark('breez.sync.begin', {
+        'timeout_ms': effectiveTimeout.inMilliseconds,
+      });
       try {
-        await c.sync().timeout(timeout ?? const Duration(seconds: 45));
+        // ─── Phase 1: Breez SDK internal sync (gRPC to Greenlight + ──
+        //              local processing of the payment ledger). This
+        //              is the suspected bottleneck — log start, end,
+        //              and any timeout.
+        final tSdkSync = clock.now();
+        BootTracer.mark('breez.sync.sdk_sync.begin');
+        await c.sync().timeout(effectiveTimeout);
+        final sdkSyncMs = clock.now().difference(tSdkSync).inMilliseconds;
+        BootTracer.mark('breez.sync.sdk_sync.end', {'dur_ms': sdkSyncMs});
 
+        // ─── Phase 2: pull the payment list out of the SDK ──
+        final tListPayments = clock.now();
+        BootTracer.mark('breez.sync.list_payments.begin');
         final payments = await c.listPayments(
           req: const breez.ListPaymentsRequest(),
         );
+        final listPaymentsMs =
+            clock.now().difference(tListPayments).inMilliseconds;
+        BootTracer.mark('breez.sync.list_payments.end', {
+          'n': payments.length,
+          'dur_ms': listPaymentsMs,
+        });
+
+        // ─── Phase 3: pull wallet balance/info ──
+        final tGetInfo = clock.now();
+        BootTracer.mark('breez.sync.get_info.begin');
         final info = await c.getInfo();
+        final getInfoMs = clock.now().difference(tGetInfo).inMilliseconds;
+        BootTracer.mark('breez.sync.get_info.end', {'dur_ms': getInfoMs});
 
         // **Source-aware emission (2026-05-18 redesign).**
         //
@@ -201,10 +295,40 @@ class LightningWalletServiceImpl implements LightningWalletService {
         //
         // No filter needed here. The "rows mutate after a few seconds"
         // bug is prevented by the upsert merge, not by the filter.
-        final mapped =
-            payments.map(_mapPayment).whereType<domain.Transaction>().toList()
-              ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        // ─── Phase 4: classify (per-payment _mapPayment) + sort.
+        //              `_mapPayment` also calls `_logBreezPaymentV2`
+        //              which emits the `[BREEZ-TX-V2]` debug lines.
+        //              `_classifyPayments` is a thin wrapper that
+        //              first pairs same-`txId` Liquid send+receive
+        //              payments into a single `direction=swap` row —
+        //              see its docstring.
+        final tClassify = clock.now();
+        BootTracer.mark('breez.sync.classify.begin', {'n': payments.length});
+        final mapped = _classifyPayments(payments);
+        final classifyMs = clock.now().difference(tClassify).inMilliseconds;
+        BootTracer.mark('breez.sync.classify.end', {
+          'n_in': payments.length,
+          'n_out': mapped.length,
+          'dur_ms': classifyMs,
+          'per_payment_us':
+              payments.isEmpty ? 0 : (classifyMs * 1000) ~/ payments.length,
+        });
+
+        final tSort = clock.now();
+        mapped.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        BootTracer.mark('breez.sync.sort.end', {
+          'dur_ms': clock.now().difference(tSort).inMilliseconds,
+        });
+
+        // ─── Phase 5: diff against previous + emit per change ──
+        final tDiff = clock.now();
+        BootTracer.mark('breez.sync.diff.begin', {'n': mapped.length});
         final changed = _diffAndEmit(mapped);
+        BootTracer.mark('breez.sync.diff.end', {
+          'changed': changed,
+          'dur_ms': clock.now().difference(tDiff).inMilliseconds,
+        });
+
         _lastList = mapped;
         _lastBalance = _mapBalance(info);
 
@@ -213,6 +337,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
           lastSyncAt: clock.now(),
           clearFailure: true,
         );
+
+        final totalMs = clock.now().difference(t0).inMilliseconds;
+        BootTracer.mark('breez.sync.end', {
+          'total_ms': totalMs,
+          'sdk_sync_ms': sdkSyncMs,
+          'list_payments_ms': listPaymentsMs,
+          'classify_ms': classifyMs,
+          'fetched': mapped.length,
+          'changed': changed,
+        });
 
         return Right(
           SyncOutcome(
@@ -223,6 +357,14 @@ class LightningWalletServiceImpl implements LightningWalletService {
           ),
         );
       } on TimeoutException catch (e, st) {
+        final totalMs = clock.now().difference(t0).inMilliseconds;
+        // Critical: when this fires we know the SDK call exceeded its
+        // budget. Stamp the wall-clock so we can correlate against
+        // heartbeats / network logs.
+        BootTracer.mark('breez.sync.timeout', {
+          'total_ms': totalMs,
+          'budget_ms': effectiveTimeout.inMilliseconds,
+        });
         return Left(
           ServiceFailure(
             'breez sync timeout',
@@ -232,6 +374,11 @@ class LightningWalletServiceImpl implements LightningWalletService {
           ),
         );
       } catch (e, st) {
+        final totalMs = clock.now().difference(t0).inMilliseconds;
+        BootTracer.mark('breez.sync.error', {
+          'total_ms': totalMs,
+          'error': e.toString(),
+        });
         return Left(
           ServiceFailure(
             'breez sync failed: $e',
@@ -632,6 +779,11 @@ class LightningWalletServiceImpl implements LightningWalletService {
         ),
       );
 
+      // Refresh `_lastBalance` so the home / swap screen reads
+      // post-spend balance the moment they invalidate, not the
+      // pre-spend cached value. See `_refreshCachedBalanceAfterSpend`.
+      await _refreshCachedBalanceAfterSpend();
+
       return Right(
         domain.BroadcastResult(
           chain: ChainId.liquid,
@@ -882,6 +1034,11 @@ class LightningWalletServiceImpl implements LightningWalletService {
           observedAt: clock.now(),
         ),
       );
+
+      // Refresh `_lastBalance` so the L-BTC pool (which absorbs the
+      // Lightning HTLC cost) shows the new value the moment the UI
+      // invalidates after this send.
+      await _refreshCachedBalanceAfterSpend();
 
       // Extract preimage if available (proves payment for BOLT-11).
       String? preimage;
@@ -1154,6 +1311,12 @@ class LightningWalletServiceImpl implements LightningWalletService {
         ),
       );
 
+      // Refresh `_lastBalance` so the L-BTC pool reflects the lockup
+      // immediately. The user-facing BTC balance on the destination
+      // side only updates when the swap legs settle on-chain, but the
+      // L-BTC debit is real the moment payOnchain returns.
+      await _refreshCachedBalanceAfterSpend();
+
       return Right(
         domain.BroadcastResult(
           chain: ChainId.bitcoin,
@@ -1253,6 +1416,171 @@ class LightningWalletServiceImpl implements LightningWalletService {
       destination: request.destination,
       amount: payAmount,
     );
+  }
+
+  /// Classify a list of Breez payments into `Transaction`s, pairing
+  /// internal Liquid swaps before per-payment mapping.
+  ///
+  /// Why this exists: a single Liquid asset swap (DePix → L-BTC, etc.)
+  /// surfaces in `listPayments()` as **two** `Payment` rows sharing the
+  /// same `txId` — one `paymentType=send` carrying the outgoing asset,
+  /// one `paymentType=receive` carrying the incoming asset. Mapped
+  /// individually by `_mapPayment`, both produce `Transaction` rows
+  /// with the same `(id, chain)` primary key. The store's
+  /// `INSERT OR REPLACE` then collapses them into a single row whose
+  /// `direction` is whichever payment was written last (non-
+  /// deterministic ordering). Result on the home screen: the user
+  /// sees the swap render as a one-sided "DePix received" row until
+  /// the next LWK sync re-classifies the underlying Liquid tx as a
+  /// proper swap and overwrites it via the source-aware merge.
+  ///
+  /// This pairing pass detects the
+  /// `(txId, two Liquid payments, opposite paymentType, distinct
+  /// assetId)` shape up front and emits a single `Transaction` with
+  /// `direction=swap`, `fromAssetId/toAssetId`, and matching sent/
+  /// received amounts — exactly the shape the V2 ↔ legacy adapter and
+  /// the home list's swap row already understand. Unpaired payments
+  /// (Lightning HTLCs, Bitcoin peg legs, regular one-sided Liquid
+  /// sends/receives) fall through to `_mapPayment` unchanged.
+  List<domain.Transaction> _classifyPayments(List<breez.Payment> payments) {
+    // Group same-txId Liquid payments together. We only collect into
+    // `groups` when the payment is a Liquid one with a non-empty txId
+    // (the swap shape we need to pair); everything else maps
+    // individually below.
+    final groups = <String, List<breez.Payment>>{};
+    final passthrough = <breez.Payment>[];
+    for (final p in payments) {
+      final txId = p.txId;
+      final isLiquidWithTxId = p.details is breez.PaymentDetails_Liquid &&
+          txId != null &&
+          txId.isNotEmpty;
+      if (isLiquidWithTxId) {
+        (groups[txId] ??= <breez.Payment>[]).add(p);
+      } else {
+        passthrough.add(p);
+      }
+    }
+
+    final out = <domain.Transaction>[];
+
+    groups.forEach((txId, group) {
+      // The pairing pattern we care about: exactly two Liquid
+      // payments, one `send` + one `receive`, with distinct
+      // assetIds. Any other shape (single payment, two same-type
+      // payments, same-asset pair, etc.) we treat as ordinary and
+      // fall back to per-payment mapping so we don't lose data.
+      final isSwapPair = group.length == 2 &&
+          group.first.paymentType != group.last.paymentType &&
+          (group.first.details as breez.PaymentDetails_Liquid).assetId !=
+              (group.last.details as breez.PaymentDetails_Liquid).assetId;
+      if (!isSwapPair) {
+        for (final p in group) {
+          final tx = _mapPayment(p);
+          if (tx != null) out.add(tx);
+        }
+        return;
+      }
+      final swapTx = _mergeLiquidSwapPair(txId, group);
+      if (swapTx != null) {
+        out.add(swapTx);
+      } else {
+        // Defensive: degraded merge falls back to per-payment.
+        for (final p in group) {
+          final tx = _mapPayment(p);
+          if (tx != null) out.add(tx);
+        }
+      }
+    });
+
+    for (final p in passthrough) {
+      final tx = _mapPayment(p);
+      if (tx != null) out.add(tx);
+    }
+    return out;
+  }
+
+  /// Merge a confirmed send+receive pair sharing the same Liquid `txId`
+  /// into a single `direction=swap` transaction. Both payments are
+  /// already logged via `_logBreezPaymentV2` from inside `_mapPayment`
+  /// when we fall through; we replay the log here too so the per-leg
+  /// breakdown stays visible in `[BREEZ-TX-V2]` for forensics.
+  domain.Transaction? _mergeLiquidSwapPair(
+    String txId,
+    List<breez.Payment> pair,
+  ) {
+    final sendP = pair.firstWhere(
+      (p) => p.paymentType == breez.PaymentType.send,
+      orElse: () => pair.first,
+    );
+    final receiveP = pair.firstWhere(
+      (p) => p.paymentType == breez.PaymentType.receive,
+      orElse: () => pair.last,
+    );
+    // Both logs preserved so the raw payment shape is still
+    // forensically reachable; if the user reports a misclassified
+    // swap we can replay both legs from the trace.
+    _logBreezPaymentV2(sendP);
+    _logBreezPaymentV2(receiveP);
+
+    final sendDetails = sendP.details as breez.PaymentDetails_Liquid;
+    final recvDetails = receiveP.details as breez.PaymentDetails_Liquid;
+
+    // Both payments share `txId`; pick the most-progressed status of
+    // the pair (a confirmed swap can briefly hold one leg as
+    // confirmed and the other as pending while Breez catches up).
+    domain.TransactionStatus pickStatus() {
+      final s1 = _statusFromPaymentState(sendP.status);
+      final s2 = _statusFromPaymentState(receiveP.status);
+      // Order of dominance: confirmed > pending > failed.
+      if (s1 == domain.TransactionStatus.confirmed ||
+          s2 == domain.TransactionStatus.confirmed) {
+        return domain.TransactionStatus.confirmed;
+      }
+      if (s1 == domain.TransactionStatus.pending ||
+          s2 == domain.TransactionStatus.pending) {
+        return domain.TransactionStatus.pending;
+      }
+      return domain.TransactionStatus.failed;
+    }
+
+    final status = pickStatus();
+    final sentAmount = _amountSatFromPayment(sendP);
+    final receivedAmount = _amountSatFromPayment(receiveP);
+    final feeSat = sendP.feesSat.toInt() + receiveP.feesSat.toInt();
+    // Newer of the two timestamps — the swap completed as of the
+    // later one (typically the receive leg confirming).
+    final ts = sendP.timestamp > receiveP.timestamp
+        ? sendP.timestamp
+        : receiveP.timestamp;
+
+    return domain.Transaction(
+      id: txId,
+      chain: ChainId.liquid,
+      direction: domain.TransactionDirection.swap,
+      status: status,
+      // Headline amount matches the V2 swap convention (the sent
+      // leg). `_v2ToLegacy` in the home adapter reads `amountSat` for
+      // the row's primary value display.
+      amountSat: sentAmount,
+      feeSat: feeSat,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(ts * 1000),
+      confirmations: status == domain.TransactionStatus.confirmed ? 1 : 0,
+      assetId: sendDetails.assetId,
+      fromAssetId: sendDetails.assetId,
+      toAssetId: recvDetails.assetId,
+      sentAmountSat: sentAmount,
+      receivedAmountSat: receivedAmount,
+      source: domain.TransactionSource.breez,
+    );
+  }
+
+  domain.TransactionStatus _statusFromPaymentState(breez.PaymentState s) {
+    return switch (s) {
+      breez.PaymentState.complete => domain.TransactionStatus.confirmed,
+      breez.PaymentState.failed => domain.TransactionStatus.failed,
+      breez.PaymentState.timedOut => domain.TransactionStatus.failed,
+      _ => domain.TransactionStatus.pending,
+    };
   }
 
   /// Map a Breez `Payment` to a domain `Transaction`.
@@ -1489,6 +1817,180 @@ class LightningWalletServiceImpl implements LightningWalletService {
     if (!_txController.isClosed) _txController.add(e);
   }
 
+  /// Refresh `_lastBalance` immediately after a spend so the UI's cached
+  /// balance reflects the new state without waiting for the next sync.
+  ///
+  /// Problem this solves: `sendOnchain` / `sendLightning` / `executePegOut`
+  /// update `_seen`, `_lastList`, and emit a synthetic `TransactionEvent`,
+  /// but they do NOT touch `_lastBalance`. The cache is only refreshed
+  /// inside `sync()`. When the user finishes a swap (DePix → L-BTC, say,
+  /// emptying their DePix), the swap screen invalidates
+  /// `allBalancesProvider`, the home re-reads, and the chain service
+  /// returns the STALE pre-swap `_lastBalance` — the user sees DePix
+  /// "available" that doesn't actually exist anymore until the next sync
+  /// tick (~1–2 s) catches up.
+  ///
+  /// After `c.sendPayment` / `c.payOnchain` returns, the Breez SDK has
+  /// already committed the UTXO change locally — `c.getInfo()` returns
+  /// the post-spend balance. Pulling it here (without a full sync) keeps
+  /// the spend path under ~100 ms total and guarantees the next
+  /// `getBalance()` call sees the new state.
+  ///
+  /// Best-effort: a failure here doesn't fail the send (we still
+  /// broadcasted successfully). It just means we fall back to the
+  /// existing sync-driven refresh.
+  Future<void> _refreshCachedBalanceAfterSpend() async {
+    final c = _client;
+    if (c == null || !currentState.isOperational) return;
+    try {
+      final tInfo = clock.now();
+      final info = await c.getInfo();
+      _lastBalance = _mapBalance(info);
+      BootTracer.mark('breez.post_spend.balance_refreshed', {
+        'dur_ms': clock.now().difference(tInfo).inMilliseconds,
+        'asset_count': _lastBalance.assets.length,
+      });
+    } catch (e) {
+      logger.warn('lightning.post_spend.balance_refresh_failed', {
+        'error': '$e',
+      });
+    }
+  }
+
+  @override
+  Future<Either<ServiceFailure, domain.Balance>> refreshBalance() async {
+    final c = _client;
+    if (c == null || !currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    try {
+      final t0 = clock.now();
+      final info = await c.getInfo();
+      _lastBalance = _mapBalance(info);
+      BootTracer.mark('breez.refresh_balance.ok', {
+        'dur_ms': clock.now().difference(t0).inMilliseconds,
+        'asset_count': _lastBalance.assets.length,
+      });
+      return Right(_lastBalance);
+    } catch (e, st) {
+      logger.warn('lightning.refresh_balance.failed', {'error': '$e'});
+      return Left(
+        ServiceFailure(
+          'breez refreshBalance failed: $e',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<ServiceFailure, domain.Balance>> applyOptimisticBalanceDelta({
+    required Map<String, int> deltas,
+  }) async {
+    if (!currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    if (deltas.isEmpty) return Right(_lastBalance);
+    final prev = _lastBalance;
+    // Re-build the asset list applying deltas. Preserve any asset that
+    // already exists in `_lastBalance`; insert a new entry for ids the
+    // cache hadn't surfaced yet (e.g. user just received their first
+    // DePix via swap and Breez hasn't reported the row yet).
+    final byId = <String?, domain.AssetBalance>{
+      for (final ab in prev.assets) ab.assetId: ab,
+    };
+    deltas.forEach((assetId, deltaSat) {
+      final existing = byId[assetId];
+      if (existing == null) {
+        if (deltaSat <= 0) return; // can't go negative on an unseen asset
+        byId[assetId] = domain.AssetBalance(
+          chain: chain,
+          assetId: assetId,
+          amountSat: deltaSat,
+          ticker: assetId == lbtcAssetId ? 'BTC' : null,
+        );
+        return;
+      }
+      final next = existing.amountSat + deltaSat;
+      byId[assetId] = domain.AssetBalance(
+        chain: existing.chain,
+        assetId: existing.assetId,
+        amountSat: next < 0 ? 0 : next,
+        precision: existing.precision,
+        ticker: existing.ticker,
+        pendingSat: existing.pendingSat,
+      );
+    });
+    _lastBalance = domain.Balance(
+      assets: byId.values.toList(growable: false),
+      snapshotAt: clock.now(),
+    );
+    BootTracer.mark('breez.optimistic_delta.applied', {
+      'delta_count': deltas.length,
+      'asset_count': _lastBalance.assets.length,
+    });
+    return Right(_lastBalance);
+  }
+
+  /// Live Breez SDK event handler. Reacts ONLY to payment-level events
+  /// — `Synced` / `DataSynced` / `SyncFailed` are filtered out
+  /// because they fire after every internal SDK sync, including the
+  /// one our own `sync()` triggers. Reacting to `Synced` produces a
+  /// trivial feedback loop:
+  ///
+  ///   our sync() → c.sync() → SDK emits Synced → debounce → sync()
+  ///   → c.sync() → SDK emits Synced → ...
+  ///
+  /// A profiled trace caught this in the wild — Breez was running
+  /// ~one sync per second indefinitely, each one returning
+  /// `changed=0`, draining battery and rate-limiting the Greenlight
+  /// endpoint.
+  ///
+  /// Payment events (`PaymentSucceeded`, `PaymentPending`,
+  /// `PaymentRefundable`, `PaymentRefunded`, `PaymentRefundPending`,
+  /// `PaymentFailed`, `PaymentWaitingConfirmation`,
+  /// `PaymentWaitingFeeAcceptance`) genuinely signal "a payment
+  /// you care about just transitioned" — those are exactly the
+  /// moments where we want a fast `sync()` so the cached
+  /// `_lastBalance` + the home tx list pick up the new state
+  /// without waiting for the periodic tick.
+  ///
+  /// Coalesced via [_eventSyncDebounce] so a burst of related
+  /// events (e.g. `PaymentPending` followed seconds later by
+  /// `PaymentSucceeded` for the same swap) collapses into one sync.
+  void _onBreezEvent(breez.SdkEvent event) {
+    if (!currentState.isOperational) return;
+    // Sync-related events are noise — they fire as a consequence of
+    // our own `c.sync()` call. Filter them at the top so we don't
+    // burn CPU scheduling debounces that will only spam more syncs.
+    if (event is breez.SdkEvent_Synced ||
+        event is breez.SdkEvent_DataSynced ||
+        event is breez.SdkEvent_SyncFailed) {
+      return;
+    }
+    _eventSyncDebounce?.cancel();
+    _eventSyncDebounce = Timer(const Duration(milliseconds: 250), () {
+      _eventSyncDebounce = null;
+      if (!currentState.isOperational) return;
+      BootTracer.mark('breez.event.sync_trigger', {
+        'event': event.runtimeType.toString(),
+      });
+      // Fire-and-forget: errors are surfaced via the regular sync
+      // failure path; we don't want to leak a synchronous throw out
+      // of the event listener.
+      unawaited(sync().catchError((Object e, StackTrace st) {
+        logger.warn('lightning.event_triggered_sync.failed',
+            {'error': '$e'}, error: e, stackTrace: st);
+        return Left<ServiceFailure, SyncOutcome>(
+          ServiceFailure('event-triggered sync threw: $e',
+              chain: chain, cause: e, stackTrace: st),
+        );
+      }));
+    });
+  }
+
   @override
   Future<void> dispose() async {
     await disconnect();
@@ -1532,10 +2034,10 @@ void _logBreezPaymentV2(breez.Payment p) {
     detailsLine = 'unknown(${d.runtimeType})';
   }
 
-  // debugPrint(
-  //   '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
-  //   'amountSat=${p.amountSat} feesSat=${p.feesSat} '
-  //   'txId=${p.txId} ts=${p.timestamp} '
-  //   'details=$detailsLine',
-  // );
+  debugPrint(
+    '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
+    'amountSat=${p.amountSat} feesSat=${p.feesSat} '
+    'txId=${p.txId} ts=${p.timestamp} '
+    'details=$detailsLine',
+  );
 }

@@ -5,6 +5,8 @@ import '../../domain/entities/chain.dart';
 import '../../domain/entities/wallet_credentials.dart';
 import '../../domain/failures/failure.dart';
 import '../../domain/repositories/secure_credential_store.dart';
+import '../../shared/diagnostics/boot_tracer.dart';
+import '../../shared/storage/mnemonic_prefetch.dart';
 
 class FlutterSecureCredentialStore implements SecureCredentialStore {
   // Audit (V2_PHASE2_PARITY_AND_MIGRATION §0 Phase 2.0):
@@ -46,7 +48,22 @@ class FlutterSecureCredentialStore implements SecureCredentialStore {
   @override
   Future<Either<CredentialFailure, WalletCredentials>> load() async {
     try {
-      final v = await _storage.read(key: mnemonicKey);
+      // Route through the shared prefetch cache when this is the
+      // standard wallet key — eliminates the duplicate Keychain hit
+      // that used to cost ~4 s on cold start. For non-standard keys
+      // (tests, future multi-wallet support) we still hit the
+      // platform channel directly.
+      BootTracer.mark('creds.load.start', {'key': mnemonicKey});
+      final String? v;
+      if (mnemonicKey == MnemonicPrefetch.key) {
+        v = await MnemonicPrefetch.get();
+      } else {
+        v = await _storage.read(key: mnemonicKey);
+      }
+      BootTracer.mark('creds.load.done', {
+        'has_value': v != null && v.isNotEmpty,
+        'prefetch_ms': MnemonicPrefetch.durationMs,
+      });
       if (v == null || v.isEmpty) {
         return Right(WalletCredentials.absent(network));
       }
@@ -64,6 +81,12 @@ class FlutterSecureCredentialStore implements SecureCredentialStore {
     }
     try {
       await _storage.write(key: mnemonicKey, value: credentials.mnemonic);
+      // Invalidate the prefetch cache so the next reader picks up the
+      // freshly-written value instead of a stale future from a prior
+      // wallet (relevant on re-import after delete-and-restore).
+      if (mnemonicKey == MnemonicPrefetch.key) {
+        MnemonicPrefetch.clear();
+      }
       return const Right(unit);
     } catch (e, st) {
       return Left(CredentialFailure('save failed: $e', cause: e, stackTrace: st));
@@ -74,6 +97,9 @@ class FlutterSecureCredentialStore implements SecureCredentialStore {
   Future<Either<CredentialFailure, Unit>> delete() async {
     try {
       await _storage.delete(key: mnemonicKey);
+      if (mnemonicKey == MnemonicPrefetch.key) {
+        MnemonicPrefetch.clear();
+      }
       return const Right(unit);
     } catch (e, st) {
       return Left(CredentialFailure('delete failed: $e', cause: e, stackTrace: st));

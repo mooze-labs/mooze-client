@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
+import '../entities/balance.dart';
 import '../entities/broadcast_result.dart';
 import '../entities/peg.dart';
 import '../entities/refund.dart';
@@ -43,6 +44,31 @@ abstract interface class LightningWalletService
   /// Best-effort onchain swap rescan within the given lookback window.
   /// Used to recover funds sent to previously-issued swap addresses.
   Future<Either<ServiceFailure, Unit>> rescan({required Duration window});
+
+  /// Re-fetch the SDK's balance view and update the internal cache
+  /// WITHOUT running a full chain sync. Useful right after a broadcast
+  /// (e.g. SideSwap) where the caller wants to nudge the cached balance
+  /// without paying for a fresh electrum scan.
+  ///
+  /// Breez here re-runs a single `getInfo()` and remaps `_lastBalance`.
+  /// Returns the freshly-cached value. Falls back to the previous
+  /// cache if `getInfo()` fails (best-effort — never throws).
+  Future<Either<ServiceFailure, Balance>> refreshBalance();
+
+  /// Apply known per-asset deltas to the cached `_lastBalance` for
+  /// instant UI feedback. Used after broadcasts that the SDK does NOT
+  /// observe immediately — primarily SideSwap, where the broadcast
+  /// goes through the SideSwap server (not Breez), so neither
+  /// `getInfo()` nor `sync()` reflects the new state until the
+  /// next electrum scan picks up the mempool entry.
+  ///
+  /// [deltas] maps Liquid asset id → signed sat delta. The L-BTC
+  /// asset uses [lbtcAssetId]. Negative values shrink the cached
+  /// balance, positive grow it. Missing asset ids leave that asset
+  /// untouched. Cache is overwritten on the next successful `sync()`.
+  Future<Either<ServiceFailure, Balance>> applyOptimisticBalanceDelta({
+    required Map<String, int> deltas,
+  });
 
   // ─────────────────────────────────────────── refund surface
   //

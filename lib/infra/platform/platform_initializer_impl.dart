@@ -1,13 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
 import 'package:fpdart/fpdart.dart';
-import 'package:lwk/lwk.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/failures/failure.dart';
 import '../../domain/services/platform_initializer.dart';
+import '../../shared/platform/platform_warmup.dart';
 
 /// Performs all idempotent platform-level setup needed before any service
 /// can be constructed: FFI inits, prefs warm-up, etc.
@@ -24,8 +23,12 @@ class PlatformInitializerImpl implements PlatformInitializer {
       // (main.dart) will normally have done this; we still call it for
       // robustness.
       WidgetsFlutterBinding.ensureInitialized();
-      await LibLwk.init();
-      await breez.FlutterBreezLiquid.init();
+      // FFI inits are kicked off from `main()` via `PlatformWarmup.start()`
+      // so they overlap with the rest of startup. By the time we reach
+      // here they're usually already complete — this `await` is then a
+      // no-op. `awaitAll` is also safe if `start` was never called
+      // (lazy fallback inside the helper).
+      await PlatformWarmup.awaitAll();
       await SharedPreferences.getInstance();
       _ran = true;
       return const Right(unit);

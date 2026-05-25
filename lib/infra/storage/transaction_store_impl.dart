@@ -7,6 +7,7 @@ import '../../domain/entities/chain.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/failures/failure.dart';
 import '../../domain/repositories/transaction_store.dart';
+import '../../shared/diagnostics/boot_tracer.dart';
 import '../db/transaction_database.dart';
 
 class SqliteTransactionStore implements TransactionStore {
@@ -28,6 +29,7 @@ class SqliteTransactionStore implements TransactionStore {
       return Left(const StorageFailure('store disposed'));
     }
     if (txs.isEmpty) return const Right(unit);
+    final tUpsert = DateTime.now();
     try {
       // Source-aware merge semantics (2026-05-18 redesign).
       //
@@ -130,6 +132,7 @@ class SqliteTransactionStore implements TransactionStore {
             COALESCE(excluded.received_amount_sat,
                      transactions.received_amount_sat)
       ''');
+      final tExec = DateTime.now();
       try {
         for (final tx in txs) {
           stmt.execute([
@@ -153,6 +156,19 @@ class SqliteTransactionStore implements TransactionStore {
         }
       } finally {
         stmt.dispose();
+      }
+      final execMs = DateTime.now().difference(tExec).inMilliseconds;
+      final totalMs = DateTime.now().difference(tUpsert).inMilliseconds;
+      // Only surface batches that are non-trivial — single-row upserts
+      // happen many times per second during sync and would drown the
+      // trace. Threshold is intentionally low so we still see the
+      // start of any pathological run.
+      if (txs.length >= 5 || execMs >= 2) {
+        BootTracer.mark('tx_store.upsert', {
+          'n': txs.length,
+          'exec_ms': execMs,
+          'total_ms': totalMs,
+        });
       }
       _scheduleWatchEmit();
       return const Right(unit);
@@ -201,19 +217,40 @@ class SqliteTransactionStore implements TransactionStore {
 
   @override
   Stream<List<Transaction>> watch({ChainFilter? filter}) async* {
+    BootTracer.mark('tx_store.watch.subscribed', {
+      'filter': filter?.toString() ?? 'null',
+    });
+    final tInit = DateTime.now();
     final initial = await list(filter: filter);
-    yield initial.getOrElse((_) => const <Transaction>[]);
+    final initialList = initial.getOrElse((_) => const <Transaction>[]);
+    BootTracer.mark('tx_store.watch.initial_yield', {
+      'len': initialList.length,
+      'dur_ms': DateTime.now().difference(tInit).inMilliseconds,
+    });
+    yield initialList;
+    var emitSeq = 0;
     yield* _watchController.stream.asyncMap((_) async {
+      emitSeq += 1;
+      final tQuery = DateTime.now();
       final next = await list(filter: filter);
-      return next.getOrElse((_) => const <Transaction>[]);
+      final nextList = next.getOrElse((_) => const <Transaction>[]);
+      BootTracer.mark('tx_store.watch.requery', {
+        'n': emitSeq,
+        'len': nextList.length,
+        'dur_ms': DateTime.now().difference(tQuery).inMilliseconds,
+      });
+      return nextList;
     });
   }
 
   @override
   Future<Either<StorageFailure, Unit>> deleteAll() async {
     try {
+      BootTracer.mark('tx_store.delete_all.begin');
       _database.db.execute('DELETE FROM transactions');
+      BootTracer.mark('tx_store.delete_all.executed');
       _scheduleWatchEmit();
+      BootTracer.mark('tx_store.delete_all.end');
       return const Right(unit);
     } catch (e, st) {
       return Left(StorageFailure('deleteAll failed: $e', cause: e, stackTrace: st));
@@ -251,11 +288,22 @@ class SqliteTransactionStore implements TransactionStore {
     );
   }
 
+  int _pendingWrites = 0;
+  bool _emitScheduled = false;
+
   void _scheduleWatchEmit() {
     if (_watchController.isClosed) return;
+    _pendingWrites += 1;
+    if (_emitScheduled) return;
+    _emitScheduled = true;
     // Coalesce bursts: schedule on next microtask.
     scheduleMicrotask(() {
-      if (!_watchController.isClosed) _watchController.add(const []);
+      final coalesced = _pendingWrites;
+      _pendingWrites = 0;
+      _emitScheduled = false;
+      if (_watchController.isClosed) return;
+      BootTracer.mark('tx_store.watch.emit', {'coalesced_writes': coalesced});
+      _watchController.add(const []);
     });
   }
 

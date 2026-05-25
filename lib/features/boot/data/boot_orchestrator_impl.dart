@@ -13,6 +13,7 @@ import '../../../domain/services/platform_initializer.dart';
 import '../../../domain/services/session_authenticator.dart';
 import '../../../shared/clock/clock.dart';
 import '../../../shared/concurrency/single_flight.dart';
+import '../../../shared/diagnostics/boot_tracer.dart';
 import '../../../shared/logging/structured_logger.dart';
 import '../../../shared/streams/replay_value_stream.dart';
 import '../domain/boot_orchestrator.dart';
@@ -165,8 +166,10 @@ class BootOrchestratorImpl implements BootOrchestrator {
       _runCredentialsPhase() async {
     _emit(currentState.copyWith(phase: BootPhase.loadingCredentials));
     final t0 = clock.now();
+    BootTracer.mark('boot.creds.await_start');
     final loadResult = await credentialStore.load();
     final dur = clock.now().difference(t0).inMilliseconds;
+    BootTracer.mark('boot.creds.await_end', {'dur_ms': dur});
     return loadResult.fold(
       (f) {
         logger.error('boot.credentials.error', {

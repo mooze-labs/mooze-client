@@ -16,6 +16,7 @@ import '../../../domain/services/wallet_service.dart';
 import '../../../shared/clock/clock.dart';
 import '../../../shared/concurrency/mutex.dart';
 import '../../../shared/concurrency/single_flight.dart';
+import '../../../shared/diagnostics/boot_tracer.dart';
 import '../../../shared/logging/structured_logger.dart';
 import '../../../shared/streams/replay_value_stream.dart';
 import '../domain/sync_config.dart';
@@ -55,6 +56,17 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
   final List<StreamSubscription> _subs = [];
   Timer? _ticker;
   bool _started = false;
+
+  // Event coalescer. A single sync cycle on a busy wallet emits dozens of
+  // TransactionEvents over a short window (LWK fires one per tx changed,
+  // Breez fires one per payment touched). Persisting them one-by-one means
+  // one sqlite prepare/exec per event + one watch-emit per event +
+  // one downstream compute() per event — visible UI freeze on big wallets.
+  // We buffer events for `_flushInterval` and persist with `upsertAll`,
+  // which collapses the storm into one watch emit per burst.
+  final List<TransactionEvent> _persistBuffer = [];
+  Timer? _persistFlushTimer;
+  static const Duration _flushInterval = Duration(milliseconds: 50);
 
   @override
   Stream<SyncState> get state => _state.stream;
@@ -216,8 +228,17 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
     int totalFetched = 0;
     int totalChanged = 0;
 
-    // Sequential by design: avoids LWK isolate + BDK CPU + Breez network
-    // colliding on the same device. Order is liquid → bitcoin → lightning.
+    // Parallel by design (2026-05-24): the previous sequential walk
+    // (liquid → bitcoin → lightning) meant that a slow or timing-out
+    // LWK sync starved Bitcoin and Breez behind a 60 s wait, with the
+    // user-visible effect that Liquid asset swaps (which come from
+    // Breez) did not appear on the home list until the LWK timeout
+    // fired. The three SDKs live in their own isolates / network
+    // contexts (LWK Rust isolate, BDK Rust isolate, Breez gRPC
+    // session); none of them shares mutable state and each carries
+    // its own `_syncMutex`, so running them concurrently is safe and
+    // strictly faster.
+    final inFlight = <ChainId, Future<Either<ServiceFailure, SyncOutcome>>>{};
     for (final s in _services) {
       if (!s.currentState.isOperational) {
         outcomes[s.chain] = Left(ServiceFailure('not operational',
@@ -228,33 +249,109 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
       logger.debug('sync.chain.begin',
           {'chain': s.chain.name, 'timeout_ms': timeout.inMilliseconds});
 
-      Either<ServiceFailure, SyncOutcome> r;
-      try {
-        r = await s.sync(timeout: timeout).timeout(
-              timeout + const Duration(seconds: 5),
-              onTimeout: () => Left(ServiceFailure('sync hard timeout',
-                  chain: s.chain)),
-            );
-      } catch (e, st) {
-        r = Left(ServiceFailure('sync threw: $e',
-            chain: s.chain, cause: e, stackTrace: st));
-      }
-      outcomes[s.chain] = r;
+      inFlight[s.chain] = () async {
+        try {
+          return await s.sync(timeout: timeout).timeout(
+                timeout + const Duration(seconds: 5),
+                onTimeout: () => Left(ServiceFailure('sync hard timeout',
+                    chain: s.chain)),
+              );
+        } catch (e, st) {
+          return Left<ServiceFailure, SyncOutcome>(ServiceFailure(
+              'sync threw: $e',
+              chain: s.chain, cause: e, stackTrace: st));
+        }
+      }();
+    }
+
+    // Collect results as each chain finishes so we can log per-chain
+    // completion as it happens (preserves the old observability where
+    // the trace shows each `sync.chain.ok` line at the moment that
+    // chain returned).
+    //
+    // Progressive `lastSuccessAt` (2026-05-24): the first chain to
+    // return successfully bumps `lastSuccessAt` immediately, even
+    // while sibling chains keep syncing. Consumers gating on "did at
+    // least one chain return?" (the import-loading gate, progressive
+    // hydration) can advance the moment Bitcoin or Lightning land,
+    // without sitting behind a possible 60 s LWK timeout. The terminal
+    // `cooling` emit at the end still runs and carries the final
+    // aggregate state.
+    await Future.wait(inFlight.entries.map((entry) async {
+      final r = await entry.value;
+      outcomes[entry.key] = r;
+      // Settle ordering (2026-05-24): we must guarantee that by the
+      // time a chain lands in `firstSyncedChains`, its data is already
+      // in the transaction store — otherwise the import-loading gate
+      // fires, the home mounts, subscribes to the store, and renders
+      // an empty list for this chain because the writes are still in
+      // flight. The user-visible symptom is "home opened with only
+      // BDK" until Lightning/Liquid pop in a few seconds later.
+      //
+      // Two-step settle:
+      //   (a) Yield the event loop once. The chain's `_diffAndEmit`
+      //       added TransactionEvents to its own `_txController`
+      //       synchronously during sync, but the orchestrator's
+      //       listener (`_onTransactionEvent`) is invoked as a
+      //       microtask. Yielding lets those microtasks drain so the
+      //       events land in `_persistBuffer`.
+      //   (b) Force-flush the buffer and await the `upsertAll`. After
+      //       this, the chain's events are in the sqlite store and
+      //       any new `watch()` subscriber will see them in its
+      //       initial yield.
+      await Future<void>.delayed(Duration.zero);
+      await _flushPersistBufferNow();
+      // Settled semantics (2026-05-24 redesign): ONLY successful chain
+      // syncs land in `firstSyncedChains`. The previous version added
+      // failed chains too, which meant a Breez/LWK timeout flipped
+      // `lightningSettled` to true in the import-loading gate — the
+      // home opened with empty Breez data after a long wait.
+      //
+      // With this change, the gate's `lightningSettled` only fires
+      // when Breez actually returned payments. If Breez fails, the
+      // gate falls back to `allSettled` (phase == cooling, which only
+      // emits once `Future.wait` completes — i.e., after every
+      // operational chain's per-chain timeout fires). That bounds the
+      // worst-case wait at the LONGEST per-chain timeout, while
+      // letting the gate release immediately on the happy path where
+      // Breez succeeds early.
       r.match(
-        (f) => logger.warn('sync.chain.failed',
-            {'chain': s.chain.name, 'reason': f.message}),
+        (f) {
+          logger.warn('sync.chain.failed',
+              {'chain': entry.key.name, 'reason': f.message});
+          // No state emit on failure — keep `firstSyncedChains`
+          // unchanged. The chain's final outcome is still captured
+          // in `outcomes[entry.key]` for the aggregate emit below.
+        },
         (o) {
           totalFetched += o.fetched;
           totalChanged += o.changed;
           logger.info('sync.chain.ok', {
-            'chain': s.chain.name,
+            'chain': entry.key.name,
             'duration_ms': o.duration.inMilliseconds,
             'fetched': o.fetched,
             'changed': o.changed,
           });
+          // Success path: stamp the chain as first-synced + bump
+          // lifecycle + lastSuccessAt so progressive UX (per-chain
+          // "synced X" message) can react immediately.
+          final firstSynced = <ChainId>{
+            ...currentState.firstSyncedChains,
+            entry.key,
+          };
+          final updatedPerChain = <ChainId, ServiceLifecycle>{
+            ...currentState.perChain,
+            entry.key: ServiceLifecycle.connected,
+          };
+          _emit(currentState.copyWith(
+            perChain: updatedPerChain,
+            lastSuccessAt: clock.now(),
+            firstSyncedChains: firstSynced,
+            clearError: true,
+          ));
         },
       );
-    }
+    }));
 
     // Lightning rescan only on full strategy.
     if (strategy == SyncStrategy.full) {
@@ -315,16 +412,53 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
   }
 
   void _onTransactionEvent(TransactionEvent event) {
-    // Single writer: persist first, then republish on success.
-    transactionStore.upsert(event.transaction).then((r) {
-      r.match(
-        (f) => logger.warn('sync.tx.persist.failed',
-            {'id': event.transaction.id, 'reason': f.message}),
-        (_) {
-          if (!_txController.isClosed) _txController.add(event);
-        },
-      );
+    // Buffer + flush. The single-event upsert path used to spawn one
+    // sqlite write and one watch-emit per event; on a hot sync that
+    // produced dozens of UI-thread microtasks back to back. Batching
+    // lets one `upsertAll` write N rows under a single prepared
+    // statement and emit a single coalesced watch tick.
+    _persistBuffer.add(event);
+    _persistFlushTimer ??= Timer(_flushInterval, _flushPersistBuffer);
+  }
+
+  void _flushPersistBuffer() {
+    // Fire-and-forget wrapper around `_flushPersistBufferNow` for the
+    // Timer callback — the Timer can't await the returned Future, and
+    // we don't need to: stale flushes are harmless (subsequent
+    // explicit flushes from `_runRefresh` will pick up anything left
+    // in the buffer).
+    // ignore: unawaited_futures
+    _flushPersistBufferNow();
+  }
+
+  /// Awaitable flush: drains the persist buffer and waits for the
+  /// resulting `upsertAll` to complete. Used by `_runRefresh` after
+  /// each chain's sync returns, so consumers seeing the chain land in
+  /// `firstSyncedChains` can assume that chain's data is committed.
+  Future<void> _flushPersistBufferNow() async {
+    _persistFlushTimer?.cancel();
+    _persistFlushTimer = null;
+    if (_persistBuffer.isEmpty) return;
+    final batch = List<TransactionEvent>.unmodifiable(_persistBuffer);
+    _persistBuffer.clear();
+    final tEnter = clock.now();
+    final txs = batch.map((e) => e.transaction).toList(growable: false);
+    final r = await transactionStore.upsertAll(txs);
+    final persistMs = clock.now().difference(tEnter).inMilliseconds;
+    BootTracer.mark('sync.tx.persist.batch', {
+      'n': batch.length,
+      'dur_ms': persistMs,
     });
+    r.match(
+      (f) => logger.warn('sync.tx.persist.batch.failed',
+          {'n': batch.length, 'reason': f.message}),
+      (_) {
+        if (_txController.isClosed) return;
+        for (final event in batch) {
+          _txController.add(event);
+        }
+      },
+    );
   }
 
   void _emit(SyncState s) {
@@ -342,6 +476,12 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
       await s.cancel();
     }
     _subs.clear();
+    // Flush any buffered events synchronously — losing the last 50ms
+    // worth of TransactionEvents on shutdown would manifest as a stale
+    // tx list after the next launch.
+    _persistFlushTimer?.cancel();
+    _persistFlushTimer = null;
+    _flushPersistBuffer();
 
     // Drain any in-flight `_runRefresh` / `_runReconnect`. Without this,
     // a periodic-tick refresh that fired moments before delete is still
@@ -360,7 +500,28 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
           {'reason': 'in-flight refresh/reconnect did not finish in 5s'});
     }
 
-    _emit(currentState.copyWith(phase: SyncPhase.stopped));
+    // CRITICAL (2026-05-24): wipe per-wallet sync state on stop. The
+    // delete+reimport flow calls `stop()` between wallets, but the
+    // orchestrator is a singleton (lives in the Riverpod tree and is
+    // not invalidated by the import button). Without this reset, the
+    // next wallet inherits `firstSyncedChains = {liquid, bitcoin,
+    // lightning}` and `lastSuccessAt = <old time>` from the previous
+    // wallet — the `WalletImportLoadingScreen` gate then sees
+    // `lightningSettled == true` immediately on the new boot's first
+    // state emit and routes the user to /home BEFORE the new wallet
+    // has fetched anything. Result: home opens "empty" then suddenly
+    // populates with the new wallet's data many seconds later
+    // (sometimes still rendering stale balance from the chain
+    // services' in-memory caches in the interim).
+    //
+    // Reset everything except the `phase=stopped` marker; the next
+    // `start()` will populate `perChain` from the freshly-reconnected
+    // services and rebuild `firstSyncedChains` from the new wallet's
+    // sync results.
+    _emit(const SyncState(
+      phase: SyncPhase.stopped,
+      perChain: <ChainId, ServiceLifecycle>{},
+    ));
     logger.info('sync.stop', {});
   }
 
