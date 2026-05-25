@@ -749,12 +749,34 @@ class AppLoggerService {
     List<Map<String, dynamic>> txJson = const [];
     List<Map<String, dynamic>> swapJson = const [];
 
+    // Build a (any-tx-id → breezSwapId) index from V2 chain-swap rows.
+    // Any of these ids on a Swap audit row's `txId` field is enough to
+    // pull the short opaque Breez id (e.g. `gGZYumk53AUX`) into the
+    // exported swap entry. The mapping is many-to-one (a single
+    // peg-swap surfaces under up to 3 distinct ids — short swap id,
+    // lockup hex, claim hex), so we index all of them.
+    final breezSwapIdByTxKey = <String, String>{};
+    if (v2Transactions != null) {
+      for (final t in v2Transactions) {
+        final swapId = t.breezSwapId;
+        if (swapId == null) continue;
+        breezSwapIdByTxKey[t.id] = swapId;
+        final lockup = t.swapLockupTxId;
+        if (lockup != null) breezSwapIdByTxKey[lockup] = swapId;
+        final claim = t.swapClaimTxId;
+        if (claim != null) breezSwapIdByTxKey[claim] = swapId;
+        breezSwapIdByTxKey[swapId] = swapId;
+      }
+    }
+
     if (_database != null) {
       final db = _database!;
       final swaps = await db.getAllSwaps(walletId: walletId);
 
       swaps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      swapJson = swaps.map(_swapRowToJson).toList();
+      swapJson = swaps
+          .map((row) => _swapRowToJson(row, breezSwapIdByTxKey))
+          .toList();
 
       // V2 transactions take precedence over the legacy table. Post-V2
       // sync writes to `mooze_v2.db`, leaving the drift `Transactions`
@@ -832,22 +854,38 @@ class AppLoggerService {
       'confirmations': tx.confirmations,
       if (tx.address != null) 'address': tx.address,
       if (tx.label != null) 'label': tx.label,
+      if (tx.swapLockupTxId != null) 'swapLockupTxId': tx.swapLockupTxId,
+      if (tx.swapClaimTxId != null) 'swapClaimTxId': tx.swapClaimTxId,
+      if (tx.breezSwapId != null) 'breezSwapId': tx.breezSwapId,
     };
   }
 
-  Map<String, dynamic> _swapRowToJson(Swap row) => {
-    'id': row.id,
-    'provider': row.provider,
-    'direction': row.direction,
-    'status': row.status,
-    'sendAsset': row.sendAsset,
-    'receiveAsset': row.receiveAsset,
-    'sendAmount': row.sendAmount.toString(),
-    'receiveAmount': row.receiveAmount.toString(),
-    'createdAt': row.createdAt.toUtc().toIso8601String(),
-    if (row.txId != null) 'txId': row.txId,
-    if (row.metadata != null) 'metadata': row.metadata,
-  };
+  Map<String, dynamic> _swapRowToJson(
+    Swap row, [
+    Map<String, String> breezSwapIdByTxKey = const {},
+  ]) {
+    // Cross-reference the audit row to the V2 chain-swap rows so we
+    // can surface the short Breez swap id (e.g. `gGZYumk53AUX`)
+    // alongside the existing audit metadata. Support tooling uses
+    // that id to query Breez/Boltz for the swap status.
+    String? breezSwapId;
+    final txId = row.txId;
+    if (txId != null) breezSwapId = breezSwapIdByTxKey[txId];
+    return {
+      'id': row.id,
+      'provider': row.provider,
+      'direction': row.direction,
+      'status': row.status,
+      'sendAsset': row.sendAsset,
+      'receiveAsset': row.receiveAsset,
+      'sendAmount': row.sendAmount.toString(),
+      'receiveAmount': row.receiveAmount.toString(),
+      'createdAt': row.createdAt.toUtc().toIso8601String(),
+      if (txId != null) 'txId': txId,
+      if (breezSwapId != null) 'breezSwapId': breezSwapId,
+      if (row.metadata != null) 'metadata': row.metadata,
+    };
+  }
 
   void dispose() {
     _cleanupTimer?.cancel();

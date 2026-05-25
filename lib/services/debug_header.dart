@@ -11,6 +11,8 @@ class DebugHeader {
     required this.totalLogsMemory,
     required this.totalLogsDatabase,
     required this.logRetentionDays,
+    this.userId,
+    this.walletId,
     DateTime? generatedAt,
   }) : generatedAt = generatedAt ?? DateTime.now();
 
@@ -24,6 +26,18 @@ class DebugHeader {
   final int totalLogsMemory;
   final int totalLogsDatabase;
   final int logRetentionDays;
+
+  /// Backend-issued user id (from `UserService.getUser()`). Nullable
+  /// because the call is async + auth-gated; if the export is built
+  /// while the user-info call is in flight or has failed, we still
+  /// want the rest of the header to render.
+  final String? userId;
+
+  /// Locally-generated per-wallet id (from `WalletIdService`). Always
+  /// available once the wallet has booted; included alongside
+  /// [userId] because support tickets often need both to correlate
+  /// device-side state with backend records.
+  final String? walletId;
   final DateTime generatedAt;
 
   String format() {
@@ -32,10 +46,14 @@ class DebugHeader {
         : 'unavailable';
     final retentionLine =
         logRetentionDays >= 0 ? '$logRetentionDays days' : 'N/A';
+    final userIdLine = userId ?? 'unavailable';
+    final walletIdLine = walletId ?? 'unavailable';
 
     return '''
 Mooze App - Debug Info
 
+User ID: $userIdLine
+Wallet ID: $walletIdLine
 App Version: $appVersion
 Build Number: $buildNumber
 LWK: $lwkVersion
