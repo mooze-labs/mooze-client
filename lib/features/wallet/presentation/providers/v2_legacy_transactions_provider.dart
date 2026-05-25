@@ -236,8 +236,26 @@ int _mix(int h, int value) {
 }
 
 legacy.Transaction _v2ToLegacy(v2.Transaction t) {
+  // Peg-in claim / peg-out lockup from Breez surface as
+  // `PaymentDetails_Bitcoin`, so `_mapPayment` tags them with
+  // `chain: ChainId.bitcoin`. But the asset that actually crossed the
+  // user's wallet on those payments is L-BTC (Breez paid out / took in
+  // L-BTC at the Liquid side of the swap — only the swap mechanics
+  // touched native Bitcoin). Without this remap, the home tx list
+  // renders "Recebeu BTC" for a peg-in claim and `swap_unifier` can't
+  // pair it with the BDK BTC send (the LBTC bucket stays empty), and
+  // `pendingSwapsReconciliationProvider._isReconciled` can't find a
+  // matching destination credit (the optimistic "Converting" row
+  // never retires). BDK-written rows on chain=bitcoin keep their
+  // native (Bitcoin, BTC) classification because their
+  // `source == TransactionSource.bdk`.
+  final isBreezChainSwapBitcoin =
+      t.chain == v2.ChainId.bitcoin && t.source == v2.TransactionSource.breez;
+
   final Asset asset;
-  if (t.chain == v2.ChainId.bitcoin) {
+  if (isBreezChainSwapBitcoin) {
+    asset = Asset.lbtc;
+  } else if (t.chain == v2.ChainId.bitcoin) {
     asset = Asset.btc;
   } else if (t.assetId != null) {
     asset = Asset.fromId(t.assetId!);
@@ -246,15 +264,17 @@ legacy.Transaction _v2ToLegacy(v2.Transaction t) {
     asset = Asset.lbtc;
   }
 
-  final blockchain = switch (t.chain) {
-    v2.ChainId.bitcoin => Blockchain.bitcoin,
-    v2.ChainId.liquid => Blockchain.liquid,
-    v2.ChainId.lightning => Blockchain.lightning,
-    // `aggregate` is a synthetic chain used by sync outcomes — it
-    // should never appear on a persisted transaction. Default to
-    // bitcoin for safety; if we hit this in practice it's a bug.
-    v2.ChainId.aggregate => Blockchain.bitcoin,
-  };
+  final blockchain = isBreezChainSwapBitcoin
+      ? Blockchain.liquid
+      : switch (t.chain) {
+          v2.ChainId.bitcoin => Blockchain.bitcoin,
+          v2.ChainId.liquid => Blockchain.liquid,
+          v2.ChainId.lightning => Blockchain.lightning,
+          // `aggregate` is a synthetic chain used by sync outcomes — it
+          // should never appear on a persisted transaction. Default to
+          // bitcoin for safety; if we hit this in practice it's a bug.
+          v2.ChainId.aggregate => Blockchain.bitcoin,
+        };
 
   final type = switch (t.direction) {
     v2.TransactionDirection.incoming => legacy.TransactionType.receive,
