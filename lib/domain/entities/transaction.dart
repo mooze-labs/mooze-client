@@ -65,6 +65,8 @@ class Transaction {
     this.sentAmountSat,
     this.receivedAmountSat,
     this.source,
+    this.swapLockupTxId,
+    this.swapClaimTxId,
   });
 
   final String id;
@@ -114,6 +116,25 @@ class Transaction {
   /// See [TransactionSource] for the authority matrix.
   final TransactionSource? source;
 
+  /// For Breez chain-swap rows (peg-in claim, peg-out send) this is the
+  /// txid of the Bitcoin-side lockup tx. On a peg-in that's the user's
+  /// BDK send (the BTC funding the swap); on a peg-out that's the
+  /// Liquid-side lockup tx Breez itself broadcast (and equals the row's
+  /// `id`). Lets the home unifier pair the BDK and Breez halves of a
+  /// peg-swap by EXACT id linkage instead of guessing by amount + time
+  /// (the previous approach mis-paired an unrelated BTC withdrawal with
+  /// a same-amount peg-in claim).
+  ///
+  /// Null for everything that isn't a Breez chain-swap leg.
+  final String? swapLockupTxId;
+
+  /// Twin of [swapLockupTxId] for the destination side of the swap.
+  /// Peg-in: the Liquid claim txid Breez observed (= the row's `id`).
+  /// Peg-out: the Bitcoin claim txid the user receives at their BDK
+  /// wallet. Lets the unifier identify the BDK receive that completes
+  /// a peg-out without amount guessing.
+  final String? swapClaimTxId;
+
   Transaction copyWith({
     TransactionStatus? status,
     int? confirmations,
@@ -136,6 +157,8 @@ class Transaction {
       sentAmountSat: sentAmountSat,
       receivedAmountSat: receivedAmountSat,
       source: source,
+      swapLockupTxId: swapLockupTxId,
+      swapClaimTxId: swapClaimTxId,
     );
   }
 
@@ -156,6 +179,8 @@ class Transaction {
         'sent_amount_sat': sentAmountSat,
         'received_amount_sat': receivedAmountSat,
         'source': source?.name,
+        'swap_lockup_tx_id': swapLockupTxId,
+        'swap_claim_tx_id': swapClaimTxId,
       };
 
   static Transaction fromMap(Map<String, Object?> m) {
@@ -183,6 +208,8 @@ class Transaction {
       source: sourceStr == null
           ? null
           : TransactionSource.values.where((s) => s.name == sourceStr).firstOrNull,
+      swapLockupTxId: m['swap_lockup_tx_id'] as String?,
+      swapClaimTxId: m['swap_claim_tx_id'] as String?,
     );
   }
 }
