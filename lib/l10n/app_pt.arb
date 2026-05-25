@@ -2271,5 +2271,35 @@
   "converting_details_explanation_broadcasted_peg_in": "Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar LBTC para sua carteira.",
   "converting_details_explanation_broadcasted_peg_out": "Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.",
   "converting_details_explanation_failed": "O swap não pôde ser concluído. Quaisquer fundos reservados para o swap serão reembolsados automaticamente.",
-  "converting_details_explanation_refundable": "A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira."
+  "converting_details_explanation_refundable": "A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.",
+  "pix_first_time_title": "Atenção sobre pagamentos PIX",
+  "pix_first_time_description": "Todos os pagamentos PIX passam por análise de segurança e podem ser:",
+  "pix_first_time_item_completed": "Efetivados em até 72 horas",
+  "pix_first_time_item_refunded": "Estornados para o pagante",
+  "pix_first_time_security_note": "Esta análise é necessária para garantir a segurança de todos os usuários.",
+  "pix_first_time_accept_button": "Compreendo e aceito",
+  "pix_first_time_accept_button_counting": "Compreendo e aceito ({seconds})",
+  "@pix_first_time_accept_button_counting": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "swap_btc_lbtc_warning_title": "Atenção: Swap entre Redes",
+  "swap_btc_lbtc_warning_intro": "Informações importantes sobre o swap BTC para LBTC:",
+  "swap_btc_lbtc_warning_cross_chain": "Este é um swap entre diferentes blockchains (Bitcoin e Liquid Network).",
+  "swap_btc_lbtc_warning_confirmations": "O swap depende de confirmações em ambas as blockchains, o que pode levar algum tempo.",
+  "swap_btc_lbtc_warning_fee_changes": "Em casos de mudanças nas taxas da rede, a Breez pode deixar o ativo como \"estorno\" (reembolso).",
+  "swap_btc_lbtc_warning_manual_refund": "Se isso acontecer, você deverá solicitar o reembolso manualmente dentro do aplicativo.",
+  "swap_btc_lbtc_warning_funds_safe": "Seus fundos estão sempre seguros, mesmo em caso de estorno.",
+  "swap_btc_lbtc_warning_accept_button": "Entendi e Aceito",
+  "swap_btc_lbtc_warning_accept_button_counting": "Entendi e Aceito ({seconds})",
+  "@swap_btc_lbtc_warning_accept_button_counting": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class FirstTimePixDialog extends StatefulWidget {
   const FirstTimePixDialog({super.key});
@@ -48,6 +49,7 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context);
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -55,10 +57,10 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
         children: [
           Icon(Icons.info_outline, color: colorScheme.primary, size: 28),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Atenção sobre pagamentos PIX',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              t.pix_first_time_title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -68,7 +70,7 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Todos os pagamentos PIX passam por análise de segurança e podem ser:',
+            t.pix_first_time_description,
             style: TextStyle(
               fontSize: 14,
               color: colorScheme.onSurface,
@@ -79,14 +81,14 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
           _buildInfoItem(
             colorScheme,
             'a)',
-            'Efetivados em até 72 horas',
+            t.pix_first_time_item_completed,
             Icons.schedule,
           ),
           const SizedBox(height: 12),
           _buildInfoItem(
             colorScheme,
             'b)',
-            'Estornados para o pagante',
+            t.pix_first_time_item_refunded,
             Icons.refresh,
           ),
           const SizedBox(height: 20),
@@ -102,7 +104,7 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Esta análise é necessária para garantir a segurança de todos os usuários.',
+                    t.pix_first_time_security_note,
                     style: TextStyle(
                       fontSize: 12,
                       color: colorScheme.onSurface.withValues(alpha: 0.8),
@@ -131,8 +133,8 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
             ),
             child: Text(
               _secondsRemaining == 0
-                  ? 'Compreendo e aceito'
-                  : 'Compreendo e aceito ($_secondsRemaining)',
+                  ? t.pix_first_time_accept_button
+                  : t.pix_first_time_accept_button_counting(_secondsRemaining),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),

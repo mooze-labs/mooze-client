@@ -4721,4 +4721,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get converting_details_explanation_refundable =>
       'Boltz flagged the swap as refundable. Tap \"Get refund\" to send the locked funds back to your wallet.';
+
+  @override
+  String get pix_first_time_title => 'About PIX payments';
+
+  @override
+  String get pix_first_time_description =>
+      'All PIX payments go through a security review and may be:';
+
+  @override
+  String get pix_first_time_item_completed => 'Settled within 72 hours';
+
+  @override
+  String get pix_first_time_item_refunded => 'Refunded to the payer';
+
+  @override
+  String get pix_first_time_security_note =>
+      'This review is required to keep all users safe.';
+
+  @override
+  String get pix_first_time_accept_button => 'I understand and accept';
+
+  @override
+  String pix_first_time_accept_button_counting(int seconds) {
+    return 'I understand and accept ($seconds)';
+  }
+
+  @override
+  String get swap_btc_lbtc_warning_title => 'Notice: Cross-network swap';
+
+  @override
+  String get swap_btc_lbtc_warning_intro =>
+      'Important information about the BTC to LBTC swap:';
+
+  @override
+  String get swap_btc_lbtc_warning_cross_chain =>
+      'This is a swap between different blockchains (Bitcoin and Liquid Network).';
+
+  @override
+  String get swap_btc_lbtc_warning_confirmations =>
+      'The swap depends on confirmations on both blockchains, which may take some time.';
+
+  @override
+  String get swap_btc_lbtc_warning_fee_changes =>
+      'If network fees change, Breez may flag the asset as a \"refund\".';
+
+  @override
+  String get swap_btc_lbtc_warning_manual_refund =>
+      'If that happens, you\'ll need to request the refund manually inside the app.';
+
+  @override
+  String get swap_btc_lbtc_warning_funds_safe =>
+      'Your funds are always safe, even in case of a refund.';
+
+  @override
+  String get swap_btc_lbtc_warning_accept_button => 'I understand and accept';
+
+  @override
+  String swap_btc_lbtc_warning_accept_button_counting(int seconds) {
+    return 'I understand and accept ($seconds)';
+  }
 }

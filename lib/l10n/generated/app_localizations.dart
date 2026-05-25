@@ -8403,6 +8403,102 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.'**
   String get converting_details_explanation_refundable;
+
+  /// No description provided for @pix_first_time_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atenção sobre pagamentos PIX'**
+  String get pix_first_time_title;
+
+  /// No description provided for @pix_first_time_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos os pagamentos PIX passam por análise de segurança e podem ser:'**
+  String get pix_first_time_description;
+
+  /// No description provided for @pix_first_time_item_completed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Efetivados em até 72 horas'**
+  String get pix_first_time_item_completed;
+
+  /// No description provided for @pix_first_time_item_refunded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estornados para o pagante'**
+  String get pix_first_time_item_refunded;
+
+  /// No description provided for @pix_first_time_security_note.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta análise é necessária para garantir a segurança de todos os usuários.'**
+  String get pix_first_time_security_note;
+
+  /// No description provided for @pix_first_time_accept_button.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compreendo e aceito'**
+  String get pix_first_time_accept_button;
+
+  /// No description provided for @pix_first_time_accept_button_counting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compreendo e aceito ({seconds})'**
+  String pix_first_time_accept_button_counting(int seconds);
+
+  /// No description provided for @swap_btc_lbtc_warning_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atenção: Swap entre Redes'**
+  String get swap_btc_lbtc_warning_title;
+
+  /// No description provided for @swap_btc_lbtc_warning_intro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informações importantes sobre o swap BTC para LBTC:'**
+  String get swap_btc_lbtc_warning_intro;
+
+  /// No description provided for @swap_btc_lbtc_warning_cross_chain.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este é um swap entre diferentes blockchains (Bitcoin e Liquid Network).'**
+  String get swap_btc_lbtc_warning_cross_chain;
+
+  /// No description provided for @swap_btc_lbtc_warning_confirmations.
+  ///
+  /// In pt, this message translates to:
+  /// **'O swap depende de confirmações em ambas as blockchains, o que pode levar algum tempo.'**
+  String get swap_btc_lbtc_warning_confirmations;
+
+  /// No description provided for @swap_btc_lbtc_warning_fee_changes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em casos de mudanças nas taxas da rede, a Breez pode deixar o ativo como \"estorno\" (reembolso).'**
+  String get swap_btc_lbtc_warning_fee_changes;
+
+  /// No description provided for @swap_btc_lbtc_warning_manual_refund.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se isso acontecer, você deverá solicitar o reembolso manualmente dentro do aplicativo.'**
+  String get swap_btc_lbtc_warning_manual_refund;
+
+  /// No description provided for @swap_btc_lbtc_warning_funds_safe.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus fundos estão sempre seguros, mesmo em caso de estorno.'**
+  String get swap_btc_lbtc_warning_funds_safe;
+
+  /// No description provided for @swap_btc_lbtc_warning_accept_button.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi e Aceito'**
+  String get swap_btc_lbtc_warning_accept_button;
+
+  /// No description provided for @swap_btc_lbtc_warning_accept_button_counting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi e Aceito ({seconds})'**
+  String swap_btc_lbtc_warning_accept_button_counting(int seconds);
 }
 
 class _AppLocalizationsDelegate

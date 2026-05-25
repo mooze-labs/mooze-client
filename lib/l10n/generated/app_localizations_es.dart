@@ -4768,4 +4768,64 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get converting_details_explanation_refundable =>
       'Boltz marcó el swap como reembolsable. Toca \"Obtener reembolso\" para enviar los fondos bloqueados de vuelta a tu billetera.';
+
+  @override
+  String get pix_first_time_title => 'Atención sobre pagos PIX';
+
+  @override
+  String get pix_first_time_description =>
+      'Todos los pagos PIX pasan por un análisis de seguridad y pueden ser:';
+
+  @override
+  String get pix_first_time_item_completed => 'Efectuados en hasta 72 horas';
+
+  @override
+  String get pix_first_time_item_refunded => 'Reembolsados al pagador';
+
+  @override
+  String get pix_first_time_security_note =>
+      'Este análisis es necesario para garantizar la seguridad de todos los usuarios.';
+
+  @override
+  String get pix_first_time_accept_button => 'Entiendo y acepto';
+
+  @override
+  String pix_first_time_accept_button_counting(int seconds) {
+    return 'Entiendo y acepto ($seconds)';
+  }
+
+  @override
+  String get swap_btc_lbtc_warning_title => 'Atención: Swap entre redes';
+
+  @override
+  String get swap_btc_lbtc_warning_intro =>
+      'Información importante sobre el swap de BTC a LBTC:';
+
+  @override
+  String get swap_btc_lbtc_warning_cross_chain =>
+      'Este es un swap entre diferentes blockchains (Bitcoin y Liquid Network).';
+
+  @override
+  String get swap_btc_lbtc_warning_confirmations =>
+      'El swap depende de confirmaciones en ambas blockchains, lo que puede llevar algún tiempo.';
+
+  @override
+  String get swap_btc_lbtc_warning_fee_changes =>
+      'En caso de cambios en las tarifas de la red, Breez puede dejar el activo como \"reembolso\".';
+
+  @override
+  String get swap_btc_lbtc_warning_manual_refund =>
+      'Si eso ocurre, deberás solicitar el reembolso manualmente dentro de la aplicación.';
+
+  @override
+  String get swap_btc_lbtc_warning_funds_safe =>
+      'Tus fondos siempre están seguros, incluso en caso de reembolso.';
+
+  @override
+  String get swap_btc_lbtc_warning_accept_button => 'Entiendo y acepto';
+
+  @override
+  String swap_btc_lbtc_warning_accept_button_counting(int seconds) {
+    return 'Entiendo y acepto ($seconds)';
+  }
 }
