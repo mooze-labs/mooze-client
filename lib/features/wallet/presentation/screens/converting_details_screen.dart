@@ -97,17 +97,18 @@ class _RefundCallout extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.orangeAccent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.orangeAccent.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: const [
-              Icon(Icons.assignment_return,
-                  color: Colors.orangeAccent, size: 20),
+              Icon(
+                Icons.assignment_return,
+                color: Colors.orangeAccent,
+                size: 20,
+              ),
               SizedBox(width: 8),
               Text(
                 'Swap could not complete',
@@ -222,22 +223,31 @@ class _HeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _AmountColumn(
-                  label: 'You sent',
-                  asset: swap.fromAsset,
-                  amount: swap.sentAmount,
-                  approximate: false,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _AmountColumn(
+                    label: 'You sent',
+                    asset: swap.fromAsset,
+                    amount: swap.sentAmount,
+                    approximate: false,
+                  ),
                 ),
               ),
-              const Icon(Icons.arrow_forward, color: Colors.grey),
+
+              Center(child: Icon(Icons.arrow_forward, color: Colors.grey)),
+
               Expanded(
-                child: _AmountColumn(
-                  label: 'You\'ll receive',
-                  asset: swap.toAsset,
-                  amount: swap.estimatedReceivedAmount,
-                  approximate: true,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _AmountColumn(
+                    label: 'You\'ll receive',
+                    asset: swap.toAsset,
+                    amount: swap.estimatedReceivedAmount,
+                    approximate: true,
+                  ),
                 ),
               ),
             ],
@@ -294,7 +304,7 @@ class _AmountColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
         const SizedBox(height: 4),
