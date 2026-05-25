@@ -8187,6 +8187,222 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Endereços e UTXOs'**
   String get settings_address_explorer;
+
+  /// No description provided for @converting_details_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conversão em andamento'**
+  String get converting_details_title;
+
+  /// No description provided for @converting_details_refund_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'O swap não pôde ser concluído'**
+  String get converting_details_refund_title;
+
+  /// No description provided for @converting_details_refund_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Boltz sinalizou este swap como reembolsável. Seus fundos estão seguros — recupere-os para sua carteira usando o fluxo de reembolso abaixo.'**
+  String get converting_details_refund_message;
+
+  /// No description provided for @converting_details_refund_button.
+  ///
+  /// In pt, this message translates to:
+  /// **'Obter reembolso'**
+  String get converting_details_refund_button;
+
+  /// No description provided for @converting_details_completed_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conversão concluída'**
+  String get converting_details_completed_title;
+
+  /// No description provided for @converting_details_completed_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os fundos chegaram à rede de destino. O swap completo já aparece no seu histórico de transações.'**
+  String get converting_details_completed_message;
+
+  /// No description provided for @converting_details_back_to_home.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar para início'**
+  String get converting_details_back_to_home;
+
+  /// No description provided for @converting_details_converting_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convertendo {from} → {to}'**
+  String converting_details_converting_label(String from, String to);
+
+  /// No description provided for @converting_details_peg_in.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peg-in'**
+  String get converting_details_peg_in;
+
+  /// No description provided for @converting_details_peg_out.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peg-out'**
+  String get converting_details_peg_out;
+
+  /// No description provided for @converting_details_you_sent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você enviou'**
+  String get converting_details_you_sent;
+
+  /// No description provided for @converting_details_youll_receive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você receberá'**
+  String get converting_details_youll_receive;
+
+  /// No description provided for @converting_details_phase_preparing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preparando'**
+  String get converting_details_phase_preparing;
+
+  /// No description provided for @converting_details_phase_broadcasting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transmitindo'**
+  String get converting_details_phase_broadcasting;
+
+  /// No description provided for @converting_details_phase_awaiting_confirmations.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando confirmações'**
+  String get converting_details_phase_awaiting_confirmations;
+
+  /// No description provided for @converting_details_phase_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falhou'**
+  String get converting_details_phase_failed;
+
+  /// No description provided for @converting_details_phase_refundable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reembolsável'**
+  String get converting_details_phase_refundable;
+
+  /// No description provided for @converting_details_direction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Direção'**
+  String get converting_details_direction;
+
+  /// No description provided for @converting_details_direction_peg_in.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peg-in (BTC on-chain → LBTC)'**
+  String get converting_details_direction_peg_in;
+
+  /// No description provided for @converting_details_direction_peg_out.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peg-out (LBTC → BTC on-chain)'**
+  String get converting_details_direction_peg_out;
+
+  /// No description provided for @converting_details_sent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviado'**
+  String get converting_details_sent;
+
+  /// No description provided for @converting_details_estimated_receive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebimento estimado'**
+  String get converting_details_estimated_receive;
+
+  /// No description provided for @converting_details_started.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciado'**
+  String get converting_details_started;
+
+  /// No description provided for @converting_details_destination_address.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço de destino'**
+  String get converting_details_destination_address;
+
+  /// No description provided for @converting_details_swap_id.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID do swap'**
+  String get converting_details_swap_id;
+
+  /// No description provided for @converting_details_bitcoin_send_tx.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transação de envio Bitcoin'**
+  String get converting_details_bitcoin_send_tx;
+
+  /// No description provided for @converting_details_liquid_send_tx.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transação de envio Liquid'**
+  String get converting_details_liquid_send_tx;
+
+  /// No description provided for @converting_details_local_id.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID local'**
+  String get converting_details_local_id;
+
+  /// No description provided for @converting_details_help_footer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os chain swaps movem fundos entre Bitcoin e Liquid Bitcoin (L-BTC) e geralmente são liquidados em 30 a 60 minutos após a confirmação da transação de bloqueio. Seus fundos não estão perdidos — eles ficam temporariamente bloqueados no contrato do swap enquanto a rede de destino se atualiza.'**
+  String get converting_details_help_footer;
+
+  /// No description provided for @converting_details_explanation_preparing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Construindo a transação de bloqueio e reservando o swap com o serviço de chain-swap.'**
+  String get converting_details_explanation_preparing;
+
+  /// No description provided for @converting_details_explanation_broadcasting_bitcoin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Assinando e transmitindo a transação de bloqueio para a rede Bitcoin.'**
+  String get converting_details_explanation_broadcasting_bitcoin;
+
+  /// No description provided for @converting_details_explanation_broadcasting_liquid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Assinando e transmitindo a transação de bloqueio para a rede Liquid.'**
+  String get converting_details_explanation_broadcasting_liquid;
+
+  /// No description provided for @converting_details_explanation_broadcasted_peg_in.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar LBTC para sua carteira.'**
+  String get converting_details_explanation_broadcasted_peg_in;
+
+  /// No description provided for @converting_details_explanation_broadcasted_peg_out.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.'**
+  String get converting_details_explanation_broadcasted_peg_out;
+
+  /// No description provided for @converting_details_explanation_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'O swap não pôde ser concluído. Quaisquer fundos reservados para o swap serão reembolsados automaticamente.'**
+  String get converting_details_explanation_failed;
+
+  /// No description provided for @converting_details_explanation_refundable.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.'**
+  String get converting_details_explanation_refundable;
 }
 
 class _AppLocalizationsDelegate

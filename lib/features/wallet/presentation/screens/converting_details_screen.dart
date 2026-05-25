@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -26,6 +27,7 @@ class ConvertingDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final swap = ref.watch(
       pendingSwapsProvider.select(
         (list) => list.where((s) => s.localId == localId).firstOrNull,
@@ -37,7 +39,7 @@ class ConvertingDetailsScreen extends ConsumerWidget {
         backgroundColor: context.colors.backgroundColor,
         appBar: AppBar(
           elevation: 0,
-          title: const Text('Conversion in progress'),
+          title: Text(t.converting_details_title),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.pop(),
@@ -92,6 +94,7 @@ class _RefundCallout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -103,16 +106,16 @@ class _RefundCallout extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(
+            children: [
+              const Icon(
                 Icons.assignment_return,
                 color: Colors.orangeAccent,
                 size: 20,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
-                'Swap could not complete',
-                style: TextStyle(
+                t.converting_details_refund_title,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.orangeAccent,
                 ),
@@ -120,11 +123,9 @@ class _RefundCallout extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Boltz flagged this swap as refundable. Your funds are '
-            'safe — claim them back to your wallet using the refund '
-            'flow below.',
-            style: TextStyle(fontSize: 13, height: 1.5),
+          Text(
+            t.converting_details_refund_message,
+            style: const TextStyle(fontSize: 13, height: 1.5),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -135,7 +136,7 @@ class _RefundCallout extends StatelessWidget {
                 foregroundColor: Colors.black,
               ),
               icon: const Icon(Icons.south_east),
-              label: const Text('Get refund'),
+              label: Text(t.converting_details_refund_button),
               onPressed: () => context.push('/transactions/refund'),
             ),
           ),
@@ -150,6 +151,7 @@ class _CompletedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -158,20 +160,19 @@ class _CompletedView extends StatelessWidget {
           Icon(Icons.check_circle, size: 64, color: Colors.greenAccent[400]),
           const SizedBox(height: 16),
           Text(
-            'Conversion completed',
+            t.converting_details_completed_title,
             style: Theme.of(context).textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'The funds have arrived on the destination chain. The full '
-            'swap is now visible in your transaction history.',
+          Text(
+            t.converting_details_completed_message,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () => context.go('/home'),
-            child: const Text('Back to home'),
+            child: Text(t.converting_details_back_to_home),
           ),
         ],
       ),
@@ -185,6 +186,7 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final isFailed = swap.phase == PendingSwapPhase.failed;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -204,15 +206,19 @@ class _HeaderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Converting ${swap.fromAsset.ticker} → '
-                      '${swap.toAsset.ticker}',
+                      t.converting_details_converting_label(
+                        swap.fromAsset.ticker,
+                        swap.toAsset.ticker,
+                      ),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      swap.isPegIn ? 'Peg-in' : 'Peg-out',
+                      swap.isPegIn
+                          ? t.converting_details_peg_in
+                          : t.converting_details_peg_out,
                       style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                     ),
                   ],
@@ -229,7 +235,7 @@ class _HeaderCard extends StatelessWidget {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: _AmountColumn(
-                    label: 'You sent',
+                    label: t.converting_details_you_sent,
                     asset: swap.fromAsset,
                     amount: swap.sentAmount,
                     approximate: false,
@@ -243,7 +249,7 @@ class _HeaderCard extends StatelessWidget {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: _AmountColumn(
-                    label: 'You\'ll receive',
+                    label: t.converting_details_youll_receive,
                     asset: swap.toAsset,
                     amount: swap.estimatedReceivedAmount,
                     approximate: true,
@@ -340,7 +346,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        _phaseLabel(phase),
+        _phaseLabel(context, phase),
         style: TextStyle(
           color: color,
           fontSize: 12,
@@ -475,7 +481,7 @@ class _PhaseExplanation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = _explanation(swap);
+    final text = _explanation(context, swap);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -510,6 +516,7 @@ class _DetailsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final dateFmt = DateFormat('dd/MM/yyyy HH:mm:ss');
     return Container(
       decoration: BoxDecoration(
@@ -519,43 +526,53 @@ class _DetailsCard extends ConsumerWidget {
       child: Column(
         children: [
           _DetailRow(
-            label: 'Direction',
+            label: t.converting_details_direction,
             value:
                 swap.isPegIn
-                    ? 'Peg-in (BTC on-chain → LBTC)'
-                    : 'Peg-out (LBTC → BTC on-chain)',
+                    ? t.converting_details_direction_peg_in
+                    : t.converting_details_direction_peg_out,
           ),
           _DetailRow(
-            label: 'Sent',
+            label: t.converting_details_sent,
             value: _formatAmount(swap.fromAsset, swap.sentAmount),
           ),
           _DetailRow(
-            label: 'Estimated receive',
+            label: t.converting_details_estimated_receive,
             value:
                 '~${_formatAmount(swap.toAsset, swap.estimatedReceivedAmount)}',
           ),
-          _DetailRow(label: 'Started', value: dateFmt.format(swap.createdAt)),
+          _DetailRow(
+            label: t.converting_details_started,
+            value: dateFmt.format(swap.createdAt),
+          ),
           if (swap.destination != null)
             _DetailRow(
-              label: 'Destination address',
+              label: t.converting_details_destination_address,
               value: swap.destination!,
               copyable: true,
             ),
           if (swap.breezSwapId != null)
             _DetailRow(
-              label: 'Swap ID',
+              label: t.converting_details_swap_id,
               value: swap.breezSwapId!,
               copyable: true,
             ),
           if (swap.breezTxId != null)
             _DetailRow(
-              label: swap.isPegIn ? 'Bitcoin send tx' : 'Liquid send tx',
+              label:
+                  swap.isPegIn
+                      ? t.converting_details_bitcoin_send_tx
+                      : t.converting_details_liquid_send_tx,
               value: swap.breezTxId!,
               copyable: true,
               onTap: () => _openExplorer(swap),
               trailing: const Icon(Icons.open_in_new, size: 16),
             ),
-          _DetailRow(label: 'Local ID', value: swap.localId, isLast: true),
+          _DetailRow(
+            label: t.converting_details_local_id,
+            value: swap.localId,
+            isLast: true,
+          ),
         ],
       ),
     );
@@ -662,13 +679,11 @@ class _HelpFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
-        'Chain swaps move funds between Bitcoin and Liquid Bitcoin (L-BTC) '
-        'and typically settle in 30 to 60 minutes after the lockup tx '
-        'confirms. Your funds are not lost — they are temporarily locked '
-        'in the swap contract while the destination chain catches up.',
+        t.converting_details_help_footer,
         style: TextStyle(fontSize: 12, color: Colors.grey[600], height: 1.5),
       ),
     );
@@ -709,42 +724,39 @@ class _DualAssetIcon extends StatelessWidget {
   }
 }
 
-String _phaseLabel(PendingSwapPhase phase) {
+String _phaseLabel(BuildContext context, PendingSwapPhase phase) {
+  final t = AppLocalizations.of(context);
   switch (phase) {
     case PendingSwapPhase.preparing:
-      return 'Preparing';
+      return t.converting_details_phase_preparing;
     case PendingSwapPhase.broadcasting:
-      return 'Broadcasting';
+      return t.converting_details_phase_broadcasting;
     case PendingSwapPhase.broadcasted:
-      return 'Awaiting confirmations';
+      return t.converting_details_phase_awaiting_confirmations;
     case PendingSwapPhase.failed:
-      return 'Failed';
+      return t.converting_details_phase_failed;
     case PendingSwapPhase.refundable:
-      return 'Refundable';
+      return t.converting_details_phase_refundable;
   }
 }
 
-String _explanation(PendingSwap swap) {
+String _explanation(BuildContext context, PendingSwap swap) {
+  final t = AppLocalizations.of(context);
   switch (swap.phase) {
     case PendingSwapPhase.preparing:
-      return 'Building the lockup transaction and reserving the swap '
-          'with the chain-swap service.';
+      return t.converting_details_explanation_preparing;
     case PendingSwapPhase.broadcasting:
-      return 'Signing and broadcasting the lockup transaction to the '
-          '${swap.isPegIn ? "Bitcoin" : "Liquid"} network.';
+      return swap.isPegIn
+          ? t.converting_details_explanation_broadcasting_bitcoin
+          : t.converting_details_explanation_broadcasting_liquid;
     case PendingSwapPhase.broadcasted:
       return swap.isPegIn
-          ? 'Your Bitcoin lockup has been broadcast. Once it confirms, '
-              'the chain-swap service will claim it and send LBTC to '
-              'your wallet.'
-          : 'Your LBTC has been sent to the chain-swap service. Once '
-              'it processes, you\'ll receive BTC on the Bitcoin network.';
+          ? t.converting_details_explanation_broadcasted_peg_in
+          : t.converting_details_explanation_broadcasted_peg_out;
     case PendingSwapPhase.failed:
-      return 'The swap could not be completed. Any funds reserved for '
-          'the swap will be refunded automatically.';
+      return t.converting_details_explanation_failed;
     case PendingSwapPhase.refundable:
-      return 'Boltz flagged the swap as refundable. Tap "Get refund" to '
-          'send the locked funds back to your wallet.';
+      return t.converting_details_explanation_refundable;
   }
 }
 

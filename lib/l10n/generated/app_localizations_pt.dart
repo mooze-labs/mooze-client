@@ -4638,4 +4638,127 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settings_address_explorer => 'Endereços e UTXOs';
+
+  @override
+  String get converting_details_title => 'Conversão em andamento';
+
+  @override
+  String get converting_details_refund_title => 'O swap não pôde ser concluído';
+
+  @override
+  String get converting_details_refund_message =>
+      'A Boltz sinalizou este swap como reembolsável. Seus fundos estão seguros — recupere-os para sua carteira usando o fluxo de reembolso abaixo.';
+
+  @override
+  String get converting_details_refund_button => 'Obter reembolso';
+
+  @override
+  String get converting_details_completed_title => 'Conversão concluída';
+
+  @override
+  String get converting_details_completed_message =>
+      'Os fundos chegaram à rede de destino. O swap completo já aparece no seu histórico de transações.';
+
+  @override
+  String get converting_details_back_to_home => 'Voltar para início';
+
+  @override
+  String converting_details_converting_label(String from, String to) {
+    return 'Convertendo $from → $to';
+  }
+
+  @override
+  String get converting_details_peg_in => 'Peg-in';
+
+  @override
+  String get converting_details_peg_out => 'Peg-out';
+
+  @override
+  String get converting_details_you_sent => 'Você enviou';
+
+  @override
+  String get converting_details_youll_receive => 'Você receberá';
+
+  @override
+  String get converting_details_phase_preparing => 'Preparando';
+
+  @override
+  String get converting_details_phase_broadcasting => 'Transmitindo';
+
+  @override
+  String get converting_details_phase_awaiting_confirmations =>
+      'Aguardando confirmações';
+
+  @override
+  String get converting_details_phase_failed => 'Falhou';
+
+  @override
+  String get converting_details_phase_refundable => 'Reembolsável';
+
+  @override
+  String get converting_details_direction => 'Direção';
+
+  @override
+  String get converting_details_direction_peg_in =>
+      'Peg-in (BTC on-chain → LBTC)';
+
+  @override
+  String get converting_details_direction_peg_out =>
+      'Peg-out (LBTC → BTC on-chain)';
+
+  @override
+  String get converting_details_sent => 'Enviado';
+
+  @override
+  String get converting_details_estimated_receive => 'Recebimento estimado';
+
+  @override
+  String get converting_details_started => 'Iniciado';
+
+  @override
+  String get converting_details_destination_address => 'Endereço de destino';
+
+  @override
+  String get converting_details_swap_id => 'ID do swap';
+
+  @override
+  String get converting_details_bitcoin_send_tx => 'Transação de envio Bitcoin';
+
+  @override
+  String get converting_details_liquid_send_tx => 'Transação de envio Liquid';
+
+  @override
+  String get converting_details_local_id => 'ID local';
+
+  @override
+  String get converting_details_help_footer =>
+      'Os chain swaps movem fundos entre Bitcoin e Liquid Bitcoin (L-BTC) e geralmente são liquidados em 30 a 60 minutos após a confirmação da transação de bloqueio. Seus fundos não estão perdidos — eles ficam temporariamente bloqueados no contrato do swap enquanto a rede de destino se atualiza.';
+
+  @override
+  String get converting_details_explanation_preparing =>
+      'Construindo a transação de bloqueio e reservando o swap com o serviço de chain-swap.';
+
+  @override
+  String get converting_details_explanation_broadcasting_bitcoin =>
+      'Assinando e transmitindo a transação de bloqueio para a rede Bitcoin.';
+
+  @override
+  String get converting_details_explanation_broadcasting_liquid =>
+      'Assinando e transmitindo a transação de bloqueio para a rede Liquid.';
+
+  @override
+  String get converting_details_explanation_broadcasted_peg_in =>
+      'Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar LBTC para sua carteira.';
+
+  @override
+  String get converting_details_explanation_broadcasted_peg_out =>
+      'Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.';
+
+  @override
+  String get converting_details_explanation_failed =>
+      'O swap não pôde ser concluído. Quaisquer fundos reservados para o swap serão reembolsados automaticamente.';
+
+  @override
+  String get converting_details_explanation_refundable =>
+      'A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.';
 }

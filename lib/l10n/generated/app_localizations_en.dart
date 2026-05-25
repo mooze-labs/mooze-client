@@ -4598,4 +4598,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings_address_explorer => 'Addresses & UTXOs';
+
+  @override
+  String get converting_details_title => 'Conversion in progress';
+
+  @override
+  String get converting_details_refund_title => 'Swap could not complete';
+
+  @override
+  String get converting_details_refund_message =>
+      'Boltz flagged this swap as refundable. Your funds are safe — claim them back to your wallet using the refund flow below.';
+
+  @override
+  String get converting_details_refund_button => 'Get refund';
+
+  @override
+  String get converting_details_completed_title => 'Conversion completed';
+
+  @override
+  String get converting_details_completed_message =>
+      'The funds have arrived on the destination chain. The full swap is now visible in your transaction history.';
+
+  @override
+  String get converting_details_back_to_home => 'Back to home';
+
+  @override
+  String converting_details_converting_label(String from, String to) {
+    return 'Converting $from → $to';
+  }
+
+  @override
+  String get converting_details_peg_in => 'Peg-in';
+
+  @override
+  String get converting_details_peg_out => 'Peg-out';
+
+  @override
+  String get converting_details_you_sent => 'You sent';
+
+  @override
+  String get converting_details_youll_receive => 'You\'ll receive';
+
+  @override
+  String get converting_details_phase_preparing => 'Preparing';
+
+  @override
+  String get converting_details_phase_broadcasting => 'Broadcasting';
+
+  @override
+  String get converting_details_phase_awaiting_confirmations =>
+      'Awaiting confirmations';
+
+  @override
+  String get converting_details_phase_failed => 'Failed';
+
+  @override
+  String get converting_details_phase_refundable => 'Refundable';
+
+  @override
+  String get converting_details_direction => 'Direction';
+
+  @override
+  String get converting_details_direction_peg_in =>
+      'Peg-in (BTC on-chain → LBTC)';
+
+  @override
+  String get converting_details_direction_peg_out =>
+      'Peg-out (LBTC → BTC on-chain)';
+
+  @override
+  String get converting_details_sent => 'Sent';
+
+  @override
+  String get converting_details_estimated_receive => 'Estimated receive';
+
+  @override
+  String get converting_details_started => 'Started';
+
+  @override
+  String get converting_details_destination_address => 'Destination address';
+
+  @override
+  String get converting_details_swap_id => 'Swap ID';
+
+  @override
+  String get converting_details_bitcoin_send_tx => 'Bitcoin send tx';
+
+  @override
+  String get converting_details_liquid_send_tx => 'Liquid send tx';
+
+  @override
+  String get converting_details_local_id => 'Local ID';
+
+  @override
+  String get converting_details_help_footer =>
+      'Chain swaps move funds between Bitcoin and Liquid Bitcoin (L-BTC) and typically settle in 30 to 60 minutes after the lockup tx confirms. Your funds are not lost — they are temporarily locked in the swap contract while the destination chain catches up.';
+
+  @override
+  String get converting_details_explanation_preparing =>
+      'Building the lockup transaction and reserving the swap with the chain-swap service.';
+
+  @override
+  String get converting_details_explanation_broadcasting_bitcoin =>
+      'Signing and broadcasting the lockup transaction to the Bitcoin network.';
+
+  @override
+  String get converting_details_explanation_broadcasting_liquid =>
+      'Signing and broadcasting the lockup transaction to the Liquid network.';
+
+  @override
+  String get converting_details_explanation_broadcasted_peg_in =>
+      'Your Bitcoin lockup has been broadcast. Once it confirms, the chain-swap service will claim it and send LBTC to your wallet.';
+
+  @override
+  String get converting_details_explanation_broadcasted_peg_out =>
+      'Your LBTC has been sent to the chain-swap service. Once it processes, you\'ll receive BTC on the Bitcoin network.';
+
+  @override
+  String get converting_details_explanation_failed =>
+      'The swap could not be completed. Any funds reserved for the swap will be refunded automatically.';
+
+  @override
+  String get converting_details_explanation_refundable =>
+      'Boltz flagged the swap as refundable. Tap \"Get refund\" to send the locked funds back to your wallet.';
 }
