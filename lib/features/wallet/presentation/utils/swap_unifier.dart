@@ -339,7 +339,13 @@ _SwapLegs? _pairLegsForAnchor(
   _Buckets buckets,
   Set<String> consumed,
 ) {
-  const horizon = Duration(hours: 12);
+  // Fallback path for HISTORICAL pegs only — fresh pegs are merged
+  // upstream by `_mergeBreezPegSwaps` using exact `swap_lockup_tx_id`
+  // linkage. 30 min is tight enough to keep an unrelated BTC
+  // withdrawal hours later out of the match (the old 12 h window
+  // mispaired a same-amount saque with a peg-in claim because they
+  // happened on the same day).
+  const horizon = Duration(minutes: 30);
   // Chain-swap fees usually land below 3% but can reach ~10% on
   // small amounts after lockup + claim fees + Breez service fee.
   const tolerance = 0.10;
@@ -486,11 +492,12 @@ Transaction? _findFallbackCounterpart(
   List<Transaction> receiveBucket,
   Set<String> consumed,
 ) {
-  // Mirrors the legacy `_identifyInternalSwapsStatic` heuristics so the
-  // V2 path produces the same unified rows for historical pegs that
-  // pre-date the Breez anchor being stored.
+  // Mirrors the legacy `_identifyInternalSwapsStatic` heuristics so
+  // the V2 path produces the same unified rows for historical pegs
+  // that pre-date the swap-link fields. 30 min keeps unrelated
+  // sends/receives on the same day from being paired by accident.
   final minAmount = BigInt.from(25000);
-  const horizon = Duration(hours: 12);
+  const horizon = Duration(minutes: 30);
   if (sendTx.amount < minAmount) return null;
 
   // Precompute the ±1% / ±10% acceptance window once per call.

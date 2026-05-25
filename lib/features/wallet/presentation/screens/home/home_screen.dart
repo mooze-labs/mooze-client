@@ -133,21 +133,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return AuthInitializerWidget(
       child: BackgroundSyncIndicator(
         child: Scaffold(
-          // Debug-only entry point to the swap simulator. Compiled out
-          // of release builds via the `kDebugMode` const, so end users
-          // never see it. Lets you drive the optimistic peg-in /
-          // peg-out row through every phase + the reconciler handoff
-          // without paying real swap fees.
-          floatingActionButton:
-              kDebugMode
-                  ? FloatingActionButton.small(
-                    heroTag: 'dev-swap-sim',
-                    tooltip: 'Swap simulator (dev)',
-                    backgroundColor: Colors.deepPurple,
-                    onPressed: () => context.push('/dev/swap-simulator'),
+          // Debug-only entry point: long-press to open the raw-tx dump
+          // (BDK + LWK + Breez + V2 store), tap to open the swap
+          // simulator. Compiled out of release builds via `kDebugMode`.
+          floatingActionButton: kDebugMode
+              ? FloatingActionButton.small(
+                  heroTag: 'dev-tools',
+                  tooltip:
+                      'Tap: swap simulator · Long-press: raw tx dump',
+                  backgroundColor: Colors.deepPurple,
+                  onPressed: () => context.push('/dev/swap-simulator'),
+                  child: GestureDetector(
+                    onLongPress: () => context.push('/dev/raw-tx-dump'),
                     child: const Icon(Icons.bug_report, color: Colors.white),
-                  )
-                  : null,
+                  ),
+                )
+              : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
           body: PlatformSafeArea(
             iosTop: true,
