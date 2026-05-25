@@ -45,6 +45,8 @@ class TransactionDatabase {
         sent_amount_sat INTEGER,
         received_amount_sat INTEGER,
         source TEXT,
+        swap_lockup_tx_id TEXT,
+        swap_claim_tx_id TEXT,
         PRIMARY KEY (id, chain)
       );
     ''');
@@ -71,6 +73,14 @@ class TransactionDatabase {
     // first LWK write after deploy overrides them (desired —
     // historical rows were classified under the pre-source rules).
     _addColumnIfMissing(db, 'transactions', 'source', 'TEXT');
+    // Peg-swap link migration. Pre-existing installs get these two
+    // columns added so Breez chain-swap rows can carry the linked BDK
+    // txid. Lets the home unifier pair the BDK + Breez halves of a
+    // peg by exact id instead of guessing by amount + time (the old
+    // heuristic mispaired an unrelated BTC withdrawal with a same-
+    // amount peg-in claim).
+    _addColumnIfMissing(db, 'transactions', 'swap_lockup_tx_id', 'TEXT');
+    _addColumnIfMissing(db, 'transactions', 'swap_claim_tx_id', 'TEXT');
     // Notification dedup ledger. One row per (chain, tx_id) the notifier
     // has already processed — either as an emitted user-facing modal or
     // as a silently absorbed baseline entry. INSERT OR IGNORE keeps this

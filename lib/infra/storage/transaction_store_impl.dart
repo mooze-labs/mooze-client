@@ -69,8 +69,8 @@ class SqliteTransactionStore implements TransactionStore {
           (id, chain, direction, status, amount_sat, fee_sat, timestamp_ms,
            confirmations, asset_id, address, label,
            from_asset_id, to_asset_id, sent_amount_sat, received_amount_sat,
-           source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           source, swap_lockup_tx_id, swap_claim_tx_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id, chain) DO UPDATE SET
           -- Source bookkeeping: monotonically toward 'lwk'.
           source = CASE
@@ -130,7 +130,19 @@ class SqliteTransactionStore implements TransactionStore {
             COALESCE(excluded.sent_amount_sat, transactions.sent_amount_sat),
           received_amount_sat =
             COALESCE(excluded.received_amount_sat,
-                     transactions.received_amount_sat)
+                     transactions.received_amount_sat),
+          -- Swap-link fields: Breez writes them on chain-swap rows
+          -- (peg-in claim, peg-out send); BDK/LWK never set them.
+          -- COALESCE preserves the Breez value if a later non-Breez
+          -- write touches the same key (which shouldn't happen in
+          -- practice — different ids — but guards against future
+          -- collisions).
+          swap_lockup_tx_id =
+            COALESCE(excluded.swap_lockup_tx_id,
+                     transactions.swap_lockup_tx_id),
+          swap_claim_tx_id =
+            COALESCE(excluded.swap_claim_tx_id,
+                     transactions.swap_claim_tx_id)
       ''');
       final tExec = DateTime.now();
       try {
@@ -152,6 +164,8 @@ class SqliteTransactionStore implements TransactionStore {
             tx.sentAmountSat,
             tx.receivedAmountSat,
             tx.source?.name,
+            tx.swapLockupTxId,
+            tx.swapClaimTxId,
           ]);
         }
       } finally {
@@ -285,6 +299,8 @@ class SqliteTransactionStore implements TransactionStore {
           : TransactionSource.values
               .where((s) => s.name == sourceStr)
               .firstOrNull,
+      swapLockupTxId: r['swap_lockup_tx_id'] as String?,
+      swapClaimTxId: r['swap_claim_tx_id'] as String?,
     );
   }
 

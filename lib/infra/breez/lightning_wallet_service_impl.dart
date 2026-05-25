@@ -769,7 +769,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // single-writer pipeline persists this tx via transactionStore.upsert
       // BEFORE any UI subscriber sees it. This preserves the
       // persist-before-republish invariant on the broadcast path.
-      _seen[mapped.id] = _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint.of(mapped);
       _lastList = [mapped, ..._lastList];
       _emitTx(
         TransactionEvent(
@@ -1025,7 +1025,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // `ChainId.lightning` for a Lightning payment; tx history shows
       // it as a Lightning payment, balance aggregation pulls from the
       // L-BTC pool (per the unified-balance model).
-      _seen[mapped.id] = _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint.of(mapped);
       _lastList = [mapped, ..._lastList];
       _emitTx(
         TransactionEvent(
@@ -1301,7 +1301,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // Persist-before-republish: synthetic event so the orchestrator's
       // single-writer pipeline upserts this tx via transactionStore
       // BEFORE any UI subscriber sees it.
-      _seen[mapped.id] = _LnFingerprint(mapped.status, mapped.confirmations);
+      _seen[mapped.id] = _LnFingerprint.of(mapped);
       _lastList = [mapped, ..._lastList];
       _emitTx(
         TransactionEvent(
@@ -1618,6 +1618,38 @@ class LightningWalletServiceImpl implements LightningWalletService {
       breez.PaymentState.timedOut => domain.TransactionStatus.failed,
       _ => domain.TransactionStatus.pending,
     };
+    // Peg-swap link ids — populated only for `PaymentDetails_Bitcoin`
+    // payments (chain swap legs). Lets the home unifier pair the BDK
+    // and Breez halves of a peg by exact id instead of guessing by
+    // amount/time. See [Transaction.swapLockupTxId] for the field
+    // contract.
+    final details = p.details;
+    final String? swapLockupTxId;
+    final String? swapClaimTxId;
+    final String? swapFromAssetId;
+    final String? swapToAssetId;
+    if (details is breez.PaymentDetails_Bitcoin) {
+      swapLockupTxId = details.lockupTxId;
+      swapClaimTxId = details.claimTxId;
+      // For peg-in (paymentType=receive) the swap is BTC → L-BTC. For
+      // peg-out (paymentType=send) it's L-BTC → BTC. Carrying the leg
+      // assets lets the legacy adapter present the row as a swap with
+      // proper `fromAsset`/`toAsset` without re-deriving from chain +
+      // direction at every consumer.
+      if (p.paymentType == breez.PaymentType.receive) {
+        swapFromAssetId = btcNativeAssetId;
+        swapToAssetId = lbtcAssetId;
+      } else {
+        swapFromAssetId = lbtcAssetId;
+        swapToAssetId = btcNativeAssetId;
+      }
+    } else {
+      swapLockupTxId = null;
+      swapClaimTxId = null;
+      swapFromAssetId = null;
+      swapToAssetId = null;
+    }
+
     return domain.Transaction(
       id: id,
       chain: _chainFromDetails(p.details),
@@ -1635,6 +1667,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // balance in the home tx list. Lightning + Bitcoin payments stay
       // assetId-null (their identity is the chain itself).
       assetId: _assetIdFromDetails(p.details),
+      fromAssetId: swapFromAssetId,
+      toAssetId: swapToAssetId,
       // Source tag: Breez is authoritative for chain=lightning (only
       // writer there) and tentative for chain=liquid (the source-aware
       // upsert merge lets LWK overwrite the authoritative fields when
@@ -1643,6 +1677,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // metadata; BDK handles user-initiated sends/receives — the two
       // typically have different (id, chain) keys so no conflict.
       source: domain.TransactionSource.breez,
+      swapLockupTxId: swapLockupTxId,
+      swapClaimTxId: swapClaimTxId,
     );
   }
 
@@ -1774,7 +1810,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
       final prev = _seen[tx.id];
       if (prev == null) {
         changes++;
-        _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
+        _seen[tx.id] = _LnFingerprint.of(tx);
         _emitTx(
           TransactionEvent(
             kind: TransactionEventKind.created,
@@ -1784,9 +1820,16 @@ class LightningWalletServiceImpl implements LightningWalletService {
         );
         continue;
       }
+      if (prev.matches(tx)) continue;
+      // Status / confirmations / assetId / swapLockupTxId changed.
+      // Pick the most precise event kind so the notifier renders the
+      // right modal copy. AssetId/lockupTxId-only flips happen on a
+      // schema bump (e.g. the chain-swap link migration) and look
+      // like a `statusChanged` to downstream consumers — that's
+      // fine, the notifier dedupes by (chain, txId) anyway.
+      changes++;
+      _seen[tx.id] = _LnFingerprint.of(tx);
       if (prev.status != tx.status) {
-        changes++;
-        _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
         _emitTx(
           TransactionEvent(
             kind: TransactionEventKind.statusChanged,
@@ -1797,11 +1840,24 @@ class LightningWalletServiceImpl implements LightningWalletService {
           ),
         );
       } else if (prev.confirmations != tx.confirmations) {
-        changes++;
-        _seen[tx.id] = _LnFingerprint(tx.status, tx.confirmations);
         _emitTx(
           TransactionEvent(
             kind: TransactionEventKind.confirmationsChanged,
+            transaction: tx,
+            previousStatus: prev.status,
+            previousConfirmations: prev.confirmations,
+            observedAt: now,
+          ),
+        );
+      } else {
+        // Schema-only flip (e.g. swap-link populated on a payment
+        // we already knew). Re-emit as `statusChanged` so the
+        // orchestrator persists the new fields via upsert; the
+        // notifier's same-status path drops it without showing a
+        // modal.
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.statusChanged,
             transaction: tx,
             previousStatus: prev.status,
             previousConfirmations: prev.confirmations,
@@ -2000,9 +2056,38 @@ class LightningWalletServiceImpl implements LightningWalletService {
 }
 
 class _LnFingerprint {
-  const _LnFingerprint(this.status, this.confirmations);
+  const _LnFingerprint(
+    this.status,
+    this.confirmations, {
+    this.assetId,
+    this.swapLockupTxId,
+  });
   final domain.TransactionStatus status;
   final int confirmations;
+
+  /// Fields added at the 2026-05-25 schema bump (chain-swap link).
+  /// Folded in so a payment that was already known with `assetId=null`
+  /// pre-upgrade re-emits the first time the SDK surfaces the new
+  /// `assetId == lbtcAssetId` value. Without this, peg-out rows
+  /// stayed unmerged because Breez doesn't re-emit a stable
+  /// `complete` payment between syncs (no status/confirmations
+  /// change) and our diff guard suppressed the persist.
+  final String? assetId;
+  final String? swapLockupTxId;
+
+  bool matches(domain.Transaction tx) {
+    return status == tx.status &&
+        confirmations == tx.confirmations &&
+        assetId == tx.assetId &&
+        swapLockupTxId == tx.swapLockupTxId;
+  }
+
+  factory _LnFingerprint.of(domain.Transaction tx) => _LnFingerprint(
+        tx.status,
+        tx.confirmations,
+        assetId: tx.assetId,
+        swapLockupTxId: tx.swapLockupTxId,
+      );
 }
 
 /// Dumps every Breez Payment that flows through the V2 mapper.
