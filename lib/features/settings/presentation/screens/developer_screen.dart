@@ -32,6 +32,7 @@ import 'package:mooze_mobile/domain/entities/balance.dart';
 import 'package:mooze_mobile/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 
 class DeveloperScreen extends ConsumerStatefulWidget {
   const DeveloperScreen({super.key});
@@ -354,6 +355,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
 
     try {
       final walletId = await ref.read(walletIdProvider.future);
+      final userId = await _resolveUserId();
       final txStore = await ref.read(transactionStoreProvider.future);
       final txResult = await txStore.list();
       final v2Txs = txResult.fold((failure) {
@@ -367,7 +369,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       final zipPath = await _logger.exportLogs(
         walletId: walletId,
         v2Transactions: v2Txs,
-        debugHeader: _buildDebugHeader(),
+        debugHeader: _buildDebugHeader(userId: userId, walletId: walletId),
       );
 
       if (!mounted) return;
@@ -530,7 +532,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     }
   }
 
-  DebugHeader _buildDebugHeader() {
+  DebugHeader _buildDebugHeader({String? userId, String? walletId}) {
     final btcEquivalentSats =
         _balance == null
             ? 0
@@ -549,11 +551,38 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       totalLogsMemory: _totalLogs,
       totalLogsDatabase: _dbLogs,
       logRetentionDays: _retentionDays,
+      userId: userId,
+      walletId: walletId,
     );
   }
 
+  /// Best-effort fetch of the backend-issued user id. Returns null on
+  /// any error (no auth session, network down, decode failure) so the
+  /// export can still proceed with `userId: null` and the header just
+  /// renders "unavailable" — support tooling falls back to walletId.
+  Future<String?> _resolveUserId() async {
+    try {
+      final userService = ref.read(userServiceProvider);
+      final result = await userService.getUser().run();
+      return result.fold((_) => null, (user) => user.id);
+    } catch (e) {
+      _logger.warning(
+        'DeveloperScreen',
+        'resolveUserId failed: $e — exporting with userId=null',
+      );
+      return null;
+    }
+  }
+
   Future<void> _copyDebugInfo() async {
-    await Clipboard.setData(ClipboardData(text: _buildDebugHeader().format()));
+    final userId = await _resolveUserId();
+    final walletId = await ref.read(walletIdProvider.future);
+    if (!mounted) return;
+    await Clipboard.setData(
+      ClipboardData(
+        text: _buildDebugHeader(userId: userId, walletId: walletId).format(),
+      ),
+    );
     if (!mounted) return;
     _showSuccessMessage(AppLocalizations.of(context).developer_debug_copied);
     _logger.info('DeveloperScreen', 'Debug info copied to clipboard');

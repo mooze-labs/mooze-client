@@ -67,6 +67,7 @@ class Transaction {
     this.source,
     this.swapLockupTxId,
     this.swapClaimTxId,
+    this.breezSwapId,
   });
 
   final String id;
@@ -134,6 +135,7 @@ class Transaction {
   /// wallet. Lets the unifier identify the BDK receive that completes
   /// a peg-out without amount guessing.
   final String? swapClaimTxId;
+  final String? breezSwapId;
 
   Transaction copyWith({
     TransactionStatus? status,
@@ -159,6 +161,7 @@ class Transaction {
       source: source,
       swapLockupTxId: swapLockupTxId,
       swapClaimTxId: swapClaimTxId,
+      breezSwapId: breezSwapId,
     );
   }
 
@@ -181,6 +184,7 @@ class Transaction {
         'source': source?.name,
         'swap_lockup_tx_id': swapLockupTxId,
         'swap_claim_tx_id': swapClaimTxId,
+        'breez_swap_id': breezSwapId,
       };
 
   static Transaction fromMap(Map<String, Object?> m) {
@@ -210,6 +214,7 @@ class Transaction {
           : TransactionSource.values.where((s) => s.name == sourceStr).firstOrNull,
       swapLockupTxId: m['swap_lockup_tx_id'] as String?,
       swapClaimTxId: m['swap_claim_tx_id'] as String?,
+      breezSwapId: m['breez_swap_id'] as String?,
     );
   }
 }
