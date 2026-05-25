@@ -6,6 +6,9 @@ import 'package:fpdart/fpdart.dart';
 // `Transaction` collides with the domain Transaction below; we only need
 // TransactionsCompanion from drift so we hide the generated row type.
 import 'package:mooze_mobile/database/database.dart' hide Transaction;
+import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
+import 'package:mooze_mobile/domain/entities/chain.dart' as v2chain;
+import 'package:mooze_mobile/domain/entities/transaction.dart' as v2tx;
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart'
     show PreparedOnchainBitcoinTransaction;
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
@@ -216,6 +219,44 @@ class BitcoinWallet {
               feeRateSatPerVByte: psbt.feeRateSatPerVByte,
               drain: psbt.drain,
             );
+
+            // The legacy persistence above writes to the legacy drift DB,
+            // which the V2 home tx list does NOT read from. Notify the
+            // V2 BDK service so its in-memory cache picks up the new tx
+            // and the orchestrator persists it into the V2 sqlite store
+            // (`transactionStore`) — that's what the home actually
+            // watches. Without this, the row only appears on the next
+            // successful `sync()` (when BDK's electrum scan sees the
+            // mempool tx), which can be up to 60 s away.
+            try {
+              final btcService = _datasource.ref
+                  .read(v2.bitcoinWalletServiceProvider);
+              final feePaidSat =
+                  signedPsbt.feeAmount()?.toInt() ?? 0;
+              btcService.registerExternalBroadcast(v2tx.Transaction(
+                id: txid,
+                chain: v2chain.ChainId.bitcoin,
+                direction: v2tx.TransactionDirection.outgoing,
+                status: v2tx.TransactionStatus.pending,
+                amountSat: psbt.amount.toInt(),
+                feeSat: feePaidSat,
+                timestamp: DateTime.now(),
+                confirmations: 0,
+                address: psbt.destination,
+                source: v2tx.TransactionSource.bdk,
+              ));
+            } catch (e, st) {
+              // Failing to register into the V2 cache is non-fatal —
+              // the funds already moved and the next BDK sync still
+              // reconciles eventually. Log so we can spot misconfigured
+              // DI in the field.
+              _logger?.error(
+                'BitcoinWallet',
+                'registerExternalBroadcast failed (broadcast already succeeded)',
+                error: e,
+                stackTrace: st,
+              );
+            }
 
             return Transaction(
               id: txid,

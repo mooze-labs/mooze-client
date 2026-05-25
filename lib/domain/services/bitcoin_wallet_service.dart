@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
+import '../entities/transaction.dart';
 import '../failures/failure.dart';
 import 'spendable_wallet_service.dart';
 import 'wallet_service.dart';
@@ -25,4 +26,23 @@ abstract interface class BitcoinWalletService
   /// Electrum query fails — UI should treat that as "confirmations
   /// unknown" and not block rendering.
   Future<Either<ServiceFailure, int>> getBlockHeight();
+
+  /// Register a transaction that was broadcast *outside* this service
+  /// (e.g. through the legacy `BitcoinWallet.sendOnchainBitcoinPayment`
+  /// bridge, which talks directly to the shared `bdk.Blockchain` handle).
+  /// The service treats it as if its own `sendOnchain` had emitted it —
+  /// updates the internal cache, fires a synthetic `TransactionEvent.created`,
+  /// and lets the orchestrator persist + republish.
+  ///
+  /// Without this, an externally broadcast tx only shows up on the next
+  /// successful `sync()` (typically 60 s on the periodic ticker, longer
+  /// when the mempool electrum has propagation latency). Calling this
+  /// right after the broadcast surfaces the row in the UI immediately;
+  /// the subsequent sync reconciles confirmations / fee fields against
+  /// the on-chain authoritative state.
+  ///
+  /// Idempotent against the cache by `txId` — calling twice with the
+  /// same row does NOT duplicate the home transaction list (the dedup
+  /// is keyed off `_seen[txId]`).
+  void registerExternalBroadcast(Transaction tx);
 }

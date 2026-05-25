@@ -590,6 +590,27 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
     }
   }
 
+  @override
+  void registerExternalBroadcast(domain.Transaction tx) {
+    if (tx.chain != ChainId.bitcoin) return;
+    // Dedup by id — second registrations (e.g. retry path, or the
+    // legacy bridge plus a manual call) leave the cache in the same
+    // state as the first one. The next chain sync still emits a
+    // `statusChanged` once confirmations land.
+    if (_seen.containsKey(tx.id)) return;
+    _seen[tx.id] = _BdkFingerprint(tx.status, tx.confirmations);
+    _lastList = [tx, ..._lastList];
+    _emitTx(TransactionEvent(
+      kind: TransactionEventKind.created,
+      transaction: tx,
+      observedAt: clock.now(),
+    ));
+    BootTracer.mark('bitcoin.register_external_broadcast', {
+      'txid_prefix': tx.id.length > 8 ? tx.id.substring(0, 8) : tx.id,
+      'amount_sat': tx.amountSat,
+    });
+  }
+
   // ─────────────────────────────────────────── helpers
 
   void _emit(ServiceLifecycle l,
