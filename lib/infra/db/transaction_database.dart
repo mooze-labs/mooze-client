@@ -47,6 +47,7 @@ class TransactionDatabase {
         source TEXT,
         swap_lockup_tx_id TEXT,
         swap_claim_tx_id TEXT,
+        breez_swap_id TEXT,
         PRIMARY KEY (id, chain)
       );
     ''');
@@ -81,6 +82,11 @@ class TransactionDatabase {
     // amount peg-in claim).
     _addColumnIfMissing(db, 'transactions', 'swap_lockup_tx_id', 'TEXT');
     _addColumnIfMissing(db, 'transactions', 'swap_claim_tx_id', 'TEXT');
+    // Breez short opaque swap id (e.g. `gGZYumk53AUX`). Stored
+    // alongside the lockup/claim txids so the audit export can
+    // surface the same identifier Breez SDK uses internally — that's
+    // the key support uses to look up a swap on the Boltz side.
+    _addColumnIfMissing(db, 'transactions', 'breez_swap_id', 'TEXT');
     // Notification dedup ledger. One row per (chain, tx_id) the notifier
     // has already processed — either as an emitted user-facing modal or
     // as a silently absorbed baseline entry. INSERT OR IGNORE keeps this

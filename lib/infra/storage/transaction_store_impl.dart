@@ -69,8 +69,8 @@ class SqliteTransactionStore implements TransactionStore {
           (id, chain, direction, status, amount_sat, fee_sat, timestamp_ms,
            confirmations, asset_id, address, label,
            from_asset_id, to_asset_id, sent_amount_sat, received_amount_sat,
-           source, swap_lockup_tx_id, swap_claim_tx_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           source, swap_lockup_tx_id, swap_claim_tx_id, breez_swap_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id, chain) DO UPDATE SET
           -- Source bookkeeping: monotonically toward 'lwk'.
           source = CASE
@@ -142,7 +142,9 @@ class SqliteTransactionStore implements TransactionStore {
                      transactions.swap_lockup_tx_id),
           swap_claim_tx_id =
             COALESCE(excluded.swap_claim_tx_id,
-                     transactions.swap_claim_tx_id)
+                     transactions.swap_claim_tx_id),
+          breez_swap_id =
+            COALESCE(excluded.breez_swap_id, transactions.breez_swap_id)
       ''');
       final tExec = DateTime.now();
       try {
@@ -166,6 +168,7 @@ class SqliteTransactionStore implements TransactionStore {
             tx.source?.name,
             tx.swapLockupTxId,
             tx.swapClaimTxId,
+            tx.breezSwapId,
           ]);
         }
       } finally {
@@ -301,6 +304,7 @@ class SqliteTransactionStore implements TransactionStore {
               .firstOrNull,
       swapLockupTxId: r['swap_lockup_tx_id'] as String?,
       swapClaimTxId: r['swap_claim_tx_id'] as String?,
+      breezSwapId: r['breez_swap_id'] as String?,
     );
   }
 

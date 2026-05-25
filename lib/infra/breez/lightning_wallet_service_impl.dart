@@ -166,8 +166,12 @@ class LightningWalletServiceImpl implements LightningWalletService {
         _eventSub = client.addEventListener().listen(
           _onBreezEvent,
           onError: (Object e, StackTrace st) {
-            logger.warn('lightning.event_stream.error',
-                {'error': '$e'}, error: e, stackTrace: st);
+            logger.warn(
+              'lightning.event_stream.error',
+              {'error': '$e'},
+              error: e,
+              stackTrace: st,
+            );
           },
         );
         _emit(ServiceLifecycle.connected, clearFailure: true);
@@ -1451,7 +1455,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
     final passthrough = <breez.Payment>[];
     for (final p in payments) {
       final txId = p.txId;
-      final isLiquidWithTxId = p.details is breez.PaymentDetails_Liquid &&
+      final isLiquidWithTxId =
+          p.details is breez.PaymentDetails_Liquid &&
           txId != null &&
           txId.isNotEmpty;
       if (isLiquidWithTxId) {
@@ -1469,7 +1474,8 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // assetIds. Any other shape (single payment, two same-type
       // payments, same-asset pair, etc.) we treat as ordinary and
       // fall back to per-payment mapping so we don't lose data.
-      final isSwapPair = group.length == 2 &&
+      final isSwapPair =
+          group.length == 2 &&
           group.first.paymentType != group.last.paymentType &&
           (group.first.details as breez.PaymentDetails_Liquid).assetId !=
               (group.last.details as breez.PaymentDetails_Liquid).assetId;
@@ -1549,9 +1555,10 @@ class LightningWalletServiceImpl implements LightningWalletService {
     final feeSat = sendP.feesSat.toInt() + receiveP.feesSat.toInt();
     // Newer of the two timestamps — the swap completed as of the
     // later one (typically the receive leg confirming).
-    final ts = sendP.timestamp > receiveP.timestamp
-        ? sendP.timestamp
-        : receiveP.timestamp;
+    final ts =
+        sendP.timestamp > receiveP.timestamp
+            ? sendP.timestamp
+            : receiveP.timestamp;
 
     return domain.Transaction(
       id: txId,
@@ -1626,11 +1633,19 @@ class LightningWalletServiceImpl implements LightningWalletService {
     final details = p.details;
     final String? swapLockupTxId;
     final String? swapClaimTxId;
+    final String? breezSwapId;
     final String? swapFromAssetId;
     final String? swapToAssetId;
     if (details is breez.PaymentDetails_Bitcoin) {
       swapLockupTxId = details.lockupTxId;
       swapClaimTxId = details.claimTxId;
+      // Short opaque id Breez uses internally for the chain swap
+      // (e.g. `gGZYumk53AUX`). Stays constant across the swap's
+      // lifecycle; the row's primary `id` flips between this and the
+      // claim txid as the swap progresses, so we record it as a
+      // separate field for support tooling that needs to correlate
+      // with Boltz-side records.
+      breezSwapId = details.swapId;
       // For peg-in (paymentType=receive) the swap is BTC → L-BTC. For
       // peg-out (paymentType=send) it's L-BTC → BTC. Carrying the leg
       // assets lets the legacy adapter present the row as a swap with
@@ -1646,6 +1661,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
     } else {
       swapLockupTxId = null;
       swapClaimTxId = null;
+      breezSwapId = null;
       swapFromAssetId = null;
       swapToAssetId = null;
     }
@@ -1679,6 +1695,7 @@ class LightningWalletServiceImpl implements LightningWalletService {
       source: domain.TransactionSource.breez,
       swapLockupTxId: swapLockupTxId,
       swapClaimTxId: swapClaimTxId,
+      breezSwapId: breezSwapId,
     );
   }
 
@@ -2036,14 +2053,24 @@ class LightningWalletServiceImpl implements LightningWalletService {
       // Fire-and-forget: errors are surfaced via the regular sync
       // failure path; we don't want to leak a synchronous throw out
       // of the event listener.
-      unawaited(sync().catchError((Object e, StackTrace st) {
-        logger.warn('lightning.event_triggered_sync.failed',
-            {'error': '$e'}, error: e, stackTrace: st);
-        return Left<ServiceFailure, SyncOutcome>(
-          ServiceFailure('event-triggered sync threw: $e',
-              chain: chain, cause: e, stackTrace: st),
-        );
-      }));
+      unawaited(
+        sync().catchError((Object e, StackTrace st) {
+          logger.warn(
+            'lightning.event_triggered_sync.failed',
+            {'error': '$e'},
+            error: e,
+            stackTrace: st,
+          );
+          return Left<ServiceFailure, SyncOutcome>(
+            ServiceFailure(
+              'event-triggered sync threw: $e',
+              chain: chain,
+              cause: e,
+              stackTrace: st,
+            ),
+          );
+        }),
+      );
     });
   }
 
@@ -2083,11 +2110,11 @@ class _LnFingerprint {
   }
 
   factory _LnFingerprint.of(domain.Transaction tx) => _LnFingerprint(
-        tx.status,
-        tx.confirmations,
-        assetId: tx.assetId,
-        swapLockupTxId: tx.swapLockupTxId,
-      );
+    tx.status,
+    tx.confirmations,
+    assetId: tx.assetId,
+    swapLockupTxId: tx.swapLockupTxId,
+  );
 }
 
 /// Dumps every Breez Payment that flows through the V2 mapper.
@@ -2119,10 +2146,10 @@ void _logBreezPaymentV2(breez.Payment p) {
     detailsLine = 'unknown(${d.runtimeType})';
   }
 
-  debugPrint(
-    '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
-    'amountSat=${p.amountSat} feesSat=${p.feesSat} '
-    'txId=${p.txId} ts=${p.timestamp} '
-    'details=$detailsLine',
-  );
+  // debugPrint(
+  //   '[BREEZ-TX-V2] state=${p.status.name} type=${p.paymentType.name} '
+  //   'amountSat=${p.amountSat} feesSat=${p.feesSat} '
+  //   'txId=${p.txId} ts=${p.timestamp} '
+  //   'details=$detailsLine',
+  // );
 }
