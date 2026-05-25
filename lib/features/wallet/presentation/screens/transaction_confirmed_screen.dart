@@ -115,12 +115,13 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
     super.dispose();
   }
 
-  String _formatAmount() {
-    const decimalPlaces = 8;
-    final divisor = BigInt.from(10).pow(decimalPlaces);
-    final value = widget.amount.toDouble() / divisor.toDouble();
-
-    return '${value.toStringAsFixed(decimalPlaces)} ${widget.asset.ticker}';
+  String _formatAmount(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    final amount = widget.asset.formatAmount(
+      widget.amount.toInt(),
+      locale: locale,
+    );
+    return '$amount ${widget.asset.displayUnit}';
   }
 
   @override
@@ -245,7 +246,7 @@ class _TransactionConfirmedScreenState extends State<TransactionConfirmedScreen>
                               FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  _formatAmount(),
+                                  _formatAmount(context),
                                   style: textTheme.headlineSmall?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
