@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/recei
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/dev/raw_tx_dump_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/swap_simulator_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
@@ -173,6 +174,10 @@ final walletRoutes = [
   GoRoute(
     path: '/dev/swap-simulator',
     builder: (context, state) => const SwapSimulatorScreen(),
+  ),
+  GoRoute(
+    path: '/dev/raw-tx-dump',
+    builder: (context, state) => const RawTxDumpScreen(),
   ),
   GoRoute(
     path: '/swap/converting/:localId',
