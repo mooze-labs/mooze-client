@@ -138,12 +138,21 @@ final v2LegacyTransactionsProvider =
           final tAdapt = DateTime.now();
           final adapted = txs.map(_v2ToLegacy).toList(growable: false);
           final adaptMs = DateTime.now().difference(tAdapt).inMilliseconds;
+          // Peg-swap merge MUST run inline too — same pre-unifier
+          // pass `_adaptAndUnify` does on the isolate path. Without
+          // this, wallets under [_isolateThreshold] (~every real
+          // user) skipped the exact-id merge and saw peg-out + BDK
+          // claim as two separate rows.
+          final tMerge = DateTime.now();
+          final pegMerged = _mergeBreezPegSwaps(txs, adapted);
+          final mergeMs = DateTime.now().difference(tMerge).inMilliseconds;
           final tUnify = DateTime.now();
-          result = unifyPegSwaps(adapted);
+          result = unifyPegSwaps(pegMerged);
           final unifyMs = DateTime.now().difference(tUnify).inMilliseconds;
           BootTracer.mark('v2_legacy_txs.inline.after', {
             'n': seq,
             'adapt_ms': adaptMs,
+            'merge_ms': mergeMs,
             'unify_ms': unifyMs,
           });
         }
@@ -198,11 +207,196 @@ final v2LegacyTransactionsProvider =
 /// thing crossing isolates is the input list in and the unified
 /// list out.
 List<legacy.Transaction> _adaptAndUnify(List<v2.Transaction> input) {
-  // Collapse Breez peg-in / peg-out clusters (anchor + BDK leg +
-  // LWK/Breez leg + duplicate cross-chain views) into a single
-  // swap row before reaching the home transaction list. See
-  // `swap_unifier.dart` for the matching rules.
-  return unifyPegSwaps(input.map(_v2ToLegacy).toList(growable: false));
+  // 1. Per-row adapt V2 → legacy.
+  final adapted = input.map(_v2ToLegacy).toList();
+
+  // 2. Pre-unifier merge: Breez chain-swap rows carry
+  //    `swapLockupTxId` + `swapClaimTxId` pointing at the BDK halves
+  //    of the same peg. Merging them here (with exact id linkage)
+  //    produces a single complete swap row per peg, so the
+  //    `unifyPegSwaps` pass doesn't have to guess by amount + time
+  //    (the old heuristic mispaired an unrelated BTC withdrawal with
+  //    a same-amount peg-in claim that landed within ±10% / ±12 h).
+  final pegMerged = _mergeBreezPegSwaps(input, adapted);
+
+  // 3. Collapse legacy peg-shaped rows (historical pegs without the
+  //    swap-link fields) via the existing unifier — same behaviour
+  //    as before, just with no work to do for fresh pegs that step 2
+  //    already merged.
+  return unifyPegSwaps(pegMerged);
+}
+
+/// Merge Breez chain-swap rows with their BDK counterparts into a
+/// single swap row using the exact `swap_lockup_tx_id` /
+/// `swap_claim_tx_id` linkage Breez exposes through
+/// `PaymentDetails_Bitcoin`. Drops the standalone BDK leg + any
+/// duplicate Breez pending/confirmed rows for the same swap.
+List<legacy.Transaction> _mergeBreezPegSwaps(
+  List<v2.Transaction> v2Input,
+  List<legacy.Transaction> adapted,
+) {
+  // Group Breez chain-swap rows by `swapLockupTxId`. Breez emits a
+  // pending row (id = swap_id) followed by a confirmed row
+  // (id = claim_txid) for the same peg — both share lockup_txid.
+  // Pick the freshest/most-confirmed view; drop the rest.
+  final pegByLockup = <String, v2.Transaction>{};
+  for (final t in v2Input) {
+    final lockup = t.swapLockupTxId;
+    if (lockup == null) continue;
+    final cur = pegByLockup[lockup];
+    if (cur == null) {
+      pegByLockup[lockup] = t;
+      continue;
+    }
+    // Prefer confirmed over pending; if tie, prefer the one with the
+    // later timestamp (Breez updates the timestamp on the confirmed
+    // row to settlement time).
+    if (cur.status != v2.TransactionStatus.confirmed &&
+        t.status == v2.TransactionStatus.confirmed) {
+      pegByLockup[lockup] = t;
+    } else if (cur.status == t.status &&
+        t.timestamp.isAfter(cur.timestamp)) {
+      pegByLockup[lockup] = t;
+    }
+  }
+  if (pegByLockup.isEmpty) return adapted;
+
+  // Index every v2 input by id so we can resolve the BDK
+  // counterpart by `lockup_tx_id` (peg-in) / `claim_tx_id` (peg-out).
+  final v2ById = <String, v2.Transaction>{};
+  for (final t in v2Input) {
+    v2ById[t.id] = t;
+  }
+
+  // Mark every Breez peg row consumed (we'll emit ONE merged row per
+  // group). BDK counterparts are consumed when paired below.
+  final consumed = <String>{};
+  for (final t in v2Input) {
+    if (t.swapLockupTxId != null) consumed.add(t.id);
+  }
+
+  final merged = <legacy.Transaction>[];
+  for (final peg in pegByLockup.values) {
+    final isPegIn = peg.direction == v2.TransactionDirection.incoming;
+    // BDK side: peg-in lockup tx is what BDK sent; peg-out claim tx
+    // is what BDK receives. Both are referenced explicitly by Breez.
+    final bdkId = isPegIn ? peg.swapLockupTxId : peg.swapClaimTxId;
+    final bdkV2 = bdkId == null ? null : v2ById[bdkId];
+    if (bdkV2 != null) consumed.add(bdkV2.id);
+    merged.add(_buildPegSwapRow(peg, bdkV2));
+  }
+
+  // Filter adapted rows: drop everything we consumed, keep the rest.
+  // Append merged peg rows, then sort timestamp DESC so the home list
+  // sees the proper recency order.
+  final result = <legacy.Transaction>[
+    for (final a in adapted)
+      if (!consumed.contains(a.id)) a,
+    ...merged,
+  ];
+  result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return result;
+}
+
+/// Build a unified peg-swap [legacy.Transaction] from a Breez chain-
+/// swap V2 row + an optional BDK counterpart (matched by exact txid).
+///
+/// Amount semantics — Breez `Payment.amountSat` is the L-BTC pool
+/// delta, EXCLUDING the swap fee (`feesSat`), so for the user's
+/// "money out" view we have to add the fee back when L-BTC is the
+/// send side. BDK amount is whatever the on-chain tx actually moved
+/// (lockup amount on peg-in, claim amount on peg-out).
+///
+///   Peg-in  (paymentType=receive, isPegIn=true):
+///     sent     = BDK lockup amount (BTC the user broadcast)
+///     received = Breez amountSat   (L-BTC that landed in the pool)
+///
+///   Peg-out (paymentType=send, isPegIn=false):
+///     sent     = Breez amountSat + feesSat (total L-BTC debited)
+///     received = BDK claim amount  (BTC that arrived at the
+///                destination — if destination was external this is
+///                null and the row renders the send side only)
+legacy.Transaction _buildPegSwapRow(
+  v2.Transaction peg,
+  v2.Transaction? bdk,
+) {
+  final isPegIn = peg.direction == v2.TransactionDirection.incoming;
+
+  final BigInt? sentAmount;
+  final BigInt? receivedAmount;
+  if (isPegIn) {
+    sentAmount =
+        bdk != null ? BigInt.from(bdk.amountSat) : null;
+    receivedAmount = BigInt.from(peg.amountSat);
+  } else {
+    sentAmount = BigInt.from(peg.amountSat + peg.feeSat);
+    receivedAmount =
+        bdk != null ? BigInt.from(bdk.amountSat) : null;
+  }
+
+  // Headline `amount` — what the home row displays prominently.
+  // Peg-in: the L-BTC received; peg-out: the BTC sent out of the
+  // wallet (which equals `receivedAmount` from the destination POV,
+  // or `sentAmount` if the user sent to an external BTC address —
+  // we use `receivedAmount` when known so peg-in and peg-out are
+  // symmetric and falls back to `sentAmount` when the BDK side
+  // hasn't been observed yet).
+  final headline = receivedAmount ?? sentAmount ?? BigInt.from(peg.amountSat);
+
+  // Status: confirmed only when BOTH legs are confirmed. The pending
+  // optimistic row from `pendingSwapsProvider` retires off this row
+  // — keeping it pending while either leg is still propagating
+  // matches what the user expects ("not done yet, both sides
+  // settling").
+  legacy.TransactionStatus mapStatus(v2.TransactionStatus s) =>
+      switch (s) {
+        v2.TransactionStatus.pending => legacy.TransactionStatus.pending,
+        v2.TransactionStatus.confirmed => legacy.TransactionStatus.confirmed,
+        v2.TransactionStatus.failed => legacy.TransactionStatus.failed,
+      };
+  final pegStatus = mapStatus(peg.status);
+  final bdkStatus = bdk == null ? null : mapStatus(bdk.status);
+  final status = (pegStatus == legacy.TransactionStatus.confirmed &&
+          (bdkStatus == null ||
+              bdkStatus == legacy.TransactionStatus.confirmed))
+      ? legacy.TransactionStatus.confirmed
+      : (pegStatus == legacy.TransactionStatus.failed ||
+              bdkStatus == legacy.TransactionStatus.failed)
+          ? legacy.TransactionStatus.failed
+          : legacy.TransactionStatus.pending;
+
+  // Earliest timestamp wins so the row sorts before the standalone
+  // BDK leg ever did (the BDK ts is usually the broadcast block ts).
+  var earliest = peg.timestamp;
+  if (bdk != null && bdk.timestamp.isBefore(earliest)) {
+    earliest = bdk.timestamp;
+  }
+
+  // Send/receive tx ids. The legacy `sendTxId`/`receiveTxId` fields
+  // are what the tx-detail screen reads to render the per-rail
+  // explorer links; they're also what
+  // `pendingSwapsReconciliationProvider._idsMatch` uses to retire
+  // the optimistic peg row.
+  final sendTxId = isPegIn ? peg.swapLockupTxId : peg.id;
+  final receiveTxId = isPegIn ? peg.id : peg.swapClaimTxId;
+
+  return legacy.Transaction(
+    id: peg.id,
+    amount: headline,
+    blockchain: isPegIn ? Blockchain.liquid : Blockchain.bitcoin,
+    asset: isPegIn ? Asset.lbtc : Asset.btc,
+    type: legacy.TransactionType.swap,
+    status: status,
+    createdAt: earliest,
+    fromAsset: isPegIn ? Asset.btc : Asset.lbtc,
+    toAsset: isPegIn ? Asset.lbtc : Asset.btc,
+    sentAmount: sentAmount,
+    receivedAmount: receivedAmount,
+    sendTxId: sendTxId,
+    receiveTxId: receiveTxId,
+    sendBlockchain: isPegIn ? Blockchain.bitcoin : Blockchain.liquid,
+    receiveBlockchain: isPegIn ? Blockchain.liquid : Blockchain.bitcoin,
+  );
 }
 
 /// Content fingerprint over the fields the adapter + unifier read.
@@ -212,6 +406,15 @@ int _fingerprint(List<v2.Transaction> txs) {
   // FNV-1a-style accumulator over the dimensions the downstream
   // pipeline actually consumes. Anything else changing upstream is
   // invisible to the home list and can safely be ignored.
+  //
+  // IMPORTANT: any field `_mergeBreezPegSwaps` or `_v2ToLegacy` reads
+  // MUST be folded in here, otherwise a sync that flips it (e.g. the
+  // Breez chain-swap re-sync that populates `swapLockupTxId` for the
+  // first time) hits the cache and the home keeps showing the
+  // pre-merge two-row view. This caused the peg-out to stay
+  // unmerged after the Breez rebuild — the row's content was
+  // semantically unchanged by the legacy fingerprint, so we kept
+  // serving the cached "Enviou BTC L2" + "Recebeu BTC" pair.
   var h = 0x811C9DC5;
   for (final t in txs) {
     h = _mix(h, t.id.hashCode);
@@ -223,6 +426,14 @@ int _fingerprint(List<v2.Transaction> txs) {
     final ra = t.receivedAmountSat;
     if (sa != null) h = _mix(h, sa);
     if (ra != null) h = _mix(h, ra);
+    final aid = t.assetId;
+    if (aid != null) h = _mix(h, aid.hashCode);
+    final src = t.source;
+    if (src != null) h = _mix(h, src.index);
+    final lockup = t.swapLockupTxId;
+    if (lockup != null) h = _mix(h, lockup.hashCode);
+    final claim = t.swapClaimTxId;
+    if (claim != null) h = _mix(h, claim.hashCode);
   }
   // Mix the length too so an extra trailing item with all-default
   // values still flips the fingerprint.
