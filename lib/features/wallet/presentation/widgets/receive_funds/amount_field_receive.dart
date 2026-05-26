@@ -29,13 +29,34 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
   late final TextEditingController _textController;
   late final FocusNode _focusNode;
   bool _isFocused = false;
-  bool _isUpdatingFromProvider = false;
 
   @override
   void initState() {
     super.initState();
-    _textController = TextEditingController();
+    final initialType = ref.read(receiveConversionTypeProvider);
+    _textController = TextEditingController(
+      text: _readValueForType(initialType),
+    );
     _focusNode = FocusNode()..addListener(_onFocusChanged);
+  }
+
+  String _readValueForType(ReceiveConversionType type) {
+    switch (type) {
+      case ReceiveConversionType.asset:
+        return ref.read(receiveAssetValueProvider);
+      case ReceiveConversionType.sats:
+        return ref.read(receiveSatsValueProvider);
+      case ReceiveConversionType.fiat:
+        return ref.read(receiveFiatValueProvider);
+    }
+  }
+
+  void _syncControllerFromProvider(String value) {
+    if (_textController.text == value) return;
+    _textController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
   }
 
   void _onFocusChanged() {
@@ -74,6 +95,37 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    // Sync the controller from the active value provider whenever it
+    // changes (e.g. async fiat→asset conversion completes, or the user
+    // switches conversion type and the controller logic seeds the new
+    // value provider). Listening here — rather than writing to the
+    // controller inside build — avoids the rebuild ↔ controller-write
+    // oscillation that produced the visible flicker on fiat input.
+    ref.listen<ReceiveConversionType>(receiveConversionTypeProvider, (
+      _,
+      type,
+    ) {
+      _syncControllerFromProvider(_readValueForType(type));
+    });
+    ref.listen<String>(receiveAssetValueProvider, (_, value) {
+      if (ref.read(receiveConversionTypeProvider) ==
+          ReceiveConversionType.asset) {
+        _syncControllerFromProvider(value);
+      }
+    });
+    ref.listen<String>(receiveSatsValueProvider, (_, value) {
+      if (ref.read(receiveConversionTypeProvider) ==
+          ReceiveConversionType.sats) {
+        _syncControllerFromProvider(value);
+      }
+    });
+    ref.listen<String>(receiveFiatValueProvider, (_, value) {
+      if (ref.read(receiveConversionTypeProvider) ==
+          ReceiveConversionType.fiat) {
+        _syncControllerFromProvider(value);
+      }
+    });
+
     final selectedNetwork = ref.watch(selectedReceiveNetworkProvider);
     final selectedAsset = ref.watch(selectedReceiveAssetProvider);
     final validationState = ref.watch(receiveValidationControllerProvider);
@@ -82,38 +134,6 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final controller = ref.read(receiveConversionControllerProvider.notifier);
 
     final currentValue = controller.getCurrentValueForType(conversionType);
-
-    if (!_isUpdatingFromProvider &&
-        conversionType == ReceiveConversionType.asset &&
-        (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) &&
-        _textController.text.isEmpty) {
-      _isUpdatingFromProvider = true;
-      _textController.text = '0';
-      _textController.selection = const TextSelection.collapsed(offset: 1);
-      _isUpdatingFromProvider = false;
-    } else if (!_isUpdatingFromProvider &&
-        conversionType == ReceiveConversionType.sats &&
-        _textController.text.isEmpty) {
-      _isUpdatingFromProvider = true;
-      _textController.text = '0';
-      _textController.selection = const TextSelection.collapsed(offset: 1);
-      _isUpdatingFromProvider = false;
-    } else if (!_isUpdatingFromProvider &&
-        conversionType == ReceiveConversionType.fiat &&
-        _textController.text.isEmpty) {
-      _isUpdatingFromProvider = true;
-      _textController.text = '0,00';
-      _textController.selection = const TextSelection.collapsed(offset: 4);
-      _isUpdatingFromProvider = false;
-    } else if (!_isUpdatingFromProvider &&
-        _textController.text != currentValue) {
-      _isUpdatingFromProvider = true;
-      _textController.text = currentValue;
-      _textController.selection = TextSelection.fromPosition(
-        TextPosition(offset: currentValue.length),
-      );
-      _isUpdatingFromProvider = false;
-    }
 
     final isRequired = selectedNetwork == NetworkType.lightning;
     final isDisabled = selectedAsset == null || selectedNetwork == null;
@@ -178,12 +198,15 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 enabled: !isDisabled,
                 isError: hasAmountError,
                 isLoadingConversion: isConversionLoading,
+                hintText: conversionType == ReceiveConversionType.fiat
+                    ? '0,00'
+                    : '0',
                 inputFormatters: _getInputFormatters(
                   selectedAsset,
                   conversionType,
                 ),
                 onChanged: (value) {
-                  if (selectedAsset == null || _isUpdatingFromProvider) return;
+                  if (selectedAsset == null) return;
                   final type = ref.read(receiveConversionTypeProvider);
 
                   String valueForController = value;
@@ -266,6 +289,7 @@ class _AmountRow extends StatelessWidget {
   final bool enabled;
   final bool isError;
   final bool isLoadingConversion;
+  final String hintText;
   final List<TextInputFormatter> inputFormatters;
   final ValueChanged<String> onChanged;
 
@@ -278,6 +302,7 @@ class _AmountRow extends StatelessWidget {
     required this.enabled,
     required this.isError,
     required this.isLoadingConversion,
+    required this.hintText,
     required this.inputFormatters,
     required this.onChanged,
   });
@@ -324,7 +349,7 @@ class _AmountRow extends StatelessWidget {
         // values shrink down to minFontSize. effectiveChars is clamped
         // so a 20-character sats value still gets a font calculation,
         // not a divide-by-tiny.
-        final currentText = controller.text.isEmpty ? '0' : controller.text;
+        final currentText = controller.text.isEmpty ? hintText : controller.text;
         final effectiveChars = currentText.length.clamp(1, 20).toDouble();
 
         final availableRight = (constraints.maxWidth - leftReserved - gap)
@@ -385,7 +410,7 @@ class _AmountRow extends StatelessWidget {
                       errorBorder: InputBorder.none,
                       focusedErrorBorder: InputBorder.none,
                       filled: false,
-                      hintText: '0',
+                      hintText: hintText,
                       hintStyle: TextStyle(
                         color: cs.onSurface.withValues(alpha: 0.22),
                         fontSize: fontSize,
