@@ -91,7 +91,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       targets: _createTutorialTargets(),
       colorShadow: Colors.green,
       paddingFocus: 10,
-      opacityShadow: 0.8,
+      opacityShadow: 0.95,
       alignSkip: Alignment.topRight,
       onClickOverlay: (target) {},
       onClickTarget: (target) async {
@@ -597,7 +597,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         orElse: () => <ProductEntity>[],
       );
 
-      final tutorialName = AppLocalizations.of(context).merchant_default_product_name;
+      final tutorialName =
+          AppLocalizations.of(context).merchant_default_product_name;
       for (var product in products) {
         if (product.name == tutorialName && product.price == 21.00) {
           if (product.id != null) {
@@ -643,7 +644,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).merchant_add_product_error(e.toString()),
+              AppLocalizations.of(
+                context,
+              ).merchant_add_product_error(e.toString()),
             ),
           ),
         );
@@ -675,7 +678,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                AppLocalizations.of(context).merchant_update_product_error(e.toString()),
+                AppLocalizations.of(
+                  context,
+                ).merchant_update_product_error(e.toString()),
               ),
             ),
           );
@@ -705,7 +710,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).merchant_remove_product_error(e.toString()),
+              AppLocalizations.of(
+                context,
+              ).merchant_remove_product_error(e.toString()),
             ),
           ),
         );
@@ -879,7 +886,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.grid_3x3),
-                                  Text(AppLocalizations.of(context).merchant_tab_keypad),
+                                  Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).merchant_tab_keypad,
+                                  ),
                                 ],
                               ),
                             ),
@@ -891,7 +902,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.grid_3x3),
-                                  Text(AppLocalizations.of(context).merchant_tab_items),
+                                  Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).merchant_tab_items,
+                                  ),
                                 ],
                               ),
                             ),
@@ -955,7 +970,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                               ),
                                               const SizedBox(height: 16),
                                               Text(
-                                                AppLocalizations.of(context).merchant_load_products_error,
+                                                AppLocalizations.of(
+                                                  context,
+                                                ).merchant_load_products_error,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),
@@ -977,7 +994,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                                   );
                                                 },
                                                 child: Text(
-                                                  AppLocalizations.of(context).common_retry,
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  ).common_retry,
                                                 ),
                                               ),
                                             ],
