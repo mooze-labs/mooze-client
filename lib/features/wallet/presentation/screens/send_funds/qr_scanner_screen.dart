@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/network_detection_provider.dart';
@@ -69,11 +70,9 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   }
 
   void _processScannedData(String data) {
-    // Validate the QR code data
     final validationResult = QrValidationService.validateQrData(data);
 
     if (!validationResult.isValid) {
-      // Show error message and allow scanning again
       setState(() {
         isScanning = false;
       });
@@ -81,13 +80,12 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(validationResult.localize(context)),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
         ),
       );
 
-      // Re-enable scanning after a delay
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
           setState(() {
@@ -99,14 +97,10 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
       return;
     }
 
-    // Use the cleaned data from validation
     String cleanedData = validationResult.cleanedData ?? data;
 
-    // Store the full data for amount detection
-    // The amount detection service will parse it correctly
     ref.read(addressStateProvider.notifier).state = cleanedData;
 
-    // For the text controller, extract just the address part for display
     String displayAddress = cleanedData;
 
     if (cleanedData.startsWith('bitcoin:') ||
@@ -116,7 +110,6 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
         final uri = Uri.parse(cleanedData);
         displayAddress = uri.path;
       } catch (e) {
-        // If parsing fails, use the cleaned data as is
         displayAddress = cleanedData;
       }
     } else if (cleanedData.startsWith('lightning:')) {
@@ -133,16 +126,13 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   void _autoSwitchAssetBasedOnNetwork(String address) {
     if (address.isEmpty) return;
 
-    // First, try to detect the asset from the QR code data
     final detectedResult = AmountDetectionService.detectAmount(address);
 
     if (detectedResult.asset != null) {
-      // If we detected a specific asset from the QR code, use it
       ref.read(selectedAssetProvider.notifier).state = detectedResult.asset!;
       return;
     }
 
-    // Fallback to network type detection for addresses without asset ID
     final networkType = NetworkDetectionService.detectNetworkType(address);
     final currentAsset = ref.read(selectedAssetProvider);
 
@@ -180,45 +170,232 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
     cameraController.toggleTorch();
   }
 
+  double _computeCutOutSize(BoxConstraints constraints) {
+    final minSide =
+        constraints.maxWidth < constraints.maxHeight
+            ? constraints.maxWidth
+            : constraints.maxHeight;
+    return (minSide * 0.72).clamp(200.0, 340.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+
     return PlatformSafeArea(
       child: Scaffold(
         extendBodyBehindAppBar: true,
+        backgroundColor: context.colors.backgroundColor,
         appBar: AppBar(
           title: Text(t.wallet_send_address_scan_qr),
           centerTitle: true,
           backgroundColor: Colors.transparent,
+          foregroundColor: context.colors.textPrimary,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          iconTheme: IconThemeData(color: context.colors.textPrimary),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () {
-              context.pop();
-            },
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            color: context.colors.textPrimary,
+            onPressed: () => context.pop(),
           ),
         ),
-        body: Stack(
-          children: [
-            MobileScanner(controller: cameraController, onDetect: _onDetect),
-            _buildModernOverlay(),
-            _buildInstructions(),
-            _buildControlButtons(),
-          ],
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isLandscape = constraints.maxWidth > constraints.maxHeight;
+            return isLandscape
+                ? _buildLandscapeLayout(context, constraints)
+                : _buildPortraitLayout(context, constraints);
+          },
         ),
       ),
     );
   }
 
-  Widget _buildModernOverlay() {
+  Widget _buildPortraitLayout(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final mediaPadding = MediaQuery.of(context).padding;
+    final bottomReserve = 240.0 + mediaPadding.bottom;
+    const topReserve = kToolbarHeight;
+    final availableForCutout =
+        (constraints.maxHeight - topReserve - bottomReserve).clamp(
+          200.0,
+          double.infinity,
+        );
+    final cutOutSize = _computeCutOutSize(
+      BoxConstraints(
+        maxWidth: constraints.maxWidth,
+        maxHeight: availableForCutout,
+      ),
+    );
+    final cutOutVerticalOffset = (topReserve - bottomReserve) / 2;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildScannerStack(cutOutSize, cutOutVerticalOffset),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: _buildFloatingBottomControls(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLandscapeLayout(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final mediaPadding = MediaQuery.of(context).padding;
+    final sidePanelWidth = 320.0;
+    final cameraAreaWidth =
+        (constraints.maxWidth - sidePanelWidth - mediaPadding.right).clamp(
+          240.0,
+          double.infinity,
+        );
+    final availableHeight = (constraints.maxHeight - kToolbarHeight).clamp(
+      180.0,
+      double.infinity,
+    );
+    final cutOutSize = _computeCutOutSize(
+      BoxConstraints(maxWidth: cameraAreaWidth, maxHeight: availableHeight),
+    );
+    final cutOutVerticalOffset = kToolbarHeight / 2;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildScannerStack(cutOutSize, cutOutVerticalOffset),
+        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: sidePanelWidth),
+          child: _buildBottomPanel(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScannerStack(double cutOutSize, double cutOutVerticalOffset) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        MobileScanner(
+          controller: cameraController,
+          onDetect: _onDetect,
+          fit: BoxFit.cover,
+          placeholderBuilder: _buildScannerPlaceholder,
+          errorBuilder: _buildScannerError,
+        ),
+        _buildModernOverlay(cutOutSize, cutOutVerticalOffset),
+      ],
+    );
+  }
+
+  Widget _buildFloatingBottomControls(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatusChip(context),
+              const SizedBox(height: 12),
+              _buildInstructionText(context),
+              const SizedBox(height: 16),
+              _buildControlButtons(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScannerPlaceholder(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      color: context.colors.backgroundColor,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context).qr_scanner_searching,
+            style: TextStyle(
+              color: context.colors.backgroundColor.withValues(alpha: 0.7),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScannerError(
+    BuildContext context,
+    MobileScannerException error,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      color: context.colors.backgroundColor,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.no_photography_outlined,
+            size: 48,
+            color: colorScheme.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            error.errorDetails?.message ??
+                AppLocalizations.of(context).qr_scanner_position_hint,
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernOverlay(double cutOutSize, double cutOutVerticalOffset) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final overlayColor = context.colors.backgroundColor.withValues(alpha: 0.6);
     return Container(
       decoration: ShapeDecoration(
         shape: ModernQrScannerOverlayShape(
-          borderColor: Theme.of(context).colorScheme.primary,
+          borderColor: colorScheme.primary,
           borderRadius: 20,
-          borderLength: 40,
+          borderLength: 36,
           borderWidth: 4,
-          cutOutSize: 280,
-          overlayColor: Colors.black.withValues(alpha: 0.7),
+          cutOutSize: cutOutSize,
+          cutOutVerticalOffset: cutOutVerticalOffset,
+          overlayColor: overlayColor,
         ),
       ),
       child: AnimatedBuilder(
@@ -227,114 +404,123 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
           return CustomPaint(
             painter: ScanLinePainter(
               progress: _scanLineAnimation.value,
-              color: Theme.of(context).colorScheme.primary,
+              color: colorScheme.primary,
               isScanning: isScanning,
+              cutOutSize: cutOutSize,
+              cutOutVerticalOffset: cutOutVerticalOffset,
             ),
-            child: Container(),
+            child: const SizedBox.expand(),
           );
         },
       ),
     );
   }
 
-  Widget _buildInstructions() {
-    final t = AppLocalizations.of(context);
-    return Positioned(
-      bottom: 100,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.qr_code_scanner,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isScanning ? t.qr_scanner_searching : t.qr_scanner_found,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              t.qr_scanner_position_hint,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              t.qr_scanner_supported_networks,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 14,
-                fontWeight: FontWeight.w300,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+  Widget _buildBottomPanel(BuildContext context) {
+    return Material(
+      color: context.colors.backgroundColor,
+      elevation: 0,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatusChip(context),
+              const SizedBox(height: 12),
+              _buildInstructionText(context),
+              const SizedBox(height: 16),
+              _buildControlButtons(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildControlButtons() {
+  Widget _buildStatusChip(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Positioned(
-      bottom: 30,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Expanded(
-              child: _buildControlButton(
-                icon: isFlashOn ? Icons.flash_on : Icons.flash_off,
-                label: t.qr_scanner_flash_label,
-                isActive: isFlashOn,
-                onTap: _toggleFlash,
-              ),
-            ),
-            SizedBox(width: 20),
-            Expanded(
-              child: _buildControlButton(
-                icon: Icons.flip_camera_ios,
-                label: t.qr_scanner_camera_label,
-                isActive: false,
-                onTap: () => cameraController.switchCamera(),
-              ),
-            ),
-          ],
-        ),
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.30)),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.qr_code_scanner, color: colorScheme.primary, size: 18),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              isScanning ? t.qr_scanner_searching : t.qr_scanner_found,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionText(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          t.qr_scanner_position_hint,
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          t.qr_scanner_supported_networks,
+          style: TextStyle(
+            color: colorScheme.onSurface.withValues(alpha: 0.65),
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControlButtons(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: _buildControlButton(
+            icon: isFlashOn ? Icons.flash_on : Icons.flash_off,
+            label: t.qr_scanner_flash_label,
+            isActive: isFlashOn,
+            onTap: _toggleFlash,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildControlButton(
+            icon: Icons.flip_camera_ios,
+            label: t.qr_scanner_camera_label,
+            isActive: false,
+            onTap: () => cameraController.switchCamera(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -344,50 +530,53 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        decoration: BoxDecoration(
-          color:
-              isActive
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-                  : Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color:
-                isActive
-                    ? Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.5)
-                    : Colors.white.withValues(alpha: 0.2),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
+    final colorScheme = Theme.of(context).colorScheme;
+    final activeColor = colorScheme.primary;
+    final inactiveBg = colorScheme.onSurface.withValues(alpha: 0.05);
+    final inactiveFg = colorScheme.onSurface;
+    final borderRadius = BorderRadius.circular(12);
+
+    return Material(
+      color: isActive ? activeColor.withValues(alpha: 0.4) : inactiveBg,
+      borderRadius: borderRadius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: borderRadius,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: colorScheme.onSurface.withValues(alpha: 0.05),
+            borderRadius: borderRadius,
+            border: Border.all(
               color:
                   isActive
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white,
-              size: 24,
+                      ? activeColor.withValues(alpha: 0.5)
+                      : colorScheme.onSurface.withValues(alpha: 0.08),
+              width: 1,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color:
-                    isActive
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? activeColor : inactiveFg,
+                size: 22,
+                semanticLabel: label,
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? activeColor : inactiveFg,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -398,11 +587,15 @@ class ScanLinePainter extends CustomPainter {
   final double progress;
   final Color color;
   final bool isScanning;
+  final double cutOutSize;
+  final double cutOutVerticalOffset;
 
   ScanLinePainter({
     required this.progress,
     required this.color,
     required this.isScanning,
+    required this.cutOutSize,
+    this.cutOutVerticalOffset = 0,
   });
 
   @override
@@ -421,9 +614,8 @@ class ScanLinePainter extends CustomPainter {
             ],
           ).createShader(Rect.fromLTWH(0, 0, size.width, 3));
 
-    final cutOutSize = 280.0;
     final centerX = size.width / 2;
-    final centerY = size.height / 2;
+    final centerY = size.height / 2 + cutOutVerticalOffset;
     final scanAreaTop = centerY - cutOutSize / 2;
     final scanAreaBottom = centerY + cutOutSize / 2;
     final scanAreaLeft = centerX - cutOutSize / 2;
@@ -439,7 +631,12 @@ class ScanLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant ScanLinePainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.isScanning != isScanning ||
+      oldDelegate.cutOutSize != cutOutSize ||
+      oldDelegate.cutOutVerticalOffset != cutOutVerticalOffset;
 }
 
 class ModernQrScannerOverlayShape extends ShapeBorder {
@@ -449,6 +646,7 @@ class ModernQrScannerOverlayShape extends ShapeBorder {
     this.overlayColor = const Color.fromRGBO(0, 0, 0, 80),
     this.borderRadius = 20,
     this.borderLength = 40,
+    this.cutOutVerticalOffset = 0,
     double? cutOutSize,
   }) : cutOutSize = cutOutSize ?? 280;
 
@@ -458,6 +656,7 @@ class ModernQrScannerOverlayShape extends ShapeBorder {
   final double borderRadius;
   final double borderLength;
   final double cutOutSize;
+  final double cutOutVerticalOffset;
 
   @override
   EdgeInsetsGeometry get dimensions => const EdgeInsets.all(10);
@@ -471,12 +670,13 @@ class ModernQrScannerOverlayShape extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final cutOutCenter = rect.center + Offset(0, cutOutVerticalOffset);
     Path outerPath = Path()..addRect(rect);
     Path cutOutPath =
         Path()..addRRect(
           RRect.fromRectAndRadius(
             Rect.fromCenter(
-              center: rect.center,
+              center: cutOutCenter,
               width: cutOutSize,
               height: cutOutSize,
             ),
@@ -489,7 +689,6 @@ class ModernQrScannerOverlayShape extends ShapeBorder {
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
     final width = rect.width;
-    final height = rect.height;
     final borderOffset = borderWidth / 2;
     final mBorderLength = borderLength;
     final mCutOutSize = cutOutSize < width ? cutOutSize : width - borderOffset;
@@ -514,17 +713,16 @@ class ModernQrScannerOverlayShape extends ShapeBorder {
           ..strokeCap = StrokeCap.round
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
-    final cutOutRect = Rect.fromLTWH(
-      rect.left + (width - mCutOutSize) / 2 + borderOffset,
-      rect.top + (height - mCutOutSize) / 2 + borderOffset,
-      mCutOutSize - borderOffset * 2,
-      mCutOutSize - borderOffset * 2,
+    final cutOutCenter = rect.center + Offset(0, cutOutVerticalOffset);
+    final innerSize = mCutOutSize - borderOffset * 2;
+    final cutOutRect = Rect.fromCenter(
+      center: cutOutCenter,
+      width: innerSize,
+      height: innerSize,
     );
 
-    // Draw background overlay
     canvas.drawPath(getOuterPath(rect), backgroundPaint);
 
-    // Draw corner borders with glow
     _drawCornerBorders(canvas, cutOutRect, glowPaint, mBorderLength);
     _drawCornerBorders(canvas, cutOutRect, borderPaint, mBorderLength);
   }
@@ -640,5 +838,6 @@ class ModernQrScannerOverlayShape extends ShapeBorder {
     borderRadius: borderRadius,
     borderLength: borderLength,
     cutOutSize: cutOutSize,
+    cutOutVerticalOffset: cutOutVerticalOffset,
   );
 }
