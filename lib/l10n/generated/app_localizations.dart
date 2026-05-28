@@ -868,6 +868,12 @@ abstract class AppLocalizations {
   /// **'Usar biometria'**
   String get pin_use_biometric;
 
+  /// No description provided for @pin_use_pin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar PIN'**
+  String get pin_use_pin;
+
   /// No description provided for @pin_use_device_password.
   ///
   /// In pt, this message translates to:

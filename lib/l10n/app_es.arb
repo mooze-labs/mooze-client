@@ -128,6 +128,7 @@
   "pin_validate_body": "Ingresa tu PIN para continuar de forma segura.",
   "pin_incorrect": "PIN incorrecto. Inténtalo de nuevo.",
   "pin_use_biometric": "Usar biometría",
+  "pin_use_pin": "Usar PIN",
   "pin_use_device_password": "Usar contraseña del dispositivo",
   "pin_forgot": "¿Olvidaste tu PIN?",
   "pin_biometric_unavailable": "Biometría o contraseña del sistema no disponibles.",

@@ -427,6 +427,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pin_use_biometric => 'Usar biometria';
 
   @override
+  String get pin_use_pin => 'Usar PIN';
+
+  @override
   String get pin_use_device_password => 'Use a senha do dispositivo';
 
   @override

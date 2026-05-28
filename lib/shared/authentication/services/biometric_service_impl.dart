@@ -17,11 +17,8 @@ class BiometricServiceImpl implements BiometricService {
   Task<bool> isAvailable() {
     return Task(() async {
       try {
-        final canCheck = await _localAuth.canCheckBiometrics;
-        final isSupported = await _localAuth.isDeviceSupported();
-        // The device is usable if it supports any strong authentication
-        // (biometrics or device credential fallback).
-        return canCheck || isSupported;
+        final caps = await _readCapabilities();
+        return caps.hasAnyAuth;
       } on PlatformException {
         return false;
       }
@@ -29,15 +26,56 @@ class BiometricServiceImpl implements BiometricService {
   }
 
   @override
-  TaskEither<String, bool> authenticate({required String reason}) {
+  Task<BiometricCapabilities> capabilities() {
+    return Task(() async {
+      try {
+        return await _readCapabilities();
+      } on PlatformException {
+        return BiometricCapabilities.none;
+      }
+    });
+  }
+
+  Future<BiometricCapabilities> _readCapabilities() async {
+    final isSupported = await _localAuth.isDeviceSupported();
+    if (!isSupported) return BiometricCapabilities.none;
+
+    final canCheckBiometrics = await _localAuth.canCheckBiometrics;
+    final enrolled = canCheckBiometrics
+        ? await _localAuth.getAvailableBiometrics()
+        : const <BiometricType>[];
+
+    final hasFaceId = enrolled.contains(BiometricType.face);
+    final hasFingerprint = enrolled.contains(BiometricType.fingerprint) ||
+        enrolled.contains(BiometricType.strong) ||
+        enrolled.contains(BiometricType.weak);
+
+    return BiometricCapabilities(
+      hasBiometrics: enrolled.isNotEmpty,
+      // isDeviceSupported() returns true for any device-credential capable
+      // platform, so we use it as the "any auth at all" signal.
+      hasAnyAuth: true,
+      hasFaceId: hasFaceId,
+      hasFingerprint: hasFingerprint,
+    );
+  }
+
+  @override
+  TaskEither<String, bool> authenticate({
+    required String reason,
+    bool biometricOnly = false,
+  }) {
     return TaskEither.tryCatch(
       () => _localAuth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
+        options: AuthenticationOptions(
+          // Keep the prompt visible if the app is briefly backgrounded by the
+          // system biometric dialog.
           stickyAuth: true,
-          // Allow device PIN/pattern/password as fallback so users without
-          // enrolled biometrics can still authenticate.
-          biometricOnly: false,
+          // When the caller wants biometrics specifically (the in-app unlock
+          // flow), refuse to fall back to device passcode. The app's own PIN
+          // is the secondary path.
+          biometricOnly: biometricOnly,
         ),
       ),
       (error, _) {
