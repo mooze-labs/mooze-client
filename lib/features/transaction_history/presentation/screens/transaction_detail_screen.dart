@@ -946,6 +946,14 @@ class _TransactionDetailScreenState
     }
 
     if (_isCrossChainSwap()) {
+      final sendEnabled = _isExplorerEnabledFor(
+        txId: widget.transaction.sendTxId,
+        blockchain: widget.transaction.sendBlockchain,
+      );
+      final receiveEnabled = _isExplorerEnabledFor(
+        txId: widget.transaction.receiveTxId,
+        blockchain: widget.transaction.receiveBlockchain,
+      );
       return Column(
         children: [
           _buildActionButton(
@@ -953,11 +961,12 @@ class _TransactionDetailScreenState
             label: t.tx_detail_view_send,
             subtitle: _getBlockchainName(widget.transaction.sendBlockchain!),
             icon: Icons.call_made,
-            onPressed:
-                () => _openInExplorer(
-                  txId: widget.transaction.sendTxId,
-                  blockchain: widget.transaction.sendBlockchain,
-                ),
+            onPressed: sendEnabled
+                ? () => _openInExplorer(
+                      txId: widget.transaction.sendTxId,
+                      blockchain: widget.transaction.sendBlockchain,
+                    )
+                : null,
           ),
           const SizedBox(height: 12),
           _buildActionButton(
@@ -965,11 +974,12 @@ class _TransactionDetailScreenState
             label: t.tx_detail_view_receive,
             subtitle: _getBlockchainName(widget.transaction.receiveBlockchain!),
             icon: Icons.call_received,
-            onPressed:
-                () => _openInExplorer(
-                  txId: widget.transaction.receiveTxId,
-                  blockchain: widget.transaction.receiveBlockchain,
-                ),
+            onPressed: receiveEnabled
+                ? () => _openInExplorer(
+                      txId: widget.transaction.receiveTxId,
+                      blockchain: widget.transaction.receiveBlockchain,
+                    )
+                : null,
           ),
         ],
       );
@@ -983,6 +993,14 @@ class _TransactionDetailScreenState
       final chainName = widget.transaction.sendBlockchain == null
           ? ''
           : _getBlockchainName(widget.transaction.sendBlockchain!);
+      final sendEnabled = _isExplorerEnabledFor(
+        txId: widget.transaction.sendTxId,
+        blockchain: widget.transaction.sendBlockchain,
+      );
+      final refundEnabled = _isExplorerEnabledFor(
+        txId: widget.transaction.receiveTxId,
+        blockchain: widget.transaction.receiveBlockchain,
+      );
       return Column(
         children: [
           _buildActionButton(
@@ -990,10 +1008,12 @@ class _TransactionDetailScreenState
             label: 'View send transaction',
             subtitle: chainName,
             icon: Icons.call_made,
-            onPressed: () => _openInExplorer(
-              txId: widget.transaction.sendTxId,
-              blockchain: widget.transaction.sendBlockchain,
-            ),
+            onPressed: sendEnabled
+                ? () => _openInExplorer(
+                      txId: widget.transaction.sendTxId,
+                      blockchain: widget.transaction.sendBlockchain,
+                    )
+                : null,
           ),
           const SizedBox(height: 12),
           _buildActionButton(
@@ -1001,15 +1021,18 @@ class _TransactionDetailScreenState
             label: 'View refund transaction',
             subtitle: chainName,
             icon: Icons.assignment_return,
-            onPressed: () => _openInExplorer(
-              txId: widget.transaction.receiveTxId,
-              blockchain: widget.transaction.receiveBlockchain,
-            ),
+            onPressed: refundEnabled
+                ? () => _openInExplorer(
+                      txId: widget.transaction.receiveTxId,
+                      blockchain: widget.transaction.receiveBlockchain,
+                    )
+                : null,
           ),
         ],
       );
     }
 
+    final defaultExplorerEnabled = _isExplorerEnabledFor();
     return Column(
       children: [
         _buildActionButton(
@@ -1017,7 +1040,7 @@ class _TransactionDetailScreenState
           label: t.pix_deposit_view_explorer,
           subtitle: t.pix_deposit_view_chain,
           icon: Icons.open_in_new,
-          onPressed: () => _openInExplorer(),
+          onPressed: defaultExplorerEnabled ? () => _openInExplorer() : null,
         ),
         if (widget.transaction.blockchain == Blockchain.lightning &&
             widget.transaction.destination != null &&
@@ -1040,15 +1063,13 @@ class _TransactionDetailScreenState
     required String label,
     required String subtitle,
     required IconData icon,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     bool isDestructive = false,
   }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
+    final enabled = onPressed != null;
+    final body = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color:
               isDestructive
@@ -1126,7 +1147,17 @@ class _TransactionDetailScreenState
             ),
           ],
         ),
-      ),
+      );
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: enabled
+          ? InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(12),
+              child: body,
+            )
+          : body,
     );
   }
 
@@ -1216,27 +1247,45 @@ class _TransactionDetailScreenState
     });
   }
 
-  Future<void> _openInExplorer({String? txId, Blockchain? blockchain}) async {
-    final String explorerUrl;
-
+  String? _resolveExplorerUrl({String? txId, Blockchain? blockchain}) {
     if (txId != null && blockchain != null) {
-      explorerUrl = switch (blockchain) {
+      return switch (blockchain) {
         Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$txId',
         Blockchain.liquid => 'https://liquid.network/pt/tx/$txId',
         Blockchain.lightning => 'https://blockstream.info/liquid/tx/$txId',
       };
-    } else if (widget.transaction.blockchainUrl != null) {
-      explorerUrl = widget.transaction.blockchainUrl!;
-    } else {
-      final useTxId = txId ?? widget.transaction.id;
-      final useBlockchain = blockchain ?? widget.transaction.blockchain;
-
-      explorerUrl = switch (useBlockchain) {
-        Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$useTxId',
-        Blockchain.liquid => 'https://liquid.network/pt/tx/$useTxId',
-        Blockchain.lightning => 'https://blockstream.info/liquid/tx/$useTxId',
-      };
     }
+    if (widget.transaction.blockchainUrl != null) {
+      return widget.transaction.blockchainUrl;
+    }
+    final useTxId = txId ?? widget.transaction.id;
+    final useBlockchain = blockchain ?? widget.transaction.blockchain;
+    if (useTxId.isEmpty) return null;
+    return switch (useBlockchain) {
+      Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$useTxId',
+      Blockchain.liquid => 'https://liquid.network/pt/tx/$useTxId',
+      Blockchain.lightning => 'https://blockstream.info/liquid/tx/$useTxId',
+    };
+  }
+
+  static final RegExp _finalTxIdRegex = RegExp(r'^[0-9a-fA-F]{64}$');
+
+  bool _isFinalTxId(String? value) {
+    if (value == null || value.isEmpty) return false;
+    return _finalTxIdRegex.hasMatch(value);
+  }
+
+  bool _isExplorerEnabledFor({String? txId, Blockchain? blockchain}) {
+    final url = _resolveExplorerUrl(txId: txId, blockchain: blockchain);
+    if (url == null) return false;
+    final match = RegExp(r'/tx/([^/?#]+)').firstMatch(url);
+    return _isFinalTxId(match?.group(1));
+  }
+
+  Future<void> _openInExplorer({String? txId, Blockchain? blockchain}) async {
+    final explorerUrl =
+        _resolveExplorerUrl(txId: txId, blockchain: blockchain);
+    if (explorerUrl == null) return;
 
     final Uri url = Uri.parse(explorerUrl);
 
