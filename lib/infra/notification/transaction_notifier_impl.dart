@@ -343,21 +343,25 @@ class V2TransactionNotifier implements TransactionNotifier {
       confirmedAt: event.observedAt,
     );
 
-    if (_emittedTxIds.contains(tx.id)) {
+    final correlationKey = tx.swapClaimTxId ?? tx.id;
+    if (_emittedTxIds.contains(correlationKey)) {
       _logger.debug('tx_notifier.cross_chain_duplicate_drop', {
         'tx_id': tx.id,
         'chain': tx.chain.name,
+        'correlation_key': correlationKey,
       });
       return;
     }
-    _emittedTxIds.add(tx.id);
+    _emittedTxIds.add(correlationKey);
     final twinChain = switch (tx.chain) {
       ChainId.lightning => ChainId.liquid,
-      ChainId.liquid => ChainId.lightning,
+      ChainId.bitcoin => tx.swapClaimTxId != null ? ChainId.liquid : null,
+      ChainId.liquid =>
+        tx.swapClaimTxId != null ? ChainId.bitcoin : ChainId.lightning,
       _ => null,
     };
     if (twinChain != null) {
-      unawaited(_registry.markIfNew(chain: twinChain, txId: tx.id));
+      unawaited(_registry.markIfNew(chain: twinChain, txId: correlationKey));
     }
 
     if (_canEmitNow()) {
