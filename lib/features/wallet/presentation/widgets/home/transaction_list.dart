@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -32,11 +33,16 @@ class _TransactionListState extends ConsumerState<TransactionList> {
   void _onPaint(int len, {required String source}) {
     if (!_markedFirstPaint) {
       _markedFirstPaint = true;
-      BootTracer.mark('home.tx_list.first_paint',
-          {'len': len, 'source': source});
+      BootTracer.mark('home.tx_list.first_paint', {
+        'len': len,
+        'source': source,
+      });
     } else if (_markedLength != len) {
-      BootTracer.mark('home.tx_list.length_change',
-          {'len': len, 'prev': _markedLength, 'source': source});
+      BootTracer.mark('home.tx_list.length_change', {
+        'len': len,
+        'prev': _markedLength,
+        'source': source,
+      });
     }
     _markedLength = len;
   }
@@ -185,9 +191,10 @@ class SuccessfulTransactionList extends ConsumerWidget {
 
     final t = AppLocalizations.of(context);
     final lim = limit;
-    final source = (lim != null && transactions.length > lim)
-        ? transactions.sublist(0, lim)
-        : transactions;
+    final source =
+        (lim != null && transactions.length > lim)
+            ? transactions.sublist(0, lim)
+            : transactions;
 
     return Column(
       children:
@@ -493,6 +500,8 @@ class HomeTransactionItem extends StatelessWidget {
         (transaction?.status == TransactionStatus.refundable ||
             transaction?.status == TransactionStatus.failed);
 
+    final isLightning = transaction?.blockchain == Blockchain.lightning;
+
     return Container(
       color: Colors.transparent,
       padding: EdgeInsets.symmetric(vertical: 5),
@@ -511,6 +520,21 @@ class HomeTransactionItem extends StatelessWidget {
                 SizedBox(height: 4),
                 if (hasSwapDetails)
                   _buildSwapSubtitle(context)
+                else if (isLightning)
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          subtitle,
+                          style: const TextStyle(fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const _LightningTag(),
+                    ],
+                  )
                 else
                   Text(subtitle, style: TextStyle(fontSize: 14)),
               ],
@@ -692,5 +716,38 @@ class HomeTransactionItem extends StatelessWidget {
     }
 
     return asset.formatBalance(amount);
+  }
+}
+
+class _LightningTag extends StatelessWidget {
+  const _LightningTag();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.appColors.warning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color, width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bolt, size: 12, color: color),
+          const SizedBox(width: 2),
+          Text(
+            'LN',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
