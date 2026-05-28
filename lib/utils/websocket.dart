@@ -224,7 +224,7 @@ class WebSocketService {
       // leak the underlying socket.
       if (channel != null) {
         try {
-          unawaited(channel.sink.close(status.goingAway));
+          unawaited(channel.sink.close(status.normalClosure));
         } catch (_) {}
       }
       _channel = null;
@@ -267,7 +267,7 @@ class WebSocketService {
     _channel = null;
     if (ch != null) {
       try {
-        unawaited(ch.sink.close(status.goingAway));
+        unawaited(ch.sink.close(status.normalClosure));
       } catch (_) {}
     }
     if (!_autoReconnect) {
