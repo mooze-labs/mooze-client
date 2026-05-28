@@ -50,11 +50,6 @@ class V2TransactionNotifier implements TransactionNotifier {
       onError: (e, st) => _logger.warn('tx_notifier.stream_error',
           {'error': '$e'}, error: e, stackTrace: st),
     );
-    // Sync state listener runs in parallel — used solely to clear the
-    // baseline flag once the first refresh has settled successfully.
-    _syncSub = _orchestrator.state.listen(_onSyncStateChange);
-    // Kick off baseline init. The constructor returns immediately; the
-    // tx stream is buffered until init completes.
     unawaited(_runBaselineInit());
   }
 
@@ -65,8 +60,16 @@ class V2TransactionNotifier implements TransactionNotifier {
 
   final _controller = StreamController<TransactionStatusEvent>.broadcast();
   StreamSubscription<TransactionEvent>? _txSub;
-  StreamSubscription<SyncState>? _syncSub;
   bool _disposed = false;
+
+  static const Set<ChainId> _baselineGateChains = <ChainId>{
+    ChainId.liquid,
+    ChainId.bitcoin,
+    ChainId.lightning,
+  };
+
+
+  static const Duration _firstSyncMaxWait = Duration(seconds: 90);
 
   _BaselinePhase _baseline = _BaselinePhase.initializing;
   bool _homeReached = false;
@@ -130,8 +133,6 @@ class V2TransactionNotifier implements TransactionNotifier {
     _disposed = true;
     await _txSub?.cancel();
     _txSub = null;
-    await _syncSub?.cancel();
-    _syncSub = null;
     _initBuffer.clear();
     _pendingEmissions.clear();
     if (!_controller.isClosed) {
@@ -146,28 +147,21 @@ class V2TransactionNotifier implements TransactionNotifier {
   /// pass that prevents N modals on a fresh install / cold restart of
   /// a wallet with existing tx history.
   ///
-  /// Atomicity: events arriving on `_orchestrator.transactions` during
-  /// this Future are buffered into `_initBuffer` by [_onTransactionEvent]
-  /// because `_baseline == initializing`. Once we transition to ready,
-  /// the buffer is drained through the normal emission path. Events for
-  /// txs we just bulk-marked will hit the dedup check (markIfNew →
-  /// false) and be silently dropped. Events for genuinely new txs that
-  /// arrived after the snapshot will flow through normally.
+
   Future<void> _runBaselineInit() async {
     try {
       // Load the wallet-import stamp once at init. The notifier is
       // re-constructed on import (provider rebuild), so this captures
       // the freshly-written value. Failures are non-fatal: a null
       // stamp simply disables the timestamp filter and we fall back
-      // to baseline absorb + dedup.
+      // to the snapshot-after-first-sync absorb below.
       final stampEither = await _registry.getImportedAtMs();
       _importedAtMs = stampEither.getOrElse((_) => null);
       _logger.info('tx_notifier.imported_at_loaded',
           {'imported_at_ms': _importedAtMs});
 
       final baselineEither = await _registry.isBaselineComplete();
-      final alreadyDone =
-          baselineEither.getOrElse((_) => false);
+      final alreadyDone = baselineEither.getOrElse((_) => false);
       if (alreadyDone) {
         _baseline = _BaselinePhase.ready;
         _logger.info('tx_notifier.baseline_already_complete', {});
@@ -176,12 +170,12 @@ class V2TransactionNotifier implements TransactionNotifier {
       }
 
       _logger.info('tx_notifier.baseline_init_begin', {});
+      await _awaitFirstSyncOrTimeout();
+
       final listResult = await _transactionStore.list();
       final txs = listResult.getOrElse((_) => const <Transaction>[]);
       if (txs.isNotEmpty) {
-        final entries = txs.map(
-          (t) => (chain: t.chain, txId: t.id),
-        );
+        final entries = txs.map((t) => (chain: t.chain, txId: t.id));
         final markResult = await _registry.bulkMark(entries);
         markResult.match(
           (f) => _logger.warn('tx_notifier.baseline_bulk_mark_failed',
@@ -202,8 +196,6 @@ class V2TransactionNotifier implements TransactionNotifier {
     } catch (e, st) {
       _logger.error('tx_notifier.baseline_init_threw',
           {'error': '$e'}, error: e, stackTrace: st);
-      // Fail open: advance to ready so live events flow. The registry's
-      // markIfNew is still our line of defence against duplicates.
       _baseline = _BaselinePhase.ready;
       await _drainInitBuffer();
     }
@@ -218,23 +210,35 @@ class V2TransactionNotifier implements TransactionNotifier {
     }
   }
 
-  /// Called whenever the sync orchestrator's state stream emits. The
-  /// only thing we care about: the first successful sync after a fresh
-  /// install/import. If baseline somehow didn't complete during init
-  /// (e.g. the constructor's `list()` ran before the orchestrator had
-  /// finished its first writes), the first `lastSuccessAt != null`
-  /// emission gives us a second chance to mark it.
-  void _onSyncStateChange(SyncState state) {
-    if (_baseline == _BaselinePhase.ready) return;
-    if (state.lastSuccessAt == null) return;
-    // The first sync settled but we're still in `initializing` — likely
-    // means the init started before the orchestrator could write any
-    // txs to the store. The buffered events will carry the new txs, so
-    // we just flip the flag and let `_drainInitBuffer` handle them.
-    _logger.info('tx_notifier.baseline_advanced_via_sync_state', {});
-    unawaited(_registry.setBaselineComplete());
-    _baseline = _BaselinePhase.ready;
-    unawaited(_drainInitBuffer());
+  Future<void> _awaitFirstSyncOrTimeout() async {
+    bool isReady(SyncState state) =>
+        _baselineGateChains.every(state.firstSyncedChains.contains);
+
+    if (isReady(_orchestrator.currentState)) {
+      _logger.info('tx_notifier.first_sync_already_settled', {});
+      return;
+    }
+
+    final completer = Completer<void>();
+    final sub = _orchestrator.state.listen((state) {
+      if (!completer.isCompleted && isReady(state)) {
+        completer.complete();
+      }
+    });
+    try {
+      await completer.future.timeout(_firstSyncMaxWait, onTimeout: () {
+        _logger.warn('tx_notifier.first_sync_wait_timeout', {
+          'synced_so_far': _orchestrator.currentState.firstSyncedChains
+              .map((c) => c.name)
+              .toList(),
+        });
+      });
+      if (completer.isCompleted) {
+        _logger.info('tx_notifier.first_sync_settled', {});
+      }
+    } finally {
+      await sub.cancel();
+    }
   }
 
   // ─────────────────────────────────────────── live event path
