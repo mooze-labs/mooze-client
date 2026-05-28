@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Este aplicativo precisa acessar a câmera para escanear QR Codes.</string>
+	<string>NSCameraUsageDescription</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>NSFaceIDUsageDescription</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

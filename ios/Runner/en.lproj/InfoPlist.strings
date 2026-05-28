@@ -1,0 +1,2 @@
+"NSFaceIDUsageDescription" = "We use Face ID for secure authentication.";
+"NSCameraUsageDescription" = "Mooze needs camera access to scan QR codes.";
