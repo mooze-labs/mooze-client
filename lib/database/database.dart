@@ -562,11 +562,24 @@ class AppDatabase extends _$AppDatabase {
           // Pre-v11 rows get the sentinel 'unknown'; they remain on disk
           // for audit recoverability but are not visible to any active
           // wallet's scoped queries. New inserts MUST provide a walletId.
-          await m.addColumn(swaps, swaps.walletId);
-          await m.addColumn(pegs, pegs.walletId);
+          await _addColumnIfMissing(m, swaps, swaps.walletId);
+          await _addColumnIfMissing(m, pegs, pegs.walletId);
         }
       },
     );
+  }
+
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    final rows = await customSelect(
+      "PRAGMA table_info('${table.actualTableName}')",
+    ).get();
+    final exists = rows.any((r) => r.read<String>('name') == column.name);
+    if (exists) return;
+    await m.addColumn(table, column);
   }
 
   static QueryExecutor _openConnection() {
