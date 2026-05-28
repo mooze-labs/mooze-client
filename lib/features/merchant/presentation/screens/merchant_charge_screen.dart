@@ -18,6 +18,7 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Merchant Charge Screen (Presentation Layer)
@@ -469,7 +470,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                             ),
                             GestureDetector(
                               onTap: () {
-                                ref.invalidate(levelsProvider);
+                                ref.invalidate(walletLevelsRemoteProvider);
+                                ref.invalidate(userDataProvider);
                               },
                               child: Container(
                                 padding: EdgeInsets.symmetric(

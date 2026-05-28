@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
@@ -34,7 +34,7 @@ class AssetToReceive {
 /// not blink off and back on during background refreshes.
 final valuesToReceiveProvider =
     FutureProvider<Either<String, List<AssetToReceive>>>((ref) async {
-  final userInfo = await ref.watch(userInfoProvider.future);
+  final userInfo = await ref.watch(userDataProvider.future);
   final currency = ref.watch(currencyControllerProvider);
   final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
   final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));

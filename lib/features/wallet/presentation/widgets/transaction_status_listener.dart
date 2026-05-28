@@ -8,7 +8,7 @@ import 'package:mooze_mobile/features/wallet/data/models/transaction_status_even
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
 import 'package:mooze_mobile/routes.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
 /// V2 tree-wide listener. Subscribes to [transactionNotifierProvider]
 /// once the app reaches `AppPhase.ready`, then shows the
@@ -83,7 +83,7 @@ class _TransactionStatusListenerState
       return;
     }
 
-    ref.invalidate(userInfoProvider);
+    ref.invalidate(userDataProvider);
 
     // The Future.delayed gives the navigator a frame to settle if the
     // user just arrived at /home. The notifier already gated on

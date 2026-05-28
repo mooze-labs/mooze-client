@@ -2,20 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../entities.dart';
-import 'user_service_provider.dart';
+import 'user_data_provider.dart';
 
-/// Provider that returns complete user information
-final userInfoProvider = FutureProvider.autoDispose<Either<String, User>>((
-  ref,
-) async {
-  final userService = ref.read(userServiceProvider);
-  final result = await userService.getUser().run();
-  return result;
+
+@Deprecated('Use userDataProvider directly')
+final userInfoProvider = FutureProvider<Either<String, User>>((ref) async {
+  return ref.watch(userDataProvider.future);
 });
 
 /// Provider that returns only the user's spending level
 final userSpendingLevelProvider = Provider.autoDispose<AsyncValue<int>>((ref) {
-  final userInfo = ref.watch(userInfoProvider);
+  final userInfo = ref.watch(userDataProvider);
   return userInfo.when(
     data:
         (result) => result.fold(
@@ -31,7 +28,7 @@ final userSpendingLevelProvider = Provider.autoDispose<AsyncValue<int>>((ref) {
 final userLevelProgressProvider = Provider.autoDispose<AsyncValue<double>>((
   ref,
 ) {
-  final userInfo = ref.watch(userInfoProvider);
+  final userInfo = ref.watch(userDataProvider);
   return userInfo.when(
     data:
         (result) => result.fold(
@@ -46,7 +43,7 @@ final userLevelProgressProvider = Provider.autoDispose<AsyncValue<double>>((
 /// Provider that returns allowed spending information
 final userSpendingInfoProvider =
     Provider.autoDispose<AsyncValue<({double allowed, double daily})>>((ref) {
-      final userInfo = ref.watch(userInfoProvider);
+      final userInfo = ref.watch(userDataProvider);
       return userInfo.when(
         data:
             (result) => result.fold(

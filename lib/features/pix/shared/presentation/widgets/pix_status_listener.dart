@@ -7,11 +7,8 @@ import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposi
 import 'package:mooze_mobile/features/pix/receive_pix/domain/repositories/pix_repository.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_success_screen.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_error_screen.dart';
-import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/routes.dart';
-import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
-import 'package:mooze_mobile/shared/user/providers/user_info_provider.dart';
 
 class PixStatusListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -52,7 +49,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
           mounted) {
         _processedDeposits.add(statusEvent.depositId);
 
-        ref.invalidate(userInfoProvider);
+        ref.invalidate(userDataProvider);
 
         Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) return;
@@ -86,8 +83,6 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
                           depositId: deposit.depositId,
                           blockchainTxid: deposit.blockchainTxid,
                           onClosed: () {
-                            ref.invalidate(walletLevelsProvider);
-                            ref.invalidate(levelsProvider);
                             ref.invalidate(userDataProvider);
                           },
                         );
@@ -105,7 +100,7 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
         });
       } else if (statusEvent.status == DepositStatus.failed && mounted) {
         _processedDeposits.add(statusEvent.depositId);
-        ref.invalidate(userInfoProvider);
+        ref.invalidate(userDataProvider);
 
         Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) return;

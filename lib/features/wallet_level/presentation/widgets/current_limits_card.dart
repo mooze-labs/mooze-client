@@ -4,6 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
 class CurrentLimitsCard extends ConsumerStatefulWidget {
@@ -219,7 +220,8 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               onPressed: () async {
                 setState(() => _isRetrying = true);
                 await Future.delayed(const Duration(milliseconds: 500));
-                ref.invalidate(levelsProvider);
+                ref.invalidate(walletLevelsRemoteProvider);
+                ref.invalidate(userDataProvider);
                 if (mounted) {
                   setState(() => _isRetrying = false);
                 }

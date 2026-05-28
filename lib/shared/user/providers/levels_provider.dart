@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'user_service_provider.dart';
+import 'user_data_provider.dart';
 import 'package:mooze_mobile/features/wallet_level/external/datasources/wallet_levels_remote_datasource.dart';
 import 'package:mooze_mobile/features/wallet_level/infra/models/wallet_levels_response_model.dart';
 import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
@@ -72,8 +72,7 @@ class UserLevelsData {
   bool get isMaxLevel => spendingLevel >= 3;
 }
 
-/// Provider that fetches level limits from S3
-final _walletLevelsRemoteProvider = FutureProvider<WalletLevelsResponseModel>((
+final walletLevelsRemoteProvider = FutureProvider<WalletLevelsResponseModel>((
   ref,
 ) async {
   final dio = Dio();
@@ -81,12 +80,10 @@ final _walletLevelsRemoteProvider = FutureProvider<WalletLevelsResponseModel>((
   return dataSource.getWalletLevels();
 });
 
-/// Centralized provider that combines user data with level limits
+/// Centralized provider that combines user data with level limits.
 final levelsProvider = FutureProvider.autoDispose<UserLevelsData>((ref) async {
   try {
-    // Fetch user data
-    final userService = ref.watch(userServiceProvider);
-    final userResult = await userService.getUser().run();
+    final userResult = await ref.watch(userDataProvider.future);
 
     final user = userResult.fold(
       (error) => throw Exception('Error fetching user data: $error'),
@@ -94,8 +91,8 @@ final levelsProvider = FutureProvider.autoDispose<UserLevelsData>((ref) async {
     );
 
     // Fetch level limits from S3
-    final walletLevelsResponse = await ref.read(
-      _walletLevelsRemoteProvider.future,
+    final walletLevelsResponse = await ref.watch(
+      walletLevelsRemoteProvider.future,
     );
 
     // Convert values from cents to currency (divide by 100)

@@ -10,6 +10,7 @@ import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
 class AccountLimitsDisplay extends ConsumerWidget {
   final VoidCallback? onToggleView;
@@ -127,7 +128,10 @@ class AccountLimitsDisplay extends ConsumerWidget {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => ref.invalidate(levelsProvider),
+                            onTap: () {
+                              ref.invalidate(walletLevelsRemoteProvider);
+                              ref.invalidate(userDataProvider);
+                            },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,

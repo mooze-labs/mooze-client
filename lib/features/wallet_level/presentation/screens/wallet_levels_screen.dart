@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/current_limits_card.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/user_level_card.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_entity.dart';
@@ -91,7 +92,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             return ApiDownIndicatorIcon(
               onRetry: () {
                 ref.invalidate(walletLevelsProvider);
-                ref.invalidate(levelsProvider);
+                ref.invalidate(walletLevelsRemoteProvider);
+                ref.invalidate(userDataProvider);
               },
             );
           },
@@ -111,7 +113,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(walletLevelsProvider);
-        ref.invalidate(levelsProvider);
+        ref.invalidate(walletLevelsRemoteProvider);
+        ref.invalidate(userDataProvider);
 
         try {
           await Future.wait([
@@ -290,7 +293,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                 });
 
                 ref.invalidate(walletLevelsProvider);
-                ref.invalidate(levelsProvider);
+                ref.invalidate(walletLevelsRemoteProvider);
+                ref.invalidate(userDataProvider);
 
                 await Future.delayed(const Duration(milliseconds: 500));
 
@@ -488,7 +492,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                 _isRetryingUserLevel = true;
               });
 
-              ref.invalidate(levelsProvider);
+              ref.invalidate(walletLevelsRemoteProvider);
+              ref.invalidate(userDataProvider);
 
               await Future.delayed(const Duration(milliseconds: 500));
 

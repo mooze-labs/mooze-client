@@ -1,30 +1,33 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../entities.dart';
+import '../services/user_service_impl.dart';
 import 'user_service_provider.dart';
 
-extension CacheForExtension on Ref {
-  /// Keeps the provider alive for [duration].
-  void cacheFor(Duration duration) {
-    // Immediately prevent the state from getting destroyed.
-    final link = keepAlive();
-    // After duration has elapsed, we re-enable automatic disposal.
-    final timer = Timer(duration, link.close);
-
-    // Optional: when the provider is recomputed (such as with ref.watch),
-    // we cancel the pending timer.
-    onDispose(timer.cancel);
-  }
-}
-
-final userDataProvider = FutureProvider.autoDispose<Either<String, User>>((
-  ref,
-) async {
-  ref.cacheFor(const Duration(seconds: 60));
-
+/// Single source of truth for `/users/me`.
+///
+/// All user-derived providers (`userInfoProvider`, `levelsProvider`, etc.)
+/// and screens that need user data must read this provider. Multiple
+/// concurrent watchers share one Riverpod-cached future, so a cold
+/// home-screen paint produces exactly one network call.
+///
+/// `keepAlive` is intentional: user data is needed throughout the app
+/// lifetime. Auto-disposing caused refetch storms when transient
+/// listeners (e.g. retry buttons, dialogs) dropped to zero and bounced
+/// back. To force a refetch, call `ref.invalidate(userDataProvider)` —
+/// the provider invalidates the service-level cache before refetching,
+/// guaranteeing fresh data.
+final userDataProvider = FutureProvider<Either<String, User>>((ref) async {
   final userService = ref.read(userServiceProvider);
-  final result = await userService.getUser().run();
-  return result;
+
+  // When the provider rebuilds (first read or explicit invalidate),
+  // bypass the service-level TTL so callers see fresh data. Concurrent
+  // direct callers (developer screen, support controller, etc.) still
+  // get coalesced through the service's in-flight Future.
+  if (userService is UserServiceImpl) {
+    userService.invalidateUserCache();
+  }
+
+  return userService.getUser().run();
 });

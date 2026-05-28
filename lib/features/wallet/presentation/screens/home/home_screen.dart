@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
-import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
@@ -171,7 +170,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         StatusIndicators(
                           onRetrySync: () {
                             ref.invalidate(ensureAuthSessionProvider);
-                            ref.invalidate(levelsProvider);
                             ref.invalidate(walletLevelsProvider);
                             ref.invalidate(userDataProvider);
                             _refreshData();
