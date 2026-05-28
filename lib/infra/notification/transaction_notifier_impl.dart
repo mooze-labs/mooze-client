@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../domain/entities/chain.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/events/transaction_event.dart';
 import '../../domain/repositories/notified_tx_registry.dart';
@@ -91,6 +92,17 @@ class V2TransactionNotifier implements TransactionNotifier {
   /// loses these but the registry has already marked them, so cold
   /// restart will not re-show.
   final List<TransactionStatusEvent> _pendingEmissions = [];
+
+  /// Process-local set of tx ids for which a user-facing notification
+  /// has already been emitted (or queued). Guards against the cross-
+  /// chain duplicate that Breez Lightning receives produce: the same
+  /// on-chain txid surfaces once as `chain=lightning` (Breez SDK) and
+  /// once as `chain=liquid` (LWK observing the claim leg). The
+  /// persisted registry's dedup is keyed on `(chain, txId)` and can't
+  /// collapse the pair on its own; this in-memory set wins the same-
+  /// process race while the cross-chain `markIfNew` in `_processEvent`
+  /// guards across cold restarts.
+  final Set<String> _emittedTxIds = <String>{};
 
   @override
   Stream<TransactionStatusEvent> get notifications => _controller.stream;
@@ -331,6 +343,23 @@ class V2TransactionNotifier implements TransactionNotifier {
       confirmedAt: event.observedAt,
     );
 
+    if (_emittedTxIds.contains(tx.id)) {
+      _logger.debug('tx_notifier.cross_chain_duplicate_drop', {
+        'tx_id': tx.id,
+        'chain': tx.chain.name,
+      });
+      return;
+    }
+    _emittedTxIds.add(tx.id);
+    final twinChain = switch (tx.chain) {
+      ChainId.lightning => ChainId.liquid,
+      ChainId.liquid => ChainId.lightning,
+      _ => null,
+    };
+    if (twinChain != null) {
+      unawaited(_registry.markIfNew(chain: twinChain, txId: tx.id));
+    }
+
     if (_canEmitNow()) {
       _emit(statusEvent);
     } else {
@@ -365,7 +394,7 @@ class V2TransactionNotifier implements TransactionNotifier {
   String? _defaultAssetIdForChain(Transaction tx) {
     final asset = switch (tx.chain.name) {
       'bitcoin' => legacy_asset.Asset.btc,
-      'lightning' => legacy_asset.Asset.btc,
+      'lightning' => legacy_asset.Asset.lbtc,
       _ => null,
     };
     return asset?.id;
