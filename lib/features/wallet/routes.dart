@@ -188,9 +188,7 @@ final walletRoutes = [
   ),
   GoRoute(
     path: '/send-asset',
-    pageBuilder:
-        (context, state) =>
-            const NoTransitionPage(child: NewTransactionScreen()),
+    builder: (context, state) => const NewTransactionScreen(),
   ),
   GoRoute(
     path: '/send-funds/review-simple',
@@ -206,8 +204,7 @@ final walletRoutes = [
   ),
   GoRoute(
     path: '/receive-asset',
-    pageBuilder:
-        (context, state) => const NoTransitionPage(child: ReceiveFundsScreen()),
+    builder: (context, state) => const ReceiveFundsScreen(),
   ),
   GoRoute(
     path: '/receive-qr',
