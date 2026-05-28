@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
+import 'package:mooze_mobile/shared/widgets/wallet_loading_banner.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
@@ -46,51 +47,37 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
     final isSyncing = syncPhase == SyncPhase.running;
     final isLoadingData = !hasBootedOnce || isSyncing;
 
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: _buildAppBar(),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: () => _refreshData(),
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    const WalletHeaderWidget(),
-                    SizedBox(height: 15),
-                    _buildActionButtons(context),
-                    SizedBox(height: 15),
-                    ValuesToReceiveCard(),
-                    _buildAssetsLabel(),
-                    SizedBox(height: 10),
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height - 300,
-                      child: _buildAssetsList(),
-                    ),
-                  ],
+      body: RefreshIndicator(
+        onRefresh: () => _refreshData(),
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                WalletLoadingBanner(
+                  isVisible: isLoadingData,
+                  label: t.wallet_import_msg_loading_transactions,
                 ),
-              ),
+                const WalletHeaderWidget(),
+                SizedBox(height: 15),
+                _buildActionButtons(context),
+                SizedBox(height: 15),
+                ValuesToReceiveCard(),
+                _buildAssetsLabel(),
+                SizedBox(height: 10),
+                SizedBox(
+                  height: MediaQuery.of(context).size.height - 300,
+                  child: _buildAssetsList(),
+                ),
+              ],
             ),
           ),
-          if (isLoadingData)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SizedBox(
-                height: 3,
-                child: LinearProgressIndicator(
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

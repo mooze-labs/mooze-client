@@ -17,9 +17,11 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/sync_failure_a
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/widgets/background_sync_indicator.dart';
+import 'package:mooze_mobile/shared/widgets/wallet_loading_banner.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/status_indicators.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import '../../widgets/widgets.dart';
 
@@ -155,57 +157,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             androidTop: true,
             androidBottom: false,
             child: WalletScreenWrapper(
-              child: Stack(
-                children: [
-                  RefreshIndicator(
-                    onRefresh: () => _refreshData(),
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            LogoHeader(),
-                            StatusIndicators(
-                              onRetrySync: () {
-                                ref.invalidate(ensureAuthSessionProvider);
-                                ref.invalidate(levelsProvider);
-                                ref.invalidate(walletLevelsProvider);
-                                ref.invalidate(userDataProvider);
-                                _refreshData();
-                              },
-                            ),
-                            WalletHeaderWidget(),
-                            UpdateNotificationWidget(),
-                            const SizedBox(height: 15),
-                            _buildActionButtons(),
-                            const SizedBox(height: 32),
-                            AssetSection(),
-                            TransactionSection(),
-                            SizedBox(height: 120),
-                          ],
+              child: RefreshIndicator(
+                onRefresh: () => _refreshData(),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LogoHeader(),
+                        StatusIndicators(
+                          onRetrySync: () {
+                            ref.invalidate(ensureAuthSessionProvider);
+                            ref.invalidate(levelsProvider);
+                            ref.invalidate(walletLevelsProvider);
+                            ref.invalidate(userDataProvider);
+                            _refreshData();
+                          },
                         ),
-                      ),
+                        WalletLoadingBanner(
+                          isVisible: isLoadingData,
+                          label: AppLocalizations.of(context)
+                              .wallet_import_msg_loading_transactions,
+                        ),
+                        WalletHeaderWidget(),
+                        UpdateNotificationWidget(),
+                        const SizedBox(height: 15),
+                        _buildActionButtons(),
+                        const SizedBox(height: 32),
+                        AssetSection(),
+                        TransactionSection(),
+                        SizedBox(height: 120),
+                      ],
                     ),
                   ),
-                  if (isLoadingData)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: SizedBox(
-                        height: 3,
-                        child: LinearProgressIndicator(
-                          backgroundColor: Colors.transparent,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).primaryColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
           ),
