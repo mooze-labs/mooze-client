@@ -50,34 +50,40 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
     final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: _buildAppBar(),
-      body: RefreshIndicator(
-        onRefresh: () => _refreshData(),
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                WalletLoadingBanner(
-                  isVisible: isLoadingData,
-                  label: t.wallet_import_msg_loading_transactions,
-                ),
-                const WalletHeaderWidget(),
-                SizedBox(height: 15),
-                _buildActionButtons(context),
-                SizedBox(height: 15),
-                ValuesToReceiveCard(),
-                _buildAssetsLabel(),
-                SizedBox(height: 10),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height - 300,
-                  child: _buildAssetsList(),
-                ),
-              ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: WalletLoadingBanner(
+              isVisible: isLoadingData,
+              label: t.wallet_import_msg_loading_transactions,
             ),
           ),
-        ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => _refreshData(),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const WalletHeaderWidget(),
+                      SizedBox(height: 15),
+                      _buildActionButtons(context),
+                      SizedBox(height: 15),
+                      ValuesToReceiveCard(),
+                      _buildAssetsLabel(),
+                      SizedBox(height: 10),
+                      _buildAssetsList(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -87,16 +93,30 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
       // Phase 2.3.3: routes through V2 `RefreshWalletUseCase(strategy: full)`.
       final useCase = await ref.read(refreshWalletProvider.future);
       await useCase(strategy: SyncStrategy.full);
-
-      if (_scrollController.hasClients) {
-        await _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        );
-      }
     } catch (e) {
       debugPrint('Erro durante refresh: $e');
+    }
+    _resetScrollToTop();
+  }
+
+  Future<void> _resetScrollToTop() async {
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted || !_scrollController.hasClients) return;
+    if (_scrollController.offset == 0) return;
+    try {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    } catch (_) {
+      // `animateTo` can throw if the controller detaches mid-flight.
+    }
+    if (mounted &&
+        _scrollController.hasClients &&
+        _scrollController.offset != 0) {
+      _scrollController.jumpTo(0);
     }
   }
 
@@ -174,13 +194,16 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         return holdingsAsync.when(
           skipLoadingOnRefresh: true,
           skipLoadingOnReload: true,
-          data: (holdingsResult) => holdingsResult.fold(
-            (error) => _buildErrorWidget(error),
-            (holdings) => _buildHoldingsList(holdings),
-          ),
+          data:
+              (holdingsResult) => holdingsResult.fold(
+                (error) => _buildErrorWidget(error),
+                (holdings) => _buildHoldingsList(holdings),
+              ),
           loading: () => AssetLoading(),
-          error: (error, stack) =>
-              _buildErrorWidget(t.wallet_holding_unexpected_error('$error')),
+          error:
+              (error, stack) => _buildErrorWidget(
+                t.wallet_holding_unexpected_error('$error'),
+              ),
         );
       },
     );
@@ -209,11 +232,12 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                 title: holding.asset.name,
                 subtitle: isVisible ? '•••••' : holding.formattedBalance,
                 value: isVisible ? '•••••' : holding.formattedFiatValue,
-                time: isVisible
-                    ? ''
-                    : (holding.hasBalance
+                time:
+                    isVisible
                         ? ''
-                        : t.wallet_holding_no_balance),
+                        : (holding.hasBalance
+                            ? ''
+                            : t.wallet_holding_no_balance),
               ),
             );
           },
