@@ -1247,25 +1247,30 @@ class _TransactionDetailScreenState
     });
   }
 
+
+  String _urlFor(String txId, Blockchain blockchain) {
+    return switch (blockchain) {
+      Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$txId',
+      Blockchain.liquid => 'https://liquid.network/pt/tx/$txId',
+      Blockchain.lightning => 'https://blockstream.info/liquid/tx/$txId',
+    };
+  }
+
+  Blockchain _effectiveExplorerBlockchain() {
+    if (widget.transaction.type == TransactionType.submarine) {
+      return Blockchain.liquid;
+    }
+    return widget.transaction.blockchain;
+  }
+
   String? _resolveExplorerUrl({String? txId, Blockchain? blockchain}) {
     if (txId != null && blockchain != null) {
-      return switch (blockchain) {
-        Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$txId',
-        Blockchain.liquid => 'https://liquid.network/pt/tx/$txId',
-        Blockchain.lightning => 'https://blockstream.info/liquid/tx/$txId',
-      };
-    }
-    if (widget.transaction.blockchainUrl != null) {
-      return widget.transaction.blockchainUrl;
+      return _urlFor(txId, blockchain);
     }
     final useTxId = txId ?? widget.transaction.id;
-    final useBlockchain = blockchain ?? widget.transaction.blockchain;
     if (useTxId.isEmpty) return null;
-    return switch (useBlockchain) {
-      Blockchain.bitcoin => 'https://mempool.bitaroo.net/pt/tx/$useTxId',
-      Blockchain.liquid => 'https://liquid.network/pt/tx/$useTxId',
-      Blockchain.lightning => 'https://blockstream.info/liquid/tx/$useTxId',
-    };
+    final useBlockchain = blockchain ?? _effectiveExplorerBlockchain();
+    return _urlFor(useTxId, useBlockchain);
   }
 
   static final RegExp _finalTxIdRegex = RegExp(r'^[0-9a-fA-F]{64}$');
