@@ -32,16 +32,18 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
     final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
 
-    // Confirm the biometric works before persisting the preference — avoids
-    // enabling a feature that the hardware cannot actually satisfy.
+    // Confirm a biometric works before persisting the preference. MUST be
+    // biometric-only — otherwise a user could enable "biometric unlock" while
+    // only proving they know the device PIN, leaving the preference flag in
+    // an inconsistent state next session.
     final authResult = await biometricService
-        .authenticate(reason: t.biometric_auth_reason)
+        .unlockWithBiometric(reason: t.biometric_auth_reason)
         .run();
 
     await authResult.fold(
       (error) async {
         if (mounted) {
-          AppSnackBar.error(context, t.biometric_auth_error(error));
+          AppSnackBar.error(context, t.biometric_auth_error(error.message));
         }
       },
       (authenticated) async {

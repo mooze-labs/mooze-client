@@ -182,21 +182,14 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     final biometricService = ref.read(biometricServiceProvider);
 
     final result = await biometricService
-        .authenticate(
-          reason: t.pin_biometric_access_reason,
-          // Force the platform to use Face ID / Touch ID / fingerprint and
-          // NOT silently fall back to the device passcode. On iOS this is
-          // what makes Face ID actually appear instead of jumping straight
-          // to the passcode prompt.
-          biometricOnly: true,
-        )
+        .unlockWithBiometric(reason: t.pin_biometric_access_reason)
         .run();
 
     if (!mounted) return;
 
     result.fold(
       (error) {
-        AppSnackBar.error(context, t.biometric_auth_error(error));
+        AppSnackBar.error(context, t.biometric_auth_error(error.message));
         setState(() => _isBiometricLoading = false);
       },
       (authenticated) {
@@ -226,19 +219,24 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       return;
     }
 
+    // Routes through the native CredentialAuthBridge on Android so the
+    // BIOMETRIC_WEAK | DEVICE_CREDENTIAL mask is used (the only combination
+    // documented to work on API 28-29 and the only one that survives
+    // Xiaomi/MIUI's replacement biometric prompt). Falls through to
+    // KeyguardManager.createConfirmDeviceCredentialIntent if the prompt
+    // refuses to launch.
     final result = await biometricService
-        .authenticate(
+        .unlockWithDeviceCredential(
           reason: t.pin_reset_biometric_reason,
-          // Allow device passcode here — this is the explicit "I forgot my
-          // PIN" recovery path.
-          biometricOnly: false,
+          title: t.pin_reset_biometric_reason,
         )
         .run();
 
     if (!mounted) return;
 
     result.fold(
-      (error) => AppSnackBar.error(context, t.biometric_auth_error(error)),
+      (error) =>
+          AppSnackBar.error(context, t.biometric_auth_error(error.message)),
       (authenticated) {
         if (authenticated) {
           BootTracer.mark('pin.confirmed.device_credential');

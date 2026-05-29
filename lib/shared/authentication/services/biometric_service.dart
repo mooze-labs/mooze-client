@@ -37,11 +37,40 @@ class BiometricCapabilities {
   );
 }
 
+/// Typed authentication failure surface.
+///
+/// `code` mirrors the platform code where one exists — `PlatformException.code`
+/// from local_auth ("NotAvailable", "NotEnrolled", "LockedOut", etc.) or the
+/// native-bridge error codes from the Android device-credential flow
+/// ("NO_DEVICE_CREDENTIAL", "BIOMETRIC_ERROR_*"). Keep the code stable across
+/// versions so the UI layer can branch on it without parsing messages.
+class AuthError {
+  final String code;
+  final String message;
+
+  const AuthError({required this.code, required this.message});
+
+  @override
+  String toString() => '[$code] $message';
+}
+
 /// Abstracts device biometric and device-credential authentication.
 ///
-/// Kept in the shared/authentication layer so both the setup flow and the
-/// verify-PIN screen can share the same contract without depending on the
-/// concrete local_auth package.
+/// Two semantically distinct operations are surfaced as separate methods on
+/// purpose. The previous `authenticate({biometricOnly: bool})` was a boolean
+/// trap that several call sites used incorrectly (e.g. confirming biometric
+/// enrollment by accepting a device-PIN entry).
+///
+///   - [unlockWithBiometric] is for "the user has biometric enabled — prove
+///     it's them right now using Face ID / Touch ID / fingerprint." It MUST
+///     NOT fall back to device credential.
+///   - [unlockWithDeviceCredential] is for the explicit recovery path — "I
+///     forgot my app PIN, let me re-auth with the device PIN/pattern/password,
+///     biometric optional." On Android this goes through a native bridge that
+///     uses BIOMETRIC_WEAK | DEVICE_CREDENTIAL (the only mask documented to
+///     work on API 28-29) and falls through to KeyguardManager directly when
+///     the OEM prompt cannot honor the request — fixing the Xiaomi / MIUI /
+///     HyperOS silent-failure path that `local_auth` cannot work around.
 abstract class BiometricService {
   /// Returns true if the device has biometric hardware or a device credential
   /// (PIN / pattern / password) that can be used as fallback.
@@ -52,20 +81,26 @@ abstract class BiometricService {
   /// Touch ID when biometrics are actually enrolled.
   Task<BiometricCapabilities> capabilities();
 
-  /// Triggers the native biometric / device-credential prompt.
+  /// Biometric-only authentication. Will never fall back to device PIN.
   ///
-  /// When [biometricOnly] is true, the platform will only accept enrolled
-  /// biometrics (Face ID / Touch ID / fingerprint) and will NOT fall back to
-  /// the device passcode. The verify-PIN screen uses this so the in-app PIN
-  /// remains the only passcode fallback — avoiding the surprising UX where
-  /// iOS skips Face ID entirely and asks for the device passcode.
+  /// Returns `Right(true)` on success, `Right(false)` if the user dismissed
+  /// the prompt, and `Left(AuthError)` if a platform error prevented the
+  /// prompt from appearing.
+  TaskEither<AuthError, bool> unlockWithBiometric({required String reason});
+
+  /// Device-credential authentication (with optional biometric).
   ///
-  /// Returns Right(true) on success, Right(false) if the user dismissed the
-  /// prompt without authenticating, and Left(message) if a platform error
-  /// prevented the prompt from appearing at all.
-  TaskEither<String, bool> authenticate({
+  /// On Android, routed through the native bridge with
+  /// `BIOMETRIC_WEAK | DEVICE_CREDENTIAL` and a KeyguardManager fallback. On
+  /// iOS, uses `LAPolicy.deviceOwnerAuthentication`.
+  ///
+  /// Intended only for the recovery / "forgot PIN" flow. Do NOT use as the
+  /// primary unlock — device credential is not equivalent to the app PIN as
+  /// an authentication factor.
+  TaskEither<AuthError, bool> unlockWithDeviceCredential({
     required String reason,
-    bool biometricOnly = false,
+    String? title,
+    String? subtitle,
   });
 
   /// Returns true if the user has opted-in to biometric authentication.

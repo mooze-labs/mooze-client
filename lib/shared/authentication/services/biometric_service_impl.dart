@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/services.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:local_auth/local_auth.dart';
@@ -7,11 +9,20 @@ import 'biometric_service.dart';
 
 const _biometricEnabledKey = 'biometric_auth_enabled';
 
+/// Method channel that mirrors the Kotlin `CredentialAuthBridge`. Only used on
+/// Android — on iOS the local_auth `LAPolicy.deviceOwnerAuthentication` path
+/// already does the right thing.
+const _credentialChannel = MethodChannel('com.mooze.auth/credential');
+
 class BiometricServiceImpl implements BiometricService {
   final LocalAuthentication _localAuth;
+  final MethodChannel _credentialBridge;
 
-  BiometricServiceImpl({LocalAuthentication? localAuth})
-      : _localAuth = localAuth ?? LocalAuthentication();
+  BiometricServiceImpl({
+    LocalAuthentication? localAuth,
+    MethodChannel? credentialBridge,
+  })  : _localAuth = localAuth ?? LocalAuthentication(),
+        _credentialBridge = credentialBridge ?? _credentialChannel;
 
   @override
   Task<bool> isAvailable() {
@@ -61,30 +72,81 @@ class BiometricServiceImpl implements BiometricService {
   }
 
   @override
-  TaskEither<String, bool> authenticate({
+  TaskEither<AuthError, bool> unlockWithBiometric({required String reason}) {
+    return TaskEither.tryCatch(
+      () => _localAuth.authenticate(
+        localizedReason: reason,
+        options: const AuthenticationOptions(
+          // Sticky-auth is safe here: only the biometric dialog briefly
+          // backgrounds the activity. Avoid it on the device-credential flow
+          // because the keyguard intent triggers a real activity pause.
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      ),
+      _mapPlatformError,
+    );
+  }
+
+  @override
+  TaskEither<AuthError, bool> unlockWithDeviceCredential({
     required String reason,
-    bool biometricOnly = false,
+    String? title,
+    String? subtitle,
+  }) {
+    if (Platform.isAndroid) {
+      return _androidUnlockWithDeviceCredential(
+        reason: reason,
+        title: title,
+        subtitle: subtitle,
+      );
+    }
+    return _iosUnlockWithDeviceCredential(reason: reason);
+  }
+
+  TaskEither<AuthError, bool> _androidUnlockWithDeviceCredential({
+    required String reason,
+    String? title,
+    String? subtitle,
+  }) {
+    return TaskEither.tryCatch(
+      () async {
+        final result = await _credentialBridge.invokeMethod<bool>(
+          'authenticateWithCredential',
+          {
+            'reason': reason,
+            'title': title ?? reason,
+            if (subtitle != null) 'subtitle': subtitle,
+          },
+        );
+        return result ?? false;
+      },
+      _mapPlatformError,
+    );
+  }
+
+  TaskEither<AuthError, bool> _iosUnlockWithDeviceCredential({
+    required String reason,
   }) {
     return TaskEither.tryCatch(
       () => _localAuth.authenticate(
         localizedReason: reason,
-        options: AuthenticationOptions(
-          // Keep the prompt visible if the app is briefly backgrounded by the
-          // system biometric dialog.
-          stickyAuth: true,
-          // When the caller wants biometrics specifically (the in-app unlock
-          // flow), refuse to fall back to device passcode. The app's own PIN
-          // is the secondary path.
-          biometricOnly: biometricOnly,
-        ),
+        // No stickyAuth: a passcode keyguard pauses the activity and stickyAuth
+        // races with the resume to relaunch a stale prompt.
+        options: const AuthenticationOptions(biometricOnly: false),
       ),
-      (error, _) {
-        if (error is PlatformException) {
-          return error.message ?? 'Erro de autenticação biométrica';
-        }
-        return error.toString();
-      },
+      _mapPlatformError,
     );
+  }
+
+  AuthError _mapPlatformError(Object error, StackTrace _) {
+    if (error is PlatformException) {
+      return AuthError(
+        code: error.code,
+        message: error.message ?? 'Authentication failed',
+      );
+    }
+    return AuthError(code: 'UNKNOWN', message: error.toString());
   }
 
   @override

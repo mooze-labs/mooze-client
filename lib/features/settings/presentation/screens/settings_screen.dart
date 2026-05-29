@@ -38,15 +38,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final t = AppLocalizations.of(context);
 
     if (enable) {
+      // MUST be biometric-only — otherwise a user can enable the toggle by
+      // entering their device PIN alone, which leaves the verify-PIN flow
+      // unable to satisfy the next biometric prompt.
       final authResult = await biometricService
-          .authenticate(reason: t.biometric_auth_reason)
+          .unlockWithBiometric(reason: t.biometric_auth_reason)
           .run();
 
       if (!mounted) return;
 
       await authResult.fold(
         (error) async =>
-            AppSnackBar.error(context, t.biometric_auth_error(error)),
+            AppSnackBar.error(context, t.biometric_auth_error(error.message)),
         (authenticated) async {
           if (!authenticated) return; // user dismissed — leave toggle off
 
