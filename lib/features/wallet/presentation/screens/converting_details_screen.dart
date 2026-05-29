@@ -197,7 +197,7 @@ class _HeaderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Column(
             children: [
               _DualAssetIcon(from: swap.fromAsset, to: swap.toAsset),
               const SizedBox(width: 12),
@@ -361,16 +361,19 @@ class _PhaseTimeline extends StatelessWidget {
   final PendingSwapPhase phase;
   const _PhaseTimeline({required this.phase});
 
-  static const _steps = [
-    (PendingSwapPhase.preparing, 'Preparing'),
-    (PendingSwapPhase.broadcasting, 'Broadcasting'),
-    (PendingSwapPhase.broadcasted, 'Awaiting confirmations'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final steps = [
+      (PendingSwapPhase.preparing, t.converting_details_phase_preparing),
+      (PendingSwapPhase.broadcasting, t.converting_details_phase_broadcasting),
+      (
+        PendingSwapPhase.broadcasted,
+        t.converting_details_phase_awaiting_confirmations,
+      ),
+    ];
     final isFailed = phase == PendingSwapPhase.failed;
-    final currentIndex = _steps.indexWhere((s) => s.$1 == phase);
+    final currentIndex = steps.indexWhere((s) => s.$1 == phase);
     final activeColor = context.colors.primaryColor;
 
     return Container(
@@ -381,12 +384,12 @@ class _PhaseTimeline extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (int i = 0; i < _steps.length; i++)
+          for (int i = 0; i < steps.length; i++)
             _TimelineRow(
-              label: _steps[i].$2,
+              label: steps[i].$2,
               isDone: !isFailed && (currentIndex > i || currentIndex == -1),
               isCurrent: !isFailed && currentIndex == i,
-              isLast: i == _steps.length - 1,
+              isLast: i == steps.length - 1,
               isFailed: isFailed,
               activeColor: activeColor,
             ),
