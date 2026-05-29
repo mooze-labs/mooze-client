@@ -1,157 +1,272 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/shared/storage/secure_storage.dart';
+import 'package:mutex/mutex.dart';
 
 import '../models.dart';
 import '../services.dart';
 
 class SessionManagerServiceImpl implements SessionManagerService {
-  SessionManagerServiceImpl({RemoteAuthenticationService? remoteAuthService})
-    : _remoteAuthService = remoteAuthService;
+  SessionManagerServiceImpl({
+    RemoteAuthenticationService? remoteAuthService,
+    FlutterSecureStorage? secureStorage,
+    Dio? dio,
+  })  : _remoteAuthService = remoteAuthService,
+        _secureStorage = secureStorage ?? SecureStorageProvider.instance,
+        _dio = dio ??
+            Dio(
+              BaseOptions(
+                baseUrl: const String.fromEnvironment(
+                  'BACKEND_API_URL',
+                  defaultValue: 'https://api.mooze.app',
+                ),
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
+                sendTimeout: const Duration(seconds: 10),
+              ),
+            );
 
-  final _secureStorage = SecureStorageProvider.instance;
+  static const _jwtKey = 'jwt';
+  static const _refreshKey = 'refresh_token';
+
   final RemoteAuthenticationService? _remoteAuthService;
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: String.fromEnvironment(
-        'BACKEND_API_URL',
-        defaultValue: "https://api.mooze.app",
-      ),
-      connectTimeout: Duration(seconds: 10),
-      receiveTimeout: Duration(seconds: 10),
-      sendTimeout: Duration(seconds: 10),
-    ),
-  );
+  final FlutterSecureStorage _secureStorage;
+  final Dio _dio;
 
-  @override
-  TaskEither<String, Unit> saveSession(Session session) {
-    return TaskEither.tryCatch(() async {
-      await _secureStorage.write(key: 'jwt', value: session.jwt);
-      await _secureStorage.write(
-        key: 'refresh_token',
-        value: session.refreshToken,
-      );
-      return unit;
-    }, (error, stackTrace) => error.toString());
-  }
+  final Mutex _storageMutex = Mutex();
+
+  Session? _cachedSession;
+  bool _cacheLoaded = false;
+
+  Future<Either<String, Session>>? _inFlightGet;
+  Future<Either<String, Session>>? _inFlightRefresh;
+  String? _inFlightRefreshKey;
+  Future<Either<String, Session>>? _inFlightCreate;
 
   @override
   TaskEither<String, Session> getSession() {
-    return TaskEither.tryCatch(() async {
-      final jwt = await _secureStorage.read(key: 'jwt');
-      final refreshToken = await _secureStorage.read(key: 'refresh_token');
-
-      if (jwt == null || refreshToken == null) {
-        if (_remoteAuthService == null) {
-          throw Exception(
-            'Sessão não encontrada e RemoteAuthService não disponível',
-          );
-        }
-
-        final newSessionResult = await _createNewSession().run();
-        return newSessionResult.fold(
-          (error) => throw Exception('Erro ao criar nova sessão: $error'),
-          (session) => session,
-        );
-      }
-
-      final session = Session(jwt: jwt, refreshToken: refreshToken);
-      final isExpiredResult = session.isExpired();
-
-      if (isExpiredResult.getOrElse((l) => true)) {
-        final refreshResult = await refreshSession(session).run();
-        return refreshResult.fold((error) async {
-          if (error.contains('REFRESH_TOKEN_NOT_FOUND') ||
-              error.contains('404') ||
-              error.contains('Session not found') ||
-              error.contains('Refresh token inválido')) {
-            final newSessionResult = await _createNewSession().run();
-            return newSessionResult.fold(
-              (createError) =>
-                  throw Exception('Erro ao criar nova sessão: $createError'),
-              (newSession) => newSession,
-            );
-          }
-          throw Exception(error);
-        }, (refreshedSession) => refreshedSession);
-      }
-
-      return session;
-    }, (error, stackTrace) => error.toString());
-  }
-
-  @override
-  TaskEither<String, Unit> deleteSession() {
-    return TaskEither.tryCatch(() async {
-      await _secureStorage.delete(key: 'jwt');
-      await _secureStorage.delete(key: 'refresh_token');
-      return unit;
-    }, (error, stackTrace) => error.toString());
+    return TaskEither(() {
+      final pending = _inFlightGet;
+      if (pending != null) return pending;
+      final f = _resolveSession();
+      _inFlightGet = f;
+      return f.whenComplete(() => _inFlightGet = null);
+    });
   }
 
   @override
   TaskEither<String, Session> refreshSession(Session session) {
-    return _requestNewJwtToken(session.refreshToken)
-        .flatMap((newJwt) {
-          final updatedSession = Session(
-            jwt: newJwt,
-            refreshToken: session.refreshToken,
-          );
-          return saveSession(updatedSession).map((_) => updatedSession);
-        })
-        .orElse((error) {
-          if (error.contains('REFRESH_TOKEN_NOT_FOUND')) {
-            return TaskEither.tryCatch(() async {
-              await deleteSession().run();
-
-              final newSessionResult = await _createNewSession().run();
-              return newSessionResult.fold(
-                (createError) =>
-                    throw Exception(
-                      'Refresh token inválido e falha ao criar nova sessão: $createError',
-                    ),
-                (newSession) => newSession,
-              );
-            }, (e, s) => e.toString());
-          }
-          return TaskEither.left(error);
-        });
+    return TaskEither(() => _refreshWithRecovery(session));
   }
 
-  TaskEither<String, String> _requestNewJwtToken(String refreshToken) {
-    return TaskEither.tryCatch(() async {
-      try {
-        final response = await _dio.post(
-          '/auth/refresh',
-          data: {'refresh_token': refreshToken},
-        );
+  @override
+  TaskEither<String, Session> forceRefresh() {
+    return TaskEither(() async {
+      final stored = await _readSession();
+      if (stored == null) return _createSingleFlight();
+      return _refreshWithRecovery(stored);
+    });
+  }
 
-        final jwt = response.data?['jwt'];
-        if (jwt == null) {
-          throw Exception('JWT_NULL_IN_RESPONSE');
-        }
+  @override
+  TaskEither<String, Unit> saveSession(Session session) {
+    return TaskEither(() async {
+      await _writeSession(session);
+      return const Right(unit);
+    });
+  }
 
-        return jwt as String;
-      } on DioException catch (e) {
-        if (e.response?.statusCode == 404) {
-          throw Exception('REFRESH_TOKEN_NOT_FOUND');
+  @override
+  TaskEither<String, Unit> deleteSession() {
+    return TaskEither(() async {
+      await _clearSession();
+      return const Right(unit);
+    });
+  }
+
+  Future<Either<String, Session>> _resolveSession() async {
+    final stored = await _readSession();
+    if (stored == null) return _createSingleFlight();
+
+    final expired = stored.isExpired().getOrElse((_) => true);
+    if (!expired) return Right(stored);
+
+    return _refreshWithRecovery(stored);
+  }
+
+  Future<Either<String, Session>> _refreshWithRecovery(Session current) async {
+    final refreshed = await _refreshSingleFlight(current);
+
+    return refreshed.fold<Future<Either<String, Session>>>(
+      (_) async {
+        final reread = await _reReadSession();
+        if (reread != null && !(reread.isExpired().getOrElse((_) => true))) {
+          return Right<String, Session>(reread);
         }
-        rethrow;
+        await _clearSession();
+        return _createSingleFlight();
+      },
+      (s) async => Right<String, Session>(s),
+    );
+  }
+
+  Future<Either<String, Session>> _refreshSingleFlight(Session current) async {
+    final key = current.refreshToken;
+
+    if (_inFlightRefresh != null && _inFlightRefreshKey == key) {
+      return _inFlightRefresh!;
+    }
+
+    if (_inFlightRefresh != null) {
+      final stale = _inFlightRefresh!;
+      await stale;
+      final reread = await _readSession();
+      if (reread != null && !(reread.isExpired().getOrElse((_) => true))) {
+        return Right<String, Session>(reread);
       }
-    }, (error, stackTrace) => error.toString());
+      return _refreshSingleFlight(current);
+    }
+
+    final f = _doRefresh(current);
+    _inFlightRefresh = f;
+    _inFlightRefreshKey = key;
+    try {
+      return await f;
+    } finally {
+      _inFlightRefresh = null;
+      _inFlightRefreshKey = null;
+    }
   }
 
-  TaskEither<String, Session> _createNewSession() {
+  Future<Either<String, Session>> _doRefresh(Session current) async {
+    try {
+      final response = await _dio.post(
+        '/auth/refresh',
+        data: {'refresh_token': current.refreshToken},
+      );
+
+      // Backend wraps some responses as { data: { ... } } and others flat —
+      // mirror Session.fromJson so a successful refresh never falls through
+      // to a needless challenge/sign exchange.
+      final body = response.data;
+      final Map envelope;
+      if (body is Map && body['data'] is Map) {
+        envelope = body['data'] as Map;
+      } else if (body is Map) {
+        envelope = body;
+      } else {
+        envelope = const {};
+      }
+
+      final newJwt = envelope['jwt'];
+      if (newJwt is! String || newJwt.isEmpty) {
+        return const Left('JWT_NULL_IN_REFRESH_RESPONSE');
+      }
+
+      final maybeNewRefresh = envelope['refresh_token'];
+      final newSession = Session(
+        jwt: newJwt,
+        refreshToken: maybeNewRefresh is String && maybeNewRefresh.isNotEmpty
+            ? maybeNewRefresh
+            : current.refreshToken,
+      );
+
+      await _writeSession(newSession);
+      return Right(newSession);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404) return const Left('REFRESH_TOKEN_NOT_FOUND');
+      if (status == 401) return const Left('REFRESH_TOKEN_UNAUTHORIZED');
+      return Left(e.toString());
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  Future<Either<String, Session>> _createSingleFlight() {
     if (_remoteAuthService == null) {
-      return TaskEither.left(
-        'RemoteAuthService não configurado para criar nova sessão',
+      return Future.value(
+        const Left('RemoteAuthService not configured to create new session'),
       );
     }
 
-    return _remoteAuthService.requestLoginChallenge().flatMap((challenge) {
-      return _remoteAuthService.signChallenge(challenge).flatMap((session) {
-        return saveSession(session).map((_) => session);
-      });
+    final existing = _inFlightCreate;
+    if (existing != null) return existing;
+
+    final f = _doCreate();
+    _inFlightCreate = f;
+    return f.whenComplete(() => _inFlightCreate = null);
+  }
+
+  Future<Either<String, Session>> _doCreate() async {
+    // A refresh that succeeded just now may have already persisted a valid
+    // session — bypass the cache, which still holds the expired snapshot.
+    final maybeAlreadyValid = await _reReadSession();
+    if (maybeAlreadyValid != null &&
+        !(maybeAlreadyValid.isExpired().getOrElse((_) => true))) {
+      return Right(maybeAlreadyValid);
+    }
+
+    final challengeE = await _remoteAuthService!.requestLoginChallenge().run();
+    if (challengeE.isLeft()) {
+      return Left(challengeE.getLeft().getOrElse(() => 'unknown'));
+    }
+    final challenge = challengeE.getRight().toNullable()!;
+
+    final sessionE = await _remoteAuthService.signChallenge(challenge).run();
+    if (sessionE.isLeft()) {
+      return Left(sessionE.getLeft().getOrElse(() => 'unknown'));
+    }
+    final session = sessionE.getRight().toNullable()!;
+
+    await _writeSession(session);
+    return Right(session);
+  }
+
+  Future<Session?> _readSession() {
+    return _storageMutex.protect<Session?>(() async {
+      if (_cacheLoaded) return _cachedSession;
+      return _loadFromStorageLocked();
+    });
+  }
+
+  /// Cache-bypassing read. Used after a refresh failure or before creating a
+  /// new session — another instance may have written valid credentials since
+  /// the cache was populated.
+  Future<Session?> _reReadSession() {
+    return _storageMutex.protect<Session?>(_loadFromStorageLocked);
+  }
+
+  Future<Session?> _loadFromStorageLocked() async {
+    final jwt = await _secureStorage.read(key: _jwtKey);
+    final rt = await _secureStorage.read(key: _refreshKey);
+    _cacheLoaded = true;
+    if (jwt == null || rt == null) {
+      _cachedSession = null;
+      return null;
+    }
+    _cachedSession = Session(jwt: jwt, refreshToken: rt);
+    return _cachedSession;
+  }
+
+  Future<void> _writeSession(Session s) {
+    return _storageMutex.protect<void>(() async {
+      await _secureStorage.write(key: _jwtKey, value: s.jwt);
+      await _secureStorage.write(key: _refreshKey, value: s.refreshToken);
+      _cachedSession = s;
+      _cacheLoaded = true;
+    });
+  }
+
+  Future<void> _clearSession() {
+    return _storageMutex.protect<void>(() async {
+      await _secureStorage.delete(key: _jwtKey);
+      await _secureStorage.delete(key: _refreshKey);
+      _cachedSession = null;
+      _cacheLoaded = true;
     });
   }
 }

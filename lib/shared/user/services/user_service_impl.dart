@@ -15,11 +15,9 @@ class UserServiceImpl implements UserService {
 
   final _levelChangeController = StreamController<LevelChange>.broadcast();
 
-
-  static const Duration _userCacheTtl = Duration(seconds: 30);
+  // Coalesces concurrent callers into one network request. Not a cache —
+  // cleared as soon as the request resolves.
   Future<Either<String, User>>? _inFlightUser;
-  User? _cachedUser;
-  DateTime? _cachedAt;
 
   Stream<LevelChange> get levelChanges => _levelChangeController.stream;
 
@@ -28,18 +26,8 @@ class UserServiceImpl implements UserService {
   @override
   TaskEither<String, User> getUser() {
     return TaskEither(() async {
-      final cached = _cachedUser;
-      final cachedAt = _cachedAt;
-      if (cached != null &&
-          cachedAt != null &&
-          DateTime.now().difference(cachedAt) < _userCacheTtl) {
-        return Right(cached);
-      }
-
       final inFlight = _inFlightUser;
-      if (inFlight != null) {
-        return inFlight;
-      }
+      if (inFlight != null) return inFlight;
 
       final pending = _fetchUser();
       _inFlightUser = pending;
@@ -55,19 +43,11 @@ class UserServiceImpl implements UserService {
     try {
       final response = await _dio.get('/users/me');
       final user = User.fromJson(response.data);
-      _cachedUser = user;
-      _cachedAt = DateTime.now();
       await _detectLevelChange(user.spendingLevel);
       return Right(user);
     } catch (e) {
       return Left(_friendlyMessage(e));
     }
-  }
-
-
-  void invalidateUserCache() {
-    _cachedUser = null;
-    _cachedAt = null;
   }
 
   String _friendlyMessage(Object error) {
@@ -146,9 +126,6 @@ class UserServiceImpl implements UserService {
           '/users/me/referral',
           data: {'referral_code': referralCode},
         );
-
-        // referredBy changed server-side — force the next read to refetch.
-        invalidateUserCache();
 
         return const Right(unit);
       } catch (e) {
