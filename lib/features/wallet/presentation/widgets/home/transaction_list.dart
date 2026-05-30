@@ -135,6 +135,24 @@ class _TransactionListBody extends StatelessWidget {
   }
 }
 
+
+bool _isRefundedBtcPeg(Transaction tx) {
+  final from = tx.fromAsset;
+  final to = tx.toAsset;
+  if (from == null || to == null) return false;
+  if (from != to) return false;
+  if (from != Asset.btc) return false;
+  if (tx.blockchain != Blockchain.bitcoin) return false;
+  if (tx.sendBlockchain != null && tx.sendBlockchain != Blockchain.bitcoin) {
+    return false;
+  }
+  if (tx.receiveBlockchain != null &&
+      tx.receiveBlockchain != Blockchain.bitcoin) {
+    return false;
+  }
+  return true;
+}
+
 List<Transaction> _hideInFlightLegs(
   List<Transaction> persisted,
   List<PendingSwap> pendingSwaps,
@@ -229,7 +247,7 @@ class SuccessfulTransactionList extends ConsumerWidget {
       // never completed; the funds came back (minus the swap-service
       // refund fee). Render it as a refund instead of as a regular
       // swap so the user can tell at a glance.
-      if (transaction.fromAsset == transaction.toAsset) {
+      if (_isRefundedBtcPeg(transaction)) {
         return 'Refunded ${transaction.asset.ticker} swap';
       }
       return t.wallet_tx_swap_pair(
@@ -570,10 +588,7 @@ class HomeTransactionItem extends StatelessWidget {
   }
 
   Widget _buildSwapIcon() {
-    // Refunded peg: same asset on both sides. Showing two identical
-    // BTC icons reads as a bug — render a single asset icon with a
-    // small orange refund badge instead.
-    final isRefund = transaction!.fromAsset == transaction!.toAsset;
+    final isRefund = _isRefundedBtcPeg(transaction!);
     if (isRefund) {
       return SizedBox(
         width: 50,

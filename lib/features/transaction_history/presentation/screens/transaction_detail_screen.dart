@@ -1377,17 +1377,19 @@ class _TransactionDetailScreenState
   }
 
   /// Refunded-peg attempt as produced by `swap_unifier.dart`:
-  /// same-asset, same-chain pair (BTC→BTC or LBTC→LBTC) where both
-  /// the lockup tx and the refund tx are present. The screen needs
-  /// to render BOTH txids — the synthetic `{send}_{receive}_refund`
-  /// id we use internally for dedup is not a valid txid and should
-  /// never be displayed as one.
   bool _isRefundedSwap() {
-    return widget.transaction.type == TransactionType.swap &&
-        widget.transaction.fromAsset != null &&
-        widget.transaction.fromAsset == widget.transaction.toAsset &&
-        widget.transaction.sendTxId != null &&
-        widget.transaction.receiveTxId != null;
+    final tx = widget.transaction;
+    if (tx.type != TransactionType.swap) return false;
+    if (tx.fromAsset == null || tx.fromAsset != tx.toAsset) return false;
+    if (tx.fromAsset != Asset.btc) return false;
+    if (tx.sendBlockchain != null && tx.sendBlockchain != Blockchain.bitcoin) {
+      return false;
+    }
+    if (tx.receiveBlockchain != null &&
+        tx.receiveBlockchain != Blockchain.bitcoin) {
+      return false;
+    }
+    return tx.sendTxId != null && tx.receiveTxId != null;
   }
 
   List<Widget> _buildCrossChainSwapIds() {

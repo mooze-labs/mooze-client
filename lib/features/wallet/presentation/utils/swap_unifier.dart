@@ -89,30 +89,15 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
     unified.add(_buildFallbackSwap(tx, cp));
   }
 
-  // Refunded-peg detection: a *same-chain* self-pair where the
-  // receive comes after the send with a refund-shaped amount
-  // discount means a peg attempt that ended up refunded. The V2
-  // store has no schema field linking the BDK lockup tx to the
-  // BDK refund tx — we pair them here so the history shows a
-  // single "Refunded swap" row instead of two unrelated BTC
-  // entries. Runs *after* cross-chain pairing so a legitimate
-  // successful peg-in/out is never misclassified as a refund.
   for (final send in buckets.btcSends) {
     if (consumed.contains(send.id)) continue;
     final refund = _findRefundCounterpart(send, buckets.btcReceives, consumed);
     if (refund == null) continue;
+    final row = _buildRefundedSwap(send, refund);
+    if (row == null) continue;
     consumed.add(send.id);
     consumed.add(refund.id);
-    unified.add(_buildRefundedSwap(send, refund));
-  }
-  for (final send in buckets.lbtcSends) {
-    if (consumed.contains(send.id)) continue;
-    final refund =
-        _findRefundCounterpart(send, buckets.lbtcReceives, consumed);
-    if (refund == null) continue;
-    consumed.add(send.id);
-    consumed.add(refund.id);
-    unified.add(_buildRefundedSwap(send, refund));
+    unified.add(row);
   }
 
   // No work landed — return the input list unchanged (callers can rely
@@ -540,17 +525,14 @@ Transaction _buildFallbackSwap(Transaction send, Transaction receive) {
   );
 }
 
-/// Detect a refunded peg: same-chain self-pair where the receive
-/// comes *after* the send, the amount is *less* than what was sent
-/// (Boltz refund fee + miner fee), and both are within a tight
-/// window. Conservative on purpose — a normal back-and-forth between
-/// the user's own wallet and another party shouldn't collapse into
-/// a "refund" row.
 Transaction? _findRefundCounterpart(
   Transaction send,
   List<Transaction> receiveBucket,
   Set<String> consumed,
 ) {
+  if (send.blockchain != Blockchain.bitcoin || send.asset != Asset.btc) {
+    return null;
+  }
   // Threshold mirrors the chain-swap minimum the SDK enforces; below
   // it, the row is more likely a legitimate small payment than a
   // peg attempt. Set deliberately low (1k sats, not 25k like the
@@ -561,6 +543,9 @@ Transaction? _findRefundCounterpart(
 
   for (final cand in receiveBucket) {
     if (cand.id == send.id || consumed.contains(cand.id)) continue;
+    if (cand.blockchain != Blockchain.bitcoin || cand.asset != Asset.btc) {
+      continue;
+    }
     final delta = cand.createdAt.difference(send.createdAt);
     if (delta < Duration.zero || delta > window) continue;
     // Receive must be *strictly less* than send (refund fee taken)
@@ -573,15 +558,22 @@ Transaction? _findRefundCounterpart(
   return null;
 }
 
-Transaction _buildRefundedSwap(Transaction send, Transaction receive) {
+
+Transaction? _buildRefundedSwap(Transaction send, Transaction receive) {
+  if (send.blockchain != Blockchain.bitcoin ||
+      send.asset != Asset.btc ||
+      receive.blockchain != Blockchain.bitcoin ||
+      receive.asset != Asset.btc) {
+    return null;
+  }
   final earliest = send.createdAt.isBefore(receive.createdAt)
       ? send.createdAt
       : receive.createdAt;
   return Transaction(
     id: '${send.id}_${receive.id}_refund',
     amount: receive.amount,
-    blockchain: receive.blockchain,
-    asset: receive.asset,
+    blockchain: Blockchain.bitcoin,
+    asset: Asset.btc,
     type: TransactionType.swap,
     status: send.status == TransactionStatus.confirmed &&
             receive.status == TransactionStatus.confirmed
@@ -591,15 +583,14 @@ Transaction _buildRefundedSwap(Transaction send, Transaction receive) {
     // Same-asset on both sides is the signal the UI uses to render
     // this row as a refund instead of a successful swap. The V2
     // legacy `Transaction` doesn't have a dedicated refund flag, so
-    // we lean on the asset identity invariant.
-    fromAsset: send.asset,
-    toAsset: receive.asset,
+    fromAsset: Asset.btc,
+    toAsset: Asset.btc,
     sentAmount: send.amount,
     receivedAmount: receive.amount,
     sendTxId: send.id,
     receiveTxId: receive.id,
-    sendBlockchain: send.blockchain,
-    receiveBlockchain: receive.blockchain,
+    sendBlockchain: Blockchain.bitcoin,
+    receiveBlockchain: Blockchain.bitcoin,
     destination: receive.destination,
   );
 }
