@@ -153,7 +153,7 @@ void main() {
           blockchain: Blockchain.bitcoin,
           asset: Asset.btc,
           type: TransactionType.receive,
-          createdAt: t0.add(const Duration(minutes: 45)),
+          createdAt: t0.add(const Duration(minutes: 20)),
         ),
       ];
 
@@ -455,7 +455,9 @@ void main() {
       expect(swap.fromAsset, Asset.btc);
     });
 
-    test('refunded peg-out (LBTC→LBTC self-pair) is also detected', () {
+    test(
+        'L-BTC send + smaller L-BTC receive is NEVER classified as a refund',
+        () {
       final sendAt = DateTime(2026, 5, 23, 4, 10);
       final out = unifyPegSwaps([
         _tx(
@@ -475,9 +477,13 @@ void main() {
           createdAt: sendAt.add(const Duration(hours: 4)),
         ),
       ]);
-      expect(out, hasLength(1));
-      expect(out.single.fromAsset, Asset.lbtc);
-      expect(out.single.toAsset, Asset.lbtc);
+      expect(out, hasLength(2));
+      expect(out.every((t) => t.type != TransactionType.swap), isTrue);
+      expect(
+        out.every((t) => !(t.fromAsset == Asset.lbtc && t.toAsset == Asset.lbtc)),
+        isTrue,
+        reason: 'No L-BTC same-asset refund row should ever be emitted.',
+      );
     });
 
     test('isPegSwap getter is false for asset-swap rows (LBTC → DePix)', () {
