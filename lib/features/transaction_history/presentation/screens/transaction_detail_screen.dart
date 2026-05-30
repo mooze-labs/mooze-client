@@ -1257,16 +1257,31 @@ class _TransactionDetailScreenState
   }
 
   Blockchain _effectiveExplorerBlockchain() {
-    if (widget.transaction.type == TransactionType.submarine) {
+    final tx = widget.transaction;
+    if (tx.type == TransactionType.submarine) {
       return Blockchain.liquid;
     }
-    return widget.transaction.blockchain;
+    final sendChain = tx.sendBlockchain;
+    final receiveChain = tx.receiveBlockchain;
+    if (sendChain != null &&
+        receiveChain != null &&
+        sendChain != receiveChain) {
+      if (tx.receiveTxId != null && tx.id == tx.receiveTxId) {
+        return receiveChain;
+      }
+      if (tx.sendTxId != null && tx.id == tx.sendTxId) {
+        return sendChain;
+      }
+      // Id doesn't match either leg: during pending peg-out the
+      // lockup is the only on-chain tx, so prefer the send chain.
+      return sendChain;
+    }
+    return tx.blockchain;
   }
 
   String? _resolveExplorerUrl({String? txId, Blockchain? blockchain}) {
-    if (txId != null && blockchain != null) {
-      return _urlFor(txId, blockchain);
-    }
+
+    if (blockchain != null && txId == null) return null;
     final useTxId = txId ?? widget.transaction.id;
     if (useTxId.isEmpty) return null;
     final useBlockchain = blockchain ?? _effectiveExplorerBlockchain();
@@ -1353,13 +1368,12 @@ class _TransactionDetailScreenState
     }
   }
 
+
   bool _isCrossChainSwap() {
-    return widget.transaction.sendTxId != null &&
-        widget.transaction.receiveTxId != null &&
-        widget.transaction.sendBlockchain != null &&
-        widget.transaction.receiveBlockchain != null &&
-        widget.transaction.sendBlockchain !=
-            widget.transaction.receiveBlockchain;
+    final tx = widget.transaction;
+    if (tx.sendBlockchain == null || tx.receiveBlockchain == null) return false;
+    if (tx.sendBlockchain == tx.receiveBlockchain) return false;
+    return tx.sendTxId != null || tx.receiveTxId != null;
   }
 
   /// Refunded-peg attempt as produced by `swap_unifier.dart`:
@@ -1378,26 +1392,29 @@ class _TransactionDetailScreenState
 
   List<Widget> _buildCrossChainSwapIds() {
     final t = AppLocalizations.of(context);
+
+    final sendTxId = widget.transaction.sendTxId;
+    final receiveTxId = widget.transaction.receiveTxId;
     return [
       _buildInfoRow(
         icon: Icons.call_made,
         label: t.tx_detail_send_id_label(
           _getBlockchainName(widget.transaction.sendBlockchain!),
         ),
-        value: truncateHashId(widget.transaction.sendTxId!),
-        copyable: true,
+        value: sendTxId == null ? '—' : truncateHashId(sendTxId),
+        copyable: sendTxId != null,
         copyFieldId: 'send_tx_id',
-        copyValue: widget.transaction.sendTxId!,
+        copyValue: sendTxId ?? '',
       ),
       _buildInfoRow(
         icon: Icons.call_received,
         label: t.tx_detail_receive_id_label(
           _getBlockchainName(widget.transaction.receiveBlockchain!),
         ),
-        value: truncateHashId(widget.transaction.receiveTxId!),
-        copyable: true,
+        value: receiveTxId == null ? '—' : truncateHashId(receiveTxId),
+        copyable: receiveTxId != null,
         copyFieldId: 'receive_tx_id',
-        copyValue: widget.transaction.receiveTxId!,
+        copyValue: receiveTxId ?? '',
       ),
     ];
   }

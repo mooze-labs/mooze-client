@@ -377,8 +377,17 @@ legacy.Transaction _buildPegSwapRow(
   // explorer links; they're also what
   // `pendingSwapsReconciliationProvider._idsMatch` uses to retire
   // the optimistic peg row.
-  final sendTxId = isPegIn ? peg.swapLockupTxId : peg.id;
-  final receiveTxId = isPegIn ? peg.id : peg.swapClaimTxId;
+  //
+  // Must always identify the tx on the matching `sendBlockchain` /
+  // `receiveBlockchain`. `peg.id` is unsafe here — Breez flips it
+  // between the lockup txid, the swap_id (Boltz internal), and the
+  // claim txid across the swap lifecycle, so pairing `peg.id` with
+  // `sendBlockchain` produced a cross-chain leak for peg-out (a
+  // Liquid lockup hash tagged as Bitcoin). `swapLockupTxId` /
+  // `swapClaimTxId` are stable across the lifecycle and always
+  // belong to the source / destination chain respectively.
+  final sendTxId = peg.swapLockupTxId;
+  final receiveTxId = peg.swapClaimTxId;
 
   return legacy.Transaction(
     id: peg.id,
