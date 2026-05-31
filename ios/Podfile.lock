@@ -41,7 +41,7 @@ PODS:
     - GoogleUtilities/UserDefaults (~> 8.1)
     - nanopb (~> 3.30910.0)
   - Flutter (1.0.0)
-  - flutter_breez_liquid (0.11.9):
+  - flutter_breez_liquid (0.12.3-dev1):
     - Flutter
   - flutter_email_sender (0.0.1):
     - Flutter
@@ -256,7 +256,7 @@ SPEC CHECKSUMS:
   FirebaseInstallations: 7b64ffd006032b2b019a59b803858df5112d9eaa
   FirebaseMessaging: 7d6cdbff969127c4151c824fe432f0e301210f15
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_breez_liquid: add9dccdd9ed3666b85cf9c37489266f17bf5176
+  flutter_breez_liquid: bd37456bb1e5e01cc3b37cf179cb3d8954bc7232
   flutter_email_sender: 2397f5e84aaacfb61af569637a963e7c687858d8
   flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13

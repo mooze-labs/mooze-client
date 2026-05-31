@@ -53,4 +53,11 @@ app.*.map.json
 
 ios/GoogleService-Info.plist
 android/app/google-services.json
-android/app/google-services.json
+
+!ios/Runner.xcodeproj/project.pbxproj
+!ios/Runner/Info.plist
+!ios/Runner/*.lproj/
+!ios/Runner/*.lproj/InfoPlist.strings
+!ios/Runner/
+!ios/Runner/*.lproj/
+!ios/Runner/*.lproj/InfoPlist.strings
