@@ -70,7 +70,7 @@ class DeveloperActionGrid extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          _SectionLabel(text: 'Synchronisation'),
+          _SectionLabel(text: t.developer_section_synchronisation),
           const SizedBox(height: 10),
           _ActionRow(
             children: [
@@ -119,7 +119,7 @@ class DeveloperActionGrid extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 22),
-          _SectionLabel(text: 'Diagnostics'),
+          _SectionLabel(text: t.developer_section_diagnostics),
           const SizedBox(height: 10),
           _ActionRow(
             children: [

@@ -78,10 +78,10 @@ class DeveloperInfoCard extends StatelessWidget {
           _SdkRow(label: 'Breez SDK', version: breezVersion),
           const SizedBox(height: 12),
           _RuntimeRow(
-            label: 'Bitcoin tip',
+            label: t.developer_bitcoin_tip,
             value: bitcoinTip != null && bitcoinTip! > 0
                 ? '#${_formatInt(bitcoinTip!)}'
-                : 'unavailable',
+                : t.developer_unavailable,
             valueColor: bitcoinTip != null && bitcoinTip! > 0
                 ? null
                 : extra.textSecondary,

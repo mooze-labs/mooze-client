@@ -982,7 +982,7 @@ class AppLocalizationsPt extends AppLocalizations {
       '12.1. Para exercício de direitos, dúvidas ou solicitações:\n\n(a) E-mail: suporte@mooze.app\n(b) Telegram: https://t.me/+zkNS6KIDsEcyZDkx\n(c) FAQ automatizado via Telegram\n\n12.2. A Mooze envidará esforços para responder no prazo de 15 dias úteis.';
 
   @override
-  String get developer_title => 'Ferramentas de desenvolvedor';
+  String get developer_title => 'Hub da Carteira';
 
   @override
   String get developer_copy_debug_tooltip => 'Copiar informações de debug';
@@ -1138,6 +1138,44 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get developer_action_clear_logs_tooltip => 'Limpar todos os logs';
+
+  @override
+  String get developer_bitcoin_tip => 'Bloco Bitcoin atual';
+
+  @override
+  String get developer_unavailable => 'indisponível';
+
+  @override
+  String get developer_liquid_balances => 'Saldos Liquid';
+
+  @override
+  String get developer_section_synchronisation => 'Sincronização';
+
+  @override
+  String get developer_section_diagnostics => 'Diagnósticos';
+
+  @override
+  String get developer_time_just_now => 'agora mesmo';
+
+  @override
+  String developer_time_seconds_ago(int seconds) {
+    return 'há ${seconds}s';
+  }
+
+  @override
+  String developer_time_minutes_ago(int minutes) {
+    return 'há ${minutes}min';
+  }
+
+  @override
+  String developer_time_hours_ago(int hours) {
+    return 'há ${hours}h';
+  }
+
+  @override
+  String developer_time_days_ago(int days) {
+    return 'há ${days}d';
+  }
 
   @override
   String get export_logs_title => 'Exportar Logs';

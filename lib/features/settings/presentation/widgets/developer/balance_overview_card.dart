@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:mooze_mobile/domain/entities/balance.dart';
 import 'package:mooze_mobile/domain/entities/chain.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as display;
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -23,6 +24,7 @@ class BalanceOverviewCard extends StatelessWidget {
     final cs = context.colorScheme;
     final extra = context.appColors;
     final tt = context.textTheme;
+    final t = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toString();
 
     final breakdown = _BalanceBreakdown.from(balance);
@@ -57,7 +59,7 @@ class BalanceOverviewCard extends StatelessWidget {
                 _RefreshIndicator(color: extra.textSecondary)
               else if (balance != null)
                 Text(
-                  _formatRelativeTime(balance!.snapshotAt),
+                  _formatRelativeTime(t, balance!.snapshotAt),
                   style: tt.bodySmall?.copyWith(color: extra.textTertiary),
                 ),
             ],
@@ -72,7 +74,7 @@ class BalanceOverviewCard extends StatelessWidget {
               locale: locale,
             ),
             const SizedBox(height: 16),
-            _SectionLabel(text: 'Liquid Balances'),
+            _SectionLabel(text: t.developer_liquid_balances),
             const SizedBox(height: 8),
             _L2Group(
               depix: breakdown.depix,
@@ -86,14 +88,14 @@ class BalanceOverviewCard extends StatelessWidget {
     );
   }
 
-  static String _formatRelativeTime(DateTime t) {
-    if (t.millisecondsSinceEpoch == 0) return '';
-    final diff = DateTime.now().difference(t);
-    if (diff.inSeconds < 5) return 'just now';
-    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+  static String _formatRelativeTime(AppLocalizations t, DateTime at) {
+    if (at.millisecondsSinceEpoch == 0) return '';
+    final diff = DateTime.now().difference(at);
+    if (diff.inSeconds < 5) return t.developer_time_just_now;
+    if (diff.inSeconds < 60) return t.developer_time_seconds_ago(diff.inSeconds);
+    if (diff.inMinutes < 60) return t.developer_time_minutes_ago(diff.inMinutes);
+    if (diff.inHours < 24) return t.developer_time_hours_ago(diff.inHours);
+    return t.developer_time_days_ago(diff.inDays);
   }
 }
 

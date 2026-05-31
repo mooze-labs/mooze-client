@@ -1831,7 +1831,7 @@ abstract class AppLocalizations {
   /// No description provided for @developer_title.
   ///
   /// In pt, this message translates to:
-  /// **'Ferramentas de desenvolvedor'**
+  /// **'Hub da Carteira'**
   String get developer_title;
 
   /// No description provided for @developer_copy_debug_tooltip.
@@ -2103,6 +2103,66 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Limpar todos os logs'**
   String get developer_action_clear_logs_tooltip;
+
+  /// No description provided for @developer_bitcoin_tip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bloco Bitcoin atual'**
+  String get developer_bitcoin_tip;
+
+  /// No description provided for @developer_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'indisponível'**
+  String get developer_unavailable;
+
+  /// No description provided for @developer_liquid_balances.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldos Liquid'**
+  String get developer_liquid_balances;
+
+  /// No description provided for @developer_section_synchronisation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronização'**
+  String get developer_section_synchronisation;
+
+  /// No description provided for @developer_section_diagnostics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diagnósticos'**
+  String get developer_section_diagnostics;
+
+  /// No description provided for @developer_time_just_now.
+  ///
+  /// In pt, this message translates to:
+  /// **'agora mesmo'**
+  String get developer_time_just_now;
+
+  /// No description provided for @developer_time_seconds_ago.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {seconds}s'**
+  String developer_time_seconds_ago(int seconds);
+
+  /// No description provided for @developer_time_minutes_ago.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {minutes}min'**
+  String developer_time_minutes_ago(int minutes);
+
+  /// No description provided for @developer_time_hours_ago.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {hours}h'**
+  String developer_time_hours_ago(int hours);
+
+  /// No description provided for @developer_time_days_ago.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {days}d'**
+  String developer_time_days_ago(int days);
 
   /// No description provided for @export_logs_title.
   ///

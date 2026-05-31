@@ -330,7 +330,7 @@
   "privacy_section_10_body": "10.1. Os dados coletados pela Mooze são armazenados e processados em infraestrutura fora do território brasileiro.\n\n10.2. A jurisdição de dados aplicável é a República das Ilhas Marshall.\n\n10.3. Os dados operacionais transmitidos às Parceiras Reguladas durante o Serviço A são processados no Brasil, sob responsabilidade exclusiva das Parceiras Reguladas.",
   "privacy_section_11_body": "11.1. A Mooze reserva-se o direito de alterar esta Política a qualquer momento, publicando a versão atualizada no Aplicativo e em https://mooze.app/termosdeuso/.\n\n11.2. A continuidade de uso após a publicação constitui aceitação tácita da Política atualizada.",
   "privacy_section_12_body": "12.1. Para exercício de direitos, dúvidas ou solicitações:\n\n(a) E-mail: suporte@mooze.app\n(b) Telegram: https://t.me/+zkNS6KIDsEcyZDkx\n(c) FAQ automatizado via Telegram\n\n12.2. A Mooze envidará esforços para responder no prazo de 15 dias úteis.",
-  "developer_title": "Ferramentas de desenvolvedor",
+  "developer_title": "Hub da Carteira",
   "developer_copy_debug_tooltip": "Copiar informações de debug",
   "developer_debug_copied": "Informações de debug copiadas!",
   "developer_sync_light_success": "Sincronização rápida concluída!",
@@ -432,6 +432,44 @@
   "developer_action_export_tooltip": "Exportar logs como ZIP",
   "developer_action_clear_logs": "Limpar Logs",
   "developer_action_clear_logs_tooltip": "Limpar todos os logs",
+  "developer_bitcoin_tip": "Bloco Bitcoin atual",
+  "developer_unavailable": "indisponível",
+  "developer_liquid_balances": "Saldos Liquid",
+  "developer_section_synchronisation": "Sincronização",
+  "developer_section_diagnostics": "Diagnósticos",
+  "developer_time_just_now": "agora mesmo",
+  "developer_time_seconds_ago": "há {seconds}s",
+  "@developer_time_seconds_ago": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "developer_time_minutes_ago": "há {minutes}min",
+  "@developer_time_minutes_ago": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "developer_time_hours_ago": "há {hours}h",
+  "@developer_time_hours_ago": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "developer_time_days_ago": "há {days}d",
+  "@developer_time_days_ago": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "export_logs_title": "Exportar Logs",
   "export_logs_description": "Os logs do aplicativo ajudam nossa equipe a resolver problemas. Como você gostaria de compartilhar?",
   "export_logs_by_email": "Enviar por E-mail",
