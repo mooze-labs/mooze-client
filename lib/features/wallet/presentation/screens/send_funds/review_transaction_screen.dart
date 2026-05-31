@@ -14,8 +14,10 @@ import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_tr
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
+import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -779,7 +781,7 @@ class _HeroAmountStack extends StatelessWidget {
   }
 }
 
-class _HeroFiatLine extends StatelessWidget {
+class _HeroFiatLine extends ConsumerWidget {
   final Asset asset;
   final BigInt amountInSats;
   final AsyncValue<double> bitcoinPrice;
@@ -793,8 +795,9 @@ class _HeroFiatLine extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
     final style = theme.textTheme.titleSmall?.copyWith(
       color: context.colors.textSecondary,
       fontWeight: FontWeight.w600,
@@ -808,7 +811,7 @@ class _HeroFiatLine extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Text(
-            '$currencySymbol ${fiat.toStringAsFixed(2)}',
+            '$currencySymbol ${formatter.format(fiat)}',
             style: style,
           ),
         );
@@ -992,7 +995,7 @@ class _FeeBlock extends StatelessWidget {
   }
 }
 
-class _FeeFiatLine extends StatelessWidget {
+class _FeeFiatLine extends ConsumerWidget {
   final Asset asset;
   final BigInt networkFees;
   final AsyncValue<double> bitcoinPrice;
@@ -1006,12 +1009,13 @@ class _FeeFiatLine extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Fee fiat is only meaningful for BTC-flavoured fees. L-BTC token
     // fees on Liquid (paid in L-BTC for non-BTC assets) can also be
     // converted via the BTC price, so route both through the same
     // computation.
     if (networkFees == BigInt.zero) return const SizedBox.shrink();
+    final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
     return bitcoinPrice.when(
       data: (price) {
         if (price <= 0) return const SizedBox.shrink();
@@ -1019,7 +1023,7 @@ class _FeeFiatLine extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Text(
-            '≈ $currencySymbol ${fiat.toStringAsFixed(2)}',
+            '≈ $currencySymbol ${formatter.format(fiat)}',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: context.colors.textSecondary,
               fontFeatures: const [FontFeature.tabularFigures()],
