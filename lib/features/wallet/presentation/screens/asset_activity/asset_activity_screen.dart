@@ -5,7 +5,6 @@ import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity/asset_activity_header.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity/asset_activity_highlights_section.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity/asset_activity_summary_section.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity/asset_activity_transactions_section.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 /// V1 asset details: a custody/activity view of a single asset built entirely
@@ -36,8 +35,6 @@ class AssetActivityScreen extends ConsumerWidget {
               AssetSummarySection(asset: asset),
               const SizedBox(height: 20),
               AssetHighlightsSection(asset: asset),
-              const SizedBox(height: 20),
-              AssetTransactionsSection(asset: asset),
             ],
           ),
         ),
