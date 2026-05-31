@@ -66,9 +66,13 @@ class BalanceOverviewCard extends StatelessWidget {
           if (loading && balance == null)
             const _LoadingRows()
           else ...[
-            _BalanceTile(row: breakdown.onchain, isPrimary: true, locale: locale),
+            _BalanceTile(
+              row: breakdown.onchain,
+              isPrimary: true,
+              locale: locale,
+            ),
             const SizedBox(height: 16),
-            _SectionLabel(text: 'L2 Balances'),
+            _SectionLabel(text: 'Liquid Balances'),
             const SizedBox(height: 8),
             _L2Group(
               depix: breakdown.depix,
@@ -120,12 +124,17 @@ class _BalanceBreakdown {
       pendingSat: sumPending((a) => a.chain == ChainId.bitcoin),
     );
 
-
+    // Scope Liquid tokens to the LWK (liquid) chain — same as the L-BTC row
+    // below. Both LWK and the Breez Liquid SDK report the same Liquid wallet
+    // (LWK tagged ChainId.liquid, Breez tagged ChainId.lightning), so matching
+    // by assetId alone would sum both sources and double the displayed amount.
     final depix = _BalanceRowData(
       asset: display.Asset.depix,
       caption: 'Liquid asset · BRL stablecoin',
       accent: const Color(0xFFBA68C8),
-      amountSat: sumAmount((a) => a.assetId == display.depixAssetId),
+      amountSat: sumAmount(
+        (a) => a.chain == ChainId.liquid && a.assetId == display.depixAssetId,
+      ),
       pendingSat: 0,
     );
 
@@ -145,7 +154,9 @@ class _BalanceBreakdown {
       asset: display.Asset.usdt,
       caption: 'Liquid asset · Tether',
       accent: const Color(0xFF26A17B),
-      amountSat: sumAmount((a) => a.assetId == display.usdtAssetId),
+      amountSat: sumAmount(
+        (a) => a.chain == ChainId.liquid && a.assetId == display.usdtAssetId,
+      ),
       pendingSat: 0,
     );
 
@@ -201,7 +212,6 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-
 class _L2Group extends StatelessWidget {
   const _L2Group({
     required this.depix,
@@ -229,12 +239,27 @@ class _L2Group extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Column(
         children: [
-          _BalanceTile(row: depix, isPrimary: false, compact: true, locale: locale),
+          _BalanceTile(
+            row: depix,
+            isPrimary: false,
+            compact: true,
+            locale: locale,
+          ),
           _Divider(),
-          _BalanceTile(row: liquid, isPrimary: false, compact: true, locale: locale),
+          _BalanceTile(
+            row: liquid,
+            isPrimary: false,
+            compact: true,
+            locale: locale,
+          ),
           if (showUsdt) ...[
             _Divider(),
-            _BalanceTile(row: usdt, isPrimary: false, compact: true, locale: locale),
+            _BalanceTile(
+              row: usdt,
+              isPrimary: false,
+              compact: true,
+              locale: locale,
+            ),
           ],
         ],
       ),
@@ -284,9 +309,10 @@ class _BalanceTile extends StatelessWidget {
     final chipSize = isPrimary ? 42.0 : 36.0;
     final chipRadius = isPrimary ? 12.0 : 10.0;
 
-    final padding = compact
-        ? const EdgeInsets.symmetric(vertical: 10)
-        : const EdgeInsets.fromLTRB(2, 2, 2, 4);
+    final padding =
+        compact
+            ? const EdgeInsets.symmetric(vertical: 10)
+            : const EdgeInsets.fromLTRB(2, 2, 2, 4);
 
     final primary = row.asset.formatAmount(row.amountSat, locale: locale);
     final unit = row.asset.displayUnit;
@@ -379,11 +405,7 @@ class _AssetGlyph extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
       ),
       alignment: Alignment.center,
-      child: SvgPicture.asset(
-        iconPath,
-        width: iconSize,
-        height: iconSize,
-      ),
+      child: SvgPicture.asset(iconPath, width: iconSize, height: iconSize),
     );
   }
 }
