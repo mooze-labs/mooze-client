@@ -12,7 +12,6 @@ import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/sync_failure_alert.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 import 'package:mooze_mobile/shared/authentication/widgets/auth_initializer_widget.dart';
 import 'package:mooze_mobile/shared/widgets/background_sync_indicator.dart';
@@ -137,59 +136,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Debug-only entry point: long-press to open the raw-tx dump
           // (BDK + LWK + Breez + V2 store), tap to open the swap
           // simulator. Compiled out of release builds via `kDebugMode`.
-          floatingActionButton: kDebugMode
-              ? FloatingActionButton.small(
-                  heroTag: 'dev-tools',
-                  tooltip:
-                      'Tap: swap simulator · Long-press: raw tx dump',
-                  backgroundColor: Colors.deepPurple,
-                  onPressed: () => context.push('/dev/swap-simulator'),
-                  child: GestureDetector(
-                    onLongPress: () => context.push('/dev/raw-tx-dump'),
-                    child: const Icon(Icons.bug_report, color: Colors.white),
-                  ),
-                )
-              : null,
+          floatingActionButton:
+              kDebugMode
+                  ? FloatingActionButton.small(
+                    heroTag: 'dev-tools',
+                    tooltip: 'Tap: swap simulator · Long-press: raw tx dump',
+                    backgroundColor: Colors.deepPurple,
+                    onPressed: () => context.push('/dev/swap-simulator'),
+                    child: GestureDetector(
+                      onLongPress: () => context.push('/dev/raw-tx-dump'),
+                      child: const Icon(Icons.bug_report, color: Colors.white),
+                    ),
+                  )
+                  : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
           body: PlatformSafeArea(
             iosTop: true,
             androidTop: true,
             androidBottom: false,
-            child: WalletScreenWrapper(
-              child: RefreshIndicator(
-                onRefresh: () => _refreshData(),
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        LogoHeader(),
-                        StatusIndicators(
-                          onRetrySync: () {
-                            ref.invalidate(ensureAuthSessionProvider);
-                            ref.invalidate(walletLevelsProvider);
-                            ref.invalidate(userDataProvider);
-                            _refreshData();
-                          },
-                        ),
-                        WalletLoadingBanner(
-                          isVisible: isLoadingData,
-                          label: AppLocalizations.of(context)
-                              .wallet_import_msg_loading_transactions,
-                        ),
-                        WalletHeaderWidget(),
-                        UpdateNotificationWidget(),
-                        const SizedBox(height: 15),
-                        _buildActionButtons(),
-                        const SizedBox(height: 32),
-                        AssetSection(),
-                        TransactionSection(),
-                        SizedBox(height: 120),
-                      ],
-                    ),
+            child: RefreshIndicator(
+              onRefresh: () => _refreshData(),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LogoHeader(),
+                      StatusIndicators(
+                        onRetrySync: () {
+                          ref.invalidate(ensureAuthSessionProvider);
+                          ref.invalidate(walletLevelsProvider);
+                          ref.invalidate(userDataProvider);
+                          _refreshData();
+                        },
+                      ),
+                      WalletLoadingBanner(
+                        isVisible: isLoadingData,
+                        label:
+                            AppLocalizations.of(
+                              context,
+                            ).wallet_import_msg_loading_transactions,
+                      ),
+                      WalletHeaderWidget(),
+                      UpdateNotificationWidget(),
+                      const SizedBox(height: 15),
+                      _buildActionButtons(),
+                      const SizedBox(height: 32),
+                      AssetSection(),
+                      TransactionSection(),
+                      SizedBox(height: 120),
+                    ],
                   ),
                 ),
               ),
