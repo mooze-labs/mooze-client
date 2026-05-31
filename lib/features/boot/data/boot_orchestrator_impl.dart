@@ -347,8 +347,8 @@ class BootOrchestratorImpl implements BootOrchestrator {
     // only liquid) covers the cancellable path; this timeout covers the
     // case where the underlying call is wedged inside an FFI/native frame
     // that does not yield.
-    await _safeTimed(
-        () => lightning.disconnect(), 'lightning.disconnect', _disconnectCap);
+    await _safeTimed(() => lightning.disconnect(), 'lightning.disconnect',
+        _lightningDisconnectCap);
     await _safeTimed(
         () => bitcoin.disconnect(), 'bitcoin.disconnect', _disconnectCap);
     await _safeTimed(
@@ -366,6 +366,17 @@ class BootOrchestratorImpl implements BootOrchestrator {
   }
 
   static const Duration _disconnectCap = Duration(seconds: 5);
+
+  // Breez's native disconnect routinely needs several seconds (local
+  // ledger flush + Greenlight gRPC teardown). The Lightning service
+  // self-bounds that call at 12 s and always returns to a clean
+  // `disconnected` state (see
+  // `LightningWalletServiceImpl._nativeDisconnectTimeout`). Give the
+  // orchestrator a slightly larger ceiling so it does not abandon a
+  // routine disconnect mid-flight — abandoning here is what previously
+  // left the service's `_connectMutex` held, deadlocking the next
+  // `connect()` (delete → re-import) until an app restart.
+  static const Duration _lightningDisconnectCap = Duration(seconds: 15);
 
   Future<void> _safeTimed(
     Future<Object?> Function() fn,

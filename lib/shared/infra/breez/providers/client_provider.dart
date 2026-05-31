@@ -58,41 +58,64 @@ final breezClientProvider =
   // instance is not running)`.
   //
   // The listener watches lifecycle transitions and invalidates this
-  // provider whenever the service leaves `connected`. The `lastSeen`
-  // guard ensures we don't react to the replay value emitted on
-  // subscribe (which would feedback-loop after re-evaluation).
+  // provider whenever the service crosses the `connected` boundary in
+  // EITHER direction. The `lastSeen` guard ensures we don't react to the
+  // replay value emitted on subscribe (which would feedback-loop after
+  // re-evaluation).
   ServiceLifecycle? lastSeen;
   final lifecycleSub = service.state.listen((s) {
     final prev = lastSeen;
     lastSeen = s.lifecycle;
-    if (prev == ServiceLifecycle.connected &&
-        s.lifecycle != ServiceLifecycle.connected) {
-      logger.info(
-        'breezClientProvider',
-        'invalidate-self transition=connected→${s.lifecycle.name} '
-            'sdkPresent=${service.sdkClient != null} '
-            'reason=service-state-change',
-      );
-      // Defer to the next microtask. Calling `ref.invalidateSelf()`
-      // synchronously from inside a stream listener can re-enter
-      // Riverpod's disposal machinery while the broadcast stream is
-      // mid-dispatch — observed symptom from the 2026-05-12 repro:
-      // the provider re-evaluated immediately, captured a transient
-      // `disconnected` state, hit the 6s wait-loop timeout, and
-      // returned Left("stream closed without operational state")
-      // even though the new wallet's `lightning.connect()` had already
-      // emitted `connected`. The microtask hop lets the listener
-      // callback complete, the in-flight broadcast event settle, and
-      // the service's next state emission land before we tear down
-      // and re-resolve.
-      Future.microtask(() {
-        try {
-          ref.invalidateSelf();
-        } catch (_) {
-          // Provider already disposed — nothing to invalidate.
-        }
-      });
-    }
+    // Skip the replay/seed value emitted synchronously on subscribe — it
+    // reflects the state we already evaluated against, not a transition.
+    if (prev == null) return;
+    // Re-evaluate on BOTH edges of the `connected` boundary:
+    //   • connected → !connected (wallet delete / disconnect): drop the
+    //     cached client so no caller uses a disconnected SDK handle.
+    //   • !connected → connected (wallet re-import reconnect): refresh a
+    //     cached `Left`. This edge is the fix for the re-import receive-
+    //     address bug. While the service is down during a delete →
+    //     re-import, the 30s wait loop below can time out (the manual gap
+    //     — PIN entry + import — routinely exceeds 30s), so this provider
+    //     resolves `Left('… stream closed …')` and caches it. The
+    //     re-imported wallet's Lightning service then reaches `connected`
+    //     normally, but the OLD trigger only fired when LEAVING connected
+    //     — so the cached `Left` was never refreshed. The non-autoDispose
+    //     `walletRepositoryProvider` (which `ref.watch`es this future)
+    //     stayed `Breez: ✗` and every Breez-backed receive-address
+    //     generation failed until an app restart, even though balances
+    //     and transactions (the V2 path) worked. This listener survives
+    //     past resolution (cancelled only on dispose), so it catches the
+    //     reconnect and re-resolves to `Right(newClient)`; the repo then
+    //     rebuilds through its existing watch.
+    final wasConnected = prev == ServiceLifecycle.connected;
+    final isConnected = s.lifecycle == ServiceLifecycle.connected;
+    if (wasConnected == isConnected) return;
+    logger.info(
+      'breezClientProvider',
+      'invalidate-self transition=${prev.name}→${s.lifecycle.name} '
+          'sdkPresent=${service.sdkClient != null} '
+          'reason=connected-boundary-crossed',
+    );
+    // Defer to the next microtask. Calling `ref.invalidateSelf()`
+    // synchronously from inside a stream listener can re-enter
+    // Riverpod's disposal machinery while the broadcast stream is
+    // mid-dispatch — observed symptom from the 2026-05-12 repro:
+    // the provider re-evaluated immediately, captured a transient
+    // `disconnected` state, hit the wait-loop timeout, and returned
+    // Left("stream closed without operational state") even though the
+    // new wallet's `lightning.connect()` had already emitted
+    // `connected`. The microtask hop lets the listener callback
+    // complete, the in-flight broadcast event settle, and the
+    // service's next state emission land before we tear down and
+    // re-resolve.
+    Future.microtask(() {
+      try {
+        ref.invalidateSelf();
+      } catch (_) {
+        // Provider already disposed — nothing to invalidate.
+      }
+    });
   });
   ref.onDispose(lifecycleSub.cancel);
 

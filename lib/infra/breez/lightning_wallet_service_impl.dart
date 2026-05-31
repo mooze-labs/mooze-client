@@ -187,6 +187,28 @@ class LightningWalletServiceImpl implements LightningWalletService {
     });
   }
 
+  /// Upper bound for the native Breez `disconnect()` FFI call.
+  ///
+  /// A clean disconnect normally takes several seconds — it flushes the
+  /// local payment ledger and tears down the Greenlight gRPC session — but
+  /// it can hang indefinitely when the SDK is mid network-probe (the case
+  /// the boot orchestrator's shutdown comment anticipates). Because the
+  /// whole [disconnect] body runs inside [_connectMutex], an unbounded
+  /// `c.disconnect()` keeps the mutex locked for as long as the native
+  /// call runs. The next `connect()` — delete → re-import within the same
+  /// process — then blocks behind it until boot's 45 s connect timeout
+  /// fires and marks Lightning non-operational.
+  ///
+  /// User-visible bug this prevents: after importing or deleting a wallet,
+  /// balance, Breez-generated receive addresses, and Lightning
+  /// transactions never refreshed until the app was killed and relaunched
+  /// (a restart rebuilds this singleton with a fresh mutex). Bounding the
+  /// native call guarantees the mutex is released and the service returns
+  /// to a clean `disconnected` state, so reconnect always proceeds. A
+  /// timed-out native call is orphaned — the delete/import use case wipes
+  /// its working directory regardless.
+  static const Duration _nativeDisconnectTimeout = Duration(seconds: 12);
+
   @override
   Future<Either<ServiceFailure, Unit>> disconnect() async {
     return _connectMutex.protect(() async {
@@ -196,39 +218,67 @@ class LightningWalletServiceImpl implements LightningWalletService {
         return const Right(unit);
       }
       _emit(ServiceLifecycle.disconnecting);
-      try {
-        final c = _client;
-        _client = null;
-        _seen.clear();
-        // Tear down the live event listener and any pending
-        // debounced sync — both reference the SDK client we're about
-        // to drop. Cancelling first avoids a "use after disconnect"
-        // race where an event arrives mid-disconnect and triggers
-        // `_scheduleEventSync` on a stale `_client` reference.
-        await _eventSub?.cancel();
-        _eventSub = null;
-        _eventSyncDebounce?.cancel();
-        _eventSyncDebounce = null;
-        // Clear cached snapshots so a subsequent reconnect (e.g.,
-        // delete + re-import with a different mnemonic) doesn't surface
-        // wallet-1's data while wallet-2's first sync is still pending.
-        // The defensive "fresh.assets < _lastBalance.assets keeps cache"
-        // guard in `getBalance` would otherwise lock in wallet-1.
-        _lastBalance = domain.Balance.empty();
-        _lastList = const [];
-        if (c != null) {
-          await c.disconnect();
+      // Detach the SDK client + live listeners + cached snapshots up
+      // front. These are synchronous/fast and must take effect regardless
+      // of how the native teardown below resolves:
+      //  - cancelling the event sub first avoids a "use after disconnect"
+      //    race where an event arrives mid-disconnect and triggers
+      //    `_scheduleEventSync` on a stale `_client`;
+      //  - clearing the cached snapshots stops a subsequent reconnect
+      //    (delete + re-import) from surfacing wallet-1's balance/list
+      //    while wallet-2's first sync is still pending (the defensive
+      //    cache-retention guard in `getBalance` would otherwise lock in
+      //    wallet-1).
+      final c = _client;
+      _client = null;
+      _seen.clear();
+      await _eventSub?.cancel();
+      _eventSub = null;
+      _eventSyncDebounce?.cancel();
+      _eventSyncDebounce = null;
+      _lastBalance = domain.Balance.empty();
+      _lastList = const [];
+
+      // Tear down the native SDK under a finite timeout. We never let a
+      // wedged FFI frame hold [_connectMutex]: on timeout the in-flight
+      // call is orphaned (allowed to settle in the background, its result
+      // swallowed so it can't surface as an unhandled async error) and we
+      // fall through to release the directory + mark the service
+      // `disconnected`, freeing the mutex for the next `connect()`.
+      if (c != null) {
+        final nativeDisconnect = c.disconnect();
+        try {
+          await nativeDisconnect.timeout(_nativeDisconnectTimeout);
+        } on TimeoutException {
+          logger.warn('lightning.disconnect.native_timeout', {
+            'after_ms': _nativeDisconnectTimeout.inMilliseconds,
+          });
+          unawaited(
+            nativeDisconnect.then<void>(
+              (_) {},
+              onError: (Object _, StackTrace _) {},
+            ),
+          );
+        } catch (e, st) {
+          // A failed native disconnect is non-fatal here — the client
+          // reference is already dropped and the working dir is wiped by
+          // the caller. Log and continue to a clean disconnected state.
+          logger.warn(
+            'lightning.disconnect.native_failed',
+            {'error': '$e'},
+            error: e,
+            stackTrace: st,
+          );
         }
-        if (_acquiredDirectory != null) {
-          await directoryGuard.release(workingDirRelative);
-          _acquiredDirectory = null;
-        }
-        _emit(ServiceLifecycle.disconnected, clearFailure: true);
-        logger.info('lightning.disconnected', {});
-        return const Right(unit);
-      } catch (e, st) {
-        return _fail('breez disconnect failed: $e', cause: e, stackTrace: st);
       }
+
+      if (_acquiredDirectory != null) {
+        await directoryGuard.release(workingDirRelative);
+        _acquiredDirectory = null;
+      }
+      _emit(ServiceLifecycle.disconnected, clearFailure: true);
+      logger.info('lightning.disconnected', {});
+      return const Right(unit);
     });
   }
 
