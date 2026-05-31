@@ -1,3 +1,6 @@
+import 'dart:convert' show utf8;
+import 'dart:typed_data' show Uint8List;
+
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,28 +25,32 @@ class SdkVersions {
   );
 
   static Future<SdkVersions> load() async {
-    final results = await Future.wait([
-      _readVersion('packages/lwk-dart/pubspec.yaml'),
-      _readVersion('packages/bdk-flutter/pubspec.yaml'),
-      _readVersion('packages/breez-sdk-liquid-flutter/pubspec.yaml'),
-    ]);
+    final lock = await _readLockfile();
+    if (lock == null) return unavailable;
 
     return SdkVersions(
-      lwk: results[0] ?? 'unavailable',
-      bdk: results[1] ?? 'unavailable',
-      breez: results[2] ?? 'unavailable',
+      lwk: _versionFor(lock, 'lwk') ?? 'unavailable',
+      bdk: _versionFor(lock, 'bdk_flutter') ?? 'unavailable',
+      breez: _versionFor(lock, 'flutter_breez_liquid') ?? 'unavailable',
     );
   }
 
-  static Future<String?> _readVersion(String assetPath) async {
+  static Future<String?> _readLockfile() async {
     try {
-      final raw = await rootBundle.loadString(assetPath, cache: true);
-      final match = RegExp(r'^version:\s*([^\s#]+)', multiLine: true)
-          .firstMatch(raw);
-      return match?.group(1)?.trim();
+      final data = await rootBundle.load('pubspec.lock');
+      return utf8.decode(Uint8List.sublistView(data));
     } catch (_) {
       return null;
     }
+  }
+
+  static String? _versionFor(String lockfile, String packageName) {
+    final pattern = RegExp(
+      '^  ${RegExp.escape(packageName)}:\$.*?^    version:\\s*"?([^"\\n]+?)"?\\s*\$',
+      multiLine: true,
+      dotAll: true,
+    );
+    return pattern.firstMatch(lockfile)?.group(1)?.trim();
   }
 }
 
