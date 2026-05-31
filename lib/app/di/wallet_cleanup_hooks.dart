@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../features/wallet/data/services/wallet_id_service.dart';
+import '../../features/wallet/data/storage/balance_snapshot_storage.dart';
 import '../../features/wallet/data/storage/pending_transaction_storage.dart';
 import '../../shared/key_management/store/key_store_impl.dart';
 import '../../shared/key_management/store/pin_store_impl.dart';
@@ -31,6 +32,13 @@ List<Future<void> Function()> buildWalletCleanupHooks() {
       // walletId secure-storage entry. Audit-log scoping (Swaps/Pegs)
       // re-scopes onto the next generated id on first read.
       await WalletIdService(storage: const FlutterSecureStorage()).clear();
+    },
+    () async {
+      // Persisted balance snapshots. Wipe ALL of them (not just the current
+      // wallet's) so no prior wallet's cached balances can ever surface in a
+      // freshly created or imported wallet. Safe under the single-wallet-at-
+      // a-time invariant — there is never a second live wallet to preserve.
+      await SharedPreferencesBalanceSnapshotStore().clearAll();
     },
   ];
 }

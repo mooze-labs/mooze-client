@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/selected_words_row.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/word_grid_selector.dart';
+import 'package:mooze_mobile/features/wallet/data/storage/balance_snapshot_storage.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -184,7 +187,14 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     if (_checkInputs()) {
       await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
 
+      // A brand-new wallet must start from an empty balance state. Wipe any
+      // persisted snapshot (defence-in-depth — the create flow is reachable
+      // after a delete) and force the walletId to regenerate so the cache-
+      // first balance provider re-binds to a fresh, empty namespace.
+      await SharedPreferencesBalanceSnapshotStore().clearAll();
       ref.invalidate(mnemonicProvider);
+      ref.invalidate(walletIdProvider);
+      ref.invalidate(allBalancesProvider);
 
       if (mounted) {
         selectedWords.clear();

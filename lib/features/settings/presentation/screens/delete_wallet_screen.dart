@@ -9,6 +9,8 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
 
@@ -134,6 +136,11 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
             ref.invalidate(mnemonicProvider);
             ref.invalidate(balanceCacheProvider);
             ref.invalidate(transactionHistoryCacheProvider);
+            // Drop the V2 cache-first balance state and force the walletId to
+            // be regenerated, so the next wallet starts from an empty snapshot
+            // and never sees the deleted wallet's persisted balances.
+            ref.invalidate(walletIdProvider);
+            ref.invalidate(allBalancesProvider);
 
             if (context.mounted) {
               context.go('/setup/first-access');

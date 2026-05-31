@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/domain/entities/chain.dart';
 import 'package:mooze_mobile/domain/entities/wallet_credentials.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
@@ -94,6 +96,15 @@ class ImportButton extends ConsumerWidget {
             BootTracer.mark('import_button.invalidate.balance');
             ref.invalidate(transactionHistoryCacheProvider);
             BootTracer.mark('import_button.invalidate.tx_history');
+
+            // Force the walletId to regenerate and drop the V2 cache-first
+            // balance state, so the imported wallet starts from an empty
+            // snapshot and never displays the previously opened wallet's
+            // cached balances. The pre-import cleanup hooks already wiped
+            // every persisted snapshot from disk.
+            ref.invalidate(walletIdProvider);
+            ref.invalidate(allBalancesProvider);
+            BootTracer.mark('import_button.invalidate.balance_snapshot');
 
             // CRITICAL (2026-05-24): invalidate the V2 transaction
             // notifier. The notifier instance constructed during the
