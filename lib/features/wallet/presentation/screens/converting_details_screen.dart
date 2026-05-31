@@ -197,7 +197,9 @@ class _HeaderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
+          Center(child: _StatusBadge(phase: swap.phase)),
+          const SizedBox(height: 10),
+          Row(
             children: [
               _DualAssetIcon(from: swap.fromAsset, to: swap.toAsset),
               const SizedBox(width: 12),
@@ -224,10 +226,9 @@ class _HeaderCard extends StatelessWidget {
                   ],
                 ),
               ),
-              _StatusBadge(phase: swap.phase),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
