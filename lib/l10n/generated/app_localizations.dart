@@ -8505,6 +8505,90 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Entendi e Aceito ({seconds})'**
   String swap_btc_lbtc_warning_accept_button_counting(int seconds);
+
+  /// No description provided for @asset_activity_market_price.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preço {ticker}'**
+  String asset_activity_market_price(String ticker);
+
+  /// No description provided for @asset_activity_summary_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Resumo'**
+  String get asset_activity_summary_title;
+
+  /// No description provided for @asset_activity_received_total.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebido total'**
+  String get asset_activity_received_total;
+
+  /// No description provided for @asset_activity_sent_total.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviado total'**
+  String get asset_activity_sent_total;
+
+  /// No description provided for @asset_activity_current_balance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo atual'**
+  String get asset_activity_current_balance;
+
+  /// No description provided for @asset_activity_transactions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transações'**
+  String get asset_activity_transactions;
+
+  /// No description provided for @asset_activity_section_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Movimentações'**
+  String get asset_activity_section_title;
+
+  /// No description provided for @asset_activity_first.
+  ///
+  /// In pt, this message translates to:
+  /// **'Primeira movimentação'**
+  String get asset_activity_first;
+
+  /// No description provided for @asset_activity_last.
+  ///
+  /// In pt, this message translates to:
+  /// **'Última movimentação'**
+  String get asset_activity_last;
+
+  /// No description provided for @asset_activity_highlights_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Destaques'**
+  String get asset_activity_highlights_title;
+
+  /// No description provided for @asset_activity_largest_receive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maior recebimento'**
+  String get asset_activity_largest_receive;
+
+  /// No description provided for @asset_activity_largest_send.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maior envio'**
+  String get asset_activity_largest_send;
+
+  /// No description provided for @asset_activity_total_volume.
+  ///
+  /// In pt, this message translates to:
+  /// **'Volume movimentado'**
+  String get asset_activity_total_volume;
+
+  /// No description provided for @asset_activity_history_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transações'**
+  String get asset_activity_history_title;
 }
 
 class _AppLocalizationsDelegate

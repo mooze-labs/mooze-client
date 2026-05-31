@@ -1678,5 +1678,26 @@
         "type": "int"
       }
     }
-  }
+  },
+  "asset_activity_market_price": "{ticker} price",
+  "@asset_activity_market_price": {
+    "placeholders": {
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "asset_activity_summary_title": "Summary",
+  "asset_activity_received_total": "Received total",
+  "asset_activity_sent_total": "Sent total",
+  "asset_activity_current_balance": "Current balance",
+  "asset_activity_transactions": "Transactions",
+  "asset_activity_section_title": "Movements",
+  "asset_activity_first": "First activity",
+  "asset_activity_last": "Last activity",
+  "asset_activity_highlights_title": "Highlights",
+  "asset_activity_largest_receive": "Largest receive",
+  "asset_activity_largest_send": "Largest send",
+  "asset_activity_total_volume": "Total volume",
+  "asset_activity_history_title": "Transactions"
 }

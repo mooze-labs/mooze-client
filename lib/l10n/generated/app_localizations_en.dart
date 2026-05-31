@@ -4784,4 +4784,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String swap_btc_lbtc_warning_accept_button_counting(int seconds) {
     return 'I understand and accept ($seconds)';
   }
+
+  @override
+  String asset_activity_market_price(String ticker) {
+    return '$ticker price';
+  }
+
+  @override
+  String get asset_activity_summary_title => 'Summary';
+
+  @override
+  String get asset_activity_received_total => 'Received total';
+
+  @override
+  String get asset_activity_sent_total => 'Sent total';
+
+  @override
+  String get asset_activity_current_balance => 'Current balance';
+
+  @override
+  String get asset_activity_transactions => 'Transactions';
+
+  @override
+  String get asset_activity_section_title => 'Movements';
+
+  @override
+  String get asset_activity_first => 'First activity';
+
+  @override
+  String get asset_activity_last => 'Last activity';
+
+  @override
+  String get asset_activity_highlights_title => 'Highlights';
+
+  @override
+  String get asset_activity_largest_receive => 'Largest receive';
+
+  @override
+  String get asset_activity_largest_send => 'Largest send';
+
+  @override
+  String get asset_activity_total_volume => 'Total volume';
+
+  @override
+  String get asset_activity_history_title => 'Transactions';
 }

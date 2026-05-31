@@ -57,7 +57,7 @@ class WalletHolding {
       balance: balance,
       fiatPrice: fiatPrice,
       fiatValue: fiatValue,
-      formattedBalance: _formatBalance(balance, asset, locale),
+      formattedBalance: formatBalance(balance, asset, locale),
       formattedFiatValue: hasBalance
           ? '$currencySymbol ${fiatFormatter.format(fiatValue)}'
           : '$currencySymbol ${fiatFormatter.format(0)}',
@@ -65,7 +65,10 @@ class WalletHolding {
     );
   }
 
-  static String _formatBalance(BigInt balance, Asset asset, String locale) {
+  /// Formats a base-unit [balance] (sats for BTC/L-BTC, 10^-8 units for
+  /// tokens) for display. Public so screens that render asset amounts
+  /// (e.g. the asset activity screen) share one formatting source of truth.
+  static String formatBalance(BigInt balance, Asset asset, String locale) {
     if (balance == BigInt.zero) {
       if (asset == Asset.btc || asset == Asset.lbtc) {
         return '0 sat';
@@ -107,7 +110,7 @@ final walletHoldingsProvider =
         balance: balance,
         fiatPrice: null,
         fiatValue: null,
-        formattedBalance: WalletHolding._formatBalance(balance, asset, locale),
+        formattedBalance: WalletHolding.formatBalance(balance, asset, locale),
         formattedFiatValue: 'Preço indisponível',
         hasBalance: balance > BigInt.zero,
       ));
@@ -120,7 +123,7 @@ final walletHoldingsProvider =
         balance: balance,
         fiatPrice: 0,
         fiatValue: 0,
-        formattedBalance: WalletHolding._formatBalance(balance, asset, locale),
+        formattedBalance: WalletHolding.formatBalance(balance, asset, locale),
         formattedFiatValue: '$currencyIcon $zeroFiat',
         hasBalance: balance > BigInt.zero,
       ));

@@ -227,17 +227,21 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
             final holding = holdings[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 15.0),
-              child: AssetTransactionItem(
-                icon: holding.asset.iconPath,
-                title: holding.asset.name,
-                subtitle: isVisible ? '•••••' : holding.formattedBalance,
-                value: isVisible ? '•••••' : holding.formattedFiatValue,
-                time:
-                    isVisible
-                        ? ''
-                        : (holding.hasBalance
-                            ? ''
-                            : t.wallet_holding_no_balance),
+              child: InkWell(
+                onTap:
+                    () => context.push('/asset-activity', extra: holding.asset),
+                child: AssetTransactionItem(
+                  icon: holding.asset.iconPath,
+                  title: holding.asset.name,
+                  subtitle: isVisible ? '•••••' : holding.formattedBalance,
+                  value: isVisible ? '•••••' : holding.formattedFiatValue,
+                  time:
+                      isVisible
+                          ? ''
+                          : (holding.hasBalance
+                              ? ''
+                              : t.wallet_holding_no_balance),
+                ),
               ),
             );
           },

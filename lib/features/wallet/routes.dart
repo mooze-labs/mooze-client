@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart
 import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/raw_tx_dump_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/swap_simulator_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/asset_activity/asset_activity_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
@@ -184,6 +185,13 @@ final walletRoutes = [
     builder: (context, state) {
       final localId = state.pathParameters['localId']!;
       return ConvertingDetailsScreen(localId: localId);
+    },
+  ),
+  GoRoute(
+    path: '/asset-activity',
+    builder: (context, state) {
+      final asset = state.extra as Asset;
+      return AssetActivityScreen(asset: asset);
     },
   ),
   GoRoute(
