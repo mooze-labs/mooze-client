@@ -2332,6 +2332,42 @@ abstract class AppLocalizations {
   /// **'Log copiado!'**
   String get logs_detail_copied;
 
+  /// No description provided for @logs_overview_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atividade de logs'**
+  String get logs_overview_title;
+
+  /// No description provided for @logs_overview_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diagnóstico do app em tempo real'**
+  String get logs_overview_subtitle;
+
+  /// No description provided for @logs_source_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Origem'**
+  String get logs_source_label;
+
+  /// No description provided for @logs_levels_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Níveis'**
+  String get logs_levels_label;
+
+  /// No description provided for @logs_entries_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'entradas'**
+  String get logs_entries_label;
+
+  /// No description provided for @logs_detail_tag.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tag'**
+  String get logs_detail_tag;
+
   /// No description provided for @receive_title.
   ///
   /// In pt, this message translates to:

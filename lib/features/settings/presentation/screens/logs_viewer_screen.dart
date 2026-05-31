@@ -5,7 +5,7 @@ import 'package:mooze_mobile/features/settings/domain/entities/logs_source.dart'
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_filter_bar.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_control_panel.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_detail_modal.dart';
 import 'package:mooze_mobile/database/database.dart';
@@ -25,7 +25,8 @@ class LogsViewerScreen extends StatefulWidget {
   State<LogsViewerScreen> createState() => _LogsViewerScreenState();
 }
 
-class _LogsViewerScreenState extends State<LogsViewerScreen> {
+class _LogsViewerScreenState extends State<LogsViewerScreen>
+    with SingleTickerProviderStateMixin {
   LogLevel? _selectedLevel;
   String _searchQuery = '';
   final bool _autoScroll = true;
@@ -48,22 +49,55 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
   // discard their results so a fast typist can't get an out-of-order page.
   int _loadToken = 0;
 
+  // Live level distribution for the control panel (source-dependent).
+  Map<LogLevel, int> _levelCounts = const {};
+  int _totalCount = 0;
+
   StreamSubscription<LogEntry>? _logStreamSubscription;
   Timer? _autoScrollDebounceTimer;
   Timer? _searchDebounceTimer;
+  Timer? _statsDebounceTimer;
+
+  late final AnimationController _entryController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
 
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOut,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
+    _entryController.forward();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _loadInitialLogs();
+      if (!mounted) return;
+      _loadInitialLogs();
+      _refreshStats();
     });
 
     _scrollController.addListener(_onScroll);
 
     _logStreamSubscription = widget.logger.logStream.listen((_) {
-      if (_autoScroll && _logSource == LogSource.memory && mounted) {
+      if (!mounted) return;
+
+      // Keep the distribution live without hammering the DB on every entry.
+      _statsDebounceTimer?.cancel();
+      _statsDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted) _refreshStats();
+      });
+
+      if (_autoScroll && _logSource == LogSource.memory) {
         _loadInitialLogs();
 
         _autoScrollDebounceTimer?.cancel();
@@ -82,11 +116,13 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
 
   @override
   void dispose() {
+    _entryController.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     _logStreamSubscription?.cancel();
     _autoScrollDebounceTimer?.cancel();
     _searchDebounceTimer?.cancel();
+    _statsDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -97,6 +133,38 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
         _loadMoreLogs();
       }
     }
+  }
+
+  /// Recomputes the per-level distribution shown in the control panel. Memory
+  /// counts come straight from the ring buffer; database/all counts come from
+  /// the persisted store's aggregate stats.
+  Future<void> _refreshStats() async {
+    if (!mounted) return;
+
+    if (_logSource == LogSource.memory) {
+      final counts = <LogLevel, int>{};
+      for (final entry in widget.logger.logs) {
+        counts[entry.level] = (counts[entry.level] ?? 0) + 1;
+      }
+      if (!mounted) return;
+      setState(() {
+        _levelCounts = counts;
+        _totalCount = widget.logger.logs.length;
+      });
+      return;
+    }
+
+    final stats = await widget.logger.getDatabaseStats();
+    if (!mounted) return;
+    final byLevel = (stats['byLevel'] as Map?) ?? const {};
+    final counts = <LogLevel, int>{
+      for (final level in LogLevel.values)
+        level: (byLevel[level.name] as int?) ?? 0,
+    };
+    setState(() {
+      _levelCounts = counts;
+      _totalCount = (stats['total'] as int?) ?? 0;
+    });
   }
 
   Future<void> _loadInitialLogs() async {
@@ -245,17 +313,6 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     }
   }
 
-  String _sourceLabel(AppLocalizations t, LogSource source) {
-    switch (source) {
-      case LogSource.memory:
-        return t.logs_source_memory;
-      case LogSource.database:
-        return t.logs_source_database;
-      case LogSource.all:
-        return t.logs_source_all;
-    }
-  }
-
   /// Convert AppLog (DB row) to LogEntry for the shared widget contract.
   LogEntry _toLogEntry(dynamic log) {
     if (log is LogEntry) return log;
@@ -302,116 +359,140 @@ class _LogsViewerScreenState extends State<LogsViewerScreen> {
     if (source == _logSource) return;
     setState(() => _logSource = source);
     _loadInitialLogs();
+    _refreshStats();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
-    final textTheme = context.textTheme;
     final t = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(elevation: 0, title: Text(t.logs_viewer_title)),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: colorScheme.onSurface.withValues(alpha: 0.12),
+      appBar: AppBar(
+        centerTitle: true,
+        elevation: 0,
+        title: Text(t.logs_viewer_title),
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: LogControlPanel(
+                  source: _logSource,
+                  onSourceChanged: _onSourceChanged,
+                  searchController: _searchController,
+                  searchQuery: _searchQuery,
+                  onSearchChanged: _onSearchChanged,
+                  onClearSearch: _onClearSearch,
+                  selectedLevel: _selectedLevel,
+                  onLevelSelected: _onLevelSelected,
+                  totalCount: _totalCount,
+                  levelCounts: _levelCounts,
                 ),
               ),
+              const SizedBox(height: 16),
+              Expanded(child: _buildBody(context, t)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, AppLocalizations t) {
+    if (_isInitialLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SegmentedButton<LogSource>(
-                    segments:
-                        LogSource.values
-                            .map(
-                              (source) => ButtonSegment(
-                                value: source,
-                                label: Text(_sourceLabel(t, source)),
-                              ),
-                            )
-                            .toList(),
-                    selected: {_logSource},
-                    onSelectionChanged: (Set<LogSource> selected) {
-                      _onSourceChanged(selected.first);
-                    },
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
-                        if (states.contains(WidgetState.selected)) {
-                          return colorScheme.primary;
-                        }
-                        return colorScheme.onSurface.withValues(alpha: 0.06);
-                      }),
-                    ),
+            const SizedBox(height: 16),
+            Text(
+              t.logs_viewer_loading,
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_allLogs.isEmpty) {
+      return _EmptyState(message: t.logs_viewer_empty);
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+      itemCount: _allLogs.length + (_hasMoreData ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == _allLogs.length) {
+          return _isLoadingMore
+              ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
                   ),
                 ),
-              ],
+              )
+              : const SizedBox(height: 8);
+        }
+
+        final log = _toLogEntry(_allLogs[index]);
+        return LogItem(
+          log: log,
+          onTap: () => LogDetailModal.show(context, log),
+        );
+      },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = context.colorScheme;
+    final extra = context.appColors;
+    final tt = context.textTheme;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: cs.onSurface.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: cs.onSurface.withValues(alpha: 0.06)),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.inbox_rounded,
+              size: 28,
+              color: extra.textTertiary,
             ),
           ),
-          LogFilterBar(
-            searchController: _searchController,
-            searchQuery: _searchQuery,
-            selectedLevel: _selectedLevel,
-            onSearchChanged: _onSearchChanged,
-            onLevelSelected: _onLevelSelected,
-            onClearSearch: _onClearSearch,
-          ),
-          Expanded(
-            child:
-                _isInitialLoading
-                    ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const CircularProgressIndicator(),
-                          const SizedBox(height: 16),
-                          Text(
-                            t.logs_viewer_loading,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: context.colors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                    : _allLogs.isEmpty
-                    ? Center(
-                      child: Text(
-                        t.logs_viewer_empty,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    )
-                    : ListView.builder(
-                      controller: _scrollController,
-                      itemCount: _allLogs.length + (_hasMoreData ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _allLogs.length) {
-                          return _isLoadingMore
-                              ? const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              )
-                              : const SizedBox.shrink();
-                        }
-
-                        final log = _toLogEntry(_allLogs[index]);
-                        return LogItem(
-                          log: log,
-                          onTap: () => LogDetailModal.show(context, log),
-                        );
-                      },
-                    ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: tt.bodyMedium?.copyWith(color: extra.textSecondary),
           ),
         ],
       ),

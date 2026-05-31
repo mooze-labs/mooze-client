@@ -1275,6 +1275,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get logs_detail_copied => '¡Log copiado!';
 
   @override
+  String get logs_overview_title => 'Actividad de logs';
+
+  @override
+  String get logs_overview_subtitle => 'Diagnóstico de la app en tiempo real';
+
+  @override
+  String get logs_source_label => 'Origen';
+
+  @override
+  String get logs_levels_label => 'Niveles';
+
+  @override
+  String get logs_entries_label => 'entradas';
+
+  @override
+  String get logs_detail_tag => 'Tag';
+
+  @override
   String get receive_title => 'Recibir Activos';
 
   @override
