@@ -57,9 +57,7 @@ class _ReviewTransactionScreenState
           (psbtEither) => psbtEither.fold(
             (error) {
               _log.error(_tag, 'PSBT preparation returned an error: $error');
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                context.pop();
-              });
+              _scheduleAutoPop();
               return _buildErrorScreen(context, error);
             },
             (psbt) {
@@ -80,9 +78,7 @@ class _ReviewTransactionScreenState
           ),
       loading: () {
         _log.debug(_tag, 'Waiting for PSBT to be prepared...');
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.pop();
-        });
+        _scheduleAutoPop();
         return _buildLoadingScreen(context, isDrainTransaction);
       },
       error: (error, stackTrace) {
@@ -92,12 +88,17 @@ class _ReviewTransactionScreenState
           error: error,
           stackTrace: stackTrace,
         );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.pop();
-        });
+        _scheduleAutoPop();
         return _buildErrorScreen(context, error.toString());
       },
     );
+  }
+
+  void _scheduleAutoPop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (context.canPop()) context.pop();
+    });
   }
 
   Widget _buildLoadingScreen(
