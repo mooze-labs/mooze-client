@@ -357,8 +357,6 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
             ),
           ),
           const SizedBox(height: 50),
-          const LinearProgressIndicator(),
-          const SizedBox(height: 50),
           Pinput(
             keyboardType: TextInputType.number,
             length: 6,
