@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/app/lifecycle/app_foreground_observer.dart';
+import 'package:mooze_mobile/app/session/widgets/session_lock_gate.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/locale_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -26,28 +27,18 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   BootTracer.mark('main.bindings_ready');
 
-  // Kick off the iOS Keychain read for the wallet mnemonic NOW, before
-  // anything else awaits it. On a cold simulator the platform-channel
-  // round-trip can cost seconds — overlapping it with `runApp` /
-  // widget-tree mount / Riverpod provider setup pulls that cost out
-  // of the critical path. Both downstream consumers
-  // (`KeyStoreImpl.getKey` for the splash screen and
-  // `FlutterSecureCredentialStore.load` for the V2 boot orchestrator)
-  // now await this single future instead of issuing their own reads.
+  // Kick off the iOS Keychain read for the wallet mnemonic now, before anything
+  // awaits it, so the platform-channel round-trip overlaps with runApp and
+  // provider setup instead of sitting on the critical path. Downstream
+  // consumers await this single future rather than issuing their own reads.
   MnemonicPrefetch.start();
   BootTracer.mark('main.mnemonic_prefetch_started');
 
-  // Platform FFI inits (LibLwk + FlutterBreezLiquid) — kick them off in
-  // parallel with everything else. They each load a Rust dynamic library
-  // + register flutter_rust_bridge codegen; profiled iOS-simulator boots
-  // showed the two combined costing ~900 ms of UI-thread blocking when
-  // they ran sequentially during V2 boot's `platform` phase. By starting
-  // them HERE (cached as Futures inside `PlatformWarmup`), they overlap
-  // with the mnemonic prefetch, SharedPreferences load, runApp, and
-  // widget-tree mount. The V2 boot orchestrator's `PlatformInitializerImpl`
-  // now awaits the same Futures instead of calling init directly, so the
-  // "Should not initialize flutter_rust_bridge twice" invariant is
-  // preserved — there is still only one call per library per process.
+  // Platform FFI inits (LibLwk + FlutterBreezLiquid). Started here (cached as
+  // Futures inside `PlatformWarmup`) so they overlap with the rest of boot
+  // instead of blocking the UI thread sequentially during the `platform` phase.
+  // The boot orchestrator awaits the same Futures, so each library is still
+  // initialized only once per process.
   PlatformWarmup.start();
   BootTracer.mark('main.platform_warmup_started');
 
@@ -82,12 +73,10 @@ class _MyAppState extends ConsumerState<MyApp> {
     if (!_v2BootStarted) {
       _v2BootStarted = true;
       BootTracer.mark('app.first_build');
-      // Trigger V2 lifecycle exactly once on first build. The controller's
-      // own state machine handles existing-wallet vs. needs-setup branching:
-      // for an existing wallet this runs the full boot pipeline; for a
-      // fresh install it transitions to `AppPhase.needsSetup` and waits
-      // for the setup flow (import_button / create-wallet) to invoke
-      // `start()` again after the mnemonic is persisted.
+      // Trigger the V2 lifecycle exactly once on first build. The controller's
+      // state machine handles existing-wallet vs. needs-setup branching: an
+      // existing wallet runs the full boot pipeline; a fresh install waits for
+      // the setup flow to invoke `start()` again after persisting the mnemonic.
       Future.microtask(() async {
         BootTracer.mark('app.controller.resolving');
         final c = await ref.read(appLifecycleControllerProvider.future);
@@ -121,6 +110,18 @@ class _MyAppState extends ConsumerState<MyApp> {
                 return const Locale('en');
               },
               routerConfig: router,
+              // The session lock lives above the router, not inside it: stacking
+              // it over the navigator keeps the current screen mounted, so the
+              // lock clears back to exactly where the user was, with no route
+              // push/pop. The gate collapses to nothing while unlocked.
+              builder: (context, navigator) {
+                return Stack(
+                  children: [
+                    navigator ?? const SizedBox.shrink(),
+                    const SessionLockGate(),
+                  ],
+                );
+              },
             ),
           ),
         ),

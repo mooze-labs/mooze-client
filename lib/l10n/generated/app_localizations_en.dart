@@ -157,6 +157,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings_biometric_auth => 'Biometric authentication';
 
   @override
+  String get settings_security => 'Security';
+
+  @override
+  String get security_session_lock_title => 'Use Biometric/PIN Lock';
+
+  @override
+  String get security_session_lock_subtitle =>
+      'Require authentication after a period of inactivity';
+
+  @override
+  String get security_privacy_shield_title => 'Protect App Switcher';
+
+  @override
+  String get security_privacy_shield_subtitle =>
+      'Hide wallet content in the app switcher';
+
+  @override
+  String get security_lock_after => 'Lock After';
+
+  @override
+  String get security_timeout_immediate => 'Immediately';
+
+  @override
+  String get security_timeout_15s => '15 seconds';
+
+  @override
+  String get security_timeout_30s => '30 seconds';
+
+  @override
+  String get security_timeout_1m => '1 minute';
+
+  @override
+  String get security_timeout_5m => '5 minutes';
+
+  @override
+  String get privacy_shield_locked_title => 'Application Locked';
+
+  @override
+  String get privacy_shield_locked_subtitle => 'Authenticate to continue';
+
+  @override
   String get settings_delete_wallet => 'Delete wallet';
 
   @override
@@ -332,7 +373,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String biometric_auth_error(String error) {
-    return 'Authentication error: $error';
+    return '$error';
   }
 
   @override

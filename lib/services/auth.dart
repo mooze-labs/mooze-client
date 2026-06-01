@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/session_lock_timeout.dart';
 import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthenticationService {
   static const int maxPinAttemps = 5;
-  static const int sessionTimeoutMinutes = 1;
 
   final secureStorage = SecureStorageProvider.instance;
 
@@ -36,10 +36,9 @@ class AuthenticationService {
   }
 
   Future<bool> authenticate(String pin) async {
-    // Session validity is intentionally NOT checked here.
-    // The session bypass belongs exclusively in VerifyPinScreen._checkSession(),
-    // where forceAuth is respected. Checking it here would allow any wrong PIN
-    // (or old PIN after a change) to succeed as long as a session is alive.
+    // Session validity is intentionally not checked here — the bypass belongs
+    // in VerifyPinScreen._checkSession(), which respects forceAuth. Checking it
+    // here would let any wrong PIN succeed while a session is alive.
     var hashedPin = await secureStorage.read(key: "hashedPin");
     if (hashedPin == null) {
       throw Exception('No pin set');
@@ -83,7 +82,9 @@ class AuthenticationService {
     final lastAuth = DateTime.fromMillisecondsSinceEpoch(lastAuthTime);
     final diff = DateTime.now().difference(lastAuth);
 
-    return diff.inMinutes < sessionTimeoutMinutes;
+    // Honour the user-configurable "Lock After" timeout. A zero duration means
+    // any prior session is already invalid, so a cold open re-authenticates.
+    return diff < SessionLockTimeout.fromPrefs(prefs).duration;
   }
 
   Future<int> getAttempts() async {

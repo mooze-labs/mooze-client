@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
@@ -12,24 +13,18 @@ import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
-/// What kind of UI is currently being shown.
-///
-/// Splitting these out — instead of conditionally hiding pieces of a single
-/// scaffold — prevents the PIN Pinput from being built (and visibly flashing)
-/// while the native biometric prompt is up.
+/// What kind of UI is currently being shown. Splitting these out — instead of
+/// conditionally hiding pieces of a single scaffold — prevents the PIN Pinput
+/// from building (and flashing) while the native biometric prompt is up.
 enum _AuthMode {
-  /// Initial state: deciding which authentication path to take. Renders a
-  /// neutral splash-safe scaffold with just a progress indicator.
+  /// Initial state: deciding which authentication path to take.
   loading,
 
   /// Native biometric prompt is up (or about to be). UI is intentionally
-  /// minimal — no PIN field, no keypad, no loading spinner positioned where
-  /// a PIN would be — so there is nothing visible to flicker behind the
-  /// system dialog.
+  /// minimal so nothing flickers behind the system dialog.
   biometric,
 
-  /// Biometric is not available, was declined, or the user explicitly chose
-  /// PIN entry. Render the full PIN form.
+  /// Biometric is unavailable, declined, or the user chose PIN entry.
   pin,
 }
 
@@ -39,12 +34,19 @@ class VerifyPinScreen extends ConsumerStatefulWidget {
   final bool isAppResuming;
   final bool canGoBack;
 
+  /// Start directly on the PIN keypad and do not auto-trigger biometrics. Used
+  /// when the user chose "Use PIN" from the lock overlay's biometric step;
+  /// re-prompting biometrics here would undo that choice. The in-screen "use
+  /// biometrics" button still works.
+  final bool startInPinMode;
+
   const VerifyPinScreen({
     super.key,
     required this.onPinConfirmed,
     this.forceAuth = false,
     this.isAppResuming = false,
     this.canGoBack = true,
+    this.startInPinMode = false,
   });
 
   @override
@@ -59,8 +61,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   bool _isVerifying = false;
   bool _isPinValid = false;
 
-  // Capabilities resolved once during _checkSession and then fixed for the
-  // lifetime of this screen instance.
+  // Resolved once during _checkSession, then fixed for this screen instance.
   BiometricCapabilities _capabilities = BiometricCapabilities.none;
   bool _biometricEnabled = false;
   bool _isBiometricLoading = false;
@@ -98,21 +99,19 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       return;
     }
 
-    // PIN is required — pick the auth mode before any UI is shown so we
-    // never build the PIN form just to immediately hide it behind a
-    // biometric prompt.
+    // Pick the auth mode before any UI is shown so we never build the PIN form
+    // just to immediately hide it behind a biometric prompt.
     final biometricService = ref.read(biometricServiceProvider);
     final capabilities = await biometricService.capabilities().run();
     final isEnabled = await biometricService.isEnabled().run();
 
     if (!mounted) return;
 
-    // Auto-trigger biometrics only when the user opted in AND the device
-    // actually has a biometric enrolled. If the preference is on but the
-    // user has since removed their Face ID / fingerprint, fall back to PIN
-    // — never to the device passcode, which would surprise users who set
-    // up biometric unlock for this app specifically.
-    final shouldUseBiometric = isEnabled && capabilities.hasBiometrics;
+    // Auto-trigger biometrics only when the user opted in and a biometric is
+    // enrolled. If the preference is on but biometrics were removed, fall back
+    // to PIN — never to the device passcode.
+    final shouldUseBiometric =
+        isEnabled && capabilities.hasBiometrics && !widget.startInPinMode;
 
     setState(() {
       _capabilities = capabilities;
@@ -152,14 +151,10 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
         _pinController.clear();
       }
     } finally {
-      // Always reset the spinner. Previously this was gated behind a
-      // `navigated` flag so the loading state would persist while
-      // go_router transitioned to /home — but the V2 home screen's
-      // first build does enough synchronous work that the spinner
-      // visibly stalls mid-transition, which reads as a UI freeze.
-      // Clearing the spinner immediately makes the button respond to
-      // the tap and lets the route transition handle the visual
-      // continuity on its own.
+      // Always reset the spinner. Keeping it up across the route transition to
+      // /home reads as a UI freeze because the home screen's first build does
+      // enough synchronous work to stall it; clearing it lets the transition
+      // handle visual continuity.
       if (mounted) {
         setState(() {
           _isVerifying = false;
@@ -168,11 +163,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     }
   }
 
-  /// Triggers the native biometric prompt.
-  ///
-  /// On failure or user cancel we just clear the loading state and stay on
-  /// the biometric view — its inline PIN input already gives the user a way
-  /// to finish authenticating without a mode switch.
+  /// Triggers the native biometric prompt. On failure or cancel we stay on the
+  /// biometric view — its inline PIN input lets the user finish without a mode
+  /// switch.
   Future<void> _authWithBiometrics() async {
     if (_isBiometricLoading) return;
 
@@ -180,10 +173,17 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
 
     final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
+    // Captured before the await so it can be cleared even if this widget is
+    // disposed by the time the prompt resolves.
+    final authPrompt = ref.read(authPromptActiveProvider.notifier);
 
+    // `whenComplete` clears the flag even if the prompt throws — a stuck `true`
+    // would suppress the privacy shield forever.
+    authPrompt.begin();
     final result = await biometricService
         .unlockWithBiometric(reason: t.pin_biometric_access_reason)
-        .run();
+        .run()
+        .whenComplete(authPrompt.end);
 
     if (!mounted) return;
 
@@ -198,21 +198,18 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
           widget.onPinConfirmed();
           return;
         }
-        // User dismissed the prompt — stay put, the inline PIN input is
-        // right there if they want to use it.
+        // User dismissed the prompt — stay put, the inline PIN input is there.
         setState(() => _isBiometricLoading = false);
       },
     );
   }
 
   /// Emergency fallback: lets users who forgot their PIN unlock using only
-  /// device credentials (device PIN / pattern / password).
-  ///
-  /// Only shown when biometric authentication is NOT enabled, so there is no
-  /// duplicate with the regular biometric flow.
+  /// device credentials. Only shown when biometric auth is not enabled.
   Future<void> _authWithDeviceCredential() async {
     final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
+    final authPrompt = ref.read(authPromptActiveProvider.notifier);
 
     if (!_capabilities.hasAnyAuth) {
       AppSnackBar.warning(context, t.pin_biometric_unavailable);
@@ -221,16 +218,17 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
 
     // Routes through the native CredentialAuthBridge on Android so the
     // BIOMETRIC_WEAK | DEVICE_CREDENTIAL mask is used (the only combination
-    // documented to work on API 28-29 and the only one that survives
-    // Xiaomi/MIUI's replacement biometric prompt). Falls through to
-    // KeyguardManager.createConfirmDeviceCredentialIntent if the prompt
-    // refuses to launch.
+    // that works on API 28-29 and survives Xiaomi/MIUI's replacement prompt).
+    // Falls through to KeyguardManager.createConfirmDeviceCredentialIntent if
+    // the prompt refuses to launch.
+    authPrompt.begin();
     final result = await biometricService
         .unlockWithDeviceCredential(
           reason: t.pin_reset_biometric_reason,
           title: t.pin_reset_biometric_reason,
         )
-        .run();
+        .run()
+        .whenComplete(authPrompt.end);
 
     if (!mounted) return;
 
@@ -280,10 +278,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   }
 
   /// Lightweight splash shown while the native biometric prompt is up.
-  ///
-  /// Deliberately minimal: a centered icon and a fallback button. No PIN
-  /// field, no progress indicator placed where the PIN would be — nothing
-  /// that could flicker into view when the system dialog dismisses.
+  /// Deliberately minimal so nothing flickers when the system dialog dismisses.
   Widget _buildBiometricView(BuildContext context, AppLocalizations t) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -380,12 +375,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
           ),
           const SizedBox(height: 20),
 
-          // ── Biometric section ──────────────────────────────────────
           if (_biometricEnabled && _capabilities.hasBiometrics) ...[
-            // Biometric is the user's preferred method — show a prominent
-            // button that re-triggers the prompt (and switches back to the
-            // biometric splash so the PIN form doesn't sit visible behind
-            // the native dialog).
+            // Re-trigger the prompt, switching back to the biometric splash so
+            // the PIN form doesn't sit visible behind the native dialog.
             TextButton.icon(
               onPressed: _isBiometricLoading
                   ? null
@@ -403,8 +395,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
               label: Text(t.pin_use_biometric),
             ),
           ] else ...[
-            // Biometric not enabled — show an emergency device-credential
-            // fallback for users who forgot their PIN.
+            // Emergency device-credential fallback for users who forgot their PIN.
             Text(t.pin_forgot),
             TextButton(
               onPressed: _authWithDeviceCredential,

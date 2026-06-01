@@ -158,6 +158,47 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_biometric_auth => 'Autenticação biométrica';
 
   @override
+  String get settings_security => 'Segurança';
+
+  @override
+  String get security_session_lock_title => 'Usar bloqueio por Biometria/PIN';
+
+  @override
+  String get security_session_lock_subtitle =>
+      'Exigir autenticação após um período de inatividade';
+
+  @override
+  String get security_privacy_shield_title => 'Proteger o alternador de apps';
+
+  @override
+  String get security_privacy_shield_subtitle =>
+      'Ocultar o conteúdo da carteira no alternador de apps';
+
+  @override
+  String get security_lock_after => 'Bloquear após';
+
+  @override
+  String get security_timeout_immediate => 'Imediatamente';
+
+  @override
+  String get security_timeout_15s => '15 segundos';
+
+  @override
+  String get security_timeout_30s => '30 segundos';
+
+  @override
+  String get security_timeout_1m => '1 minuto';
+
+  @override
+  String get security_timeout_5m => '5 minutos';
+
+  @override
+  String get privacy_shield_locked_title => 'Aplicativo bloqueado';
+
+  @override
+  String get privacy_shield_locked_subtitle => 'Autentique-se para continuar';
+
+  @override
   String get settings_delete_wallet => 'Deletar carteira';
 
   @override
@@ -335,7 +376,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String biometric_auth_error(String error) {
-    return 'Erro ao autenticar: $error';
+    return '$error';
   }
 
   @override

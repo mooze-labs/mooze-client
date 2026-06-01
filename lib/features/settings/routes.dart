@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/settings/presentation/screens/delete_walle
 import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/license_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/node_settings_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/security_settings_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/theme_selector_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/language_selector_screen.dart';
@@ -59,5 +60,9 @@ final settingsRoutes = [
   GoRoute(
     path: '/settings/node-config',
     builder: (context, state) => const NodeSettingsScreen(),
+  ),
+  GoRoute(
+    path: '/settings/security',
+    builder: (context, state) => const SecuritySettingsScreen(),
   ),
 ];

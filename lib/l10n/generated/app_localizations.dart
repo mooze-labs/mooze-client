@@ -382,6 +382,84 @@ abstract class AppLocalizations {
   /// **'Autenticação biométrica'**
   String get settings_biometric_auth;
 
+  /// No description provided for @settings_security.
+  ///
+  /// In pt, this message translates to:
+  /// **'Segurança'**
+  String get settings_security;
+
+  /// No description provided for @security_session_lock_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar bloqueio por Biometria/PIN'**
+  String get security_session_lock_title;
+
+  /// No description provided for @security_session_lock_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exigir autenticação após um período de inatividade'**
+  String get security_session_lock_subtitle;
+
+  /// No description provided for @security_privacy_shield_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Proteger o alternador de apps'**
+  String get security_privacy_shield_title;
+
+  /// No description provided for @security_privacy_shield_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ocultar o conteúdo da carteira no alternador de apps'**
+  String get security_privacy_shield_subtitle;
+
+  /// No description provided for @security_lock_after.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bloquear após'**
+  String get security_lock_after;
+
+  /// No description provided for @security_timeout_immediate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Imediatamente'**
+  String get security_timeout_immediate;
+
+  /// No description provided for @security_timeout_15s.
+  ///
+  /// In pt, this message translates to:
+  /// **'15 segundos'**
+  String get security_timeout_15s;
+
+  /// No description provided for @security_timeout_30s.
+  ///
+  /// In pt, this message translates to:
+  /// **'30 segundos'**
+  String get security_timeout_30s;
+
+  /// No description provided for @security_timeout_1m.
+  ///
+  /// In pt, this message translates to:
+  /// **'1 minuto'**
+  String get security_timeout_1m;
+
+  /// No description provided for @security_timeout_5m.
+  ///
+  /// In pt, this message translates to:
+  /// **'5 minutos'**
+  String get security_timeout_5m;
+
+  /// No description provided for @privacy_shield_locked_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicativo bloqueado'**
+  String get privacy_shield_locked_title;
+
+  /// No description provided for @privacy_shield_locked_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Autentique-se para continuar'**
+  String get privacy_shield_locked_subtitle;
+
   /// No description provided for @settings_delete_wallet.
   ///
   /// In pt, this message translates to:
@@ -703,7 +781,7 @@ abstract class AppLocalizations {
   /// No description provided for @biometric_auth_error.
   ///
   /// In pt, this message translates to:
-  /// **'Erro ao autenticar: {error}'**
+  /// **'{error}'**
   String biometric_auth_error(String error);
 
   /// No description provided for @biometric_setup_enable_q.

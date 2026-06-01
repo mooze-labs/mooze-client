@@ -61,6 +61,19 @@
   "settings_view_recovery_phrase": "Ver frase de recuperação",
   "settings_change_pin": "Mudar PIN",
   "settings_biometric_auth": "Autenticação biométrica",
+  "settings_security": "Segurança",
+  "security_session_lock_title": "Usar bloqueio por Biometria/PIN",
+  "security_session_lock_subtitle": "Exigir autenticação após um período de inatividade",
+  "security_privacy_shield_title": "Proteger o alternador de apps",
+  "security_privacy_shield_subtitle": "Ocultar o conteúdo da carteira no alternador de apps",
+  "security_lock_after": "Bloquear após",
+  "security_timeout_immediate": "Imediatamente",
+  "security_timeout_15s": "15 segundos",
+  "security_timeout_30s": "30 segundos",
+  "security_timeout_1m": "1 minuto",
+  "security_timeout_5m": "5 minutos",
+  "privacy_shield_locked_title": "Aplicativo bloqueado",
+  "privacy_shield_locked_subtitle": "Autentique-se para continuar",
   "settings_delete_wallet": "Deletar carteira",
   "settings_theme": "Tema",
   "settings_language": "Idioma",
@@ -121,7 +134,7 @@
   "biometric_disabled_info": "Autenticação biométrica desativada.",
   "biometric_disable_error": "Erro ao desativar biometria.",
   "biometric_save_error": "Erro ao salvar configuração.",
-  "biometric_auth_error": "Erro ao autenticar: {error}",
+  "biometric_auth_error": "{error}",
   "@biometric_auth_error": {
     "placeholders": {
       "error": {

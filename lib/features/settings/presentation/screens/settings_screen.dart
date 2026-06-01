@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fpdart/fpdart.dart';
 
+import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
@@ -28,22 +29,27 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  /// Called when the user taps the biometric toggle.
-  ///
-  /// Enabling: triggers the native prompt to confirm it actually works before
-  /// persisting the preference.
-  /// Disabling: clears the preference immediately.
+  /// Called when the user taps the biometric toggle. Enabling triggers the
+  /// native prompt to confirm it works before persisting; disabling clears the
+  /// preference immediately.
   Future<void> _handleBiometricToggle(bool enable) async {
     final biometricService = ref.read(biometricServiceProvider);
     final t = AppLocalizations.of(context);
 
     if (enable) {
-      // MUST be biometric-only — otherwise a user can enable the toggle by
-      // entering their device PIN alone, which leaves the verify-PIN flow
-      // unable to satisfy the next biometric prompt.
+      // Must be biometric-only — otherwise the user could enable the toggle
+      // with their device PIN alone, leaving the verify-PIN flow unable to
+      // satisfy the next biometric prompt.
+      //
+      // The auth-prompt flag stops the privacy shield from treating the native
+      // dialog's `inactive` as a real backgrounding; `whenComplete` clears it
+      // even if the prompt throws.
+      final authPrompt = ref.read(authPromptActiveProvider.notifier);
+      authPrompt.begin();
       final authResult = await biometricService
           .unlockWithBiometric(reason: t.biometric_auth_reason)
-          .run();
+          .run()
+          .whenComplete(authPrompt.end);
 
       if (!mounted) return;
 
@@ -51,7 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         (error) async =>
             AppSnackBar.error(context, t.biometric_auth_error(error.message)),
         (authenticated) async {
-          if (!authenticated) return; // user dismissed — leave toggle off
+          if (!authenticated) return;
 
           final saveResult = await biometricService.setEnabled(true).run();
 
@@ -109,7 +115,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               settingsItems: [
                 ConfigStructure(
                   title: t.settings_view_recovery_phrase,
-                  iconSvgPath: 'assets/icons/menu/settings/security.svg',
+                  iconSvgPath: 'assets/icons/menu/settings/security_eye.svg',
                   action: Navigation(
                     context: context,
                     rota: '/setup/pin/verify',
@@ -119,18 +125,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                         seed.match(
                           (err) {
-                            AppSnackBar.error(
-                              context,
-                              t.seed_fetch_error(err),
-                            );
+                            AppSnackBar.error(context, t.seed_fetch_error(err));
                           },
                           (maybeSeed) {
                             maybeSeed.match(
                               () {
-                                AppSnackBar.warning(
-                                  context,
-                                  t.seed_not_found,
-                                );
+                                AppSnackBar.warning(context, t.seed_not_found);
                               },
                               (seedValue) {
                                 context.pushReplacement(
@@ -161,17 +161,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 // Only surface the biometric toggle when the device has the
-                // necessary hardware — no point showing it on unsupported
-                // devices.
+                // necessary hardware.
                 if (biometricAvailable)
                   ConfigStructure(
                     title: t.settings_biometric_auth,
-                    iconSvgPath: 'assets/icons/menu/settings/security.svg',
+                    iconSvgPath: 'assets/icons/menu/settings/biometrics.svg',
                     action: Toggle(
                       value: biometricEnabled,
                       onChange: _handleBiometricToggle,
                     ),
                   ),
+                ConfigStructure(
+                  title: t.settings_security,
+                  iconSvgPath: 'assets/icons/menu/settings/security.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/security',
+                  ),
+                ),
                 ConfigStructure(
                   title: t.settings_delete_wallet,
                   iconSvgPath: 'assets/icons/menu/settings/delete_account.svg',
@@ -253,7 +260,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               settingsItems: [
                 ConfigStructure(
                   title: t.settings_node_config,
-                  iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                  iconSvgPath: 'assets/icons/menu/settings/nodes.svg',
                   action: Navigation(
                     context: context,
                     rota: '/settings/node-config',
@@ -266,7 +273,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               settingsItems: [
                 ConfigStructure(
                   title: t.settings_verify_address,
-                  iconSvgPath: 'assets/icons/menu/settings/security.svg',
+                  iconSvgPath: 'assets/icons/menu/settings/verify.svg',
                   action: Navigation(
                     context: context,
                     rota: '/settings/address-ownership',
@@ -274,7 +281,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 ConfigStructure(
                   title: t.settings_address_explorer,
-                  iconSvgPath: 'assets/icons/menu/settings/data.svg',
+                  iconSvgPath: 'assets/icons/menu/settings/address.svg',
                   action: Navigation(
                     context: context,
                     rota: '/settings/address-explorer',
