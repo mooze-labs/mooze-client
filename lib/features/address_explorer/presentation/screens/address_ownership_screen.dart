@@ -82,6 +82,11 @@ class _AddressOwnershipScreenState
     return _detector.detect(cleaned).isNotEmpty;
   }
 
+  Color _inputBorderColor(ColorScheme scheme) =>
+      scheme.brightness == Brightness.light
+          ? scheme.outline
+          : scheme.outlineVariant.withValues(alpha: 0.6);
+
   AddressChain? _detectedChain(String input) {
     final cleaned = _detector.stripUriScheme(input);
     if (cleaned.isEmpty) return null;
@@ -143,6 +148,7 @@ class _AddressOwnershipScreenState
     final state = ref.watch(addressOwnershipControllerProvider);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final borderColor = _inputBorderColor(scheme);
 
     final raw = _controller.text.trim();
     final hasInput = raw.isNotEmpty;
@@ -205,15 +211,11 @@ class _AddressOwnershipScreenState
                       .withValues(alpha: 0.3),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: scheme.outlineVariant.withValues(alpha: 0.6),
-                    ),
+                    borderSide: BorderSide(color: borderColor),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: scheme.outlineVariant.withValues(alpha: 0.6),
-                    ),
+                    borderSide: BorderSide(color: borderColor),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -368,9 +370,7 @@ class _AddressOwnershipScreenState
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.6),
-          ),
+          border: Border.all(color: _inputBorderColor(scheme)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(

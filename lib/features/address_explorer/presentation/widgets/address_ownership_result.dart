@@ -22,9 +22,10 @@ class AddressOwnershipResult extends StatelessWidget {
       );
     }
 
-    final chainLabel = match.chain == AddressChain.bitcoin
-        ? t.address_ownership_chain_bitcoin
-        : t.address_ownership_chain_liquid;
+    final chainLabel =
+        match.chain == AddressChain.bitcoin
+            ? t.address_ownership_chain_bitcoin
+            : t.address_ownership_chain_liquid;
     final isUsed = match.status == AddressStatus.used;
 
     return _OwnedCard(
@@ -61,14 +62,16 @@ class _NotOwnedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = theme.colorScheme;
     final muted = scheme.error.withValues(alpha: 0.85);
+    Color _inputBorderColor(ColorScheme scheme) =>
+        scheme.brightness == Brightness.light
+            ? scheme.outline
+            : scheme.outlineVariant.withValues(alpha: 0.6);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.6),
-        ),
+        border: Border.all(color: _inputBorderColor(scheme)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

@@ -47,19 +47,22 @@ class SecuritySettingsScreen extends ConsumerWidget {
                         title: t.security_session_lock_title,
                         subtitle: t.security_session_lock_subtitle,
                         value: sessionLockEnabled,
-                        onChanged: (v) => ref
-                            .read(sessionLockEnabledProvider.notifier)
-                            .setEnabled(v),
+                        onChanged:
+                            (v) => ref
+                                .read(sessionLockEnabledProvider.notifier)
+                                .setEnabled(v),
                       ),
                       const LabelDivider(),
-                      _SwitchRow(
-                        title: t.security_privacy_shield_title,
-                        subtitle: t.security_privacy_shield_subtitle,
-                        value: privacyShieldEnabled,
-                        onChanged: (v) => ref
-                            .read(privacyShieldEnabledProvider.notifier)
-                            .setEnabled(v),
-                      ),
+                      if (!sessionLockEnabled)
+                        _SwitchRow(
+                          title: t.security_privacy_shield_title,
+                          subtitle: t.security_privacy_shield_subtitle,
+                          value: privacyShieldEnabled,
+                          onChanged:
+                              (v) => ref
+                                  .read(privacyShieldEnabledProvider.notifier)
+                                  .setEnabled(v),
+                        ),
                     ],
                   ),
                 ),
@@ -73,18 +76,21 @@ class SecuritySettingsScreen extends ConsumerWidget {
                     color: colorScheme.surfaceContainerLow,
                     child: Column(
                       children: [
-                        for (var i = 0;
-                            i < SessionLockTimeout.values.length;
-                            i++) ...[
+                        for (
+                          var i = 0;
+                          i < SessionLockTimeout.values.length;
+                          i++
+                        ) ...[
                           _TimeoutRow(
                             label: _timeoutLabel(
                               t,
                               SessionLockTimeout.values[i],
                             ),
                             selected: timeout == SessionLockTimeout.values[i],
-                            onTap: () => ref
-                                .read(sessionLockTimeoutProvider.notifier)
-                                .setTimeout(SessionLockTimeout.values[i]),
+                            onTap:
+                                () => ref
+                                    .read(sessionLockTimeoutProvider.notifier)
+                                    .setTimeout(SessionLockTimeout.values[i]),
                           ),
                           if (i < SessionLockTimeout.values.length - 1)
                             const LabelDivider(),
@@ -102,9 +108,9 @@ class SecuritySettingsScreen extends ConsumerWidget {
   }
 
   Widget _sectionHeader(BuildContext context, String text) => Padding(
-        padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
-        child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-      );
+    padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
+    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+  );
 
   String _timeoutLabel(AppLocalizations t, SessionLockTimeout timeout) =>
       switch (timeout) {
@@ -138,8 +144,8 @@ class _SwitchRow extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+          color: colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
       ),
       value: value,
       onChanged: onChanged,
@@ -167,8 +173,7 @@ class _TimeoutRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -178,9 +183,10 @@ class _TimeoutRow extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.radio_button_unchecked_rounded,
                 size: 20,
-                color: selected
-                    ? colorScheme.primary
-                    : colorScheme.onSurface.withValues(alpha: 0.3),
+                color:
+                    selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ],
           ),
