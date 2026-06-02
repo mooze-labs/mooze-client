@@ -3160,6 +3160,18 @@ abstract class AppLocalizations {
   /// **'Swap reembolsado'**
   String get tx_detail_swap_refunded;
 
+  /// No description provided for @tx_detail_swap_completed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Troca concluída'**
+  String get tx_detail_swap_completed;
+
+  /// No description provided for @tx_detail_swap_in_progress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Troca em andamento'**
+  String get tx_detail_swap_in_progress;
+
   /// No description provided for @tx_detail_refund_available_msg.
   ///
   /// In pt, this message translates to:
@@ -6118,6 +6130,12 @@ abstract class AppLocalizations {
   /// **'Blockchain'**
   String get tx_detail_blockchain;
 
+  /// No description provided for @tx_detail_datetime.
+  ///
+  /// In pt, this message translates to:
+  /// **'{date} às {time}'**
+  String tx_detail_datetime(String date, String time);
+
   /// No description provided for @tx_detail_swap_label.
   ///
   /// In pt, this message translates to:
@@ -6129,6 +6147,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Enviado'**
   String get tx_detail_sent;
+
+  /// No description provided for @tx_detail_received.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebido'**
+  String get tx_detail_received;
 
   /// No description provided for @tx_detail_expected.
   ///
@@ -6243,6 +6267,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver Recebimento'**
   String get tx_detail_view_receive;
+
+  /// No description provided for @tx_detail_view_send_tx.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver transação de envio'**
+  String get tx_detail_view_send_tx;
+
+  /// No description provided for @tx_detail_view_refund_tx.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver transação de reembolso'**
+  String get tx_detail_view_refund_tx;
+
+  /// No description provided for @tx_detail_send_tx_id.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID TX Envio'**
+  String get tx_detail_send_tx_id;
+
+  /// No description provided for @tx_detail_refund_tx_id.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID TX Reembolso'**
+  String get tx_detail_refund_tx_id;
 
   /// No description provided for @tx_detail_validate_payment.
   ///

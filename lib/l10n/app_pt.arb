@@ -713,6 +713,8 @@
   "tx_detail_title": "Detalhes da Transação",
   "tx_detail_swap_unfinished": "Swap não concluído",
   "tx_detail_swap_refunded": "Swap reembolsado",
+  "tx_detail_swap_completed": "Troca concluída",
+  "tx_detail_swap_in_progress": "Troca em andamento",
   "tx_detail_refund_available_msg": "Esta transação não foi concluída com sucesso. Seus fundos estão seguros e disponíveis para reembolso. Use o botão abaixo para solicitar o reembolso.",
   "tx_detail_refund_processed_msg": "O reembolso desta transação já foi processado ou está sendo enviado. Seus fundos foram ou serão devolvidos em breve.",
   "tx_filter_title": "Filtros",
@@ -1538,8 +1540,20 @@
   "pix_fees_screen_footer_info_3": "O desconto de 15% com indicação se aplica apenas às taxas percentuais",
   "pix_fees_screen_footer_info_4": "As taxas são deduzidas automaticamente do valor depositado",
   "tx_detail_blockchain": "Blockchain",
+  "tx_detail_datetime": "{date} às {time}",
+  "@tx_detail_datetime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "tx_detail_swap_label": "Troca entre ativos",
   "tx_detail_sent": "Enviado",
+  "tx_detail_received": "Recebido",
   "tx_detail_expected": "Esperado",
   "tx_type_redeposit": "Auto-redepósito",
   "tx_type_unknown": "Desconhecido",
@@ -1586,6 +1600,10 @@
   "tx_detail_request_refund_subtitle": "Recuperar seus fundos agora",
   "tx_detail_view_send": "Ver Envio",
   "tx_detail_view_receive": "Ver Recebimento",
+  "tx_detail_view_send_tx": "Ver transação de envio",
+  "tx_detail_view_refund_tx": "Ver transação de reembolso",
+  "tx_detail_send_tx_id": "ID TX Envio",
+  "tx_detail_refund_tx_id": "ID TX Reembolso",
   "tx_detail_validate_payment": "Validar Pagamento",
   "tx_detail_verify_preimage": "Verificar preimagem",
   "tx_detail_send_id_label": "ID Envio ({chain})",

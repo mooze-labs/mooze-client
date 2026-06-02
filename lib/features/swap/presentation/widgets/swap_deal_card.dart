@@ -33,6 +33,11 @@ class SwapDealCard extends StatelessWidget {
   /// widget stays free of an `AppLocalizations` import dependency.
   final String sendLabel;
   final String receiveLabel;
+  final String? sendFiat;
+  final String? receiveFiat;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final Color? dividerColor;
 
   const SwapDealCard({
     super.key,
@@ -42,6 +47,11 @@ class SwapDealCard extends StatelessWidget {
     required this.receiveAmountSats,
     required this.sendLabel,
     required this.receiveLabel,
+    this.sendFiat,
+    this.receiveFiat,
+    this.backgroundColor,
+    this.borderColor,
+    this.dividerColor,
     this.isLoadingReceive = false,
   });
 
@@ -51,39 +61,48 @@ class SwapDealCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final locale = Localizations.localeOf(context).toString();
 
-    final borderColor = isDark
-        ? theme.colorScheme.outlineVariant.withValues(alpha: 0.45)
-        : theme.colorScheme.outline.withValues(alpha: 0.55);
-    final dividerColor = isDark
-        ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
-        : theme.colorScheme.outline.withValues(alpha: 0.45);
+    final effectiveBorderColor =
+        borderColor ??
+        (isDark
+            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.45)
+            : theme.colorScheme.outline.withValues(alpha: 0.55));
+    final effectiveDividerColor =
+        dividerColor ??
+        (isDark
+            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
+            : theme.colorScheme.outline.withValues(alpha: 0.45));
 
-    final sendAmountText = sendAmountSats != null
-        ? sendAsset.formatAmount(sendAmountSats!, locale: locale)
-        : '0';
-    final receiveAmountText = receiveAmountSats != null
-        ? receiveAsset.formatAmount(receiveAmountSats!, locale: locale)
-        : null;
+    final sendAmountText =
+        sendAmountSats != null
+            ? sendAsset.formatAmount(sendAmountSats!, locale: locale)
+            : '0';
+    final receiveAmountText =
+        receiveAmountSats != null
+            ? receiveAsset.formatAmount(receiveAmountSats!, locale: locale)
+            : null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       decoration: BoxDecoration(
         // Match the main-screen swap cards' dark-theme fill so the
         // sheet feels like a natural extension of the screen.
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHigh
-            : theme.colorScheme.surfaceContainerHighest,
+        color:
+            backgroundColor ??
+            (isDark
+                ? theme.colorScheme.surfaceContainerHigh
+                : theme.colorScheme.surfaceContainerHighest),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withValues(alpha: 0.08),
-                  blurRadius: 14,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+        border: Border.all(color: effectiveBorderColor),
+        boxShadow:
+            isDark
+                ? null
+                : [
+                  BoxShadow(
+                    color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
       ),
       child: Column(
         children: [
@@ -91,13 +110,14 @@ class SwapDealCard extends StatelessWidget {
             label: sendLabel,
             asset: sendAsset,
             amount: sendAmountText,
+            fiat: sendFiat,
             isShimmer: false,
             isHero: false,
           ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: Divider(color: dividerColor, height: 1)),
+              Expanded(child: Divider(color: effectiveDividerColor, height: 1)),
               const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.all(6),
@@ -112,7 +132,7 @@ class SwapDealCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(child: Divider(color: dividerColor, height: 1)),
+              Expanded(child: Divider(color: effectiveDividerColor, height: 1)),
             ],
           ),
           const SizedBox(height: 14),
@@ -120,6 +140,7 @@ class SwapDealCard extends StatelessWidget {
             label: receiveLabel,
             asset: receiveAsset,
             amount: receiveAmountText ?? '0',
+            fiat: receiveFiat,
             isShimmer: isLoadingReceive || receiveAmountText == null,
             isHero: true,
           ),
@@ -133,6 +154,7 @@ class _AmountRow extends StatelessWidget {
   final String label;
   final core.Asset asset;
   final String amount;
+  final String? fiat;
   final bool isShimmer;
   final bool isHero;
 
@@ -140,6 +162,7 @@ class _AmountRow extends StatelessWidget {
     required this.label,
     required this.asset,
     required this.amount,
+    required this.fiat,
     required this.isShimmer,
     required this.isHero,
   });
@@ -147,9 +170,14 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final amountStyle = isHero
-        ? theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)
-        : theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
+    final amountStyle =
+        isHero
+            ? theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            )
+            : theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            );
 
     return Row(
       children: [
@@ -174,26 +202,36 @@ class _AmountRow extends StatelessWidget {
               isShimmer
                   ? _ShimmerBlock(width: 140, height: isHero ? 28 : 22)
                   : Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            amount,
-                            style: amountStyle,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          amount,
+                          style: amountStyle,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          asset.displayUnit,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: context.colors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        asset.displayUnit,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: context.colors.textSecondary,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
+              if (!isShimmer && fiat != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  fiat!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: context.colors.textTertiary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

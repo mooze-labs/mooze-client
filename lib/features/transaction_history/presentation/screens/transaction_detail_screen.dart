@@ -14,6 +14,9 @@ import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/bitcoin_price_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/transaction_indicator_badge.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
@@ -75,22 +78,16 @@ class _TransactionDetailScreenState
     final isReceive = widget.transaction.type == TransactionType.receive;
     final bitcoinPrice = ref.watch(bitcoinPriceProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final isSendOrReceive =
+        widget.transaction.type == TransactionType.send ||
+        widget.transaction.type == TransactionType.receive;
 
     return PlatformSafeArea(
       child: Scaffold(
         backgroundColor: context.colors.backgroundColor,
         appBar: AppBar(
           elevation: 0,
-          title: Text(
-            AppLocalizations.of(context).tx_detail_title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          ),
+          title: Text(AppLocalizations.of(context).tx_detail_title),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -99,9 +96,10 @@ class _TransactionDetailScreenState
             children: [
               _buildTransactionHeader(isReceive, bitcoinPrice, currencySymbol),
               const SizedBox(height: 16),
-              _buildDetailsCard(context),
-              const SizedBox(height: 16),
-              _buildActionButtons(context),
+              if (isSendOrReceive)
+                _buildSendReceiveCard(context)
+              else
+                _buildDetailsCard(context),
             ],
           ),
         ),
@@ -110,8 +108,8 @@ class _TransactionDetailScreenState
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Hero card — same _SoftCard / _AssetMedallion / _TickerPill vocabulary
-  // as the send-review screen, so the two surfaces read as one system.
+  // Header — a tinted directional medallion for send/receive, and the shared
+  // [SwapDealCard] for swap/refund so every surface reads as one system.
   // ─────────────────────────────────────────────────────────────────────
 
   Widget _buildTransactionHeader(
@@ -126,56 +124,16 @@ class _TransactionDetailScreenState
         widget.transaction.status == TransactionStatus.refundable ||
         widget.transaction.status == TransactionStatus.failed;
 
-    return _SoftCard(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isRefundableOrFailed && _hasSwapDetails())
-            _buildRefundableHeader()
-          else if (isSwap && _hasSwapDetails())
-            _buildSwapHeader()
-          else
-            _buildRegularHeader(isReceive, bitcoinPrice, currencySymbol),
-          const SizedBox(height: 20),
-          _buildStatusBadge(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge() {
-    final color = _getStatusColor();
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(_getStatusIcon(), size: 15, color: color),
-              const SizedBox(width: 6),
-              Text(
-                _getStatusLabel(),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (widget.transaction.status == TransactionStatus.refundable ||
-            widget.transaction.status == TransactionStatus.failed) ...[
-          const SizedBox(height: 14),
-          _buildStatusExplanation(),
-        ],
+        if (isRefundableOrFailed && _hasSwapDetails())
+          _buildRefundableHeader()
+        else if (isSwap && _hasSwapDetails())
+          _buildSwapHeader()
+        else
+          _buildRegularHeader(isReceive, bitcoinPrice, currencySymbol),
       ],
     );
   }
@@ -193,179 +151,566 @@ class _TransactionDetailScreenState
     }
   }
 
-  Widget _buildStatusExplanation() {
-    final t = AppLocalizations.of(context);
-    final explanation =
-        widget.transaction.status == TransactionStatus.refundable
-            ? t.tx_detail_refund_available_msg
-            : t.tx_detail_refund_processed_msg;
-
-    return _InfoBanner(
-      icon: Icons.info_outline_rounded,
-      color: _getStatusColor(),
-      message: explanation,
-    );
-  }
-
   Widget _buildRegularHeader(
     bool isReceive,
     AsyncValue<double> bitcoinPrice,
     String currencySymbol,
   ) {
     final theme = Theme.of(context);
+    final tx = widget.transaction;
+    final colors = context.colors;
+
     return Column(
       children: [
-        _AssetMedallion(iconPath: widget.transaction.asset.iconPath),
+        TransactionIndicatorBadge.direction(
+          context: context,
+          isReceive: isReceive,
+        ),
         const SizedBox(height: 14),
         Text(
-          widget.transaction.asset.name,
+          _getTransactionTypeLabel(),
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
+            color: isReceive ? colors.positiveColor : colors.negativeColor,
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          _getTransactionTypeLabel(),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: context.colors.textSecondary,
+        const SizedBox(height: 20),
+        _SoftCard(
+          padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _HeroAmount(
+                asset: tx.asset,
+                amountInSats: tx.amount,
+                isReceive: isReceive,
+                bitcoinPrice: bitcoinPrice,
+                currencySymbol: currencySymbol,
+              ),
+              const SizedBox(height: 16),
+              Divider(height: 1, color: _heroDividerColor(theme)),
+              const SizedBox(height: 14),
+              _buildHeroAssetRow(tx.asset),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-        _TickerPill(text: widget.transaction.asset.ticker),
-        const SizedBox(height: 16),
-        _HeroAmount(
-          asset: widget.transaction.asset,
-          amountInSats: widget.transaction.amount,
-          isReceive: isReceive,
-          bitcoinPrice: bitcoinPrice,
-          currencySymbol: currencySymbol,
         ),
       ],
     );
   }
 
-  Widget _buildRefundableHeader() {
-    final t = AppLocalizations.of(context);
+  Color _heroDividerColor(ThemeData theme) =>
+      theme.brightness == Brightness.dark
+          ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
+          : theme.colorScheme.outline.withValues(alpha: 0.45);
+
+  Widget _buildHeroAssetRow(Asset asset) {
     final theme = Theme.of(context);
-    return Column(
+    return Row(
       children: [
+        SvgPicture.asset(asset.iconPath, width: 32, height: 32),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppLocalizations.of(context).wallet_send_conversion_asset,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.colors.textSecondary,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                asset.name,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
         Text(
-          widget.transaction.status == TransactionStatus.refundable
-              ? t.tx_detail_swap_unfinished
-              : t.tx_detail_swap_refunded,
+          asset.ticker,
           style: theme.textTheme.labelMedium?.copyWith(
             color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _AssetMedallion(
-              iconPath: widget.transaction.fromAsset!.iconPath,
-              size: 56,
-              iconSize: 30,
+      ],
+    );
+  }
+
+  Widget _buildSendReceiveCard(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    final isLightning = tx.blockchain == Blockchain.lightning;
+
+    final banners = <Widget>[];
+    final rows = <Widget>[];
+
+    if (tx.blockchain == Blockchain.bitcoin &&
+        tx.status != TransactionStatus.confirmed) {
+      banners.add(_buildConfirmationRow());
+    }
+
+    rows.add(_buildStatusRow());
+    rows.add(
+      _buildPlainRow(
+        label: t.pix_deposit_date,
+        value: _formatLocalizedDateTime(tx.createdAt),
+      ),
+    );
+    rows.add(_buildAssetRow(tx.asset));
+    rows.add(
+      _buildPlainRow(
+        label: t.wallet_amount,
+        value:
+            '${(tx.amount.toDouble() / 100000000).toStringAsFixed(8)} ${tx.asset.ticker}',
+      ),
+    );
+    rows.add(
+      _buildPlainRow(
+        label: t.tx_detail_blockchain,
+        value: _getBlockchainLabel(),
+      ),
+    );
+
+    if (tx.id.isNotEmpty) {
+      rows.add(
+        _buildPlainRow(
+          label: t.tx_id,
+          value: truncateHashId(tx.id),
+          copyable: true,
+          copyFieldId: 'transaction_id',
+          copyValue: tx.id,
+        ),
+      );
+    }
+
+    if (isLightning) {
+      if (tx.destination != null) {
+        rows.add(
+          _buildPlainRow(
+            label: tx.type == TransactionType.send ? 'LNURL' : 'Invoice',
+            value: truncateHashId(tx.destination!),
+            copyable: true,
+            copyFieldId: 'destination',
+            copyValue: tx.destination!,
+          ),
+        );
+      }
+      if (tx.preimage != null) {
+        rows.add(
+          _buildPlainRow(
+            label: t.tx_detail_preimage_label,
+            value: truncateHashId(tx.preimage!),
+            copyable: true,
+            copyFieldId: 'preimagem',
+            copyValue: tx.preimage!,
+          ),
+        );
+      } else if (tx.status == TransactionStatus.pending) {
+        banners.add(_buildPreimageWarning());
+      }
+    }
+
+    final actions = _buildSendReceiveActions(context);
+
+    return _assembleCard(banners: banners, rows: rows, actions: actions);
+  }
+
+  Widget _assembleCard({
+    required List<Widget> banners,
+    required List<Widget> rows,
+    required List<Widget> actions,
+  }) {
+    return _SoftCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (banners.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            for (var i = 0; i < banners.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              banners[i],
+            ],
+            const SizedBox(height: 4),
+          ],
+          for (final row in rows) row,
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            for (var i = 0; i < actions.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              actions[i],
+            ],
+            const SizedBox(height: 6),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlainRow({
+    required String label,
+    required String value,
+    bool copyable = false,
+    String? copyFieldId,
+    String? copyValue,
+  }) {
+    final theme = Theme.of(context);
+    final fieldId = copyFieldId ?? label;
+    final isCopied = _copiedFields[fieldId] ?? false;
+    final valueToCopy = copyValue ?? value;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: context.colors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(width: 16),
-            Icon(
-              Icons.close_rounded,
-              size: 22,
-              color: context.colors.textTertiary,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
-            const SizedBox(width: 16),
-            _AssetMedallion(
-              iconPath: widget.transaction.toAsset!.iconPath,
-              size: 56,
-              iconSize: 30,
+          ),
+          if (copyable) ...[
+            const SizedBox(width: 6),
+            _InlineCopyButton(
+              isCopied: isCopied,
+              onTap: () => _copyToClipboard(valueToCopy, fieldId),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrailingWidgetRow({
+    required String label,
+    required Widget trailing,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: context.colors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Align(alignment: Alignment.centerRight, child: trailing),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// "Asset" row — the asset icon to the left of its name. The asset is its own
+  /// identifier here, so the row carries no separate text value.
+  Widget _buildAssetRow(Asset asset) {
+    final theme = Theme.of(context);
+    return _buildTrailingWidgetRow(
+      label: AppLocalizations.of(context).wallet_send_conversion_asset,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(asset.iconPath, width: 22, height: 22),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              asset.name,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusRow() {
+    return _buildTrailingWidgetRow(
+      label: AppLocalizations.of(context).tx_filter_status,
+      trailing: _buildStatusChip(),
+    );
+  }
+
+  Widget _buildStatusChip() {
+    final theme = Theme.of(context);
+    final color = _getStatusColor();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getStatusIcon(), size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            _getStatusLabel(),
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildSendReceiveActions(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    final actions = <Widget>[];
+
+    actions.add(
+      _buildInCardActionButton(
+        context: context,
+        label: t.pix_deposit_view_explorer,
+        subtitle: t.pix_deposit_view_chain,
+        icon: Icons.open_in_new,
+        onPressed: _isExplorerEnabledFor() ? () => _openInExplorer() : null,
+      ),
+    );
+
+    if (tx.blockchain == Blockchain.lightning &&
+        tx.destination != null &&
+        tx.preimage != null) {
+      actions.add(
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_validate_payment,
+          subtitle: t.tx_detail_verify_preimage,
+          icon: Icons.verified,
+          onPressed: () => _openValidationUrl(),
+        ),
+      );
+    }
+    return actions;
+  }
+
+  Widget _buildInCardActionButton({
+    required BuildContext context,
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool isPrimary = false,
+  }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final enabled = onPressed != null;
+    final accent = cs.primary;
+
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: isPrimary ? accent : accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 19,
+              color: isPrimary ? cs.onPrimary : accent,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: context.colors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: context.colors.textTertiary,
+          ),
+        ],
+      ),
+    );
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: isPrimary ? 0.12 : 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: accent.withValues(alpha: isPrimary ? 0.30 : 0.16),
+          ),
+        ),
+        child:
+            enabled
+                ? Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(onTap: onPressed, child: body),
+                )
+                : body,
+      ),
+    );
+  }
+
+  String _formatLocalizedDateTime(DateTime dateTime) {
+    final locale = ref.read(localeStringProvider);
+    final use24h = MediaQuery.of(context).alwaysUse24HourFormat;
+    final datePart = DateFormat.yMMMMd(locale).format(dateTime);
+    final timePart = (use24h ? DateFormat.Hm(locale) : DateFormat.jm(locale))
+        .format(dateTime);
+    return AppLocalizations.of(context).tx_detail_datetime(datePart, timePart);
+  }
+
+  Widget _buildRefundableHeader() {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+    return Column(
+      children: [
+        _buildSwapStatusBadge(),
+        const SizedBox(height: 16),
+        SwapDealCard(
+          sendAsset: tx.fromAsset!,
+          sendAmountSats: tx.sentAmount!.toInt(),
+          receiveAsset: tx.toAsset!,
+          receiveAmountSats: tx.receivedAmount!.toInt(),
+          sendLabel: t.tx_detail_sent,
+          receiveLabel: t.tx_detail_expected,
+          sendFiat: _fiatEstimateFor(tx.fromAsset!, tx.sentAmount!),
+          receiveFiat: _fiatEstimateFor(tx.toAsset!, tx.receivedAmount!),
+          backgroundColor:
+              isDark
+                  ? cs.onSurface.withValues(alpha: 0.05)
+                  : cs.surfaceContainerHighest,
+          borderColor:
+              isDark
+                  ? cs.onSurface.withValues(alpha: 0.08)
+                  : cs.outline.withValues(alpha: 0.55),
         ),
       ],
     );
   }
 
   Widget _buildSwapHeader() {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
     return Column(
       children: [
-        _TickerPill(text: AppLocalizations.of(context).tx_detail_swap_label),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Asset FROM
-            Expanded(
-              child: Column(
-                children: [
-                  _AssetMedallion(
-                    iconPath: widget.transaction.fromAsset!.iconPath,
-                    size: 56,
-                    iconSize: 30,
-                  ),
-                  const SizedBox(height: 10),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _formatSwapAmount(
-                        widget.transaction.sentAmount!,
-                        widget.transaction.fromAsset!,
-                      ),
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurface,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.swap_horiz_rounded,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Asset TO
-            Expanded(
-              child: Column(
-                children: [
-                  _AssetMedallion(
-                    iconPath: widget.transaction.toAsset!.iconPath,
-                    size: 56,
-                    iconSize: 30,
-                  ),
-                  const SizedBox(height: 10),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _formatSwapAmount(
-                        widget.transaction.receivedAmount!,
-                        widget.transaction.toAsset!,
-                      ),
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: context.colors.positiveColor,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        _buildSwapStatusBadge(),
+        const SizedBox(height: 16),
+        SwapDealCard(
+          sendAsset: tx.fromAsset!,
+          sendAmountSats: tx.sentAmount!.toInt(),
+          receiveAsset: tx.toAsset!,
+          receiveAmountSats: tx.receivedAmount!.toInt(),
+          sendLabel: t.tx_detail_sent,
+          receiveLabel: t.tx_detail_received,
+          sendFiat: _fiatEstimateFor(tx.fromAsset!, tx.sentAmount!),
+          receiveFiat: _fiatEstimateFor(tx.toAsset!, tx.receivedAmount!),
+          backgroundColor:
+              isDark
+                  ? cs.onSurface.withValues(alpha: 0.05)
+                  : cs.surfaceContainerHighest,
+          borderColor:
+              isDark
+                  ? cs.onSurface.withValues(alpha: 0.08)
+                  : cs.outline.withValues(alpha: 0.55),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwapStatusBadge() {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final color = _getStatusColor();
+
+    final IconData icon;
+    final String label;
+    switch (widget.transaction.status) {
+      case TransactionStatus.confirmed:
+        icon = Icons.check_circle_rounded;
+        label = t.tx_detail_swap_completed;
+      case TransactionStatus.pending:
+        icon = Icons.schedule_rounded;
+        label = t.tx_detail_swap_in_progress;
+      case TransactionStatus.refundable:
+        icon = Icons.warning_amber_rounded;
+        label = t.tx_detail_swap_unfinished;
+      case TransactionStatus.failed:
+        icon = Icons.assignment_return_rounded;
+        label = t.tx_detail_swap_refunded;
+    }
+    return Column(
+      children: [
+        TransactionIndicatorBadge(icon: icon, color: color, size: 72),
+        const SizedBox(height: 14),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: color,
+            letterSpacing: -0.2,
+          ),
         ),
       ],
     );
@@ -378,60 +723,65 @@ class _TransactionDetailScreenState
         widget.transaction.receivedAmount != null;
   }
 
-  String _formatSwapAmount(BigInt amount, dynamic asset) {
-    final formattedAmount = (amount.toDouble() / 100000000).toStringAsFixed(8);
-    final cleanAmount = formattedAmount
-        .replaceAll(RegExp(r'0+$'), '')
-        .replaceAll(RegExp(r'\.$'), '');
-    return '$cleanAmount ${asset.ticker}';
+  String? _fiatEstimateFor(Asset asset, BigInt amount) {
+    return ref
+        .watch(fiatPriceProvider(asset))
+        .maybeWhen(
+          data: (either) {
+            return either.fold((_) => null, (price) {
+              if (price <= 0) return null;
+              final symbol = ref.watch(currencySymbolProvider);
+              final formatter = NumberFormat(
+                '#,##0.00',
+                ref.watch(localeStringProvider),
+              );
+              return '$symbol ${formatter.format(asset.toUsd(amount, price))}';
+            });
+          },
+          orElse: () => null,
+        );
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Details card — a single _SoftCard with hairline-divided rows, mirroring
-  // the send-review _DetailsCard. Info banners (submarine note, confirmation
-  // progress, preimage warning) sit in their own padded section at the top.
+  // Swap / refund details card — shares the exact layout vocabulary as the
+  // send/receive card (no title, no row icons, no dividers, copy-where-it-
+  // matters, actions folded in) so both surfaces read as one system.
   // ─────────────────────────────────────────────────────────────────────
 
   Widget _buildDetailsCard(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final isSwap = widget.transaction.type == TransactionType.swap;
-    final isSubmarineSwap =
-        widget.transaction.type == TransactionType.submarine;
-    final confirmed = widget.transaction.status == TransactionStatus.confirmed;
+    final tx = widget.transaction;
+    final isSwap = tx.type == TransactionType.swap;
+    final isSubmarineSwap = tx.type == TransactionType.submarine;
+    final confirmed = tx.status == TransactionStatus.confirmed;
     final isRefundableOrFailed =
-        widget.transaction.status == TransactionStatus.refundable ||
-        widget.transaction.status == TransactionStatus.failed;
+        tx.status == TransactionStatus.refundable ||
+        tx.status == TransactionStatus.failed;
 
     final List<Widget> banners = [];
     final List<Widget> rows = [];
 
     if (isRefundableOrFailed) {
+      rows.add(_buildStatusRow());
       rows.add(
-        _buildInfoRow(
-          icon: Icons.access_time,
+        _buildPlainRow(
           label: t.pix_deposit_date,
-          value: _formatDateTime(widget.transaction.createdAt),
+          value: _formatLocalizedDateTime(tx.createdAt),
         ),
       );
       if (_hasSwapDetails()) {
         rows.add(
-          _buildInfoRow(
-            icon: Icons.swap_horiz,
-            label: t.tx_detail_sent,
-            value: widget.transaction.fromAsset!.ticker,
-          ),
+          _buildPlainRow(label: t.tx_detail_sent, value: tx.fromAsset!.ticker),
         );
         rows.add(
-          _buildInfoRow(
-            icon: Icons.swap_horiz,
+          _buildPlainRow(
             label: t.tx_detail_expected,
-            value: widget.transaction.toAsset!.ticker,
+            value: tx.toAsset!.ticker,
           ),
         );
       }
       rows.add(
-        _buildInfoRow(
-          icon: Icons.link,
+        _buildPlainRow(
           label: t.tx_detail_blockchain,
           value: _getBlockchainLabel(),
         ),
@@ -441,15 +791,14 @@ class _TransactionDetailScreenState
       // synthetic id to the user as if it were valid.
       if (_isRefundedSwap()) {
         rows.addAll(_buildRefundedSwapIds());
-      } else if (widget.transaction.id.isNotEmpty) {
+      } else if (tx.id.isNotEmpty) {
         rows.add(
-          _buildInfoRow(
-            icon: Icons.tag,
+          _buildPlainRow(
             label: t.tx_id,
-            value: truncateHashId(widget.transaction.id),
+            value: truncateHashId(tx.id),
             copyable: true,
             copyFieldId: 'transaction_id',
-            copyValue: widget.transaction.id,
+            copyValue: tx.id,
           ),
         );
       }
@@ -458,40 +807,34 @@ class _TransactionDetailScreenState
         banners.add(_buildSubmarineSwapExplanation());
       }
 
-      if (widget.transaction.blockchain == Blockchain.bitcoin &&
-          widget.transaction.status != TransactionStatus.confirmed) {
+      if (tx.blockchain == Blockchain.bitcoin &&
+          tx.status != TransactionStatus.confirmed) {
         banners.add(_buildConfirmationRow());
       }
 
+      rows.add(_buildStatusRow());
       rows.add(
-        _buildInfoRow(
-          icon: Icons.access_time,
+        _buildPlainRow(
           label: t.pix_deposit_date,
-          value: _formatDateTime(widget.transaction.createdAt),
+          value: _formatLocalizedDateTime(tx.createdAt),
         ),
       );
 
       if (!(isSwap && _hasSwapDetails())) {
         rows.add(
-          _buildInfoRow(
-            icon: Icons.monetization_on,
-            label: t.tx_filter_currency,
-            value: widget.transaction.asset.name,
-          ),
+          _buildPlainRow(label: t.tx_filter_currency, value: tx.asset.name),
         );
         rows.add(
-          _buildInfoRow(
-            icon: Icons.account_balance_wallet,
+          _buildPlainRow(
             label: t.wallet_amount,
             value:
-                '${(widget.transaction.amount.toDouble() / 100000000).toStringAsFixed(8)} ${widget.transaction.asset.ticker}',
+                '${(tx.amount.toDouble() / 100000000).toStringAsFixed(8)} ${tx.asset.ticker}',
           ),
         );
       }
 
       rows.add(
-        _buildInfoRow(
-          icon: Icons.link,
+        _buildPlainRow(
           label: t.tx_detail_blockchain,
           value: _getBlockchainLabel(),
         ),
@@ -503,96 +846,49 @@ class _TransactionDetailScreenState
         rows.addAll(_buildRefundedSwapIds());
       } else {
         rows.add(
-          _buildInfoRow(
-            icon: Icons.tag,
+          _buildPlainRow(
             label: t.tx_id,
-            value: truncateHashId(widget.transaction.id),
+            value: truncateHashId(tx.id),
             copyable: true,
             copyFieldId: 'transaction_id',
-            copyValue: widget.transaction.id,
+            copyValue: tx.id,
           ),
         );
       }
 
-      if (widget.transaction.blockchain == Blockchain.lightning) {
-        if (widget.transaction.destination != null) {
+      if (tx.blockchain == Blockchain.lightning) {
+        if (tx.destination != null) {
           rows.add(
-            _buildInfoRow(
-              icon: Icons.qr_code,
-              label:
-                  widget.transaction.type == TransactionType.send
-                      ? "LNURL"
-                      : "Invoice",
-              value: truncateHashId(widget.transaction.destination!),
+            _buildPlainRow(
+              label: tx.type == TransactionType.send ? "LNURL" : "Invoice",
+              value: truncateHashId(tx.destination!),
               copyable: true,
               copyFieldId: 'destination',
-              copyValue: widget.transaction.destination!,
+              copyValue: tx.destination!,
             ),
           );
         }
-        if (widget.transaction.preimage != null) {
+        if (tx.preimage != null) {
           rows.add(
-            _buildInfoRow(
-              icon: Icons.key,
+            _buildPlainRow(
               label: t.tx_detail_preimage_label,
-              value: truncateHashId(widget.transaction.preimage!),
+              value: truncateHashId(tx.preimage!),
               copyable: true,
               copyFieldId: 'preimagem',
-              copyValue: widget.transaction.preimage!,
+              copyValue: tx.preimage!,
             ),
           );
-        } else if (widget.transaction.status == TransactionStatus.pending) {
+        } else if (tx.status == TransactionStatus.pending) {
           banners.add(_buildPreimageWarning());
         }
       }
     }
 
-    return _SoftCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(18, 18, 18, banners.isEmpty ? 6 : 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.pix_deposit_info,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                for (final banner in banners) ...[
-                  const SizedBox(height: 12),
-                  banner,
-                ],
-              ],
-            ),
-          ),
-          ..._withDividers(rows),
-        ],
-      ),
+    return _assembleCard(
+      banners: banners,
+      rows: rows,
+      actions: _buildSwapActions(context),
     );
-  }
-
-  /// Inserts hairline dividers between every detail row so the card reads as
-  /// one continuous list rather than a stack of boxed items.
-  List<Widget> _withDividers(List<Widget> rows) {
-    final theme = Theme.of(context);
-    final dividerColor =
-        theme.brightness == Brightness.dark
-            ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-            : theme.colorScheme.onSurface.withValues(alpha: 0.05);
-
-    final result = <Widget>[];
-    for (var i = 0; i < rows.length; i++) {
-      result.add(Divider(height: 1, thickness: 1, color: dividerColor));
-      result.add(rows[i]);
-    }
-    return result;
   }
 
   Widget _buildSubmarineSwapExplanation() {
@@ -703,120 +999,70 @@ class _TransactionDetailScreenState
     );
   }
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    bool copyable = false,
-    String? copyFieldId,
-    String? copyValue,
-  }) {
-    final theme = Theme.of(context);
-    final fieldId = copyFieldId ?? label;
-    final isCopied = _copiedFields[fieldId] ?? false;
-    final valueToCopy = copyValue ?? value;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 13, 14, 13),
-      child: Row(
-        children: [
-          Icon(icon, size: 17, color: context.colors.textTertiary),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: context.colors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          if (copyable) ...[
-            const SizedBox(width: 6),
-            _InlineCopyButton(
-              isCopied: isCopied,
-              onTap: () => _copyToClipboard(valueToCopy, fieldId),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   // ─────────────────────────────────────────────────────────────────────
   // Action buttons — soft list-tile vocabulary matching the rest of the
   // screen. Disabled buttons dim, enabled ones ripple.
   // ─────────────────────────────────────────────────────────────────────
 
-  Widget _buildActionButtons(BuildContext context) {
+  /// Action buttons for the swap/refund card, rendered with the same in-card
+  /// vocabulary as the send/receive card so every CTA on the screen matches.
+  List<Widget> _buildSwapActions(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final isRefundable =
-        widget.transaction.status == TransactionStatus.refundable;
+    final tx = widget.transaction;
+    final isRefundable = tx.status == TransactionStatus.refundable;
 
     if (isRefundable) {
-      return _buildActionButton(
-        context: context,
-        label: t.tx_detail_request_refund,
-        subtitle: t.tx_detail_request_refund_subtitle,
-        icon: Icons.refresh,
-        onPressed: () {
-          context.push('/transactions/refund', extra: widget.transaction);
-        },
-        isPrimary: true,
-      );
+      return [
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_request_refund,
+          subtitle: t.tx_detail_request_refund_subtitle,
+          icon: Icons.refresh,
+          onPressed: () {
+            context.push('/transactions/refund', extra: tx);
+          },
+          isPrimary: true,
+        ),
+      ];
     }
 
     if (_isCrossChainSwap()) {
       final sendEnabled = _isExplorerEnabledFor(
-        txId: widget.transaction.sendTxId,
-        blockchain: widget.transaction.sendBlockchain,
+        txId: tx.sendTxId,
+        blockchain: tx.sendBlockchain,
       );
       final receiveEnabled = _isExplorerEnabledFor(
-        txId: widget.transaction.receiveTxId,
-        blockchain: widget.transaction.receiveBlockchain,
+        txId: tx.receiveTxId,
+        blockchain: tx.receiveBlockchain,
       );
-      return Column(
-        children: [
-          _buildActionButton(
-            context: context,
-            label: t.tx_detail_view_send,
-            subtitle: _getBlockchainName(widget.transaction.sendBlockchain!),
-            icon: Icons.call_made,
-            onPressed:
-                sendEnabled
-                    ? () => _openInExplorer(
-                      txId: widget.transaction.sendTxId,
-                      blockchain: widget.transaction.sendBlockchain,
-                    )
-                    : null,
-          ),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            context: context,
-            label: t.tx_detail_view_receive,
-            subtitle: _getBlockchainName(widget.transaction.receiveBlockchain!),
-            icon: Icons.call_received,
-            onPressed:
-                receiveEnabled
-                    ? () => _openInExplorer(
-                      txId: widget.transaction.receiveTxId,
-                      blockchain: widget.transaction.receiveBlockchain,
-                    )
-                    : null,
-          ),
-        ],
-      );
+      return [
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_view_send,
+          subtitle: _getBlockchainName(tx.sendBlockchain!),
+          icon: Icons.call_made,
+          onPressed:
+              sendEnabled
+                  ? () => _openInExplorer(
+                    txId: tx.sendTxId,
+                    blockchain: tx.sendBlockchain,
+                  )
+                  : null,
+        ),
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_view_receive,
+          subtitle: _getBlockchainName(tx.receiveBlockchain!),
+          icon: Icons.call_received,
+          onPressed:
+              receiveEnabled
+                  ? () => _openInExplorer(
+                    txId: tx.receiveTxId,
+                    blockchain: tx.receiveBlockchain,
+                  )
+                  : null,
+        ),
+      ];
     }
 
     // Refunded peg: same chain on both sides but two distinct txids.
@@ -825,151 +1071,66 @@ class _TransactionDetailScreenState
     // the user one button per real txid instead.
     if (_isRefundedSwap()) {
       final chainName =
-          widget.transaction.sendBlockchain == null
+          tx.sendBlockchain == null
               ? ''
-              : _getBlockchainName(widget.transaction.sendBlockchain!);
+              : _getBlockchainName(tx.sendBlockchain!);
       final sendEnabled = _isExplorerEnabledFor(
-        txId: widget.transaction.sendTxId,
-        blockchain: widget.transaction.sendBlockchain,
+        txId: tx.sendTxId,
+        blockchain: tx.sendBlockchain,
       );
       final refundEnabled = _isExplorerEnabledFor(
-        txId: widget.transaction.receiveTxId,
-        blockchain: widget.transaction.receiveBlockchain,
+        txId: tx.receiveTxId,
+        blockchain: tx.receiveBlockchain,
       );
-      return Column(
-        children: [
-          _buildActionButton(
-            context: context,
-            label: 'View send transaction',
-            subtitle: chainName,
-            icon: Icons.call_made,
-            onPressed:
-                sendEnabled
-                    ? () => _openInExplorer(
-                      txId: widget.transaction.sendTxId,
-                      blockchain: widget.transaction.sendBlockchain,
-                    )
-                    : null,
-          ),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            context: context,
-            label: 'View refund transaction',
-            subtitle: chainName,
-            icon: Icons.assignment_return,
-            onPressed:
-                refundEnabled
-                    ? () => _openInExplorer(
-                      txId: widget.transaction.receiveTxId,
-                      blockchain: widget.transaction.receiveBlockchain,
-                    )
-                    : null,
-          ),
-        ],
-      );
+      return [
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_view_send_tx,
+          subtitle: chainName,
+          icon: Icons.call_made,
+          onPressed:
+              sendEnabled
+                  ? () => _openInExplorer(
+                    txId: tx.sendTxId,
+                    blockchain: tx.sendBlockchain,
+                  )
+                  : null,
+        ),
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_view_refund_tx,
+          subtitle: chainName,
+          icon: Icons.call_received,
+          onPressed:
+              refundEnabled
+                  ? () => _openInExplorer(
+                    txId: tx.receiveTxId,
+                    blockchain: tx.receiveBlockchain,
+                  )
+                  : null,
+        ),
+      ];
     }
 
-    final defaultExplorerEnabled = _isExplorerEnabledFor();
-    return Column(
-      children: [
-        _buildActionButton(
-          context: context,
-          label: t.pix_deposit_view_explorer,
-          subtitle: t.pix_deposit_view_chain,
-          icon: Icons.open_in_new,
-          onPressed: defaultExplorerEnabled ? () => _openInExplorer() : null,
-        ),
-        if (widget.transaction.blockchain == Blockchain.lightning &&
-            widget.transaction.destination != null &&
-            widget.transaction.preimage != null) ...[
-          const SizedBox(height: 12),
-          _buildActionButton(
-            context: context,
-            label: t.tx_detail_validate_payment,
-            subtitle: t.tx_detail_verify_preimage,
-            icon: Icons.verified,
-            onPressed: () => _openValidationUrl(),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required String label,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback? onPressed,
-    bool isPrimary = false,
-  }) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final enabled = onPressed != null;
-    final accent = cs.primary;
-
-    final body = _SoftCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: isPrimary ? accent : accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: isPrimary ? cs.onPrimary : accent,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: context.colors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 15,
-            color: context.colors.textTertiary,
-          ),
-        ],
+    return [
+      _buildInCardActionButton(
+        context: context,
+        label: t.pix_deposit_view_explorer,
+        subtitle: t.pix_deposit_view_chain,
+        icon: Icons.open_in_new,
+        onPressed: _isExplorerEnabledFor() ? () => _openInExplorer() : null,
       ),
-    );
-
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.45,
-      child:
-          enabled
-              ? Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(onTap: onPressed, child: body),
-              )
-              : body,
-    );
+      if (tx.blockchain == Blockchain.lightning &&
+          tx.destination != null &&
+          tx.preimage != null)
+        _buildInCardActionButton(
+          context: context,
+          label: t.tx_detail_validate_payment,
+          subtitle: t.tx_detail_verify_preimage,
+          icon: Icons.verified,
+          onPressed: () => _openValidationUrl(),
+        ),
+    ];
   }
 
   String _getTransactionTypeLabel() {
@@ -1035,11 +1196,6 @@ class _TransactionDetailScreenState
       case TransactionStatus.refundable:
         return colorScheme.primary;
     }
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    final formatter = DateFormat('dd/MM/yyyy HH:mm:ss');
-    return formatter.format(dateTime);
   }
 
   void _copyToClipboard(String text, String fieldId) {
@@ -1205,8 +1361,7 @@ class _TransactionDetailScreenState
     final sendTxId = widget.transaction.sendTxId;
     final receiveTxId = widget.transaction.receiveTxId;
     return [
-      _buildInfoRow(
-        icon: Icons.call_made,
+      _buildPlainRow(
         label: t.tx_detail_send_id_label(
           _getBlockchainName(widget.transaction.sendBlockchain!),
         ),
@@ -1215,8 +1370,7 @@ class _TransactionDetailScreenState
         copyFieldId: 'send_tx_id',
         copyValue: sendTxId ?? '',
       ),
-      _buildInfoRow(
-        icon: Icons.call_received,
+      _buildPlainRow(
         label: t.tx_detail_receive_id_label(
           _getBlockchainName(widget.transaction.receiveBlockchain!),
         ),
@@ -1233,22 +1387,21 @@ class _TransactionDetailScreenState
   /// in the receive slot so the user understands the second tx is
   /// not the swap's destination credit, it's the funds coming back.
   List<Widget> _buildRefundedSwapIds() {
+    final t = AppLocalizations.of(context);
     final chainSuffix =
         widget.transaction.sendBlockchain == null
             ? ''
             : ' (${_getBlockchainName(widget.transaction.sendBlockchain!)})';
     return [
-      _buildInfoRow(
-        icon: Icons.call_made,
-        label: 'Send TX ID$chainSuffix',
+      _buildPlainRow(
+        label: '${t.tx_detail_send_tx_id}$chainSuffix',
         value: truncateHashId(widget.transaction.sendTxId!),
         copyable: true,
         copyFieldId: 'send_tx_id',
         copyValue: widget.transaction.sendTxId!,
       ),
-      _buildInfoRow(
-        icon: Icons.assignment_return,
-        label: 'Refund TX ID$chainSuffix',
+      _buildPlainRow(
+        label: '${t.tx_detail_refund_tx_id}$chainSuffix',
         value: truncateHashId(widget.transaction.receiveTxId!),
         copyable: true,
         copyFieldId: 'refund_tx_id',
@@ -1274,9 +1427,6 @@ class _TransactionDetailScreenState
 // detail and review feel like one cohesive design system.
 // ─────────────────────────────────────────────────────────────────────────
 
-/// Soft elevated surface — Coinbase / Cash App vocabulary.
-///   • light mode → very subtle drop shadow over a surface fill
-///   • dark mode  → a slightly elevated container tier + ultra-thin hairline
 class _SoftCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -1292,109 +1442,32 @@ class _SoftCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final cs = theme.colorScheme;
 
+    final borderColor =
+        isDark
+            ? cs.onSurface.withValues(alpha: 0.08)
+            : cs.outline.withValues(alpha: 0.55);
+
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark ? cs.surfaceContainerHigh : cs.surface,
-        borderRadius: BorderRadius.circular(20),
-        border:
+        color:
             isDark
-                ? Border.all(color: cs.onSurface.withValues(alpha: 0.06))
-                : null,
+                ? cs.onSurface.withValues(alpha: 0.05)
+                : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
         boxShadow:
             isDark
                 ? null
                 : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 18,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+                    color: cs.shadow.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 3),
                   ),
                 ],
       ),
       child: child,
-    );
-  }
-}
-
-/// Circular asset badge with a soft elevation, used as the focal point of the
-/// hero card.
-class _AssetMedallion extends StatelessWidget {
-  final String iconPath;
-  final double size;
-  final double iconSize;
-
-  const _AssetMedallion({
-    required this.iconPath,
-    this.size = 64,
-    this.iconSize = 36,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isDark ? cs.surfaceContainerHighest : cs.surface,
-        border:
-            isDark
-                ? Border.all(color: cs.onSurface.withValues(alpha: 0.06))
-                : null,
-        boxShadow:
-            isDark
-                ? null
-                : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-      ),
-      alignment: Alignment.center,
-      child: SvgPicture.asset(
-        iconPath,
-        width: iconSize,
-        height: iconSize,
-        fit: BoxFit.contain,
-      ),
-    );
-  }
-}
-
-/// Small primary-tinted pill — ticker or short label under the medallion.
-class _TickerPill extends StatelessWidget {
-  final String text;
-  const _TickerPill({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: cs.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: cs.primary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-        ),
-      ),
     );
   }
 }
@@ -1422,9 +1495,6 @@ class _HeroAmount extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isBtcLike = asset == Asset.btc || asset == Asset.lbtc;
-    final sign = isReceive ? '+' : '';
-    final amountColor =
-        isReceive ? context.colors.positiveColor : theme.colorScheme.onSurface;
 
     final amount = amountInSats.toDouble() / 100000000;
     final decimalStr =
@@ -1437,8 +1507,8 @@ class _HeroAmount extends StatelessWidget {
 
     final principal =
         isBtcLike
-            ? '$sign${SatsInputFormatter.formatValue(amountInSats.toInt())} sats'
-            : '$sign$decimalStr ${asset.ticker}';
+            ? '${SatsInputFormatter.formatValue(amountInSats.toInt())} sats'
+            : '$decimalStr ${asset.ticker}';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1450,7 +1520,7 @@ class _HeroAmount extends StatelessWidget {
             principal,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              color: amountColor,
+              color: theme.colorScheme.onSurface,
               letterSpacing: -0.6,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
@@ -1459,7 +1529,7 @@ class _HeroAmount extends StatelessWidget {
         if (isBtcLike) ...[
           const SizedBox(height: 8),
           Text(
-            '$sign$decimalStr ${asset.ticker}',
+            '$decimalStr ${asset.ticker}',
             style: theme.textTheme.labelMedium?.copyWith(
               color: context.colors.textSecondary,
               fontFeatures: const [FontFeature.tabularFigures()],

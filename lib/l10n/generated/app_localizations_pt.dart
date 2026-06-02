@@ -1719,6 +1719,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get tx_detail_swap_refunded => 'Swap reembolsado';
 
   @override
+  String get tx_detail_swap_completed => 'Troca concluída';
+
+  @override
+  String get tx_detail_swap_in_progress => 'Troca em andamento';
+
+  @override
   String get tx_detail_refund_available_msg =>
       'Esta transação não foi concluída com sucesso. Seus fundos estão seguros e disponíveis para reembolso. Use o botão abaixo para solicitar o reembolso.';
 
@@ -3406,10 +3412,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get tx_detail_blockchain => 'Blockchain';
 
   @override
+  String tx_detail_datetime(String date, String time) {
+    return '$date às $time';
+  }
+
+  @override
   String get tx_detail_swap_label => 'Troca entre ativos';
 
   @override
   String get tx_detail_sent => 'Enviado';
+
+  @override
+  String get tx_detail_received => 'Recebido';
 
   @override
   String get tx_detail_expected => 'Esperado';
@@ -3476,6 +3490,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get tx_detail_view_receive => 'Ver Recebimento';
+
+  @override
+  String get tx_detail_view_send_tx => 'Ver transação de envio';
+
+  @override
+  String get tx_detail_view_refund_tx => 'Ver transação de reembolso';
+
+  @override
+  String get tx_detail_send_tx_id => 'ID TX Envio';
+
+  @override
+  String get tx_detail_refund_tx_id => 'ID TX Reembolso';
 
   @override
   String get tx_detail_validate_payment => 'Validar Pagamento';

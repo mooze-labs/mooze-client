@@ -1704,6 +1704,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tx_detail_swap_refunded => 'Swap refunded';
 
   @override
+  String get tx_detail_swap_completed => 'Swap Completed';
+
+  @override
+  String get tx_detail_swap_in_progress => 'Swap In Progress';
+
+  @override
   String get tx_detail_refund_available_msg =>
       'This transaction did not complete successfully. Your funds are safe and available for refund. Use the button below to request the refund.';
 
@@ -3382,10 +3388,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tx_detail_blockchain => 'Blockchain';
 
   @override
+  String tx_detail_datetime(String date, String time) {
+    return '$date at $time';
+  }
+
+  @override
   String get tx_detail_swap_label => 'Asset swap';
 
   @override
   String get tx_detail_sent => 'Sent';
+
+  @override
+  String get tx_detail_received => 'Received';
 
   @override
   String get tx_detail_expected => 'Expected';
@@ -3452,6 +3466,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tx_detail_view_receive => 'View Receive';
+
+  @override
+  String get tx_detail_view_send_tx => 'View send transaction';
+
+  @override
+  String get tx_detail_view_refund_tx => 'View refund transaction';
+
+  @override
+  String get tx_detail_send_tx_id => 'Send TX ID';
+
+  @override
+  String get tx_detail_refund_tx_id => 'Refund TX ID';
 
   @override
   String get tx_detail_validate_payment => 'Validate Payment';
