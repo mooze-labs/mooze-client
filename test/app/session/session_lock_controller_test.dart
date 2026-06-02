@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
 import 'package:mooze_mobile/app/session/session_lock_controller.dart';
 import 'package:mooze_mobile/app/session/session_lock_state.dart';
-import 'package:mooze_mobile/features/merchant/presentation/controllers/merchant_mode_controller.dart';
+import 'package:mooze_mobile/features/merchant/external/datasources/merchant_mode_local_datasource.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 
 /// Two minutes in the past — comfortably beyond any timeout these tests use.
@@ -17,13 +17,7 @@ Future<ProviderContainer> _container(Map<String, Object> prefs) async {
   final container = ProviderContainer(
     overrides: [sharedPreferencesProvider.overrideWithValue(sp)],
   );
-  // MerchantModeController fires an async checkStatus() from its constructor;
-  // flush the event queue before disposing so a late write lands on a live
-  // controller rather than throwing "used after dispose".
-  addTearDown(() async {
-    await Future<void>.delayed(Duration.zero);
-    container.dispose();
-  });
+  addTearDown(container.dispose);
   return container;
 }
 
@@ -115,10 +109,11 @@ void main() {
     });
 
     test('merchant mode never locks even when expired', () async {
-      final container = await _container({'merchant_mode_active': true});
-      await container
-          .read(merchantModeControllerProvider.notifier)
-          .checkStatus();
+      // Read straight from prefs (the datasource's source of truth) — no async
+      // merchant controller needs to be alive for the terminal to stay unlocked.
+      final container = await _container({
+        MerchantModeLocalDataSource.merchantModeActiveKey: true,
+      });
 
       final controller =
           container.read(sessionLockControllerProvider.notifier);

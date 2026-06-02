@@ -12,8 +12,7 @@ import 'package:mooze_mobile/shared/utils/result.dart';
 /// simply create a new implementation of MerchantModeDataSource
 /// and update the provider - no other layers need to change.
 class MerchantModeLocalDataSource implements MerchantModeDataSource {
-  /// Key for storing merchant mode activation status
-  static const String _merchantModeActiveKey = 'merchant_mode_active';
+  static const String merchantModeActiveKey = 'merchant_mode_active';
 
   /// Key for storing the origin route
   static const String _merchantModeOriginKey = 'merchant_mode_origin';
@@ -22,7 +21,7 @@ class MerchantModeLocalDataSource implements MerchantModeDataSource {
   Future<Result<bool>> isActive() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final isActive = prefs.getBool(_merchantModeActiveKey) ?? false;
+      final isActive = prefs.getBool(merchantModeActiveKey) ?? false;
       return Success(isActive);
     } catch (e) {
       return Failure('Error checking status: ${e.toString()}', e as Exception?);
@@ -33,7 +32,7 @@ class MerchantModeLocalDataSource implements MerchantModeDataSource {
   Future<Result<void>> setActive(bool active, {String origin = '/home'}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_merchantModeActiveKey, active);
+      await prefs.setBool(merchantModeActiveKey, active);
       // Save origin route when activating
       if (active) {
         await prefs.setString(_merchantModeOriginKey, origin);
@@ -60,7 +59,7 @@ class MerchantModeLocalDataSource implements MerchantModeDataSource {
     try {
       final prefs = await SharedPreferences.getInstance();
       // Remove both keys to completely reset merchant mode state
-      await prefs.remove(_merchantModeActiveKey);
+      await prefs.remove(merchantModeActiveKey);
       await prefs.remove(_merchantModeOriginKey);
       return const Success(null);
     } catch (e) {

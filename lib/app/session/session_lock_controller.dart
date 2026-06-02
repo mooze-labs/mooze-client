@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:mooze_mobile/features/merchant/presentation/controllers/merchant_mode_controller.dart';
+import 'package:mooze_mobile/features/merchant/external/datasources/merchant_mode_local_datasource.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/security_settings_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 
 import 'auth_prompt_controller.dart';
 import 'session_lock_state.dart';
@@ -31,11 +32,11 @@ class SessionLockController extends Notifier<SessionLockState> {
 
   bool get _enabled => ref.read(sessionLockEnabledProvider);
 
-  /// Merchant mode never locks — a merchant terminal stays on its screen across
-  /// resumes. Read synchronously; the unresolved case is treated as
-  /// "not merchant".
   bool get _isMerchant =>
-      ref.read(merchantModeControllerProvider).valueOrNull ?? false;
+      ref
+          .read(sharedPreferencesProvider)
+          .getBool(MerchantModeLocalDataSource.merchantModeActiveKey) ??
+      false;
 
   Duration get _timeout =>
       _timeoutOverride ?? ref.read(sessionLockTimeoutProvider).duration;
