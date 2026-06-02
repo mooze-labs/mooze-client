@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Hero amount stack — sats are the principal figure for BTC-like assets
@@ -106,23 +106,16 @@ class HeroFiatLine extends ConsumerWidget {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-    return ref
-        .watch(fiatPriceProvider(asset))
-        .maybeWhen(
-          data:
-              (either) => either.fold((_) => const SizedBox.shrink(), (price) {
-                if (price <= 0) return const SizedBox.shrink();
-                final fiat = asset.toUsd(amountInSats, price);
-                return Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    '$currencySymbol ${formatter.format(fiat)}',
-                    style: style,
-                  ),
-                );
-              }),
-          orElse: () => const SizedBox.shrink(),
-        );
+    final price = ref.watch(
+      priceQuotesProvider.select((quotes) => quotes.priceFor(asset)),
+    );
+    if (price == null || price <= 0) return const SizedBox.shrink();
+
+    final fiat = asset.toUsd(amountInSats, price);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text('$currencySymbol ${formatter.format(fiat)}', style: style),
+    );
   }
 }
 

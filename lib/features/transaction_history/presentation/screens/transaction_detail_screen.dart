@@ -12,7 +12,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/bitcoin_price_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/transaction_indicator_badge.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/confirmation_banner.dart';
@@ -425,22 +425,14 @@ class _TransactionDetailScreenState
   }
 
   String? _fiatEstimateFor(Asset asset, BigInt amount) {
-    return ref
-        .watch(fiatPriceProvider(asset))
-        .maybeWhen(
-          data: (either) {
-            return either.fold((_) => null, (price) {
-              if (price <= 0) return null;
-              final symbol = ref.watch(currencySymbolProvider);
-              final formatter = NumberFormat(
-                '#,##0.00',
-                ref.watch(localeStringProvider),
-              );
-              return '$symbol ${formatter.format(asset.toUsd(amount, price))}';
-            });
-          },
-          orElse: () => null,
-        );
+    
+    final price = ref.watch(
+      priceQuotesProvider.select((quotes) => quotes.priceFor(asset)),
+    );
+    if (price == null || price <= 0) return null;
+    final symbol = ref.watch(currencySymbolProvider);
+    final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
+    return '$symbol ${formatter.format(asset.toUsd(amount, price))}';
   }
 
   // ─────────────────────────────────────────────────────────────────────
