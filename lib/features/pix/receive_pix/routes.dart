@@ -14,8 +14,6 @@ final receivePixRoutes = [
   ),
   GoRoute(
     path: "/pix/payment/:transaction_id",
-    pageBuilder: (context, state) {
-      return NoTransitionPage(child: PixPaymentScreen());
-    },
+    builder: (context, state) => const PixPaymentScreen(),
   ),
 ];
