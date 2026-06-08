@@ -60,8 +60,6 @@ class _WalletImportLoadingScreenState
   final _shownBootPhases = <BootPhase>{};
   bool _bootStartTriggered = false;
 
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
   late AnimationController _checkBounceController;
   late AnimationController _pulseController;
   late AnimationController _rotationController;
@@ -72,16 +70,6 @@ class _WalletImportLoadingScreenState
   @override
   void initState() {
     super.initState();
-
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
 
     _checkBounceController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -120,8 +108,6 @@ class _WalletImportLoadingScreenState
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
     _checkBounceController.dispose();
     _pulseController.dispose();
     _rotationController.dispose();
@@ -361,21 +347,6 @@ class _WalletImportLoadingScreenState
       _currentMessageIndex = _messages.length - 1;
     });
 
-    // Drive the entry animations without awaiting their 600 ms completion.
-    // Previously this method awaited Future.wait of both controllers, which
-    // gated the entire import flow on each message's animation finishing —
-    // ~600 ms × 6 messages = ~3.6 s of pure animation wait sitting on top
-    // of real import work. The user perceived this as a freeze because
-    // the orbital/particle/glow animations on the same Ticker provider
-    // stuttered while the import thread was both doing heavy crypto/FFI
-    // work AND awaiting the message animation. The animations are still
-    // visually present — they just no longer block the next step of the
-    // import pipeline. Mirrors V2's `_BootProgressScreen` which renders
-    // messages reactively from a stream and never waits on animations.
-    _fadeController.reset();
-    _slideController.reset();
-    unawaited(_fadeController.forward());
-    unawaited(_slideController.forward());
   }
 
   String _getErrorMessage(dynamic error) {
@@ -518,10 +489,8 @@ class _WalletImportLoadingScreenState
               bottom: 60,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (int i = 0; i < _messages.length; i++)
-                    _buildMessageItem(_messages[i], i),
-                ],
+                mainAxisSize: MainAxisSize.min,
+                children: _buildVisibleMessages(),
               ),
             ),
 
@@ -806,23 +775,58 @@ class _WalletImportLoadingScreenState
     );
   }
 
-  Widget _buildMessageItem(ImportMessage message, int index) {
-    final isCurrentMessage = index == _currentMessageIndex;
+  static const int _maxVisibleMessages = 4;
 
+  double _opacityForDepth(int depthFromNewest) {
+    const opacities = <double>[1.0, 0.55, 0.3, 0.12];
+    if (depthFromNewest < 0) return opacities.first;
+    if (depthFromNewest >= opacities.length) return 0.0;
+    return opacities[depthFromNewest];
+  }
+
+  List<Widget> _buildVisibleMessages() {
+    final total = _messages.length;
+    final start = math.max(0, total - _maxVisibleMessages);
+    return [
+      for (int i = start; i < total; i++)
+        _buildMessageItem(_messages[i], i, (total - 1) - i),
+    ];
+  }
+
+  Widget _buildMessageItem(
+    ImportMessage message,
+    int globalIndex,
+    int depthFromNewest,
+  ) {
     final isRetryMessage = message.isRetry;
+    final depthOpacity =
+        message.hasError ? 1.0 : _opacityForDepth(depthFromNewest);
 
-    return AnimatedBuilder(
-      animation: Listenable.merge([_fadeController, _slideController]),
-      builder: (context, child) {
-        final fadeValue = isCurrentMessage ? _fadeController.value : 1.0;
-        final slideValue = isCurrentMessage ? _slideController.value : 1.0;
-        final offset = (1 - slideValue) * 20.0;
-
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('import_msg_$globalIndex'),
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      builder: (context, entry, child) {
         return Opacity(
-          opacity: fadeValue * (message.hasError ? 1.0 : 0.85),
-          child: Transform.translate(
-            offset: Offset(-offset, 0),
-            child: IntrinsicWidth(
+          opacity: entry,
+          child: ClipRect(
+            child: Align(
+              alignment: Alignment.topLeft,
+              heightFactor: entry,
+              child: Transform.translate(
+                offset: Offset((entry - 1) * 24, 0),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        opacity: depthOpacity,
+        child: IntrinsicWidth(
               child: Container(
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.symmetric(
@@ -933,7 +937,5 @@ class _WalletImportLoadingScreenState
             ),
           ),
         );
-      },
-    );
-  }
+      }
 }
