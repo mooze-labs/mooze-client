@@ -18,16 +18,6 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,12 +45,14 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
+              const spacing = 8.0;
+              final columns = MediaQuery.sizeOf(context).width >= 430 ? 3 : 2;
               final itemWidth =
-                  (constraints.maxWidth - 16) / 3; // 16 = 2 gaps 8px
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
               return Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: spacing,
+                runSpacing: spacing,
                 children:
                     state.confirmedWords.asMap().entries.map((entry) {
                       final index = entry.key;
@@ -159,7 +151,7 @@ class _WordChip extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
-                overflow: TextOverflow.ellipsis,
+                softWrap: true,
               ),
             ),
             if (onDelete != null) ...[
