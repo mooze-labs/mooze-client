@@ -28,7 +28,11 @@ void main() {
   setUp(() async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_channel, (call) async => true);
-    await controller.reset();
+    // Reset synchronously (don't await): the controller's plugin-call queue
+    // never completes inside a FakeAsync test zone, so awaiting it here would
+    // deadlock on the prior test's leaked call. The assertions read the
+    // synchronous refcount, which reset() zeroes immediately.
+    controller.reset();
   });
 
   tearDown(() {
