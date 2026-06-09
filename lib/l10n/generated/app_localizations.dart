@@ -7573,7 +7573,7 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_action_buy.
   ///
   /// In pt, this message translates to:
-  /// **'Comprar'**
+  /// **'PIX'**
   String get wallet_action_buy;
 
   /// No description provided for @wallet_assets_section_title.

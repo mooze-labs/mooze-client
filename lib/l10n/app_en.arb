@@ -1498,7 +1498,7 @@
   "wallet_send_error_validate_limits": "Error validating send limits: {error}",
   "wallet_action_receive": "RECEIVE",
   "wallet_action_send": "SEND",
-  "wallet_action_buy": "Buy",
+  "wallet_action_buy": "PIX",
   "wallet_assets_section_title": "Assets",
   "wallet_transactions_section_title": "Transactions",
   "wallet_section_see_more": "See more",

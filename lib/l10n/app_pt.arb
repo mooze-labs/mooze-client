@@ -1982,7 +1982,7 @@
   },
   "wallet_action_receive": "RECEBER",
   "wallet_action_send": "ENVIAR",
-  "wallet_action_buy": "Comprar",
+  "wallet_action_buy": "PIX",
   "wallet_assets_section_title": "Ativos",
   "wallet_transactions_section_title": "Transações",
   "wallet_section_see_more": "Ver mais",

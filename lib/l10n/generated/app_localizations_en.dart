@@ -4214,7 +4214,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallet_action_send => 'SEND';
 
   @override
-  String get wallet_action_buy => 'Buy';
+  String get wallet_action_buy => 'PIX';
 
   @override
   String get wallet_assets_section_title => 'Assets';

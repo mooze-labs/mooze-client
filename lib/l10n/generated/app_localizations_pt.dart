@@ -4249,7 +4249,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_action_send => 'ENVIAR';
 
   @override
-  String get wallet_action_buy => 'Comprar';
+  String get wallet_action_buy => 'PIX';
 
   @override
   String get wallet_assets_section_title => 'Ativos';
