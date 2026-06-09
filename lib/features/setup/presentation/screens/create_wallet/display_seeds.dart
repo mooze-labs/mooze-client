@@ -5,15 +5,13 @@ import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/w
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
-import 'package:no_screenshot/no_screenshot.dart';
 
 import 'widgets.dart';
 
 class DisplaySeedsScreen extends ConsumerWidget {
-  DisplaySeedsScreen({super.key, required this.mnemonic});
+  const DisplaySeedsScreen({super.key, required this.mnemonic});
 
   final String mnemonic;
-  final NoScreenshot noScreenshot = NoScreenshot.instance;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,32 +22,26 @@ class DisplaySeedsScreen extends ConsumerWidget {
       return _buildLoadingScaffold(t);
     }
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) async {
-        await noScreenshot.screenshotOn();
-      },
-      child: PlatformSafeArea(
-        child: Scaffold(
-          appBar: _buildAppBar(context, t),
-          body: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                TitleAndSubtitleCreateWallet(
-                  title: t.seed_words_of,
-                  highlighted: t.seed_recovery_word,
-                  subtitle: t.seed_save_warning,
-                ),
-                const SizedBox(height: 24),
-                Expanded(child: MnemonicGridDisplay(mnemonic: mnemonic)),
-                const SizedBox(height: 16),
-                PrimaryButton(
-                  text: t.seed_confirm_phrase,
-                  onPressed: () => _goToConfirmSeeds(context),
-                ),
-              ],
-            ),
+    return PlatformSafeArea(
+      child: Scaffold(
+        appBar: _buildAppBar(context, t),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              TitleAndSubtitleCreateWallet(
+                title: t.seed_words_of,
+                highlighted: t.seed_recovery_word,
+                subtitle: t.seed_save_warning,
+              ),
+              const SizedBox(height: 24),
+              Expanded(child: MnemonicGridDisplay(mnemonic: mnemonic)),
+              const SizedBox(height: 16),
+              PrimaryButton(
+                text: t.seed_confirm_phrase,
+                onPressed: () => _goToConfirmSeeds(context),
+              ),
+            ],
           ),
         ),
       ),

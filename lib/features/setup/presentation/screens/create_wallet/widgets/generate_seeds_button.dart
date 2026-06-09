@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/mnemonic_controller_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
-import 'package:no_screenshot/no_screenshot.dart';
 import '../providers/extended_phrase_provider.dart';
 
 class GenerateSeedsButton extends ConsumerWidget {
@@ -17,23 +15,14 @@ class GenerateSeedsButton extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     return PrimaryButton(
       text: t.setup_generate_seed_button,
-      onPressed: () async {
-        await deactivateScreenshot().run();
+      onPressed: () {
+        final extendedPhrase = ref.read(extendedPhraseProvider);
+        final mnemonic = ref
+            .read(mnemonicControllerProvider)
+            .generateMnemonic(extendedPhrase);
 
-        if (context.mounted) {
-          final extendedPhrase = ref.read(extendedPhraseProvider);
-          final mnemonic = ref
-              .read(mnemonicControllerProvider)
-              .generateMnemonic(extendedPhrase);
-
-          context.push("/setup/create-wallet/display-seeds", extra: mnemonic);
-        }
+        context.push("/setup/create-wallet/display-seeds", extra: mnemonic);
       },
     );
   }
-}
-
-Task<bool> deactivateScreenshot() {
-  final noScreenshot = NoScreenshot.instance;
-  return Task(() => noScreenshot.screenshotOff());
 }

@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/settings/presentation/screens/language_sel
 import 'package:mooze_mobile/features/support/presentations/srcreens/support_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/view_mnemonic.dart';
+import 'package:mooze_mobile/shared/security/secure_screen.dart';
 
 final settingsRoutes = [
   GoRoute(path: "/settings", builder: (context, state) => SettingsScreen()),
@@ -33,8 +34,10 @@ final settingsRoutes = [
   ),
   GoRoute(
     path: '/settings/view-mnemonic',
-    builder:
-        (context, state) => ViewMnemonicScreen(mnemonic: state.extra as String),
+    builder: (context, state) => SecureScreen(
+      showSecurityNotice: true,
+      child: ViewMnemonicScreen(mnemonic: state.extra as String),
+    ),
   ),
   GoRoute(
     path: '/settings/referral',

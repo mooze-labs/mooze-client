@@ -408,6 +408,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Write these words down somewhere safe. They are the only way to recover your wallet.';
 
   @override
+  String get screenshot_blocked_title => 'Screenshot Blocked';
+
+  @override
+  String get screenshot_blocked_message =>
+      'This screen contains sensitive wallet information and cannot be captured.';
+
+  @override
+  String get screenshot_blocked_warning =>
+      'For your security, never take screenshots of your recovery phrase (seed phrase). Anyone with access to your recovery phrase can gain full control of your wallet.';
+
+  @override
+  String get screenshot_blocked_acknowledge => 'I understand';
+
+  @override
   String get seed_copy => 'Copy seed';
 
   @override
@@ -4195,6 +4209,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wallet_action_send => 'SEND';
+
+  @override
+  String get wallet_action_buy => 'Buy';
 
   @override
   String get wallet_assets_section_title => 'Assets';

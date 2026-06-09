@@ -19,6 +19,7 @@ import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/platform/platform_warmup.dart';
 import 'package:mooze_mobile/shared/storage/mnemonic_prefetch.dart';
+import 'package:mooze_mobile/shared/security/screen_security_controller.dart';
 
 import 'routes.dart';
 
@@ -26,6 +27,14 @@ void main() async {
   BootTracer.start();
   WidgetsFlutterBinding.ensureInitialized();
   BootTracer.mark('main.bindings_ready');
+
+  // Clear any stale OS-level screenshot protection left by a previously leaked
+  // session. The `no_screenshot` plugin persists `FLAG_SECURE` and re-applies
+  // it on Activity attach (which has already happened by the time this Dart
+  // entrypoint runs), so this reset deterministically wins and guarantees the
+  // app starts with protection OFF. Fire-and-forget: it must not gate boot.
+  ScreenSecurityController.instance.reset();
+  BootTracer.mark('main.screen_security_reset');
 
   // Kick off the iOS Keychain read for the wallet mnemonic now, before anything
   // awaits it, so the platform-channel round-trip overlaps with runApp and

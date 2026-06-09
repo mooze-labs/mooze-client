@@ -411,6 +411,20 @@ class AppLocalizationsEs extends AppLocalizations {
       'Anota estas palabras en un lugar seguro. Son la única forma de recuperar tu billetera.';
 
   @override
+  String get screenshot_blocked_title => 'Captura de pantalla bloqueada';
+
+  @override
+  String get screenshot_blocked_message =>
+      'Esta pantalla contiene información sensible de tu billetera y no puede ser capturada.';
+
+  @override
+  String get screenshot_blocked_warning =>
+      'Por tu seguridad, nunca tomes capturas de pantalla de tu frase de recuperación (seed phrase). Cualquier persona con acceso a tu frase de recuperación puede obtener el control total de tu billetera.';
+
+  @override
+  String get screenshot_blocked_acknowledge => 'Entendido';
+
+  @override
   String get seed_copy => 'Copiar frase';
 
   @override
@@ -4237,6 +4251,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get wallet_action_send => 'ENVIAR';
+
+  @override
+  String get wallet_action_buy => 'Comprar';
 
   @override
   String get wallet_assets_section_title => 'Activos';

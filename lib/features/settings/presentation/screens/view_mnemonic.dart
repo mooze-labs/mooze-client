@@ -6,7 +6,6 @@ import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/w
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:no_screenshot/no_screenshot.dart';
 
 class ViewMnemonicScreen extends ConsumerStatefulWidget {
   const ViewMnemonicScreen({super.key, required this.mnemonic});
@@ -40,33 +39,30 @@ class _ViewMnemonicScreenState extends ConsumerState<ViewMnemonicScreen> {
       return _buildLoadingScaffold(t);
     }
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) async {
-        await NoScreenshot.instance.screenshotOn();
-      },
-      child: Scaffold(
-        appBar: _buildAppBar(context, t),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              TitleAndSubtitleCreateWallet(
-                title: t.seed_words_of,
-                highlighted: t.seed_recovery_word,
-                subtitle: t.seed_save_warning,
-              ),
-              const SizedBox(height: 24),
-              Expanded(child: MnemonicGridDisplay(mnemonic: widget.mnemonic)),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                text: _copied ? t.seed_copied : t.seed_copy,
-                isEnabled: !_copied,
-                onPressed: _copied ? null : _copySeed,
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
+    // Screenshot protection for this screen is handled by the `SecureScreen`
+    // wrapper applied at the route level (see settings/routes.dart) — bound to
+    // the widget lifecycle, not to a back-only `PopScope`.
+    return Scaffold(
+      appBar: _buildAppBar(context, t),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            TitleAndSubtitleCreateWallet(
+              title: t.seed_words_of,
+              highlighted: t.seed_recovery_word,
+              subtitle: t.seed_save_warning,
+            ),
+            const SizedBox(height: 24),
+            Expanded(child: MnemonicGridDisplay(mnemonic: widget.mnemonic)),
+            const SizedBox(height: 16),
+            PrimaryButton(
+              text: _copied ? t.seed_copied : t.seed_copy,
+              isEnabled: !_copied,
+              onPressed: _copied ? null : _copySeed,
+            ),
+            const SizedBox(height: 30),
+          ],
         ),
       ),
     );

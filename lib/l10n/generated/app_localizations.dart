@@ -838,6 +838,30 @@ abstract class AppLocalizations {
   /// **'Anote estas palavras em um local seguro. Elas são a única forma de recuperar sua carteira.'**
   String get seed_save_warning;
 
+  /// No description provided for @screenshot_blocked_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Captura de tela bloqueada'**
+  String get screenshot_blocked_title;
+
+  /// No description provided for @screenshot_blocked_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta tela contém informações sensíveis da sua carteira e não pode ser capturada.'**
+  String get screenshot_blocked_message;
+
+  /// No description provided for @screenshot_blocked_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para sua segurança, nunca tire capturas de tela da sua frase de recuperação (seed phrase). Qualquer pessoa com acesso à sua frase de recuperação pode obter controle total da sua carteira.'**
+  String get screenshot_blocked_warning;
+
+  /// No description provided for @screenshot_blocked_acknowledge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi'**
+  String get screenshot_blocked_acknowledge;
+
   /// No description provided for @seed_copy.
   ///
   /// In pt, this message translates to:
@@ -7539,6 +7563,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'ENVIAR'**
   String get wallet_action_send;
+
+  /// No description provided for @wallet_action_buy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comprar'**
+  String get wallet_action_buy;
 
   /// No description provided for @wallet_assets_section_title.
   ///

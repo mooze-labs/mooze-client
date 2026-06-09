@@ -8,7 +8,6 @@ import 'package:mooze_mobile/shared/authentication/providers/biometric_service_p
 import 'package:mooze_mobile/shared/authentication/services/biometric_service.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
-import 'package:no_screenshot/no_screenshot.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -87,9 +86,6 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       'pin_setup': isPinSetup,
       'store_mode': isStoreMode,
     });
-
-    final noScreenshot = NoScreenshot.instance;
-    await noScreenshot.screenshotOn();
 
     if ((isStoreMode && !widget.forceAuth) ||
         (hasValidSession && !widget.forceAuth) ||
