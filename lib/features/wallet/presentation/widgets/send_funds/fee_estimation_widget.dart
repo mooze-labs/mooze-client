@@ -54,8 +54,8 @@ class FeeEstimationWidget extends ConsumerWidget {
       final satText = fees == BigInt.one ? 'sat' : 'sats';
       return '${SatsInputFormatter.formatValue(fees.toInt())} $satText';
     }
-    final lbtcAmount = fees.toDouble() / 100000000;
-    return '${lbtcAmount.toStringAsFixed(8)} L-BTC';
+    final lbtcAmount = fees;
+    return '$lbtcAmount Sats (L-BTC)';
   }
 }
 
