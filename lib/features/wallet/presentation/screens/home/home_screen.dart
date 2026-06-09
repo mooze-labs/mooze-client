@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/action_button.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
 import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
@@ -183,7 +184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       WalletHeaderWidget(),
                       UpdateNotificationWidget(),
                       const SizedBox(height: 15),
-                      _buildActionButtons(),
+                      _buildActionButtons(context),
                       const SizedBox(height: 32),
                       AssetSection(),
                       TransactionSection(),
@@ -228,15 +229,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-Widget _buildActionButtons() {
-  return Column(
+Widget _buildActionButtons(BuildContext context) {
+  final t = AppLocalizations.of(context);
+  return Row(
     children: [
-      Row(
-        children: [
-          Expanded(child: ReceiveButton()),
-          const SizedBox(width: 8),
-          Expanded(child: SendButton()),
-        ],
+      Expanded(
+        child: ActionButton(
+          svgAsset: 'assets/icons/menu/send.svg',
+          label: t.wallet_holding_action_send,
+          onPressed: () {
+            context.push('/send-asset');
+          },
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: ActionButton(
+          svgAsset: 'assets/icons/menu/receive.svg',
+          label: t.wallet_holding_action_receive,
+          onPressed: () {
+            context.push('/receive-asset');
+          },
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: ActionButton(
+          svgAsset: 'assets/icons/menu/navigation/pix.svg',
+          label: t.wallet_action_buy,
+          isPrimary: true,
+          onPressed: () => context.go('/pix'),
+        ),
       ),
     ],
   );
