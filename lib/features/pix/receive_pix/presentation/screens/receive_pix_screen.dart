@@ -91,6 +91,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           ),
         ],
       ),
+      bottomSheet: _buildKeyboardContinueButton(context),
       body: Stack(
         children: [
           GestureDetector(
@@ -104,6 +105,27 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
             customMessage: t.pix_receive_api_unavailable,
           ),
         ],
+      ),
+    );
+  }
+
+  void _advance() => context.push('/pix/confirm');
+
+  Widget? _buildKeyboardContinueButton(BuildContext context) {
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final depositAmount = ref.watch(depositAmountProvider);
+    final validation = ref.watch(depositValidationProvider);
+    final canContinue = depositAmount > 0 && validation.isValid;
+
+    if (!isKeyboardVisible || !canContinue) return null;
+
+    final t = AppLocalizations.of(context);
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: SafeArea(
+        top: false,
+        child: PrimaryButton(text: t.pix_receive_advance, onPressed: _advance),
       ),
     );
   }
@@ -169,6 +191,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
     final isButtonEnabled = depositAmount > 0 && validation.isValid;
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Padding(
       padding: const EdgeInsets.only(right: 8, left: 16, bottom: 16),
@@ -179,7 +202,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           const SizedBox(height: 10),
           AssetSelectorWidget(),
           const SizedBox(height: 10),
-          PixValueInputWidget(),
+          PixValueInputWidget(onContinue: _advance),
           const SizedBox(height: 12),
           InfoTipsSection(
             tips: [
@@ -191,12 +214,14 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
             ],
             maxTips: 1,
           ),
-          const SizedBox(height: 24),
-          PrimaryButton(
-            text: t.pix_receive_advance,
-            onPressed: () => context.push('/pix/confirm'),
-            isEnabled: isButtonEnabled,
-          ),
+          if (!isKeyboardVisible) ...[
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: t.pix_receive_advance,
+              onPressed: _advance,
+              isEnabled: isButtonEnabled,
+            ),
+          ],
           const SizedBox(height: 120),
         ],
       ),

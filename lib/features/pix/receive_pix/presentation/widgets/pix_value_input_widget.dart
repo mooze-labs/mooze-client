@@ -15,11 +15,14 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 import 'account_limits_display_widget.dart';
 
 class PixValueInputWidget extends ConsumerWidget {
-  const PixValueInputWidget({super.key});
+  final VoidCallback onContinue;
+
+  const PixValueInputWidget({super.key, required this.onContinue});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
+
     return Container(
       decoration: BoxDecoration(
         color: context.colors.surfaceLow,
