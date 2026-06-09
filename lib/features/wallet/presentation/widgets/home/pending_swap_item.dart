@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -19,6 +20,7 @@ class PendingSwapItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final t = AppLocalizations.of(context);
     final isFailed = swap.phase == PendingSwapPhase.failed;
     final isRefundable = swap.phase == PendingSwapPhase.refundable;
     final subtitleColor = isFailed
@@ -47,7 +49,7 @@ class PendingSwapItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _title(swap),
+                    _title(t, swap),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 4),
@@ -65,8 +67,9 @@ class PendingSwapItem extends StatelessWidget {
                       Flexible(
                         child: Text(
                           isFailed
-                              ? (swap.errorMessage ?? 'Swap failed')
-                              : _subtitle(swap.phase),
+                              ? (swap.errorMessage ??
+                                  t.pending_swap_status_failed)
+                              : _subtitle(t, swap.phase),
                           style: TextStyle(
                             fontSize: 13,
                             color: subtitleColor,
@@ -108,7 +111,9 @@ class PendingSwapItem extends StatelessWidget {
                   ] else ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Refundable: ${_formatAmount(swap.fromAsset, swap.sentAmount)}',
+                      t.pending_swap_refundable_amount(
+                        _formatAmount(swap.fromAsset, swap.sentAmount),
+                      ),
                       style: const TextStyle(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -138,27 +143,28 @@ class PendingSwapItem extends StatelessWidget {
   }
 }
 
-String _title(PendingSwap swap) {
-  final from = swap.fromAsset.ticker;
-  final to = swap.toAsset.ticker;
+String _title(AppLocalizations t, PendingSwap swap) {
   if (swap.phase == PendingSwapPhase.refundable) {
-    return 'Swap refund available';
+    return t.pending_swap_refund_available;
   }
-  return 'Converting $from → $to';
+  return t.converting_details_converting_label(
+    swap.fromAsset.ticker,
+    swap.toAsset.ticker,
+  );
 }
 
-String _subtitle(PendingSwapPhase phase) {
+String _subtitle(AppLocalizations t, PendingSwapPhase phase) {
   switch (phase) {
     case PendingSwapPhase.preparing:
-      return 'Preparing swap…';
+      return t.pending_swap_status_preparing;
     case PendingSwapPhase.broadcasting:
-      return 'Broadcasting to network…';
+      return t.pending_swap_status_broadcasting;
     case PendingSwapPhase.broadcasted:
-      return 'Broadcasted — waiting for confirmations';
+      return t.pending_swap_status_broadcasted;
     case PendingSwapPhase.failed:
-      return 'Swap failed';
+      return t.pending_swap_status_failed;
     case PendingSwapPhase.refundable:
-      return 'Tap to claim your refund';
+      return t.pending_swap_status_refundable;
   }
 }
 

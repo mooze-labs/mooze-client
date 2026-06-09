@@ -4872,6 +4872,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Boltz flagged the swap as refundable. Tap \"Get refund\" to send the locked funds back to your wallet.';
 
   @override
+  String get pending_swap_refund_available => 'Swap refund available';
+
+  @override
+  String get pending_swap_status_preparing => 'Preparing swap…';
+
+  @override
+  String get pending_swap_status_broadcasting => 'Broadcasting to network…';
+
+  @override
+  String get pending_swap_status_broadcasted =>
+      'Broadcasted — waiting for confirmations';
+
+  @override
+  String get pending_swap_status_failed => 'Swap failed';
+
+  @override
+  String get pending_swap_status_refundable => 'Tap to claim your refund';
+
+  @override
+  String pending_swap_refundable_amount(String amount) {
+    return 'Refundable: $amount';
+  }
+
+  @override
   String get pix_first_time_title => 'About PIX payments';
 
   @override

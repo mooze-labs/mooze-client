@@ -4912,6 +4912,31 @@ class AppLocalizationsPt extends AppLocalizations {
       'A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.';
 
   @override
+  String get pending_swap_refund_available => 'Reembolso de swap disponível';
+
+  @override
+  String get pending_swap_status_preparing => 'Preparando swap…';
+
+  @override
+  String get pending_swap_status_broadcasting => 'Transmitindo para a rede…';
+
+  @override
+  String get pending_swap_status_broadcasted =>
+      'Transmitido — aguardando confirmações';
+
+  @override
+  String get pending_swap_status_failed => 'Falha no swap';
+
+  @override
+  String get pending_swap_status_refundable =>
+      'Toque para solicitar seu reembolso';
+
+  @override
+  String pending_swap_refundable_amount(String amount) {
+    return 'Reembolsável: $amount';
+  }
+
+  @override
   String get pix_first_time_title => 'Atenção sobre pagamentos PIX';
 
   @override

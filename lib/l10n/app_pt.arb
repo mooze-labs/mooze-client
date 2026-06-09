@@ -2355,6 +2355,18 @@
   "converting_details_explanation_broadcasted_peg_out": "Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.",
   "converting_details_explanation_failed": "O swap não pôde ser concluído. Quaisquer fundos reservados para o swap serão reembolsados automaticamente.",
   "converting_details_explanation_refundable": "A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.",
+  "pending_swap_refund_available": "Reembolso de swap disponível",
+  "pending_swap_status_preparing": "Preparando swap…",
+  "pending_swap_status_broadcasting": "Transmitindo para a rede…",
+  "pending_swap_status_broadcasted": "Transmitido — aguardando confirmações",
+  "pending_swap_status_failed": "Falha no swap",
+  "pending_swap_status_refundable": "Toque para solicitar seu reembolso",
+  "pending_swap_refundable_amount": "Reembolsável: {amount}",
+  "@pending_swap_refundable_amount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
   "pix_first_time_title": "Atenção sobre pagamentos PIX",
   "pix_first_time_description": "Todos os pagamentos PIX passam por análise de segurança e podem ser:",
   "pix_first_time_item_completed": "Efetivados em até 72 horas",

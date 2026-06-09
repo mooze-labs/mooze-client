@@ -8674,6 +8674,48 @@ abstract class AppLocalizations {
   /// **'A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.'**
   String get converting_details_explanation_refundable;
 
+  /// No description provided for @pending_swap_refund_available.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reembolso de swap disponível'**
+  String get pending_swap_refund_available;
+
+  /// No description provided for @pending_swap_status_preparing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preparando swap…'**
+  String get pending_swap_status_preparing;
+
+  /// No description provided for @pending_swap_status_broadcasting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transmitindo para a rede…'**
+  String get pending_swap_status_broadcasting;
+
+  /// No description provided for @pending_swap_status_broadcasted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transmitido — aguardando confirmações'**
+  String get pending_swap_status_broadcasted;
+
+  /// No description provided for @pending_swap_status_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha no swap'**
+  String get pending_swap_status_failed;
+
+  /// No description provided for @pending_swap_status_refundable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para solicitar seu reembolso'**
+  String get pending_swap_status_refundable;
+
+  /// No description provided for @pending_swap_refundable_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reembolsável: {amount}'**
+  String pending_swap_refundable_amount(String amount);
+
   /// No description provided for @pix_first_time_title.
   ///
   /// In pt, this message translates to:

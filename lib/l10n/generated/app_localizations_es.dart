@@ -4920,6 +4920,31 @@ class AppLocalizationsEs extends AppLocalizations {
       'Boltz marcó el swap como reembolsable. Toca \"Obtener reembolso\" para enviar los fondos bloqueados de vuelta a tu billetera.';
 
   @override
+  String get pending_swap_refund_available => 'Reembolso de swap disponible';
+
+  @override
+  String get pending_swap_status_preparing => 'Preparando swap…';
+
+  @override
+  String get pending_swap_status_broadcasting => 'Transmitiendo a la red…';
+
+  @override
+  String get pending_swap_status_broadcasted =>
+      'Transmitido — esperando confirmaciones';
+
+  @override
+  String get pending_swap_status_failed => 'Swap fallido';
+
+  @override
+  String get pending_swap_status_refundable =>
+      'Toca para reclamar tu reembolso';
+
+  @override
+  String pending_swap_refundable_amount(String amount) {
+    return 'Reembolsable: $amount';
+  }
+
+  @override
   String get pix_first_time_title => 'Atención sobre pagos PIX';
 
   @override
