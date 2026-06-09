@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -254,7 +255,6 @@ class _ReviewTransactionScreenState
                       psbt: psbt,
                       networkType: networkType,
                       isDrain: isDrainTransaction,
-                      bitcoinPrice: bitcoinPrice,
                       currencySymbol: currencySymbol,
                     ),
                     const SizedBox(height: 16),
@@ -513,14 +513,12 @@ class _HeroCard extends ConsumerWidget {
   final PartiallySignedTransaction psbt;
   final NetworkType networkType;
   final bool isDrain;
-  final AsyncValue<double> bitcoinPrice;
   final String currencySymbol;
 
   const _HeroCard({
     required this.psbt,
     required this.networkType,
     required this.isDrain,
-    required this.bitcoinPrice,
     required this.currencySymbol,
   });
 
@@ -559,14 +557,12 @@ class _HeroCard extends ConsumerWidget {
             _DrainHeroAmount(
               asset: psbt.asset,
               networkFees: psbt.networkFees,
-              bitcoinPrice: bitcoinPrice,
               currencySymbol: currencySymbol,
             )
           else
             _StaticHeroAmount(
               asset: psbt.asset,
               amountInSats: psbt.satoshi,
-              bitcoinPrice: bitcoinPrice,
               currencySymbol: currencySymbol,
             ),
         ],
@@ -655,13 +651,11 @@ class _TickerPill extends StatelessWidget {
 class _StaticHeroAmount extends StatelessWidget {
   final Asset asset;
   final BigInt amountInSats;
-  final AsyncValue<double> bitcoinPrice;
   final String currencySymbol;
 
   const _StaticHeroAmount({
     required this.asset,
     required this.amountInSats,
-    required this.bitcoinPrice,
     required this.currencySymbol,
   });
 
@@ -670,7 +664,6 @@ class _StaticHeroAmount extends StatelessWidget {
     return _HeroAmountStack(
       asset: asset,
       amountInSats: amountInSats,
-      bitcoinPrice: bitcoinPrice,
       currencySymbol: currencySymbol,
     );
   }
@@ -679,13 +672,11 @@ class _StaticHeroAmount extends StatelessWidget {
 class _DrainHeroAmount extends ConsumerWidget {
   final Asset asset;
   final BigInt networkFees;
-  final AsyncValue<double> bitcoinPrice;
   final String currencySymbol;
 
   const _DrainHeroAmount({
     required this.asset,
     required this.networkFees,
-    required this.bitcoinPrice,
     required this.currencySymbol,
   });
 
@@ -706,7 +697,6 @@ class _DrainHeroAmount extends ConsumerWidget {
                 (balance) => _HeroAmountStack(
                   asset: asset,
                   amountInSats: balance - networkFees,
-                  bitcoinPrice: bitcoinPrice,
                   currencySymbol: currencySymbol,
                 ),
               ),
@@ -719,13 +709,11 @@ class _DrainHeroAmount extends ConsumerWidget {
 class _HeroAmountStack extends StatelessWidget {
   final Asset asset;
   final BigInt amountInSats;
-  final AsyncValue<double> bitcoinPrice;
   final String currencySymbol;
 
   const _HeroAmountStack({
     required this.asset,
     required this.amountInSats,
-    required this.bitcoinPrice,
     required this.currencySymbol,
   });
 
@@ -743,6 +731,11 @@ class _HeroAmountStack extends StatelessWidget {
                 .replaceAll(RegExp(r'0+$'), '')
                 .replaceAll(RegExp(r'\.$'), '');
 
+    final heroText =
+        isBtcLike
+            ? '${SatsInputFormatter.formatValue(amountInSats.toInt())} sats'
+            : '$mainStr ${asset.ticker}';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -753,7 +746,7 @@ class _HeroAmountStack extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-            '${SatsInputFormatter.formatValue(amountInSats.toInt())} sats',
+            heroText,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w700,
               letterSpacing: -0.6,
@@ -774,7 +767,6 @@ class _HeroAmountStack extends StatelessWidget {
         _HeroFiatLine(
           asset: asset,
           amountInSats: amountInSats,
-          bitcoinPrice: bitcoinPrice,
           currencySymbol: currencySymbol,
         ),
       ],
@@ -785,13 +777,11 @@ class _HeroAmountStack extends StatelessWidget {
 class _HeroFiatLine extends ConsumerWidget {
   final Asset asset;
   final BigInt amountInSats;
-  final AsyncValue<double> bitcoinPrice;
   final String currencySymbol;
 
   const _HeroFiatLine({
     required this.asset,
     required this.amountInSats,
-    required this.bitcoinPrice,
     required this.currencySymbol,
   });
 
@@ -805,20 +795,15 @@ class _HeroFiatLine extends ConsumerWidget {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-    return bitcoinPrice.when(
-      data: (price) {
-        if (price <= 0) return const SizedBox.shrink();
-        final fiat = (amountInSats.toDouble() / 100000000) * price;
-        return Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(
-            '$currencySymbol ${formatter.format(fiat)}',
-            style: style,
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+    final price = ref.watch(
+      priceQuotesProvider.select((quotes) => quotes.priceFor(asset)),
+    );
+    if (price == null || price <= 0) return const SizedBox.shrink();
+
+    final fiat = asset.toUsd(amountInSats, price);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text('$currencySymbol ${formatter.format(fiat)}', style: style),
     );
   }
 }
@@ -991,8 +976,8 @@ class _FeeBlock extends StatelessWidget {
       final satText = fees == BigInt.one ? 'sat' : 'sats';
       return '${SatsInputFormatter.formatValue(fees.toInt())} $satText';
     }
-    final lbtcAmount = fees.toDouble() / 100000000;
-    return '${lbtcAmount.toStringAsFixed(8)} L-BTC';
+    final lbtcAmount = fees;
+    return '$lbtcAmount Sats (L-BTC)';
   }
 }
 
