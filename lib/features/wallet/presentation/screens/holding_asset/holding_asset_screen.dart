@@ -66,7 +66,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0).copyWith(top: 0),
                   child: Column(
                     children: [
                       const WalletHeaderWidget(),
@@ -137,7 +137,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
       children: [
         Expanded(
           child: ActionButton(
-            icon: Icons.send,
+            svgAsset: 'assets/icons/menu/send.svg',
             label: t.wallet_holding_action_send,
             onPressed: () {
               context.push('/send-asset');
@@ -147,7 +147,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         SizedBox(width: 12),
         Expanded(
           child: ActionButton(
-            icon: Icons.qr_code_scanner,
+            svgAsset: 'assets/icons/menu/receive.svg',
             label: t.wallet_holding_action_receive,
             onPressed: () {
               context.push('/receive-asset');
@@ -157,7 +157,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         SizedBox(width: 12),
         Expanded(
           child: ActionButton(
-            icon: Icons.swap_horiz,
+            svgAsset: 'assets/icons/menu/navigation/swap.svg',
             label: t.wallet_holding_action_swap,
             onPressed: () {
               context.go('/swap');
