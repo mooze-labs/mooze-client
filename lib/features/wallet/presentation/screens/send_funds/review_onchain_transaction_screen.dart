@@ -635,7 +635,7 @@ class _FeeBlock extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _formatBtc(feeSats),
+              '$feeSats Sats',
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -693,7 +693,7 @@ class _TotalBlock extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${(totalSats / 100000000).toStringAsFixed(8)} BTC',
+              '$totalSats Sats',
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 fontFeatures: const [FontFeature.tabularFigures()],
