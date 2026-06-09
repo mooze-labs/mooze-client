@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:mooze_mobile/features/settings/domain/entities/session_lock_timeout.dart';
+import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/security_settings_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -46,22 +47,26 @@ class SecuritySettingsScreen extends ConsumerWidget {
                       _SwitchRow(
                         title: t.security_session_lock_title,
                         subtitle: t.security_session_lock_subtitle,
-                        value: sessionLockEnabled,
-                        onChanged:
-                            (v) => ref
-                                .read(sessionLockEnabledProvider.notifier)
-                                .setEnabled(v),
+                        toggle: Toggle(
+                          value: sessionLockEnabled,
+                          onChange:
+                              (v) => ref
+                                  .read(sessionLockEnabledProvider.notifier)
+                                  .setEnabled(v),
+                        ),
                       ),
                       const LabelDivider(),
                       if (!sessionLockEnabled)
                         _SwitchRow(
                           title: t.security_privacy_shield_title,
                           subtitle: t.security_privacy_shield_subtitle,
-                          value: privacyShieldEnabled,
-                          onChanged:
-                              (v) => ref
-                                  .read(privacyShieldEnabledProvider.notifier)
-                                  .setEnabled(v),
+                          toggle: Toggle(
+                            value: privacyShieldEnabled,
+                            onChange:
+                                (v) => ref
+                                    .read(privacyShieldEnabledProvider.notifier)
+                                    .setEnabled(v),
+                          ),
                         ),
                     ],
                   ),
@@ -125,14 +130,12 @@ class SecuritySettingsScreen extends ConsumerWidget {
 class _SwitchRow extends StatelessWidget {
   final String title;
   final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  final Toggle toggle;
 
   const _SwitchRow({
     required this.title,
     required this.subtitle,
-    required this.value,
-    required this.onChanged,
+    required this.toggle,
   });
 
   @override
@@ -147,9 +150,8 @@ class _SwitchRow extends StatelessWidget {
           color: colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: colorScheme.primary,
+      value: toggle.value,
+      onChanged: toggle.onChange,
     );
   }
 }
