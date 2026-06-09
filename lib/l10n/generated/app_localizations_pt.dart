@@ -2866,10 +2866,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pix_deposit_status_med_label => 'Contestado - MED';
 
   @override
-  String get pix_deposit_status_processing_refund_1_2_label => 'Estornando 1/2';
+  String get pix_deposit_status_processing_refund_1_3_label => 'Estornando 1/3';
 
   @override
-  String get pix_deposit_status_processing_refund_2_2_label => 'Estornando 2/2';
+  String get pix_deposit_status_processing_refund_2_3_label => 'Estornando 2/3';
+
+  @override
+  String get pix_deposit_status_processing_refund_3_3_label => 'Estornando 3/3';
 
   @override
   String get pix_deposit_status_completed_label => 'Concluído';

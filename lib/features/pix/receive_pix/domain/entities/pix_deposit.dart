@@ -18,6 +18,7 @@ enum DepositStatus {
   med,
   processingRefund,
   broadcastedRefund,
+  finishedRefund,
   timeout,
   unknown;
 
@@ -53,6 +54,8 @@ enum DepositStatus {
         return DepositStatus.processingRefund;
       case 'broadcasted_refund':
         return DepositStatus.broadcastedRefund;
+      case 'finished_refund':
+        return DepositStatus.finishedRefund;
       case 'timeout':
         return DepositStatus.timeout;
       default:
@@ -90,9 +93,11 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.med:
         return t.pix_deposit_status_med_label;
       case DepositStatus.processingRefund:
-        return t.pix_deposit_status_processing_refund_1_2_label;
+        return t.pix_deposit_status_processing_refund_1_3_label;
       case DepositStatus.broadcastedRefund:
-        return t.pix_deposit_status_processing_refund_2_2_label;
+        return t.pix_deposit_status_processing_refund_2_3_label;
+      case DepositStatus.finishedRefund:
+        return t.pix_deposit_status_processing_refund_3_3_label;
       case DepositStatus.completed:
         return t.pix_deposit_status_completed_label;
       case DepositStatus.timeout:
@@ -132,6 +137,8 @@ extension DepositStatusExtension on DepositStatus {
       case DepositStatus.processingRefund:
         return t.pix_deposit_status_processing_refunds_plural;
       case DepositStatus.broadcastedRefund:
+        return t.pix_deposit_status_processing_refunds_plural;
+      case DepositStatus.finishedRefund:
         return t.pix_deposit_status_processing_refunds_plural;
       case DepositStatus.completed:
         return t.pix_deposit_status_completed_plural;
@@ -174,6 +181,8 @@ extension DepositStatusExtension on DepositStatus {
         return 'processing_refund';
       case DepositStatus.broadcastedRefund:
         return 'broadcasted_refund';
+      case DepositStatus.finishedRefund:
+        return 'finished_refund';
       case DepositStatus.timeout:
         return 'timeout';
       case DepositStatus.unknown:
@@ -211,6 +220,8 @@ extension DepositStatusExtension on DepositStatus {
         return Colors.orange;
       case DepositStatus.broadcastedRefund:
         return Colors.orange;
+      case DepositStatus.finishedRefund:
+        return Colors.green;
       case DepositStatus.completed:
         return Colors.green;
       case DepositStatus.timeout:

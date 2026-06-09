@@ -2874,12 +2874,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pix_deposit_status_med_label => 'Disputado - MED';
 
   @override
-  String get pix_deposit_status_processing_refund_1_2_label =>
-      'Reembolsando 1/2';
+  String get pix_deposit_status_processing_refund_1_3_label =>
+      'Reembolsando 1/3';
 
   @override
-  String get pix_deposit_status_processing_refund_2_2_label =>
-      'Reembolsando 2/2';
+  String get pix_deposit_status_processing_refund_2_3_label =>
+      'Reembolsando 2/3';
+
+  @override
+  String get pix_deposit_status_processing_refund_3_3_label =>
+      'Reembolsando 3/3';
 
   @override
   String get pix_deposit_status_completed_label => 'Completado';

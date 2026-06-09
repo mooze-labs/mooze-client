@@ -5182,17 +5182,23 @@ abstract class AppLocalizations {
   /// **'Contestado - MED'**
   String get pix_deposit_status_med_label;
 
-  /// No description provided for @pix_deposit_status_processing_refund_1_2_label.
+  /// No description provided for @pix_deposit_status_processing_refund_1_3_label.
   ///
   /// In pt, this message translates to:
-  /// **'Estornando 1/2'**
-  String get pix_deposit_status_processing_refund_1_2_label;
+  /// **'Estornando 1/3'**
+  String get pix_deposit_status_processing_refund_1_3_label;
 
-  /// No description provided for @pix_deposit_status_processing_refund_2_2_label.
+  /// No description provided for @pix_deposit_status_processing_refund_2_3_label.
   ///
   /// In pt, this message translates to:
-  /// **'Estornando 2/2'**
-  String get pix_deposit_status_processing_refund_2_2_label;
+  /// **'Estornando 2/3'**
+  String get pix_deposit_status_processing_refund_2_3_label;
+
+  /// No description provided for @pix_deposit_status_processing_refund_3_3_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estornando 3/3'**
+  String get pix_deposit_status_processing_refund_3_3_label;
 
   /// No description provided for @pix_deposit_status_completed_label.
   ///
