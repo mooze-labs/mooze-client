@@ -1545,6 +1545,7 @@
   "pix_fees_screen_footer_info_3": "O desconto de 15% com indicação se aplica apenas às taxas percentuais",
   "pix_fees_screen_footer_info_4": "As taxas são deduzidas automaticamente do valor depositado",
   "tx_detail_blockchain": "Blockchain",
+  "tx_detail_fee": "Taxa",
   "tx_detail_datetime": "{date} às {time}",
   "@tx_detail_datetime": {
     "placeholders": {

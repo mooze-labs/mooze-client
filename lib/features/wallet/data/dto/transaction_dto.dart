@@ -181,6 +181,7 @@ class BreezTransactionDto {
       receiveTxId: receiveTxId,
       sendBlockchain: sendBlockchain,
       receiveBlockchain: receiveBlockchain,
+      feesSat: fees,
     );
   }
 

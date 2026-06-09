@@ -6160,6 +6160,12 @@ abstract class AppLocalizations {
   /// **'Blockchain'**
   String get tx_detail_blockchain;
 
+  /// No description provided for @tx_detail_fee.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxa'**
+  String get tx_detail_fee;
+
   /// No description provided for @tx_detail_datetime.
   ///
   /// In pt, this message translates to:

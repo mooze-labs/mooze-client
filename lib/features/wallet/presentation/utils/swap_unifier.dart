@@ -454,6 +454,7 @@ Transaction _buildAnchoredSwap(Transaction anchor, _SwapLegs pair) {
     destination: receiveLeg?.destination ?? anchor.destination,
     blockchainUrl: anchor.blockchainUrl,
     preimage: anchor.preimage,
+    feesSat: anchor.feesSat,
   );
 }
 
@@ -522,7 +523,13 @@ Transaction _buildFallbackSwap(Transaction send, Transaction receive) {
     sendBlockchain: send.blockchain,
     receiveBlockchain: receive.blockchain,
     destination: receive.destination,
+    feesSat: _sumLegFees(send.feesSat, receive.feesSat),
   );
+}
+
+BigInt? _sumLegFees(BigInt? a, BigInt? b) {
+  if (a == null && b == null) return null;
+  return (a ?? BigInt.zero) + (b ?? BigInt.zero);
 }
 
 Transaction? _findRefundCounterpart(
@@ -592,5 +599,6 @@ Transaction? _buildRefundedSwap(Transaction send, Transaction receive) {
     sendBlockchain: Blockchain.bitcoin,
     receiveBlockchain: Blockchain.bitcoin,
     destination: receive.destination,
+    feesSat: _sumLegFees(send.feesSat, receive.feesSat),
   );
 }

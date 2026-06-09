@@ -3439,6 +3439,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tx_detail_blockchain => 'Blockchain';
 
   @override
+  String get tx_detail_fee => 'Comisión';
+
+  @override
   String tx_detail_datetime(String date, String time) {
     return '$date a las $time';
   }

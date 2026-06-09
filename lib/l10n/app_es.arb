@@ -1264,6 +1264,7 @@
   "pix_fees_screen_footer_info_3": "El descuento del 15% con referido aplica solo a las tarifas porcentuales",
   "pix_fees_screen_footer_info_4": "Las tarifas se deducen automáticamente del monto depositado",
   "tx_detail_blockchain": "Blockchain",
+  "tx_detail_fee": "Comisión",
   "tx_detail_datetime": "{date} a las {time}",
   "tx_detail_swap_label": "Intercambio de activos",
   "tx_detail_sent": "Enviado",

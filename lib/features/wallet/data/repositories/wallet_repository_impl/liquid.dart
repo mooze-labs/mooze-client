@@ -203,6 +203,7 @@ class LiquidWallet {
       sentAmount: sentAmount,
       receivedAmount: receivedAmount,
       blockchainUrl: blockchainUrl,
+      feesSat: transaction.fee,
     );
   }
 }

@@ -23,6 +23,8 @@ import 'package:mooze_mobile/features/transaction_history/presentation/widgets/i
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/soft_card.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/swap_status_badge.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/utils/transaction_display_x.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/utils/transaction_fee_x.dart';
+import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
@@ -221,6 +223,8 @@ class _TransactionDetailScreenState
       ),
     );
 
+    _addFeeRow(rows, t);
+
     if (tx.id.isNotEmpty) {
       rows.add(
         DetailRow(
@@ -292,6 +296,19 @@ class _TransactionDetailScreenState
         ],
       ),
     );
+  }
+
+  void _addFeeRow(List<Widget> rows, AppLocalizations t) {
+    final feeSat = widget.transaction.totalFeeSat;
+    if (feeSat == null) return;
+    rows.add(
+      DetailRow(label: t.tx_detail_fee, value: _formatFeeSats(feeSat)),
+    );
+  }
+
+  String _formatFeeSats(BigInt feeSat) {
+    final unit = feeSat == BigInt.one ? 'sat' : 'sats';
+    return '${SatsInputFormatter.formatValue(feeSat.toInt())} $unit';
   }
 
   Widget _buildStatusRow() {
@@ -474,6 +491,7 @@ class _TransactionDetailScreenState
         value: tx.blockchain.networkLabel,
       ),
       );
+      _addFeeRow(rows, t);
       // Refunded peg (`{sendId}_{receiveId}_refund` synthetic id, NOT a chain
       // txid) → render the two real txids separately instead of leaking the
       // synthetic id to the user as if it were valid.
@@ -524,6 +542,8 @@ class _TransactionDetailScreenState
         value: tx.blockchain.networkLabel,
       ),
       );
+
+      _addFeeRow(rows, t);
 
       if (isSwap && _isCrossChainSwap()) {
         rows.addAll(_buildCrossChainSwapIds());

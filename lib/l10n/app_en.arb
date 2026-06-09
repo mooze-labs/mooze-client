@@ -1264,6 +1264,7 @@
   "pix_fees_screen_footer_info_3": "The 15% referral discount applies only to percentage fees",
   "pix_fees_screen_footer_info_4": "Fees are automatically deducted from the deposited amount",
   "tx_detail_blockchain": "Blockchain",
+  "tx_detail_fee": "Fee",
   "tx_detail_datetime": "{date} at {time}",
   "tx_detail_swap_label": "Asset swap",
   "tx_detail_sent": "Sent",

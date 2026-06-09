@@ -405,6 +405,7 @@ legacy.Transaction _buildPegSwapRow(
     receiveTxId: receiveTxId,
     sendBlockchain: isPegIn ? Blockchain.bitcoin : Blockchain.liquid,
     receiveBlockchain: isPegIn ? Blockchain.liquid : Blockchain.bitcoin,
+    feesSat: BigInt.from(peg.feeSat),
   );
 }
 
@@ -430,6 +431,7 @@ int _fingerprint(List<v2.Transaction> txs) {
     h = _mix(h, t.status.index);
     h = _mix(h, t.direction.index);
     h = _mix(h, t.amountSat);
+    h = _mix(h, t.feeSat);
     h = _mix(h, t.timestamp.millisecondsSinceEpoch);
     final sa = t.sentAmountSat;
     final ra = t.receivedAmountSat;
@@ -547,5 +549,6 @@ legacy.Transaction _v2ToLegacy(v2.Transaction t) {
     toAsset: toAsset,
     sentAmount: sentAmount,
     receivedAmount: receivedAmount,
+    feesSat: BigInt.from(t.feeSat),
   );
 }
