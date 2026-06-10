@@ -5662,6 +5662,138 @@ abstract class AppLocalizations {
   /// **'Agora você já sabe usar todas as funcionalidades do Modo Comerciante. Pronto para começar?'**
   String get merchant_tutorial_done_body;
 
+  /// No description provided for @pix_tutorial_step1_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receba pagamentos com PIX'**
+  String get pix_tutorial_step1_title;
+
+  /// No description provided for @pix_tutorial_step1_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque aqui para acessar a área PIX e começar a receber pagamentos rapidamente.'**
+  String get pix_tutorial_step1_body;
+
+  /// No description provided for @pix_tutorial_step2_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acesso rápido'**
+  String get pix_tutorial_step2_title;
+
+  /// No description provided for @pix_tutorial_step2_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você também pode acessar a área PIX por este atalho disponível em todo o aplicativo.'**
+  String get pix_tutorial_step2_body;
+
+  /// No description provided for @pix_tutorial_step3_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como você recebe pagamentos'**
+  String get pix_tutorial_step3_title;
+
+  /// No description provided for @pix_tutorial_step3_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por padrão, os pagamentos são recebidos em DEPIX, um ativo digital atrelado 1:1 ao Real. Cada 1 DEPIX equivale a R\$1,00.'**
+  String get pix_tutorial_step3_body;
+
+  /// No description provided for @pix_tutorial_step4_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha outro ativo'**
+  String get pix_tutorial_step4_title;
+
+  /// No description provided for @pix_tutorial_step4_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se preferir, você pode alterar o ativo de recebimento e receber pagamentos diretamente em Liquid Bitcoin (L-BTC).'**
+  String get pix_tutorial_step4_body;
+
+  /// No description provided for @pix_tutorial_step5_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Converta quando quiser'**
+  String get pix_tutorial_step5_title;
+
+  /// No description provided for @pix_tutorial_step5_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mesmo recebendo pagamentos em DEPIX, você pode converter seu saldo para L-BTC ou USDT depois, usando a tela de Swap.'**
+  String get pix_tutorial_step5_body;
+
+  /// No description provided for @pix_tutorial_step6_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu limite de recebimento'**
+  String get pix_tutorial_step6_title;
+
+  /// No description provided for @pix_tutorial_step6_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confira seus limites mínimos, máximos e o limite diário. Seus limites podem aumentar conforme o uso do aplicativo.'**
+  String get pix_tutorial_step6_body;
+
+  /// No description provided for @pix_tutorial_step7_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o valor'**
+  String get pix_tutorial_step7_title;
+
+  /// No description provided for @pix_tutorial_step7_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha o valor que deseja receber. Para este tutorial, usaremos R\$20,00 como exemplo.'**
+  String get pix_tutorial_step7_body;
+
+  /// No description provided for @pix_tutorial_step8_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gere uma cobrança PIX'**
+  String get pix_tutorial_step8_title;
+
+  /// No description provided for @pix_tutorial_step8_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depois de informar um valor, basta arrastar este botão até o fim para criar uma solicitação de pagamento PIX.'**
+  String get pix_tutorial_step8_body;
+
+  /// No description provided for @pix_tutorial_step9_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'QR Code pronto'**
+  String get pix_tutorial_step9_title;
+
+  /// No description provided for @pix_tutorial_step9_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Após arrastar o botão, um QR Code PIX será gerado.'**
+  String get pix_tutorial_step9_body;
+
+  /// No description provided for @pix_tutorial_done_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tutorial concluído'**
+  String get pix_tutorial_done_title;
+
+  /// No description provided for @pix_tutorial_done_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agora você sabe como receber pagamentos com PIX, escolher seu ativo de recebimento, entender os limites e gerar QR Codes de pagamento.'**
+  String get pix_tutorial_done_body;
+
+  /// No description provided for @pix_tutorial_restart.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reiniciar tutorial'**
+  String get pix_tutorial_restart;
+
+  /// No description provided for @pix_tutorial_settings_replay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rever tutorial do PIX'**
+  String get pix_tutorial_settings_replay;
+
   /// No description provided for @merchant_default_product_name.
   ///
   /// In pt, this message translates to:

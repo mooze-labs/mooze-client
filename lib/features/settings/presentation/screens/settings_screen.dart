@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
+import 'package:mooze_mobile/features/settings/presentation/actions/callback_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
@@ -29,6 +31,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  void _replayPixTutorial() {
+    Future(() {
+      if (!mounted) return;
+      ref.read(pixTutorialControllerProvider.notifier).start();
+      if (mounted) context.go('/home');
+    });
+  }
+
   /// Called when the user taps the biometric toggle. Enabling triggers the
   /// native prompt to confirm it works before persisting; disabling clears the
   /// preference immediately.
@@ -312,6 +322,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     context: context,
                     rota: '/settings/support',
                   ),
+                ),
+                ConfigStructure(
+                  title: t.pix_tutorial_settings_replay,
+                  iconSvgPath: 'assets/icons/menu/settings/tutorial.svg',
+                  action: CallbackSettingsAction(_replayPixTutorial),
                 ),
               ],
             ),

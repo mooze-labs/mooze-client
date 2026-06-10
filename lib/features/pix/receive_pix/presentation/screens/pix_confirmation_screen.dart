@@ -8,6 +8,9 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_tutorial_content.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/info_tips_section.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/pix_fee_info_card.dart';
@@ -30,6 +33,13 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
   OverlayEntry? _overlayEntry;
   bool _isLoading = false;
 
+  // PIX onboarding tutorial (steps 8–9: slide button + QR ready).
+  TutorialCoachMark? _confirmCoach;
+  bool _confirmCoachShown = false;
+  // Guards the onFinish completion-modal so dispose()'s finish() (cleanup)
+  // doesn't re-fire it during teardown. See ReceivePixScreen.
+  bool _confirmAdvancing = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +50,11 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
       CurvedAnimation(parent: _circleController, curve: Curves.easeOutCubic),
     );
+
+    // The tutorial stage is already `confirm` when this screen is pushed
+    // (set by ReceivePixScreen), so trigger from initState rather than
+    // relying on a listener change.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncConfirmTutorial());
   }
 
   @override
@@ -47,7 +62,111 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     _overlayEntry?.remove();
     _overlayEntry = null;
     _circleController.dispose();
+    _confirmCoach?.finish();
     super.dispose();
+  }
+
+  void _syncConfirmTutorial() {
+    if (!mounted) return;
+    final stage = ref.read(pixTutorialControllerProvider).stage;
+    if (stage == PixTutorialStage.confirm && !_confirmCoachShown) {
+      _confirmCoachShown = true;
+      final controller = ref.read(pixTutorialControllerProvider.notifier);
+      showPixCoachMarkWhenReady(controller.slideButtonKey, () {
+        if (mounted) _showConfirmTutorial();
+      }, label: 'confirm/slide-button');
+    }
+  }
+
+  void _showConfirmTutorial() {
+    final controller = ref.read(pixTutorialControllerProvider.notifier);
+    final t = AppLocalizations.of(context);
+
+    _confirmCoach = buildPixCoachMark(
+      targets: [
+        // Step 8 — the slide-to-generate button.
+        TargetFocus(
+          identify: "pix_slide_button",
+          keyTarget: controller.slideButtonKey,
+          shape: ShapeLightFocus.RRect,
+          radius: 10,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step8_title,
+                    body: t.pix_tutorial_step8_body,
+                    buttonLabel: t.common_next,
+                    onPressed: () => coach.next(),
+                  ),
+            ),
+          ],
+        ),
+        // Step 9 — QR ready (simulated; does not trigger the real slide).
+        TargetFocus(
+          identify: "pix_qr_ready",
+          targetPosition: pixTutorialCenteredPosition(context),
+          shape: ShapeLightFocus.RRect,
+          radius: 20,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step9_title,
+                    body: t.pix_tutorial_step9_body,
+                    buttonLabel: t.common_finish,
+                    onPressed: () {
+                      _confirmAdvancing = true;
+                      coach.next();
+                    },
+                  ),
+            ),
+          ],
+        ),
+      ],
+      onFinish: () {
+        // Only show the completion modal on genuine completion —
+        // dispose()'s finish() lands here too.
+        if (!_confirmAdvancing) return;
+        _confirmAdvancing = false;
+        _showCompletionModal();
+      },
+      onSkip: _skipTutorial,
+    );
+
+    _confirmCoach?.show(context: context);
+  }
+
+  /// Skipping the tutorial exits it and returns the user to Home. Deferred and
+  /// mutate-before-navigate for the same reasons as the completion modal.
+  void _skipTutorial() {
+    Future(() async {
+      if (!mounted) return;
+      await ref.read(pixTutorialControllerProvider.notifier).skip();
+      if (mounted) context.go('/home');
+    });
+  }
+
+  void _showCompletionModal() {
+    PixTutorialCompletionModal.show(
+      context,
+      onFinish: () {
+        Future(() async {
+          if (!mounted) return;
+          await ref.read(pixTutorialControllerProvider.notifier).finish();
+          if (mounted) context.go('/home');
+        });
+      },
+      onRestart: () {
+        Future(() {
+          if (!mounted) return;
+          ref.read(pixTutorialControllerProvider.notifier).restart();
+          if (mounted) context.go('/home');
+        });
+      },
+    );
   }
 
   void _onSlideComplete() async {
@@ -61,10 +180,13 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     final minAnimationTime = Future.delayed(const Duration(milliseconds: 1500));
 
     try {
-      final depositController =
-          await ref.read(pixDepositControllerProvider.future);
+      final depositController = await ref.read(
+        pixDepositControllerProvider.future,
+      );
       final result =
-          await depositController.newDeposit(amountInCents, selectedAsset).run();
+          await depositController
+              .newDeposit(amountInCents, selectedAsset)
+              .run();
 
       await minAnimationTime;
 
@@ -165,6 +287,10 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                     const InfoTipsSection(),
                     const SizedBox(height: 24),
                     SlideToConfirmButton(
+                      key:
+                          ref
+                              .read(pixTutorialControllerProvider.notifier)
+                              .slideButtonKey,
                       onSlideComplete: _onSlideComplete,
                       text: t.merchant_generate_qr,
                       isLoading: _isLoading,

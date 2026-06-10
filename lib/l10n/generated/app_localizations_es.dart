@@ -3148,6 +3148,82 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ya sabes usar todas las funciones del Modo Comerciante. ¿Listo para empezar?';
 
   @override
+  String get pix_tutorial_step1_title => 'Recibe pagos con PIX';
+
+  @override
+  String get pix_tutorial_step1_body =>
+      'Toca aquí para acceder al área PIX y empezar a recibir pagos rápidamente.';
+
+  @override
+  String get pix_tutorial_step2_title => 'Acceso rápido';
+
+  @override
+  String get pix_tutorial_step2_body =>
+      'También puedes acceder al área PIX desde este acceso directo disponible en toda la app.';
+
+  @override
+  String get pix_tutorial_step3_title => 'Cómo recibes pagos';
+
+  @override
+  String get pix_tutorial_step3_body =>
+      'De forma predeterminada, los pagos se reciben en DEPIX, un activo digital vinculado 1:1 al real brasileño. Cada 1 DEPIX equivale a R\$1,00.';
+
+  @override
+  String get pix_tutorial_step4_title => 'Elige otro activo';
+
+  @override
+  String get pix_tutorial_step4_body =>
+      'Si lo prefieres, puedes cambiar el activo de recepción y recibir pagos directamente en Liquid Bitcoin (L-BTC).';
+
+  @override
+  String get pix_tutorial_step5_title => 'Convierte cuando quieras';
+
+  @override
+  String get pix_tutorial_step5_body =>
+      'Aunque recibas pagos en DEPIX, luego puedes convertir tu saldo a L-BTC o USDT usando la pantalla de Swap.';
+
+  @override
+  String get pix_tutorial_step6_title => 'Tu límite de recepción';
+
+  @override
+  String get pix_tutorial_step6_body =>
+      'Consulta tus límites mínimos, máximos y diarios. Tus límites pueden aumentar a medida que continúes utilizando la aplicación.';
+
+  @override
+  String get pix_tutorial_step7_title => 'Ingresa el monto';
+
+  @override
+  String get pix_tutorial_step7_body =>
+      'Elige el monto que deseas cobrar. Para este tutorial, usaremos R\$20,00 como ejemplo.';
+
+  @override
+  String get pix_tutorial_step8_title => 'Genera un cobro PIX';
+
+  @override
+  String get pix_tutorial_step8_body =>
+      'Después de ingresar un monto, simplemente arrastra este botón hasta el final para crear una solicitud de pago PIX.';
+
+  @override
+  String get pix_tutorial_step9_title => 'Código QR listo';
+
+  @override
+  String get pix_tutorial_step9_body =>
+      'Una vez arrastrado el botón, se generará un código QR PIX.';
+
+  @override
+  String get pix_tutorial_done_title => 'Tutorial completado';
+
+  @override
+  String get pix_tutorial_done_body =>
+      'Ahora sabes cómo recibir pagos con PIX, elegir tu activo de recepción, entender los límites y generar códigos QR de pago.';
+
+  @override
+  String get pix_tutorial_restart => 'Reiniciar tutorial';
+
+  @override
+  String get pix_tutorial_settings_replay => 'Repetir tutorial de PIX';
+
+  @override
   String get merchant_default_product_name => 'Producto 01';
 
   @override

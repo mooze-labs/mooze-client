@@ -3115,6 +3115,82 @@ class AppLocalizationsEn extends AppLocalizations {
       'You now know all the features of Merchant Mode. Ready to start?';
 
   @override
+  String get pix_tutorial_step1_title => 'Receive payments with PIX';
+
+  @override
+  String get pix_tutorial_step1_body =>
+      'Tap here to access the PIX area and start receiving payments quickly.';
+
+  @override
+  String get pix_tutorial_step2_title => 'Quick access';
+
+  @override
+  String get pix_tutorial_step2_body =>
+      'You can also access the PIX area from this shortcut available throughout the app.';
+
+  @override
+  String get pix_tutorial_step3_title => 'How you receive payments';
+
+  @override
+  String get pix_tutorial_step3_body =>
+      'By default, payments are received in DEPIX, a digital asset pegged 1:1 to the Brazilian Real. Every 1 DEPIX is equivalent to R\$1.00.';
+
+  @override
+  String get pix_tutorial_step4_title => 'Choose another asset';
+
+  @override
+  String get pix_tutorial_step4_body =>
+      'If you prefer, you can change the receiving asset and receive payments directly in Liquid Bitcoin (L-BTC).';
+
+  @override
+  String get pix_tutorial_step5_title => 'Convert anytime';
+
+  @override
+  String get pix_tutorial_step5_body =>
+      'Even if you receive payments in DEPIX, you can later convert your balance to L-BTC or USDT using the Swap screen.';
+
+  @override
+  String get pix_tutorial_step6_title => 'Your receiving limit';
+
+  @override
+  String get pix_tutorial_step6_body =>
+      'Check your minimum, maximum, and daily limits. Your limits may increase as you continue using the app.';
+
+  @override
+  String get pix_tutorial_step7_title => 'Enter the amount';
+
+  @override
+  String get pix_tutorial_step7_body =>
+      'Choose the amount you want to charge. For this tutorial, we will use R\$20.00 as an example.';
+
+  @override
+  String get pix_tutorial_step8_title => 'Generate a PIX charge';
+
+  @override
+  String get pix_tutorial_step8_body =>
+      'After entering an amount, simply drag this button to the end to create a PIX payment request.';
+
+  @override
+  String get pix_tutorial_step9_title => 'QR Code ready';
+
+  @override
+  String get pix_tutorial_step9_body =>
+      'Once the button is dragged, a PIX QR Code will be generated.';
+
+  @override
+  String get pix_tutorial_done_title => 'Tutorial completed';
+
+  @override
+  String get pix_tutorial_done_body =>
+      'You now know how to receive payments with PIX, choose your receiving asset, understand limits, and generate payment QR Codes.';
+
+  @override
+  String get pix_tutorial_restart => 'Restart Tutorial';
+
+  @override
+  String get pix_tutorial_settings_replay => 'Replay PIX tutorial';
+
+  @override
   String get merchant_default_product_name => 'Product 01';
 
   @override

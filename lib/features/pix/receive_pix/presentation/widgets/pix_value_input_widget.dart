@@ -17,7 +17,16 @@ import 'account_limits_display_widget.dart';
 class PixValueInputWidget extends ConsumerWidget {
   final VoidCallback onContinue;
 
-  const PixValueInputWidget({super.key, required this.onContinue});
+  /// Optional onboarding-tutorial target keys (steps 6 & 7).
+  final Key? amountKey;
+  final Key? limitsKey;
+
+  const PixValueInputWidget({
+    super.key,
+    required this.onContinue,
+    this.amountKey,
+    this.limitsKey,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,13 +40,19 @@ class PixValueInputWidget extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: PixDepositAmountInput(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: KeyedSubtree(
+              key: amountKey,
+              child: const PixDepositAmountInput(),
+            ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: AccountLimitsDisplay(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: KeyedSubtree(
+              key: limitsKey,
+              child: const AccountLimitsDisplay(),
+            ),
           ),
           Divider(
             height: 1,
@@ -85,10 +100,13 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(depositAmountProvider, (previous, next) {
-        if (next == 0.0 && _controller.text != '0,00') {
-          _controller.value = const TextEditingValue(
-            text: '0,00',
-            selection: TextSelection.collapsed(offset: 4),
+        if (_focusNode.hasFocus) return;
+        final formatted =
+            next <= 0 ? '0,00' : FiatInputFormatter.formatValue(next);
+        if (_controller.text != formatted) {
+          _controller.value = TextEditingValue(
+            text: formatted,
+            selection: TextSelection.collapsed(offset: formatted.length),
           );
         }
       });

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_tutorial_content.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
@@ -29,17 +32,190 @@ class ReceivePixScreen extends ConsumerStatefulWidget {
 class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
   bool _hasShownFirstTimeDialog = false;
 
+  TutorialCoachMark? _receiveCoach;
+  bool _receiveCoachShown = false;
+  bool _receiveAdvancing = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(depositAmountProvider.notifier).state = 0.0;
+        if (!ref.read(pixTutorialControllerProvider).isActive) {
+          ref.read(depositAmountProvider.notifier).state = 0.0;
+        }
         ref.invalidate(feeRateProvider);
         ref.invalidate(feeAmountProvider);
         ref.invalidate(discountedFeesDepositProvider);
         ref.invalidate(assetQuoteProvider);
+
+        _syncReceiveTutorial();
       }
+    });
+  }
+
+  @override
+  void dispose() {
+    _receiveCoach?.finish();
+    super.dispose();
+  }
+
+  /// Shows the steps 3–7 coach mark once the tutorial reaches the receive
+  /// stage and the asset selector has been laid out.
+  void _syncReceiveTutorial() {
+    if (!mounted) return;
+    final stage = ref.read(pixTutorialControllerProvider).stage;
+    if (stage == PixTutorialStage.receive && !_receiveCoachShown) {
+      _receiveCoachShown = true;
+      final controller = ref.read(pixTutorialControllerProvider.notifier);
+      showPixCoachMarkWhenReady(controller.assetSelectorKey, () {
+        if (mounted) _showReceiveTutorial();
+      }, label: 'receive/asset-selector');
+    } else if (stage != PixTutorialStage.receive) {
+      _receiveCoachShown = false;
+    }
+  }
+
+  void _showReceiveTutorial() {
+    final controller = ref.read(pixTutorialControllerProvider.notifier);
+    final t = AppLocalizations.of(context);
+
+    TargetFocus assetTarget(
+      String identify,
+      String title,
+      String body, {
+      void Function(TutorialCoachMarkController coach)? onNext,
+    }) {
+      return TargetFocus(
+        identify: identify,
+        keyTarget: controller.assetSelectorKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 12,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            builder:
+                (context, coach) => pixTutorialContentCard(
+                  title: title,
+                  body: body,
+                  buttonLabel: t.common_next,
+                  onPressed: () =>
+                      onNext != null ? onNext(coach) : coach.next(),
+                ),
+          ),
+        ],
+      );
+    }
+
+    _receiveCoach = buildPixCoachMark(
+      targets: [
+        // Step 3 & 4 — same target (asset selector), different copy. Advancing
+        // to step 4 previews the L-BTC option so the user sees the selector can
+        // change; advancing to step 5 restores the default dePIX asset.
+        assetTarget(
+          "pix_asset_default",
+          t.pix_tutorial_step3_title,
+          t.pix_tutorial_step3_body,
+          onNext: (coach) {
+            controller.previewLbtcAsset();
+            coach.next();
+          },
+        ),
+        assetTarget(
+          "pix_asset_change",
+          t.pix_tutorial_step4_title,
+          t.pix_tutorial_step4_body,
+          onNext: (coach) {
+            controller.restoreDefaultAsset();
+            coach.next();
+          },
+        ),
+        // Step 5 — centered info (no specific element).
+        TargetFocus(
+          identify: "pix_swap_later",
+          targetPosition: pixTutorialCenteredPosition(context),
+          shape: ShapeLightFocus.RRect,
+          radius: 20,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step5_title,
+                    body: t.pix_tutorial_step5_body,
+                    buttonLabel: t.common_next,
+                    onPressed: () => coach.next(),
+                  ),
+            ),
+          ],
+        ),
+        // Step 6 — receiving limits.
+        TargetFocus(
+          identify: "pix_limits",
+          keyTarget: controller.limitsKey,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step6_title,
+                    body: t.pix_tutorial_step6_body,
+                    buttonLabel: t.common_next,
+                    onPressed: () {
+                      // Pre-fill the demo amount before highlighting the field.
+                      controller.applyDemoAmount();
+                      coach.next();
+                    },
+                  ),
+            ),
+          ],
+        ),
+        // Step 7 — amount input (last target → triggers onFinish).
+        TargetFocus(
+          identify: "pix_amount",
+          keyTarget: controller.amountInputKey,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step7_title,
+                    body: t.pix_tutorial_step7_body,
+                    buttonLabel: t.common_next,
+                    onPressed: () {
+                      _receiveAdvancing = true;
+                      coach.next();
+                    },
+                  ),
+            ),
+          ],
+        ),
+      ],
+      onFinish: () {
+        // Only run the transition when the user actually completed the last
+        // step — `finish()` from dispose() also lands here (see field doc).
+        if (!_receiveAdvancing) return;
+        _receiveAdvancing = false;
+        // Advance to the confirmation surface (steps 8–9).
+        controller.toConfirm();
+        context.push('/pix/confirm');
+      },
+      onSkip: _skipTutorial,
+    );
+
+    _receiveCoach?.show(context: context);
+  }
+
+  /// Skipping the tutorial exits it and returns the user to Home.
+  void _skipTutorial() {
+    Future(() async {
+      if (!mounted) return;
+      await ref.read(pixTutorialControllerProvider.notifier).skip();
+      if (mounted) context.go('/home');
     });
   }
 
@@ -59,6 +235,10 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
   }
 
   Future<void> _checkFirstTimeAccess() async {
+    // The onboarding tutorial takes precedence — don't stack the legacy
+    // first-time dialog on top of the coach marks.
+    if (ref.read(pixTutorialControllerProvider).isActive) return;
+
     final onboardingService = ref.read(pixOnboardingServiceProvider);
 
     if (!onboardingService.hasSeenFirstTimeDialog() && mounted) {
@@ -79,6 +259,13 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+
+    // React to the tutorial reaching the receive stage (set by the shell when
+    // the user finishes step 2 and the PIX page is brought into view).
+    ref.listen<PixTutorialState>(pixTutorialControllerProvider, (_, _) {
+      _syncReceiveTutorial();
+    });
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -200,9 +387,21 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
         children: [
           _buildInstructionText(context),
           const SizedBox(height: 10),
-          AssetSelectorWidget(),
+          KeyedSubtree(
+            key:
+                ref
+                    .read(pixTutorialControllerProvider.notifier)
+                    .assetSelectorKey,
+            child: AssetSelectorWidget(),
+          ),
           const SizedBox(height: 10),
-          PixValueInputWidget(onContinue: _advance),
+          PixValueInputWidget(
+            onContinue: _advance,
+            amountKey:
+                ref.read(pixTutorialControllerProvider.notifier).amountInputKey,
+            limitsKey:
+                ref.read(pixTutorialControllerProvider.notifier).limitsKey,
+          ),
           const SizedBox(height: 12),
           InfoTipsSection(
             tips: [

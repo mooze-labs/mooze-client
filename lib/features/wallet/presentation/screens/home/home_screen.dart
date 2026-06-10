@@ -22,6 +22,7 @@ import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
 import '../../widgets/widgets.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -54,7 +55,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _markNotifierHomeReached();
       _logMountTime();
       _scheduleDeferredLoads();
+      _maybeStartPixTutorial();
     });
+  }
+
+  void _maybeStartPixTutorial() {
+    if (!mounted) return;
+    final controller = ref.read(pixTutorialControllerProvider.notifier);
+    final alreadyActive = ref.read(pixTutorialControllerProvider).isActive;
+    if (!alreadyActive && !controller.hasSeen) {
+      controller.start();
+    }
   }
 
   /// Open the V2 transaction notifier's home-reached gate. Sticky for
@@ -184,7 +195,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       WalletHeaderWidget(),
                       UpdateNotificationWidget(),
                       const SizedBox(height: 15),
-                      _buildActionButtons(context),
+                      _buildActionButtons(
+                        context,
+                        pixButtonKey: ref
+                            .read(pixTutorialControllerProvider.notifier)
+                            .homePixButtonKey,
+                      ),
                       const SizedBox(height: 32),
                       AssetSection(),
                       TransactionSection(),
@@ -229,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-Widget _buildActionButtons(BuildContext context) {
+Widget _buildActionButtons(BuildContext context, {Key? pixButtonKey}) {
   final t = AppLocalizations.of(context);
   return Row(
     children: [
@@ -255,6 +271,7 @@ Widget _buildActionButtons(BuildContext context) {
       const SizedBox(width: 12),
       Expanded(
         child: ActionButton(
+          key: pixButtonKey,
           svgAsset: 'assets/icons/menu/navigation/pix.svg',
           label: t.wallet_action_buy,
           isPrimary: true,
