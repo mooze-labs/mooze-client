@@ -24,7 +24,8 @@ import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart'
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
-import 'package:mooze_mobile/features/wallet/routes.dart' show PageVisibilityProvider;
+import 'package:mooze_mobile/features/wallet/routes.dart'
+    show PageVisibilityProvider;
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// PageView index of the swap screen in [_MainNavigationScaffold].
@@ -58,7 +59,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   bool _lifecycleArmed = true;
 
-
   ValueNotifier<double>? _pageFloatNotifier;
 
   static const int _minBtcLbtcSwapSats = 25000;
@@ -86,7 +86,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _locale = Localizations.localeOf(context).toString();
-
 
     final newNotifier = PageVisibilityProvider.pageFloatOf(context);
     if (!identical(_pageFloatNotifier, newNotifier)) {
@@ -775,7 +774,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           const SizedBox(height: 14),
           const _CardDivider(),
           const SizedBox(height: 10),
-          _BalanceRow(asset: _fromAsset),
+          _BalanceRow(asset: _fromAsset, isFiatMode: _isFiatMode),
         ],
       ),
     );
@@ -987,7 +986,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           const SizedBox(height: 14),
           const _CardDivider(),
           const SizedBox(height: 10),
-          _BalanceRow(asset: _toAsset),
+          _BalanceRow(asset: _toAsset, isFiatMode: _isFiatMode),
         ],
       ),
     );
@@ -1616,12 +1615,14 @@ class _CardLabel extends StatelessWidget {
   }
 }
 
-/// "Saldo disponível · 3.120,96 USDT" row rendered at the bottom of a
-/// swap card. Uses the centralized `Asset.formatAmount + displayUnit`
-/// pair so light/dark themes and locales render consistently.
 class _BalanceRow extends ConsumerWidget {
   final core.Asset asset;
-  const _BalanceRow({required this.asset});
+
+  /// When `true`, the available balance is rendered in the active fiat
+  /// currency (mirroring the From/To amount fields). Falls back to the
+  /// asset amount when no quote is available so the row never blanks out.
+  final bool isFiatMode;
+  const _BalanceRow({required this.asset, this.isFiatMode = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1637,8 +1638,24 @@ class _BalanceRow extends ConsumerWidget {
       fontWeight: FontWeight.w600,
     );
 
-    String body(BigInt balance) =>
-        '${asset.formatAmount(balance.toInt(), locale: locale)} ${asset.displayUnit}';
+    // Only subscribe to the quote/currency in fiat mode so asset-mode rows
+    // don't rebuild on every price tick.
+    final currency = isFiatMode ? ref.watch(currencyControllerProvider) : null;
+    final fiatPrice =
+        isFiatMode
+            ? ref.watch(fiatPriceProvider(asset)).valueOrNull?.toNullable()
+            : null;
+
+    String body(BigInt balance) {
+      if (currency != null && fiatPrice != null && fiatPrice > 0) {
+        return _formatFiatFromDouble(
+          asset.toUsd(balance, fiatPrice),
+          currency,
+          withSymbol: true,
+        );
+      }
+      return '${asset.formatAmount(balance.toInt(), locale: locale)} ${asset.displayUnit}';
+    }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
