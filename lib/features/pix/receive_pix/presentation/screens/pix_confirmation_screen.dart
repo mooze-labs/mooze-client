@@ -90,6 +90,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
           keyTarget: controller.slideButtonKey,
           shape: ShapeLightFocus.RRect,
           radius: 10,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.top,
@@ -109,6 +110,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
           targetPosition: pixTutorialCenteredPosition(context),
           shape: ShapeLightFocus.RRect,
           radius: 20,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,

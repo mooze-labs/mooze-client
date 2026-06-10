@@ -123,6 +123,7 @@ class _MainNavigationScaffoldState
           keyTarget: controller.homePixButtonKey,
           shape: ShapeLightFocus.RRect,
           radius: 12,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
@@ -139,6 +140,7 @@ class _MainNavigationScaffoldState
           identify: "pix_nav_button",
           keyTarget: controller.bottomNavPixKey,
           shape: ShapeLightFocus.Circle,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.top,
@@ -159,7 +161,10 @@ class _MainNavigationScaffoldState
       onFinish: () {
         // Only transition on genuine completion — dispose()'s finish() lands
         // here too.
-        if (!_homeAdvancing) return;
+        if (!_homeAdvancing) {
+          _homeCoachShown = false;
+          return;
+        }
         _homeAdvancing = false;
         // Advance to the receive group and bring the PIX page into view;
         // ReceivePixScreen picks up the `receive` stage and shows steps 3–7.

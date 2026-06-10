@@ -91,6 +91,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
         keyTarget: controller.assetSelectorKey,
         shape: ShapeLightFocus.RRect,
         radius: 12,
+        enableTargetTab: false,
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
@@ -136,6 +137,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           targetPosition: pixTutorialCenteredPosition(context),
           shape: ShapeLightFocus.RRect,
           radius: 20,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
@@ -155,6 +157,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           keyTarget: controller.limitsKey,
           shape: ShapeLightFocus.RRect,
           radius: 12,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
@@ -178,6 +181,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           keyTarget: controller.amountInputKey,
           shape: ShapeLightFocus.RRect,
           radius: 12,
+          enableTargetTab: false,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
@@ -198,7 +202,10 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
       onFinish: () {
         // Only run the transition when the user actually completed the last
         // step — `finish()` from dispose() also lands here (see field doc).
-        if (!_receiveAdvancing) return;
+        if (!_receiveAdvancing) {
+          _receiveCoachShown = false;
+          return;
+        }
         _receiveAdvancing = false;
         // Advance to the confirmation surface (steps 8–9).
         controller.toConfirm();
