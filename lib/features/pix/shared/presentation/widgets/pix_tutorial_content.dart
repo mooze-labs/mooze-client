@@ -29,7 +29,11 @@ Widget pixTutorialContentCard({
         const SizedBox(height: 10),
         Text(
           body,
-          style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.4),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 20),
         SizedBox(
@@ -97,7 +101,8 @@ void showPixCoachMarkWhenReady(
   void attempt(int remaining) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final renderObject = key.currentContext?.findRenderObject();
-      final isReady = key.currentContext != null &&
+      final isReady =
+          key.currentContext != null &&
           renderObject is RenderBox &&
           renderObject.attached &&
           renderObject.hasSize;
@@ -122,7 +127,6 @@ void showPixCoachMarkWhenReady(
   attempt(retries);
 }
 
-
 class PixTutorialCompletionModal {
   static Future<void> show(
     BuildContext context, {
@@ -135,61 +139,57 @@ class PixTutorialCompletionModal {
       builder: (dialogContext) {
         final t = AppLocalizations.of(dialogContext);
         final theme = Theme.of(dialogContext);
-        return Dialog(
+        return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: theme.colorScheme.surfaceContainerLowest,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                  ),
-                  child: Icon(
-                    Icons.check_circle_rounded,
-                    size: 44,
-                    color: theme.colorScheme.primary,
-                  ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  t.pix_tutorial_done_title,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 44,
+                  color: theme.colorScheme.primary,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  t.pix_tutorial_done_body,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                t.pix_tutorial_done_title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  text: t.common_finish,
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    onFinish();
-                  },
-                ),
-                const SizedBox(height: 8),
-                SecondaryButton(
-                  text: t.pix_tutorial_restart,
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    onRestart();
-                  },
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                t.pix_tutorial_done_body,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: t.common_finish,
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onFinish();
+                },
+              ),
+              const SizedBox(height: 8),
+              SecondaryButton(
+                text: t.pix_tutorial_restart,
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onRestart();
+                },
+              ),
+            ],
           ),
         );
       },
