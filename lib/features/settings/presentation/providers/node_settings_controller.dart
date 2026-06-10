@@ -93,11 +93,20 @@ class NodeSettingsController extends AsyncNotifier<NodeSettingsState> {
 
     try {
       if (current.isCustomMode) {
-        final setBtc = ref.read(setBitcoinNodeUrlUseCaseProvider);
-        final setLiquid = ref.read(setLiquidNodeUrlUseCaseProvider);
-        final btcResult = await setBtc.call(current.bitcoinUrl.trim());
+        final btcUrl = current.bitcoinUrl.trim();
+        final liquidUrl = current.liquidUrl.trim();
+
+        // A blank endpoint means "use the default node for this chain",
+        // persisted by clearing any previously stored custom URL. This
+        // lets users customise just one of the two chains.
+        final btcResult = btcUrl.isEmpty
+            ? await ref.read(clearBitcoinNodeUrlUseCaseProvider).call()
+            : await ref.read(setBitcoinNodeUrlUseCaseProvider).call(btcUrl);
         if (btcResult is Failure<void>) return btcResult.message;
-        final liquidResult = await setLiquid.call(current.liquidUrl.trim());
+
+        final liquidResult = liquidUrl.isEmpty
+            ? await ref.read(clearLiquidNodeUrlUseCaseProvider).call()
+            : await ref.read(setLiquidNodeUrlUseCaseProvider).call(liquidUrl);
         if (liquidResult is Failure<void>) return liquidResult.message;
       } else {
         final clearBtc = ref.read(clearBitcoinNodeUrlUseCaseProvider);

@@ -37,11 +37,13 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
     super.dispose();
   }
 
-  /// Permits host:port and scheme://host:port. Empty values are caught
-  /// upstream by the "required in custom mode" check.
+  /// Permits host:port and scheme://host:port. An empty value is valid:
+  /// a blank endpoint falls back to the default node for that chain, so
+  /// users can customise just one of the two. The "at least one endpoint"
+  /// rule is enforced at save time.
   String? _validateUrl(String? value, AppLocalizations t) {
     final v = value?.trim() ?? '';
-    if (v.isEmpty) return t.node_config_url_required;
+    if (v.isEmpty) return null;
 
     final stripped = v.contains('://') ? v.split('://').last : v;
     final hostPort = stripped.split('/').first;
@@ -77,8 +79,16 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
     if (current.isCustomMode) {
       final ok = _formKey.currentState?.validate() ?? false;
       if (!ok) return false;
-      controller.setBitcoinUrl(_bitcoinController.text.trim());
-      controller.setLiquidUrl(_liquidController.text.trim());
+      final btc = _bitcoinController.text.trim();
+      final liquid = _liquidController.text.trim();
+      // At least one endpoint must be set in custom mode; an entirely
+      // blank custom config is indistinguishable from default mode.
+      if (btc.isEmpty && liquid.isEmpty) {
+        AppSnackBar.error(context, t.node_config_at_least_one);
+        return false;
+      }
+      controller.setBitcoinUrl(btc);
+      controller.setLiquidUrl(liquid);
     }
 
     setState(() => _saving = true);
@@ -147,6 +157,17 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final asyncState = ref.watch(nodeSettingsControllerProvider);
     final currentState = asyncState.value;
+
+    // Seed the controllers and baseline from the first loaded snapshot
+    // here — before computing canPop — so an untouched screen reports no
+    // unsaved changes and doesn't pop the exit dialog on the first frame.
+    if (currentState != null && !_initialized) {
+      _bitcoinController.text = currentState.bitcoinUrl;
+      _liquidController.text = currentState.liquidUrl;
+      _baseline = currentState;
+      _initialized = true;
+    }
+
     // Block accidental exit only when there are unsaved changes and we
     // aren't already in the middle of a save.
     final canPop =
@@ -179,15 +200,7 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
                   message: t.node_config_load_error,
                   color: colorScheme.error,
                 ),
-            data: (state) {
-              if (!_initialized) {
-                _bitcoinController.text = state.bitcoinUrl;
-                _liquidController.text = state.liquidUrl;
-                _baseline = state;
-                _initialized = true;
-              }
-              return _buildContent(context, t, state);
-            },
+            data: (state) => _buildContent(context, t, state),
           ),
         ),
       ),

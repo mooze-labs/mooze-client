@@ -271,7 +271,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get node_config_bitcoin_helper =>
-      'Format: scheme://host:port. Use ssl:// for encrypted connections.';
+      'Format: scheme://host:port. Use ssl:// for encrypted connections. Leave empty to use the default node.';
 
   @override
   String get node_config_liquid_label => 'Liquid Network endpoint';
@@ -281,7 +281,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get node_config_liquid_helper =>
-      'Format: host:port. LWK negotiates TLS automatically.';
+      'Format: host:port. LWK negotiates TLS automatically. Leave empty to use the default node.';
 
   @override
   String get node_config_lightning_note =>
@@ -303,6 +303,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get node_config_url_invalid =>
       'Use the format host:port (or scheme://host:port)';
+
+  @override
+  String get node_config_at_least_one =>
+      'Set at least one endpoint, or switch to default mode.';
 
   @override
   String get node_config_unsaved_title => 'Unsaved changes';

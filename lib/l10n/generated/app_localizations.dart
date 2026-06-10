@@ -601,7 +601,7 @@ abstract class AppLocalizations {
   /// No description provided for @node_config_bitcoin_helper.
   ///
   /// In pt, this message translates to:
-  /// **'Formato: esquema://host:porta. Use ssl:// para conexões criptografadas.'**
+  /// **'Formato: esquema://host:porta. Use ssl:// para conexões criptografadas. Deixe vazio para usar o node padrão.'**
   String get node_config_bitcoin_helper;
 
   /// No description provided for @node_config_liquid_label.
@@ -619,7 +619,7 @@ abstract class AppLocalizations {
   /// No description provided for @node_config_liquid_helper.
   ///
   /// In pt, this message translates to:
-  /// **'Formato: host:porta. O LWK usa TLS automaticamente.'**
+  /// **'Formato: host:porta. O LWK usa TLS automaticamente. Deixe vazio para usar o node padrão.'**
   String get node_config_liquid_helper;
 
   /// No description provided for @node_config_lightning_note.
@@ -657,6 +657,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Use o formato host:porta (ou esquema://host:porta)'**
   String get node_config_url_invalid;
+
+  /// No description provided for @node_config_at_least_one.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configure ao menos um endpoint, ou volte ao modo padrão.'**
+  String get node_config_at_least_one;
 
   /// No description provided for @node_config_unsaved_title.
   ///
