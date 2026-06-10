@@ -11,6 +11,7 @@ import 'package:mooze_mobile/shared/prices/models.dart' show Currency;
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
 import '../widgets/btc_lbtc_swap_warning_dialog.dart';
+import '../widgets/no_liquidity_dialog.dart';
 import '../helpers/btc_lbtc_swap_helper.dart';
 import '../providers/swap_onboarding_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
@@ -203,7 +204,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       _hasShownNoLiquidityDialog = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _showNoLiquidityDialog(context);
+          NoLiquidityDialog.show(context, onRetry: _requestQuoteDebounced);
           ref.read(swapControllerProvider.notifier).resetQuote();
         }
       });
@@ -1152,101 +1153,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       // Silently fail if onboarding service is not available
       debugPrint('Error checking BTC/LBTC swap warning: $e');
     }
-  }
-
-  void _showNoLiquidityDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        final t = AppLocalizations.of(context);
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: const Color(0xFF1C1C1C),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.orange.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.water_drop_outlined,
-                    size: 40,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  t.swap_no_liquidity_title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    // color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  t.swap_no_liquidity_body,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _requestQuoteDebounced();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      t.common_retry,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(
-                      t.common_close,
-                      style: TextStyle(fontSize: 16, color: Colors.grey[400]),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _toggleFiatMode() {
