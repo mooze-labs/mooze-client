@@ -8,11 +8,19 @@ import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 
 const int _satsPerBtc = 100000000;
 
+// Synchronous providers: when priceQuotesProvider emits new prices, these
+// recompute immediately using the last-known balance snapshot (valueOrNull)
+// instead of awaiting an async future. This eliminates the AsyncLoading state
+// during price updates, preventing the header shimmer and layout shifts.
+
 final totalWalletValueProvider =
-    FutureProvider<Either<String, double>>((ref) async {
+    Provider<AsyncValue<Either<String, double>>>((ref) {
   final allAssets = ref.watch(allAssetsProvider);
-  final allBalances = await ref.watch(allBalancesProvider.future);
+  final allBalancesAsync = ref.watch(allBalancesProvider);
   final quotes = ref.watch(priceQuotesProvider);
+
+  final allBalances = allBalancesAsync.valueOrNull;
+  if (allBalances == null) return const AsyncValue.loading();
 
   double totalValue = 0.0;
   for (final asset in allAssets) {
@@ -22,18 +30,21 @@ final totalWalletValueProvider =
     if (price == null || price <= 0) continue;
     totalValue += (balance.toDouble() / _satsPerBtc) * price;
   }
-  return Right(totalValue);
+  return AsyncValue.data(Right(totalValue));
 });
 
 final totalWalletBitcoinProvider =
-    FutureProvider<Either<String, double>>((ref) async {
+    Provider<AsyncValue<Either<String, double>>>((ref) {
   final allAssets = ref.watch(allAssetsProvider);
-  final allBalances = await ref.watch(allBalancesProvider.future);
+  final allBalancesAsync = ref.watch(allBalancesProvider);
   final quotes = ref.watch(priceQuotesProvider);
+
+  final allBalances = allBalancesAsync.valueOrNull;
+  if (allBalances == null) return const AsyncValue.loading();
 
   final btcPrice = quotes.priceFor(Asset.btc);
   if (btcPrice == null || btcPrice <= 0) {
-    return const Right(0.0);
+    return const AsyncValue.data(Right(0.0));
   }
 
   double totalBitcoin = 0.0;
@@ -51,7 +62,7 @@ final totalWalletBitcoinProvider =
     final fiatValue = (balance.toDouble() / _satsPerBtc) * price;
     totalBitcoin += fiatValue / btcPrice;
   }
-  return Right(totalBitcoin);
+  return AsyncValue.data(Right(totalBitcoin));
 });
 
 final totalWalletSatoshisProvider =
@@ -70,11 +81,17 @@ final totalWalletSatoshisProvider =
   );
 });
 
+// Variation is kept as a synchronous Provider that watches the per-asset
+// variation providers directly (instead of awaiting their futures), so price
+// updates recompute instantly with the last-known variation values.
 final totalWalletVariationProvider =
-    FutureProvider<Either<String, double>>((ref) async {
+    Provider<AsyncValue<Either<String, double>>>((ref) {
   final allAssets = ref.watch(allAssetsProvider);
-  final allBalances = await ref.watch(allBalancesProvider.future);
+  final allBalancesAsync = ref.watch(allBalancesProvider);
   final quotes = ref.watch(priceQuotesProvider);
+
+  final allBalances = allBalancesAsync.valueOrNull;
+  if (allBalances == null) return const AsyncValue.loading();
 
   double totalCurrentValue = 0.0;
   double totalVariation = 0.0;
@@ -88,15 +105,16 @@ final totalWalletVariationProvider =
     final assetValue = (balance.toDouble() / _satsPerBtc) * price;
     if (assetValue <= 0) continue;
 
-    final variationResult =
-        await ref.read(assetPercentageVariationProvider(asset).future);
+    final variationAsync = ref.watch(assetPercentageVariationProvider(asset));
+    final variationResult = variationAsync.valueOrNull;
+    if (variationResult == null) continue;
+
     variationResult.fold((_) => null, (variation) {
       totalCurrentValue += assetValue;
       totalVariation += variation * assetValue;
     });
   }
 
-  if (totalCurrentValue == 0) return const Right(0.0);
-  return Right(totalVariation / totalCurrentValue);
+  if (totalCurrentValue == 0) return const AsyncValue.data(Right(0.0));
+  return AsyncValue.data(Right(totalVariation / totalCurrentValue));
 });
-

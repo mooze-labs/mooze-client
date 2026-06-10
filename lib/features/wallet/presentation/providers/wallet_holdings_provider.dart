@@ -89,14 +89,20 @@ class WalletHolding {
 }
 
 
+// Synchronous provider: recomputes immediately when prices or balances update,
+// using allBalancesAsync.valueOrNull to avoid an async await that would briefly
+// push the provider into AsyncLoading and cause layout shifts in the UI.
 final walletHoldingsProvider =
-    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
+    Provider<AsyncValue<Either<String, List<WalletHolding>>>>((ref) {
   final allAssets = ref.watch(allAssetsProvider);
-  final allBalances = await ref.watch(allBalancesProvider.future);
+  final allBalancesAsync = ref.watch(allBalancesProvider);
   final quotes = ref.watch(priceQuotesProvider);
   final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
   final locale = ref.watch(localeStringProvider);
   final zeroFiat = NumberFormat('#,##0.00', locale).format(0);
+
+  final allBalances = allBalancesAsync.valueOrNull;
+  if (allBalances == null) return const AsyncValue.loading();
 
   final List<WalletHolding> holdings = [];
 
@@ -149,14 +155,15 @@ final walletHoldingsProvider =
     return bValue.compareTo(aValue);
   });
 
-  return Right(holdings);
+  return AsyncValue.data(Right(holdings));
 });
 
 final walletHoldingsWithBalanceProvider =
-    FutureProvider<Either<String, List<WalletHolding>>>((ref) async {
-      final allHoldingsResult = await ref.watch(walletHoldingsProvider.future);
-
-      return allHoldingsResult.map(
-        (holdings) => holdings.where((holding) => holding.hasBalance).toList(),
-      );
-    });
+    Provider<AsyncValue<Either<String, List<WalletHolding>>>>((ref) {
+  final allHoldingsAsync = ref.watch(walletHoldingsProvider);
+  return allHoldingsAsync.whenData(
+    (either) => either.map(
+      (holdings) => holdings.where((h) => h.hasBalance).toList(),
+    ),
+  );
+});
