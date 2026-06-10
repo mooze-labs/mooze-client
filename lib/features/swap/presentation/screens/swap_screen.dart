@@ -1662,6 +1662,7 @@ class _BalanceRow extends ConsumerWidget {
       children: [
         Text(t.wallet_balance_available, style: labelStyle),
         balanceAsync.when(
+          skipLoadingOnReload: true,
           data:
               (either) => either.fold(
                 (_) => Text('—', style: valueStyle),
