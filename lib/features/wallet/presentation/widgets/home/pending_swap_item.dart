@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -12,27 +14,29 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// amounts, time on the right) but drives its subtitle off
 /// [PendingSwap.phase] so the user gets continuous feedback while the
 /// Breez SDK works through the chain swap.
-class PendingSwapItem extends StatelessWidget {
+class PendingSwapItem extends ConsumerWidget {
   final PendingSwap swap;
 
   const PendingSwapItem({super.key, required this.swap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
     final t = AppLocalizations.of(context);
+    final isVisible = ref.watch(isVisibleProvider);
     final isFailed = swap.phase == PendingSwapPhase.failed;
     final isRefundable = swap.phase == PendingSwapPhase.refundable;
-    final subtitleColor = isFailed
-        ? Colors.redAccent
-        : (isRefundable ? Colors.orangeAccent : colors.primaryColor);
-
+    final subtitleColor =
+        isFailed
+            ? Colors.redAccent
+            : (isRefundable ? Colors.orangeAccent : colors.primaryColor);
     // Refundable rows skip the converting screen and route straight
     // into the existing refund flow — the user's next step is to
     // claim, not to inspect.
-    final route = isRefundable
-        ? '/transactions/refund'
-        : '/swap/converting/${swap.localId}';
+    final route =
+        isRefundable
+            ? '/transactions/refund'
+            : '/swap/converting/${swap.localId}';
 
     return GestureDetector(
       onTap: () => context.push(route),
@@ -56,11 +60,17 @@ class PendingSwapItem extends StatelessWidget {
                   Row(
                     children: [
                       if (isFailed)
-                        const Icon(Icons.error_outline,
-                            size: 12, color: Colors.redAccent)
+                        const Icon(
+                          Icons.error_outline,
+                          size: 12,
+                          color: Colors.redAccent,
+                        )
                       else if (isRefundable)
-                        const Icon(Icons.assignment_return,
-                            size: 14, color: Colors.orangeAccent)
+                        const Icon(
+                          Icons.assignment_return,
+                          size: 14,
+                          color: Colors.orangeAccent,
+                        )
                       else
                         _LiveDot(color: subtitleColor),
                       const SizedBox(width: 6),
@@ -86,7 +96,9 @@ class PendingSwapItem extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          _formatAmount(swap.fromAsset, swap.sentAmount),
+                          isVisible
+                              ? '•••••••'
+                              : _formatAmount(swap.fromAsset, swap.sentAmount),
                           style: const TextStyle(fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -97,11 +109,15 @@ class PendingSwapItem extends StatelessWidget {
                           width: 12,
                           height: 12,
                           colorFilter: ColorFilter.mode(
-                              subtitleColor, BlendMode.srcIn),
+                            subtitleColor,
+                            BlendMode.srcIn,
+                          ),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '~${_formatAmount(swap.toAsset, swap.estimatedReceivedAmount)}',
+                          isVisible
+                              ? '•••••••'
+                              : '~${_formatAmount(swap.toAsset, swap.estimatedReceivedAmount)}',
                           style: const TextStyle(fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -111,9 +127,11 @@ class PendingSwapItem extends StatelessWidget {
                   ] else ...[
                     const SizedBox(height: 2),
                     Text(
-                      t.pending_swap_refundable_amount(
-                        _formatAmount(swap.fromAsset, swap.sentAmount),
-                      ),
+                      isVisible
+                          ? '•••••••'
+                          : t.pending_swap_refundable_amount(
+                            _formatAmount(swap.fromAsset, swap.sentAmount),
+                          ),
                       style: const TextStyle(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -131,8 +149,11 @@ class PendingSwapItem extends StatelessWidget {
                 ),
                 if (isRefundable) ...[
                   const SizedBox(height: 4),
-                  const Icon(Icons.chevron_right,
-                      size: 18, color: Colors.orangeAccent),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: Colors.orangeAccent,
+                  ),
                 ],
               ],
             ),
@@ -218,11 +239,7 @@ class _SwapIcon extends StatelessWidget {
             bottom: 5,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15.5),
-              child: SvgPicture.asset(
-                toAsset.iconPath,
-                width: 31,
-                height: 31,
-              ),
+              child: SvgPicture.asset(toAsset.iconPath, width: 31, height: 31),
             ),
           ),
         ],
@@ -265,10 +282,7 @@ class _LiveDotState extends State<_LiveDot>
       child: Container(
         width: 8,
         height: 8,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.color,
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
       ),
     );
   }
