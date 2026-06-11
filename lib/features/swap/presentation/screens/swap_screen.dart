@@ -247,9 +247,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
           // their own elevated surfaces. A third wrapper just stacked
           // surfaces and muddied the contrast in both themes.
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: SizedBox(
-            width: double.infinity,
+          child: SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
                 _from(context),
