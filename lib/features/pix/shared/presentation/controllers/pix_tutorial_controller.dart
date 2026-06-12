@@ -19,13 +19,17 @@ const double kPixTutorialDemoAmount = 20.0;
 
 class PixTutorialState {
   final PixTutorialStage stage;
+  final int runId;
 
-  const PixTutorialState({this.stage = PixTutorialStage.inactive});
+  const PixTutorialState({
+    this.stage = PixTutorialStage.inactive,
+    this.runId = 0,
+  });
 
   bool get isActive => stage != PixTutorialStage.inactive;
 
-  PixTutorialState copyWith({PixTutorialStage? stage}) =>
-      PixTutorialState(stage: stage ?? this.stage);
+  PixTutorialState copyWith({PixTutorialStage? stage, int? runId}) =>
+      PixTutorialState(stage: stage ?? this.stage, runId: runId ?? this.runId);
 }
 
 class PixTutorialController extends Notifier<PixTutorialState> {
@@ -43,7 +47,10 @@ class PixTutorialController extends Notifier<PixTutorialState> {
 
   void start() {
     _resetDemoState();
-    state = const PixTutorialState(stage: PixTutorialStage.home);
+    state = PixTutorialState(
+      stage: PixTutorialStage.home,
+      runId: state.runId + 1,
+    );
   }
 
   /// Advances to the receive-screen group (steps 3–7).
@@ -75,14 +82,18 @@ class PixTutorialController extends Notifier<PixTutorialState> {
   /// Replays the tutorial from the beginning without persisting completion.
   void restart() {
     _resetDemoState();
-    state = const PixTutorialState(stage: PixTutorialStage.home);
+    state = PixTutorialState(
+      stage: PixTutorialStage.home,
+      runId: state.runId + 1,
+    );
   }
 
   /// Completes the tutorial: persists the flag and clears demo state so it
-  /// never auto-starts again.
+  /// never auto-starts again. Keeps [PixTutorialState.runId] monotonic so a
+  /// later replay never collides with the run that just finished.
   Future<void> finish() async {
     _resetDemoState();
-    state = const PixTutorialState();
+    state = state.copyWith(stage: PixTutorialStage.inactive);
     await ref.read(pixTutorialServiceProvider).setTutorialShown();
   }
 
