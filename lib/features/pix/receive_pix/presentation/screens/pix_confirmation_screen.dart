@@ -264,52 +264,61 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     final isSlideEnabled =
         depositAmount > 0 && validation.isValid && !_isLoading;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.pix_confirm_title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
+    final tutorialActive = ref.watch(pixTutorialControllerProvider).isActive;
+
+    return AbsorbPointer(
+      absorbing: tutorialActive,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(t.pix_confirm_title),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => context.pop(),
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8, left: 16, bottom: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TransactionDisplayWidget(),
-                    const SizedBox(height: 16),
-                    const PixFeeInfoCard(),
-                    const SizedBox(height: 16),
-                    const InfoTipsSection(),
-                    const SizedBox(height: 24),
-                    SlideToConfirmButton(
-                      key:
-                          ref
-                              .read(pixTutorialControllerProvider.notifier)
-                              .slideButtonKey,
-                      onSlideComplete: _onSlideComplete,
-                      text: t.merchant_generate_qr,
-                      isLoading: _isLoading,
-                      isEnabled: isSlideEnabled,
-                    ),
-                  ],
+        body: Stack(
+          children: [
+            GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    right: 8,
+                    left: 16,
+                    bottom: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TransactionDisplayWidget(),
+                      const SizedBox(height: 16),
+                      const PixFeeInfoCard(),
+                      const SizedBox(height: 16),
+                      const InfoTipsSection(),
+                      const SizedBox(height: 24),
+                      SlideToConfirmButton(
+                        key:
+                            ref
+                                .read(pixTutorialControllerProvider.notifier)
+                                .slideButtonKey,
+                        onSlideComplete: _onSlideComplete,
+                        text: t.merchant_generate_qr,
+                        isLoading: _isLoading,
+                        isEnabled: isSlideEnabled,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          ApiUnavailableOverlay(
-            onRetry: () {
-              ref.invalidate(pixDepositControllerProvider);
-            },
-            customMessage: t.pix_processing_unavailable,
-          ),
-        ],
+            ApiUnavailableOverlay(
+              onRetry: () {
+                ref.invalidate(pixDepositControllerProvider);
+              },
+              customMessage: t.pix_processing_unavailable,
+            ),
+          ],
+        ),
       ),
     );
   }
