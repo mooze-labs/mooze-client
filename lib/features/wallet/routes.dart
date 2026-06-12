@@ -73,7 +73,7 @@ class _MainNavigationScaffoldState
 
   // PIX onboarding tutorial (steps 1–2: home PIX button + bottom-nav button).
   TutorialCoachMark? _homeCoach;
-  bool _homeCoachShown = false;
+  int? _shownHomeRunId;
   // Guards the onFinish transition so the dispose-time finish() (cleanup)
   // doesn't re-fire it during widget-tree teardown. See ReceivePixScreen.
   bool _homeAdvancing = false;
@@ -96,19 +96,18 @@ class _MainNavigationScaffoldState
   /// Shows or hides the steps 1–2 coach mark to match the tutorial stage.
   void _syncHomeTutorial() {
     if (!mounted) return;
-    final stage = ref.read(pixTutorialControllerProvider).stage;
+    final tutorial = ref.read(pixTutorialControllerProvider);
     final onHomePage = _getIndexFromLocation(widget.currentLocation) == 0;
 
-    if (stage == PixTutorialStage.home && onHomePage && !_homeCoachShown) {
-      _homeCoachShown = true;
+    if (tutorial.stage == PixTutorialStage.home &&
+        onHomePage &&
+        _shownHomeRunId != tutorial.runId) {
+      _shownHomeRunId = tutorial.runId;
       final controller = ref.read(pixTutorialControllerProvider.notifier);
       showPixCoachMarkWhenReady(controller.homePixButtonKey, () {
         if (!mounted) return;
         _showHomeTutorial();
       }, label: 'home/pix-button');
-    } else if (stage != PixTutorialStage.home) {
-      // Reset so the tutorial can be re-shown on a future restart.
-      _homeCoachShown = false;
     }
   }
 
@@ -127,12 +126,13 @@ class _MainNavigationScaffoldState
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
-              builder: (context, coach) => pixTutorialContentCard(
-                title: t.pix_tutorial_step1_title,
-                body: t.pix_tutorial_step1_body,
-                buttonLabel: t.common_next,
-                onPressed: () => coach.next(),
-              ),
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step1_title,
+                    body: t.pix_tutorial_step1_body,
+                    buttonLabel: t.common_next,
+                    onPressed: () => coach.next(),
+                  ),
             ),
           ],
         ),
@@ -144,25 +144,24 @@ class _MainNavigationScaffoldState
           contents: [
             TargetContent(
               align: ContentAlign.top,
-              builder: (context, coach) => pixTutorialContentCard(
-                title: t.pix_tutorial_step2_title,
-                body: t.pix_tutorial_step2_body,
-                buttonLabel: t.common_next,
-                // Last target in this group — `next()` triggers `onFinish`.
-                onPressed: () {
-                  _homeAdvancing = true;
-                  coach.next();
-                },
-              ),
+              builder:
+                  (context, coach) => pixTutorialContentCard(
+                    title: t.pix_tutorial_step2_title,
+                    body: t.pix_tutorial_step2_body,
+                    buttonLabel: t.common_next,
+                    onPressed: () {
+                      _homeAdvancing = true;
+                      coach.next();
+                    },
+                  ),
             ),
           ],
         ),
       ],
       onFinish: () {
         // Only transition on genuine completion — dispose()'s finish() lands
-        // here too.
         if (!_homeAdvancing) {
-          _homeCoachShown = false;
+          _shownHomeRunId = null;
           return;
         }
         _homeAdvancing = false;
@@ -261,34 +260,43 @@ class _MainNavigationScaffoldState
       _syncHomeTutorial();
     });
 
+    final tutorialActive = ref.watch(pixTutorialControllerProvider).isActive;
+
     return PageVisibilityProvider(
       currentPage: _currentPageNotifier,
       pageFloat: _pageFloatNotifier,
       child: PlatformSafeArea(
-        child: Scaffold(
-          body: PageView(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            children: [
-              const HomeScreen(),
-              const HoldingsAsseetScreen(),
-              // const PixMainScreen(),
-              const ReceivePixScreen(),
-              const SwapScreen(),
-              const MainSettingsScreen(),
-            ],
-          ),
-          extendBody: true,
-          resizeToAvoidBottomInset: false,
-          bottomNavigationBar: CustomBottomNavBar(
-            centralButtonKey:
-                ref.read(pixTutorialControllerProvider.notifier).bottomNavPixKey,
-            currentIndex: currentIndex,
-            onTap: (index) {
-              if (_pageController.hasClients) {
-                _pageController.jumpToPage(index);
-              }
-            },
+        child: AbsorbPointer(
+          absorbing: tutorialActive,
+          child: Scaffold(
+            body: PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              physics:
+                  tutorialActive ? const NeverScrollableScrollPhysics() : null,
+              children: [
+                const HomeScreen(),
+                const HoldingsAsseetScreen(),
+                // const PixMainScreen(),
+                const ReceivePixScreen(),
+                const SwapScreen(),
+                const MainSettingsScreen(),
+              ],
+            ),
+            extendBody: true,
+            resizeToAvoidBottomInset: false,
+            bottomNavigationBar: CustomBottomNavBar(
+              centralButtonKey:
+                  ref
+                      .read(pixTutorialControllerProvider.notifier)
+                      .bottomNavPixKey,
+              currentIndex: currentIndex,
+              onTap: (index) {
+                if (_pageController.hasClients) {
+                  _pageController.jumpToPage(index);
+                }
+              },
+            ),
           ),
         ),
       ),

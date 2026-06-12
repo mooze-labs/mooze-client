@@ -140,7 +140,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hasBootedOnce = appState?.readyAt != null;
     final syncPhase = ref.watch(syncStateProvider).valueOrNull?.phase;
     final isSyncing = syncPhase == SyncPhase.running;
-    final isLoadingData = !hasBootedOnce || isSyncing;
+    final tutorialActive = ref.watch(pixTutorialControllerProvider).isActive;
+    final isLoadingData = (!hasBootedOnce || isSyncing) && !tutorialActive;
 
     return AuthInitializerWidget(
       child: BackgroundSyncIndicator(
