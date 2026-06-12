@@ -98,18 +98,35 @@ void showPixCoachMarkWhenReady(
   int retries = 30,
   String? label,
 }) {
+  
+  Offset? lastOffset;
+
   void attempt(int remaining) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final renderObject = key.currentContext?.findRenderObject();
-      final isReady =
-          key.currentContext != null &&
+      final context = key.currentContext;
+      final renderObject = context?.findRenderObject();
+      final isRendered =
+          context != null &&
           renderObject is RenderBox &&
           renderObject.attached &&
           renderObject.hasSize;
 
-      if (isReady) {
-        show();
-      } else if (remaining > 0) {
+      if (isRendered) {
+        final routeAnimation = ModalRoute.of(context)?.animation;
+        final routeSettled =
+            routeAnimation == null || routeAnimation.isCompleted;
+
+        final offset = renderObject.localToGlobal(Offset.zero);
+        final offsetStable = lastOffset == offset;
+        lastOffset = offset;
+
+        if (routeSettled && offsetStable) {
+          show();
+          return;
+        }
+      }
+
+      if (remaining > 0) {
         Future.delayed(
           const Duration(milliseconds: 50),
           () => attempt(remaining - 1),
@@ -117,7 +134,7 @@ void showPixCoachMarkWhenReady(
       } else {
         debugPrint(
           '[PixTutorial] target "${label ?? key.toString()}" never became '
-          'ready (context: ${key.currentContext != null}, '
+          'ready/stable (context: ${context != null}, '
           'renderBox: ${renderObject is RenderBox}); skipping its coach mark.',
         );
       }
