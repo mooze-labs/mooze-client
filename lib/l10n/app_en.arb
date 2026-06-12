@@ -1195,7 +1195,7 @@
   "pix_tutorial_step6_title": "Your receiving limit",
   "pix_tutorial_step6_body": "Check your minimum, maximum, and daily limits. Your limits may increase as you continue using the app.",
   "pix_tutorial_step7_title": "Enter the amount",
-  "pix_tutorial_step7_body": "Choose the amount you want to charge. For this tutorial, we will use R$20.00 as an example.",
+  "pix_tutorial_step7_body": "Choose the amount you want to charge. For this tutorial, we will use R$50.00 as an example.",
   "pix_tutorial_step8_title": "Generate a PIX charge",
   "pix_tutorial_step8_body": "After entering an amount, simply drag this button to the end to create a PIX payment request.",
   "pix_tutorial_step9_title": "QR Code ready",

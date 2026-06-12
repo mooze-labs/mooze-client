@@ -3165,7 +3165,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pix_tutorial_step7_body =>
-      'Choose the amount you want to charge. For this tutorial, we will use R\$20.00 as an example.';
+      'Choose the amount you want to charge. For this tutorial, we will use R\$50.00 as an example.';
 
   @override
   String get pix_tutorial_step8_title => 'Generate a PIX charge';

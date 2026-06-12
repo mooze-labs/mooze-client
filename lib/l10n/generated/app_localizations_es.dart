@@ -3198,7 +3198,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pix_tutorial_step7_body =>
-      'Elige el monto que deseas cobrar. Para este tutorial, usaremos R\$20,00 como ejemplo.';
+      'Elige el monto que deseas cobrar. Para este tutorial, usaremos R\$50,00 como ejemplo.';
 
   @override
   String get pix_tutorial_step8_title => 'Genera un cobro PIX';

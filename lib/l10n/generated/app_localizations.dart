@@ -5749,7 +5749,7 @@ abstract class AppLocalizations {
   /// No description provided for @pix_tutorial_step7_body.
   ///
   /// In pt, this message translates to:
-  /// **'Escolha o valor que deseja receber. Para este tutorial, usaremos R\$20,00 como exemplo.'**
+  /// **'Escolha o valor que deseja receber. Para este tutorial, usaremos R\$50,00 como exemplo.'**
   String get pix_tutorial_step7_body;
 
   /// No description provided for @pix_tutorial_step8_title.

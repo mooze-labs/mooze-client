@@ -1195,7 +1195,7 @@
   "pix_tutorial_step6_title": "Tu límite de recepción",
   "pix_tutorial_step6_body": "Consulta tus límites mínimos, máximos y diarios. Tus límites pueden aumentar a medida que continúes utilizando la aplicación.",
   "pix_tutorial_step7_title": "Ingresa el monto",
-  "pix_tutorial_step7_body": "Elige el monto que deseas cobrar. Para este tutorial, usaremos R$20,00 como ejemplo.",
+  "pix_tutorial_step7_body": "Elige el monto que deseas cobrar. Para este tutorial, usaremos R$50,00 como ejemplo.",
   "pix_tutorial_step8_title": "Genera un cobro PIX",
   "pix_tutorial_step8_body": "Después de ingresar un monto, simplemente arrastra este botón hasta el final para crear una solicitud de pago PIX.",
   "pix_tutorial_step9_title": "Código QR listo",

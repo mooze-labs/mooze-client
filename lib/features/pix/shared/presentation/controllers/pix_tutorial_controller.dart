@@ -15,7 +15,7 @@ enum PixTutorialStage {
   confirm,
 }
 
-const double kPixTutorialDemoAmount = 20.0;
+const double kPixTutorialDemoAmount = 50.0;
 
 class PixTutorialState {
   final PixTutorialStage stage;
