@@ -74,6 +74,7 @@ class _MainNavigationScaffoldState
   // PIX onboarding tutorial (steps 1–2: home PIX button + bottom-nav button).
   TutorialCoachMark? _homeCoach;
   int? _shownHomeRunId;
+  int? _pendingHomeRunId;
   // Guards the onFinish transition so the dispose-time finish() (cleanup)
   // doesn't re-fire it during widget-tree teardown. See ReceivePixScreen.
   bool _homeAdvancing = false;
@@ -101,13 +102,22 @@ class _MainNavigationScaffoldState
 
     if (tutorial.stage == PixTutorialStage.home &&
         onHomePage &&
-        _shownHomeRunId != tutorial.runId) {
-      _shownHomeRunId = tutorial.runId;
+        _shownHomeRunId != tutorial.runId &&
+        _pendingHomeRunId != tutorial.runId) {
+      final runId = tutorial.runId;
+      _pendingHomeRunId = runId;
       final controller = ref.read(pixTutorialControllerProvider.notifier);
-      showPixCoachMarkWhenReady(controller.homePixButtonKey, () {
-        if (!mounted) return;
-        _showHomeTutorial();
-      }, label: 'home/pix-button');
+      showPixCoachMarkWhenReady(
+        controller.homePixButtonKey,
+        () {
+          _pendingHomeRunId = null;
+          if (!mounted) return;
+          _shownHomeRunId = runId;
+          _showHomeTutorial();
+        },
+        label: 'home/pix-button',
+        onTimeout: () => _pendingHomeRunId = null,
+      );
     }
   }
 

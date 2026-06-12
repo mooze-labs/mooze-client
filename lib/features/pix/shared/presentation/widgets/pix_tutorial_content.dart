@@ -97,8 +97,8 @@ void showPixCoachMarkWhenReady(
   VoidCallback show, {
   int retries = 30,
   String? label,
+  VoidCallback? onTimeout,
 }) {
-  
   Offset? lastOffset;
 
   void attempt(int remaining) {
@@ -131,14 +131,18 @@ void showPixCoachMarkWhenReady(
           const Duration(milliseconds: 50),
           () => attempt(remaining - 1),
         );
+
       } else {
         debugPrint(
           '[PixTutorial] target "${label ?? key.toString()}" never became '
           'ready/stable (context: ${context != null}, '
           'renderBox: ${renderObject is RenderBox}); skipping its coach mark.',
         );
+        onTimeout?.call();
       }
     });
+
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   attempt(retries);
