@@ -103,16 +103,6 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFEA1E63).withValues(alpha: 0.05),
-              const Color(0xFF841138).withValues(alpha: 0.05),
-            ],
-          ),
-        ),
         child: PlatformSafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
