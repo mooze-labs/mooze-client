@@ -7630,6 +7630,12 @@ abstract class AppLocalizations {
   /// **'Endereço inválido ou não reconhecido'**
   String get wallet_send_error_address_unrecognized;
 
+  /// No description provided for @wallet_send_error_self_transfer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você não pode enviar para o seu próprio endereço'**
+  String get wallet_send_error_self_transfer;
+
   /// No description provided for @wallet_send_error_pending_payments.
   ///
   /// In pt, this message translates to:

@@ -1932,6 +1932,7 @@
   "wallet_send_error_balance_check": "Erro ao verificar saldo disponível",
   "wallet_send_error_insufficient_balance": "Saldo insuficiente",
   "wallet_send_error_address_unrecognized": "Endereço inválido ou não reconhecido",
+  "wallet_send_error_self_transfer": "Você não pode enviar para o seu próprio endereço",
   "wallet_send_error_pending_payments": "Não é possível enviar o saldo total enquanto há pagamentos pendentes. Aguarde a conclusão dos pagamentos e tente novamente.",
   "wallet_send_error_validation_failed": "Não foi possível validar a transação: {error}",
   "@wallet_send_error_validation_failed": {

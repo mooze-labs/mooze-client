@@ -140,6 +140,16 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
               return FeeEstimation.error('INSUFFICIENT_FUNDS');
             }
 
+            if (errorLower.contains('selftransfer') ||
+                errorLower.contains('self transfer') ||
+                errorLower.contains('self-transfer')) {
+              log.warning(
+                _tag,
+                'Fee estimation failed: self-transfer not supported — raw: $error',
+              );
+              return FeeEstimation.error('SELF_TRANSFER');
+            }
+
             if (errorLower.contains('unrecognized input type') ||
                 errorLower.contains('invalid address') ||
                 errorLower.contains('invalid input') ||

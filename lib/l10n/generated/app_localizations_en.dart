@@ -4236,6 +4236,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Invalid or unrecognized address';
 
   @override
+  String get wallet_send_error_self_transfer =>
+      'You can\'t send to your own address';
+
+  @override
   String get wallet_send_error_pending_payments =>
       'You can\'t send the full balance while there are pending payments. Wait for the payments to complete and try again.';
 

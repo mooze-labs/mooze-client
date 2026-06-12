@@ -4278,6 +4278,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Dirección inválida o no reconocida';
 
   @override
+  String get wallet_send_error_self_transfer =>
+      'No puedes enviar a tu propia dirección';
+
+  @override
   String get wallet_send_error_pending_payments =>
       'No es posible enviar el saldo total mientras haya pagos pendientes. Espera a que se completen los pagos e inténtalo de nuevo.';
 

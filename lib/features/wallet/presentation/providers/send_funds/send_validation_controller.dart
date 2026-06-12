@@ -31,6 +31,7 @@ enum SendValidationErrorCode {
   balanceCheck,
   insufficientBalance,
   addressUnrecognized,
+  selfTransfer,
   pendingPayments,
   validationFailed,
   amountExceedsBalance,
@@ -76,6 +77,8 @@ class SendValidationError {
         return t.wallet_send_error_insufficient_balance;
       case SendValidationErrorCode.addressUnrecognized:
         return t.wallet_send_error_address_unrecognized;
+      case SendValidationErrorCode.selfTransfer:
+        return t.wallet_send_error_self_transfer;
       case SendValidationErrorCode.pendingPayments:
         return t.wallet_send_error_pending_payments;
       case SendValidationErrorCode.validationFailed:
@@ -280,6 +283,13 @@ class SendValidationController extends StateNotifier<SendValidationState> {
                 category: SendValidationErrorCategory.address,
               ),
             );
+          } else if (feeEstimation.errorMessage == 'SELF_TRANSFER') {
+            errors.add(
+              const SendValidationError(
+                code: SendValidationErrorCode.selfTransfer,
+                category: SendValidationErrorCategory.address,
+              ),
+            );
           } else if (feeEstimation.errorMessage == 'PENDING_PAYMENTS') {
             errors.add(
               const SendValidationError(
@@ -455,6 +465,13 @@ class SendValidationController extends StateNotifier<SendValidationState> {
               errors.add(
                 const SendValidationError(
                   code: SendValidationErrorCode.addressUnrecognized,
+                  category: SendValidationErrorCategory.address,
+                ),
+              );
+            } else if (feeEstimation.errorMessage == 'SELF_TRANSFER') {
+              errors.add(
+                const SendValidationError(
+                  code: SendValidationErrorCode.selfTransfer,
                   category: SendValidationErrorCategory.address,
                 ),
               );

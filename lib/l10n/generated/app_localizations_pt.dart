@@ -4270,6 +4270,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Endereço inválido ou não reconhecido';
 
   @override
+  String get wallet_send_error_self_transfer =>
+      'Você não pode enviar para o seu próprio endereço';
+
+  @override
   String get wallet_send_error_pending_payments =>
       'Não é possível enviar o saldo total enquanto há pagamentos pendentes. Aguarde a conclusão dos pagamentos e tente novamente.';
 
