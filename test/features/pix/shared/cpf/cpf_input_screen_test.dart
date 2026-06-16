@@ -80,6 +80,19 @@ void main() {
     expect(find.text('Save this payer'), findsOneWidget);
   });
 
+  testWidgets('a valid manual CNPJ is masked and reveals the save action', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const []));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '11222333000181');
+    await tester.pumpAndSettle();
+
+    expect(find.text('11.222.333/0001-81'), findsOneWidget);
+    expect(find.text('Save this payer'), findsOneWidget);
+  });
+
   testWidgets('no save action for an incomplete CPF', (tester) async {
     await tester.pumpWidget(_app(const []));
     await tester.pumpAndSettle();
