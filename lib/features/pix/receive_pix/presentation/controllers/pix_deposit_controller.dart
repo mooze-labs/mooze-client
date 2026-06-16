@@ -15,10 +15,18 @@ class PixDepositController {
   ) : _pixRepository = pixRepository,
       _addressRepository = addrGenRepository;
 
-  TaskEither<String, PixDeposit> newDeposit(int amountInCents, Asset asset) {
+  TaskEither<String, PixDeposit> newDeposit(
+    int amountInCents,
+    Asset asset, {
+    String? taxIdNumber,
+  }) {
     return _addressRepository.generateNewAddress().flatMap(
-      (address) =>
-          _pixRepository.newDeposit(amountInCents, address, asset: asset),
+      (address) => _pixRepository.newDeposit(
+        amountInCents,
+        address,
+        asset: asset,
+        taxIdNumber: taxIdNumber,
+      ),
     );
   }
 
