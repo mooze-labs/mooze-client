@@ -122,6 +122,8 @@ void main() {
         'deleteTransaction',
         'deleteAllTransactions',
         'deleteAllDeposits',
+        'deleteFavoritePayer',
+        'deleteAllFavoritePayers',
         'deleteAllLogs',
         'deleteSyncMetadata',
         'deleteAllSyncMetadata',
