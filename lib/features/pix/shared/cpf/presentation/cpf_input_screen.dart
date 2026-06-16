@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_payer.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/widgets/favorite_payer_picker_sheet.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/info_tips_section.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_cnpj_input_formatter.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
@@ -25,17 +25,14 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _labelController = TextEditingController();
   final FocusNode _cpfFocus = FocusNode();
-  final MaskTextInputFormatter _mask = MaskTextInputFormatter(
-    mask: '###.###.###-##',
-    filter: {'#': RegExp(r'[0-9]')},
-  );
+  final CpfCnpjInputFormatter _formatter = CpfCnpjInputFormatter();
 
   bool _touched = false;
   CpfValidationError? _error;
   bool _saveThisPayer = false;
 
   String get _digits => CpfValidator.strip(_controller.text);
-  bool get _isComplete => _digits.length == 11;
+  bool get _isComplete => _digits.length == 11 || _digits.length == 14;
   bool get _isValidCpf => CpfValidator.isValid(_controller.text);
   bool get _hasLabel => _labelController.text.trim().isNotEmpty;
 
@@ -217,7 +214,7 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
                   child: MoozeTextField(
                     controller: _controller,
                     focusNode: _cpfFocus,
-                    inputFormatters: [_mask],
+                    inputFormatters: [_formatter],
                     keyboardType: TextInputType.number,
                     autofocus: !hasFavorites,
                     textInputAction: TextInputAction.done,
