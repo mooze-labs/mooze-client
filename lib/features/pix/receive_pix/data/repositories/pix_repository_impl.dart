@@ -60,12 +60,14 @@ class PixRepositoryImpl implements PixRepository {
     String address, {
     Asset asset = Asset.depix,
     String network = "liquid",
+    String? taxIdNumber,
   }) {
     return _requestNewPixDeposit(
       amountInCents,
       address,
       asset,
       network,
+      taxIdNumber,
     ).flatMap(
       (response) => _database
           .addNewDeposit(
@@ -344,6 +346,7 @@ class PixRepositoryImpl implements PixRepository {
     String address,
     Asset asset,
     String network,
+    String? taxIdNumber,
   ) {
     return TaskEither.tryCatch(
       () async {
@@ -354,6 +357,7 @@ class PixRepositoryImpl implements PixRepository {
             "amount_in_cents": amountInCents,
             "asset": asset.id,
             "network": network,
+            if (taxIdNumber != null) "taxIdNumber": taxIdNumber,
           },
         );
 
