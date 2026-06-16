@@ -40,10 +40,44 @@ void main() {
     });
   });
 
+  group('CpfValidator.validate (CNPJ)', () {
+    test('accepts valid CNPJs (masked or raw)', () {
+      expect(CpfValidator.validate('11.222.333/0001-81'), isNull);
+      expect(CpfValidator.validate('11222333000181'), isNull);
+    });
+
+    test('rejects bad CNPJ check digits', () {
+      expect(
+        CpfValidator.validate('11222333000180'),
+        CpfValidationError.invalid,
+      );
+    });
+
+    test('rejects repeated-digit CNPJ', () {
+      expect(
+        CpfValidator.validate('00000000000000'),
+        CpfValidationError.invalid,
+      );
+    });
+
+    test('treats 12-13 digits as incomplete', () {
+      expect(CpfValidator.validate('112223330001'), CpfValidationError.incomplete);
+      expect(CpfValidator.validate('1122233300018'), CpfValidationError.incomplete);
+    });
+  });
+
+  group('formatCpfCnpj', () {
+    test('formats CPF and CNPJ', () {
+      expect(formatCpfCnpj('52998224725'), '529.982.247-25');
+      expect(formatCpfCnpj('11222333000181'), '11.222.333/0001-81');
+    });
+  });
+
   group('CpfValidator.isValid', () {
     test('mirrors validate()', () {
       expect(CpfValidator.isValid('529.982.247-25'), isTrue);
       expect(CpfValidator.isValid('529.982.247-26'), isFalse);
+      expect(CpfValidator.isValid('11222333000181'), isTrue);
       expect(CpfValidator.isValid(''), isFalse);
     });
   });
