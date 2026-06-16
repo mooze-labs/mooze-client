@@ -1,15 +1,16 @@
+import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
+
 class FavoritePayer {
   final int? id;
   final String label;
+
+  /// Unmasked taxpayer id digits — CPF (11) or CNPJ (14).
   final String cpf;
 
   const FavoritePayer({this.id, required this.label, required this.cpf});
 
-  String get maskedCpf {
-    if (cpf.length != 11) return cpf;
-    return '${cpf.substring(0, 3)}.${cpf.substring(3, 6)}.'
-        '${cpf.substring(6, 9)}-${cpf.substring(9)}';
-  }
+  /// CPF/CNPJ formatted for display.
+  String get maskedCpf => formatCpfCnpj(cpf);
 
   FavoritePayer copyWith({int? id, String? label, String? cpf}) => FavoritePayer(
     id: id ?? this.id,
