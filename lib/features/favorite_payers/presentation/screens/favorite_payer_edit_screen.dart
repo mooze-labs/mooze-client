@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_payer.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_cnpj_input_formatter.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
@@ -23,10 +23,7 @@ class _FavoritePayerEditScreenState
     extends ConsumerState<FavoritePayerEditScreen> {
   late final TextEditingController _labelController;
   late final TextEditingController _cpfController;
-  final MaskTextInputFormatter _mask = MaskTextInputFormatter(
-    mask: '###.###.###-##',
-    filter: {'#': RegExp(r'[0-9]')},
-  );
+  final CpfCnpjInputFormatter _formatter = CpfCnpjInputFormatter();
 
   String? _labelError;
   String? _cpfError;
@@ -127,7 +124,7 @@ class _FavoritePayerEditScreenState
               const SizedBox(height: 16),
               MoozeTextField(
                 controller: _cpfController,
-                inputFormatters: [_mask],
+                inputFormatters: [_formatter],
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
                 labelText: t.cpf_field_label,
