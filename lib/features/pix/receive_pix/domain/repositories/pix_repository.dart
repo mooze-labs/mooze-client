@@ -12,6 +12,7 @@ abstract class PixRepository {
     String address, {
     Asset asset = Asset.depix,
     String network = "liquid",
+    String? taxIdNumber,
   });
   TaskEither<String, Option<PixDeposit>> getDeposit(String depositId);
   TaskEither<String, List<PixDeposit>> getDeposits({int? limit, int? offset});
