@@ -128,6 +128,13 @@ class Transactions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class FavoritePayerEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get label => text().withLength(min: 1, max: 255)();
+  TextColumn get cpf => text().withLength(min: 11, max: 11)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(
   tables: [
     Swaps,
@@ -137,13 +144,14 @@ class Transactions extends Table {
     AppLogs,
     SyncMetadata,
     Transactions,
+    FavoritePayerEntries,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   // ==================== Swap Operations (immutable) ====================
   //
@@ -428,6 +436,40 @@ class AppDatabase extends _$AppDatabase {
   /// Delete all PIX deposits
   Future<int> deleteAllDeposits() => delete(deposits).go();
 
+  // ==================== Favorite Payers ====================
+  //
+  // Wallet-scoped CRUD. [deleteAllFavoritePayers] is the wallet-isolation
+  // sweep, invoked from the Pix cleanup hook on wallet delete/import.
+
+  Future<List<FavoritePayerEntry>> getAllFavoritePayers() =>
+      (select(favoritePayerEntries)
+            ..orderBy([(p) => OrderingTerm.desc(p.createdAt)]))
+          .get();
+
+  Future<int> insertFavoritePayer(FavoritePayerEntriesCompanion entry) =>
+      into(favoritePayerEntries).insert(entry);
+
+  Future<int> updateFavoritePayerById(
+    int id,
+    FavoritePayerEntriesCompanion entry,
+  ) => (update(favoritePayerEntries)..where((p) => p.id.equals(id))).write(entry);
+
+  Future<int> deleteFavoritePayer(int id) =>
+      (delete(favoritePayerEntries)..where((p) => p.id.equals(id))).go();
+
+  /// Wipe ALL favorite payers. Wallet-isolation sweep — only ever called from
+  /// the wallet cleanup hook on delete/import.
+  Future<int> deleteAllFavoritePayers() => delete(favoritePayerEntries).go();
+
+  Future<bool> favoritePayerCpfExists(String cpf, {int? excludingId}) async {
+    final query = select(favoritePayerEntries)
+      ..where((p) => p.cpf.equals(cpf));
+    if (excludingId != null) {
+      query.where((p) => p.id.equals(excludingId).not());
+    }
+    return (await query.get()).isNotEmpty;
+  }
+
   /// Get transaction count
   Future<int> getTransactionCount() async {
     final countExp = transactions.id.count();
@@ -564,6 +606,11 @@ class AppDatabase extends _$AppDatabase {
           // wallet's scoped queries. New inserts MUST provide a walletId.
           await _addColumnIfMissing(m, swaps, swaps.walletId);
           await _addColumnIfMissing(m, pegs, pegs.walletId);
+        }
+        if (from <= 11 && to >= 12) {
+          // Wallet-scoped favorite payers. New empty table; nothing to
+          // backfill. Isolation is by cleanup-on-delete/import.
+          await m.createTable(favoritePayerEntries);
         }
       },
     );
