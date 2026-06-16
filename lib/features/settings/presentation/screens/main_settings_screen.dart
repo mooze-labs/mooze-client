@@ -60,6 +60,14 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                       ),
                       highlight: true,
                     ),
+                    ConfigStructure(
+                      title: t.cpf_favorites_title,
+                      iconSvgPath: 'assets/icons/menu/settings/address.svg',
+                      action: Navigation(
+                        context: context,
+                        rota: '/favorite-payers',
+                      ),
+                    ),
                   ],
                 ),
                 SectionSettings(
