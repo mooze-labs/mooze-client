@@ -5089,13 +5089,13 @@ abstract class AppLocalizations {
   /// No description provided for @cpf_screen_subtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Informe o CPF do pagador para gerar o QR Code Pix.'**
+  /// **'Informe o CPF ou CNPJ do pagador para gerar o QR Code Pix.'**
   String get cpf_screen_subtitle;
 
   /// No description provided for @cpf_field_label.
   ///
   /// In pt, this message translates to:
-  /// **'CPF'**
+  /// **'CPF / CNPJ'**
   String get cpf_field_label;
 
   /// No description provided for @cpf_field_hint.
@@ -5113,13 +5113,13 @@ abstract class AppLocalizations {
   /// No description provided for @cpf_error_incomplete.
   ///
   /// In pt, this message translates to:
-  /// **'Digite os 11 dígitos do CPF'**
+  /// **'Digite um CPF ou CNPJ válido'**
   String get cpf_error_incomplete;
 
   /// No description provided for @cpf_error_invalid.
   ///
   /// In pt, this message translates to:
-  /// **'CPF inválido'**
+  /// **'CPF ou CNPJ inválido'**
   String get cpf_error_invalid;
 
   /// No description provided for @cpf_continue.

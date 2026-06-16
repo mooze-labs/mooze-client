@@ -2816,10 +2816,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get cpf_screen_subtitle =>
-      'Informe o CPF do pagador para gerar o QR Code Pix.';
+      'Informe o CPF ou CNPJ do pagador para gerar o QR Code Pix.';
 
   @override
-  String get cpf_field_label => 'CPF';
+  String get cpf_field_label => 'CPF / CNPJ';
 
   @override
   String get cpf_field_hint => '000.000.000-00';
@@ -2828,10 +2828,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get cpf_error_required => 'Informe o CPF';
 
   @override
-  String get cpf_error_incomplete => 'Digite os 11 dígitos do CPF';
+  String get cpf_error_incomplete => 'Digite um CPF ou CNPJ válido';
 
   @override
-  String get cpf_error_invalid => 'CPF inválido';
+  String get cpf_error_invalid => 'CPF ou CNPJ inválido';
 
   @override
   String get cpf_continue => 'Continuar';
