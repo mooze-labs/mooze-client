@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/pix_cpf_gate.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
@@ -106,6 +107,14 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   void _onSlideComplete() async {
     setState(() => _isLoading = true);
 
+    // Temporary payer-CPF step (shared with the Pix flow).
+    final cpfGate = await PixCpfGate.ensure(context, ref);
+    if (!mounted) return;
+    if (cpfGate.cancelled) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     _showLoadingOverlay();
     _circleController.forward();
 
@@ -119,7 +128,13 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     try {
       final controller = await ref.read(pixDepositControllerProvider.future);
       final result =
-          await controller.newDeposit(amountInCents, selectedAsset).run();
+          await controller
+              .newDeposit(
+                amountInCents,
+                selectedAsset,
+                taxIdNumber: cpfGate.taxIdNumber,
+              )
+              .run();
 
       await minAnimationTime;
 
