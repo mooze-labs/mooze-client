@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/data/datasources/pix_deposit_api.dart';
 
@@ -21,13 +22,37 @@ class PixRepositoryImpl implements PixRepository {
 
   final _statusUpdatesController = StreamController<PixStatusEvent>.broadcast();
 
+  final List<Timer> _pollTimers = [];
+
+  bool _disposed = false;
+
   @override
   Stream<PixStatusEvent> get statusUpdates => _statusUpdatesController.stream;
+
+  @visibleForTesting
+  int get activePollTimers => _pollTimers.length;
 
   PixRepositoryImpl(Dio dio, PixDepositDatabase database)
     : _dio = dio,
       _database = database,
       _api = PixDepositApi(dio);
+
+  void _emitStatus(PixStatusEvent event) {
+    if (_disposed || _statusUpdatesController.isClosed) return;
+    _statusUpdatesController.add(event);
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    for (final timer in _pollTimers) {
+      timer.cancel();
+    }
+    _pollTimers.clear();
+    if (!_statusUpdatesController.isClosed) {
+      _statusUpdatesController.close();
+    }
+  }
 
   @override
   TaskEither<String, PixDeposit> newDeposit(
@@ -75,7 +100,7 @@ class PixRepositoryImpl implements PixRepository {
             // For now, uses polling as a fallback
 
             // Notify listeners that a new deposit was added
-            _statusUpdatesController.add(
+            _emitStatus(
               PixStatusEvent(
                 depositId: response.depositId,
                 status: DepositStatus.pending,
@@ -102,22 +127,32 @@ class PixRepositoryImpl implements PixRepository {
     const maxDuration = Duration(minutes: 21);
     final startTime = DateTime.now();
 
-    Timer.periodic(pollingInterval, (timer) {
+    late final Timer timer;
+    timer = Timer.periodic(pollingInterval, (_) {
+      // The repository was torn down (wallet deleted / imported) — stop.
+      if (_disposed) {
+        timer.cancel();
+        _pollTimers.remove(timer);
+        return;
+      }
+
       final elapsed = DateTime.now().difference(startTime);
 
       if (elapsed > maxDuration) {
         timer.cancel();
+        _pollTimers.remove(timer);
 
         final expiredEvent = PixStatusEvent(
           depositId: depositId,
           status: DepositStatus.expired,
         );
-        _statusUpdatesController.add(expiredEvent);
+        _emitStatus(expiredEvent);
         _updateTransactionStatus(expiredEvent).run();
         return;
       }
 
       _api.getDeposits([depositId]).run().then((result) {
+        if (_disposed) return;
         result.fold(
           (error) {
             // error in polling
@@ -125,6 +160,7 @@ class PixRepositoryImpl implements PixRepository {
           (deposits) {
             if (deposits.isEmpty) {
               timer.cancel();
+              _pollTimers.remove(timer);
               return;
             }
             final deposit = deposits.first;
@@ -137,14 +173,16 @@ class PixRepositoryImpl implements PixRepository {
                 blockchainTxid: deposit.blockchainTxid,
               );
 
-              _statusUpdatesController.add(statusEvent);
+              _emitStatus(statusEvent);
               _updateTransactionStatus(statusEvent).run();
               timer.cancel();
+              _pollTimers.remove(timer);
             }
           },
         );
       });
     });
+    _pollTimers.add(timer);
   }
 
   @override

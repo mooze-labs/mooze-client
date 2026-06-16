@@ -11,10 +11,9 @@ import 'package:mooze_mobile/shared/authentication/providers.dart';
 final pixRepositoryProvider = Provider<PixRepository>((ref) {
   final authenticatedDioClient = ref.watch(authenticatedClientProvider);
   final pixDatabase = PixDepositDatabase(ref.watch(appDatabaseProvider));
-  final sessionManager = ref.watch(sessionManagerServiceProvider);
+  ref.watch(sessionManagerServiceProvider);
 
-  return PixRepositoryImpl(
-    authenticatedDioClient,
-    pixDatabase,
-  ); // TODO: Session
+  final repository = PixRepositoryImpl(authenticatedDioClient, pixDatabase);
+  ref.onDispose(repository.dispose);
+  return repository;
 });
