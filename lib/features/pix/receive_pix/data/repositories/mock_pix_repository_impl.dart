@@ -19,6 +19,7 @@ class MockPixRepositoryImpl implements PixRepository {
     String address, {
     Asset asset = Asset.depix,
     String network = "liquid",
+    String? taxIdNumber,
   }) {
     final deposit = PixDeposit(
       depositId: 'mock-deposit-${DateTime.now().millisecondsSinceEpoch}',
