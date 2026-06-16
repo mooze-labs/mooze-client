@@ -9,10 +9,14 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/shared/authentication/providers.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
+import 'package:mooze_mobile/shared/network/providers.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -124,6 +128,8 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
                 ),
           );
 
+          ref.invalidate(pixRepositoryProvider);
+
           final controller =
               await ref.read(appLifecycleControllerProvider.future);
           final result = await controller.deleteWalletAndReimport();
@@ -134,6 +140,11 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
           final success = result.isRight();
           if (success) {
             ref.invalidate(mnemonicProvider);
+            ref.invalidate(sessionManagerServiceProvider);
+            ref.invalidate(authInterceptorProvider);
+            ref.invalidate(authenticatedClientProvider);
+            ref.invalidate(pixRepositoryProvider);
+            ref.invalidate(userDataProvider);
             ref.invalidate(balanceCacheProvider);
             ref.invalidate(transactionHistoryCacheProvider);
             // Drop the V2 cache-first balance state and force the walletId to
