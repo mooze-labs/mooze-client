@@ -54,4 +54,12 @@ class MockPixRepositoryImpl implements PixRepository {
   ) {
     return TaskEither.of(List.from(_mockDeposits));
   }
+
+  @override
+  void dispose() {
+    _mockDeposits.clear();
+    if (!_statusUpdatesController.isClosed) {
+      _statusUpdatesController.close();
+    }
+  }
 }

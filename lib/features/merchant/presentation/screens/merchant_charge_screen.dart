@@ -117,58 +117,57 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     final minAnimationTime = Future.delayed(Duration(milliseconds: 1500));
 
     try {
-      final controller =
-          await ref.read(pixDepositControllerProvider.future);
+      final controller = await ref.read(pixDepositControllerProvider.future);
       final result =
           await controller.newDeposit(amountInCents, selectedAsset).run();
 
       await minAnimationTime;
 
       result.fold(
-          (err) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              _hideLoadingOverlay();
-              _circleController.reset();
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(err),
-                  backgroundColor: Colors.red[700],
-                  duration: Duration(seconds: 5),
-                  action: SnackBarAction(
-                    label: 'OK',
-                    textColor: Colors.white,
-                    onPressed: () {},
-                  ),
-                ),
-              );
-            }
-          },
-          (deposit) async {
-            if (!mounted) return;
-
+        (err) {
+          if (mounted) {
             setState(() => _isLoading = false);
+            _hideLoadingOverlay();
+            _circleController.reset();
 
-            context.push("/pix/payment/${deposit.depositId}").then((_) {
-              if (mounted) {
-                _circleController.reset();
-                ref.read(depositAmountProvider.notifier).state =
-                    widget.totalAmount;
-                ref.invalidate(pixDepositControllerProvider);
-                ref.invalidate(feeRateProvider);
-                ref.invalidate(feeAmountProvider);
-                ref.invalidate(discountedFeesDepositProvider);
-                ref.invalidate(assetQuoteProvider);
-              }
-            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(err),
+                backgroundColor: Colors.red[700],
+                duration: Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'OK',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          }
+        },
+        (deposit) async {
+          if (!mounted) return;
 
-            await Future.delayed(Duration(milliseconds: 200));
+          setState(() => _isLoading = false);
+
+          context.push("/pix/payment/${deposit.depositId}").then((_) {
             if (mounted) {
-              _hideLoadingOverlay();
+              _circleController.reset();
+              ref.read(depositAmountProvider.notifier).state =
+                  widget.totalAmount;
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(feeRateProvider);
+              ref.invalidate(feeAmountProvider);
+              ref.invalidate(discountedFeesDepositProvider);
+              ref.invalidate(assetQuoteProvider);
             }
-          },
-        );
+          });
+
+          await Future.delayed(Duration(milliseconds: 200));
+          if (mounted) {
+            _hideLoadingOverlay();
+          }
+        },
+      );
     } catch (e) {
       await minAnimationTime;
       if (!mounted) return;
@@ -195,12 +194,13 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     if (_overlayEntry != null) return;
 
     _overlayEntry = OverlayEntry(
-      builder: (context) => LoadingOverlayWidget(
-        circleController: _circleController,
-        circleAnimation: _circleAnimation,
-        loadingText: AppLocalizations.of(context).pix_generating_qr,
-        showLoadingText: true,
-      ),
+      builder:
+          (context) => LoadingOverlayWidget(
+            circleController: _circleController,
+            circleAnimation: _circleAnimation,
+            loadingText: AppLocalizations.of(context).pix_generating_qr,
+            showLoadingText: true,
+          ),
     );
 
     Overlay.of(context).insert(_overlayEntry!);
