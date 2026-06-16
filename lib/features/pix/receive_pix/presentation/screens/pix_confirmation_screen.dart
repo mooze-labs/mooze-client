@@ -8,6 +8,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/pix_cpf_gate.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_tutorial_content.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -173,6 +174,16 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
 
   void _onSlideComplete() async {
     setState(() => _isLoading = true);
+
+    // Temporary payer-CPF step (shared with the merchant flow). When the
+    // requirement is disabled this is a no-op that proceeds with a null CPF.
+    final cpfGate = await PixCpfGate.ensure(context, ref);
+    if (!mounted) return;
+    if (cpfGate.cancelled) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     _showLoadingOverlay();
     _circleController.forward();
 
@@ -187,7 +198,11 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
       );
       final result =
           await depositController
-              .newDeposit(amountInCents, selectedAsset)
+              .newDeposit(
+                amountInCents,
+                selectedAsset,
+                taxIdNumber: cpfGate.taxIdNumber,
+              )
               .run();
 
       await minAnimationTime;
