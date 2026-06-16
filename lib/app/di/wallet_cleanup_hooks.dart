@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
 import '../../features/pix/receive_pix/data/datasources/pix_deposit_db.dart';
 import '../../features/pix/receive_pix/data/services/lbtc_warning_service.dart';
 import '../../features/pix/shared/data/services/pix_onboarding_service.dart';
@@ -28,6 +29,8 @@ Future<void> Function() buildPixCleanupHook(Ref ref) {
   return () async {
     final db = ref.read(appDatabaseProvider);
     await PixDepositDatabase(db).clearAllDeposits().run();
+    await db.deleteAllFavoritePayers();
+    ref.invalidate(favoritePayersControllerProvider);
 
     final prefs = ref.read(sharedPreferencesProvider);
     final onboarding = PixOnboardingService(prefs);
@@ -35,6 +38,7 @@ Future<void> Function() buildPixCleanupHook(Ref ref) {
     await onboarding.resetMerchantFirstTimeDialog();
     await PixTutorialService(prefs).resetTutorial();
     await LbtcWarningService().resetWarning();
+    await prefs.remove('pix_favorite_payers');
   };
 }
 
