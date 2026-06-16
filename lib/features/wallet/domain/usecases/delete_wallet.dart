@@ -9,23 +9,6 @@ import '../../../../shared/logging/structured_logger.dart';
 import '../../../boot/domain/boot_orchestrator.dart';
 import '../../../sync/domain/sync_orchestrator.dart';
 
-/// Hard-deletes the wallet:
-/// 1. stop sync
-/// 2. shutdown boot (disconnect services in order, releases workdirs)
-/// 3. wipe transactions (V2 mooze_v2.db)
-/// 4. delete credentials (the `mnemonic_mainWallet` secure-storage key)
-/// 5. wipe SDK working directories (lwk-db, breez)
-/// 6. invoke post-delete hooks (PIN, pending-tx storage, wallet-id, …)
-///
-/// Each step is awaited explicitly. Failures in non-critical steps are
-/// logged but do not abort the sequence — partial-state recovery is
-/// always preferable to a stuck wallet.
-///
-/// Step 6 (post-delete hooks) is the V2 home for cleanup that used to
-/// live inside the 11-step legacy `WalletDataManager.deleteWallet`:
-/// PIN salt + hashed PIN deletion, pending-tx SharedPreferences wipe,
-/// wallet-id secure-storage clear. The composition root injects these
-/// as closures so the use case stays decoupled from the legacy stores.
 class DeleteWalletUseCase {
   DeleteWalletUseCase({
     required this.boot,
@@ -36,6 +19,8 @@ class DeleteWalletUseCase {
     required this.directoryGuard,
     required this.workingDirs,
     required this.logger,
+    this.sessionCleanup,
+    this.pixCleanup,
     this.postDeleteHooks = const [],
   });
 
@@ -47,11 +32,8 @@ class DeleteWalletUseCase {
   final WalletDirectoryGuard directoryGuard;
   final List<String> workingDirs;
   final StructuredLogger logger;
-
-  /// Best-effort cleanup callbacks invoked **after** the V2 wipe is
-  /// complete. Production wires these to legacy stores that do not yet
-  /// have a V2 abstraction (PIN store, pending-tx SharedPreferences,
-  /// wallet-id secure-storage entry).
+  final Future<void> Function()? sessionCleanup;
+  final Future<void> Function()? pixCleanup;
   final List<Future<void> Function()> postDeleteHooks;
 
   Future<Either<Failure, Unit>> call() async {
@@ -59,6 +41,23 @@ class DeleteWalletUseCase {
 
     await sync.stop();
     await boot.shutdown();
+    if (sessionCleanup != null) {
+      try {
+        await sessionCleanup!();
+        logger.info('wallet.delete.session_cleared', {});
+      } catch (e) {
+        logger.warn('wallet.delete.session_clear_failed', {'error': '$e'});
+      }
+    }
+
+    if (pixCleanup != null) {
+      try {
+        await pixCleanup!();
+        logger.info('wallet.delete.pix_cleared', {});
+      } catch (e) {
+        logger.warn('wallet.delete.pix_clear_failed', {'error': '$e'});
+      }
+    }
 
     final txWipe = await transactionStore.deleteAll();
     txWipe.match(
