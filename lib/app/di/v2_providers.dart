@@ -201,7 +201,9 @@ final deleteWalletUseCaseProvider =
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     workingDirs: const ['lwk-db', 'breez', 'bdk-db'],
     logger: ref.read(loggerProvider),
-    postDeleteHooks: buildWalletCleanupHooks(),
+    sessionCleanup: buildSessionCleanupHook(ref),
+    pixCleanup: buildPixCleanupHook(ref),
+    postDeleteHooks: buildLegacyCleanupHooks(),
   );
 });
 
@@ -304,7 +306,7 @@ final importWalletUseCaseProvider =
     notifiedTxRegistry: notifiedReg,
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     workingDirs: const ['lwk-db', 'breez', 'bdk-db'],
-    preImportHooks: buildWalletCleanupHooks(),
+    preImportHooks: buildWalletCleanupHooks(ref),
     logger: ref.read(loggerProvider),
   );
 });
