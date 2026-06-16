@@ -23,6 +23,14 @@ void main() {
     expect(all.every((p) => p.id != null), isTrue);
   });
 
+  test('stores a 14-digit CNPJ (column accepts CPF or CNPJ)', () async {
+    await ds.insert('Company ABC', '11222333000181');
+
+    final payer = (await ds.getAll()).single;
+    expect(payer.cpf, '11222333000181');
+    expect(payer.maskedCpf, '11.222.333/0001-81');
+  });
+
   test('update changes label and cpf', () async {
     await ds.insert('João', '52998224725');
     final id = (await ds.getAll()).single.id!;
