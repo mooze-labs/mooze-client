@@ -73,6 +73,26 @@ ResponseBody _jsonBody(int status, Map<String, dynamic> body) {
 ResponseBody _httpError(int status) =>
     ResponseBody.fromString('{}', status, headers: {});
 
+/// Wire a mock secure storage to a real in-memory map so a test can
+/// observe the *effect* of writes/deletes (not just verify the call).
+void _bindStatefulStorage(
+  _MockSecureStorage storage,
+  Map<String, String?> store,
+) {
+  when(() => storage.read(key: any(named: 'key')))
+      .thenAnswer((inv) async => store[inv.namedArguments[#key]]);
+  when(() => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      )).thenAnswer((inv) async {
+    store[inv.namedArguments[#key] as String] =
+        inv.namedArguments[#value] as String?;
+  });
+  when(() => storage.delete(key: any(named: 'key'))).thenAnswer((inv) async {
+    store.remove(inv.namedArguments[#key]);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -449,6 +469,86 @@ void main() {
       expect(r.isRight(), isTrue);
       verify(() => storage.delete(key: 'jwt')).called(1);
       verify(() => storage.delete(key: 'refresh_token')).called(1);
+    });
+  });
+
+  group('wallet teardown — session isolation', () {
+    test(
+        'a refresh in flight when deleteSession runs cannot resurrect the '
+        'tokens in storage', () async {
+      final store = <String, String?>{
+        'jwt': _expiredJwt(),
+        'refresh_token': 'rt-old',
+      };
+      _bindStatefulStorage(storage, store);
+
+      final fresh = _validJwt();
+      // Slow refresh: leaves a window to tear the wallet down mid-flight.
+      final adapter = _RefreshAdapter((opts) async {
+        if (opts.path == '/auth/refresh') {
+          await Future<void>.delayed(const Duration(milliseconds: 80));
+          return _jsonBody(200, {'jwt': fresh, 'refresh_token': 'rt-new'});
+        }
+        return _httpError(500);
+      });
+      final svc = SessionManagerServiceImpl(
+        secureStorage: storage,
+        dio: dioFor(adapter),
+        remoteAuthService: remote,
+      );
+
+      // getSession sees the expired JWT and kicks off the slow refresh.
+      final getFut = svc.getSession().run();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      // Wallet deleted while the refresh is still in flight.
+      await svc.deleteSession().run();
+      // Let the refresh resolve — its write must be dropped by the guard.
+      await getFut;
+
+      expect(store['jwt'], isNull,
+          reason: 'a torn-down wallet JWT must never be written back');
+      expect(store['refresh_token'], isNull,
+          reason: 'a torn-down wallet refresh token must never be written back');
+    });
+
+    test(
+        'deleteSession then getSession authenticates fresh on the same '
+        'instance (re-auth path is not sealed)', () async {
+      final store = <String, String?>{
+        'jwt': _expiredJwt(),
+        'refresh_token': 'rt-old',
+      };
+      _bindStatefulStorage(storage, store);
+
+      final brandNew = _validJwt();
+      when(() => remote.requestLoginChallenge())
+          .thenReturn(TaskEither.right(_FakeAuthChallenge()));
+      when(() => remote.signChallenge(any())).thenReturn(
+        TaskEither.right(Session(jwt: brandNew, refreshToken: 'rt-new')),
+      );
+
+      final svc = SessionManagerServiceImpl(
+        secureStorage: storage,
+        dio: dioFor(_RefreshAdapter((_) async => _httpError(500))),
+        remoteAuthService: remote,
+      );
+
+      await svc.deleteSession().run();
+      // Tokens are gone right after the clear.
+      expect(store['jwt'], isNull);
+      expect(store['refresh_token'], isNull);
+
+      // A create that STARTS after the clear is allowed to persist — this is
+      // the `ensureAuthSession` re-auth flow, and the new wallet must be able
+      // to authenticate.
+      final r = await svc.getSession().run();
+
+      expect(r.isRight(), isTrue);
+      expect(r.getRight().toNullable()!.jwt, brandNew);
+      expect(store['jwt'], brandNew,
+          reason: 'a session created after the clear must persist');
+      verify(() => remote.requestLoginChallenge()).called(1);
+      verify(() => remote.signChallenge(any())).called(1);
     });
   });
 }
