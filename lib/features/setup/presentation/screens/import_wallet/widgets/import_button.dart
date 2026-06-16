@@ -5,12 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/domain/entities/chain.dart';
 import 'package:mooze_mobile/domain/entities/wallet_credentials.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/authentication/providers.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
+import 'package:mooze_mobile/shared/network/providers.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 import '../providers/seed_phrase_provider.dart';
@@ -92,6 +96,15 @@ class ImportButton extends ConsumerWidget {
             BootTracer.mark('import_button.invalidates.begin');
             ref.invalidate(mnemonicProvider);
             BootTracer.mark('import_button.invalidate.mnemonic');
+            // Rebuild the auth chain (new ECDSA identity from the imported
+            // mnemonic) and drop the Pix + user/level caches so the imported
+            // wallet authenticates fresh and reuses no prior wallet data.
+            ref.invalidate(sessionManagerServiceProvider);
+            ref.invalidate(authInterceptorProvider);
+            ref.invalidate(authenticatedClientProvider);
+            ref.invalidate(pixRepositoryProvider);
+            ref.invalidate(userDataProvider);
+            BootTracer.mark('import_button.invalidate.auth_pix');
             ref.invalidate(balanceCacheProvider);
             BootTracer.mark('import_button.invalidate.balance');
             ref.invalidate(transactionHistoryCacheProvider);
