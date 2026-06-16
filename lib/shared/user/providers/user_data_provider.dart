@@ -5,6 +5,6 @@ import '../entities.dart';
 import 'user_service_provider.dart';
 
 final userDataProvider = FutureProvider<Either<String, User>>((ref) async {
-  final userService = ref.read(userServiceProvider);
+  final userService = ref.watch(userServiceProvider);
   return userService.getUser().run();
 });
