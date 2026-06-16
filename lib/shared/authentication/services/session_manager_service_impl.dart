@@ -46,6 +46,8 @@ class SessionManagerServiceImpl implements SessionManagerService {
   String? _inFlightRefreshKey;
   Future<Either<String, Session>>? _inFlightCreate;
 
+  int _generation = 0;
+
   @override
   TaskEither<String, Session> getSession() {
     return TaskEither(() {
@@ -142,6 +144,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
   }
 
   Future<Either<String, Session>> _doRefresh(Session current) async {
+    final gen = _generation;
     try {
       final response = await _dio.post(
         '/auth/refresh',
@@ -174,7 +177,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
             : current.refreshToken,
       );
 
-      await _writeSession(newSession);
+      await _writeSession(newSession, generation: gen);
       return Right(newSession);
     } on DioException catch (e) {
       final status = e.response?.statusCode;
@@ -202,6 +205,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
   }
 
   Future<Either<String, Session>> _doCreate() async {
+    final gen = _generation;
     // A refresh that succeeded just now may have already persisted a valid
     // session — bypass the cache, which still holds the expired snapshot.
     final maybeAlreadyValid = await _reReadSession();
@@ -222,7 +226,7 @@ class SessionManagerServiceImpl implements SessionManagerService {
     }
     final session = sessionE.getRight().toNullable()!;
 
-    await _writeSession(session);
+    await _writeSession(session, generation: gen);
     return Right(session);
   }
 
@@ -252,8 +256,11 @@ class SessionManagerServiceImpl implements SessionManagerService {
     return _cachedSession;
   }
 
-  Future<void> _writeSession(Session s) {
+  Future<void> _writeSession(Session s, {int? generation}) {
     return _storageMutex.protect<void>(() async {
+      if (generation != null && generation != _generation) {
+        return;
+      }
       await _secureStorage.write(key: _jwtKey, value: s.jwt);
       await _secureStorage.write(key: _refreshKey, value: s.refreshToken);
       _cachedSession = s;
@@ -263,10 +270,14 @@ class SessionManagerServiceImpl implements SessionManagerService {
 
   Future<void> _clearSession() {
     return _storageMutex.protect<void>(() async {
+      _generation++;
       await _secureStorage.delete(key: _jwtKey);
       await _secureStorage.delete(key: _refreshKey);
       _cachedSession = null;
-      _cacheLoaded = true;
+      _cacheLoaded = false;
+      _inFlightRefresh = null;
+      _inFlightRefreshKey = null;
+      _inFlightCreate = null;
     });
   }
 }
