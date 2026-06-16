@@ -18,4 +18,6 @@ abstract class PixRepository {
   TaskEither<String, List<PixDeposit>> updateDepositDetails(
     List<String> depositIds,
   );
+
+  void dispose();
 }
