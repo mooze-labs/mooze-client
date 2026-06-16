@@ -131,7 +131,8 @@ class Transactions extends Table {
 class FavoritePayerEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get label => text().withLength(min: 1, max: 255)();
-  TextColumn get cpf => text().withLength(min: 11, max: 11)();
+  // Unmasked taxpayer id: CPF (11 digits) or CNPJ (14 digits).
+  TextColumn get cpf => text().withLength(min: 11, max: 14)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -151,7 +152,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   // ==================== Swap Operations (immutable) ====================
   //
@@ -611,6 +612,11 @@ class AppDatabase extends _$AppDatabase {
           // Wallet-scoped favorite payers. New empty table; nothing to
           // backfill. Isolation is by cleanup-on-delete/import.
           await m.createTable(favoritePayerEntries);
+        }
+        if (from <= 12 && to >= 13) {
+          // Relax the tax-id length check (11 -> 11..14) to also accept CNPJ.
+          // Recreates the table, preserving existing rows.
+          await m.alterTable(TableMigration(favoritePayerEntries));
         }
       },
     );
