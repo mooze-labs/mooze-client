@@ -2812,6 +2812,112 @@ class AppLocalizationsPt extends AppLocalizations {
   String get send_pix_type_cpf_cnpj => 'CPF/CNPJ';
 
   @override
+  String get cpf_screen_title => 'Identificação do pagador';
+
+  @override
+  String get cpf_screen_subtitle =>
+      'Informe o CPF do pagador para gerar o QR Code Pix.';
+
+  @override
+  String get cpf_field_label => 'CPF';
+
+  @override
+  String get cpf_field_hint => '000.000.000-00';
+
+  @override
+  String get cpf_error_required => 'Informe o CPF';
+
+  @override
+  String get cpf_error_incomplete => 'Digite os 11 dígitos do CPF';
+
+  @override
+  String get cpf_error_invalid => 'CPF inválido';
+
+  @override
+  String get cpf_continue => 'Continuar';
+
+  @override
+  String get cpf_save_as_favorite => 'Salvar como favorito';
+
+  @override
+  String get cpf_save_this_payer => 'Salvar este pagador';
+
+  @override
+  String get cpf_favorite_label => 'Nome do pagador';
+
+  @override
+  String get cpf_favorite_label_hint => 'Ex.: João Silva';
+
+  @override
+  String get cpf_favorites_title => 'Pagadores favoritos';
+
+  @override
+  String get cpf_favorites_empty_title => 'Nenhum pagador salvo';
+
+  @override
+  String get cpf_favorites_empty_subtitle =>
+      'Adicione um pagador para reutilizar o CPF nas próximas cobranças.';
+
+  @override
+  String get cpf_favorites_add => 'Adicionar pagador';
+
+  @override
+  String get cpf_favorites_use_another => 'Usar outro CPF';
+
+  @override
+  String get cpf_favorites_remove => 'Remover';
+
+  @override
+  String get cpf_favorites_section => 'Pagadores salvos';
+
+  @override
+  String get cpf_favorites_view_all => 'Ver todos';
+
+  @override
+  String get cpf_or_enter_manually => 'Ou digite um CPF';
+
+  @override
+  String get cpf_favorites_label_required => 'Informe um nome';
+
+  @override
+  String get cpf_favorites_duplicate => 'Este CPF já está salvo';
+
+  @override
+  String get cpf_favorites_add_title => 'Adicionar pagador';
+
+  @override
+  String get cpf_favorites_edit_title => 'Editar pagador';
+
+  @override
+  String get cpf_favorites_save => 'Salvar';
+
+  @override
+  String get cpf_favorites_search_hint => 'Buscar por nome';
+
+  @override
+  String get cpf_favorites_search_empty => 'Nenhum pagador encontrado';
+
+  @override
+  String get cpf_favorites_edit => 'Editar';
+
+  @override
+  String get cpf_favorites_actions => 'Ações';
+
+  @override
+  String get cpf_favorites_error => 'Não foi possível carregar os pagadores';
+
+  @override
+  String get cpf_favorites_removed => 'Pagador removido';
+
+  @override
+  String get cpf_favorites_delete_title => 'Remover pagador?';
+
+  @override
+  String cpf_favorites_delete_body(String label) {
+    return 'Remover $label dos pagadores favoritos?';
+  }
+
+  @override
   String get send_pix_type_random => 'Chave aleatória';
 
   @override

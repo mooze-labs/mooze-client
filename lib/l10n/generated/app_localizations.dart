@@ -5080,6 +5080,210 @@ abstract class AppLocalizations {
   /// **'CPF/CNPJ'**
   String get send_pix_type_cpf_cnpj;
 
+  /// No description provided for @cpf_screen_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identificação do pagador'**
+  String get cpf_screen_title;
+
+  /// No description provided for @cpf_screen_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o CPF do pagador para gerar o QR Code Pix.'**
+  String get cpf_screen_subtitle;
+
+  /// No description provided for @cpf_field_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF'**
+  String get cpf_field_label;
+
+  /// No description provided for @cpf_field_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'000.000.000-00'**
+  String get cpf_field_hint;
+
+  /// No description provided for @cpf_error_required.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o CPF'**
+  String get cpf_error_required;
+
+  /// No description provided for @cpf_error_incomplete.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite os 11 dígitos do CPF'**
+  String get cpf_error_incomplete;
+
+  /// No description provided for @cpf_error_invalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF inválido'**
+  String get cpf_error_invalid;
+
+  /// No description provided for @cpf_continue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar'**
+  String get cpf_continue;
+
+  /// No description provided for @cpf_save_as_favorite.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar como favorito'**
+  String get cpf_save_as_favorite;
+
+  /// No description provided for @cpf_save_this_payer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar este pagador'**
+  String get cpf_save_this_payer;
+
+  /// No description provided for @cpf_favorite_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome do pagador'**
+  String get cpf_favorite_label;
+
+  /// No description provided for @cpf_favorite_label_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex.: João Silva'**
+  String get cpf_favorite_label_hint;
+
+  /// No description provided for @cpf_favorites_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagadores favoritos'**
+  String get cpf_favorites_title;
+
+  /// No description provided for @cpf_favorites_empty_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum pagador salvo'**
+  String get cpf_favorites_empty_title;
+
+  /// No description provided for @cpf_favorites_empty_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione um pagador para reutilizar o CPF nas próximas cobranças.'**
+  String get cpf_favorites_empty_subtitle;
+
+  /// No description provided for @cpf_favorites_add.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar pagador'**
+  String get cpf_favorites_add;
+
+  /// No description provided for @cpf_favorites_use_another.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar outro CPF'**
+  String get cpf_favorites_use_another;
+
+  /// No description provided for @cpf_favorites_remove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get cpf_favorites_remove;
+
+  /// No description provided for @cpf_favorites_section.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagadores salvos'**
+  String get cpf_favorites_section;
+
+  /// No description provided for @cpf_favorites_view_all.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todos'**
+  String get cpf_favorites_view_all;
+
+  /// No description provided for @cpf_or_enter_manually.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ou digite um CPF'**
+  String get cpf_or_enter_manually;
+
+  /// No description provided for @cpf_favorites_label_required.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe um nome'**
+  String get cpf_favorites_label_required;
+
+  /// No description provided for @cpf_favorites_duplicate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este CPF já está salvo'**
+  String get cpf_favorites_duplicate;
+
+  /// No description provided for @cpf_favorites_add_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar pagador'**
+  String get cpf_favorites_add_title;
+
+  /// No description provided for @cpf_favorites_edit_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar pagador'**
+  String get cpf_favorites_edit_title;
+
+  /// No description provided for @cpf_favorites_save.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar'**
+  String get cpf_favorites_save;
+
+  /// No description provided for @cpf_favorites_search_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar por nome'**
+  String get cpf_favorites_search_hint;
+
+  /// No description provided for @cpf_favorites_search_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum pagador encontrado'**
+  String get cpf_favorites_search_empty;
+
+  /// No description provided for @cpf_favorites_edit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar'**
+  String get cpf_favorites_edit;
+
+  /// No description provided for @cpf_favorites_actions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ações'**
+  String get cpf_favorites_actions;
+
+  /// No description provided for @cpf_favorites_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os pagadores'**
+  String get cpf_favorites_error;
+
+  /// No description provided for @cpf_favorites_removed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagador removido'**
+  String get cpf_favorites_removed;
+
+  /// No description provided for @cpf_favorites_delete_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover pagador?'**
+  String get cpf_favorites_delete_title;
+
+  /// No description provided for @cpf_favorites_delete_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover {label} dos pagadores favoritos?'**
+  String cpf_favorites_delete_body(String label);
+
   /// No description provided for @send_pix_type_random.
   ///
   /// In pt, this message translates to:

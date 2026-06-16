@@ -2790,6 +2790,112 @@ class AppLocalizationsEn extends AppLocalizations {
   String get send_pix_type_cpf_cnpj => 'CPF/CNPJ';
 
   @override
+  String get cpf_screen_title => 'Payer identification';
+
+  @override
+  String get cpf_screen_subtitle =>
+      'Enter the payer\'s CPF to generate the Pix QR code.';
+
+  @override
+  String get cpf_field_label => 'CPF';
+
+  @override
+  String get cpf_field_hint => '000.000.000-00';
+
+  @override
+  String get cpf_error_required => 'Enter the CPF';
+
+  @override
+  String get cpf_error_incomplete => 'Enter all 11 CPF digits';
+
+  @override
+  String get cpf_error_invalid => 'Invalid CPF';
+
+  @override
+  String get cpf_continue => 'Continue';
+
+  @override
+  String get cpf_save_as_favorite => 'Save as favorite';
+
+  @override
+  String get cpf_save_this_payer => 'Save this payer';
+
+  @override
+  String get cpf_favorite_label => 'Payer name';
+
+  @override
+  String get cpf_favorite_label_hint => 'e.g. John Smith';
+
+  @override
+  String get cpf_favorites_title => 'Favorite payers';
+
+  @override
+  String get cpf_favorites_empty_title => 'No saved payers';
+
+  @override
+  String get cpf_favorites_empty_subtitle =>
+      'Add a payer to reuse their CPF on future charges.';
+
+  @override
+  String get cpf_favorites_add => 'Add payer';
+
+  @override
+  String get cpf_favorites_use_another => 'Use another CPF';
+
+  @override
+  String get cpf_favorites_remove => 'Remove';
+
+  @override
+  String get cpf_favorites_section => 'Saved payers';
+
+  @override
+  String get cpf_favorites_view_all => 'View all';
+
+  @override
+  String get cpf_or_enter_manually => 'Or enter a CPF';
+
+  @override
+  String get cpf_favorites_label_required => 'Enter a name';
+
+  @override
+  String get cpf_favorites_duplicate => 'This CPF is already saved';
+
+  @override
+  String get cpf_favorites_add_title => 'Add payer';
+
+  @override
+  String get cpf_favorites_edit_title => 'Edit payer';
+
+  @override
+  String get cpf_favorites_save => 'Save';
+
+  @override
+  String get cpf_favorites_search_hint => 'Search by name';
+
+  @override
+  String get cpf_favorites_search_empty => 'No payers found';
+
+  @override
+  String get cpf_favorites_edit => 'Edit';
+
+  @override
+  String get cpf_favorites_actions => 'Actions';
+
+  @override
+  String get cpf_favorites_error => 'Couldn\'t load payers';
+
+  @override
+  String get cpf_favorites_removed => 'Payer removed';
+
+  @override
+  String get cpf_favorites_delete_title => 'Remove payer?';
+
+  @override
+  String cpf_favorites_delete_body(String label) {
+    return 'Remove $label from favorite payers?';
+  }
+
+  @override
   String get send_pix_type_random => 'Random key';
 
   @override
