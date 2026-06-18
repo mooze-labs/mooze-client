@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/address_explorer/domain/services/address_c
 import 'package:mooze_mobile/features/address_explorer/presentation/controllers/address_ownership_controller.dart';
 import 'package:mooze_mobile/features/address_explorer/presentation/widgets/address_ownership_result.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 const Duration _kVerifyDebounce = Duration(milliseconds: 500);
 
@@ -117,15 +118,7 @@ class _AddressOwnershipScreenState
   }
 
   void _showFeedback(String message) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.removeCurrentSnackBar();
-    messenger?.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppSnackBar.info(context, message);
   }
 
   void _scrollToResult() {

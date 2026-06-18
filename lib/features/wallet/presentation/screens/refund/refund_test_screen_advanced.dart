@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refun
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_mock_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Tela de teste avançada para o fluxo de refund
@@ -59,13 +60,7 @@ class _RefundTestScreenAdvancedState
                     .read(transactionMockProvider.notifier)
                     .clearMockTransactions();
                 setState(() => _mockTransactionsLoaded = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(t.refund_test_cleared_snack),
-                    backgroundColor: Colors.orange,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                AppSnackBar.warning(context, t.refund_test_cleared_snack);
               },
             ),
         ],
@@ -120,16 +115,10 @@ class _RefundTestScreenAdvancedState
                         .read(transactionMockProvider.notifier)
                         .loadDefaultMockTransactions();
                     setState(() => _mockTransactionsLoaded = true);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          t.refund_test_loaded_snack(
-                            ref.read(transactionMockProvider).length,
-                          ),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        backgroundColor: Colors.green,
-                        duration: const Duration(seconds: 3),
+                    AppSnackBar.success(
+                      context,
+                      t.refund_test_loaded_snack(
+                        ref.read(transactionMockProvider).length,
                       ),
                     );
                   },

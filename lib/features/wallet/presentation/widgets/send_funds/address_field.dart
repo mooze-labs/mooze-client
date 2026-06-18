@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -91,13 +92,9 @@ class _AddressFieldState extends ConsumerState<AddressField> {
     if (!mounted) return;
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).wallet_send_address_paste_empty,
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppSnackBar.info(
+        context,
+        AppLocalizations.of(context).wallet_send_address_paste_empty,
       );
       return;
     }

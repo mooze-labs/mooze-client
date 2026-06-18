@@ -819,13 +819,9 @@ class _TransactionDetailScreenState
     } catch (e) {
       if (mounted) {
         await Clipboard.setData(ClipboardData(text: explorerUrl));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).error_open_browser_link_copied,
-            ),
-            backgroundColor: context.appColors.warning,
-          ),
+        AppSnackBar.warning(
+          context,
+          AppLocalizations.of(context).error_open_browser_link_copied,
         );
       }
     }
@@ -854,13 +850,9 @@ class _TransactionDetailScreenState
     } catch (e) {
       if (mounted) {
         await Clipboard.setData(ClipboardData(text: validationUrl));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).error_open_browser_link_copied,
-            ),
-            backgroundColor: context.appColors.warning,
-          ),
+        AppSnackBar.warning(
+          context,
+          AppLocalizations.of(context).error_open_browser_link_copied,
         );
       }
     }

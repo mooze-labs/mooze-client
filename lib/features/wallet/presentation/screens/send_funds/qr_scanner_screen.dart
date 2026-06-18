@@ -77,14 +77,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
         isScanning = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(validationResult.localize(context)),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppSnackBar.error(context, validationResult.localize(context));
 
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {

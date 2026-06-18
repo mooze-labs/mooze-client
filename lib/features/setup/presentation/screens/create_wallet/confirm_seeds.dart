@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/wallet/data/storage/balance_snapshot_stora
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
@@ -201,18 +202,9 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
         context.push("/setup/pin/new");
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).setup_confirm_seed_error,
-            style: const TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.red[600],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppSnackBar.error(
+        context,
+        AppLocalizations.of(context).setup_confirm_seed_error,
       );
     }
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/swap/presentation/utils/post_swap_refresh.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../providers/btc_lbtc_swap_controller_provider.dart';
@@ -295,9 +296,7 @@ class BtcLbtcSwapHelper {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red[700]),
-    );
+    AppSnackBar.error(context, message);
   }
 
   /// Fire-and-forget staggered wallet refresh — see

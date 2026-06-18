@@ -377,17 +377,9 @@ class _RefundScreenState extends ConsumerState<RefundScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).error_generic(error.toString()),
-            ),
-            backgroundColor: context.colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        AppSnackBar.error(
+          context,
+          AppLocalizations.of(context).error_generic(error.toString()),
         );
       }
     } finally {

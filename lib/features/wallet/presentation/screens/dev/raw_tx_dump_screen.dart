@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwk/lwk.dart' as lwk;
 
 import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/domain/entities/transaction.dart' as v2tx;
 import 'package:mooze_mobile/infra/bdk/bitcoin_wallet_service_impl.dart'
     as bdk_impl;
@@ -278,12 +279,7 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
                       ClipboardData(text: _allDumps()),
                     );
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('All dumps copied to clipboard'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    AppSnackBar.info(context, 'All dumps copied to clipboard');
                   },
           ),
         ],
@@ -332,12 +328,7 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: body));
                     if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('"$title" copied'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    AppSnackBar.info(context, '"$title" copied');
                   },
                 ),
               ],

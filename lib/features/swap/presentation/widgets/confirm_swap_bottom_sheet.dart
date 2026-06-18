@@ -13,6 +13,7 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../screens/swap_success_screen.dart';
 import 'swap_deal_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 class ConfirmSwapBottomSheet extends ConsumerStatefulWidget {
   final VoidCallback? onSuccess;
@@ -232,13 +233,7 @@ class _ConfirmSwapBottomSheetState
         (err) {
           Navigator.of(context).pop();
           widget.onError?.call();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err.localize(context)),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              duration: const Duration(seconds: 5),
-            ),
-          );
+          AppSnackBar.error(context, err.localize(context));
         },
         (txid) {
           Navigator.of(context).pop();

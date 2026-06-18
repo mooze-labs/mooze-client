@@ -244,17 +244,9 @@ class _RefundConfirmationScreenState
         Navigator.of(context).pop();
 
         // Show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).refund_process_error(e.toString()),
-            ),
-            backgroundColor: context.colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        AppSnackBar.error(
+          context,
+          AppLocalizations.of(context).refund_process_error(e.toString()),
         );
       }
     }

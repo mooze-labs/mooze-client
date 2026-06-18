@@ -212,9 +212,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
           if (!mounted) return;
           setState(() => _isLoading = false);
           _hideLoadingOverlay();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(err)));
+          AppSnackBar.error(context, err);
           _circleController.reset();
         },
         (deposit) async {
@@ -243,9 +241,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
       if (!mounted) return;
       setState(() => _isLoading = false);
       _hideLoadingOverlay();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      AppSnackBar.error(context, e.toString());
       _circleController.reset();
     }
   }

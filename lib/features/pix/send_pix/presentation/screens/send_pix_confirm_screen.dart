@@ -105,9 +105,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
           if (mounted) {
             setState(() => _isLoading = false);
             _hideLoadingOverlay();
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(error)));
+            AppSnackBar.error(context, error);
             _circleController.reset();
           }
         },
@@ -133,9 +131,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
       if (mounted) {
         setState(() => _isLoading = false);
         _hideLoadingOverlay();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+        AppSnackBar.error(context, 'Erro: $e');
         _circleController.reset();
       }
     }

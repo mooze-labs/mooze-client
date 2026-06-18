@@ -45,13 +45,9 @@ class _ReviewOnchainTransactionScreenState
 
       if (psbt == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context).wallet_tx_not_found_error,
-              ),
-              backgroundColor: context.colorScheme.error,
-            ),
+          AppSnackBar.error(
+            context,
+            AppLocalizations.of(context).wallet_tx_not_found_error,
           );
         }
         return;
@@ -60,13 +56,9 @@ class _ReviewOnchainTransactionScreenState
       await walletController.match(
         (error) async {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(context).error_generic(error.toString()),
-                ),
-                backgroundColor: context.colorScheme.error,
-              ),
+            AppSnackBar.error(
+              context,
+              AppLocalizations.of(context).error_generic(error.toString()),
             );
           }
         },
@@ -77,15 +69,11 @@ class _ReviewOnchainTransactionScreenState
           await txResult.match(
             (error) async {
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(
-                        context,
-                      ).wallet_send_tx_error(error.toString()),
-                    ),
-                    backgroundColor: context.colorScheme.error,
-                  ),
+                AppSnackBar.error(
+                  context,
+                  AppLocalizations.of(
+                    context,
+                  ).wallet_send_tx_error(error.toString()),
                 );
               }
             },

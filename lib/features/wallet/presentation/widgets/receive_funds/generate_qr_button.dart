@@ -57,12 +57,9 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
 
       if (selectedAsset == null || selectedNetwork == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).receive_select_asset_network,
-            ),
-          ),
+        AppSnackBar.warning(
+          context,
+          AppLocalizations.of(context).receive_select_asset_network,
         );
         return;
       }
@@ -93,20 +90,15 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
         },
         error: (error, stack) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context).receive_qr_error(error.toString()),
-              ),
-            ),
+          AppSnackBar.error(
+            context,
+            AppLocalizations.of(context).receive_qr_error(error.toString()),
           );
         },
         data: (qrState) {
           if (!mounted) return;
           if (qrState.error != null) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(qrState.error!)));
+            AppSnackBar.error(context, qrState.error!);
           } else if (qrState.displayAddress != null) {
             ref.read(receiveAmountProvider.notifier).state = '';
             ref.read(receiveAssetValueProvider.notifier).state = '';

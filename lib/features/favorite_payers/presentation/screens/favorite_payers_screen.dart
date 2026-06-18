@@ -31,7 +31,6 @@ class _FavoritePayersScreenState extends ConsumerState<FavoritePayersScreen> {
 
   Future<void> _confirmDelete(FavoritePayer payer) async {
     final t = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -56,7 +55,7 @@ class _FavoritePayersScreenState extends ConsumerState<FavoritePayersScreen> {
     await ref.read(favoritePayersControllerProvider.notifier).delete(payer.id!);
     if (!mounted) return;
     // Success feedback (the list also visibly updates).
-    messenger.showSnackBar(SnackBar(content: Text(t.cpf_favorites_removed)));
+    AppSnackBar.success(context, t.cpf_favorites_removed);
   }
 
   @override

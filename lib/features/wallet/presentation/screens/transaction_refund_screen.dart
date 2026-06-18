@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class TransactionRefundScreen extends ConsumerStatefulWidget {
@@ -515,13 +516,9 @@ class _TransactionRefundScreenState
                 ? () async {
                   // This screen is deprecated. Use GetRefundScreen instead.
                   // For backward compatibility, we'll show an error message.
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        AppLocalizations.of(context).tx_refund_screen_deprecated,
-                      ),
-                      backgroundColor: context.appColors.warning,
-                    ),
+                  AppSnackBar.warning(
+                    context,
+                    AppLocalizations.of(context).tx_refund_screen_deprecated,
                   );
                 }
                 : null,
@@ -616,11 +613,9 @@ class _TransactionRefundScreenState
                       icon: const Icon(Icons.copy, size: 16),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: txId));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(t.swap_success_dialog_txid_copied),
-                            duration: const Duration(seconds: 1),
-                          ),
+                        AppSnackBar.info(
+                          context,
+                          t.swap_success_dialog_txid_copied,
                         );
                       },
                     ),

@@ -53,16 +53,12 @@ class _HumanVerificationCodeScreenState
       if (isValid && mounted) {
         context.pushReplacement('/human-verification/success');
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.human_verif_code_invalid)),
-        );
+        AppSnackBar.error(context, t.human_verif_code_invalid);
         _codeController.clear();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(t.error_generic(e.toString()))));
+        AppSnackBar.error(context, t.error_generic(e.toString()));
         _codeController.clear();
       }
     } finally {

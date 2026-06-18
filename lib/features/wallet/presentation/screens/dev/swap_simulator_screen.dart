@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 /// Dev-only playground for driving the optimistic peg-in / peg-out
 /// row through every state without spending sats on a real Boltz
@@ -151,9 +152,7 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
   void _start(PendingSwapsNotifier notifier, {required bool isPegIn}) {
     final amount = int.tryParse(_amountCtl.text);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a positive amount in sats')),
-      );
+      AppSnackBar.warning(context, 'Enter a positive amount in sats');
       return;
     }
     notifier.start(

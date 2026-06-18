@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -64,19 +65,7 @@ class _ClipboardPasteDetectorState
       if (mounted) {
         final state = ref.read(seedPhraseProvider);
         if (state.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: 8),
-                  Expanded(child: Text(state.error!.localize(context))),
-                ],
-              ),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-            ),
-          );
+          AppSnackBar.error(context, state.error!.localize(context));
         }
       }
     }

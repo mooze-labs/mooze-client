@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SwapSuccessDialog extends StatelessWidget {
@@ -82,11 +83,9 @@ class SwapSuccessDialog extends StatelessWidget {
                       InkWell(
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: txId!));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(t.swap_success_dialog_txid_copied),
-                              duration: const Duration(seconds: 2),
-                            ),
+                          AppSnackBar.info(
+                            context,
+                            t.swap_success_dialog_txid_copied,
                           );
                         },
                         child: Icon(

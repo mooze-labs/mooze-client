@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
@@ -53,9 +54,7 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
     final inputPin = _pinController.text;
 
     if (inputPin != widget.pin) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.pin_mismatch)));
+      AppSnackBar.error(context, t.pin_mismatch);
       return;
     }
 
@@ -65,9 +64,7 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
     BootTracer.mark('pin_confirm.create.end', {'ok': result.isRight()});
 
     result.match(
-      (failure) => ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(failure.toString()))),
+      (failure) => AppSnackBar.error(context, failure.toString()),
       (_) async {
         // Invalidate hasPinProvider after PIN creation
         BootTracer.mark('pin_confirm.invalidate.has_pin');

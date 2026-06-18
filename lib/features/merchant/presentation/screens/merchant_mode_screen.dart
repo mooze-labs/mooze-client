@@ -605,14 +605,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       await ref.read(productControllerProvider.notifier).addProduct(product);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              ).merchant_add_product_error(e.toString()),
-            ),
-          ),
+        AppSnackBar.error(
+          context,
+          AppLocalizations.of(context).merchant_add_product_error(e.toString()),
         );
       }
     }
@@ -639,14 +634,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
             .updateProduct(updatedProduct);
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                ).merchant_update_product_error(e.toString()),
-              ),
-            ),
+          AppSnackBar.error(
+            context,
+            AppLocalizations.of(
+              context,
+            ).merchant_update_product_error(e.toString()),
           );
         }
       }
@@ -671,14 +663,11 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              ).merchant_remove_product_error(e.toString()),
-            ),
-          ),
+        AppSnackBar.error(
+          context,
+          AppLocalizations.of(
+            context,
+          ).merchant_remove_product_error(e.toString()),
         );
       }
     }
@@ -725,22 +714,12 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     final totalAmount = cartTotal + keypadValue;
 
     if (totalAmount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.merchant_add_item_first),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      AppSnackBar.warning(context, t.merchant_add_item_first);
       return;
     }
 
     if (totalAmount < 20.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.merchant_min_sale_value),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.error(context, t.merchant_min_sale_value);
       return;
     }
 

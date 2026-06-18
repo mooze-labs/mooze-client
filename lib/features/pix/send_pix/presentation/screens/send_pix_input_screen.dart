@@ -76,10 +76,9 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
   Future<void> _processPixKey() async {
     final pixKey = _pixKeyController.text.trim();
     if (pixKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).send_pix_empty_key_error),
-        ),
+      AppSnackBar.warning(
+        context,
+        AppLocalizations.of(context).send_pix_empty_key_error,
       );
       return;
     }
@@ -93,9 +92,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
       result.fold(
         (error) {
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(error)));
+            AppSnackBar.error(context, error);
           }
         },
         (paymentRequest) {

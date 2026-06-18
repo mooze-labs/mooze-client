@@ -145,17 +145,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             _hideLoadingOverlay();
             _circleController.reset();
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(err),
-                backgroundColor: Colors.red[700],
-                duration: Duration(seconds: 5),
-                action: SnackBarAction(
-                  label: 'OK',
-                  textColor: Colors.white,
-                  onPressed: () {},
-                ),
-              ),
+            AppSnackBar.show(
+              context,
+              message: err,
+              type: SnackBarType.error,
+              action: SnackBarAction(label: 'OK', onPressed: () {}),
             );
           }
         },
@@ -190,17 +184,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
       _hideLoadingOverlay();
       _circleController.reset();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          duration: Duration(seconds: 5),
-          action: SnackBarAction(
-            label: 'OK',
-            textColor: Theme.of(context).colorScheme.onError,
-            onPressed: () {},
-          ),
-        ),
+      AppSnackBar.show(
+        context,
+        message: e.toString(),
+        type: SnackBarType.error,
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
       );
     }
   }

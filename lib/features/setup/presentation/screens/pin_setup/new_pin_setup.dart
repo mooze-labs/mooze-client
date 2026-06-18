@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:pinput/pinput.dart';
@@ -42,9 +43,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
     final t = AppLocalizations.of(context);
 
     if (pin.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.pin_create_min_length)),
-      );
+      AppSnackBar.warning(context, t.pin_create_min_length);
       return;
     }
 

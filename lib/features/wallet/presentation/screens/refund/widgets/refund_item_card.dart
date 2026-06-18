@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Card widget to display a refundable swap item
@@ -302,16 +303,9 @@ class RefundItemCard extends StatelessWidget {
             InkWell(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: fullValue));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(AppLocalizations.of(context).receive_qr_copied),
-                    duration: const Duration(seconds: 2),
-                    backgroundColor: context.colors.primaryColor,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                AppSnackBar.info(
+                  context,
+                  AppLocalizations.of(context).receive_qr_copied,
                 );
               },
               borderRadius: BorderRadius.circular(8),

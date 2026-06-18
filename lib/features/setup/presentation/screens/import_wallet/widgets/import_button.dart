@@ -10,6 +10,7 @@ import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dar
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/authentication/providers.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
@@ -69,19 +70,7 @@ class ImportButton extends ConsumerWidget {
         result.match(
           (failure) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(failure.message)),
-                    ],
-                  ),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 5),
-                ),
-              );
+              AppSnackBar.error(context, failure.message);
             }
             loadingNotifier.state = false;
             notifier.setLoading(false);

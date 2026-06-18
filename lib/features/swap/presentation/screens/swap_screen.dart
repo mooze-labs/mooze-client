@@ -1111,12 +1111,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats))) {
       if (mounted) {
         final t = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              t.swap_min_amount_sats(_minBtcLbtcSwapSats.toString()),
-            ),
-          ),
+        AppSnackBar.warning(
+          context,
+          t.swap_min_amount_sats(_minBtcLbtcSwapSats.toString()),
         );
       }
       return;

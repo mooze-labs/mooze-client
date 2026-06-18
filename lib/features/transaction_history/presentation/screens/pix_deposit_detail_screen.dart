@@ -603,11 +603,9 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).error_open_browser),
-            backgroundColor: Colors.orange,
-          ),
+        AppSnackBar.warning(
+          context,
+          AppLocalizations.of(context).error_open_browser,
         );
       }
     }

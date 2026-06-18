@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 
@@ -397,14 +398,7 @@ class _CopyButton extends StatelessWidget {
     return InkWell(
       onTap: () {
         Clipboard.setData(ClipboardData(text: text));
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$label copied'),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.info(context, '$label copied');
       },
       borderRadius: BorderRadius.circular(6),
       child: Padding(

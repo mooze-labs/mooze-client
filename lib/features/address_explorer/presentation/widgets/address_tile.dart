@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/address_explorer/domain/entities/wallet_ad
 import 'package:mooze_mobile/features/address_explorer/domain/enums/address_chain.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/enums/address_status.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 class AddressTile extends StatefulWidget {
   final WalletAddress address;
@@ -31,15 +32,7 @@ class _AddressTileState extends State<AddressTile> {
     await Clipboard.setData(ClipboardData(text: widget.address.address));
     if (!mounted) return;
     final t = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.removeCurrentSnackBar();
-    messenger?.showSnackBar(
-      SnackBar(
-        content: Text(t.address_explorer_address_copied),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppSnackBar.info(context, t.address_explorer_address_copied);
   }
 
   @override

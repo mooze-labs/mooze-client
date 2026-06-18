@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -72,10 +73,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
     super.dispose();
   }
 
-  Future<void> _launchTelegramSupport(
-    BuildContext context,
-    ColorScheme colorScheme,
-  ) async {
+  Future<void> _launchTelegramSupport(BuildContext context) async {
     final Uri url = Uri.parse("https://t.me/Moozep2pbot");
     try {
       final launched = await launchUrl(
@@ -83,30 +81,19 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
         mode: LaunchMode.externalApplication,
       );
       if (!launched && context.mounted) {
-        _showErrorSnackBar(context, colorScheme);
+        _showErrorSnackBar(context);
       }
     } catch (e) {
       if (context.mounted) {
-        _showErrorSnackBar(context, colorScheme);
+        _showErrorSnackBar(context);
       }
     }
   }
 
-  void _showErrorSnackBar(BuildContext context, ColorScheme colorScheme) {
-    final t = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(t.support_telegram_open_error)),
-          ],
-        ),
-        backgroundColor: colorScheme.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+  void _showErrorSnackBar(BuildContext context) {
+    AppSnackBar.error(
+      context,
+      AppLocalizations.of(context).support_telegram_open_error,
     );
   }
 
@@ -352,11 +339,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                           const SizedBox(height: 16),
                           PrimaryButton(
                             text: t.support_contact_button,
-                            onPressed:
-                                () => _launchTelegramSupport(
-                                  context,
-                                  colorScheme,
-                                ),
+                            onPressed: () => _launchTelegramSupport(context),
                           ),
                           const SizedBox(height: 24),
                         ],
