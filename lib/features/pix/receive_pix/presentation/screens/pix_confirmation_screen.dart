@@ -172,7 +172,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     );
   }
 
-  void _onSlideComplete() async {
+  void _onConfirm() async {
     setState(() => _isLoading = true);
 
     // Temporary payer-CPF step (shared with the merchant flow). When the
@@ -272,7 +272,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     final t = AppLocalizations.of(context);
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
-    final isSlideEnabled =
+    final isConfirmEnabled =
         depositAmount > 0 && validation.isValid && !_isLoading;
 
     final tutorialActive = ref.watch(pixTutorialControllerProvider).isActive;
@@ -307,15 +307,15 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                       const SizedBox(height: 16),
                       const InfoTipsSection(),
                       const SizedBox(height: 24),
-                      SlideToConfirmButton(
+                      PrimaryButton(
                         key:
                             ref
                                 .read(pixTutorialControllerProvider.notifier)
                                 .slideButtonKey,
-                        onSlideComplete: _onSlideComplete,
-                        text: t.merchant_generate_qr,
+                        onPressed: isConfirmEnabled ? _onConfirm : null,
+                        text: t.common_continue,
                         isLoading: _isLoading,
-                        isEnabled: isSlideEnabled,
+                        isEnabled: isConfirmEnabled,
                       ),
                     ],
                   ),
