@@ -30,6 +30,7 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
   bool _touched = false;
   CpfValidationError? _error;
   bool _saveThisPayer = false;
+  bool _isSubmitting = false;
 
   String get _digits => CpfValidator.strip(_controller.text);
   bool get _isComplete => _digits.length == 11 || _digits.length == 14;
@@ -75,16 +76,33 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
 
   Future<void> _submit(bool canSave) async {
     final error = CpfValidator.validate(_controller.text);
+    if (error != null) {
+      setState(() {
+        _touched = true;
+        _error = error;
+        _isSubmitting = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _isSubmitting = false);
+      });
+      return;
+    }
+
     setState(() {
       _touched = true;
-      _error = error;
+      _error = null;
+      _isSubmitting = true;
     });
-    if (error != null) return;
 
+    // Saving a favorite is best-effort — never block returning a valid CPF.
     if (canSave && _saveThisPayer && _hasLabel) {
-      await ref
-          .read(favoritePayersControllerProvider.notifier)
-          .save(label: _labelController.text, cpf: _digits);
+      try {
+        await ref
+            .read(favoritePayersControllerProvider.notifier)
+            .save(label: _labelController.text, cpf: _digits);
+      } catch (_) {
+        // Ignore: the CPF is valid; the favorite just won't be persisted.
+      }
     }
     if (!mounted) return;
     Navigator.of(context).pop<String>(_digits);
@@ -124,6 +142,7 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
       ),
       bottomSheet: _ContinueBar(
         enabled: canContinue,
+        isLoading: _isSubmitting,
         onPressed: () => _submit(canSave),
       ),
       body: PlatformSafeArea(
@@ -264,22 +283,28 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
 /// Sticky bottom action bar — stays above the keyboard and is always visible.
 class _ContinueBar extends StatelessWidget {
   final bool enabled;
+  final bool isLoading;
   final VoidCallback onPressed;
 
-  const _ContinueBar({required this.enabled, required this.onPressed});
+  const _ContinueBar({
+    required this.enabled,
+    required this.isLoading,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       child: SafeArea(
         top: false,
-        child: PrimaryButton(
-          text: t.cpf_continue,
+        child: SlideToConfirmButton(
+          text: t.merchant_generate_qr,
           isEnabled: enabled,
-          onPressed: enabled ? onPressed : null,
+          isLoading: isLoading,
+          onSlideComplete: onPressed,
         ),
       ),
     );
