@@ -351,13 +351,13 @@ class PixRepositoryImpl implements PixRepository {
     return TaskEither.tryCatch(
       () async {
         final response = await _dio.post(
-          '/transactions',
+          '/v2/transactions',
           data: {
             "address": address,
             "amount_in_cents": amountInCents,
             "asset": asset.id,
             "network": network,
-            if (taxIdNumber != null) "taxIdNumber": taxIdNumber,
+            if (taxIdNumber != null) "tax_id": taxIdNumber,
           },
         );
 
