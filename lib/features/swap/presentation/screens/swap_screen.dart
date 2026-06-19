@@ -463,6 +463,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                                   }
                                   : null,
                         ),
+                        SizedBox(height: 120),
                       ],
                     );
                   },
