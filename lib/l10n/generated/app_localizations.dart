@@ -8752,6 +8752,12 @@ abstract class AppLocalizations {
   /// **'Usado'**
   String get address_ownership_field_used;
 
+  /// No description provided for @address_ownership_field_balance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo'**
+  String get address_ownership_field_balance;
+
   /// No description provided for @address_ownership_yes.
   ///
   /// In pt, this message translates to:

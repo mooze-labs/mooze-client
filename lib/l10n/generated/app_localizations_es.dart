@@ -4958,6 +4958,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get address_ownership_field_used => 'Usada';
 
   @override
+  String get address_ownership_field_balance => 'Saldo';
+
+  @override
   String get address_ownership_yes => 'Sí';
 
   @override

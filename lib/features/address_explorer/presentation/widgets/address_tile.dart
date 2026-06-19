@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/address_utxo.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/wallet_address.dart';
-import 'package:mooze_mobile/features/address_explorer/domain/enums/address_chain.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/enums/address_status.dart';
+import 'package:mooze_mobile/features/address_explorer/presentation/formatters/utxo_amount_formatter.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
@@ -100,8 +100,7 @@ class _AddressTileState extends State<AddressTile> {
                           _MetaLine(
                             isUsed: isUsed,
                             utxoCount: utxoCount,
-                            receivedSats: widget.address.receivedSats,
-                            chain: widget.address.chain,
+                            utxos: widget.address.utxos,
                             theme: theme,
                             t: t,
                           ),
@@ -195,16 +194,14 @@ class _StatusDot extends StatelessWidget {
 class _MetaLine extends StatelessWidget {
   final bool isUsed;
   final int utxoCount;
-  final BigInt receivedSats;
-  final AddressChain chain;
+  final List<AddressUtxo> utxos;
   final ThemeData theme;
   final AppLocalizations t;
 
   const _MetaLine({
     required this.isUsed,
     required this.utxoCount,
-    required this.receivedSats,
-    required this.chain,
+    required this.utxos,
     required this.theme,
     required this.t,
   });
@@ -217,10 +214,9 @@ class _MetaLine extends StatelessWidget {
           ? t.address_explorer_status_used
           : t.address_explorer_status_unused,
       t.address_explorer_utxo_count(utxoCount),
+      // One balance per asset — Liquid addresses can hold several.
+      ...groupedBalances(utxos),
     ];
-    if (receivedSats > BigInt.zero) {
-      parts.add(_formatReceived(receivedSats, chain));
-    }
     return Text(
       parts.join(' • '),
       maxLines: 1,
@@ -230,11 +226,6 @@ class _MetaLine extends StatelessWidget {
         letterSpacing: 0.2,
       ),
     );
-  }
-
-  static String _formatReceived(BigInt sats, AddressChain chain) {
-    if (chain == AddressChain.bitcoin) return _formatBtc(sats);
-    return '${_groupThousands(sats.toString())} sats';
   }
 }
 
@@ -260,7 +251,7 @@ class _UtxoRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _truncateOutpoint(utxo.outpoint),
+              shortOutpoint(utxo.outpoint),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -271,7 +262,7 @@ class _UtxoRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            _formatValue(utxo.value, utxo.assetId, utxo.chain),
+            formatUtxoAmount(utxo.chain, utxo.assetId, utxo.value),
             style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
@@ -281,38 +272,4 @@ class _UtxoRow extends StatelessWidget {
       ),
     );
   }
-
-  static String _truncateOutpoint(String outpoint) {
-    if (outpoint.isEmpty) return '—';
-    final colon = outpoint.indexOf(':');
-    final txid = colon < 0 ? outpoint : outpoint.substring(0, colon);
-    if (txid.length <= 16) return outpoint;
-    return '${txid.substring(0, 8)}…${txid.substring(txid.length - 4)}';
-  }
-
-  static String _formatValue(BigInt value, String? assetId, AddressChain chain) {
-    if (chain == AddressChain.bitcoin) return _formatBtc(value);
-    return '${_groupThousands(value.toString())} sats';
-  }
-}
-
-String _groupThousands(String s) {
-  final buf = StringBuffer();
-  for (int i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-    buf.write(s[i]);
-  }
-  return buf.toString();
-}
-
-String _formatBtc(BigInt sats) {
-  if (sats == BigInt.zero) return '0 BTC';
-  const satsPerBtc = 100000000;
-  final whole = sats ~/ BigInt.from(satsPerBtc);
-  final frac = (sats % BigInt.from(satsPerBtc))
-      .toString()
-      .padLeft(8, '0')
-      .replaceAll(RegExp(r'0+$'), '');
-  if (frac.isEmpty) return '$whole BTC';
-  return '$whole.$frac BTC';
 }
