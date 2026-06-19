@@ -4951,6 +4951,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get address_ownership_field_used => 'Usado';
 
   @override
+  String get address_ownership_field_balance => 'Saldo';
+
+  @override
   String get address_ownership_yes => 'Sim';
 
   @override

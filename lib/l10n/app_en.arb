@@ -1707,6 +1707,7 @@
   "address_ownership_field_type": "Type",
   "address_ownership_field_utxos": "UTXOs",
   "address_ownership_field_used": "Used",
+  "address_ownership_field_balance": "Balance",
   "address_ownership_yes": "Yes",
   "address_ownership_no": "No",
   "address_ownership_chain_bitcoin": "Bitcoin",
