@@ -2896,6 +2896,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get cpf_payment_warning =>
+      'Use a Pix account linked to the provided CPF. Payments made from an account with a different account holder will be declined.';
+
+  @override
   String get send_pix_type_random => 'Random key';
 
   @override

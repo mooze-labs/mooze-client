@@ -1094,6 +1094,7 @@
   "cpf_favorites_removed": "Payer removed",
   "cpf_favorites_delete_title": "Remove payer?",
   "cpf_favorites_delete_body": "Remove {label} from favorite payers?",
+  "cpf_payment_warning": "Use a Pix account linked to the provided CPF. Payments made from an account with a different account holder will be declined.",
   "@cpf_favorites_delete_body": {
     "placeholders": {
       "label": {

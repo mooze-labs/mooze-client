@@ -2918,6 +2918,10 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get cpf_payment_warning =>
+      'Use uma conta Pix vinculada ao CPF informado. Pagamentos de outra titularidade serão recusados.';
+
+  @override
   String get send_pix_type_random => 'Chave aleatória';
 
   @override
