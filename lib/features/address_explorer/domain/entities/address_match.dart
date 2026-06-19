@@ -1,5 +1,6 @@
 import '../enums/address_chain.dart';
 import '../enums/address_status.dart';
+import 'address_utxo.dart';
 
 /// Result of an ownership probe for a single address.
 ///
@@ -10,7 +11,7 @@ class AddressMatch {
   final AddressChain? chain;
   final AddressStatus? status;
   final int? derivationIndex;
-  final int utxoCount;
+  final List<AddressUtxo> utxos;
 
   const AddressMatch({
     required this.address,
@@ -18,7 +19,7 @@ class AddressMatch {
     this.chain,
     this.status,
     this.derivationIndex,
-    this.utxoCount = 0,
+    this.utxos = const [],
   });
 
   const AddressMatch.notOwned(this.address)
@@ -26,13 +27,16 @@ class AddressMatch {
       chain = null,
       status = null,
       derivationIndex = null,
-      utxoCount = 0;
+      utxos = const [];
 
   const AddressMatch.owned({
     required this.address,
     required AddressChain this.chain,
     required AddressStatus this.status,
     this.derivationIndex,
-    this.utxoCount = 0,
+    this.utxos = const [],
   }) : isOwned = true;
+
+  /// Number of unspent outputs held by this address.
+  int get utxoCount => utxos.length;
 }

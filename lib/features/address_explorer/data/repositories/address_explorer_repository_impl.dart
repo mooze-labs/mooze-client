@@ -90,18 +90,24 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
         }
 
         final used = await _bitcoinAddressIsUsed(scriptHex);
-        final utxoCount = _bdk.wallet
+        final utxos = _bdk.wallet
             .listUnspent()
             .where((u) => !u.isSpent &&
                 _hex(u.txout.scriptPubkey.bytes) == scriptHex)
-            .length;
+            .map((u) => AddressUtxo(
+                  address: address,
+                  chain: AddressChain.bitcoin,
+                  outpoint: '${u.outpoint.txid}:${u.outpoint.vout}',
+                  value: u.txout.value,
+                ))
+            .toList();
         return Either.right(
           AddressMatch.owned(
             address: address,
             chain: AddressChain.bitcoin,
             status: used ? AddressStatus.used : AddressStatus.unused,
             derivationIndex: foundIndex,
-            utxoCount: utxoCount,
+            utxos: utxos,
           ),
         );
       } catch (e) {
@@ -300,10 +306,18 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
               derived.confidential == address;
           if (!matches) continue;
 
-          final addressUtxos = utxos.where((u) =>
-              !u.isSpent && u.address.standard == derived.standard);
-          final utxoCount = addressUtxos.length;
-          var used = utxoCount > 0;
+          final addressUtxos = utxos
+              .where((u) =>
+                  !u.isSpent && u.address.standard == derived.standard)
+              .map((u) => AddressUtxo(
+                    address: address,
+                    chain: AddressChain.liquid,
+                    outpoint: '${u.outpoint.txid}:${u.outpoint.vout}',
+                    value: u.unblinded.value,
+                    assetId: u.unblinded.asset,
+                  ))
+              .toList();
+          var used = addressUtxos.isNotEmpty;
           if (!used) {
             for (final tx in txs) {
               if (tx.outputs
@@ -319,7 +333,7 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
               chain: AddressChain.liquid,
               status: used ? AddressStatus.used : AddressStatus.unused,
               derivationIndex: i,
-              utxoCount: utxoCount,
+              utxos: addressUtxos,
             ),
           );
         }
