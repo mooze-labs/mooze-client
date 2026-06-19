@@ -104,7 +104,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     super.dispose();
   }
 
-  void _onSlideComplete() async {
+  void _onConfirm() async {
     setState(() => _isLoading = true);
 
     // Temporary payer-CPF step (shared with the Pix flow).
@@ -281,17 +281,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                       widget.totalAmount,
                                     ),
                                   );
-                                  return Opacity(
-                                    opacity: validation.isValid ? 1.0 : 0.5,
-                                    child: IgnorePointer(
-                                      ignoring: !validation.isValid,
-                                      child: SlideToConfirmButton(
-                                        onSlideComplete: _onSlideComplete,
-                                        text: t.merchant_generate_qr,
-                                        isLoading: _isLoading,
-                                        isEnabled: validation.isValid,
-                                      ),
-                                    ),
+                                  return PrimaryButton(
+                                    text: t.common_continue,
+                                    isLoading: _isLoading,
+                                    isEnabled: validation.isValid,
+                                    onPressed: _onConfirm,
                                   );
                                 },
                               ),
