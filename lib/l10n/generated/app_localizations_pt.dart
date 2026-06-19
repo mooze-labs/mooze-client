@@ -1400,6 +1400,10 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get receive_connection_error =>
+      'Houve um problema de conexão. Por favor, tente novamente.';
+
+  @override
   String get receive_network_bitcoin_onchain => 'Bitcoin On-chain';
 
   @override

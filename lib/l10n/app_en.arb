@@ -490,6 +490,7 @@
       }
     }
   },
+  "receive_connection_error": "There was a connection problem. Please try again.",
   "receive_network_bitcoin_onchain": "Bitcoin On-chain",
   "receive_network_lightning_network": "Lightning Network",
   "receive_network_liquid_network": "Liquid Network",

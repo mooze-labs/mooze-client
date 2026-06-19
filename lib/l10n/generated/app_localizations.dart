@@ -2578,6 +2578,12 @@ abstract class AppLocalizations {
   /// **'Erro ao gerar QR: {error}'**
   String receive_qr_error(String error);
 
+  /// No description provided for @receive_connection_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Houve um problema de conexão. Por favor, tente novamente.'**
+  String get receive_connection_error;
+
   /// No description provided for @receive_network_bitcoin_onchain.
   ///
   /// In pt, this message translates to:
