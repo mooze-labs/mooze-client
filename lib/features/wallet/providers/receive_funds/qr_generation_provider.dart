@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
@@ -9,9 +11,137 @@ import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
+/// Coarse grouping of receive-flow failures, kept for logging/telemetry.
+enum ReceiveErrorCategory { connection, amount, asset, generation }
+
+enum ReceiveErrorCode {
+  connection,
+  invalidAmount,
+  invalidAsset,
+  generationFailed,
+}
+
+/// Presentation-layer error for the receive / QR-generation flow.
+///
+/// Mirrors [SendValidationError]: the controller classifies raw failures
+/// (SDK exceptions, [WalletError]s from invoice generation) into a small set
+/// of codes, and the UI only ever calls [localize] — no error-string matching
+/// in widgets.
+class ReceiveError {
+  final ReceiveErrorCode code;
+  final ReceiveErrorCategory category;
+
+  /// Underlying raw text, surfaced for codes that carry a specific message and
+  /// kept for logging. Never shown to the user for [ReceiveErrorCode.connection].
+  final String? detail;
+
+  const ReceiveError({
+    required this.code,
+    required this.category,
+    this.detail,
+  });
+
+  /// Classifies a [WalletError] returned by invoice generation / validation.
+  factory ReceiveError.fromWalletError(WalletError error) {
+    if (_isConnectionFailure(error)) {
+      return const ReceiveError(
+        code: ReceiveErrorCode.connection,
+        category: ReceiveErrorCategory.connection,
+      );
+    }
+    switch (error.type) {
+      case WalletErrorType.invalidAmount:
+        return ReceiveError(
+          code: ReceiveErrorCode.invalidAmount,
+          category: ReceiveErrorCategory.amount,
+          detail: error.customDescription,
+        );
+      case WalletErrorType.invalidAsset:
+        return ReceiveError(
+          code: ReceiveErrorCode.invalidAsset,
+          category: ReceiveErrorCategory.asset,
+          detail: error.customDescription,
+        );
+      default:
+        return ReceiveError(
+          code: ReceiveErrorCode.generationFailed,
+          category: ReceiveErrorCategory.generation,
+          detail: error.description,
+        );
+    }
+  }
+
+  /// Classifies an unexpected exception thrown during QR generation.
+  factory ReceiveError.fromException(Object error) {
+    final raw = error.toString();
+    if (_isConnectionError(raw)) {
+      return const ReceiveError(
+        code: ReceiveErrorCode.connection,
+        category: ReceiveErrorCategory.connection,
+      );
+    }
+    return ReceiveError(
+      code: ReceiveErrorCode.generationFailed,
+      category: ReceiveErrorCategory.generation,
+      detail: raw,
+    );
+  }
+
+  /// Returns the user-facing localized message. Connection failures collapse
+  /// to a friendly retry message; raw SDK text is never shown for those.
+  String localize(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    switch (code) {
+      case ReceiveErrorCode.connection:
+        return t.receive_connection_error;
+      case ReceiveErrorCode.invalidAmount:
+        final d = detail;
+        return (d == null || d.isEmpty) ? t.wallet_errors_invalid_amount : d;
+      case ReceiveErrorCode.invalidAsset:
+        final d = detail;
+        return (d == null || d.isEmpty) ? t.wallet_errors_invalid_asset : d;
+      case ReceiveErrorCode.generationFailed:
+        return t.receive_qr_error(detail ?? '');
+    }
+  }
+
+  @override
+  String toString() =>
+      '${category.name}:${code.name}${detail != null ? '($detail)' : ''}';
+}
+
+bool _isConnectionFailure(WalletError error) {
+  if (error.type == WalletErrorType.networkError ||
+      error.type == WalletErrorType.connectionError) {
+    return true;
+  }
+  return _isConnectionError(error.description);
+}
+
+/// Detects whether a raw backend/SDK error string is a connectivity failure
+/// (e.g. Boltz returning `ECONNREFUSED` / "No connection established"), so the
+/// UI can show a friendly retry message instead of the raw error details.
+bool _isConnectionError(String raw) {
+  final lower = raw.toLowerCase();
+  const markers = [
+    'econnrefused',
+    'no connection established',
+    'connection refused',
+    'connection error',
+    'failed host lookup',
+    'socketexception',
+    'network is unreachable',
+    'timed out',
+    'timeout',
+    'conexão falhou',
+    'erro de conexão',
+  ];
+  return markers.any(lower.contains);
+}
+
 class QRGenerationState {
   final bool isLoading;
-  final String? error;
+  final ReceiveError? error;
   final String? displayAddress;
 
   const QRGenerationState({
@@ -23,7 +153,7 @@ class QRGenerationState {
   QRGenerationState copyWith({
     String? qrData,
     bool? isLoading,
-    String? error,
+    ReceiveError? error,
     String? displayAddress,
   }) {
     return QRGenerationState(
@@ -71,7 +201,12 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
             'amount-limit-rejected network=${network.name} amount=$amount '
                 'reason=${validationError.description}',
           );
-          state = AsyncValue.error(validationError, StackTrace.current);
+          state = AsyncValue.data(
+            QRGenerationState(
+              isLoading: false,
+              error: ReceiveError.fromWalletError(validationError),
+            ),
+          );
           return;
         }
       }
@@ -154,7 +289,10 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
                 'customDescription=${error.customDescription ?? "n/a"}',
           );
           state = AsyncValue.data(
-            QRGenerationState(isLoading: false, error: error.description),
+            QRGenerationState(
+              isLoading: false,
+              error: ReceiveError.fromWalletError(error),
+            ),
           );
         },
         (qrState) {
@@ -174,7 +312,10 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
         stackTrace: st,
       );
       state = AsyncValue.data(
-        QRGenerationState(isLoading: false, error: 'Erro ao gerar QR code: $e'),
+        QRGenerationState(
+          isLoading: false,
+          error: ReceiveError.fromException(e),
+        ),
       );
     }
   }

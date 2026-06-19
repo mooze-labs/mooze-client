@@ -92,13 +92,13 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
           if (!mounted) return;
           AppSnackBar.error(
             context,
-            AppLocalizations.of(context).receive_qr_error(error.toString()),
+            ReceiveError.fromException(error).localize(context),
           );
         },
         data: (qrState) {
           if (!mounted) return;
           if (qrState.error != null) {
-            AppSnackBar.error(context, qrState.error!);
+            AppSnackBar.error(context, qrState.error!.localize(context));
           } else if (qrState.displayAddress != null) {
             ref.read(receiveAmountProvider.notifier).state = '';
             ref.read(receiveAssetValueProvider.notifier).state = '';
