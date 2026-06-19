@@ -10,8 +10,9 @@ Widget pixTutorialContentCard({
   required String body,
   required String buttonLabel,
   required VoidCallback onPressed,
+  bool center = false,
 }) {
-  return Container(
+  final card = Container(
     padding: const EdgeInsets.all(20),
     constraints: const BoxConstraints(maxWidth: 360),
     child: Column(
@@ -59,6 +60,29 @@ Widget pixTutorialContentCard({
         ),
       ],
     ),
+  );
+
+  if (!center) return card;
+
+  return Builder(
+    builder: (context) {
+      final media = MediaQuery.of(context);
+      final maxHeight =
+          media.size.height - media.padding.top - media.padding.bottom - 32;
+      return SafeArea(
+        minimum: const EdgeInsets.symmetric(horizontal: 8),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: card,
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 

@@ -100,8 +100,8 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
                   title: title,
                   body: body,
                   buttonLabel: t.common_next,
-                  onPressed: () =>
-                      onNext != null ? onNext(coach) : coach.next(),
+                  onPressed:
+                      () => onNext != null ? onNext(coach) : coach.next(),
                 ),
           ),
         ],
@@ -140,13 +140,20 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           enableTargetTab: false,
           contents: [
             TargetContent(
-              align: ContentAlign.bottom,
+              align: ContentAlign.custom,
+              customPosition: CustomTargetContentPosition(
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              ),
               builder:
                   (context, coach) => pixTutorialContentCard(
                     title: t.pix_tutorial_step5_title,
                     body: t.pix_tutorial_step5_body,
                     buttonLabel: t.common_next,
                     onPressed: () => coach.next(),
+                    center: true,
                   ),
             ),
           ],

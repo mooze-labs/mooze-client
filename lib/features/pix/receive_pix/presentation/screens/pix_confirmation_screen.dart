@@ -73,7 +73,16 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     if (stage == PixTutorialStage.confirm && !_confirmCoachShown) {
       _confirmCoachShown = true;
       final controller = ref.read(pixTutorialControllerProvider.notifier);
-      showPixCoachMarkWhenReady(controller.slideButtonKey, () {
+      showPixCoachMarkWhenReady(controller.slideButtonKey, () async {
+        final buttonContext = controller.slideButtonKey.currentContext;
+        if (buttonContext != null) {
+          await Scrollable.ensureVisible(
+            buttonContext,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
         if (mounted) _showConfirmTutorial();
       }, label: 'confirm/slide-button');
     }
@@ -114,7 +123,13 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
           enableTargetTab: false,
           contents: [
             TargetContent(
-              align: ContentAlign.bottom,
+              align: ContentAlign.custom,
+              customPosition: CustomTargetContentPosition(
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              ),
               builder:
                   (context, coach) => pixTutorialContentCard(
                     title: t.pix_tutorial_step9_title,
@@ -124,6 +139,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                       _confirmAdvancing = true;
                       coach.next();
                     },
+                    center: true,
                   ),
             ),
           ],
