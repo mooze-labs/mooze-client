@@ -1094,6 +1094,7 @@
   "cpf_favorites_removed": "Pagador eliminado",
   "cpf_favorites_delete_title": "¿Eliminar pagador?",
   "cpf_favorites_delete_body": "¿Eliminar a {label} de los pagadores favoritos?",
+  "cpf_payment_warning": "Utilice una cuenta Pix vinculada al CPF informado. Los pagos realizados desde una cuenta con una titularidad diferente serán rechazados.",
   "@cpf_favorites_delete_body": {
     "placeholders": {
       "label": {

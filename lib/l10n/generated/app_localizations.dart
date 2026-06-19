@@ -5284,6 +5284,12 @@ abstract class AppLocalizations {
   /// **'Remover {label} dos pagadores favoritos?'**
   String cpf_favorites_delete_body(String label);
 
+  /// No description provided for @cpf_payment_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use uma conta Pix vinculada ao CPF informado. Pagamentos de outra titularidade serão recusados.'**
+  String get cpf_payment_warning;
+
   /// No description provided for @send_pix_type_random.
   ///
   /// In pt, this message translates to:
