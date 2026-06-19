@@ -8,7 +8,7 @@ import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_cnpj_input_formatter.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 const int _kCarouselFavorites = 5;
 
@@ -271,6 +271,20 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
                       ),
                     ),
                 ],
+                const SizedBox(height: 15),
+                Padding(
+                  padding: _kPagePadding,
+                  child: InfoTipsSection(
+                    tips: [
+                      InfoTip(
+                        icon: Icons.info_outline,
+                        text: t.cpf_payment_warning,
+                        iconColor: context.appColors.warning,
+                      ),
+                    ],
+                    maxTips: 1,
+                  ),
+                ),
               ],
             ),
           ),
