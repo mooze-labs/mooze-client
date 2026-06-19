@@ -290,18 +290,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 _to(context),
                 const SizedBox(height: 15),
                 if (isLoading)
-                  Shimmer.fromColors(
-                    baseColor: context.colors.baseColor,
-                    highlightColor: context.colors.highlightColor,
-                    child: Container(
-                      width: 50,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  )
+                  SizedBox.shrink()
                 else if (!_isBtcLbtcSwap &&
                     _fromAmountController.text.isNotEmpty &&
                     swapState.currentQuote?.quote != null) ...[
@@ -581,7 +570,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     );
                   }
                   setState(() => _useDrain = true);
-                  _requestQuoteDebounced();
+                  _requestQuote();
                 },
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: context.colors.primaryColor,
@@ -1212,25 +1201,34 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
   }
 
+  Future<void> _executeQuoteRequest() async {
+    if (!mounted || _isBtcLbtcSwap) return;
+
+    final amount = BigInt.tryParse(_fromAmountController.text.trim());
+
+    if (amount == null || amount <= BigInt.zero) return;
+
+    await ref
+        .read(swapControllerProvider.notifier)
+        .startQuote(
+          sendAsset: _fromAsset.id,
+          receiveAsset: _toAsset.id,
+          amount: amount,
+        );
+  }
+
+  void _requestQuote() {
+    _debounce?.cancel();
+    unawaited(_executeQuoteRequest());
+  }
+
   void _requestQuoteDebounced() {
     _debounce?.cancel();
 
-    if (_isBtcLbtcSwap) {
-      return;
-    }
-
-    _debounce = Timer(const Duration(milliseconds: 800), () async {
-      if (!mounted) return;
-      final controller = ref.read(swapControllerProvider.notifier);
-      final text = _fromAmountController.text.trim();
-      final amount = BigInt.tryParse(text);
-      if (amount == null || amount <= BigInt.zero) return;
-      await controller.startQuote(
-        sendAsset: _fromAsset.id,
-        receiveAsset: _toAsset.id,
-        amount: amount,
-      );
-    });
+    _debounce = Timer(
+      const Duration(milliseconds: 800),
+      () => unawaited(_executeQuoteRequest()),
+    );
   }
 }
 
