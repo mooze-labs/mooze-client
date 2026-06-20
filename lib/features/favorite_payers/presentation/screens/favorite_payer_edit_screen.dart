@@ -79,63 +79,65 @@ class _FavoritePayerEditScreenState
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text(
-          widget.isEditing
-              ? t.cpf_favorites_edit_title
-              : t.cpf_favorites_add_title,
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-      ),
-      bottomSheet: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-        child: SafeArea(
-          top: false,
-          child: PrimaryButton(
-            text: t.cpf_favorites_save,
-            isLoading: _saving,
-            onPressed: _saving ? null : _save,
+    return PlatformSafeArea(
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: Text(
+            widget.isEditing
+                ? t.cpf_favorites_edit_title
+                : t.cpf_favorites_add_title,
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => Navigator.of(context).maybePop(),
           ),
         ),
-      ),
-      body: PlatformSafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              MoozeTextField(
-                controller: _labelController,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.words,
-                labelText: t.cpf_favorite_label,
-                hintText: t.cpf_favorite_label_hint,
-                errorText: _labelError,
-                onChanged: (_) {
-                  if (_labelError != null) setState(() => _labelError = null);
-                },
-              ),
-              const SizedBox(height: 16),
-              MoozeTextField(
-                controller: _cpfController,
-                inputFormatters: [_formatter],
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                labelText: t.cpf_field_label,
-                hintText: t.cpf_field_hint,
-                errorText: _cpfError,
-                onChanged: (_) {
-                  if (_cpfError != null) setState(() => _cpfError = null);
-                },
-                onSubmitted: (_) => _save(),
-              ),
-            ],
+        bottomSheet: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          child: SafeArea(
+            top: false,
+            child: PrimaryButton(
+              text: t.cpf_favorites_save,
+              isLoading: _saving,
+              onPressed: _saving ? null : _save,
+            ),
+          ),
+        ),
+        body: PlatformSafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MoozeTextField(
+                  controller: _labelController,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  labelText: t.cpf_favorite_label,
+                  hintText: t.cpf_favorite_label_hint,
+                  errorText: _labelError,
+                  onChanged: (_) {
+                    if (_labelError != null) setState(() => _labelError = null);
+                  },
+                ),
+                const SizedBox(height: 16),
+                MoozeTextField(
+                  controller: _cpfController,
+                  inputFormatters: [_formatter],
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  labelText: t.cpf_field_label,
+                  hintText: t.cpf_field_hint,
+                  errorText: _cpfError,
+                  onChanged: (_) {
+                    if (_cpfError != null) setState(() => _cpfError = null);
+                  },
+                  onSubmitted: (_) => _save(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

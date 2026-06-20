@@ -33,23 +33,24 @@ class _FavoritePayersScreenState extends ConsumerState<FavoritePayersScreen> {
     final t = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(t.cpf_favorites_delete_title),
-        content: Text(t.cpf_favorites_delete_body(payer.label)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(t.common_cancel),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Text(t.cpf_favorites_delete_title),
+            content: Text(t.cpf_favorites_delete_body(payer.label)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(t.common_cancel),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: context.colors.negativeColor,
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(t.cpf_favorites_remove),
+              ),
+            ],
           ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.negativeColor,
-            ),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(t.cpf_favorites_remove),
-          ),
-        ],
-      ),
     );
     if (confirmed != true || payer.id == null) return;
     await ref.read(favoritePayersControllerProvider.notifier).delete(payer.id!);
@@ -63,60 +64,72 @@ class _FavoritePayersScreenState extends ConsumerState<FavoritePayersScreen> {
     final t = AppLocalizations.of(context);
     final payersAsync = ref.watch(favoritePayersControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.cpf_favorites_title)),
-      body: PlatformSafeArea(
-        child: payersAsync.when(
-          loading: () => const _LoadingList(),
-          error: (_, _) => _ErrorState(
-            onRetry: () =>
-                ref.read(favoritePayersControllerProvider.notifier).refresh(),
-          ),
-          data: (payers) {
-            if (payers.isEmpty) {
-              return _EmptyState(onAdd: () => _openEditor());
-            }
-            final filtered = _query.isEmpty
-                ? payers
-                : payers
-                      .where(
-                        (p) =>
-                            p.label.toLowerCase().contains(_query.toLowerCase()),
-                      )
-                      .toList(growable: false);
-            return Column(
-              children: [
-                _SearchField(
-                  onChanged: (value) => setState(() => _query = value),
+    return PlatformSafeArea(
+      child: Scaffold(
+        appBar: AppBar(title: Text(t.cpf_favorites_title)),
+        body: PlatformSafeArea(
+          child: payersAsync.when(
+            loading: () => const _LoadingList(),
+            error:
+                (_, _) => _ErrorState(
+                  onRetry:
+                      () =>
+                          ref
+                              .read(favoritePayersControllerProvider.notifier)
+                              .refresh(),
                 ),
-                Expanded(
-                  child: filtered.isEmpty
-                      ? Center(child: Text(t.cpf_favorites_search_empty))
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1),
-                          itemBuilder: (context, index) => _PayerTile(
-                            payer: filtered[index],
-                            onEdit: () => _openEditor(filtered[index]),
-                            onDelete: () => _confirmDelete(filtered[index]),
-                          ),
-                        ),
-                ),
-                // Sticky primary action.
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                    child: PrimaryButton(
-                      text: t.cpf_favorites_add,
-                      onPressed: () => _openEditor(),
+            data: (payers) {
+              if (payers.isEmpty) {
+                return _EmptyState(onAdd: () => _openEditor());
+              }
+              final filtered =
+                  _query.isEmpty
+                      ? payers
+                      : payers
+                          .where(
+                            (p) => p.label.toLowerCase().contains(
+                              _query.toLowerCase(),
+                            ),
+                          )
+                          .toList(growable: false);
+              return Column(
+                children: [
+                  _SearchField(
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
+                  Expanded(
+                    child:
+                        filtered.isEmpty
+                            ? Center(child: Text(t.cpf_favorites_search_empty))
+                            : ListView.separated(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: filtered.length,
+                              separatorBuilder:
+                                  (_, _) => const Divider(height: 1),
+                              itemBuilder:
+                                  (context, index) => _PayerTile(
+                                    payer: filtered[index],
+                                    onEdit: () => _openEditor(filtered[index]),
+                                    onDelete:
+                                        () => _confirmDelete(filtered[index]),
+                                  ),
+                            ),
+                  ),
+                  // Sticky primary action.
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                      child: PrimaryButton(
+                        text: t.cpf_favorites_add,
+                        onPressed: () => _openEditor(),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -186,20 +199,22 @@ class _PayerTile extends StatelessWidget {
         trailing: PopupMenuButton<_PayerAction>(
           tooltip: t.cpf_favorites_actions,
           icon: const Icon(Icons.more_vert_rounded),
-          onSelected: (action) => switch (action) {
-            _PayerAction.edit => onEdit(),
-            _PayerAction.delete => onDelete(),
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: _PayerAction.edit,
-              child: Text(t.cpf_favorites_edit),
-            ),
-            PopupMenuItem(
-              value: _PayerAction.delete,
-              child: Text(t.cpf_favorites_remove),
-            ),
-          ],
+          onSelected:
+              (action) => switch (action) {
+                _PayerAction.edit => onEdit(),
+                _PayerAction.delete => onDelete(),
+              },
+          itemBuilder:
+              (context) => [
+                PopupMenuItem(
+                  value: _PayerAction.edit,
+                  child: Text(t.cpf_favorites_edit),
+                ),
+                PopupMenuItem(
+                  value: _PayerAction.delete,
+                  child: Text(t.cpf_favorites_remove),
+                ),
+              ],
         ),
       ),
     );
@@ -235,7 +250,9 @@ class _EmptyState extends StatelessWidget {
           Text(
             t.cpf_favorites_empty_subtitle,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.4),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.4),
           ),
           const SizedBox(height: 32),
           PrimaryButton(text: t.cpf_favorites_add, onPressed: onAdd),
@@ -309,7 +326,10 @@ class _LoadingList extends StatelessWidget {
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(color: base, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: base,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Column(
