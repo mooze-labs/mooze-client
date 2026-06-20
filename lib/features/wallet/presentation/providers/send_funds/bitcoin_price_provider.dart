@@ -50,6 +50,6 @@ final selectedAssetPriceProvider = FutureProvider<double>((ref) async {
 });
 
 final currencySymbolProvider = Provider<String>((ref) {
-  final currency = ref.read(currencyControllerProvider.notifier);
-  return currency.icon;
+  ref.watch(currencyControllerProvider);
+  return ref.read(currencyControllerProvider.notifier).icon;
 });
