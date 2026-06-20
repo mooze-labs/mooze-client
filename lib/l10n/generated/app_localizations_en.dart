@@ -3986,6 +3986,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'will be used to authorize transactions and access your wallet.';
 
   @override
+  String get pin_change_title => 'Change PIN';
+
+  @override
+  String get pin_change_min_length => 'PIN must be at least 6 characters';
+
+  @override
+  String get pin_change_yours => 'Create your new ';
+
+  @override
+  String get pin_change_intro_prefix => 'Your new ';
+
+  @override
+  String get pin_change_intro_suffix =>
+      'will be used to authorize transactions and access your wallet.';
+
+  @override
   String get currency_select_title => 'Select Currency';
 
   @override

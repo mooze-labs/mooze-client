@@ -7204,6 +7204,36 @@ abstract class AppLocalizations {
   /// **'será utilizado para autorizar transações e acessar sua carteira.'**
   String get pin_create_intro_suffix;
 
+  /// No description provided for @pin_change_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterar PIN'**
+  String get pin_change_title;
+
+  /// No description provided for @pin_change_min_length.
+  ///
+  /// In pt, this message translates to:
+  /// **'PIN deve ter pelo menos 6 caracteres'**
+  String get pin_change_min_length;
+
+  /// No description provided for @pin_change_yours.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crie seu novo '**
+  String get pin_change_yours;
+
+  /// No description provided for @pin_change_intro_prefix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu novo '**
+  String get pin_change_intro_prefix;
+
+  /// No description provided for @pin_change_intro_suffix.
+  ///
+  /// In pt, this message translates to:
+  /// **'será utilizado para autorizar transações e acessar sua carteira.'**
+  String get pin_change_intro_suffix;
+
   /// No description provided for @currency_select_title.
   ///
   /// In pt, this message translates to:

@@ -4016,6 +4016,22 @@ class AppLocalizationsPt extends AppLocalizations {
       'será utilizado para autorizar transações e acessar sua carteira.';
 
   @override
+  String get pin_change_title => 'Alterar PIN';
+
+  @override
+  String get pin_change_min_length => 'PIN deve ter pelo menos 6 caracteres';
+
+  @override
+  String get pin_change_yours => 'Crie seu novo ';
+
+  @override
+  String get pin_change_intro_prefix => 'Seu novo ';
+
+  @override
+  String get pin_change_intro_suffix =>
+      'será utilizado para autorizar transações e acessar sua carteira.';
+
+  @override
   String get currency_select_title => 'Selecionar Moeda';
 
   @override

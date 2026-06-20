@@ -4023,6 +4023,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'se utilizará para autorizar transacciones y acceder a tu billetera.';
 
   @override
+  String get pin_change_title => 'Cambiar PIN';
+
+  @override
+  String get pin_change_min_length => 'El PIN debe tener al menos 6 caracteres';
+
+  @override
+  String get pin_change_yours => 'Crea tu nuevo ';
+
+  @override
+  String get pin_change_intro_prefix => 'Tu nuevo ';
+
+  @override
+  String get pin_change_intro_suffix =>
+      'se utilizará para autorizar transacciones y acceder a tu billetera.';
+
+  @override
   String get currency_select_title => 'Seleccionar Moneda';
 
   @override
