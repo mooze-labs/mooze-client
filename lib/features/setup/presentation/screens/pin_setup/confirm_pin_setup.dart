@@ -80,10 +80,7 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
         if (!mounted) return;
 
         if (widget.isChangingPin) {
-          int count = 0;
-          Navigator.of(context).popUntil((route) {
-            return count++ == 3;
-          });
+          context.pop();
         } else {
           // For new wallet setup, offer biometric opt-in if the device
           // supports it. Otherwise go straight to the loading screen.

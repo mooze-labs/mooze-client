@@ -43,22 +43,37 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
     final t = AppLocalizations.of(context);
 
     if (pin.length < 6) {
-      AppSnackBar.warning(context, t.pin_create_min_length);
+      AppSnackBar.warning(
+        context,
+        widget.isChangingPin ? t.pin_change_min_length : t.pin_create_min_length,
+      );
       return;
     }
 
-    context.push(
-      '/setup/pin/confirm',
-      extra: {'pin': pin, 'isChangingPin': widget.isChangingPin},
-    );
+    final extra = {'pin': pin, 'isChangingPin': widget.isChangingPin};
+
+    if (widget.isChangingPin) {
+      context.pushReplacement('/setup/pin/confirm', extra: extra);
+    } else {
+      context.push('/setup/pin/confirm', extra: extra);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final isChanging = widget.isChangingPin;
+
+    final titleText = isChanging ? t.pin_change_title : t.pin_create_title;
+    final yoursText = isChanging ? t.pin_change_yours : t.pin_create_yours;
+    final introPrefix =
+        isChanging ? t.pin_change_intro_prefix : t.pin_create_intro_prefix;
+    final introSuffix =
+        isChanging ? t.pin_change_intro_suffix : t.pin_create_intro_suffix;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.pin_create_title),
+        title: Text(titleText),
         leading: IconButton(
           onPressed: () {
             context.pop();
@@ -77,7 +92,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
                 text: TextSpan(
                   style: Theme.of(context).textTheme.headlineSmall,
                   children: [
-                    TextSpan(text: t.pin_create_yours),
+                    TextSpan(text: yoursText),
                     TextSpan(
                       text: t.pin_word,
                       style: TextStyle(
@@ -94,7 +109,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
                 text: TextSpan(
                   style: Theme.of(context).textTheme.bodyLarge,
                   children: [
-                    TextSpan(text: t.pin_create_intro_prefix),
+                    TextSpan(text: introPrefix),
                     TextSpan(
                       text: '${t.pin_word} ',
                       style: TextStyle(
@@ -102,7 +117,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    TextSpan(text: t.pin_create_intro_suffix),
+                    TextSpan(text: introSuffix),
                   ],
                 ),
                 textAlign: TextAlign.center,
