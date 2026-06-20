@@ -131,161 +131,167 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
     final canContinue =
         _isComplete && (!(_saveThisPayer && canSave) || _hasLabel);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text(t.cpf_screen_title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.of(context).maybePop(),
+    return PlatformSafeArea(
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: Text(t.cpf_screen_title),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
         ),
-      ),
-      bottomSheet: _ContinueBar(
-        enabled: canContinue,
-        isLoading: _isSubmitting,
-        onPressed: () => _submit(canSave),
-      ),
-      body: PlatformSafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
-            // No horizontal padding here — the gutter is applied per-section so
-            // the favorites carousel below can run edge-to-edge.
-            padding: const EdgeInsets.only(top: 12, bottom: 112),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Why the CPF is required — reuses the Pix info-tip card.
-                Padding(
-                  padding: _kPagePadding,
-                  child: InfoTipsSection(
-                    maxTips: 1,
-                    tips: [
-                      InfoTip(
-                        icon: Icons.privacy_tip_outlined,
-                        text: t.cpf_screen_subtitle,
-                        iconColor: Theme.of(context).colorScheme.primary,
-                      ),
-                    ],
-                  ),
-                ),
-                if (hasFavorites) ...[
-                  const SizedBox(height: 24),
-                  // "View all" sits in the header so it stays visible while the
-                  // capped chip row scrolls horizontally.
+        bottomSheet: _ContinueBar(
+          enabled: canContinue,
+          isLoading: _isSubmitting,
+          onPressed: () => _submit(canSave),
+        ),
+        body: PlatformSafeArea(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SingleChildScrollView(
+              // No horizontal padding here — the gutter is applied per-section so
+              // the favorites carousel below can run edge-to-edge.
+              padding: const EdgeInsets.only(top: 12, bottom: 112),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Why the CPF is required — reuses the Pix info-tip card.
                   Padding(
                     padding: _kPagePadding,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _SectionLabel(text: t.cpf_favorites_section),
+                    child: InfoTipsSection(
+                      maxTips: 1,
+                      tips: [
+                        InfoTip(
+                          icon: Icons.privacy_tip_outlined,
+                          text: t.cpf_screen_subtitle,
+                          iconColor: Theme.of(context).colorScheme.primary,
                         ),
-                        if (favorites.length > _kCarouselFavorites)
-                          TextButton(
-                            onPressed: _openPicker,
-                            child: Text(t.cpf_favorites_view_all),
-                          ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Full-bleed row: the gutter is the list's own padding so
-                  // chips scroll flush with the screen edges.
-                  SizedBox(
-                    height: 44,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: _kPagePadding,
-                      children: [
-                        for (final payer in favorites.take(_kCarouselFavorites))
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              avatar: Icon(
-                                Icons.person_outline_rounded,
-                                size: 18,
-                                color:
-                                    _digits == payer.cpf
-                                        ? Theme.of(
-                                          context,
-                                        ).colorScheme.onSecondaryContainer
-                                        : Theme.of(context).colorScheme.primary,
-                              ),
-                              label: Text(payer.label),
-                              tooltip: payer.maskedCpf,
-                              selected: _digits == payer.cpf,
-                              onSelected: (_) => _selectFavorite(payer),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: _kPagePadding,
-                    child: _LabeledDivider(text: t.cpf_or_enter_manually),
-                  ),
-                  const SizedBox(height: 16),
-                ] else
-                  const SizedBox(height: 20),
-                Padding(
-                  padding: _kPagePadding,
-                  child: MoozeTextField(
-                    controller: _controller,
-                    focusNode: _cpfFocus,
-                    inputFormatters: [_formatter],
-                    keyboardType: TextInputType.number,
-                    autofocus: !hasFavorites,
-                    textInputAction: TextInputAction.done,
-                    labelText: t.cpf_field_label,
-                    hintText: t.cpf_field_hint,
-                    errorText: _errorText(t),
-                    onSubmitted: (_) {
-                      if (canContinue) _submit(canSave);
-                    },
-                  ),
-                ),
-                // Contextual "save this payer" — only after a valid new CPF.
-                if (canSave) ...[
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: _kPagePadding,
-                    child: CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      value: _saveThisPayer,
-                      onChanged:
-                          (v) => setState(() => _saveThisPayer = v ?? false),
-                      title: Text(t.cpf_save_this_payer),
-                    ),
-                  ),
-                  if (_saveThisPayer)
+                  if (hasFavorites) ...[
+                    const SizedBox(height: 24),
+                    // "View all" sits in the header so it stays visible while the
+                    // capped chip row scrolls horizontally.
                     Padding(
                       padding: _kPagePadding,
-                      child: MoozeTextField(
-                        controller: _labelController,
-                        textCapitalization: TextCapitalization.words,
-                        textInputAction: TextInputAction.done,
-                        labelText: t.cpf_favorite_label,
-                        hintText: t.cpf_favorite_label_hint,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _SectionLabel(text: t.cpf_favorites_section),
+                          ),
+                          if (favorites.length > _kCarouselFavorites)
+                            TextButton(
+                              onPressed: _openPicker,
+                              child: Text(t.cpf_favorites_view_all),
+                            ),
+                        ],
                       ),
                     ),
-                ],
-                const SizedBox(height: 15),
-                Padding(
-                  padding: _kPagePadding,
-                  child: InfoTipsSection(
-                    tips: [
-                      InfoTip(
-                        icon: Icons.info_outline,
-                        text: t.cpf_payment_warning,
-                        iconColor: context.appColors.warning,
+                    const SizedBox(height: 8),
+                    // Full-bleed row: the gutter is the list's own padding so
+                    // chips scroll flush with the screen edges.
+                    SizedBox(
+                      height: 44,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: _kPagePadding,
+                        children: [
+                          for (final payer in favorites.take(
+                            _kCarouselFavorites,
+                          ))
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                avatar: Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 18,
+                                  color:
+                                      _digits == payer.cpf
+                                          ? Theme.of(
+                                            context,
+                                          ).colorScheme.onSecondaryContainer
+                                          : Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                ),
+                                label: Text(payer.label),
+                                tooltip: payer.maskedCpf,
+                                selected: _digits == payer.cpf,
+                                onSelected: (_) => _selectFavorite(payer),
+                              ),
+                            ),
+                        ],
                       ),
-                    ],
-                    maxTips: 1,
+                    ),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: _kPagePadding,
+                      child: _LabeledDivider(text: t.cpf_or_enter_manually),
+                    ),
+                    const SizedBox(height: 16),
+                  ] else
+                    const SizedBox(height: 20),
+                  Padding(
+                    padding: _kPagePadding,
+                    child: MoozeTextField(
+                      controller: _controller,
+                      focusNode: _cpfFocus,
+                      inputFormatters: [_formatter],
+                      keyboardType: TextInputType.number,
+                      autofocus: !hasFavorites,
+                      textInputAction: TextInputAction.done,
+                      labelText: t.cpf_field_label,
+                      hintText: t.cpf_field_hint,
+                      errorText: _errorText(t),
+                      onSubmitted: (_) {
+                        if (canContinue) _submit(canSave);
+                      },
+                    ),
                   ),
-                ),
-              ],
+                  // Contextual "save this payer" — only after a valid new CPF.
+                  if (canSave) ...[
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: _kPagePadding,
+                      child: CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        value: _saveThisPayer,
+                        onChanged:
+                            (v) => setState(() => _saveThisPayer = v ?? false),
+                        title: Text(t.cpf_save_this_payer),
+                      ),
+                    ),
+                    if (_saveThisPayer)
+                      Padding(
+                        padding: _kPagePadding,
+                        child: MoozeTextField(
+                          controller: _labelController,
+                          textCapitalization: TextCapitalization.words,
+                          textInputAction: TextInputAction.done,
+                          labelText: t.cpf_favorite_label,
+                          hintText: t.cpf_favorite_label_hint,
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 15),
+                  Padding(
+                    padding: _kPagePadding,
+                    child: InfoTipsSection(
+                      tips: [
+                        InfoTip(
+                          icon: Icons.info_outline,
+                          text: t.cpf_payment_warning,
+                          iconColor: context.appColors.warning,
+                        ),
+                      ],
+                      maxTips: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
