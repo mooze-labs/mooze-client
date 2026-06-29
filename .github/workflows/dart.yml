@@ -22,7 +22,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.29.2
+          flutter-version: 3.35.6
       - run: flutter pub get
 
       - name: Generate code
@@ -34,6 +34,6 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.29.2
+          flutter-version: 3.35.6
       - run: flutter build apk
       - run: flutter build appbundle
