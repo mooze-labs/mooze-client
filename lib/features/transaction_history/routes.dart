@@ -1,40 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/domain/entities/pix_deposit.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/transactions_bottom_nav_bar.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/transactions/transactions_bottom_nav_bar.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_deposit_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_history_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-// Deprecated: Use GetRefundScreen instead
-// import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_refund_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 final transactionHistoryRoutes = [
   GoRoute(
     path: '/transactions/details',
-    pageBuilder: (context, state) {
+    builder: (context, state) {
       final transaction = state.extra as Transaction;
-      return NoTransitionPage(
-        child: TransactionDetailScreen(transaction: transaction),
-      );
+      return TransactionDetailScreen(transaction: transaction);
     },
   ),
   GoRoute(
     path: '/transactions/refund',
-    pageBuilder: (context, state) {
+    builder: (context, state) {
       // Navigate to the new refund flow instead
       // The old TransactionRefundScreen is deprecated
-      return const NoTransitionPage(child: GetRefundScreen());
+      return const GetRefundScreen();
     },
   ),
   GoRoute(
     path: '/depix/transactions/details',
-    pageBuilder: (context, state) {
+    builder: (context, state) {
       final deposit = state.extra as PixDeposit;
-      return NoTransitionPage(child: PixDepositDetailScreen(deposit: deposit));
+      return PixDepositDetailScreen(deposit: deposit);
     },
   ),
   ShellRoute(

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
 
@@ -11,6 +12,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final detectedAmount = ref.watch(detectedAmountProvider);
     final selectedAsset = ref.watch(selectedAssetProvider);
 
@@ -22,7 +24,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       margin: EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLow,
+        color: context.colors.surfaceLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
@@ -39,9 +41,9 @@ class PreDefinedAmountWidget extends ConsumerWidget {
                 size: 20,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
-                'Valor pré-definido',
+                t.wallet_send_predefined_label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w500,
@@ -92,7 +94,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
 
           const SizedBox(height: 8),
           Text(
-            'Este invoice/endereço possui um valor pré-definido. O campo de quantia foi automaticamente preenchido.',
+            t.wallet_send_predefined_body,
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
@@ -103,7 +105,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
             const SizedBox(height: 12),
             if (detectedAmount.label != null) ...[
               Text(
-                'Label: ${detectedAmount.label}',
+                t.wallet_send_predefined_label_value(detectedAmount.label!),
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey[300]),
@@ -112,7 +114,7 @@ class PreDefinedAmountWidget extends ConsumerWidget {
             if (detectedAmount.message != null) ...[
               const SizedBox(height: 4),
               Text(
-                'Mensagem: ${detectedAmount.message}',
+                t.wallet_send_predefined_message_value(detectedAmount.message!),
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey[300]),

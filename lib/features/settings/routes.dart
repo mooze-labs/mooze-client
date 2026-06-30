@@ -1,13 +1,18 @@
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/referral_input/providers/screens/referral_input_screen.dart';
+import 'package:mooze_mobile/features/referral_input/presentation/screens/referral_input_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/currency_selector_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/delete_wallet_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/license_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/node_settings_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/security_settings_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/theme_selector_screen.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/language_selector_screen.dart';
 import 'package:mooze_mobile/features/support/presentations/srcreens/support_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/view_mnemonic.dart';
+import 'package:mooze_mobile/shared/security/secure_screen.dart';
 
 final settingsRoutes = [
   GoRoute(path: "/settings", builder: (context, state) => SettingsScreen()),
@@ -29,8 +34,10 @@ final settingsRoutes = [
   ),
   GoRoute(
     path: '/settings/view-mnemonic',
-    builder:
-        (context, state) => ViewMnemonicScreen(mnemonic: state.extra as String),
+    builder: (context, state) => SecureScreen(
+      showSecurityNotice: true,
+      child: ViewMnemonicScreen(mnemonic: state.extra as String),
+    ),
   ),
   GoRoute(
     path: '/settings/referral',
@@ -44,5 +51,21 @@ final settingsRoutes = [
   GoRoute(
     path: '/settings/developer-mode',
     builder: (context, state) => DeveloperScreen(),
+  ),
+  GoRoute(
+    path: '/settings/theme-selector',
+    builder: (context, state) => const ThemeSelectorScreen(),
+  ),
+  GoRoute(
+    path: '/settings/language-selector',
+    builder: (context, state) => const LanguageSelectorScreen(),
+  ),
+  GoRoute(
+    path: '/settings/node-config',
+    builder: (context, state) => const NodeSettingsScreen(),
+  ),
+  GoRoute(
+    path: '/settings/security',
+    builder: (context, state) => const SecuritySettingsScreen(),
   ),
 ];

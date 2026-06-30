@@ -51,12 +51,14 @@ class ReceiveConversionController extends StateNotifier<void> {
   ) {
     if (inputValue.isEmpty) {
       ref.read(receiveAmountProvider.notifier).state = '';
+      _clearOtherValueProviders(conversionType);
       return;
     }
 
     final inputDouble = double.tryParse(inputValue);
     if (inputDouble == null || inputDouble <= 0) {
       ref.read(receiveAmountProvider.notifier).state = '';
+      _clearOtherValueProviders(conversionType);
       return;
     }
 
@@ -158,16 +160,66 @@ class ReceiveConversionController extends StateNotifier<void> {
     _syncValuesOnTypeChange(newType, selectedAsset);
   }
 
+  void resetForAssetChange() {
+    ref.read(receiveAmountProvider.notifier).state = '';
+    ref.read(receiveAssetValueProvider.notifier).state = '';
+    ref.read(receiveSatsValueProvider.notifier).state = '';
+    ref.read(receiveFiatValueProvider.notifier).state = '';
+    ref.read(receiveConversionLoadingProvider.notifier).state = false;
+    ref.read(receiveConversionTypeProvider.notifier).state =
+        ReceiveConversionType.asset;
+  }
+
+  /// Clears the mode-specific value providers OTHER than the one
+  /// currently being edited. Called when the final amount drops to
+  /// zero so a later mode switch doesn't read a stale conversion left
+  /// over from a previous entry.
+  void _clearOtherValueProviders(ReceiveConversionType keep) {
+    if (keep != ReceiveConversionType.asset) {
+      ref.read(receiveAssetValueProvider.notifier).state = '';
+    }
+    if (keep != ReceiveConversionType.sats) {
+      ref.read(receiveSatsValueProvider.notifier).state = '';
+    }
+    if (keep != ReceiveConversionType.fiat) {
+      ref.read(receiveFiatValueProvider.notifier).state = '';
+    }
+  }
+
+  /// Resets the destination mode's value provider when the user
+  /// switches modes but the final amount is empty/zero. Without this,
+  /// `_syncValuesOnTypeChange` early-returns and the field reads
+  /// whatever stale value the destination provider still holds.
+  void _clearProviderForType(ReceiveConversionType type) {
+    switch (type) {
+      case ReceiveConversionType.asset:
+        ref.read(receiveAssetValueProvider.notifier).state = '';
+        break;
+      case ReceiveConversionType.sats:
+        ref.read(receiveSatsValueProvider.notifier).state = '';
+        break;
+      case ReceiveConversionType.fiat:
+        ref.read(receiveFiatValueProvider.notifier).state = '';
+        break;
+    }
+  }
+
   /// Syncs values when the conversion type changes
   void _syncValuesOnTypeChange(
     ReceiveConversionType newType,
     Asset selectedAsset,
   ) {
     final currentAssetValue = ref.read(receiveAmountProvider);
-    if (currentAssetValue.isEmpty) return;
+    if (currentAssetValue.isEmpty) {
+      _clearProviderForType(newType);
+      return;
+    }
 
     final assetDouble = double.tryParse(currentAssetValue);
-    if (assetDouble == null || assetDouble <= 0) return;
+    if (assetDouble == null || assetDouble <= 0) {
+      _clearProviderForType(newType);
+      return;
+    }
 
     switch (newType) {
       case ReceiveConversionType.asset:

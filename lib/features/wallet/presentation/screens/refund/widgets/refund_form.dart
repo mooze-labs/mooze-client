@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Form widget for entering refund address and viewing swap details
 class RefundForm extends StatelessWidget {
@@ -17,6 +18,7 @@ class RefundForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Form(
       key: formKey,
       child: Column(
@@ -24,22 +26,22 @@ class RefundForm extends StatelessWidget {
         children: [
           // Bitcoin address input
           Text(
-            'Endereço Bitcoin',
+            t.refund_address_label,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: addressController,
-            style: TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: context.colors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Insira o endereço Bitcoin',
-              hintStyle: TextStyle(color: AppColors.textSecondary),
+              hintText: t.refund_address_hint,
+              hintStyle: TextStyle(color: context.colors.textSecondary),
               filled: true,
-              fillColor: AppColors.backgroundColor,
+              fillColor: context.colors.backgroundColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -48,7 +50,7 @@ class RefundForm extends StatelessWidget {
             maxLines: 2,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Por favor, insira um endereço Bitcoin';
+                return t.refund_address_required;
               }
 
               final address = value.trim();
@@ -71,13 +73,13 @@ class RefundForm extends StatelessWidget {
                   testnetPattern.hasMatch(address);
 
               if (!isValid) {
-                return 'Endereço Bitcoin inválido. Use um endereço válido (ex: 1..., 3..., bc1...)';
+                return t.refund_address_invalid_long;
               }
 
               return null;
             },
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Divider(
               height: 32.0,
@@ -89,7 +91,7 @@ class RefundForm extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: _buildDetailRow(
-              'Valor do Reembolso',
+              t.refund_label_refund_amount,
               _formatAmount(swapInfo.amountSat.toInt()),
             ),
           ),
@@ -103,7 +105,7 @@ class RefundForm extends StatelessWidget {
 
           // Original transaction address
           _buildDetailRow(
-            'Transação',
+            t.refund_label_transaction,
             _shortenAddress(swapInfo.swapAddress),
             fullValue: swapInfo.swapAddress,
           ),

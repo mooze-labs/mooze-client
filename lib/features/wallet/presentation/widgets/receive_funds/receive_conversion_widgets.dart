@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
-import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_controller.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
+import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_controller.dart';
+import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
+import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class ReceiveConversionOptionsRow extends ConsumerWidget {
   final Asset? selectedAsset;
@@ -17,59 +19,58 @@ class ReceiveConversionOptionsRow extends ConsumerWidget {
     if (selectedAsset == null) return const SizedBox.shrink();
 
     final conversionType = ref.watch(receiveConversionTypeProvider);
-    final currencyNotifier = ref.read(currencyControllerProvider.notifier);
-    final fiatCurrency = currencyNotifier.icon;
+    final fiatCurrency = ref.read(currencyControllerProvider.notifier).icon;
     final controller = ref.read(receiveConversionControllerProvider.notifier);
 
-    return Row(
-      children: [
-        _ConversionOption(
-          icon: Icons.account_balance_wallet,
-          label: selectedAsset!.ticker,
-          isSelected: conversionType == ReceiveConversionType.asset,
-          onTap:
-              () => controller.changeConversionType(
-                ReceiveConversionType.asset,
-                selectedAsset!,
-              ),
-        ),
-        const SizedBox(width: 8),
-        if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) ...[
-          _ConversionOption(
-            icon: Icons.bolt,
-            label: 'sats',
-            isSelected: conversionType == ReceiveConversionType.sats,
-            onTap:
-                () => controller.changeConversionType(
-                  ReceiveConversionType.sats,
-                  selectedAsset!,
-                ),
+    final hasSats =
+        selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SegmentPill(
+            label: selectedAsset!.ticker,
+            isSelected: conversionType == ReceiveConversionType.asset,
+            onTap: () => controller.changeConversionType(
+              ReceiveConversionType.asset,
+              selectedAsset!,
+            ),
           ),
-          const SizedBox(width: 8),
-        ],
-        _ConversionOption(
-          icon: Icons.monetization_on,
-          label: fiatCurrency,
-          isSelected: conversionType == ReceiveConversionType.fiat,
-          onTap:
-              () => controller.changeConversionType(
-                ReceiveConversionType.fiat,
+          if (hasSats)
+            _SegmentPill(
+              label: 'sats',
+              isSelected: conversionType == ReceiveConversionType.sats,
+              onTap: () => controller.changeConversionType(
+                ReceiveConversionType.sats,
                 selectedAsset!,
               ),
-        ),
-      ],
+            ),
+          _SegmentPill(
+            label: fiatCurrency,
+            isSelected: conversionType == ReceiveConversionType.fiat,
+            onTap: () => controller.changeConversionType(
+              ReceiveConversionType.fiat,
+              selectedAsset!,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ConversionOption extends StatelessWidget {
-  final IconData icon;
+class _SegmentPill extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _ConversionOption({
-    required this.icon,
+  const _SegmentPill({
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -77,48 +78,29 @@ class _ConversionOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color:
-                isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.3),
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color:
-                  isSelected
-                      ? Theme.of(context).colorScheme.onPrimary
-                      : Theme.of(context).colorScheme.onSurface,
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: isSelected
+                  ? theme.colorScheme.onPrimary
+                  : context.colors.textSecondary,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color:
-                    isSelected
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -137,8 +119,9 @@ class ReceiveConversionPreview extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currencyNotifier = ref.read(currencyControllerProvider.notifier);
-    final fiatCurrency = currencyNotifier.icon;
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final fiatCurrency = ref.read(currencyControllerProvider.notifier).icon;
     final conversionType = ref.watch(receiveConversionTypeProvider);
 
     return FutureBuilder(
@@ -147,25 +130,26 @@ class ReceiveConversionPreview extends ConsumerWidget {
         if (!snapshot.hasData) {
           return Row(
             children: [
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 1),
+              SizedBox(
+                width: 10,
+                height: 10,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.2,
+                  color: context.colors.textSecondary,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
-                'Carregando conversões...',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                t.receive_conversion_loading,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.colors.textSecondary,
                 ),
               ),
             ],
           );
         }
 
-        return snapshot.data!.fold((error) => const SizedBox.shrink(), (price) {
+        return snapshot.data!.fold((_) => const SizedBox.shrink(), (price) {
           final fiatValue = assetAmount * price;
           final satsValue =
               (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
@@ -173,63 +157,33 @@ class ReceiveConversionPreview extends ConsumerWidget {
                   : null;
 
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 1,
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.2),
+              Text(
+                t.receive_conversion_equivalent,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.colors.textSecondary,
+                  letterSpacing: 0.4,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 8),
-
-              Row(
-                children: [
-                  Icon(
-                    Icons.swap_horiz,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Conversões equivalentes:',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
+              const SizedBox(height: 6),
               if (conversionType != ReceiveConversionType.asset)
                 _ConversionRow(
-                  icon: Icons.account_balance_wallet,
                   label: '${selectedAsset.ticker}:',
-                  value: assetAmount
-                      .toStringAsFixed(
-                        selectedAsset == Asset.btc ||
-                                selectedAsset == Asset.lbtc
-                            ? 8
-                            : 6,
-                      )
-                      .replaceAll(RegExp(r'0+$'), '')
-                      .replaceAll(RegExp(r'\.$'), ''),
+                  value: _formatAssetAmount(),
                   suffix: selectedAsset.ticker,
                 ),
-
               if ((selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) &&
                   conversionType != ReceiveConversionType.sats &&
                   satsValue != null)
                 _ConversionRow(
-                  icon: Icons.bolt,
-                  label: 'Satoshis:',
+                  label: t.receive_satoshis_label,
                   value: SatsInputFormatter.formatValue(satsValue),
                   suffix: 'sats',
                 ),
-
               if (conversionType != ReceiveConversionType.fiat)
                 _ConversionRow(
-                  icon: Icons.monetization_on,
                   label: '$fiatCurrency:',
                   value: fiatValue.toStringAsFixed(2),
                   suffix: fiatCurrency,
@@ -240,16 +194,23 @@ class ReceiveConversionPreview extends ConsumerWidget {
       },
     );
   }
+
+  String _formatAssetAmount() {
+    final decimals =
+        (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) ? 8 : 6;
+    return assetAmount
+        .toStringAsFixed(decimals)
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
+  }
 }
 
 class _ConversionRow extends StatelessWidget {
-  final IconData icon;
   final String label;
   final String value;
   final String suffix;
 
   const _ConversionRow({
-    required this.icon,
     required this.label,
     required this.value,
     required this.suffix,
@@ -257,32 +218,23 @@ class _ConversionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.7),
-          ),
-          const SizedBox(width: 6),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: context.colors.textSecondary,
             ),
           ),
           const Spacer(),
           Text(
             '$value $suffix',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ],

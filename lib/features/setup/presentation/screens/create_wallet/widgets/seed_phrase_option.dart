@@ -22,10 +22,11 @@ class SeedPhraseOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    final textColor = isSelected ? primaryColor : Colors.white;
-    final borderColor = isSelected ? primaryColor : Colors.white;
-    final checkBorderColor = isSelected ? primaryColor : Colors.grey[600]!;
-    final iconBackground = isSelected ? primaryColor : Colors.white;
+    final colorScheme = theme.colorScheme;
+    final textColor = isSelected ? primaryColor : colorScheme.onSurface;
+    final borderColor = isSelected ? primaryColor : colorScheme.onSurface;
+    final checkBorderColor = isSelected ? primaryColor : colorScheme.outline;
+    final iconBackground = isSelected ? primaryColor : colorScheme.surfaceContainerLowest;
 
     return GestureDetector(
       onTap: onTap,
@@ -61,9 +62,9 @@ class SeedPhraseOption extends StatelessWidget {
                         ),
                         child:
                             isSelected
-                                ? const Icon(
+                                ? Icon(
                                   Icons.check,
-                                  color: Colors.white,
+                                  color: colorScheme.onPrimary,
                                   size: 16,
                                 )
                                 : null,
@@ -74,7 +75,7 @@ class SeedPhraseOption extends StatelessWidget {
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimary,
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

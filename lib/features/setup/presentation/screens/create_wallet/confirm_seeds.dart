@@ -5,6 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/selected_words_row.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/word_grid_selector.dart';
+import 'package:mooze_mobile/features/wallet/data/storage/balance_snapshot_storage.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
@@ -75,10 +80,11 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     if (_isLoading || !_hasValidData) {
       return Scaffold(
         appBar: AppBar(
-          title: Text("Confirme sua frase"),
+          title: Text(t.setup_confirm_seed_appbar),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => context.pop(),
@@ -94,18 +100,17 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
-        title: Text('Confirme sua frase'),
+        title: Text(t.setup_confirm_seed_appbar),
       ),
       body: Padding(
         padding: EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TitleAndSubtitleCreateWallet(
-              title: 'Confirmação de ',
-              highlighted: 'Segurança',
-              subtitle:
-                  'Selecione as palavras na ordem correta para confirmar sua frase de recuperação.',
+            TitleAndSubtitleCreateWallet(
+              title: t.setup_confirm_seed_title,
+              highlighted: t.setup_confirm_seed_highlight,
+              subtitle: t.setup_confirm_seed_subtitle,
             ),
             SizedBox(height: 40),
 
@@ -126,7 +131,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
 
             SizedBox(height: 10),
             PrimaryButton(
-              text: 'Confirmar',
+              text: t.common_confirm,
               onPressed: _confirm,
               isEnabled: _canConfirm(),
             ),
@@ -183,25 +188,23 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
     if (_checkInputs()) {
       await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
 
+      // A brand-new wallet must start from an empty balance state. Wipe any
+      // persisted snapshot (defence-in-depth — the create flow is reachable
+      // after a delete) and force the walletId to regenerate so the cache-
+      // first balance provider re-binds to a fresh, empty namespace.
+      await SharedPreferencesBalanceSnapshotStore().clearAll();
       ref.invalidate(mnemonicProvider);
+      ref.invalidate(walletIdProvider);
+      ref.invalidate(allBalancesProvider);
 
       if (mounted) {
         selectedWords.clear();
         context.push("/setup/pin/new");
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Uma ou mais palavras estão incorretas. Tente novamente.",
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.red[600],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppSnackBar.error(
+        context,
+        AppLocalizations.of(context).setup_confirm_seed_error,
       );
     }
   }

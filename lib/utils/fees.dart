@@ -1,4 +1,3 @@
-
 class FeeCalculator {
   final String assetId;
   final int fiatAmount; // Amount in cents

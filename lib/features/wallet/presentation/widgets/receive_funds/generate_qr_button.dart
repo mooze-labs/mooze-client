@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
@@ -35,7 +36,7 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
 
     return PrimaryButton(
       onPressed: isEnabled ? () => _generateQR(context) : null,
-      text: 'Gerar fatura',
+      text: AppLocalizations.of(context).receive_generate_qr,
       isEnabled: isEnabled,
       isLoading: isLoading,
     );
@@ -56,8 +57,9 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
 
       if (selectedAsset == null || selectedNetwork == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selecione um ativo e rede')),
+        AppSnackBar.warning(
+          context,
+          AppLocalizations.of(context).receive_select_asset_network,
         );
         return;
       }
@@ -88,16 +90,15 @@ class _GenerateQRButtonState extends ConsumerState<GenerateQRButton> {
         },
         error: (error, stack) {
           if (!mounted) return;
-          ScaffoldMessenger.of(
+          AppSnackBar.error(
             context,
-          ).showSnackBar(SnackBar(content: Text('Erro ao gerar QR: $error')));
+            ReceiveError.fromException(error).localize(context),
+          );
         },
         data: (qrState) {
           if (!mounted) return;
           if (qrState.error != null) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(qrState.error!)));
+            AppSnackBar.error(context, qrState.error!.localize(context));
           } else if (qrState.displayAddress != null) {
             ref.read(receiveAmountProvider.notifier).state = '';
             ref.read(receiveAssetValueProvider.notifier).state = '';

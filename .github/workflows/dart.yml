@@ -17,23 +17,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Get dependencies
-        uses: subosito/flutter-action@v2
         with:
-          channel: stable
-          flutter-version: 3.29.2
-      - run: flutter pub get
-
-      - name: Generate code
-        uses: dart-lang/setup-dart@v1
-      - run: dart pub add dev:build_runner
-      - run: dart run build_runner build --delete-conflicting-outputs
+          submodules: recursive
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.29.2
-      - run: flutter build apk
-      - run: flutter build appbundle
+          flutter-version: 3.35.6
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK
+        run: flutter build apk
+
+      - name: Build App Bundle
+        run: flutter build appbundle

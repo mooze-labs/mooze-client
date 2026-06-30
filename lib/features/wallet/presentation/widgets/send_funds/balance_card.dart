@@ -1,135 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/selected_asset_balance_provider.dart';
+import '../../providers/send_funds/selected_asset_provider.dart';
 
 class BalanceCard extends ConsumerWidget {
   const BalanceCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final selectedAsset = ref.watch(selectedAssetProvider);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-          ],
-        ),
+        color: cs.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          width: 1,
+          color: cs.onSurface.withValues(alpha: 0.08),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SvgPicture.asset(
-                  selectedAsset.iconPath,
-                  width: 20,
-                  height: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Saldo disponível",
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      selectedAsset.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: cs.onSurface.withValues(alpha: 0.06),
+            ),
+            alignment: Alignment.center,
+            child: SvgPicture.asset(
+              selectedAsset.iconPath,
+              width: 24,
+              height: 24,
+            ),
           ),
-          const SizedBox(height: 16),
-          BalanceText(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t.wallet_send_available_balance,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: context.colors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  selectedAsset.name,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const _BalanceValue(),
         ],
       ),
     );
   }
 }
 
-class BalanceText extends ConsumerWidget {
-  const BalanceText({super.key});
+class _BalanceValue extends ConsumerWidget {
+  const _BalanceValue();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final balanceAsyncValue = ref.watch(selectedAssetBalanceProvider);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        balanceAsyncValue.when(
-          data:
-              (balanceResult) => balanceResult.fold(
-                (error) => Text(
-                  "Indisponível",
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-                (formattedBalance) => Text(
-                  formattedBalance,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-          loading:
-              () => Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Container(
-                  width: 120,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-          error:
-              (error, stackTrace) => Text(
-                "Erro ao carregar",
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
+    return balanceAsyncValue.when(
+      data: (balanceResult) => balanceResult.fold(
+        (error) => Text(
+          t.wallet_send_balance_unavailable,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.error,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ],
+        (formattedBalance) => Text(
+          formattedBalance,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+          textAlign: TextAlign.right,
+        ),
+      ),
+      loading: () => Shimmer.fromColors(
+        baseColor: context.colors.baseColor,
+        highlightColor: context.colors.highlightColor,
+        child: Container(
+          width: 90,
+          height: 18,
+          decoration: BoxDecoration(
+            color: context.colors.baseColor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      error: (_, _) => Text(
+        t.wallet_send_balance_load_error,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.error,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

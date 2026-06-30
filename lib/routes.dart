@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/address_explorer/routes.dart';
+import 'package:mooze_mobile/features/favorite_payers/routes.dart';
 import 'package:mooze_mobile/features/merchant/routes.dart';
-import 'package:mooze_mobile/features/phone_verification/routes.dart';
 import 'package:mooze_mobile/features/pix/routes.dart';
 import 'package:mooze_mobile/features/settings/routes.dart';
 import 'package:mooze_mobile/features/transaction_history/routes.dart';
@@ -33,11 +34,12 @@ final router = GoRouter(
     ),
     ...setupRoutes,
     ...walletRoutes,
-    ...phoneVerificationRoutes,
     ...transactionHistoryRoutes,
     ...pixRoutes,
     ...walletLevelsRoutes,
     ...settingsRoutes,
     ...merchantRoutes,
+    ...addressExplorerRoutes,
+    ...favoritePayersRoutes,
   ],
 );

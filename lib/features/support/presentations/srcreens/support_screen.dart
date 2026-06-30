@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
@@ -9,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/user_id_provider.dart';
 import '../widgets/support_error_widget.dart';
 import '../widgets/user_id_container_widget.dart';
+import '../widgets/user_id_loading_skeleton.dart';
 
 class SupportScreen extends ConsumerStatefulWidget {
   const SupportScreen({super.key});
@@ -70,10 +73,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
     super.dispose();
   }
 
-  Future<void> _launchTelegramSupport(
-    BuildContext context,
-    ColorScheme colorScheme,
-  ) async {
+  Future<void> _launchTelegramSupport(BuildContext context) async {
     final Uri url = Uri.parse("https://t.me/Moozep2pbot");
     try {
       final launched = await launchUrl(
@@ -81,29 +81,19 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
         mode: LaunchMode.externalApplication,
       );
       if (!launched && context.mounted) {
-        _showErrorSnackBar(context, colorScheme);
+        _showErrorSnackBar(context);
       }
     } catch (e) {
       if (context.mounted) {
-        _showErrorSnackBar(context, colorScheme);
+        _showErrorSnackBar(context);
       }
     }
   }
 
-  void _showErrorSnackBar(BuildContext context, ColorScheme colorScheme) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.white),
-            SizedBox(width: 8),
-            Expanded(child: Text("Não foi possível abrir o Telegram")),
-          ],
-        ),
-        backgroundColor: colorScheme.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+  void _showErrorSnackBar(BuildContext context) {
+    AppSnackBar.error(
+      context,
+      AppLocalizations.of(context).support_telegram_open_error,
     );
   }
 
@@ -111,10 +101,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Central de Suporte'),
+        title: Text(t.support_screen_title),
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -176,7 +167,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Como podemos ajudar?',
+                                  t.support_help_title,
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w700,
@@ -186,7 +177,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Para um atendimento mais eficiente, compartilhe o código abaixo com nosso suporte.',
+                                  t.support_help_subtitle,
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: colorScheme.onSurface.withValues(
@@ -203,7 +194,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                           const SizedBox(height: 32),
 
                           Text(
-                            'Seu código de identificação',
+                            t.support_user_code_label,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -211,13 +202,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           Consumer(
                             builder: (context, ref, child) {
                               final userIdAsync = ref.watch(
                                 userIdControllerProvider,
                               );
-
                               return userIdAsync.when(
                                 loading: () {
                                   if (_isRetrying &&
@@ -231,27 +220,15 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                       onRetry: () {},
                                     );
                                   }
-                                  return Container(
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: colorScheme.outline.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
+                                  return UserIdLoadingSkeleton(
+                                    colorScheme: colorScheme,
                                   );
                                 },
                                 error: (error, stack) {
-                                  const errorTitle =
-                                      'Não foi possível carregar seu código';
-                                  const errorMessage =
-                                      'Ocorreu um erro ao carregar suas informações';
+                                  final errorTitle =
+                                      t.support_user_code_load_error_title;
+                                  final errorMessage =
+                                      t.support_user_code_load_error_msg;
 
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -302,10 +279,10 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                                   });
 
                                   if (userId == null) {
-                                    const errorTitle =
-                                        'Não foi possível carregar seu código';
-                                    const errorMessage =
-                                        'Não encontramos suas informações';
+                                    final errorTitle =
+                                        t.support_user_code_load_error_title;
+                                    final errorMessage =
+                                        t.support_user_code_not_found;
 
                                     WidgetsBinding.instance
                                         .addPostFrameCallback((_) {
@@ -361,12 +338,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen>
                           ),
                           const SizedBox(height: 16),
                           PrimaryButton(
-                            text: 'Falar com o suporte',
-                            onPressed:
-                                () => _launchTelegramSupport(
-                                  context,
-                                  colorScheme,
-                                ),
+                            text: t.support_contact_button,
+                            onPressed: () => _launchTelegramSupport(context),
                           ),
                           const SizedBox(height: 24),
                         ],

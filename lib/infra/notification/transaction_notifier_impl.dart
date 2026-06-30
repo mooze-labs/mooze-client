@@ -1,0 +1,426 @@
+import 'dart:async';
+
+import '../../domain/entities/chain.dart';
+import '../../domain/entities/transaction.dart';
+import '../../domain/events/transaction_event.dart';
+import '../../domain/repositories/notified_tx_registry.dart';
+import '../../domain/repositories/transaction_store.dart';
+import '../../domain/services/transaction_notifier.dart';
+import '../../features/sync/domain/sync_orchestrator.dart';
+import '../../features/sync/domain/sync_state.dart';
+import '../../features/wallet/data/models/transaction_status_event.dart';
+import '../../shared/entities/asset.dart' as legacy_asset;
+import '../../shared/logging/structured_logger.dart';
+
+/// V2 transaction notifier. See the abstract interface for the full
+/// state-machine contract; this impl implements it on top of:
+///
+///   - [SyncOrchestrator.transactions]: the merged tx-event stream from
+///     all chain services. Each event is already persisted to
+///     `transactionStore` by the orchestrator's single-writer pipeline
+///     before it reaches us.
+///   - [SyncOrchestrator.state]: used to detect first-sync settlement
+///     so we can flip baseline → ready atomically.
+///   - [NotifiedTxRegistry]: persisted dedup ledger keyed on
+///     `(chain, tx_id)`. Survives cold restarts, wiped on
+///     wallet-delete + import.
+///   - [TransactionStore]: snapshotted on baseline init so the wallet's
+///     pre-existing transactions are absorbed (marked-without-emitting).
+///
+/// The implementation is single-isolate (`dart:async` only) — no shared
+/// state with other isolates, no concurrent calls. The minor races that
+/// matter are between (a) the constructor finishing baseline init and
+/// (b) live events arriving on the orchestrator stream. We buffer
+/// live events for the duration of init and replay them at the end of
+/// init through the same emission path the post-baseline events use.
+class V2TransactionNotifier implements TransactionNotifier {
+  V2TransactionNotifier({
+    required SyncOrchestrator orchestrator,
+    required NotifiedTxRegistry registry,
+    required TransactionStore transactionStore,
+    required StructuredLogger logger,
+  })  : _orchestrator = orchestrator,
+        _registry = registry,
+        _transactionStore = transactionStore,
+        _logger = logger {
+    // Subscribe BEFORE awaiting baseline init so no event is lost in
+    // the window between construction and the first await.
+    _txSub = _orchestrator.transactions.listen(
+      _onTransactionEvent,
+      onError: (e, st) => _logger.warn('tx_notifier.stream_error',
+          {'error': '$e'}, error: e, stackTrace: st),
+    );
+    unawaited(_runBaselineInit());
+  }
+
+  final SyncOrchestrator _orchestrator;
+  final NotifiedTxRegistry _registry;
+  final TransactionStore _transactionStore;
+  final StructuredLogger _logger;
+
+  final _controller = StreamController<TransactionStatusEvent>.broadcast();
+  StreamSubscription<TransactionEvent>? _txSub;
+  bool _disposed = false;
+
+  static const Set<ChainId> _baselineGateChains = <ChainId>{
+    ChainId.liquid,
+    ChainId.bitcoin,
+    ChainId.lightning,
+  };
+
+
+  static const Duration _firstSyncMaxWait = Duration(seconds: 90);
+
+  _BaselinePhase _baseline = _BaselinePhase.initializing;
+  bool _homeReached = false;
+  bool _foregrounded = true;
+
+  /// Epoch-ms stamp written by `ImportWalletUseCase` when the current
+  /// wallet's mnemonic was persisted. Any incoming confirmed tx whose
+  /// on-chain `timestamp` is strictly older than this is treated as
+  /// wallet history restored from the chain — silently marked in the
+  /// dedup ledger and dropped without emitting. `null` means the stamp
+  /// is missing (legacy install pre-dating the filter); we then defer
+  /// fully to the baseline-absorb + dedup mechanism.
+  int? _importedAtMs;
+
+  /// Events that arrived while baseline was still initializing. Drained
+  /// once init completes, then this stays empty for the notifier's
+  /// lifetime.
+  final List<TransactionEvent> _initBuffer = [];
+
+  /// Pending notifications that passed dedup + baseline gates but
+  /// were held because `homeReached` or `foregrounded` was false.
+  /// Drained when both gates open. Volatile by design — process death
+  /// loses these but the registry has already marked them, so cold
+  /// restart will not re-show.
+  final List<TransactionStatusEvent> _pendingEmissions = [];
+
+  /// Process-local set of tx ids for which a user-facing notification
+  /// has already been emitted (or queued). Guards against the cross-
+  /// chain duplicate that Breez Lightning receives produce: the same
+  /// on-chain txid surfaces once as `chain=lightning` (Breez SDK) and
+  /// once as `chain=liquid` (LWK observing the claim leg). The
+  /// persisted registry's dedup is keyed on `(chain, txId)` and can't
+  /// collapse the pair on its own; this in-memory set wins the same-
+  /// process race while the cross-chain `markIfNew` in `_processEvent`
+  /// guards across cold restarts.
+  final Set<String> _emittedTxIds = <String>{};
+
+  @override
+  Stream<TransactionStatusEvent> get notifications => _controller.stream;
+
+  @override
+  void setHomeReached() {
+    if (_homeReached) return;
+    _homeReached = true;
+    _logger.info('tx_notifier.home_reached', {});
+    _maybeFlushPending();
+  }
+
+  @override
+  void setForegrounded(bool foregrounded) {
+    if (_foregrounded == foregrounded) return;
+    _foregrounded = foregrounded;
+    _logger.info('tx_notifier.foreground_changed',
+        {'foregrounded': foregrounded});
+    if (foregrounded) _maybeFlushPending();
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    await _txSub?.cancel();
+    _txSub = null;
+    _initBuffer.clear();
+    _pendingEmissions.clear();
+    if (!_controller.isClosed) {
+      await _controller.close();
+    }
+  }
+
+  // ─────────────────────────────────────────── baseline init
+
+  /// Snapshot the persisted transaction store and mark every existing
+  /// tx as already-notified. This is the one-shot absorb-historical-txs
+  /// pass that prevents N modals on a fresh install / cold restart of
+  /// a wallet with existing tx history.
+  ///
+
+  Future<void> _runBaselineInit() async {
+    try {
+      // Load the wallet-import stamp once at init. The notifier is
+      // re-constructed on import (provider rebuild), so this captures
+      // the freshly-written value. Failures are non-fatal: a null
+      // stamp simply disables the timestamp filter and we fall back
+      // to the snapshot-after-first-sync absorb below.
+      final stampEither = await _registry.getImportedAtMs();
+      _importedAtMs = stampEither.getOrElse((_) => null);
+      _logger.info('tx_notifier.imported_at_loaded',
+          {'imported_at_ms': _importedAtMs});
+
+      final baselineEither = await _registry.isBaselineComplete();
+      final alreadyDone = baselineEither.getOrElse((_) => false);
+      if (alreadyDone) {
+        _baseline = _BaselinePhase.ready;
+        _logger.info('tx_notifier.baseline_already_complete', {});
+        await _drainInitBuffer();
+        return;
+      }
+
+      _logger.info('tx_notifier.baseline_init_begin', {});
+      await _awaitFirstSyncOrTimeout();
+
+      final listResult = await _transactionStore.list();
+      final txs = listResult.getOrElse((_) => const <Transaction>[]);
+      if (txs.isNotEmpty) {
+        final entries = txs.map((t) => (chain: t.chain, txId: t.id));
+        final markResult = await _registry.bulkMark(entries);
+        markResult.match(
+          (f) => _logger.warn('tx_notifier.baseline_bulk_mark_failed',
+              {'reason': f.message}),
+          (_) => _logger.info('tx_notifier.baseline_marked',
+              {'count': txs.length}),
+        );
+      }
+
+      final completeResult = await _registry.setBaselineComplete();
+      completeResult.match(
+        (f) => _logger.warn('tx_notifier.baseline_flag_failed',
+            {'reason': f.message}),
+        (_) => _logger.info('tx_notifier.baseline_complete', {}),
+      );
+      _baseline = _BaselinePhase.ready;
+      await _drainInitBuffer();
+    } catch (e, st) {
+      _logger.error('tx_notifier.baseline_init_threw',
+          {'error': '$e'}, error: e, stackTrace: st);
+      _baseline = _BaselinePhase.ready;
+      await _drainInitBuffer();
+    }
+  }
+
+  Future<void> _drainInitBuffer() async {
+    if (_initBuffer.isEmpty) return;
+    final buffered = List<TransactionEvent>.from(_initBuffer);
+    _initBuffer.clear();
+    for (final e in buffered) {
+      await _processEvent(e);
+    }
+  }
+
+  Future<void> _awaitFirstSyncOrTimeout() async {
+    bool isReady(SyncState state) =>
+        _baselineGateChains.every(state.firstSyncedChains.contains);
+
+    if (isReady(_orchestrator.currentState)) {
+      _logger.info('tx_notifier.first_sync_already_settled', {});
+      return;
+    }
+
+    final completer = Completer<void>();
+    final sub = _orchestrator.state.listen((state) {
+      if (!completer.isCompleted && isReady(state)) {
+        completer.complete();
+      }
+    });
+    try {
+      await completer.future.timeout(_firstSyncMaxWait, onTimeout: () {
+        _logger.warn('tx_notifier.first_sync_wait_timeout', {
+          'synced_so_far': _orchestrator.currentState.firstSyncedChains
+              .map((c) => c.name)
+              .toList(),
+        });
+      });
+      if (completer.isCompleted) {
+        _logger.info('tx_notifier.first_sync_settled', {});
+      }
+    } finally {
+      await sub.cancel();
+    }
+  }
+
+  // ─────────────────────────────────────────── live event path
+
+  void _onTransactionEvent(TransactionEvent event) {
+    if (_disposed) return;
+    if (_baseline == _BaselinePhase.initializing) {
+      _initBuffer.add(event);
+      return;
+    }
+    unawaited(_processEvent(event));
+  }
+
+  Future<void> _processEvent(TransactionEvent event) async {
+    final tx = event.transaction;
+
+    // Notify on any tx that *credits* the user once confirmed:
+    //   - `incoming`: plain receive on any chain.
+    //   - `internal`: classifier catch-all that still nets positive.
+    //   - `swap`: single Liquid tx that moved one asset out and a
+    //     different asset in (DePix↔LBTC, USDT↔LBTC, etc.). The user
+    //     initiated the swap, so we don't surface the *sent* leg —
+    //     but the destination credit is the user-meaningful "you got
+    //     X" moment and deserves a modal. Without this branch the
+    //     receive-toast was racy: it only fired when LWK briefly
+    //     classified the tx as `outgoing→incoming` before settling on
+    //     `swap`, so half of all asset swaps surfaced no modal at all.
+    //
+    // We treat both `created` events that arrive already-confirmed
+    // (re-imports, late tx push) and `statusChanged` from
+    // pending→confirmed the same way. Outgoing sends, self-transfers /
+    // consolidations, and unconfirmed events are still ignored.
+    final isPlainReceive = tx.direction == TransactionDirection.incoming ||
+        tx.direction == TransactionDirection.internal;
+    final isSwap = tx.direction == TransactionDirection.swap;
+    if (!isPlainReceive && !isSwap) return;
+    if (tx.status != TransactionStatus.confirmed) return;
+
+    // Persisted dedup: atomic INSERT OR IGNORE. If the row already
+    // existed, this tx has already been processed (or absorbed during
+    // baseline) — silently drop.
+    final markResult = await _registry.markIfNew(
+      chain: tx.chain,
+      txId: tx.id,
+    );
+    final isFreshlyMarked = markResult.getOrElse((_) => false);
+    if (!isFreshlyMarked) return;
+
+    // Import-timestamp filter. A transaction whose on-chain timestamp
+    // (block / confirmation time) predates the current wallet's import
+    // is wallet history restored from the chain, not a fresh receive.
+    // It has now been marked in the dedup ledger above, so it will
+    // never re-enter this path — that satisfies the "resync / reopen
+    // app after import" requirement without any extra bookkeeping.
+    final importedAt = _importedAtMs;
+    if (importedAt != null &&
+        tx.timestamp.millisecondsSinceEpoch < importedAt) {
+      _logger.info('tx_notifier.pre_import_drop', {
+        'tx_id': tx.id,
+        'chain': tx.chain.name,
+        'tx_ts_ms': tx.timestamp.millisecondsSinceEpoch,
+        'imported_at_ms': importedAt,
+      });
+      return;
+    }
+
+    // Asset + amount the modal will show.
+    //   - For plain receives: the row's `amountSat` / `assetId` are
+    //     the credited side.
+    //   - For swaps: the V2 entity stores the *sent* leg in
+    //     `amountSat` / `assetId` to keep the home list's swap row
+    //     consistent with its arrow direction. The "you received X"
+    //     story lives in `toAssetId` / `receivedAmountSat` — surface
+    //     those instead. A swap missing either is malformed (LWK
+    //     classifier bug) and silently dropped.
+    final String? assetId;
+    final BigInt amount;
+    if (isSwap) {
+      final toAssetId = tx.toAssetId;
+      final receivedSat = tx.receivedAmountSat;
+      if (toAssetId == null || receivedSat == null || receivedSat <= 0) {
+        _logger.debug('tx_notifier.swap_missing_credit_drop', {
+          'tx_id': tx.id,
+          'to_asset_id': toAssetId,
+          'received_amount_sat': receivedSat,
+        });
+        return;
+      }
+      assetId = toAssetId;
+      amount = BigInt.from(receivedSat);
+    } else {
+      assetId = tx.assetId ?? _defaultAssetIdForChain(tx);
+      if (assetId == null) {
+        _logger.debug('tx_notifier.no_asset_id_drop',
+            {'tx_id': tx.id, 'chain': tx.chain.name});
+        return;
+      }
+      amount = BigInt.from(tx.amountSat);
+    }
+
+    final statusEvent = TransactionStatusEvent(
+      transactionId: tx.id,
+      assetId: assetId,
+      assetTicker: _tickerFor(assetId),
+      amount: amount,
+      confirmedAt: event.observedAt,
+    );
+
+    final correlationKey = tx.swapClaimTxId ?? tx.id;
+    if (_emittedTxIds.contains(correlationKey)) {
+      _logger.debug('tx_notifier.cross_chain_duplicate_drop', {
+        'tx_id': tx.id,
+        'chain': tx.chain.name,
+        'correlation_key': correlationKey,
+      });
+      return;
+    }
+    _emittedTxIds.add(correlationKey);
+    final twinChain = switch (tx.chain) {
+      ChainId.lightning => ChainId.liquid,
+      ChainId.bitcoin => tx.swapClaimTxId != null ? ChainId.liquid : null,
+      ChainId.liquid =>
+        tx.swapClaimTxId != null ? ChainId.bitcoin : ChainId.lightning,
+      _ => null,
+    };
+    if (twinChain != null) {
+      unawaited(_registry.markIfNew(chain: twinChain, txId: correlationKey));
+    }
+
+    if (_canEmitNow()) {
+      _emit(statusEvent);
+    } else {
+      _logger.debug('tx_notifier.gated_pending',
+          {'tx_id': tx.id, 'home': _homeReached, 'fg': _foregrounded});
+      _pendingEmissions.add(statusEvent);
+    }
+  }
+
+  bool _canEmitNow() => _homeReached && _foregrounded;
+
+  void _maybeFlushPending() {
+    if (!_canEmitNow()) return;
+    if (_pendingEmissions.isEmpty) return;
+    final drained = List<TransactionStatusEvent>.from(_pendingEmissions);
+    _pendingEmissions.clear();
+    _logger.info('tx_notifier.flush_pending', {'count': drained.length});
+    for (final e in drained) {
+      _emit(e);
+    }
+  }
+
+  void _emit(TransactionStatusEvent event) {
+    if (_disposed || _controller.isClosed) return;
+    _controller.add(event);
+  }
+
+  // ─────────────────────────────────────────── helpers
+
+  /// Maps a chain to a fallback asset id when the tx record does not
+  /// carry one (Bitcoin / Lightning chains do not set `assetId`).
+  String? _defaultAssetIdForChain(Transaction tx) {
+    final asset = switch (tx.chain.name) {
+      'bitcoin' => legacy_asset.Asset.btc,
+      'lightning' => legacy_asset.Asset.lbtc,
+      _ => null,
+    };
+    return asset?.id;
+  }
+
+  /// Best-effort ticker lookup using the legacy `Asset` enum. Unknown
+  /// asset ids fall back to a short prefix of the id so the UI has
+  /// something to display.
+  String _tickerFor(String assetId) {
+    try {
+      return legacy_asset.Asset.fromId(assetId).ticker;
+    } catch (_) {
+      return assetId.length > 6 ? assetId.substring(0, 6) : assetId;
+    }
+  }
+}
+
+enum _BaselinePhase {
+  initializing,
+  ready,
+}

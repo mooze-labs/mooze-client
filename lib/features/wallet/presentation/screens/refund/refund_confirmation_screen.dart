@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_success_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/widgets/fee_chooser.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Screen to select fee rate and confirm refund
 class RefundConfirmationScreen extends ConsumerStatefulWidget {
@@ -34,59 +35,47 @@ class _RefundConfirmationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Velocidade da Transação'),
+        title: Text(t.refund_speed_title),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          tooltip: 'Voltar',
+          tooltip: t.common_back,
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0.0, -0.4),
-            radius: 0.8,
-            colors: [
-              Color(0xFF1A0A1A),
-              AppColors.backgroundColor,
-              AppColors.backgroundColor,
-            ],
-          ),
-        ),
-        child: FutureBuilder<List<RefundFeeOption>>(
-          future: _fetchFeeOptionsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.error != null) {
-              return _buildErrorMessage(
-                snapshot.error.toString().contains('InsufficientFunds')
-                    ? 'Fundos insuficientes para cobrir a taxa de transação'
-                    : 'Erro ao recuperar taxas: ${snapshot.error}',
-              );
-            }
+      body: FutureBuilder<List<RefundFeeOption>>(
+        future: _fetchFeeOptionsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.error != null) {
+            return _buildErrorMessage(
+              snapshot.error.toString().contains('InsufficientFunds')
+                  ? t.refund_insufficient_for_fee
+                  : t.refund_fee_load_error(snapshot.error.toString()),
+            );
+          }
 
-            if (snapshot.connectionState != ConnectionState.done) {
-              return _buildLoadingView();
-            }
+          if (snapshot.connectionState != ConnectionState.done) {
+            return _buildLoadingView();
+          }
 
-            if (affordableFees.isNotEmpty) {
-              return FeeChooser(
-                amountSat: widget.refundParams.refundAmountSat,
-                feeOptions: snapshot.data!,
-                selectedFeeIndex: selectedFeeIndex,
-                onSelect:
-                    (index) => setState(() {
-                      selectedFeeIndex = index;
-                    }),
-              );
-            } else {
-              return _buildErrorMessage(
-                'Valor muito pequeno para cobrir as taxas de transação',
-              );
-            }
-          },
-        ),
+          if (affordableFees.isNotEmpty) {
+            return FeeChooser(
+              amountSat: widget.refundParams.refundAmountSat,
+              feeOptions: snapshot.data!,
+              selectedFeeIndex: selectedFeeIndex,
+              onSelect:
+                  (index) => setState(() {
+                    selectedFeeIndex = index;
+                  }),
+            );
+          } else {
+            return _buildErrorMessage(
+              t.refund_amount_too_small,
+            );
+          }
+        },
       ),
       bottomNavigationBar:
           (affordableFees.isNotEmpty &&
@@ -96,7 +85,7 @@ class _RefundConfirmationScreenState
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: PrimaryButton(
-                    text: 'Confirmar Reembolso',
+                    text: t.refund_confirm_button,
                     onPressed: _confirmRefund,
                   ),
                 ),
@@ -113,24 +102,22 @@ class _RefundConfirmationScreenState
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.backgroundCard.withValues(alpha: 0.5),
+              color: context.colors.backgroundCard.withValues(alpha: 0.5),
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.primaryColor.withValues(alpha: 0.3),
+                color: context.colors.primaryColor.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
             child: CircularProgressIndicator(
-              color: AppColors.primaryColor,
+              color: context.colors.primaryColor,
               strokeWidth: 3,
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            'Calculando taxas...',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
+            AppLocalizations.of(context).refund_calculating_fees,
+            style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -140,21 +127,20 @@ class _RefundConfirmationScreenState
   }
 
   Widget _buildErrorMessage(String message) {
+    final colorScheme = context.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: AppColors.backgroundCard,
+            color: context.colors.backgroundCard,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.red.withValues(alpha: 0.3),
-              width: 1,
-            ),
+            border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
             boxShadow: [
               BoxShadow(
-                color: Colors.red.withValues(alpha: 0.1),
+                color: colorScheme.error.withValues(alpha: 0.1),
                 blurRadius: 20,
                 spreadRadius: 5,
               ),
@@ -167,12 +153,12 @@ class _RefundConfirmationScreenState
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: colorScheme.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
-                  color: Colors.red,
+                  color: colorScheme.error,
                   size: 48,
                 ),
               ),
@@ -180,11 +166,7 @@ class _RefundConfirmationScreenState
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: context.textTheme.bodyLarge?.copyWith(height: 1.5),
               ),
             ],
           ),
@@ -199,15 +181,14 @@ class _RefundConfirmationScreenState
       context: context,
       barrierDismissible: false,
       builder:
-          (context) => Container(
-            decoration: const BoxDecoration(
+          (ctx) => Container(
+            decoration: BoxDecoration(
               gradient: RadialGradient(
-                center: Alignment(0.0, -0.4),
+                center: const Alignment(0.0, -0.4),
                 radius: 0.8,
                 colors: [
-                  Color(0xFF1A0A1A),
-                  AppColors.backgroundColor,
-                  AppColors.backgroundColor,
+                  ctx.colorScheme.primary.withValues(alpha: 0.08),
+                  ctx.colors.backgroundColor,
                 ],
               ),
             ),
@@ -215,15 +196,15 @@ class _RefundConfirmationScreenState
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundCard.withValues(alpha: 0.9),
+                  color: ctx.colors.backgroundCard.withValues(alpha: 0.9),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primaryColor.withValues(alpha: 0.3),
+                    color: ctx.colors.primaryColor.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
                 child: CircularProgressIndicator(
-                  color: AppColors.primaryColor,
+                  color: ctx.colors.primaryColor,
                   strokeWidth: 3,
                 ),
               ),
@@ -232,7 +213,7 @@ class _RefundConfirmationScreenState
     );
 
     try {
-      final req = RefundRequest(
+      final params = ExecuteRefundParams(
         feeRateSatPerVbyte:
             affordableFees[selectedFeeIndex].feeRateSatPerVbyte.toInt(),
         refundAddress: widget.refundParams.toAddress,
@@ -241,7 +222,7 @@ class _RefundConfirmationScreenState
 
       final response = await ref
           .read(refundProvider.notifier)
-          .processRefund(req: req);
+          .processRefund(params: params);
 
       if (mounted) {
         // Close loading dialog
@@ -263,15 +244,9 @@ class _RefundConfirmationScreenState
         Navigator.of(context).pop();
 
         // Show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao processar reembolso: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        AppSnackBar.error(
+          context,
+          AppLocalizations.of(context).refund_process_error(e.toString()),
         );
       }
     }

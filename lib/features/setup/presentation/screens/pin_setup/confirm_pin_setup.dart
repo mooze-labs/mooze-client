@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/services/auth.dart';
+import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
@@ -45,34 +50,51 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
   }
 
   void _onConfirmPressed() async {
+    final t = AppLocalizations.of(context);
     final inputPin = _pinController.text;
 
     if (inputPin != widget.pin) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("PINs não coincidem")));
+      AppSnackBar.error(context, t.pin_mismatch);
       return;
     }
 
     final pinSetupRepository = ref.read(pinSetupRepositoryProvider);
+    BootTracer.mark('pin_confirm.create.begin');
     final result = await pinSetupRepository.createPin(inputPin).run();
+    BootTracer.mark('pin_confirm.create.end', {'ok': result.isRight()});
 
     result.match(
-      (failure) => ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(failure.toString()))),
-      (_) {
+      (failure) => AppSnackBar.error(context, failure.toString()),
+      (_) async {
         // Invalidate hasPinProvider after PIN creation
+        BootTracer.mark('pin_confirm.invalidate.has_pin');
         ref.invalidate(hasPinProvider);
 
-        if (context.mounted) {
-          if (widget.isChangingPin) {
-            int count = 0;
-            Navigator.of(context).popUntil((route) {
-              return count++ == 3;
-            });
+        // Always clear the session after a PIN save so the next app open
+        // requires the new PIN — whether this is initial setup or a change.
+        // Without this, the old session allows bypassing PIN entry entirely.
+        BootTracer.mark('pin_confirm.session_invalidate.begin');
+        await AuthenticationService().invalidateSession();
+        BootTracer.mark('pin_confirm.session_invalidate.end');
+
+        if (!mounted) return;
+
+        if (widget.isChangingPin) {
+          context.pop();
+        } else {
+          // For new wallet setup, offer biometric opt-in if the device
+          // supports it. Otherwise go straight to the loading screen.
+          final biometricService = ref.read(biometricServiceProvider);
+          final isAvailable = await biometricService.isAvailable().run();
+
+          if (!mounted) return;
+
+          if (isAvailable) {
+            BootTracer.mark('pin_confirm.nav.biometric');
+            context.go('/setup/biometric');
           } else {
-            context.go("/setup/wallet-import-loading");
+            BootTracer.mark('pin_confirm.nav.import_loading');
+            context.go('/setup/wallet-import-loading');
           }
         }
       },
@@ -81,9 +103,10 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Confirmar PIN'),
+        title: Text(t.pin_confirm_title),
         leading: IconButton(
           onPressed: () {
             context.pop();
@@ -101,9 +124,9 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
                 text: TextSpan(
                   style: Theme.of(context).textTheme.headlineSmall,
                   children: [
-                    const TextSpan(text: 'Confirme seu '),
+                    TextSpan(text: t.pin_confirm_yours),
                     TextSpan(
-                      text: 'PIN',
+                      text: t.pin_word,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                       ),
@@ -118,15 +141,15 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
                 text: TextSpan(
                   style: Theme.of(context).textTheme.bodyLarge,
                   children: [
-                    const TextSpan(text: 'Digite novamente o '),
+                    TextSpan(text: t.pin_confirm_instruction_1),
                     TextSpan(
-                      text: 'PIN ',
+                      text: t.pin_confirm_instruction_2,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const TextSpan(text: 'que você acabou de criar.'),
+                    TextSpan(text: t.pin_confirm_instruction_3),
                   ],
                 ),
                 textAlign: TextAlign.center,
@@ -140,13 +163,13 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
                 obscureText: true,
                 controller: _pinController,
                 focusNode: _focusNode,
-                defaultPinTheme: PinThemes.focusedPinTheme,
+                defaultPinTheme: PinThemes.focusedThemeOf(context),
               ),
 
               const SizedBox(height: 50),
 
               PrimaryButton(
-                text: 'Confirmar',
+                text: t.common_confirm,
                 onPressed: _onConfirmPressed,
                 isEnabled: isPinValid,
               ),

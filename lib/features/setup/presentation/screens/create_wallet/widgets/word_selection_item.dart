@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WordSelectionItem extends StatelessWidget {
   final String word;
@@ -18,9 +18,12 @@ class WordSelectionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final borderColor =
-        isSelected ? theme.colorScheme.primary : Colors.transparent;
-
+        isSelected
+            ? theme.colorScheme.primary
+            : colorScheme.onSurface.withValues(alpha: 0.1);
+    double? borderWidth = isSelected ? 2.0 : 1;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -28,11 +31,11 @@ class WordSelectionItem extends StatelessWidget {
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.recoveryPhraseBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor, width: 2),
+              color: colorScheme.onSurface.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor, width: borderWidth),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: EdgeInsets.symmetric(horizontal: 5),
             alignment: Alignment.center,
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -75,7 +78,7 @@ class _PositionBadge extends StatelessWidget {
         '$position',
         style: Theme.of(
           context,
-        ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
+        ).textTheme.bodySmall?.copyWith(color: Colors.white),
       ),
     );
   }

@@ -3,11 +3,19 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Este aplicativo precisa acessar a câmera para escanear QR Codes.</string>
+	<string>Mooze uses the camera to scan QR codes for addresses, invoices, and payments.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Mooze uses Face ID to securely authenticate you and protect access to your wallet.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+		<string>pt-BR</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Mooze</string>
 	<key>CFBundleExecutable</key>

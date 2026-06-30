@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 const double cardPadding = 12.0;
 const double borderRadius = 12.0;
@@ -14,9 +14,9 @@ class TransactionCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(cardPadding),
+      padding: EdgeInsets.all(cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        color: context.colors.backgroundCard,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Text(content, style: Theme.of(context).textTheme.bodyLarge),

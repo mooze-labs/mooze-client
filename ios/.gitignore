@@ -32,3 +32,12 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+!Runner.xcodeproj/project.pbxproj
+!Runner/Info.plist
+!Runner/*.lproj/
+!Runner/*.lproj/InfoPlist.strings
+
+!ios/Runner/
+!ios/Runner/*.lproj/
+!ios/Runner/*.lproj/InfoPlist.strings

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class SelectedWordsRow extends StatelessWidget {
   final List<int> positions;
@@ -26,13 +26,13 @@ class SelectedWordsRow extends StatelessWidget {
             final backgroundColor =
                 isSelected
                     ? colorScheme.primary.withValues(alpha: 0.3)
-                    : AppColors.recoveryPhraseBackground;
+                    : context.colors.recoveryPhraseBackground;
 
             final borderColor =
                 isSelected ? colorScheme.primary : Colors.transparent;
 
             final numberColor =
-                isSelected ? colorScheme.primary : AppColors.textPrimary;
+                isSelected ? colorScheme.primary : context.colors.textPrimary;
 
             return Expanded(
               child: Container(
@@ -46,9 +46,11 @@ class SelectedWordsRow extends StatelessWidget {
                   left: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor, width: 2),
+                  color: colorScheme.onSurface.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.onSurface.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +59,7 @@ class SelectedWordsRow extends StatelessWidget {
                       position.toString(),
                       style: textTheme.bodyMedium?.copyWith(color: numberColor),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Center(
                       child: Text(
                         word,

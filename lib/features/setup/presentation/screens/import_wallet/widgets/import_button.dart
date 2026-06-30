@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/entities/chain.dart';
+import 'package:mooze_mobile/domain/entities/wallet_credentials.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/shared/authentication/providers.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
-import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/shared/storage/secure_storage.dart';
+import 'package:mooze_mobile/shared/network/providers.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 
 import '../providers/seed_phrase_provider.dart';
-import '../../../providers/mnemonic_controller_provider.dart';
 import '../providers/import_loading_provider.dart';
 
 class ImportButton extends ConsumerWidget {
@@ -18,9 +26,9 @@ class ImportButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
     final notifier = ref.read(seedPhraseProvider.notifier);
-    final mnemonicController = ref.watch(mnemonicControllerProvider);
     final isLoading = ref.watch(importLoadingProvider);
     final loadingNotifier = ref.read(importLoadingProvider.notifier);
 
@@ -29,7 +37,7 @@ class ImportButton extends ConsumerWidget {
     final isEnabled = !isLoading && validMnemonic != null;
 
     return PrimaryButton(
-      text: "Importar Carteira",
+      text: t.setup_import_button,
       isLoading: isLoading,
       isEnabled: isEnabled,
       onPressed: () async {
@@ -38,100 +46,101 @@ class ImportButton extends ConsumerWidget {
         loadingNotifier.state = true;
         notifier.setLoading(true);
 
-        try {
-          final existingMnemonicOption = await ref.read(
-            mnemonicProvider.future,
-          );
-          final hasExistingWallet = existingMnemonicOption.isSome();
+        // V2 import use case handles the full pre-import sequence:
+        //   1. PIN / pending-tx / walletId hooks (cross-wallet R2/R9 fix)
+        //   2. wipe V2 mooze_v2.db (cross-wallet R1 fix)
+        //   3. wipe lwk-db + breez working dirs (G15 fix)
+        //   4. persist mnemonic via V2 SecureCredentialStore
+        //
+        // The legacy `mnemonicController.saveMnemonic` path is retired —
+        // both V2 and legacy paths write the same `mnemonic_mainWallet`
+        // secure-storage key, so existing wallets remain readable.
+        BootTracer.mark('import_button.usecase.resolve.begin');
+        final importUseCase =
+            await ref.read(importWalletUseCaseProvider.future);
+        BootTracer.mark('import_button.usecase.resolve.end');
+        BootTracer.mark('import_button.usecase.run.begin');
+        final result = await importUseCase(WalletCredentials(
+          mnemonic: validMnemonic,
+          network: AppNetwork.mainnet,
+        ));
+        BootTracer.mark('import_button.usecase.run.end',
+            {'ok': result.isRight()});
 
-          if (hasExistingWallet) {
-            ref.read(setWalletDeletionFlagProvider(true));
-
-            try {
-              await ref.read(disconnectBreezClientProvider.future);
-            } catch (e) {}
-            await Future.delayed(const Duration(milliseconds: 500));
-
-            final secureStorage = SecureStorageProvider.instance;
-            await secureStorage.delete(key: 'mnemonic');
-
-            ref.invalidate(mnemonicProvider);
-
-            await Future.delayed(const Duration(milliseconds: 300));
-
-            ref.invalidate(liquidDataSourceProvider);
-            ref.invalidate(bdkDatasourceProvider);
-            ref.invalidate(breezClientProvider);
-
-            await Future.delayed(const Duration(milliseconds: 1000));
-
-            final walletManager = ref.read(walletDataManagerProvider.notifier);
-            final cleanResult = await walletManager.cleanBreezDirectory();
-
-            if (!cleanResult) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded, color: Colors.white),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Aviso: Alguns arquivos antigos não puderam ser removidos. O app pode precisar ser reiniciado.',
-                          ),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 4),
-                  ),
-                );
-              }
-            }
-
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-        } catch (cleanupError) {
-          ref.read(setWalletDeletionFlagProvider(false));
-        }
-
-        ref.read(setWalletDeletionFlagProvider(false));
-
-        final result =
-            await mnemonicController.saveMnemonic(validMnemonic).run();
         result.match(
           (failure) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.white),
-                      SizedBox(width: 8),
-                      Expanded(child: Text(failure)),
-                    ],
-                  ),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 5),
-                ),
-              );
+              AppSnackBar.error(context, failure.message);
             }
             loadingNotifier.state = false;
             notifier.setLoading(false);
           },
-          (success) async {
-            ref.invalidate(liquidDataSourceProvider);
-            ref.invalidate(bdkDatasourceProvider);
-            ref.invalidate(breezClientProvider);
-
-            await Future.delayed(const Duration(milliseconds: 2000));
-
-            if (context.mounted) {
-              context.push("/setup/pin/new");
-            }
+          (_) async {
             loadingNotifier.state = false;
             notifier.setLoading(false);
+
+            // Invalidate legacy caches so any straggler reads of the
+            // legacy mnemonic / balance / tx caches re-evaluate against
+            // the freshly imported wallet.
+            BootTracer.mark('import_button.invalidates.begin');
+            ref.invalidate(mnemonicProvider);
+            BootTracer.mark('import_button.invalidate.mnemonic');
+            // Rebuild the auth chain (new ECDSA identity from the imported
+            // mnemonic) and drop the Pix + user/level caches so the imported
+            // wallet authenticates fresh and reuses no prior wallet data.
+            ref.invalidate(sessionManagerServiceProvider);
+            ref.invalidate(authInterceptorProvider);
+            ref.invalidate(authenticatedClientProvider);
+            ref.invalidate(pixRepositoryProvider);
+            ref.invalidate(userDataProvider);
+            BootTracer.mark('import_button.invalidate.auth_pix');
+            ref.invalidate(balanceCacheProvider);
+            BootTracer.mark('import_button.invalidate.balance');
+            ref.invalidate(transactionHistoryCacheProvider);
+            BootTracer.mark('import_button.invalidate.tx_history');
+
+            // Force the walletId to regenerate and drop the V2 cache-first
+            // balance state, so the imported wallet starts from an empty
+            // snapshot and never displays the previously opened wallet's
+            // cached balances. The pre-import cleanup hooks already wiped
+            // every persisted snapshot from disk.
+            ref.invalidate(walletIdProvider);
+            ref.invalidate(allBalancesProvider);
+            BootTracer.mark('import_button.invalidate.balance_snapshot');
+
+            // CRITICAL (2026-05-24): invalidate the V2 transaction
+            // notifier. The notifier instance constructed during the
+            // pre-import boot has `_importedAtMs = null` cached in
+            // memory — when `ImportWalletUseCase` stamps the new
+            // import timestamp moments earlier, that in-memory value
+            // is NOT refreshed. Without an invalidate, every
+            // historical confirmed receive from the freshly-synced
+            // wallet (which is older than the stamp) bypasses the
+            // `pre_import_drop` filter, ends up in
+            // `_pendingEmissions`, and floods the user with N
+            // "transaction confirmed" modals the instant they reach
+            // /home.
+            ref.invalidate(transactionNotifierProvider);
+            BootTracer.mark('import_button.invalidate.tx_notifier');
+            // Eagerly reconstruct the notifier so it subscribes to
+            // the orchestrator's transactions stream BEFORE the
+            // post-import boot kicks off its first sync. The
+            // notifier's constructor subscribes synchronously, so as
+            // long as the Future resolves before any chain emits, no
+            // events are missed.
+            try {
+              await ref.read(transactionNotifierProvider.future);
+              BootTracer.mark('import_button.tx_notifier.ready');
+            } catch (e) {
+              BootTracer.mark('import_button.tx_notifier.error',
+                  {'error': e.toString()});
+            }
+            BootTracer.mark('import_button.invalidates.end');
+
+            if (context.mounted) {
+              BootTracer.mark('import_button.nav.pin_new');
+              context.push("/setup/pin/new");
+            }
           },
         );
       },

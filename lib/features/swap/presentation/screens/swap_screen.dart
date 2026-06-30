@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:fpdart/fpdart.dart' show Either;
+import 'package:mooze_mobile/shared/prices/models.dart' show Currency;
 
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
 import '../widgets/btc_lbtc_swap_warning_dialog.dart';
+import '../widgets/no_liquidity_dialog.dart';
 import '../helpers/btc_lbtc_swap_helper.dart';
 import '../providers/swap_onboarding_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
@@ -16,10 +20,18 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_p
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/features/wallet/routes.dart'
+    show PageVisibilityProvider;
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
+/// PageView index of the swap screen in [_MainNavigationScaffold].
+/// Kept in sync with the `children:` order in `wallet/routes.dart`.
+const int _swapPageIndex = 3;
 
 class SwapScreen extends ConsumerStatefulWidget {
   const SwapScreen({super.key});
@@ -37,8 +49,18 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   bool _isSyncingDecimal = false;
   bool _hasShownNoLiquidityDialog = false;
   bool _useDrain = false;
-  int _swapKey = 0;
   bool _hasCheckedBtcLbtcWarning = false;
+  bool _isFiatMode = false;
+  double? _cachedFromPrice;
+
+  /// Cached locale used by listeners that have no [BuildContext]
+  /// (e.g. [_syncDecimalFromAmount]). Refreshed in
+  /// [didChangeDependencies] whenever Flutter's locale changes.
+  String _locale = 'en_US';
+
+  bool _lifecycleArmed = true;
+
+  ValueNotifier<double>? _pageFloatNotifier;
 
   static const int _minBtcLbtcSwapSats = 25000;
 
@@ -61,8 +83,50 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _locale = Localizations.localeOf(context).toString();
+
+    final newNotifier = PageVisibilityProvider.pageFloatOf(context);
+    if (!identical(_pageFloatNotifier, newNotifier)) {
+      _pageFloatNotifier?.removeListener(_onPageFloatChanged);
+      _pageFloatNotifier = newNotifier;
+      _pageFloatNotifier?.addListener(_onPageFloatChanged);
+      _onPageFloatChanged();
+    }
+  }
+
+  void _onPageFloatChanged() {
+    if (!mounted) return;
+    final notifier = _pageFloatNotifier;
+    if (notifier == null) return;
+    final overlap = (notifier.value - _swapPageIndex).abs() < 1.0;
+    if (overlap == _lifecycleArmed) return;
+
+    final wasDisarmed = !_lifecycleArmed;
+    setState(() => _lifecycleArmed = overlap);
+
+    if (overlap && wasDisarmed) {
+      debugPrint(
+        '[SwapScreen] viewport entered (page=${notifier.value}) — '
+        'refreshing metadata on fresh chain',
+      );
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(swapControllerProvider.notifier).loadMetadata();
+      });
+    } else if (!overlap) {
+      debugPrint(
+        '[SwapScreen] viewport exited (page=${notifier.value}) — '
+        'disarming WS',
+      );
+    }
+  }
+
   void _syncDecimalFromAmount() {
     if (_isSyncingDecimal) return;
+    if (_isFiatMode) return;
     _isSyncingDecimal = true;
 
     final text = _fromAmountController.text.trim();
@@ -78,7 +142,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
         String newValue;
         if (isBtcOrLbtc) {
-          newValue = amount.toString();
+          // Format with locale-aware thousands separators so the
+          // displayed text matches what the input formatter would
+          // produce on user keystrokes.
+          newValue = NumberFormat('#,##0', _locale).format(amount.toInt());
         } else {
           newValue = (amount.toDouble() / 100000000).toStringAsFixed(2);
         }
@@ -102,14 +169,16 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   @override
   void deactivate() {
-    debugPrint('[SwapScreen] Deactivating - cleaning up active quote');
-    ref.read(swapControllerProvider.notifier).resetQuote();
+    debugPrint('[SwapScreen] Deactivating - disposing swap provider');
+    ref.invalidate(swapControllerProvider);
     super.deactivate();
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _pageFloatNotifier?.removeListener(_onPageFloatChanged);
+    _pageFloatNotifier = null;
     _fromAmountController.removeListener(_syncDecimalFromAmount);
     _fromAmountController.dispose();
     _fromAmountDecimalController.dispose();
@@ -118,57 +187,73 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
+    if (!_lifecycleArmed) {
+      return const SizedBox.shrink();
+    }
+
     final swapState = ref.watch(swapControllerProvider);
 
     final isLoading = swapState.loading;
     final error = swapState.error;
 
     if (error != null &&
-        _isNoLiquidityError(error) &&
+        error.code == SwapErrorCode.noLiquidity &&
         !_hasShownNoLiquidityDialog) {
       _hasShownNoLiquidityDialog = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _showNoLiquidityDialog(context);
+          NoLiquidityDialog.show(context, onRetry: _requestQuoteDebounced);
           ref.read(swapControllerProvider.notifier).resetQuote();
         }
       });
     }
 
-    if (error == null || !_isNoLiquidityError(error)) {
+    if (error == null || error.code != SwapErrorCode.noLiquidity) {
       _hasShownNoLiquidityDialog = false;
     }
 
     final exchangeRate = swapState.exchangeRate;
+
+    final currency = ref.watch(currencyControllerProvider.notifier);
+    final canToggleFiatMode = _cachedFromPrice != null && _cachedFromPrice! > 0;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         extendBody: true,
         appBar: AppBar(
-          title: const Text('Swap'),
+          title: Text(t.swap_title),
           actions: [
+            _FiatModeSwitch(
+              isFiatMode: _isFiatMode,
+              currencyIcon: currency.icon,
+              enabled: canToggleFiatMode,
+              onChanged: (value) {
+                if (!canToggleFiatMode) return;
+                if (value == _isFiatMode) return;
+                _toggleFiatMode();
+              },
+            ),
             OfflineIndicator(
               onTap: () => OfflinePriceInfoOverlay.show(context),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
           ],
         ),
         body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              color: AppColors.surfaceColor,
-            ),
-            width: double.infinity,
+          // No outer card surface — the From/To cards already carry
+          // their own elevated surfaces. A third wrapper just stacked
+          // surfaces and muddied the contrast in both themes.
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: SingleChildScrollView(
             child: Column(
-              key: ValueKey(_swapKey),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
                 _from(context),
-                GestureDetector(
+                _SwapDirectionChip(
                   onTap: () async {
                     final oldFromAsset = _fromAsset;
                     final oldToAsset = _toAsset;
@@ -186,9 +271,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                       final tmp = _fromAsset;
                       _fromAsset = _toAsset;
                       _toAsset = tmp;
-
                       _useDrain = false;
-                      _swapKey++;
                     });
 
                     ref.invalidate(fiatPriceProvider(oldFromAsset));
@@ -201,166 +284,82 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                     ref.invalidate(balanceProvider(_fromAsset));
                     ref.invalidate(balanceProvider(_toAsset));
 
-                    if (mounted) {
-                      setState(() {});
-                    }
+                    if (mounted) setState(() {});
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Center(child: _SwapIcon()),
-                  ),
                 ),
                 _to(context),
                 const SizedBox(height: 15),
                 if (isLoading)
-                  Shimmer.fromColors(
-                    baseColor: AppColors.baseColor,
-                    highlightColor: AppColors.highlightColor,
-                    child: Container(
-                      width: 50,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  )
+                  SizedBox.shrink()
                 else if (!_isBtcLbtcSwap &&
                     _fromAmountController.text.isNotEmpty &&
                     swapState.currentQuote?.quote != null) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        '1 ${_fromAsset.ticker} = ${_formatRate(exchangeRate)} ${_toAsset.ticker}',
-                        style: Theme.of(context).textTheme.labelMedium,
-                      ),
-                    ],
+                  _RateIndicator(
+                    remainingMs:
+                        swapState.millisecondsRemaining ??
+                        swapState.ttlMilliseconds,
+                    totalMs: swapState.ttlMilliseconds,
+                    showShimmer:
+                        swapState.status == QuoteStatus.fetching ||
+                        swapState.status == QuoteStatus.refreshing,
+                    rateText: _rateLineText(exchangeRate),
+                    onTap:
+                        ref
+                            .read(swapControllerProvider.notifier)
+                            .requestFreshQuote,
                   ),
                 ],
                 if (error != null) const SizedBox(height: 8),
-                if (error != null && !_isNoLiquidityError(error))
+                if (error != null && error.code != SwapErrorCode.noLiquidity)
                   FutureBuilder<bool>(
                     future: _hasInsufficientBalance(),
                     builder: (context, snapshot) {
                       final hasInsufficientBalance = snapshot.data ?? false;
                       final isInsufficientError =
-                          error.toLowerCase().contains('insuficiente') ||
+                          error.code == SwapErrorCode.insufficientBalance ||
                           hasInsufficientBalance;
+                      final isUtxoError = error.code == SwapErrorCode.utxoBusy;
 
-                      final isUtxoError =
-                          error.toLowerCase().contains(
-                            'aguarde alguns instantes',
-                          ) ||
-                          error.toLowerCase().contains('transação anterior');
-
+                      final _StatusTone tone;
+                      final IconData icon;
+                      final String message;
                       if (isUtxoError) {
-                        return Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.schedule,
-                                    color: Colors.blue,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      error,
-                                      style: const TextStyle(
-                                        color: Colors.blue,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                        );
+                        tone = _StatusTone.info;
+                        icon = Icons.schedule;
+                        message = error.localize(context);
+                      } else if (isInsufficientError &&
+                          _fromAmountController.text.isNotEmpty) {
+                        tone = _StatusTone.warning;
+                        icon = Icons.warning_amber_rounded;
+                        message = t.swap_insufficient_balance;
+                      } else {
+                        tone = _StatusTone.error;
+                        icon = Icons.error_outline;
+                        message = error.localize(context);
                       }
 
-                      if (isInsufficientError &&
-                          _fromAmountController.text.isNotEmpty) {
-                        return Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.warning,
-                                    color: Colors.orange,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Saldo insuficiente para realizar o swap',
-                                      style: TextStyle(color: Colors.orange),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                        );
-                      } else {
-                        return Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.warning,
-                                    color: Colors.orange,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      error,
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                        );
-                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _StatusBanner(
+                          tone: tone,
+                          icon: icon,
+                          message: message,
+                        ),
+                      );
                     },
                   ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 16),
                 Center(
                   child: Text(
                     _isBtcLbtcSwap
                         ? 'Powered by breez.technology'
                         : 'Powered by sideswap.io',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: context.colors.textTertiary,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 16),
 
                 FutureBuilder<bool>(
                   future: _hasInsufficientBalance(),
@@ -392,83 +391,68 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                             !_isBtcLbtcSwapAmountValid())
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: Colors.orange,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Valor mínimo: ${_minBtcLbtcSwapSats.toString()} sats',
-                                      style: const TextStyle(
-                                        color: Colors.orange,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            child: _StatusBanner(
+                              tone: _StatusTone.warning,
+                              icon: Icons.info_outline,
+                              message: t.swap_min_value_sats(
+                                _minBtcLbtcSwapSats.toString(),
                               ),
                             ),
                           ),
                         PrimaryButton(
-                          text: 'swap',
+                          text: t.swap_title,
                           isEnabled: canProceed,
                           onPressed:
                               canProceed
                                   ? () async {
                                     if (_isBtcLbtcSwap) {
                                       _handleBtcLbtcSwap();
-                                    } else {
-                                      final currentState = ref.read(
-                                        swapControllerProvider,
-                                      );
-                                      final quote = currentState.currentQuote;
-
-                                      if (quote != null) {
-                                        final isSendAssetCorrect =
-                                            currentState.lastSendAssetId ==
-                                            _fromAsset.id;
-                                        final isReceiveAssetCorrect =
-                                            currentState.lastReceiveAssetId ==
-                                            _toAsset.id;
-
-                                        if (!isSendAssetCorrect ||
-                                            !isReceiveAssetCorrect) {
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Atualizando cotação...',
-                                                ),
-                                                duration: Duration(seconds: 2),
-                                              ),
-                                            );
-                                          }
-                                          _requestQuoteDebounced();
-                                          return;
-                                        }
-                                      }
-
-                                      ConfirmSwapBottomSheet.show(
-                                        context,
-                                        onSuccess: _clearSwapFields,
-                                        onError: _clearSwapFields,
-                                      );
+                                      return;
                                     }
+
+                                    // First click: the debounced quote
+                                    // from typing is already on screen,
+                                    // so open the sheet immediately —
+                                    // no extra round-trip. `show` returns
+                                    // false if a sheet is already visible
+                                    // (rapid double-tap guard).
+                                    final didOpen =
+                                        await ConfirmSwapBottomSheet.show(
+                                          context,
+                                          onSuccess: _clearSwapFields,
+                                          onError: _clearSwapFields,
+                                        );
+
+                                    if (!mounted) return;
+                                    if (!didOpen) return;
+
+                                    // After the sheet closes, refresh
+                                    // the quote subscription so the next
+                                    // open starts with a fresh quote_id
+                                    // and a full TTL. Skip if the swap
+                                    // succeeded or errored (both clear
+                                    // the input via _clearSwapFields).
+                                    final remaining = BigInt.tryParse(
+                                      _fromAmountController.text.trim(),
+                                    );
+                                    if (remaining == null ||
+                                        remaining <= BigInt.zero) {
+                                      return;
+                                    }
+                                    final controller = ref.read(
+                                      swapControllerProvider.notifier,
+                                    );
+                                    await controller.resetQuote();
+                                    if (!mounted) return;
+                                    await controller.startQuote(
+                                      sendAsset: _fromAsset.id,
+                                      receiveAsset: _toAsset.id,
+                                      amount: remaining,
+                                    );
                                   }
                                   : null,
                         ),
+                        SizedBox(height: 120),
                       ],
                     );
                   },
@@ -483,7 +467,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   // FROM card
   Widget _from(BuildContext context) {
-    final currency = ref.read(currencyControllerProvider.notifier);
+    final t = AppLocalizations.of(context);
+    final currencyEnum = ref.watch(currencyControllerProvider);
 
     final fromOptions = () {
       if (_toAsset == core.Asset.btc) {
@@ -506,229 +491,281 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
         });
       });
     }
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        color: AppColors.backgroundColor,
-      ),
-      height: 115,
+      padding: const EdgeInsets.all(18),
+      decoration: _swapCardDecoration(context),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ── Header: label + fiat-estimate / MAX ────────────────────
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Você envia', style: Theme.of(context).textTheme.labelLarge),
-              Row(
-                children: [
-                  FutureBuilder<Either<String, double>>(
-                    future: ref.watch(fiatPriceProvider(_fromAsset).future),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return snapshot.data!.fold(
-                          (error) => const Text('0.00'),
-                          (price) {
-                            final amount =
-                                BigInt.tryParse(
-                                  _fromAmountController.text.trim(),
-                                ) ??
-                                BigInt.zero;
-                            final usd = _fromAsset.toUsd(amount, price);
-                            return Text(
-                              '${currency.icon}${usd.toStringAsFixed(2)}',
-                            );
-                          },
+              _CardLabel(t.swap_you_send),
+              const Spacer(),
+              FutureBuilder<Either<String, double>>(
+                future: ref.watch(fiatPriceProvider(_fromAsset).future),
+                builder: (context, snapshot) {
+                  final secondaryStyle = theme.textTheme.labelMedium?.copyWith(
+                    color: context.colors.textSecondary,
+                  );
+                  if (!snapshot.hasData) {
+                    return Text('—', style: secondaryStyle);
+                  }
+                  return snapshot.data!.fold(
+                    (_) => Text('—', style: secondaryStyle),
+                    (price) {
+                      _cachedFromPrice = price;
+                      final amount =
+                          BigInt.tryParse(_fromAmountController.text.trim()) ??
+                          BigInt.zero;
+                      if (_isFiatMode) {
+                        final locale =
+                            Localizations.localeOf(context).toString();
+                        final assetDisplay =
+                            '${_fromAsset.formatAmount(amount.toInt(), locale: locale)} ${_fromAsset.displayUnit}';
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Text(
+                            amount > BigInt.zero ? '≈ $assetDisplay' : '',
+                            key: ValueKey('fiat_$assetDisplay'),
+                            style: secondaryStyle,
+                          ),
                         );
                       }
-                      return const Text('...');
+                      final usd = _fromAsset.toUsd(amount, price);
+                      return Text(
+                        _formatFiatFromDouble(
+                          usd,
+                          currencyEnum,
+                          withSymbol: true,
+                        ),
+                        style: secondaryStyle,
+                      );
                     },
-                  ),
-                  const SizedBox(width: 5),
-                  TransparentTextButton(
-                    text: 'MAX',
-                    onPressed: () async {
-                      await ref
-                          .read(swapControllerProvider.notifier)
-                          .resetQuote();
-
-                      if (!mounted) return;
-
-                      final balance = await _getBalanceRaw(_fromAsset);
-                      if (!mounted) return;
-
-                      _fromAmountController.text = balance.toString();
-                      setState(() {
-                        _useDrain = true;
-                      });
-                      _requestQuoteDebounced();
-                    },
-                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: AppColors.primaryColor,
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
-            ],
-          ),
-          Row(
-            children: [
-              SvgPicture.asset(_fromAsset.iconPath, width: 25, height: 25),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _CustomAssetDropdown(
-                      value: _fromAsset,
-                      items: fromOptions,
-                      onChanged: (core.Asset? newAsset) async {
-                        if (newAsset != null) {
-                          await ref
-                              .read(swapControllerProvider.notifier)
-                              .resetQuote();
-
-                          if (!mounted) return;
-
-                          setState(() {
-                            _fromAsset = newAsset;
-                            _useDrain = false;
-                            _hasCheckedBtcLbtcWarning = false;
-
-                            if (_fromAsset == core.Asset.btc) {
-                              _toAsset = core.Asset.lbtc;
-                            } else if (_toAsset == _fromAsset) {
-                              final alternatives =
-                                  core.Asset.values
-                                      .where((a) => a != _fromAsset)
-                                      .toList();
-                              if (alternatives.isNotEmpty) {
-                                _toAsset = alternatives.first;
-                              }
-                            }
-
-                            _fromAmountController.text = '';
-                            _fromAmountDecimalController.text = '';
-                          });
-
-                          ref.invalidate(balanceProvider(_fromAsset));
-                          ref.invalidate(balanceProvider(_toAsset));
-
-                          await _checkAndShowBtcLbtcWarning();
-                        }
-                      },
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _fromAmountDecimalController,
-                        keyboardType:
-                            (_fromAsset == core.Asset.btc ||
-                                    _fromAsset == core.Asset.lbtc)
-                                ? const TextInputType.numberWithOptions(
-                                  decimal: false,
-                                )
-                                : const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
-                        textAlign: TextAlign.end,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
-                          focusedErrorBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          fillColor: Colors.transparent,
-                          filled: true,
-                          hintText: '0',
-                          hintStyle: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-                        ),
-                        onChanged: (value) {
-                          if (_isSyncingDecimal) return;
-                          _isSyncingDecimal = true;
-
-                          _useDrain = false;
-
-                          if (value.isEmpty) {
-                            _fromAmountController.text = '';
-                            _isSyncingDecimal = false;
-                            _requestQuoteDebounced();
-                            return;
-                          }
-
-                          final isBtcOrLbtc =
-                              _fromAsset == core.Asset.btc ||
-                              _fromAsset == core.Asset.lbtc;
-                          BigInt sats;
-
-                          if (isBtcOrLbtc) {
-                            sats = BigInt.tryParse(value) ?? BigInt.zero;
-                          } else {
-                            double parsed =
-                                double.tryParse(value.replaceAll(',', '.')) ??
-                                0;
-                            sats = BigInt.from((parsed * 100000000).round());
-                          }
-
-                          if (_fromAmountController.text != sats.toString()) {
-                            _fromAmountController.text = sats.toString();
-                          }
-                          _isSyncingDecimal = false;
-                          _requestQuoteDebounced();
-                        },
-                      ),
-                    ),
-                  ],
+              const SizedBox(width: 8),
+              TransparentTextButton(
+                text: t.common_max,
+                onPressed: () async {
+                  await ref.read(swapControllerProvider.notifier).resetQuote();
+                  if (!mounted) return;
+                  final balance = await _getBalanceRaw(_fromAsset);
+                  if (!mounted) return;
+                  _fromAmountController.text = balance.toString();
+                  if (_isFiatMode &&
+                      _cachedFromPrice != null &&
+                      _cachedFromPrice! > 0) {
+                    final fiatValue = _fromAsset.toUsd(
+                      balance,
+                      _cachedFromPrice!,
+                    );
+                    _fromAmountDecimalController.text = _formatFiatFromDouble(
+                      fiatValue,
+                      currencyEnum,
+                      withSymbol: true,
+                    );
+                  }
+                  setState(() => _useDrain = true);
+                  _requestQuote();
+                },
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: context.colors.primaryColor,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Saldo disponível:'),
-              Consumer(
-                builder: (context, ref, child) {
-                  final balanceAsync = ref.watch(balanceProvider(_fromAsset));
-                  return balanceAsync.when(
-                    data: (either) {
-                      return either.fold(
-                        (error) => Text(
-                          '...',
-                          style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
+          const SizedBox(height: 14),
+
+          // ── Main row: asset chip + amount input ────────────────────
+          // Fixed height keeps the From card aligned to the To card —
+          // a bare `TextField` is intrinsically taller than a `Text`
+          // due to cursor/baseline padding.
+          SizedBox(
+            height: 36,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SvgPicture.asset(_fromAsset.iconPath, width: 28, height: 28),
+                const SizedBox(width: 10),
+                _CustomAssetDropdown(
+                  value: _fromAsset,
+                  items: fromOptions,
+                  onChanged: (core.Asset? newAsset) async {
+                    if (newAsset == null) return;
+                    await ref
+                        .read(swapControllerProvider.notifier)
+                        .resetQuote();
+                    if (!mounted) return;
+                    setState(() {
+                      _fromAsset = newAsset;
+                      _useDrain = false;
+                      _hasCheckedBtcLbtcWarning = false;
+                      if (_fromAsset == core.Asset.btc) {
+                        _toAsset = core.Asset.lbtc;
+                      } else if (_toAsset == _fromAsset) {
+                        final alternatives =
+                            core.Asset.values
+                                .where((a) => a != _fromAsset)
+                                .toList();
+                        if (alternatives.isNotEmpty) {
+                          _toAsset = alternatives.first;
+                        }
+                      }
+                      _fromAmountController.text = '';
+                      _fromAmountDecimalController.text = '';
+                    });
+                    ref.invalidate(balanceProvider(_fromAsset));
+                    ref.invalidate(balanceProvider(_toAsset));
+                    await _checkAndShowBtcLbtcWarning();
+                  },
+                ),
+                Expanded(
+                  child: Row(
+                    // Baseline alignment so the unit suffix (e.g. USDT)
+                    // sits on the same alphabetic baseline as the bold
+                    // TextField content — matching the To-card layout.
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _fromAmountDecimalController,
+                          keyboardType:
+                              _isFiatMode
+                                  ? const TextInputType.numberWithOptions(
+                                    decimal: false,
+                                    signed: false,
+                                  )
+                                  : (_fromAsset == core.Asset.btc ||
+                                      _fromAsset == core.Asset.lbtc)
+                                  ? const TextInputType.numberWithOptions(
+                                    decimal: false,
+                                  )
+                                  : const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                          textAlign: TextAlign.end,
+                          inputFormatters:
+                              _isFiatMode
+                                  ? [_FiatCentInputFormatter(currencyEnum)]
+                                  : (_fromAsset == core.Asset.btc ||
+                                      _fromAsset == core.Asset.lbtc)
+                                  ? [
+                                    _IntegerThousandsFormatter(
+                                      Localizations.localeOf(
+                                        context,
+                                      ).toString(),
+                                    ),
+                                  ]
+                                  : null,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            fillColor: Colors.transparent,
+                            filled: true,
+                            hintText:
+                                _isFiatMode
+                                    ? _formatFiatFromCents(
+                                      BigInt.zero,
+                                      currencyEnum,
+                                      withSymbol: true,
+                                    )
+                                    : '0',
+                            hintStyle: theme.textTheme.titleMedium?.copyWith(
+                              color: context.colors.textTertiary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          onChanged: (value) {
+                            if (_isSyncingDecimal) return;
+                            _isSyncingDecimal = true;
+                            _useDrain = false;
+                            if (value.isEmpty) {
+                              _fromAmountController.text = '';
+                              _isSyncingDecimal = false;
+                              _requestQuoteDebounced();
+                              return;
+                            }
+                            if (_isFiatMode) {
+                              final fiatAmount = _parseFiatToDouble(value);
+                              if (_cachedFromPrice != null &&
+                                  _cachedFromPrice! > 0) {
+                                final sats = _fromAsset.fromUsd(
+                                  fiatAmount,
+                                  _cachedFromPrice!,
+                                );
+                                if (_fromAmountController.text !=
+                                    sats.toString()) {
+                                  _fromAmountController.text = sats.toString();
+                                }
+                              }
+                            } else {
+                              final isBtcOrLbtc =
+                                  _fromAsset == core.Asset.btc ||
+                                  _fromAsset == core.Asset.lbtc;
+                              BigInt sats;
+                              if (isBtcOrLbtc) {
+                                // Field is formatted with thousands separators
+                                // (`1,253,048`), so strip everything but digits
+                                // before parsing.
+                                final digits = value.replaceAll(
+                                  RegExp(r'[^0-9]'),
+                                  '',
+                                );
+                                sats = BigInt.tryParse(digits) ?? BigInt.zero;
+                              } else {
+                                final parsed =
+                                    double.tryParse(
+                                      value.replaceAll(',', '.'),
+                                    ) ??
+                                    0;
+                                sats = BigInt.from(
+                                  (parsed * 100000000).round(),
+                                );
+                              }
+                              if (_fromAmountController.text !=
+                                  sats.toString()) {
+                                _fromAmountController.text = sats.toString();
+                              }
+                            }
+                            _isSyncingDecimal = false;
+                            _requestQuoteDebounced();
+                          },
                         ),
-                        (balance) => Text(
-                          _fromAsset.formatBalance(balance),
-                          style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
+                      ),
+                      if (!_isFiatMode) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          _fromAsset.displayUnit,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: context.colors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      );
-                    },
-                    loading:
-                        () => Text(
-                          '...',
-                          style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
-                        ),
-                    error:
-                        (err, stack) => Text(
-                          '...',
-                          style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: AppColors.textSecondary),
-                        ),
-                  );
-                },
-              ),
-            ],
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 14),
+          const _CardDivider(),
+          const SizedBox(height: 10),
+          _BalanceRow(asset: _fromAsset, isFiatMode: _isFiatMode),
         ],
       ),
     );
@@ -736,7 +773,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   // TO card
   Widget _to(BuildContext context) {
-    final currency = ref.read(currencyControllerProvider.notifier);
+    final t = AppLocalizations.of(context);
+    final currencyEnum = ref.watch(currencyControllerProvider);
     final swapState = ref.watch(swapControllerProvider);
 
     final toOptions = () {
@@ -761,211 +799,226 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       });
     }
 
+    final locale = Localizations.localeOf(context).toString();
+
     String displayToAmount() {
-      if (_fromAmountController.text.trim().isEmpty) {
-        return '0';
-      }
+      if (_fromAmountController.text.trim().isEmpty) return '0';
 
       if (_isBtcLbtcSwap) {
-        final text = _fromAmountController.text.trim();
-        final amount = BigInt.tryParse(text) ?? BigInt.zero;
-        if (_toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc) {
-          return amount.toString();
-        } else {
-          final value = amount.toDouble() / 100000000;
-          return value.toStringAsFixed(2);
-        }
+        final amount =
+            BigInt.tryParse(_fromAmountController.text.trim()) ?? BigInt.zero;
+        return _toAsset.formatAmount(amount.toInt(), locale: locale);
       }
 
       final isQuoteValid =
           swapState.lastSendAssetId == _fromAsset.id &&
           swapState.lastReceiveAssetId == _toAsset.id;
-
       if (!isQuoteValid) return '0';
 
       final amount = swapState.receiveAmount;
       if (amount == null) return '0';
-
-      if (_toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc) {
-        return amount.toString();
-      } else {
-        final value = amount / 100000000;
-        return value.toStringAsFixed(2);
-      }
+      return _toAsset.formatAmount(amount, locale: locale);
     }
 
+    // Drive shimmer / fade off the unified quote status so the
+    // receive amount stays consistent with the bottom sheet's UX.
+    // BTC↔LBTC uses Breez (not Sideswap) so it has no QuoteStatus — fall
+    // back to "valid" while the user has an amount typed in.
+    final hasFromAmount = _fromAmountController.text.trim().isNotEmpty;
+    final receiveIsFetching =
+        !_isBtcLbtcSwap &&
+        hasFromAmount &&
+        swapState.status == QuoteStatus.fetching;
+    final receiveIsRefreshing =
+        !_isBtcLbtcSwap &&
+        hasFromAmount &&
+        swapState.status == QuoteStatus.refreshing;
+
+    final theme = Theme.of(context);
+
     return Container(
-      height: 115,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
-          colors: const [Color(0xFF2D2E2A), AppColors.primaryColor],
-        ),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(1.5),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceColor,
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.all(18),
+      decoration: _swapCardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Header: label + fiat estimate ──────────────────────────
+          Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Você recebe',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  Row(
-                    children: [
-                      FutureBuilder<Either<String, double>>(
-                        future: ref.watch(fiatPriceProvider(_toAsset).future),
-                        builder: (context, snapshot) {
-                          if (_fromAmountController.text.trim().isEmpty) {
-                            return const Text('0.00');
-                          }
-
-                          final isQuoteValid =
-                              swapState.lastSendAssetId == _fromAsset.id &&
-                              swapState.lastReceiveAssetId == _toAsset.id;
-
-                          if (!isQuoteValid) {
-                            return const Text('0.00');
-                          }
-
-                          if (snapshot.hasData) {
-                            return snapshot.data!.fold(
-                              (error) => const Text('0.00'),
-                              (price) {
-                                final amount = swapState.receiveAmount ?? 0;
-                                if (amount == 0) {
-                                  return const Text('0.00');
-                                }
-                                final usd = _toAsset.toUsd(
-                                  BigInt.from(amount),
-                                  price,
-                                );
-                                return Text(
-                                  '${currency.icon}${usd.toStringAsFixed(2)}',
-                                );
-                              },
-                            );
-                          }
-                          return const Text('...');
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  SvgPicture.asset(_toAsset.iconPath, width: 25, height: 25),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _CustomAssetDropdown(
-                          value: _toAsset,
-                          items: toOptions,
-                          onChanged: (core.Asset? newAsset) async {
-                            if (newAsset != null) {
-                              await ref
-                                  .read(swapControllerProvider.notifier)
-                                  .resetQuote();
-
-                              if (!mounted) return;
-
-                              setState(() {
-                                _toAsset = newAsset;
-                                _useDrain = false;
-                                _hasCheckedBtcLbtcWarning = false;
-
-                                if (_toAsset == core.Asset.btc) {
-                                  _fromAsset = core.Asset.lbtc;
-                                }
-
-                                _fromAmountController.text = '';
-                                _fromAmountDecimalController.text = '';
-                              });
-
-                              ref.invalidate(balanceProvider(_fromAsset));
-                              ref.invalidate(balanceProvider(_toAsset));
-
-                              await _checkAndShowBtcLbtcWarning();
-                            }
-                          },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                          child: Text(
-                            displayToAmount(),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Saldo disponível:'),
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final balanceAsync = ref.watch(balanceProvider(_toAsset));
-                      return balanceAsync.when(
-                        data: (either) {
-                          return either.fold(
-                            (error) => Text(
-                              '...',
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                            (balance) => Text(
-                              _toAsset.formatBalance(balance),
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                          );
-                        },
-                        loading:
-                            () => Text(
-                              '...',
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                        error:
-                            (err, stack) => Text(
-                              '...',
-                              style: Theme.of(context).textTheme.labelLarge!
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
+              _CardLabel(t.swap_you_receive),
+              const Spacer(),
+              FutureBuilder<Either<String, double>>(
+                future: ref.watch(fiatPriceProvider(_toAsset).future),
+                builder: (context, snapshot) {
+                  final secondaryStyle = theme.textTheme.labelMedium?.copyWith(
+                    color: context.colors.textSecondary,
+                  );
+                  if (_fromAmountController.text.trim().isEmpty) {
+                    return Text('—', style: secondaryStyle);
+                  }
+                  final isQuoteValid =
+                      swapState.lastSendAssetId == _fromAsset.id &&
+                      swapState.lastReceiveAssetId == _toAsset.id;
+                  if (!isQuoteValid) {
+                    return Text('—', style: secondaryStyle);
+                  }
+                  if (!snapshot.hasData) {
+                    return Text('—', style: secondaryStyle);
+                  }
+                  return snapshot.data!.fold(
+                    (_) => Text('—', style: secondaryStyle),
+                    (price) {
+                      final amount = swapState.receiveAmount ?? 0;
+                      if (amount == 0) {
+                        return Text('—', style: secondaryStyle);
+                      }
+                      final usd = _toAsset.toUsd(BigInt.from(amount), price);
+                      return Text(
+                        '≈ ${_formatFiatFromDouble(usd, currencyEnum, withSymbol: true)}',
+                        style: secondaryStyle,
                       );
                     },
-                  ),
-                ],
+                  );
+                },
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 14),
+
+          // ── Main row: asset chip + receive amount (status-aware) ───
+          // Fixed height matches the From card so the two read as a pair.
+          SizedBox(
+            height: 36,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SvgPicture.asset(_toAsset.iconPath, width: 28, height: 28),
+                const SizedBox(width: 10),
+                _CustomAssetDropdown(
+                  value: _toAsset,
+                  items: toOptions,
+                  onChanged: (core.Asset? newAsset) async {
+                    if (newAsset == null) return;
+                    await ref
+                        .read(swapControllerProvider.notifier)
+                        .resetQuote();
+                    if (!mounted) return;
+                    setState(() {
+                      _toAsset = newAsset;
+                      _useDrain = false;
+                      _hasCheckedBtcLbtcWarning = false;
+                      if (_toAsset == core.Asset.btc) {
+                        _fromAsset = core.Asset.lbtc;
+                      }
+                      _fromAmountController.text = '';
+                      _fromAmountDecimalController.text = '';
+                    });
+                    ref.invalidate(balanceProvider(_fromAsset));
+                    ref.invalidate(balanceProvider(_toAsset));
+                    await _checkAndShowBtcLbtcWarning();
+                  },
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: AnimatedOpacity(
+                      opacity: receiveIsRefreshing ? 0.55 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child:
+                          receiveIsFetching
+                              ? Align(
+                                alignment: Alignment.centerRight,
+                                child: Shimmer.fromColors(
+                                  baseColor: context.colors.baseColor,
+                                  highlightColor: context.colors.highlightColor,
+                                  child: Container(
+                                    width: 110,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              : Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      displayToAmount(),
+                                      textAlign: TextAlign.end,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _toAsset.displayUnit,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: context.colors.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          const _CardDivider(),
+          const SizedBox(height: 10),
+          _BalanceRow(asset: _toAsset, isFiatMode: _isFiatMode),
+        ],
       ),
     );
   }
 
   String _formatRate(double? rate) {
     if (rate == null) return '...';
-    return rate.toStringAsFixed(8);
+    // Adaptive precision: very small rates need many decimals to be
+    // useful (e.g. BTC per stablecoin = 0.00001307); large rates only
+    // need a couple. Thousands separators in the integer part stay
+    // locale-aware via `NumberFormat`.
+    final String pattern;
+    if (rate < 0.0001) {
+      pattern = '#,##0.########';
+    } else if (rate < 1) {
+      pattern = '#,##0.######';
+    } else if (rate < 1000) {
+      pattern = '#,##0.####';
+    } else {
+      pattern = '#,##0.##';
+    }
+    return NumberFormat(pattern, _locale).format(rate);
+  }
+
+  /// Produces the rate text rendered in [_RateIndicator]. When the
+  /// receive asset is BTC/LBTC we express the right-hand side in sats
+  /// (e.g. `1 USDT = 1,300 SATS`) — matches how amounts are shown in
+  /// the deal cards. Otherwise the natural unit is used.
+  String _rateLineText(double? rate) {
+    if (rate == null) return '...';
+    final isReceiveBtc =
+        _toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc;
+    final scale = isReceiveBtc ? 100000000.0 : 1.0;
+    final scaled = rate * scale;
+    final formatted =
+        isReceiveBtc
+            // BTC/LBTC sats are always integer-valued for rate display —
+            // skip decimal noise like ".00".
+            ? NumberFormat('#,##0', _locale).format(scaled)
+            : _formatRate(scaled);
+    return '1 ${_fromAsset.ticker} = $formatted ${_toAsset.displayUnit}';
   }
 
   Future<void> _clearSwapFields() async {
@@ -985,8 +1038,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     try {
       if (!mounted) return;
 
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.refreshWalletData();
+      final useCase = await ref.read(refreshWalletProvider.future);
+      await useCase(strategy: SyncStrategy.light);
     } catch (e) {
       debugPrint('[Swap] Erro ao atualizar dados da carteira: $e');
     }
@@ -1047,10 +1100,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     if (!_useDrain &&
         (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats))) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Quantidade mínima é ${_minBtcLbtcSwapSats} sats'),
-          ),
+        final t = AppLocalizations.of(context);
+        AppSnackBar.warning(
+          context,
+          t.swap_min_amount_sats(_minBtcLbtcSwapSats.toString()),
         );
       }
       return;
@@ -1062,13 +1115,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       fromAsset: _fromAsset,
       toAsset: _toAsset,
       drain: _useDrain && _isBtcLbtcSwap,
+      onSuccess: _clearSwapFields,
+      onError: _clearSwapFields,
     );
-  }
-
-  bool _isNoLiquidityError(String error) {
-    return error.toLowerCase().contains('no matching orders') ||
-        error.toLowerCase().contains('matching orders') ||
-        error.toLowerCase().contains('liquidez');
   }
 
   Future<void> _checkAndShowBtcLbtcWarning() async {
@@ -1093,119 +1142,578 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
   }
 
-  void _showNoLiquidityDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: const Color(0xFF1C1C1C),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.orange.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.water_drop_outlined,
-                    size: 40,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Sem Liquidez',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'No momento não há liquidez disponível na Sideswap para realizar esta operação.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _requestQuoteDebounced();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Tentar Novamente',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(
-                      'Fechar',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[400]),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+  void _toggleFiatMode() {
+    if (_cachedFromPrice == null || _cachedFromPrice! <= 0) return;
+    setState(() {
+      _isFiatMode = !_isFiatMode;
+      _convertForModeSwitch();
+    });
+  }
+
+  void _convertForModeSwitch() {
+    final sats =
+        BigInt.tryParse(_fromAmountController.text.trim()) ?? BigInt.zero;
+
+    if (_isFiatMode) {
+      // Switching TO fiat mode: convert current sats to fiat display
+      if (sats > BigInt.zero &&
+          _cachedFromPrice != null &&
+          _cachedFromPrice! > 0) {
+        final fiatValue = _fromAsset.toUsd(sats, _cachedFromPrice!);
+        final currencyEnum = ref.read(currencyControllerProvider);
+        _fromAmountDecimalController.text = _formatFiatFromDouble(
+          fiatValue,
+          currencyEnum,
+          withSymbol: true,
         );
-      },
-    );
+      } else {
+        _fromAmountDecimalController.text = '';
+      }
+    } else {
+      // Switching TO asset mode: convert sats back to asset decimal.
+      // Programmatic `.text = ...` assignments bypass the field's
+      // `_IntegerThousandsFormatter` (formatters run on user input
+      // only), so the formatting must be reapplied here — otherwise
+      // toggling fiat off would drop the locale-aware thousands
+      // separators and the user would see "1312123" instead of
+      // "1,312,123". Mirrors the path in `_syncDecimalFromAmount`.
+      final text = _fromAmountController.text.trim();
+      if (text.isEmpty) {
+        _fromAmountDecimalController.text = '';
+      } else {
+        final amount = BigInt.tryParse(text);
+        if (amount != null && amount > BigInt.zero) {
+          final isBtcOrLbtc =
+              _fromAsset == core.Asset.btc || _fromAsset == core.Asset.lbtc;
+          if (isBtcOrLbtc) {
+            _fromAmountDecimalController.text = NumberFormat(
+              '#,##0',
+              _locale,
+            ).format(amount.toInt());
+          } else {
+            _fromAmountDecimalController.text = (amount.toDouble() / 100000000)
+                .toStringAsFixed(2);
+          }
+        } else {
+          _fromAmountDecimalController.text = '';
+        }
+      }
+    }
+  }
+
+  Future<void> _executeQuoteRequest() async {
+    if (!mounted || _isBtcLbtcSwap) return;
+
+    final amount = BigInt.tryParse(_fromAmountController.text.trim());
+
+    if (amount == null || amount <= BigInt.zero) return;
+
+    await ref
+        .read(swapControllerProvider.notifier)
+        .startQuote(
+          sendAsset: _fromAsset.id,
+          receiveAsset: _toAsset.id,
+          amount: amount,
+        );
+  }
+
+  void _requestQuote() {
+    _debounce?.cancel();
+    unawaited(_executeQuoteRequest());
   }
 
   void _requestQuoteDebounced() {
     _debounce?.cancel();
 
-    if (_isBtcLbtcSwap) {
-      return;
+    _debounce = Timer(
+      const Duration(milliseconds: 800),
+      () => unawaited(_executeQuoteRequest()),
+    );
+  }
+}
+
+/// Minimal rate indicator rendered between the To card and the confirm
+/// button. Mirrors `_ExpirationIndicator` in the confirm-swap sheet:
+/// a small filling progress ring (driven by the quote TTL) + the
+/// inline rate text + a refresh affordance. Tapping anywhere requests
+/// a fresh quote. The ring's tone color escalates with remaining time
+/// (green / amber / red) so the two screens speak the same visual
+/// language about quote freshness.
+class _RateIndicator extends StatelessWidget {
+  final int? remainingMs;
+  final int? totalMs;
+  final bool showShimmer;
+  final String rateText;
+  final Future<void> Function() onTap;
+
+  const _RateIndicator({
+    required this.remainingMs,
+    required this.totalMs,
+    required this.showShimmer,
+    required this.rateText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = _toneColor(
+      remainingMs,
+      theme.colorScheme,
+      context.appColors.warning,
+    );
+
+    // Fills from 0 → 1 as the TTL drains.
+    final progress =
+        (remainingMs == null || totalMs == null || totalMs == 0)
+            ? null
+            : (1.0 - (remainingMs! / totalMs!)).clamp(0.0, 1.0);
+    final isLoading = showShimmer || remainingMs == null;
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(),
+          borderRadius: BorderRadius.circular(999),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    value: isLoading ? null : progress,
+                    strokeWidth: 2,
+                    backgroundColor: color.withValues(alpha: 0.15),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  rateText,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w500,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.refresh_rounded, size: 14, color: color),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _toneColor(int? remainingMs, ColorScheme cs, Color warning) {
+    final r = remainingMs ?? 0;
+    if (r >= 10000) return cs.tertiary;
+    if (r >= 5000) return warning;
+    return cs.error;
+  }
+}
+
+enum _StatusTone { info, warning, error }
+
+/// Tone-aware status banner used on the swap screen for transient
+/// notices (utxo busy, insufficient balance, generic errors). Visual
+/// language mirrors the confirm-sheet's `_StaleBanner` / `_ErrorCard`
+/// for cross-screen consistency. Tone colors derive from theme tokens
+/// so light/dark both look right.
+class _StatusBanner extends StatelessWidget {
+  final _StatusTone tone;
+  final IconData icon;
+  final String message;
+
+  const _StatusBanner({
+    required this.tone,
+    required this.icon,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = switch (tone) {
+      _StatusTone.info => theme.colorScheme.primary,
+      _StatusTone.warning => context.appColors.warning,
+      _StatusTone.error => theme.colorScheme.error,
+    };
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _localeForCurrency(Currency currency) {
+  switch (currency) {
+    case Currency.brl:
+      return 'pt_BR';
+    case Currency.usd:
+      return 'en_US';
+  }
+}
+
+String _symbolForCurrency(Currency currency) {
+  switch (currency) {
+    case Currency.brl:
+      return r'R$';
+    case Currency.usd:
+      return r'$';
+  }
+}
+
+String _formatFiatFromCents(
+  BigInt cents,
+  Currency currency, {
+  bool withSymbol = false,
+}) {
+  final value = cents.toDouble() / 100.0;
+  final fmt = NumberFormat('#,##0.00', _localeForCurrency(currency));
+  final body = fmt.format(value);
+  return withSymbol ? '${_symbolForCurrency(currency)}$body' : body;
+}
+
+String _formatFiatFromDouble(
+  double value,
+  Currency currency, {
+  bool withSymbol = false,
+}) {
+  final cents = BigInt.from((value * 100).round());
+  return _formatFiatFromCents(cents, currency, withSymbol: withSymbol);
+}
+
+double _parseFiatToDouble(String text) {
+  final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return 0.0;
+  final cents = BigInt.tryParse(digits) ?? BigInt.zero;
+  return cents.toDouble() / 100.0;
+}
+
+/// Locale-aware thousands-separator formatter for integer sat amounts
+/// (used when the From field is in asset mode and the asset is BTC or
+/// LBTC). Strips non-digits from the buffer, re-formats with the
+/// active locale, and collapses the cursor to the end so editing
+/// remains predictable.
+class _IntegerThousandsFormatter extends TextInputFormatter {
+  final String locale;
+  const _IntegerThousandsFormatter(this.locale);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return const TextEditingValue(text: '');
+    final value = int.tryParse(digits) ?? 0;
+    final formatted = NumberFormat('#,##0', locale).format(value);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+class _FiatCentInputFormatter extends TextInputFormatter {
+  final Currency currency;
+
+  const _FiatCentInputFormatter(this.currency);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+    final cents = BigInt.tryParse(digits) ?? BigInt.zero;
+    final formatted = _formatFiatFromCents(cents, currency, withSymbol: true);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Shared decoration for the swap-screen From/To cards. Mirrors the
+/// `_DealCard` in [ConfirmSwapBottomSheet] (rounded surface-elevated
+/// container with theme-tuned border + per-theme shadow) so the two
+/// screens read as a single design system.
+BoxDecoration _swapCardDecoration(BuildContext context) {
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  return BoxDecoration(
+    // Dark mode: drop one elevation step so the card lands close to the
+    // scaffold tone — `surfaceContainerHighest` rendered as a too-bright
+    // gray block against the near-black scaffold. Pair with a stronger
+    // border to keep edges defined.
+    // Light mode: keep the higher elevation; the contrast is correct.
+    color:
+        isDark
+            ? theme.colorScheme.surfaceContainerHigh
+            : theme.colorScheme.surfaceContainerHighest,
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(
+      color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.75 : 0.55),
+    ),
+    // Light mode keeps a soft drop shadow; in dark mode shadows on a
+    // dark scaffold are invisible, so the elevation cue lives in the
+    // brighter border instead.
+    boxShadow:
+        isDark
+            ? null
+            : [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 3),
+              ),
+            ],
+  );
+}
+
+/// Small uppercase label rendered at the top of a swap card (e.g.
+/// "VOCÊ ENVIA"). Matches the `_AmountRow` label treatment in the
+/// confirm sheet.
+class _CardLabel extends StatelessWidget {
+  final String text;
+  const _CardLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: context.colors.textSecondary,
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class _BalanceRow extends ConsumerWidget {
+  final core.Asset asset;
+
+  /// When `true`, the available balance is rendered in the active fiat
+  /// currency (mirroring the From/To amount fields). Falls back to the
+  /// asset amount when no quote is available so the row never blanks out.
+  final bool isFiatMode;
+  const _BalanceRow({required this.asset, this.isFiatMode = false});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final balanceAsync = ref.watch(balanceProvider(asset));
+    final locale = Localizations.localeOf(context).toString();
+    final labelStyle = theme.textTheme.labelMedium?.copyWith(
+      color: context.colors.textTertiary,
+    );
+    final valueStyle = theme.textTheme.labelMedium?.copyWith(
+      color: context.colors.textSecondary,
+      fontWeight: FontWeight.w600,
+    );
+
+    // Only subscribe to the quote/currency in fiat mode so asset-mode rows
+    // don't rebuild on every price tick.
+    final currency = isFiatMode ? ref.watch(currencyControllerProvider) : null;
+    final fiatPrice =
+        isFiatMode
+            ? ref.watch(fiatPriceProvider(asset)).valueOrNull?.toNullable()
+            : null;
+
+    String body(BigInt balance) {
+      if (currency != null && fiatPrice != null && fiatPrice > 0) {
+        return _formatFiatFromDouble(
+          asset.toUsd(balance, fiatPrice),
+          currency,
+          withSymbol: true,
+        );
+      }
+      return '${asset.formatAmount(balance.toInt(), locale: locale)} ${asset.displayUnit}';
     }
 
-    _debounce = Timer(const Duration(milliseconds: 800), () async {
-      if (!mounted) return;
-      final controller = ref.read(swapControllerProvider.notifier);
-      final text = _fromAmountController.text.trim();
-      final amount = BigInt.tryParse(text);
-      if (amount == null || amount <= BigInt.zero) return;
-      await controller.startQuote(
-        sendAsset: _fromAsset.id,
-        receiveAsset: _toAsset.id,
-        amount: amount,
-      );
-    });
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(t.wallet_balance_available, style: labelStyle),
+        balanceAsync.when(
+          skipLoadingOnReload: true,
+          data:
+              (either) => either.fold(
+                (_) => Text('—', style: valueStyle),
+                (balance) => Text(body(balance), style: valueStyle),
+              ),
+          loading: () => Text('—', style: valueStyle),
+          error: (_, _) => Text('—', style: valueStyle),
+        ),
+      ],
+    );
+  }
+}
+
+/// Thin divider used inside swap cards. Tunes alpha per theme to land
+/// at the same perceived weight in light and dark.
+class _CardDivider extends StatelessWidget {
+  const _CardDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final alpha = theme.brightness == Brightness.dark ? 0.65 : 0.45;
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: theme.colorScheme.outline.withValues(alpha: alpha),
+    );
+  }
+}
+
+/// Tappable swap-direction toggle rendered between the From and To
+/// cards. Uses the brand SVG icon (`assets/icons/menu/swap.svg`) inside
+/// a generous tap target — preferred over Material's
+/// `Icons.swap_vert_rounded` because it carries the app's visual
+/// language.
+/// Visual separator rendered between the From and To cards.
+///
+/// Layout mirrors the internal divider inside the bottom-sheet deal
+/// card: a horizontal hairline on each side of a primary-tinted
+/// circular chip that carries the brand SVG swap icon. Tapping the
+/// whole strip swaps the asset direction — the chip itself is the
+/// obvious affordance but the full row is the hit target so the user
+/// doesn't have to aim precisely.
+///
+/// On every tap the chip bounces (scale 1.0 → 0.85 → 1.0) and the
+/// inner icon rotates an additional 180°. Consecutive taps accumulate
+/// turns so the spin keeps the same direction rather than snapping
+/// back, which reinforces the "swap happened" gesture.
+class _SwapDirectionChip extends StatefulWidget {
+  final VoidCallback onTap;
+  const _SwapDirectionChip({required this.onTap});
+
+  @override
+  State<_SwapDirectionChip> createState() => _SwapDirectionChipState();
+}
+
+class _SwapDirectionChipState extends State<_SwapDirectionChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  Animation<double> _turns = const AlwaysStoppedAnimation<double>(0);
+  Animation<double> _scale = const AlwaysStoppedAnimation<double>(1);
+  double _accumulatedTurns = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    final start = _accumulatedTurns;
+    _accumulatedTurns += 0.5;
+    _turns = Tween<double>(
+      begin: start,
+      end: _accumulatedTurns,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.85,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 35,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.85,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 65,
+      ),
+    ]).animate(_controller);
+    _controller
+      ..reset()
+      ..forward();
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dividerColor = theme.colorScheme.outline;
+
+    return GestureDetector(
+      onTap: _handleTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            // Expanded(child: Divider(color: dividerColor, height: 1)),
+            Expanded(child: Divider(color: dividerColor, height: 8)),
+            const SizedBox(width: 12),
+            ScaleTransition(
+              scale: _scale,
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.32),
+                    width: 1,
+                  ),
+                ),
+                child: RotationTransition(
+                  turns: _turns,
+                  child: const _SwapIcon(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Divider(color: dividerColor, height: 8)),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1214,7 +1722,65 @@ class _SwapIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset('assets/icons/menu/swap.svg');
+    return SvgPicture.asset(
+      'assets/icons/menu/swap.svg',
+      width: 18,
+      height: 18,
+    );
+  }
+}
+
+class _FiatModeSwitch extends StatelessWidget {
+  final bool isFiatMode;
+  final String currencyIcon;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  const _FiatModeSwitch({
+    required this.isFiatMode,
+    required this.currencyIcon,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor =
+        !enabled
+            ? context.colors.textTertiary
+            : isFiatMode
+            ? context.colors.primaryColor
+            : context.colors.textSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            style: Theme.of(context).textTheme.labelLarge!.copyWith(
+              color: labelColor,
+              fontWeight: FontWeight.w600,
+            ),
+            child: Text(currencyIcon),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 44,
+            height: 28,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: Switch.adaptive(
+                value: isFiatMode,
+                onChanged: enabled ? onChanged : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1300,11 +1866,11 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                     child: Material(
                       elevation: 4.0,
                       borderRadius: BorderRadius.circular(8),
-                      color: AppColors.backgroundColor,
+                      color: context.colors.backgroundColor,
                       child: Container(
                         width: dropdownWidth,
                         constraints: BoxConstraints(
-                          maxHeight: maxHeight > 0 ? maxHeight : 100,
+                          maxHeight: maxHeight > 0 ? maxHeight + 10 : 100,
                         ),
                         child: ListView(
                           padding: EdgeInsets.zero,
@@ -1317,7 +1883,7 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                                     _closeDropdown();
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                       horizontal: 12,
                                       vertical: 12,
                                     ),
@@ -1334,7 +1900,6 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                                           child: Text(
                                             asset.ticker,
                                             style: const TextStyle(
-                                              color: Colors.white,
                                               fontSize: 16,
                                             ),
                                             overflow: TextOverflow.ellipsis,

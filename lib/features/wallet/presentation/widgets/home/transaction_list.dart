@@ -2,42 +2,89 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/pending_swap_item.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/utils/transaction_formatters.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/utils/transaction_formatters.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
 
-class TransactionList extends ConsumerWidget {
+class TransactionList extends ConsumerStatefulWidget {
   const TransactionList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(dataRefreshTriggerProvider);
-    final transactionState = ref.watch(transactionHistoryCacheProvider);
-    final isVisible = ref.watch(isVisibleProvider);
+  ConsumerState<TransactionList> createState() => _TransactionListState();
+}
 
-    if (transactionState.transactions == null && !transactionState.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(transactionHistoryCacheProvider.notifier)
-            .fetchTransactionsInitial();
+class _TransactionListState extends ConsumerState<TransactionList> {
+  // Captured at first paint so we don't spam the trace with a mark per
+  // rebuild. Use cases: distinguish "first time home renders txs" from
+  // ongoing stream-driven rebuilds.
+  bool _markedFirstPaint = false;
+  int? _markedLength;
+
+  void _onPaint(int len, {required String source}) {
+    if (!_markedFirstPaint) {
+      _markedFirstPaint = true;
+      BootTracer.mark('home.tx_list.first_paint', {
+        'len': len,
+        'source': source,
+      });
+    } else if (_markedLength != len) {
+      BootTracer.mark('home.tx_list.length_change', {
+        'len': len,
+        'prev': _markedLength,
+        'source': source,
       });
     }
+    _markedLength = len;
+  }
 
-    if (transactionState.transactions == null) {
-      return LoadingTransactionList();
-    }
+  @override
+  Widget build(BuildContext context) {
+    final transactionsAsync = ref.watch(v2LegacyTransactionsProvider);
+    final isVisible = ref.watch(isVisibleProvider);
+    final pendingSwaps = ref.watch(pendingSwapsProvider);
+    // Side-effect provider — drops optimistic rows once the persisted
+    // store catches up. Watching here keeps the listener alive for
+    // the lifetime of the home screen.
+    ref.watch(pendingSwapsReconciliationProvider);
 
-    return transactionState.transactions!.fold(
-      (err) => ErrorTransactionList(),
-      (transactions) {
-        return SuccessfulTransactionList(
+    return transactionsAsync.when(
+      loading: () {
+        if (pendingSwaps.isEmpty) {
+          return const LoadingTransactionList();
+        }
+        _onPaint(pendingSwaps.length, source: 'loading+pending');
+        return _TransactionListBody(
+          transactions: const [],
+          pendingSwaps: pendingSwaps,
+          isVisible: isVisible,
+        );
+      },
+      error: (err, _) {
+        if (pendingSwaps.isEmpty) {
+          return const ErrorTransactionList();
+        }
+        _onPaint(pendingSwaps.length, source: 'error+pending');
+        return _TransactionListBody(
+          transactions: const [],
+          pendingSwaps: pendingSwaps,
+          isVisible: isVisible,
+        );
+      },
+      data: (transactions) {
+        _onPaint(transactions.length + pendingSwaps.length, source: 'data');
+        return _TransactionListBody(
           transactions: transactions,
+          pendingSwaps: pendingSwaps,
           isVisible: isVisible,
         );
       },
@@ -45,14 +92,113 @@ class TransactionList extends ConsumerWidget {
   }
 }
 
+class _TransactionListBody extends StatelessWidget {
+  final List<Transaction> transactions;
+  final List<PendingSwap> pendingSwaps;
+  final bool isVisible;
+
+  const _TransactionListBody({
+    required this.transactions,
+    required this.pendingSwaps,
+    required this.isVisible,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // While an optimistic peg-in/out row is alive, hide the raw send
+    // leg that belongs to it from the persisted list — otherwise the
+    // user briefly sees two rows for the same operation (the
+    // animated optimistic card + a plain "BTC sent" / "LBTC sent"
+    // entry) for the ~minutes-to-hours gap between the lockup tx
+    // appearing and the unifier pairing both legs.
+    final filtered = _hideInFlightLegs(transactions, pendingSwaps);
+
+    if (pendingSwaps.isEmpty && filtered.isEmpty) {
+      return const EmptyTransactionList();
+    }
+
+    return Column(
+      children: [
+        for (final swap in pendingSwaps) PendingSwapItem(swap: swap),
+        if (filtered.isNotEmpty)
+          SuccessfulTransactionList(
+            transactions: filtered,
+            isVisible: isVisible,
+            // Home preview: cap at 5 most-recent rows. The full list
+            // lives on `/transactions-history`. Without this cap a
+            // 218-tx wallet builds ~545ms of off-screen rows on every
+            // first paint of /home — a measured UI-thread block.
+            limit: 5,
+          ),
+      ],
+    );
+  }
+}
+
+
+bool _isRefundedBtcPeg(Transaction tx) {
+  final from = tx.fromAsset;
+  final to = tx.toAsset;
+  if (from == null || to == null) return false;
+  if (from != to) return false;
+  if (from != Asset.btc) return false;
+  if (tx.blockchain != Blockchain.bitcoin) return false;
+  if (tx.sendBlockchain != null && tx.sendBlockchain != Blockchain.bitcoin) {
+    return false;
+  }
+  if (tx.receiveBlockchain != null &&
+      tx.receiveBlockchain != Blockchain.bitcoin) {
+    return false;
+  }
+  return true;
+}
+
+List<Transaction> _hideInFlightLegs(
+  List<Transaction> persisted,
+  List<PendingSwap> pendingSwaps,
+) {
+  if (pendingSwaps.isEmpty || persisted.isEmpty) return persisted;
+
+  final lockupTxIds = <String>{};
+  for (final p in pendingSwaps) {
+    final id = p.breezTxId;
+    if (id != null) lockupTxIds.add(id);
+  }
+  if (lockupTxIds.isEmpty) return persisted;
+
+  return [
+    for (final t in persisted)
+      if (!lockupTxIds.contains(t.id) &&
+          !(t.sendTxId != null && lockupTxIds.contains(t.sendTxId)) &&
+          !(t.receiveTxId != null && lockupTxIds.contains(t.receiveTxId)))
+        t,
+  ];
+}
+
 class SuccessfulTransactionList extends ConsumerWidget {
   final List<Transaction> transactions;
   final bool isVisible;
+
+  /// Maximum number of rows to render. When non-null, only the first
+  /// `limit` transactions of [transactions] are built; the rest are
+  /// ignored. Caller is responsible for ordering [transactions] by
+  /// recency so the surfaced subset is the most useful slice.
+  ///
+  /// Rationale: the home screen renders this list inside a
+  /// `SingleChildScrollView` (no virtualization). Without a cap, a
+  /// wallet with 218 historical txs paid ~545ms of UI-thread layout
+  /// on first paint just to materialize rows the user couldn't see
+  /// without scrolling. Passing `limit: 5` on the home keeps the
+  /// "preview" cheap and the full list lives on
+  /// `/transactions-history`, which has its own pull-to-refresh and
+  /// filter UI for the long-tail use case.
+  final int? limit;
 
   const SuccessfulTransactionList({
     super.key,
     required this.transactions,
     required this.isVisible,
+    this.limit,
   });
 
   @override
@@ -61,21 +207,27 @@ class SuccessfulTransactionList extends ConsumerWidget {
       return EmptyTransactionList();
     }
 
+    final t = AppLocalizations.of(context);
+    final lim = limit;
+    final source =
+        (lim != null && transactions.length > lim)
+            ? transactions.sublist(0, lim)
+            : transactions;
+
     return Column(
       children:
-          transactions.map((transaction) {
+          source.map((transaction) {
             final amountStr = TransactionValueFormatter.formatTransactionValue(
               transaction: transaction,
             );
-
             return GestureDetector(
               onTap: () {
                 context.push('/transactions/details', extra: transaction);
               },
               child: HomeTransactionItem(
                 icon: transaction.asset.iconPath,
-                title: _getTransactionTitle(transaction),
-                subtitle: _getTransactionSubtitle(transaction),
+                title: _getTransactionTitle(t, transaction),
+                subtitle: _getTransactionSubtitle(t, transaction),
                 value: amountStr,
                 time: _formatTime(transaction),
                 isVisible: isVisible,
@@ -86,54 +238,70 @@ class SuccessfulTransactionList extends ConsumerWidget {
     );
   }
 
-  String _getTransactionTitle(Transaction transaction) {
+  String _getTransactionTitle(AppLocalizations t, Transaction transaction) {
     if (transaction.fromAsset != null &&
         transaction.toAsset != null &&
         transaction.sentAmount != null &&
         transaction.receivedAmount != null) {
-      return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+      // Same-asset swap = a refunded peg attempt: the conversion
+      // never completed; the funds came back (minus the swap-service
+      // refund fee). Render it as a refund instead of as a regular
+      // swap so the user can tell at a glance.
+      if (_isRefundedBtcPeg(transaction)) {
+        return 'Refunded ${transaction.asset.ticker} swap';
+      }
+      return t.wallet_tx_swap_pair(
+        transaction.fromAsset!.ticker,
+        transaction.toAsset!.ticker,
+      );
     }
 
     if (transaction.type == TransactionType.send &&
         transaction.asset == Asset.usdt) {
-      return "Enviou ${transaction.asset.ticker}";
+      return t.wallet_tx_sent(transaction.asset.ticker);
     }
 
     if (transaction.type == TransactionType.receive &&
         transaction.asset == Asset.lbtc) {
-      return "Recebeu ${transaction.asset.ticker}";
+      return t.wallet_tx_received(transaction.asset.ticker);
     }
 
     switch (transaction.type) {
       case TransactionType.send:
-        return "Enviou ${transaction.asset.ticker}";
+        return t.wallet_tx_sent(transaction.asset.ticker);
       case TransactionType.receive:
-        return "Recebeu ${transaction.asset.ticker}";
+        return t.wallet_tx_received(transaction.asset.ticker);
       case TransactionType.swap:
-        return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+        return t.wallet_tx_swap_pair(
+          transaction.fromAsset!.ticker,
+          transaction.toAsset!.ticker,
+        );
       case TransactionType.submarine:
-        return "Swap: ${transaction.fromAsset!.ticker} para ${transaction.toAsset!.ticker}";
+        return t.wallet_tx_swap_pair(
+          transaction.fromAsset!.ticker,
+          transaction.toAsset!.ticker,
+        );
       case TransactionType.redeposit:
-        return "Autodepositou ${transaction.asset.ticker}";
+        return t.wallet_tx_redeposit(transaction.asset.ticker);
       case TransactionType.unknown:
-        return "Unknown transaction type";
+        return t.wallet_tx_unknown;
     }
   }
 
-  String _getTransactionSubtitle(Transaction transaction) {
-    return _getStatusText(transaction.status);
+  String _getTransactionSubtitle(AppLocalizations t, Transaction transaction) {
+    return _getStatusText(t, transaction.status);
   }
 
-  String _getStatusText(TransactionStatus status) {
+  String _getStatusText(AppLocalizations t, TransactionStatus status) {
     switch (status) {
       case TransactionStatus.pending:
-        return "Pendente";
+        return t.tx_status_pending;
       case TransactionStatus.confirmed:
-        return "Confirmado";
+        return t.tx_status_confirmed;
       case TransactionStatus.failed:
-        return "Falhou";
+        return t.tx_status_failed;
       case TransactionStatus.refundable:
-        return "Reembolsável";
+        return t.tx_status_refundable;
     }
   }
 
@@ -148,8 +316,8 @@ class LoadingTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Column(
       children: List.generate(
@@ -246,6 +414,7 @@ class ErrorTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -253,12 +422,12 @@ class ErrorTransactionList extends StatelessWidget {
           Icon(Icons.error_outline, color: Colors.grey, size: 48),
           SizedBox(height: 12),
           Text(
-            "Unable to load transactions",
+            t.wallet_tx_load_error_title,
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
           SizedBox(height: 8),
           Text(
-            "Please try again later",
+            t.wallet_tx_load_error_retry,
             style: TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
         ],
@@ -272,6 +441,7 @@ class EmptyTransactionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -291,18 +461,14 @@ class EmptyTransactionList extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            "Nenhuma transação encontrada",
-            style: TextStyle(
-              color: Colors.blueGrey[100],
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            t.wallet_tx_empty_title,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
-            "Seu histórico de transações aparecerá aqui assim que você realizar alguma movimentação.",
-            style: TextStyle(color: Colors.grey[400], fontSize: 15),
+            t.wallet_tx_empty_body,
+            style: TextStyle(fontSize: 15),
             textAlign: TextAlign.center,
           ),
         ],
@@ -352,6 +518,8 @@ class HomeTransactionItem extends StatelessWidget {
         (transaction?.status == TransactionStatus.refundable ||
             transaction?.status == TransactionStatus.failed);
 
+    final isLightning = transaction?.blockchain == Blockchain.lightning;
+
     return Container(
       color: Colors.transparent,
       padding: EdgeInsets.symmetric(vertical: 5),
@@ -366,20 +534,27 @@ class HomeTransactionItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium!.copyWith(color: Colors.white),
-                ),
+                Text(title, style: Theme.of(context).textTheme.bodyMedium),
                 SizedBox(height: 4),
                 if (hasSwapDetails)
-                  _buildSwapSubtitle()
+                  _buildSwapSubtitle(context)
+                else if (isLightning)
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          subtitle,
+                          style: const TextStyle(fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const _LightningTag(),
+                    ],
+                  )
                 else
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                  ),
+                  Text(subtitle, style: TextStyle(fontSize: 14)),
               ],
             ),
           ),
@@ -397,17 +572,14 @@ class HomeTransactionItem extends StatelessWidget {
                 style: TextStyle(
                   color:
                       isVisible
-                          ? Colors.white
-                          : (value.contains('-') ? Colors.red : Colors.white),
+                          ? null
+                          : (value.contains('-') ? Colors.red : null),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: 4),
-              Text(
-                time,
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
+              Text(time, style: TextStyle(fontSize: 12)),
             ],
           ),
         ],
@@ -416,6 +588,45 @@ class HomeTransactionItem extends StatelessWidget {
   }
 
   Widget _buildSwapIcon() {
+    final isRefund = _isRefundedBtcPeg(transaction!);
+    if (isRefund) {
+      return SizedBox(
+        width: 50,
+        height: 50,
+        child: Stack(
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SvgPicture.asset(
+                  transaction!.fromAsset!.iconPath,
+                  width: 40,
+                  height: 40,
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.orangeAccent,
+                ),
+                child: const Icon(
+                  Icons.assignment_return,
+                  size: 12,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SizedBox(
       width: 50,
       height: 50,
@@ -458,18 +669,15 @@ class HomeTransactionItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSwapSubtitle() {
+  Widget _buildSwapSubtitle(BuildContext context) {
     if (transaction?.status == TransactionStatus.refundable ||
         transaction?.status == TransactionStatus.failed) {
-      return Text(
-        subtitle,
-        style: TextStyle(color: Colors.grey[400], fontSize: 14),
-      );
+      return Text(subtitle, style: TextStyle(fontSize: 14));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(subtitle, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+        Text(subtitle, style: TextStyle(fontSize: 14)),
         if (!isVisible &&
             transaction?.sentAmount != null &&
             transaction?.receivedAmount != null)
@@ -484,7 +692,7 @@ class HomeTransactionItem extends StatelessWidget {
                   transaction!.fromAsset!,
                   transaction!.sentAmount!,
                 ),
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                style: TextStyle(fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -493,7 +701,7 @@ class HomeTransactionItem extends StatelessWidget {
                 "assets/icons/menu/navigation/swap.svg",
                 width: 12,
                 height: 12,
-                color: AppColors.primaryColor,
+                color: context.colors.primaryColor,
               ),
               SizedBox(width: 4),
               Text(
@@ -501,7 +709,7 @@ class HomeTransactionItem extends StatelessWidget {
                   transaction!.toAsset!,
                   transaction!.receivedAmount!,
                 ),
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                style: TextStyle(fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -523,5 +731,38 @@ class HomeTransactionItem extends StatelessWidget {
     }
 
     return asset.formatBalance(amount);
+  }
+}
+
+class _LightningTag extends StatelessWidget {
+  const _LightningTag();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.appColors.warning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color, width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bolt, size: 12, color: color),
+          const SizedBox(width: 2),
+          Text(
+            'LN',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

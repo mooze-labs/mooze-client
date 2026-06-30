@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class FloatingLabelDropdown<T> extends StatefulWidget {
   final String label;
@@ -8,8 +8,8 @@ class FloatingLabelDropdown<T> extends StatefulWidget {
   final ValueChanged<T?> onChanged;
   final Widget Function(T) itemIconBuilder;
   final String Function(T) itemLabelBuilder;
-  final Color borderColor;
-  final Color backgroundColor;
+  final Color? borderColor;
+  final Color? backgroundColor;
 
   const FloatingLabelDropdown({
     super.key,
@@ -19,8 +19,8 @@ class FloatingLabelDropdown<T> extends StatefulWidget {
     required this.onChanged,
     required this.itemIconBuilder,
     required this.itemLabelBuilder,
-    this.borderColor = AppColors.primaryColor,
-    this.backgroundColor = AppColors.backgroundColor,
+    this.borderColor,
+    this.backgroundColor,
   });
 
   @override
@@ -51,17 +51,13 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
   void _openDropdown() {
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
-    setState(() {
-      _isOpen = true;
-    });
+    setState(() => _isOpen = true);
   }
 
   void _closeDropdown() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() {
-      _isOpen = false;
-    });
+    setState(() => _isOpen = false);
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -87,9 +83,11 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                       child: Material(
                         elevation: 4.0,
                         borderRadius: BorderRadius.circular(8),
-                        color: Color(0xFF2A2A2A),
+                        color:
+                            widget.backgroundColor ??
+                            Theme.of(context).colorScheme.surfaceContainerLow,
                         child: Container(
-                          constraints: BoxConstraints(maxHeight: 300),
+                          constraints: const BoxConstraints(maxHeight: 300),
                           child: ListView(
                             padding: EdgeInsets.zero,
                             shrinkWrap: true,
@@ -101,7 +99,7 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                                       _closeDropdown();
                                     },
                                     child: Container(
-                                      padding: EdgeInsets.symmetric(
+                                      padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 8,
                                       ),
@@ -116,11 +114,10 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
                                             ),
                                             child: widget.itemIconBuilder(item),
                                           ),
-                                          SizedBox(width: 12),
+                                          const SizedBox(width: 12),
                                           Text(
                                             widget.itemLabelBuilder(item),
-                                            style: TextStyle(
-                                              color: Colors.white,
+                                            style: const TextStyle(
                                               fontSize: 16,
                                             ),
                                           ),
@@ -143,59 +140,69 @@ class _FloatingLabelDropdownState<T> extends State<FloatingLabelDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedBorderColor =
+        widget.borderColor ?? context.colors.primaryColor;
+    final resolvedBackgroundColor =
+        widget.backgroundColor ?? context.colorScheme.surfaceContainerLow;
+
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: resolvedBorderColor),
+    );
+
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: resolvedBorderColor, width: 2),
+    );
+
     return CompositedTransformTarget(
       link: _layerLink,
-      child: Stack(
-        children: [
-          Container(
-            key: _key,
-            margin: EdgeInsets.only(top: 8),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: widget.borderColor, width: 1),
-              borderRadius: BorderRadius.circular(8),
+      // The key sits here so the overlay can measure the full decorated height.
+      child: Container(
+        key: _key,
+        child: InputDecorator(
+          // isFocused drives the focused border style while the dropdown is open.
+          isFocused: _isOpen,
+          // isEmpty: false keeps the label always floated — correct for dropdowns
+          // because the field is never in an "empty unfocused" text-input state.
+          isEmpty: false,
+          decoration: InputDecoration(
+            labelText: widget.label,
+            filled: true,
+            fillColor: resolvedBackgroundColor,
+            border: border,
+            enabledBorder: border,
+            focusedBorder: focusedBorder,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
             ),
-            child: InkWell(
-              onTap: _toggleDropdown,
-              child: Row(
-                children: [
-                  if (widget.value != null) ...[
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: widget.itemIconBuilder(widget.value as T),
+          ),
+          child: InkWell(
+            onTap: _toggleDropdown,
+            child: Row(
+              children: [
+                if (widget.value != null) ...[
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    SizedBox(width: 12),
-                    Text(
-                      widget.itemLabelBuilder(widget.value as T),
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ],
-                  Spacer(),
-                  Icon(
-                    _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    color: Colors.white,
+                    child: widget.itemIconBuilder(widget.value as T),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.itemLabelBuilder(widget.value as T),
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ],
-              ),
+                const Spacer(),
+                Icon(_isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down),
+              ],
             ),
           ),
-          Positioned(
-            left: 12,
-            top: 0,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 4),
-              color: widget.backgroundColor,
-              child: Text(
-                widget.label,
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

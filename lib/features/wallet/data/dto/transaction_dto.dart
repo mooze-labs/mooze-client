@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
@@ -35,6 +36,7 @@ class BreezTransactionDto {
   });
 
   factory BreezTransactionDto.fromSdk({required Payment payment}) {
+    _debugDumpPayment(payment);
     final asset = switch (payment.details) {
       PaymentDetails_Lightning() => Asset.lbtc,
       PaymentDetails_Bitcoin() => Asset.btc,
@@ -179,6 +181,7 @@ class BreezTransactionDto {
       receiveTxId: receiveTxId,
       sendBlockchain: sendBlockchain,
       receiveBlockchain: receiveBlockchain,
+      feesSat: fees,
     );
   }
 
@@ -272,4 +275,45 @@ class BreezTransactionDto {
 
     throw Exception('Unknown payment details type');
   }
+}
+
+/// Dumps a raw Breez Payment to the console (debug builds only).
+///
+/// Tag: `[BREEZ-TX]`. Filter the log feed with `flutter logs | grep
+/// BREEZ-TX` (or just grep the IDE console) to see every payment as
+/// it leaves the SDK and enters the legacy domain mapping path.
+///
+/// Includes the swap id and per-detail-type extras (claim/lockup/
+/// refund tx ids for chain swaps; preimage for lightning; asset id
+/// for Liquid) so you can correlate a refundable swap end-to-end —
+/// from `PaymentState.refundable` here, through the
+/// `listRefundableSwaps()` poll, to the `markRefundable` transition
+/// in the home list.
+void _debugDumpPayment(Payment p) {
+  if (!kDebugMode) return;
+  final d = p.details;
+  String detailsLine;
+  if (d is PaymentDetails_Bitcoin) {
+    detailsLine =
+        'Bitcoin{swapId=${d.swapId}, addr=${d.bitcoinAddress}, '
+        'lockupTx=${d.lockupTxId}, claimTx=${d.claimTxId}, '
+        'refundTx=${d.refundTxId}, refundAmtSat=${d.refundTxAmountSat}}';
+  } else if (d is PaymentDetails_Lightning) {
+    detailsLine = 'Lightning{swapId=${d.swapId}, '
+        'invoice=${d.invoice?.substring(0, (d.invoice?.length ?? 0).clamp(0, 20))}…, '
+        'preimage=${d.preimage}, claimTx=${d.claimTxId}, '
+        'refundTx=${d.refundTxId}}';
+  } else if (d is PaymentDetails_Liquid) {
+    detailsLine =
+        'Liquid{dest=${d.destination}, assetId=${d.assetId}}';
+  } else {
+    detailsLine = 'unknown(${d.runtimeType})';
+  }
+
+  debugPrint(
+    '[BREEZ-TX] state=${p.status.name} type=${p.paymentType.name} '
+    'amountSat=${p.amountSat} feesSat=${p.feesSat} '
+    'txId=${p.txId} ts=${p.timestamp} '
+    'details=$detailsLine',
+  );
 }

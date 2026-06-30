@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class MnemonicGridDisplay extends StatelessWidget {
   final String mnemonic;
@@ -69,11 +69,12 @@ class MnemonicGridDisplay extends StatelessWidget {
 
   Widget _buildWordCard(int number, String word, BuildContext context) {
     final theme = Theme.of(context).textTheme.labelLarge;
-
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.recoveryPhraseBackground,
-        borderRadius: BorderRadius.circular(8.0),
+        color: colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1)),
       ),
       child: Center(
         child: RichText(
@@ -82,7 +83,7 @@ class MnemonicGridDisplay extends StatelessWidget {
             children: [
               TextSpan(
                 text: '$number. ',
-                style: theme?.copyWith(color: AppColors.textQuintary),
+                style: theme?.copyWith(color: context.colors.textQuintary),
               ),
               TextSpan(text: word, style: theme),
             ],

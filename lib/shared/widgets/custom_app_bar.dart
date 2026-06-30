@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final InlineSpan title;
@@ -16,14 +16,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.backgroundColor,
+      backgroundColor: context.colors.backgroundColor,
       elevation: 0,
       title: RichText(text: title),
       centerTitle: true,
       leading: IconButton(
         icon: Icon(
           Icons.arrow_back_ios_new_rounded,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         ),
         onPressed: onBack ?? () => Navigator.pop(context),
       ),

@@ -45,14 +45,17 @@ class CachedPriceService extends PriceService {
     Asset asset,
     Currency currency,
   ) {
-    return _cacheService
-        .getValidCachedPrice(asset, currency)
-        .flatMap(
-          (validCacheOption) => validCacheOption.fold(
-            () => _cacheService.getEmergencyCachedPrice(asset, currency),
-            (cachedPrice) => TaskEither.right(Option.of(cachedPrice)),
+    return _cacheService.getValidCachedPrice(asset, currency).flatMap(
+      (validOpt) => validOpt.fold(
+        () => _cacheService.getEmergencyCachedPrice(asset, currency).flatMap(
+          (emergOpt) => emergOpt.fold(
+            () => _cacheService.getAnyCachedPrice(asset, currency),
+            (price) => TaskEither.right(Option.of(price)),
           ),
-        );
+        ),
+        (price) => TaskEither.right(Option.of(price)),
+      ),
+    );
   }
 
   TaskEither<String, Unit> _saveToCache(

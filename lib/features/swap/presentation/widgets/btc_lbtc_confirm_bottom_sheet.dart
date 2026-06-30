@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -10,13 +10,16 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_sele
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/controllers/btc_lbtc_swap_controller.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
   final bool isPegIn;
   final BtcLbtcSwapController controller;
-  final Future<void> Function(int? feeRateSatPerVByte) onConfirm;
+  final Future<void> Function(int? feeRateSatPerVByte, BigInt totalFeeSat)
+  onConfirm;
   final VoidCallback? onCancel;
   final bool drain;
 
@@ -35,7 +38,8 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     required BigInt amount,
     required bool isPegIn,
     required BtcLbtcSwapController controller,
-    required Future<void> Function(int? feeRateSatPerVByte) onConfirm,
+    required Future<void> Function(int? feeRateSatPerVByte, BigInt totalFeeSat)
+    onConfirm,
     VoidCallback? onCancel,
     bool drain = false,
   }) {
@@ -64,6 +68,7 @@ class _BtcLbtcConfirmBottomSheetState
     extends ConsumerState<BtcLbtcConfirmBottomSheet> {
   bool _isConfirming = false;
   bool _isLoadingFees = true;
+  bool _feesExpanded = false;
   FeeSpeed _selectedFeeSpeed = FeeSpeed.medium;
   BitcoinFeeEstimate? _feeEstimate;
   BtcLbtcFeeEstimate? _currentFeeEstimate;
@@ -194,7 +199,7 @@ class _BtcLbtcConfirmBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final amountBtc = widget.amount.toDouble() / 100000000;
+    final t = AppLocalizations.of(context);
     final fromAsset = widget.isPegIn ? core.Asset.btc : core.Asset.lbtc;
     final toAsset = widget.isPegIn ? core.Asset.lbtc : core.Asset.btc;
 
@@ -202,72 +207,85 @@ class _BtcLbtcConfirmBottomSheetState
     final networkFeeSat = _currentFeeEstimate?.networkFeeSat ?? BigInt.zero;
     final totalFeeSat = _currentFeeEstimate?.totalFeeSat ?? BigInt.zero;
 
-    final totalFeeBtc = totalFeeSat.toDouble() / 100000000;
-    final receivedAmount = amountBtc - totalFeeBtc;
+    // Deal-card amounts: send is the user's input (known immediately);
+    // receive is send minus total fees, but only once fees have been
+    // estimated. While fees are loading, pass null so the card shimmers
+    // the receive amount — matching the regular confirm sheet's UX.
+    final sendAmountSats = widget.amount.toInt();
+    final receiveAmountSats =
+        _isLoadingFees ? null : (widget.amount - totalFeeSat).toInt();
 
     return PlatformSafeArea(
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.9,
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height * 0.5,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1C1C1C),
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Center(
               child: Text(
-                'Confirmar Swap',
+                t.swap_confirm_title,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    _fromToSummary(
-                      context,
-                      fromAsset,
-                      toAsset,
-                      amountBtc,
-                      receivedAmount,
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  SwapDealCard(
+                    sendAsset: fromAsset,
+                    sendAmountSats: sendAmountSats,
+                    receiveAsset: toAsset,
+                    receiveAmountSats: receiveAmountSats,
+                    isLoadingReceive: _isLoadingFees,
+                    sendLabel: t.swap_you_send,
+                    receiveLabel: t.swap_you_receive,
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  if (_feeEstimate != null) ...[
+                    FeeSpeedSelector(
+                      selectedSpeed: _selectedFeeSpeed,
+                      lowFeeLoading: false,
+                      onSpeedChanged: _onFeeSpeedChanged,
+                      lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
+                      mediumFeeSatPerVByte: _feeEstimate!.mediumFeeSatPerVByte,
+                      fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Divider(),
+                    const SizedBox(height: 8),
+                  ] else ...[
+                    _buildFeeSpeedSelectorSkeleton(),
                     const SizedBox(height: 16),
-                    if (_feeEstimate != null) ...[
-                      FeeSpeedSelector(
-                        selectedSpeed: _selectedFeeSpeed,
-                        lowFeeLoading: false,
-                        onSpeedChanged: _onFeeSpeedChanged,
-                        lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
-                        mediumFeeSatPerVByte:
-                            _feeEstimate!.mediumFeeSatPerVByte,
-                        fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                    ],
-
-                    _buildFeeBreakdown(
-                      boltzFeeSat: boltzFeeSat,
-                      networkFeeSat: networkFeeSat,
-                      totalFeeSat: totalFeeSat,
-                      isLoading: _isLoadingFees,
-                    ),
+                    const Divider(),
+                    const SizedBox(height: 8),
                   ],
-                ),
+
+                  _buildFeeBreakdown(
+                    boltzFeeSat: boltzFeeSat,
+                    networkFeeSat: networkFeeSat,
+                    totalFeeSat: totalFeeSat,
+                    isLoading: _isLoadingFees,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
             SlideToConfirmButton(
-              text: _isConfirming ? 'Confirmando...' : 'Confirmar Swap',
+              text: _isConfirming ? t.common_confirming : t.swap_confirm_title,
               isLoading: _isConfirming || _isLoadingFees,
               onSlideComplete:
                   (_isConfirming || _isLoadingFees) ? () {} : _handleConfirm,
@@ -279,80 +297,203 @@ class _BtcLbtcConfirmBottomSheetState
     );
   }
 
+  Widget _buildFeeSpeedSelectorSkeleton() {
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 160,
+            height: 14,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildFeeCardSkeleton(baseColor)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildFeeCardSkeleton(baseColor)),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeeCardSkeleton(Color baseColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: baseColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 14,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 60,
+            height: 12,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 48,
+            height: 12,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeeBreakdown({
     required BigInt boltzFeeSat,
     required BigInt networkFeeSat,
     required BigInt totalFeeSat,
     required bool isLoading,
   }) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+
+    String formatSats(BigInt s) =>
+        '${NumberFormat('#,##0', locale).format(s.toInt())} sats';
+
+    // ── Total fees row (collapsible) ──────────────────────────────────
+    // Mirrors `_FeesSection` in `confirm_swap_bottom_sheet.dart`:
+    // one row showing the total, tap to expand → Boltz + Tx breakdown.
+    // The "sending" / "receiving" rows that used to live here have
+    // been removed because the SwapDealCard already surfaces both
+    // amounts above this section.
+    final Widget totalValue =
+        isLoading
+            ? _ShimmerBlock(width: 80, height: 16)
+            : Text(
+              formatSats(totalFeeSat),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Estimativa',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
+        // Estimate — kept as a small helper because peg swaps take
+        // minutes (unlike Sideswap which is instant), so users still
+        // need this context.
+        Row(
+          children: [
+            Icon(
+              Icons.schedule,
+              size: 14,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${t.swap_confirm_estimate} · ${_getEstimatedTime()}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          _getEstimatedTime(),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-        ),
-        const SizedBox(height: 20),
-
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2C2C2C),
+        const SizedBox(height: 12),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap:
+                isLoading
+                    ? null
+                    : () => setState(() => _feesExpanded = !_feesExpanded),
             borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              _FeeRow(
-                label: 'Enviando:',
-                value: '${widget.amount} sats',
-                valueColor: Colors.white,
-                isBold: false,
-                isLoading: isLoading,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        t.swap_confirm_total_fees_short,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      totalValue,
+                      const SizedBox(width: 4),
+                      if (!isLoading)
+                        AnimatedRotation(
+                          turns: _feesExpanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 180),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    child:
+                        (_feesExpanded && !isLoading)
+                            ? Padding(
+                              padding: const EdgeInsets.only(top: 10, left: 24),
+                              child: Column(
+                                children: [
+                                  _BreakdownRow(
+                                    label: t.swap_confirm_boltz_fee,
+                                    value: formatSats(boltzFeeSat),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _BreakdownRow(
+                                    label: t.swap_confirm_tx_fee,
+                                    value: formatSats(networkFeeSat),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : const SizedBox.shrink(),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              if (!isLoading && boltzFeeSat > BigInt.zero || isLoading) ...[
-                _FeeRow(
-                  label: 'Taxa de serviço da Boltz:',
-                  value: isLoading ? '' : '-$boltzFeeSat sats',
-                  valueColor: Colors.grey[400],
-                  isBold: false,
-                  isLoading: isLoading,
-                ),
-              ],
-              _FeeRow(
-                label: 'Taxa da transação:',
-                value: isLoading ? '' : '-$networkFeeSat sats',
-                valueColor: Colors.grey[400],
-                isBold: false,
-                isLoading: isLoading,
-              ),
-              _FeeRow(
-                label: 'Total de taxas:',
-                value: isLoading ? '' : '-${networkFeeSat + boltzFeeSat} sats',
-                valueColor: Colors.grey[400],
-                isBold: false,
-                isLoading: isLoading,
-              ),
-              const SizedBox(height: 16),
-              Container(height: 1, color: Colors.grey[700]),
-              const SizedBox(height: 16),
-              _FeeRow(
-                label: 'Recebendo:',
-                value: isLoading ? '' : '${widget.amount - totalFeeSat} sats',
-                valueColor: Colors.white,
-                isBold: true,
-                isLoading: isLoading,
-              ),
-            ],
+            ),
           ),
         ),
       ],
@@ -389,150 +530,74 @@ class _BtcLbtcConfirmBottomSheetState
     setState(() => _isConfirming = true);
 
     try {
-      await widget.onConfirm(_getSelectedFeeRate());
+      // SlideToConfirmButton is disabled while `_isLoadingFees` is
+      // true, so `_currentFeeEstimate` is always non-null here in
+      // practice. Default to zero just to keep the callback total.
+      final totalFee = _currentFeeEstimate?.totalFeeSat ?? BigInt.zero;
+      await widget.onConfirm(_getSelectedFeeRate(), totalFee);
     } finally {
       if (mounted) {
         setState(() => _isConfirming = false);
       }
     }
   }
+}
 
-  Widget _fromToSummary(
-    BuildContext context,
-    core.Asset sendAsset,
-    core.Asset receiveAsset,
-    double sendAmount,
-    double receiveAmount,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
-          colors: [Color(0xFF2D2E2A), Color(0xFFE91E63)],
-        ),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(1.5),
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: const Color(0xFF111111),
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Você envia'),
-                      const SizedBox(width: 10),
-                      SvgPicture.asset(
-                        sendAsset.iconPath,
-                        width: 15,
-                        height: 15,
-                      ),
-                    ],
-                  ),
-                  Text(
-                    sendAmount.toStringAsFixed(8),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(sendAsset.name.toLowerCase()),
-                ],
-              ),
-              const Spacer(),
-              SvgPicture.asset(
-                'assets/icons/menu/arrow.svg',
-                width: 25,
-                height: 25,
-              ),
-              const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Você recebe'),
-                      const SizedBox(width: 10),
-                      SvgPicture.asset(
-                        receiveAsset.iconPath,
-                        width: 15,
-                        height: 15,
-                      ),
-                    ],
-                  ),
-                  Text(
-                    receiveAmount.toStringAsFixed(8),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(receiveAsset.name.toLowerCase()),
-                ],
-              ),
-            ],
+/// Single breakdown row inside the expanded fees panel
+/// ("Boltz fee · 80 sats", "Tx fee · 2,546 sats"). Mirrors `_SubFeeRow`
+/// in the Sideswap confirm sheet.
+class _BreakdownRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _BreakdownRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
           ),
         ),
-      ),
+        const Spacer(),
+        Text(
+          value,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _FeeRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final bool isBold;
-  final bool isLoading;
+/// Shimmer placeholder used while fees are being estimated. Matches the
+/// shape used by the Sideswap confirm sheet's `_ShimmerBlock` so both
+/// loading states feel like the same component.
+class _ShimmerBlock extends StatelessWidget {
+  final double width;
+  final double height;
 
-  const _FeeRow({
-    required this.label,
-    required this.value,
-    this.valueColor,
-    required this.isBold,
-    this.isLoading = false,
-  });
+  const _ShimmerBlock({required this.width, required this.height});
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
-        isLoading
-            ? Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Container(
-                width: 80,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: baseColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            )
-            : Text(
-              value,
-              style: TextStyle(
-                color: valueColor ?? Colors.white,
-                fontSize: 14,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              ),
-              textAlign: TextAlign.end,
-            ),
-      ],
+    final base = context.colors.baseColor;
+    final highlight = context.colors.highlightColor;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: base,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
     );
   }
 }

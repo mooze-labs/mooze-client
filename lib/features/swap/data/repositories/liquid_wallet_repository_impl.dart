@@ -1,23 +1,24 @@
 import 'package:fpdart/fpdart.dart';
 
+import 'package:mooze_mobile/domain/entities/liquid_utxo.dart' as v2;
+import 'package:mooze_mobile/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
-import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
-import 'package:mooze_mobile/shared/infra/lwk/sync/sync_controller.dart';
 
 import '../../domain/entities.dart';
 import '../../domain/repositories.dart';
 
+/// Routes the swap surface through the V2 [WalletRepository] (which itself
+/// delegates to V2 `LiquidWalletService`). UTXO selection happens here —
+/// the repo only enumerates the wallet's spendable Liquid UTXOs.
 class LiquidWalletRepositoryImpl implements SwapWallet {
-  final LiquidDataSource wallet;
-  final MnemonicStore mnemonicStore;
-  final WalletSyncController? syncController;
-
   LiquidWalletRepositoryImpl({
-    required this.wallet,
+    required WalletRepository walletRepository,
     required this.mnemonicStore,
-    this.syncController,
-  });
+  }) : _walletRepository = walletRepository;
+
+  final WalletRepository _walletRepository;
+  final MnemonicStore mnemonicStore;
 
   @override
   TaskEither<String, List<SwapUtxo>> getUtxos(Asset asset, BigInt amount) {
@@ -26,58 +27,47 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
         return Either<String, List<SwapUtxo>>.right(const <SwapUtxo>[]);
       }
 
-      // guarantee sync completed or trigger if needed
-      if (syncController != null) {
-        await syncController!.ensureSynced();
-      }
+      final utxosResult = await _walletRepository.getLiquidUtxos();
+      return utxosResult.fold<Either<String, List<SwapUtxo>>>(
+        (err) => Either.left(err.toString()),
+        (utxos) {
+          final assetId = Asset.toId(asset);
+          final filteredUtxos = utxos
+              .where((u) => u.assetId == assetId)
+              .toList()
+            ..sort((a, b) => a.valueSat.compareTo(b.valueSat));
 
-      final utxos = await wallet.wallet.utxos();
+          final selectedUtxos = <SwapUtxo>[];
+          var remaining = amount;
+          for (final utxo in filteredUtxos) {
+            selectedUtxos.add(_toSwapUtxo(utxo));
+            remaining -= utxo.valueSat;
+            if (remaining <= BigInt.zero) {
+              remaining = BigInt.zero;
+              break;
+            }
+          }
 
-      final filteredUtxos =
-          utxos.where((u) => u.unblinded.asset == Asset.toId(asset)).toList();
-      filteredUtxos.sort(
-        (a, b) => a.unblinded.value.compareTo(b.unblinded.value),
+          if (remaining > BigInt.zero) {
+            final missing = remaining;
+            return Either.left(
+              'Insufficient funds: missing $missing sats for $assetId',
+            );
+          }
+
+          return Either.right(selectedUtxos);
+        },
       );
-
-      final selectedUtxos = <SwapUtxo>[];
-      var remaining = amount;
-      for (final utxo in filteredUtxos) {
-        selectedUtxos.add(
-          SwapUtxo(
-            txid: utxo.outpoint.txid,
-            vout: utxo.outpoint.vout,
-            asset: utxo.unblinded.asset,
-            assetBf: utxo.unblinded.assetBf,
-            value: utxo.unblinded.value,
-            valueBf: utxo.unblinded.valueBf,
-          ),
-        );
-        remaining -= utxo.unblinded.value;
-        if (remaining <= BigInt.zero) {
-          remaining = BigInt.zero;
-          break;
-        }
-      }
-
-      if (remaining > BigInt.zero) {
-        final missing = remaining;
-        return Either<String, List<SwapUtxo>>.left(
-          'Insufficient funds: missing $missing sats for ${Asset.toId(asset)}',
-        );
-      }
-
-      return Either<String, List<SwapUtxo>>.right(selectedUtxos);
     });
   }
 
   @override
   Task<String> getAddress() {
     return Task(() async {
-      if (syncController != null) {
-        await syncController!.ensureSynced();
-      }
-      return await wallet.wallet.addressLastUnused().then(
-        (address) => address.confidential,
+      final result = await _walletRepository.getLiquidSwapAddress();
+      return result.fold(
+        (err) => throw Exception(err.toString()),
+        (address) => address,
       );
     });
   }
@@ -88,18 +78,29 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
       return optionMnemonic.fold(
         () => TaskEither.left("Frase de recuperação não encontrada"),
         (mnemonic) {
-          return TaskEither.tryCatch(() async {
-            if (syncController != null) {
-              await syncController!.ensureSynced();
-            }
-            return await wallet.wallet.signedPsetWithExtraDetails(
-              network: wallet.network,
+          return TaskEither<String, String>(() async {
+            final result = await _walletRepository.signSwapPset(
               pset: pset,
               mnemonic: mnemonic,
             );
-          }, (error, stackTrace) => error.toString());
+            return result.fold<Either<String, String>>(
+              (err) => Either.left(err.toString()),
+              (signed) => Either.right(signed),
+            );
+          });
         },
       );
     });
+  }
+
+  SwapUtxo _toSwapUtxo(v2.LiquidUtxo u) {
+    return SwapUtxo(
+      txid: u.txid,
+      vout: u.vout,
+      asset: u.assetId,
+      assetBf: u.assetBlindingFactor,
+      value: u.valueSat,
+      valueBf: u.valueBlindingFactor,
+    );
   }
 }

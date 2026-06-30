@@ -110,6 +110,9 @@ class SwapRepositoryImpl implements SwapRepository {
   }
 
   @override
+  Stream<QuoteResponse> get quoteStream => sideswapService.quoteResponseStream;
+
+  @override
   void stopQuote() {
     sideswapService.stopQuotes();
   }

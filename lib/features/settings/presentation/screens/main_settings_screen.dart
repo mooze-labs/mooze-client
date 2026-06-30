@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/external_navigation.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/section_settings_component.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -32,9 +33,10 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ajustes'),
+        title: Text(t.main_settings_title),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           const SizedBox(width: 16),
@@ -46,10 +48,10 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
             Column(
               children: [
                 SectionSettings(
-                  title: 'COMERCIANTE',
+                  title: t.main_settings_section_merchant,
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Modo comerciante',
+                      title: t.merchant_mode_header,
                       iconSvgPath: 'assets/icons/menu/settings/merchant.svg',
                       action: Navigation(
                         context: context,
@@ -58,13 +60,21 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                       ),
                       highlight: true,
                     ),
+                    ConfigStructure(
+                      title: t.cpf_favorites_title,
+                      iconSvgPath: 'assets/icons/menu/settings/address.svg',
+                      action: Navigation(
+                        context: context,
+                        rota: '/favorite-payers',
+                      ),
+                    ),
                   ],
                 ),
                 SectionSettings(
-                  title: 'TRANSAÇÕES',
+                  title: t.main_settings_section_transactions,
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Histórico de transações',
+                      title: t.tx_history_title,
                       iconSvgPath: 'assets/icons/menu/settings/transaction.svg',
                       action: Navigation(
                         context: context,
@@ -74,20 +84,20 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   ],
                 ),
                 SectionSettings(
-                  title: 'CONFIGURAÇÕES',
+                  title: t.main_settings_section_settings,
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Configurações',
+                      title: t.main_settings_settings_label,
                       iconSvgPath: 'assets/icons/menu/settings/settings.svg',
                       action: Navigation(context: context, rota: '/settings'),
                     ),
                   ],
                 ),
                 SectionSettings(
-                  title: 'CARTEIRA',
+                  title: t.main_settings_section_wallet,
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Nivel da carteira',
+                      title: t.main_settings_wallet_level,
                       iconSvgPath:
                           'assets/icons/menu/settings/wallet_level.svg',
                       action: Navigation(
@@ -107,10 +117,10 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   ],
                 ),
                 SectionSettings(
-                  title: 'LINKS EXTERNOS',
+                  title: t.main_settings_section_external_links,
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Serviços via Bitcoin',
+                      title: t.main_settings_btc_services,
                       iconSvgPath:
                           'assets/icons/menu/settings/pix_out_line.svg',
                       action: ExternalNavigation(
@@ -119,7 +129,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                       ),
                     ),
                     ConfigStructure(
-                      title: 'Suporte',
+                      title: t.main_settings_support,
                       iconSvgPath: 'assets/icons/menu/settings/data.svg',
                       action: ExternalNavigation(
                         rota: 'https://keepo.io/mooze.app/',
@@ -137,21 +147,21 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   ],
                 ),
                 SectionSettings(
-                  title: 'TAXAS',
+                  title: t.main_settings_section_fees,
                   settingsItems: [
                     ConfigStructure(
-                      title: 'Taxas do PIX',
+                      title: t.main_settings_pix_fees,
                       iconSvgPath: 'assets/icons/menu/settings/fee.svg',
                       action: Navigation(context: context, rota: '/pix/fees'),
                     ),
                   ],
                 ),
                 SectionSettings(
-                  title: 'VERSÃO',
+                  title: t.main_settings_section_version,
                   settingsItems: [
                     ConfigStructure(
                       title:
-                          _appVersion.isEmpty ? 'Carregando...' : _appVersion,
+                          _appVersion.isEmpty ? t.common_loading : _appVersion,
                     ),
                   ],
                 ),

@@ -1,4 +1,4 @@
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 
 class MockRefundNotifier extends RefundNotifier {
@@ -14,40 +14,31 @@ class MockRefundNotifier extends RefundNotifier {
       RefundableSwap(
         swapAddress:
             'bc1p62e2r4jnr3v985uqk06yjc2s7422js2qqp35kumg03xwyw8wzyfqz678nc',
-        timestamp:
-            DateTime(2026, 2, 4, 0, 17, 10).millisecondsSinceEpoch ~/ 1000,
-        amountSat: BigInt.from(52574),
+        timestamp: DateTime(2026, 2, 4, 0, 17, 10),
+        amountSat: 52574,
         lastRefundTxId: null,
       ),
       RefundableSwap(
         swapAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        timestamp:
-            DateTime.now()
-                .subtract(const Duration(hours: 6))
-                .millisecondsSinceEpoch ~/
-            1000,
-        amountSat: BigInt.from(100000), // 0.001 BTC
+        timestamp: DateTime.now().subtract(const Duration(hours: 6)),
+        amountSat: 100000, // 0.001 BTC
         lastRefundTxId: null,
       ),
       RefundableSwap(
         swapAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
-        timestamp:
-            DateTime.now()
-                .subtract(const Duration(days: 2))
-                .millisecondsSinceEpoch ~/
-            1000,
-        amountSat: BigInt.from(250000), // 0.0025 BTC
+        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+        amountSat: 250000, // 0.0025 BTC
         lastRefundTxId:
             '2622dd4f5a1c69f7cea5763482fa470d726dd3cfa316790b22067cf62e6bc268',
       ),
     ];
 
-    final mockFees = RecommendedFees(
-      economyFee: BigInt.from(3),
-      hourFee: BigInt.from(6),
-      halfHourFee: BigInt.from(12),
-      fastestFee: BigInt.from(25),
-      minimumFee: BigInt.from(1),
+    final mockFees = const MempoolFees(
+      minimumFee: 1,
+      economyFee: 3,
+      hourFee: 6,
+      halfHourFee: 12,
+      fastestFee: 25,
     );
 
     state = state.copyWith(
@@ -61,7 +52,7 @@ class MockRefundNotifier extends RefundNotifier {
   }
 
   @override
-  void setSelectedFeeRate(BigInt feeRate) {
+  void setSelectedFeeRate(int feeRate) {
     state = state.copyWith(selectedFeeRate: feeRate);
   }
 
@@ -77,41 +68,19 @@ class MockRefundNotifier extends RefundNotifier {
     await Future.delayed(const Duration(milliseconds: 800));
 
     final feeOptions = <RefundFeeOption>[
-      RefundFeeOption(
-        feeRateSatPerVbyte: BigInt.from(3),
-        txFeeSat: BigInt.from(450), // ~150 vBytes * 3 sat/vB
-      ),
-      RefundFeeOption(
-        feeRateSatPerVbyte: BigInt.from(6),
-        txFeeSat: BigInt.from(900), // ~150 vBytes * 6 sat/vB
-      ),
-      RefundFeeOption(
-        feeRateSatPerVbyte: BigInt.from(12),
-        txFeeSat: BigInt.from(1800), // ~150 vBytes * 12 sat/vB
-      ),
-      RefundFeeOption(
-        feeRateSatPerVbyte: BigInt.from(25),
-        txFeeSat: BigInt.from(3750), // ~150 vBytes * 25 sat/vB
-      ),
+      RefundFeeOption(feeRateSatPerVbyte: 3, txFeeSat: 450),
+      RefundFeeOption(feeRateSatPerVbyte: 6, txFeeSat: 900),
+      RefundFeeOption(feeRateSatPerVbyte: 12, txFeeSat: 1800),
+      RefundFeeOption(feeRateSatPerVbyte: 25, txFeeSat: 3750),
     ];
 
     return feeOptions;
   }
 
   @override
-  Future<PrepareRefundResponse> prepareRefund({
-    required PrepareRefundRequest req,
+  Future<RefundOutcome> processRefund({
+    required ExecuteRefundParams params,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    return PrepareRefundResponse(
-      txVsize: 150,
-      txFeeSat: BigInt.from(req.feeRateSatPerVbyte * 150),
-    );
-  }
-
-  @override
-  Future<RefundResponse> processRefund({required RefundRequest req}) async {
     state = state.copyWith(isLoading: true, error: null);
 
     await Future.delayed(const Duration(seconds: 2));
@@ -125,13 +94,13 @@ class MockRefundNotifier extends RefundNotifier {
 
       await loadRefundData();
 
-      return RefundResponse(refundTxId: mockTxId);
+      return RefundOutcome(refundTxId: mockTxId);
     } else {
       state = state.copyWith(
         isLoading: false,
-        error: 'Erro simulado: Falha na transmissão da transação',
+        error: 'Simulated error: transaction broadcast failed',
       );
-      throw Exception('Erro simulado: Falha na transmissão da transação');
+      throw Exception('Simulated error: transaction broadcast failed');
     }
   }
 }

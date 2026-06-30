@@ -1,0 +1,186 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
+class FirstTimePixDialog extends StatefulWidget {
+  const FirstTimePixDialog({super.key});
+
+  @override
+  State<FirstTimePixDialog> createState() => _FirstTimePixDialogState();
+
+  static Future<bool?> show(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const FirstTimePixDialog(),
+    );
+  }
+}
+
+class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
+  int _secondsRemaining = 7;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context);
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.info_outline, color: colorScheme.primary, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              t.pix_first_time_title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.pix_first_time_description,
+            style: TextStyle(
+              fontSize: 14,
+              color: colorScheme.onSurface,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            colorScheme,
+            'a)',
+            t.pix_first_time_item_completed,
+            Icons.schedule,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoItem(
+            colorScheme,
+            'b)',
+            t.pix_first_time_item_refunded,
+            Icons.refresh,
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.security, color: colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t.pix_first_time_security_note,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurface.withValues(alpha: 0.8),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed:
+                _secondsRemaining == 0
+                    ? () => Navigator.of(context).pop(true)
+                    : null,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              _secondsRemaining == 0
+                  ? t.pix_first_time_accept_button
+                  : t.pix_first_time_accept_button_counting(_secondsRemaining),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(
+    ColorScheme colorScheme,
+    String prefix,
+    String text,
+    IconData icon,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(icon, size: 16, color: colorScheme.primary),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$prefix $text',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

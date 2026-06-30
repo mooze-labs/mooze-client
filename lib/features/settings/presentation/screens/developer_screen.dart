@@ -5,27 +5,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
+import 'package:mooze_mobile/services/debug_header.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
-import 'package:mooze_mobile/shared/infra/breez/providers.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/developer_info_card.dart';
-import 'package:mooze_mobile/features/settings/presentation/widgets/developer_action_grid.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_info_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/sdk_versions.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/developer_action_grid.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/balance_overview_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/developer/sync_progress_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_dialog.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/logs_viewer_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
+import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
-import 'package:mooze_mobile/shared/infra/sync/wallet_data_manager.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/entities/balance.dart';
+import 'package:mooze_mobile/domain/entities/transaction.dart';
+import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 
-enum ExportMethod { email, share }
-
-/// Developer tools screen with debugging and diagnostic features
 class DeveloperScreen extends ConsumerStatefulWidget {
   const DeveloperScreen({super.key});
 
@@ -33,19 +41,24 @@ class DeveloperScreen extends ConsumerStatefulWidget {
   ConsumerState<DeveloperScreen> createState() => _DeveloperScreenState();
 }
 
-class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
-  // Screen state
-  String _appVersion = 'Loading...';
-  String _buildNumber = '';
-  bool _isLoading = false;
+class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _entryController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
-  // SDK/Wallet information
-  String _sdkVersion = 'N/A';
-  String _walletBalance = '0';
-  String _pendingBalance = '0';
+  // Screen state
+  String _appVersion = 'Loading…';
+  String _buildNumber = '';
+
+  DeveloperOperation? _activeOperation;
+
+  int? _bitcoinTip;
+  Balance? _balance;
+  bool _refreshingBalance = false;
   int _totalLogs = 0;
   int _dbLogs = 0;
-  String _logRetention = 'N/A';
+  int _retentionDays = -1;
 
   // Logger instance and stream subscription
   late final AppLoggerService _logger;
@@ -56,44 +69,48 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   void initState() {
     super.initState();
 
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOut,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
+    _entryController.forward();
+
     // Initialize logger once in initState to avoid accessing ref after dispose
     _logger = ref.read(appLoggerProvider);
 
-    // Load data after frame is built to avoid blocking navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _loadAppInfo();
-        _updateLogCount();
+      if (!mounted) return;
+      _loadAppInfo();
+      _updateLogCount();
 
-        // Load heavy operations with a slight delay
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            _loadWalletInfo();
-            _updateDbLogStats();
-          }
-        });
-      }
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (!mounted) return;
+        _loadWalletInfo();
+        _updateDbLogStats();
+      });
     });
 
-    // Listen to log changes with proper subscription management
     _logStreamSubscription = _logger.logStream.listen((_) {
-      if (mounted) {
-        _updateLogCount();
-
-        // Debounce DB stats update to avoid too many queries
-        _dbStatsDebounceTimer?.cancel();
-        _dbStatsDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _updateDbLogStats();
-          }
-        });
-      }
+      if (!mounted) return;
+      _updateLogCount();
+      _dbStatsDebounceTimer?.cancel();
+      _dbStatsDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted) _updateDbLogStats();
+      });
     });
   }
 
   @override
   void dispose() {
-    // Cancel stream subscription to prevent memory leaks
+    _entryController.dispose();
     _logStreamSubscription?.cancel();
     _dbStatsDebounceTimer?.cancel();
     super.dispose();
@@ -101,7 +118,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
 
   Future<void> _loadAppInfo() async {
     if (!mounted) return;
-
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       if (mounted) {
@@ -127,66 +143,32 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
 
   Future<void> _loadWalletInfo() async {
     if (!mounted) return;
+    setState(() => _refreshingBalance = true);
 
     try {
-      final breezClientResult = await ref.read(breezClientProvider.future);
-
+      final repo = await ref.read(walletRepositoryProvider.future);
       if (!mounted) return;
 
-      await breezClientResult.fold(
-        (error) async {
-          _logger.warning(
-            'DeveloperScreen',
-            'Breez client not available: $error',
-          );
-          if (mounted) {
-            setState(() {
-              _sdkVersion = 'SDK not connected';
-              _walletBalance = 'N/A';
-              _pendingBalance = 'N/A';
-            });
-          }
-        },
-        (breezSdk) async {
-          try {
-            final info = await breezSdk.getInfo();
+      final balanceResult = await repo.aggregateBalance();
+      final btcTipResult = await repo.getCurrentBitcoinBlockHeight();
+      if (!mounted) return;
 
-            if (mounted) {
-              setState(() {
-                _sdkVersion =
-                    'Breez SDK Liquid ${info.blockchainInfo.liquidTip}';
-                _walletBalance = info.walletInfo.balanceSat.toString();
-                _pendingBalance =
-                    (info.walletInfo.pendingReceiveSat +
-                            info.walletInfo.pendingSendSat)
-                        .toString();
-              });
-            }
+      final balance = balanceResult.getOrElse((_) => Balance.empty());
+      final btcTip = btcTipResult.getOrElse((_) => 0);
 
-            _logger.info('DeveloperScreen', 'Wallet info loaded successfully');
-          } catch (e) {
-            _logger.error(
-              'DeveloperScreen',
-              'Error getting wallet info',
-              error: e,
-            );
-            if (mounted) {
-              setState(() {
-                _sdkVersion = 'Error loading SDK';
-                _walletBalance = 'N/A';
-                _pendingBalance = 'N/A';
-              });
-            }
-          }
-        },
-      );
+      setState(() {
+        _bitcoinTip = btcTip;
+        _balance = balance;
+        _refreshingBalance = false;
+      });
+
+      _logger.info('DeveloperScreen', 'Wallet info loaded successfully');
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error loading wallet info', error: e);
       if (mounted) {
         setState(() {
-          _sdkVersion = 'Error';
-          _walletBalance = 'N/A';
-          _pendingBalance = 'N/A';
+          _bitcoinTip = null;
+          _refreshingBalance = false;
         });
       }
     }
@@ -202,13 +184,12 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
 
   Future<void> _updateDbLogStats() async {
     if (!mounted) return;
-
     try {
       final stats = await _logger.getDatabaseStats();
       if (mounted) {
         setState(() {
           _dbLogs = stats['total'] ?? 0;
-          _logRetention = '${_logger.config.retentionDays} dias';
+          _retentionDays = _logger.config.retentionDays;
         });
       }
     } catch (e) {
@@ -216,150 +197,105 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       if (mounted) {
         setState(() {
           _dbLogs = 0;
-          _logRetention = 'N/A';
+          _retentionDays = -1;
         });
       }
     }
   }
 
-  Future<void> _syncWallet() async {
-    _setLoading(true);
-    _logger.info('DeveloperScreen', 'Starting light wallet sync...');
+  Future<void> _runSync({
+    required DeveloperOperation operation,
+    required SyncStrategy strategy,
+    required String successMessage,
+    required String Function(String) errorBuilder,
+    Future<void> Function()? onComplete,
+  }) async {
+    _setOperation(operation);
+    _logger.info(
+      'DeveloperScreen',
+      'Starting ${strategy.name} sync (${operation.name})…',
+    );
 
     try {
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.lightSync();
+      final refreshUseCase = await ref.read(refreshWalletProvider.future);
+      final result = await refreshUseCase(strategy: strategy);
 
-      // Wait a bit to allow the state to propagate
-      await Future.delayed(const Duration(milliseconds: 500));
+      await result.match(
+        (failure) async => throw Exception(failure.toString()),
+        (_) async {},
+      );
 
-      if (mounted) {
-        _showSuccessMessage('Light sync completed!');
-        await _loadWalletInfo();
-        _logger.info('DeveloperScreen', 'Light sync completed successfully');
-      }
+      if (!mounted) return;
+      _showSuccessMessage(successMessage);
+      await _loadWalletInfo();
+      await onComplete?.call();
+      _logger.info('DeveloperScreen', '${operation.name} completed');
     } catch (e, stackTrace) {
       _logger.error(
         'DeveloperScreen',
-        'Failed to light sync wallet',
+        '${operation.name} failed',
         error: e,
         stackTrace: stackTrace,
       );
-      if (mounted) {
-        _showErrorMessage('Failed to light sync: $e');
-      }
+      if (mounted) _showErrorMessage(errorBuilder(e.toString()));
     } finally {
-      if (mounted) {
-        _setLoading(false);
-      }
+      if (mounted) _setOperation(null);
     }
   }
 
-  Future<void> _fullSyncWallet() async {
-    _setLoading(true);
-    _logger.info('DeveloperScreen', 'Starting FULL wallet sync...');
-
-    try {
-      final walletDataManager = ref.read(walletDataManagerProvider.notifier);
-      await walletDataManager.fullSyncWalletData();
-
-      // Wait a bit to allow the state to propagate
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      if (mounted) {
-        _showSuccessMessage('Full sync completed!');
-        await _loadWalletInfo();
-        _logger.info('DeveloperScreen', 'Full sync completed successfully');
-      }
-    } catch (e, stackTrace) {
-      _logger.error(
-        'DeveloperScreen',
-        'Failed to full sync wallet',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      if (mounted) {
-        _showErrorMessage('Failed to full sync: $e');
-      }
-    } finally {
-      if (mounted) {
-        _setLoading(false);
-      }
-    }
+  Future<void> _syncWallet() {
+    final t = AppLocalizations.of(context);
+    return _runSync(
+      operation: DeveloperOperation.lightSync,
+      strategy: SyncStrategy.light,
+      successMessage: t.developer_sync_light_success,
+      errorBuilder: t.developer_sync_light_error,
+    );
   }
 
-  Future<void> _rescanSwaps() async {
-    _setLoading(true);
-    _logger.info('DeveloperScreen', 'Starting onchain swaps rescan...');
+  Future<void> _fullSyncWallet() {
+    final t = AppLocalizations.of(context);
+    return _runSync(
+      operation: DeveloperOperation.fullSync,
+      strategy: SyncStrategy.full,
+      successMessage: t.developer_sync_full_success,
+      errorBuilder: t.developer_sync_full_error,
+    );
+  }
 
-    try {
-      final breezClientResult = await ref.read(breezClientProvider.future);
-
-      await breezClientResult.fold(
-        (error) async {
-          throw Exception('Breez client not available: $error');
-        },
-        (breezSdk) async {
-          await breezSdk.rescanOnchainSwaps();
-
-          // Check if still mounted before invalidating providers
-          if (!mounted) return;
-
-          // Invalidate providers to force refresh
-          _invalidateWalletProviders();
-
-          // Check for refundable swaps
-          await _checkRefundables(breezSdk);
-
-          if (mounted) {
-            _showSuccessMessage('Onchain swaps rescanned successfully!');
-            _logger.info(
-              'DeveloperScreen',
-              'Onchain swaps rescanned successfully',
-            );
-          }
-        },
-      );
-    } catch (e, stackTrace) {
-      _logger.error(
-        'DeveloperScreen',
-        'Failed to rescan swaps',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      if (mounted) {
-        _showErrorMessage('Failed to rescan swaps: $e');
-      }
-    } finally {
-      if (mounted) {
-        _setLoading(false);
-      }
-    }
+  Future<void> _rescanSwaps() {
+    final t = AppLocalizations.of(context);
+    return _runSync(
+      operation: DeveloperOperation.rescan,
+      strategy: SyncStrategy.full,
+      successMessage: t.developer_rescan_success,
+      errorBuilder: t.developer_rescan_error,
+      onComplete: () async {
+        if (!mounted) return;
+        _invalidateWalletProviders();
+        await _checkRefundables();
+      },
+    );
   }
 
   /// Invalidates wallet-related providers to force data refresh
   void _invalidateWalletProviders() {
-    _logger.info('DeveloperScreen', 'Invalidating wallet providers...');
-
-    // Invalidate balance providers
+    _logger.info('DeveloperScreen', 'Invalidating wallet providers…');
     ref.invalidate(balanceControllerProvider);
     ref.invalidate(balanceCacheProvider);
-
-    // Invalidate transaction providers
     ref.invalidate(transactionControllerProvider);
     ref.invalidate(transactionHistoryProvider);
     ref.invalidate(transactionHistoryCacheProvider);
-
-    // Invalidate refund provider
     ref.invalidate(refundProvider);
-
     _logger.info('DeveloperScreen', 'Wallet providers invalidated');
   }
 
   /// Checks for refundable swaps and navigates to refund screen if any exist
-  Future<void> _checkRefundables(dynamic breezSdk) async {
+  Future<void> _checkRefundables() async {
     try {
-      final refundables = await breezSdk.listRefundables();
+      final repo = await ref.read(walletRepositoryProvider.future);
+      final result = await repo.listRefundableSwaps();
+      final refundables = result.getOrElse((_) => const []);
 
       _logger.info(
         'DeveloperScreen',
@@ -367,7 +303,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       );
 
       if (refundables.isNotEmpty && mounted) {
-        // Show dialog asking if user wants to view refundables
+        final t = AppLocalizations.of(context);
         final shouldNavigate = await showDialog<bool>(
           context: context,
           builder:
@@ -376,24 +312,23 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
-                      color: AppColors.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
-                    const Text('Refundables Found'),
+                    Text(t.developer_refundables_title),
                   ],
                 ),
                 content: Text(
-                  'Found ${refundables.length} pending transaction(s) that can be refunded.\n\n'
-                  'Would you like to view them now?',
+                  t.developer_refundables_message(refundables.length),
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Later'),
+                    child: Text(t.developer_later),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('View Now'),
+                    child: Text(t.developer_view_now),
                   ),
                 ],
               ),
@@ -412,28 +347,38 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<void> _exportLogs() async {
-    // Show dialog to choose export method
-    final exportMethod = await _showExportLogsDialog();
+    final exportMethod = await ExportLogsDialog.show(context);
+    if (exportMethod == null) return;
 
-    if (exportMethod == null) return; // User cancelled
-
-    _setLoading(true);
-    _logger.info('DeveloperScreen', 'Exporting logs...');
+    _setOperation(DeveloperOperation.exportLogs);
+    _logger.info('DeveloperScreen', 'Exporting logs…');
 
     try {
-      final zipPath = await _logger.exportLogs();
+      final walletId = await ref.read(walletIdProvider.future);
+      final userId = await _resolveUserId();
+      final txStore = await ref.read(transactionStoreProvider.future);
+      final txResult = await txStore.list();
+      final v2Txs = txResult.fold((failure) {
+        _logger.warning(
+          'DeveloperScreen',
+          'V2 transaction store unavailable for export: ${failure.message}',
+        );
+        return const <Transaction>[];
+      }, (list) => list);
 
-      if (mounted) {
-        if (exportMethod == ExportMethod.email) {
-          // Send via email
-          await _sendLogsViaEmail(zipPath);
-        } else {
-          // Share/Save file
-          await _shareLogsFile(zipPath);
-        }
+      final zipPath = await _logger.exportLogs(
+        walletId: walletId,
+        v2Transactions: v2Txs,
+        debugHeader: _buildDebugHeader(userId: userId, walletId: walletId),
+      );
 
-        _logger.info('DeveloperScreen', 'Logs exported successfully: $zipPath');
+      if (!mounted) return;
+      if (exportMethod == ExportMethod.email) {
+        await _sendLogsViaEmail(zipPath);
+      } else {
+        await _shareLogsFile(zipPath);
       }
+      _logger.info('DeveloperScreen', 'Logs exported successfully: $zipPath');
     } catch (e, stackTrace) {
       _logger.error(
         'DeveloperScreen',
@@ -442,145 +387,14 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
         stackTrace: stackTrace,
       );
       if (mounted) {
-        _showErrorMessage('Failed to export logs: $e');
+        _showErrorMessage(
+          AppLocalizations.of(context).developer_export_error(e.toString()),
+        );
       }
     } finally {
-      _setLoading(false);
+      if (mounted) _setOperation(null);
     }
   }
-
-  Future<ExportMethod?> _showExportLogsDialog() async {
-    return await showDialog<ExportMethod>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: const Color(0xFF1C1C1C),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryColor.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.file_download,
-                    size: 40,
-                    color: AppColors.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Exportar Logs',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Os logs do aplicativo ajudam nossa equipe a resolver problemas. Como você gostaria de compartilhar?',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  text: 'Enviar por E-mail',
-                  onPressed: () {
-                    Navigator.of(context).pop(ExportMethod.email);
-                  },
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(ExportMethod.share);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    side: BorderSide(color: Colors.grey[700]!),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Salvar/Compartilhar',
-                    style: TextStyle(
-                      color: Colors.grey[300],
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Future<void> _sendLogsViaEmail(String zipPath) async {
-  //   try {
-  //     // Verifica se o arquivo existe
-  //     final file = File(zipPath);
-  //     if (!await file.exists()) {
-  //       throw Exception('Arquivo ZIP não encontrado: $zipPath');
-  //     }
-
-  //     // Verifica se o arquivo tem conteúdo
-  //     final fileSize = await file.length();
-  //     if (fileSize == 0) {
-  //       throw Exception('Arquivo ZIP está vazio');
-  //     }
-
-  //     _logger.info(
-  //       'DeveloperScreen',
-  //       'Sharing ZIP file: $zipPath (${fileSize} bytes)',
-  //     );
-
-  //     // Create mailto URI
-  //     final Uri emailUri = Uri(
-  //       scheme: 'mailto',
-  //       path: 'suporte@mooze.app',
-  //       query: Uri.encodeQueryComponent(
-  //         'subject=Logs do App Mooze&body=Segue em anexo os logs do aplicativo.\n\nDescreva aqui o problema que você está enfrentando:',
-  //       ).replaceAll('+', '%20'),
-  //     );
-
-  //     // Try to launch email app
-  //     if (await canLaunchUrl(emailUri)) {
-  //       await launchUrl(emailUri);
-  //     }
-
-  //     // Share the file with email apps using new API
-  //     final ShareParams shareParams = ShareParams(
-  //       title: 'Logs do App Mooze',
-  //       subject: 'Logs do App Mooze',
-  //       files: <XFile>[XFile(zipPath)],
-  //     );
-  //     await SharePlus.instance.share(shareParams);
-
-  //     _showSuccessMessage('Arquivo pronto para enviar por e-mail!');
-  //   } catch (e) {
-  //     _logger.error(
-  //       'DeveloperScreen',
-  //       'Failed to share logs via email',
-  //       error: e,
-  //     );
-  //     _showErrorMessage('Erro ao compartilhar logs: $e');
-  //   }
-  // }
 
   Future<void> _sendLogsViaEmail(String zipPath) async {
     try {
@@ -588,18 +402,15 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       if (!await file.exists()) {
         throw Exception('Arquivo ZIP não encontrado: $zipPath');
       }
-
       final fileSize = await file.length();
       if (fileSize == 0) {
         throw Exception('Arquivo ZIP está vazio');
       }
-
       _logger.info(
         'DeveloperScreen',
-        'Sharing ZIP file: $zipPath (${fileSize} bytes)',
+        'Sharing ZIP file: $zipPath ($fileSize bytes)',
       );
 
-      // Create email with attachment
       final Email email = Email(
         recipients: ['suporte@mooze.app'],
         subject: 'Logs do App Mooze',
@@ -608,30 +419,31 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
         attachmentPaths: [zipPath],
         isHTML: false,
       );
-
-      // Send email
       await FlutterEmailSender.send(email);
 
-      _showSuccessMessage('Email pronto para envio!');
+      if (mounted) {
+        _showSuccessMessage(AppLocalizations.of(context).developer_email_ready);
+      }
     } catch (e) {
       _logger.error(
         'DeveloperScreen',
         'Failed to share logs via email',
         error: e,
       );
-      _showErrorMessage('Erro ao compartilhar logs: $e');
+      if (mounted) {
+        _showErrorMessage(
+          AppLocalizations.of(context).developer_share_logs_error(e.toString()),
+        );
+      }
     }
   }
 
   Future<void> _shareLogsFile(String zipPath) async {
     try {
-      // Verifica se o arquivo existe
       final file = File(zipPath);
       if (!await file.exists()) {
         throw Exception('Arquivo ZIP não encontrado: $zipPath');
       }
-
-      // Verifica se o arquivo tem conteúdo
       final fileSize = await file.length();
       if (fileSize == 0) {
         throw Exception('Arquivo ZIP está vazio');
@@ -639,10 +451,8 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
 
       _logger.info(
         'DeveloperScreen',
-        'Sharing ZIP file: $zipPath (${fileSize} bytes)',
+        'Sharing ZIP file: $zipPath ($fileSize bytes)',
       );
-
-      // Share using new API
       final ShareParams shareParams = ShareParams(
         title: 'Logs do App Mooze',
         subject: 'Logs do App Mooze',
@@ -650,16 +460,23 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       );
       await SharePlus.instance.share(shareParams);
 
-      _showSuccessMessage('Logs compartilhados com sucesso!');
+      if (mounted) {
+        _showSuccessMessage(
+          AppLocalizations.of(context).developer_share_logs_success,
+        );
+      }
     } catch (e) {
       _logger.error('DeveloperScreen', 'Failed to share logs', error: e);
-      _showErrorMessage('Erro ao compartilhar logs: $e');
+      if (mounted) {
+        _showErrorMessage(
+          AppLocalizations.of(context).developer_share_logs_error(e.toString()),
+        );
+      }
     }
   }
 
   Future<void> _viewLogs() async {
     _logger.info('DeveloperScreen', 'Opening logs viewer');
-
     if (mounted) {
       Navigator.push(
         context,
@@ -675,28 +492,33 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
   }
 
   Future<void> _clearLogs() async {
-    final clearOption = await _showClearLogsDialog();
+    final clearOption = await ClearLogsDialog.show(
+      context,
+      totalLogs: _totalLogs,
+      dbLogs: _dbLogs,
+    );
+    if (clearOption == null) return;
+    if (!mounted) return;
 
-    if (clearOption == null) return; // User cancelled
-
-    _setLoading(true);
+    _setOperation(DeveloperOperation.clearLogs);
+    final t = AppLocalizations.of(context);
     try {
       switch (clearOption) {
         case 'memory':
           _logger.clearLogs();
-          _showSuccessMessage('Logs da memória limpos com sucesso!');
+          _showSuccessMessage(t.developer_clear_memory_success);
           _logger.info('DeveloperScreen', 'Memory logs cleared');
           break;
         case 'database':
           await _logger.clearDatabaseLogs();
-          _showSuccessMessage('Logs do banco limpos com sucesso!');
+          _showSuccessMessage(t.developer_clear_db_success);
           _logger.info('DeveloperScreen', 'Database logs cleared');
           break;
         case 'all':
           _logger.clearLogs();
           await _logger.clearLogFiles();
           await _logger.clearDatabaseLogs();
-          _showSuccessMessage('Todos os logs limpos com sucesso!');
+          _showSuccessMessage(t.developer_clear_all_success);
           _logger.info('DeveloperScreen', 'All logs cleared');
           break;
       }
@@ -704,253 +526,155 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen> {
       await _updateDbLogStats();
     } catch (e) {
       _logger.error('DeveloperScreen', 'Error clearing logs', error: e);
-      _showErrorMessage('Erro ao limpar logs: $e');
+      _showErrorMessage(t.developer_clear_error(e.toString()));
     } finally {
-      _setLoading(false);
+      if (mounted) _setOperation(null);
     }
   }
 
-  Future<String?> _showClearLogsDialog() async {
-    return await showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: const Color(0xFF1C1C1C),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.orange.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.delete_sweep,
-                    size: 40,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Limpar Logs',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Escolha o que deseja limpar:',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                ),
-                const SizedBox(height: 24),
-                _buildClearOption(
-                  context,
-                  'Memória',
-                  'Limpar apenas logs em memória ($_totalLogs logs)',
-                  Icons.memory,
-                  'memory',
-                ),
-                const SizedBox(height: 12),
-                _buildClearOption(
-                  context,
-                  'Banco de Dados',
-                  'Limpar apenas logs do banco ($_dbLogs logs)',
-                  Icons.storage,
-                  'database',
-                ),
-                const SizedBox(height: 12),
-                _buildClearOption(
-                  context,
-                  'Todos',
-                  'Limpar memória, arquivos e banco',
-                  Icons.delete_forever,
-                  'all',
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  DebugHeader _buildDebugHeader({String? userId, String? walletId}) {
+    final btcEquivalentSats =
+        _balance == null
+            ? 0
+            : _balance!.assets.fold<int>(0, (sum, a) => sum + a.amountSat);
+    final sdkVersions =
+        ref.read(sdkVersionsProvider).valueOrNull ?? SdkVersions.unavailable;
+
+    return DebugHeader(
+      appVersion: _appVersion,
+      buildNumber: _buildNumber,
+      lwkVersion: sdkVersions.lwk,
+      bdkVersion: sdkVersions.bdk,
+      breezVersion: sdkVersions.breez,
+      bitcoinTip: _bitcoinTip,
+      totalSats: btcEquivalentSats,
+      totalLogsMemory: _totalLogs,
+      totalLogsDatabase: _dbLogs,
+      logRetentionDays: _retentionDays,
+      userId: userId,
+      walletId: walletId,
     );
   }
 
-  Widget _buildClearOption(
-    BuildContext context,
-    String title,
-    String description,
-    IconData icon,
-    String value,
-  ) {
-    return InkWell(
-      onTap: () => Navigator.pop(context, value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[800]!),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppColors.primaryColor, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
+  /// Best-effort fetch of the backend-issued user id. Returns null on
+  /// any error (no auth session, network down, decode failure) so the
+  /// export can still proceed with `userId: null` and the header just
+  /// renders "unavailable" — support tooling falls back to walletId.
+  Future<String?> _resolveUserId() async {
+    try {
+      final userService = ref.read(userServiceProvider);
+      final result = await userService.getUser().run();
+      return result.fold((_) => null, (user) => user.id);
+    } catch (e) {
+      _logger.warning(
+        'DeveloperScreen',
+        'resolveUserId failed: $e — exporting with userId=null',
+      );
+      return null;
+    }
   }
 
   Future<void> _copyDebugInfo() async {
-    final debugInfo = '''
-Mooze App - Debug Info
-======================
-App Version: $_appVersion
-Build Number: $_buildNumber
-SDK Version: $_sdkVersion
-Wallet Balance: $_walletBalance sats
-Pending Balance: $_pendingBalance sats
-Total Logs (Memory): $_totalLogs
-Total Logs (Database): $_dbLogs
-Log Retention: $_logRetention
-Generated: ${DateTime.now().toIso8601String()}
-''';
-
-    await Clipboard.setData(ClipboardData(text: debugInfo));
-    _showSuccessMessage('Debug information copied!');
+    final userId = await _resolveUserId();
+    final walletId = await ref.read(walletIdProvider.future);
+    if (!mounted) return;
+    await Clipboard.setData(
+      ClipboardData(
+        text: _buildDebugHeader(userId: userId, walletId: walletId).format(),
+      ),
+    );
+    if (!mounted) return;
+    _showSuccessMessage(AppLocalizations.of(context).developer_debug_copied);
     _logger.info('DeveloperScreen', 'Debug info copied to clipboard');
   }
 
-  void _setLoading(bool loading) {
-    if (mounted) {
-      setState(() => _isLoading = loading);
-    }
+  void _setOperation(DeveloperOperation? op) {
+    if (mounted) setState(() => _activeOperation = op);
   }
 
-  void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+  void _showSuccessMessage(String message) =>
+      AppSnackBar.success(context, message);
 
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+  void _showErrorMessage(String message) => AppSnackBar.error(context, message);
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final sdkVersions =
+        ref.watch(sdkVersionsProvider).valueOrNull ?? SdkVersions.loading;
+
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        title: const Text('Copiar infos de sistema'),
+        centerTitle: true,
+        title: Text(t.developer_title),
         actions: [
           IconButton(
-            icon: const Icon(Icons.copy, color: Colors.white),
-            tooltip: 'Copy debug info',
+            icon: const Icon(Icons.copy_outlined),
+            tooltip: t.developer_copy_debug_tooltip,
             onPressed: _copyDebugInfo,
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryColor,
-                  ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BalanceOverviewCard(
+                  balance: _balance,
+                  loading: _balance == null,
+                  refreshing: _refreshingBalance,
                 ),
-              )
-              : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DeveloperInfoCard(
-                        appVersion: _appVersion,
-                        buildNumber: _buildNumber,
-                        sdkVersion: _sdkVersion,
-                        walletBalance: _walletBalance,
-                        pendingBalance: _pendingBalance,
-                        totalLogs: _totalLogs,
-                        dbLogs: _dbLogs,
-                        logRetention: _logRetention,
-                        onViewLogs: _viewLogs,
-                      ),
-                      const SizedBox(height: 20),
-                      DeveloperActionGrid(
-                        isLoading: _isLoading,
-                        onSync: _syncWallet,
-                        onFullSync: _fullSyncWallet,
-                        onRescan: _rescanSwaps,
-                        onViewLogs: _viewLogs,
-                        onExportLogs: _exportLogs,
-                        onClearLogs: _clearLogs,
-                        onRefund: _onRefund,
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 16),
+                DeveloperInfoCard(
+                  appVersion: _appVersion,
+                  buildNumber: _buildNumber,
+                  lwkVersion: sdkVersions.lwk,
+                  bdkVersion: sdkVersions.bdk,
+                  breezVersion: sdkVersions.breez,
+                  bitcoinTip: _bitcoinTip,
+                  totalLogs: _totalLogs,
+                  dbLogs: _dbLogs,
+                  logRetention:
+                      _retentionDays >= 0
+                          ? t.developer_log_retention_days(_retentionDays)
+                          : 'N/A',
+                  onViewLogs: _viewLogs,
                 ),
-              ),
+                const SizedBox(height: 16),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  child:
+                      _activeOperation == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                            padding: const EdgeInsets.only(bottom: 18),
+                            child: SyncProgressCard(
+                              operation: _activeOperation!,
+                            ),
+                          ),
+                ),
+                DeveloperActionGrid(
+                  activeOperation: _activeOperation,
+                  onSync: _syncWallet,
+                  onFullSync: _fullSyncWallet,
+                  onRescan: _rescanSwaps,
+                  onViewLogs: _viewLogs,
+                  onExportLogs: _exportLogs,
+                  onClearLogs: _clearLogs,
+                  onRefund: _onRefund,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

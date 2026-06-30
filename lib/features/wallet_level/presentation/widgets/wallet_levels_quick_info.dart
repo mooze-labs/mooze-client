@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class WalletLevelsQuickInfo extends StatelessWidget {
-  final ColorScheme colorScheme;
   final bool isLoading;
 
-  const WalletLevelsQuickInfo({
-    super.key,
-    required this.colorScheme,
-    this.isLoading = false,
-  });
+  const WalletLevelsQuickInfo({super.key, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     if (isLoading) {
-      return _buildLoadingQuickInfo();
+      return _buildLoadingQuickInfo(colorScheme, context);
     }
 
     return SizedBox(
@@ -26,24 +27,30 @@ class WalletLevelsQuickInfo extends StatelessWidget {
             Expanded(
               child: _buildInfoCard(
                 icon: Icons.lock_open_rounded,
-                title: 'Desbloqueie',
-                subtitle: 'Aumente limites',
+                title: t.wallet_levels_quick_unlock_title,
+                subtitle: t.wallet_levels_quick_unlock_subtitle,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildInfoCard(
                 icon: Icons.redeem_rounded,
-                title: 'Ganhe',
-                subtitle: 'Benefícios extras',
+                title: t.wallet_levels_quick_earn_title,
+                subtitle: t.wallet_levels_quick_earn_subtitle,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildInfoCard(
                 icon: Icons.star_rate_rounded,
-                title: 'Status',
-                subtitle: 'Reconhecimento VIP',
+                title: t.wallet_levels_quick_status_title,
+                subtitle: t.wallet_levels_quick_status_subtitle,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ),
           ],
@@ -56,6 +63,8 @@ class WalletLevelsQuickInfo extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
   }) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -72,8 +81,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 11,
+            style: textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -81,7 +89,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
           ),
           Text(
             subtitle,
-            style: TextStyle(
+            style: textTheme.labelSmall?.copyWith(
               fontSize: 9,
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
@@ -92,9 +100,9 @@ class WalletLevelsQuickInfo extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingQuickInfo() {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+  Widget _buildLoadingQuickInfo(ColorScheme colorScheme, BuildContext context) {
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return SizedBox(
       height: 125,
@@ -140,7 +148,7 @@ class WalletLevelsQuickInfo extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Shimmer.fromColors(
                     baseColor: baseColor,
                     highlightColor: highlightColor,

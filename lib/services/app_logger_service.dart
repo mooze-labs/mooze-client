@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -7,6 +8,8 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' hide JsonKey;
 import 'package:mooze_mobile/database/database.dart';
+import 'package:mooze_mobile/domain/entities/transaction.dart' as v2;
+import 'package:mooze_mobile/services/debug_header.dart';
 import 'package:mooze_mobile/services/log_config.dart';
 
 enum LogLevel {
@@ -67,21 +70,25 @@ class LogEntry {
 
 class AppLoggerService {
   static final AppLoggerService _instance = AppLoggerService._internal();
-  factory AppLoggerService() {
-    debugPrint(
-      '[AppLogger] factory() called - returning instance ${_instance.hashCode}',
-    );
-    debugPrint('[AppLogger] _database is null? ${_instance._database == null}');
-    return _instance;
-  }
+  factory AppLoggerService() => _instance;
 
-  AppLoggerService._internal() {
-    debugPrint('[AppLogger] Singleton instance created: ${hashCode}');
-  }
+  AppLoggerService._internal();
 
   final List<LogEntry> _logs = [];
   final StreamController<LogEntry> _logStreamController =
       StreamController<LogEntry>.broadcast();
+
+  // Pending entries staged for the next flush window. Logger calls hit
+  // this list, then a 200ms periodic timer drains it into SQLite + the
+  // log file in a single batched write per sink. This keeps file/DB
+  // I/O off the UI isolate's per-call hot path during HomeScreen mount.
+  final List<LogEntry> _pendingLogs = [];
+  Timer? _flushTimer;
+  bool _flushInFlight = false;
+
+  // Cached at initialize() so per-log calls don't pay the
+  // path_provider channel cost on every write.
+  File? _cachedLogFile;
 
   AppDatabase? _database;
 
@@ -97,28 +104,42 @@ class AppLoggerService {
 
   static const int maxLogFileSize = 5 * 1024 * 1024;
 
+  static const Duration _flushInterval = Duration(milliseconds: 200);
+
   Future<void> initialize(AppDatabase database, {LogConfig? config}) async {
-    debugPrint('[AppLogger] initialize() called - Setting database...');
-    debugPrint('[AppLogger] Database instance: ${database.hashCode}');
+    if (_database != null) {
+      // Already wired. Re-running would leak a second cleanup timer.
+      if (config != null) {
+        _config = config;
+      }
+      return;
+    }
 
     _database = database;
 
-    debugPrint(
-      '[AppLogger] Database set. _database is null? ${_database == null}',
-    );
-
     if (config != null) {
       _config = config;
+    }
+
+    // Pre-resolve the log file path so per-call writes never hit
+    // path_provider's platform channel.
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      _cachedLogFile = File('${directory.path}/app_logs.txt');
+    } catch (_) {
+      // Path resolution failure leaves _cachedLogFile null; flush
+      // gracefully no-ops the file sink until the next cold boot.
     }
 
     _cleanupTimer = Timer.periodic(const Duration(hours: 24), (_) {
       cleanOldLogs();
     });
 
-    await cleanOldLogs();
+    _flushTimer = Timer.periodic(_flushInterval, (_) => _flushPendingLogs());
 
-    debugPrint('[AppLogger] Initialization complete!');
-    info('AppLogger', 'Logger initialized with database and config: $_config');
+    await cleanOldLogs();
+    // Flush any logs buffered before initialize() completed.
+    unawaited(_flushPendingLogs());
   }
 
   void updateConfig(LogConfig config) {
@@ -196,72 +217,89 @@ class AppLoggerService {
       _logs.removeRange(0, _logs.length - maxLogsInMemory);
     }
 
-    unawaited(_saveToFile(entry));
-
-    if (_database != null && _config.shouldSaveLevel(level)) {
-      if (kDebugMode) {
-        debugPrint(
-          'Saving ${level.name} log to DB (shouldSave: ${_config.shouldSaveLevel(level)})',
-        );
-      }
-      unawaited(_saveToDatabase(entry));
-    } else if (kDebugMode) {
-      debugPrint(
-        'Skipping DB save for ${level.name} (db null: ${_database == null}, shouldSave: ${_config.shouldSaveLevel(level)})',
-      );
-    }
-
-    if (kDebugMode) {
-      print(entry.toFormattedString());
+    // Stage for the next flush window. Critical events are flushed
+    // immediately so a crash can't lose them; everything else rides the
+    // 200ms timer batch.
+    _pendingLogs.add(entry);
+    if (level == LogLevel.critical) {
+      unawaited(_flushPendingLogs());
     }
   }
 
-  Future<void> _saveToDatabase(LogEntry entry) async {
+  /// Drains [_pendingLogs] in one DB batch + one file append. Runs on
+  /// the periodic timer (200ms) and on critical/dispose paths. Guarded
+  /// against concurrent flushes so a slow disk write can't cause two
+  /// batches to interleave and reorder entries.
+  Future<void> _flushPendingLogs() async {
+    if (_flushInFlight) return;
+    if (_pendingLogs.isEmpty) return;
+
+    _flushInFlight = true;
     try {
-      if (_database == null) {
-        debugPrint('Database is null, cannot save log');
-        return;
-      }
+      final pending = List<LogEntry>.from(_pendingLogs);
+      _pendingLogs.clear();
 
-      _database!.insertLog(
-        AppLogsCompanion.insert(
-          timestamp: entry.timestamp,
-          level: entry.level.name,
-          tag: entry.tag,
-          message: entry.message,
-          error: Value(entry.error?.toString()),
-          stackTrace: Value(entry.stackTrace?.toString()),
-        ),
-      );
-    } catch (e, stackTrace) {
-      debugPrint('Error saving log to database: $e');
-      debugPrint('StackTrace: $stackTrace');
-    }
-  }
-
-  Future<void> _saveToFile(LogEntry entry) async {
-    try {
-      final file = await _getLogFile();
-
-      if (await file.exists()) {
-        final size = await file.length();
-        if (size > maxLogFileSize) {
-          await _rotateLogFile();
+      // DB sink — single transaction, one round-trip across drift's
+      // worker isolate instead of one per entry.
+      final db = _database;
+      if (db != null) {
+        final saveable = pending
+            .where((e) => _config.shouldSaveLevel(e.level))
+            .toList();
+        if (saveable.isNotEmpty) {
+          try {
+            await db.batch((batch) {
+              for (final entry in saveable) {
+                batch.insert(
+                  db.appLogs,
+                  AppLogsCompanion.insert(
+                    timestamp: entry.timestamp,
+                    level: entry.level.name,
+                    tag: entry.tag,
+                    message: entry.message,
+                    error: Value(entry.error?.toString()),
+                    stackTrace: Value(entry.stackTrace?.toString()),
+                  ),
+                );
+              }
+            });
+          } catch (e) {
+            if (kDebugMode) debugPrint('Error batch-saving logs to DB: $e');
+          }
         }
       }
 
-      await file.writeAsString(
-        entry.toFormattedString(),
-        mode: FileMode.append,
-      );
-    } catch (e) {
-      debugPrint('Error saving log to file: $e');
+      // File sink — single append for the whole batch. Rotation check
+      // runs once per flush, not once per entry.
+      final file = _cachedLogFile;
+      if (file != null) {
+        try {
+          if (await file.exists()) {
+            final size = await file.length();
+            if (size > maxLogFileSize) {
+              await _rotateLogFile();
+            }
+          }
+          final buffer = StringBuffer();
+          for (final entry in pending) {
+            buffer.write(entry.toFormattedString());
+          }
+          await file.writeAsString(buffer.toString(), mode: FileMode.append);
+        } catch (e) {
+          if (kDebugMode) debugPrint('Error appending logs to file: $e');
+        }
+      }
+    } finally {
+      _flushInFlight = false;
     }
   }
 
   Future<File> _getLogFile() async {
+    if (_cachedLogFile != null) return _cachedLogFile!;
     final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/app_logs.txt');
+    final file = File('${directory.path}/app_logs.txt');
+    _cachedLogFile = file;
+    return file;
   }
 
   Future<void> _rotateLogFile() async {
@@ -327,7 +365,7 @@ class AppLoggerService {
 
       return deletedCount;
     } catch (e) {
-      error('AppLogger', 'Error cleaning old logs', error: e);
+      debugPrint('Error cleaning old logs: $e');
       return 0;
     }
   }
@@ -373,11 +411,13 @@ class AppLoggerService {
     }
   }
 
-  /// Get logs from database with pagination (newest first)
+  /// Get logs from database with pagination (newest first). Level and search
+  /// are applied at the SQL layer so callers don't have to over-fetch.
   Future<List<AppLog>> getLogsFromDatabasePaginated({
     required int limit,
     required int offset,
     LogLevel? level,
+    String? searchQuery,
   }) async {
     try {
       if (_database == null) return [];
@@ -386,6 +426,7 @@ class AppLoggerService {
         limit: limit,
         offset: offset,
         level: level?.name,
+        searchQuery: searchQuery,
       );
     } catch (e) {
       error(
@@ -395,6 +436,35 @@ class AppLoggerService {
       );
       return [];
     }
+  }
+
+  /// Filtered view over the in-memory ring buffer (newest first).
+  /// Mirrors the database-side filter so memory and DB sources share the
+  /// same matching semantics.
+  List<LogEntry> getMemoryLogsFiltered({
+    LogLevel? level,
+    String? searchQuery,
+  }) {
+    Iterable<LogEntry> filtered = _logs.reversed;
+
+    if (level != null) {
+      filtered = filtered.where((log) => log.level == level);
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      filtered = filtered.where((log) {
+        if (log.message.toLowerCase().contains(query)) return true;
+        if (log.tag.toLowerCase().contains(query)) return true;
+        final errorText = log.error?.toString().toLowerCase();
+        if (errorText != null && errorText.contains(query)) return true;
+        final stackText = log.stackTrace?.toString().toLowerCase();
+        if (stackText != null && stackText.contains(query)) return true;
+        return false;
+      });
+    }
+
+    return filtered.toList();
   }
 
   Future<List<AppLog>> getLogsFromDatabaseByTimeRange(
@@ -411,7 +481,24 @@ class AppLoggerService {
     }
   }
 
-  Future<String> exportLogs() async {
+  /// Build the export ZIP for the given [walletId]. Swaps and Pegs in the
+  /// structured JSON section are scoped to this wallet — pre-walletId
+  /// rows (sentinel 'unknown') are not included, matching the in-app
+  /// view. Logs are not currently wallet-scoped at the schema level
+  /// (`deleteWallet()` wipes them outright on wipe), so they remain
+  /// unscoped here.
+  ///
+  /// [v2Transactions] is the V2 `TransactionStore` snapshot. After the V2
+  /// migration the legacy `Transactions` drift table is no longer
+  /// populated (V2 services write to `mooze_v2.db` instead), so callers
+  /// must pass V2 rows in to keep the export's `transactions` section
+  /// non-empty. When omitted, the export falls back to the legacy table
+  /// for backwards compatibility with rows written before the V2 cutover.
+  Future<String> exportLogs({
+    required String walletId,
+    required DebugHeader debugHeader,
+    List<v2.Transaction>? v2Transactions,
+  }) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -423,8 +510,16 @@ class AppLoggerService {
 
       debugPrint('[AppLogger] Export directory created: ${exportDir.path}');
 
+      // Render the standardised debug header once and reuse it across
+      // every text artifact in the export so the `Generated:` timestamp
+      // matches across files. The structured `mooze_export.json` is
+      // excluded — that file is a financial export, not a debug payload.
+      final headerText = debugHeader.format();
+
       final memoryLogsFile = File('${exportDir.path}/logs_memoria.log');
       final memoryBuffer = StringBuffer();
+      memoryBuffer.write(headerText);
+      memoryBuffer.writeln();
       memoryBuffer.writeln('=== LOGS DA MEMÓRIA ===');
       memoryBuffer.writeln(
         'Exportado em: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}',
@@ -447,6 +542,8 @@ class AppLoggerService {
 
       final dbLogsFile = File('${exportDir.path}/logs_banco.log');
       final dbBuffer = StringBuffer();
+      dbBuffer.write(headerText);
+      dbBuffer.writeln();
       dbBuffer.writeln('=== LOGS DO BANCO DE DADOS ===');
       dbBuffer.writeln(
         'Exportado em: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}',
@@ -491,6 +588,8 @@ class AppLoggerService {
 
       final infoFile = File('${exportDir.path}/info.txt');
       final infoBuffer = StringBuffer();
+      infoBuffer.write(headerText);
+      infoBuffer.writeln();
       infoBuffer.writeln('=== INFORMAÇÕES DA EXPORTAÇÃO ===');
       infoBuffer.writeln(
         'Data/Hora: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}',
@@ -513,9 +612,32 @@ class AppLoggerService {
       infoBuffer.writeln(
         '  - logs_banco.log: Logs persistidos no banco de dados',
       );
+      infoBuffer.writeln(
+        '  - mooze_export.json: Financial export (transactions + swaps only — '
+        'no logs or diagnostics)',
+      );
 
       await infoFile.writeAsString(infoBuffer.toString());
       debugPrint('[AppLogger] Info file created');
+
+      // Structured financial export — user-facing artifact carrying only
+      // transactions and swaps. Logs / diagnostics / runtime state are
+      // deliberately excluded; those live in the sibling `.log` files
+      // and the `info.txt` header so this JSON stays compact and free
+      // of privacy-sensitive payload.
+      final jsonExport = await _buildStructuredExport(
+        walletId: walletId,
+        v2Transactions: v2Transactions,
+      );
+      final jsonFile = File('${exportDir.path}/mooze_export.json');
+      await jsonFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(jsonExport),
+      );
+      debugPrint(
+        '[AppLogger] JSON export written: '
+        'tx=${(jsonExport['transactions'] as List).length} '
+        'swaps=${(jsonExport['swaps'] as List).length}',
+      );
 
       final files = await exportDir.list().toList();
       debugPrint('[AppLogger] Files in export directory: ${files.length}');
@@ -599,8 +721,178 @@ class AppLoggerService {
     }).toList();
   }
 
+  /// Build the user-facing financial export document.
+  ///
+  /// Schema (v2 — see DECISIONS.md, breaking change from v1):
+  /// ```
+  /// {
+  ///   "schemaVersion": 2,
+  ///   "exportedAt":   ISO-8601 UTC timestamp,
+  ///   "transactions": [Transaction rows, newest first],
+  ///   "swaps":        [Swap rows, newest first]
+  /// }
+  /// ```
+  ///
+  /// **Logs are intentionally absent.** v1 of this schema mixed log
+  /// entries, transactions and swaps in one payload, which made the file
+  /// large, noisy, and a privacy hazard. From v2 onwards logs ship as
+  /// plain text in the sibling `logs_memoria.log` / `logs_banco.log`
+  /// files inside the same ZIP — the JSON is purely a financial export.
+  ///
+  /// Transactions and swaps come straight from the database. If the
+  /// database isn't initialized the corresponding sections are empty
+  /// arrays rather than missing keys, so consumers can rely on shape.
+  Future<Map<String, dynamic>> _buildStructuredExport({
+    required String walletId,
+    List<v2.Transaction>? v2Transactions,
+  }) async {
+    List<Map<String, dynamic>> txJson = const [];
+    List<Map<String, dynamic>> swapJson = const [];
+
+    // Build a (any-tx-id → breezSwapId) index from V2 chain-swap rows.
+    // Any of these ids on a Swap audit row's `txId` field is enough to
+    // pull the short opaque Breez id (e.g. `gGZYumk53AUX`) into the
+    // exported swap entry. The mapping is many-to-one (a single
+    // peg-swap surfaces under up to 3 distinct ids — short swap id,
+    // lockup hex, claim hex), so we index all of them.
+    final breezSwapIdByTxKey = <String, String>{};
+    if (v2Transactions != null) {
+      for (final t in v2Transactions) {
+        final swapId = t.breezSwapId;
+        if (swapId == null) continue;
+        breezSwapIdByTxKey[t.id] = swapId;
+        final lockup = t.swapLockupTxId;
+        if (lockup != null) breezSwapIdByTxKey[lockup] = swapId;
+        final claim = t.swapClaimTxId;
+        if (claim != null) breezSwapIdByTxKey[claim] = swapId;
+        breezSwapIdByTxKey[swapId] = swapId;
+      }
+    }
+
+    if (_database != null) {
+      final db = _database!;
+      final swaps = await db.getAllSwaps(walletId: walletId);
+
+      swaps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      swapJson = swaps
+          .map((row) => _swapRowToJson(row, breezSwapIdByTxKey))
+          .toList();
+
+      // V2 transactions take precedence over the legacy table. Post-V2
+      // sync writes to `mooze_v2.db`, leaving the drift `Transactions`
+      // table empty for fresh installs. Only fall back to legacy rows
+      // when V2 didn't provide a snapshot (e.g. dev tools called the
+      // export without ref access).
+      if (v2Transactions == null) {
+        final txs = await db.getAllTransactions();
+        txs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        txJson = txs.map(_transactionRowToJson).toList();
+      }
+    }
+
+    if (v2Transactions != null) {
+      final sorted = [...v2Transactions]
+        ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      txJson = sorted.map(_v2TransactionToJson).toList();
+    }
+
+    return {
+      'schemaVersion': 2,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'transactions': txJson,
+      'swaps': swapJson,
+    };
+  }
+
+  Map<String, dynamic> _transactionRowToJson(Transaction row) => {
+    'id': row.id,
+    'assetId': row.assetId,
+    // Int64 amounts are serialized as strings to preserve full precision; a
+    // signed JSON number would risk silent truncation on consumers that
+    // parse to double.
+    'amount': row.amount.toString(),
+    'type': row.type,
+    'status': row.status,
+    'blockchain': row.blockchain,
+    'createdAt': row.createdAt.toUtc().toIso8601String(),
+    'confirmations': row.confirmations,
+    if (row.txHash != null) 'txHash': row.txHash,
+    if (row.address != null) 'address': row.address,
+    if (row.metadata != null) 'metadata': row.metadata,
+  };
+
+  /// V2 transactions live in `mooze_v2.db` and use a different schema
+  /// from the legacy drift `Transactions` table. The export keeps the
+  /// legacy-shaped keys (`type`, `blockchain`, `amount`) so support
+  /// tooling that parsed the v1 export keeps working; V2-only fields
+  /// (`feeSat`, `chain`, raw `direction`) are added alongside without
+  /// bumping `schemaVersion`.
+  ///
+  /// Direction → type mapping mirrors `v2_legacy_transactions_provider`:
+  /// incoming → "receive", outgoing → "send", selfTransfer → "redeposit",
+  /// swap → "swap", internal → "internal".
+  Map<String, dynamic> _v2TransactionToJson(v2.Transaction tx) {
+    final type = switch (tx.direction) {
+      v2.TransactionDirection.incoming => 'receive',
+      v2.TransactionDirection.outgoing => 'send',
+      v2.TransactionDirection.selfTransfer => 'redeposit',
+      v2.TransactionDirection.swap => 'swap',
+      v2.TransactionDirection.internal => 'internal',
+    };
+    final blockchain = tx.chain.name;
+    return {
+      'id': tx.id,
+      if (tx.assetId != null) 'assetId': tx.assetId,
+      'amount': tx.amountSat.toString(),
+      'feeSat': tx.feeSat.toString(),
+      'type': type,
+      'direction': tx.direction.name,
+      'status': tx.status.name,
+      'blockchain': blockchain,
+      'chain': tx.chain.name,
+      'createdAt': tx.timestamp.toUtc().toIso8601String(),
+      'confirmations': tx.confirmations,
+      if (tx.address != null) 'address': tx.address,
+      if (tx.label != null) 'label': tx.label,
+      if (tx.swapLockupTxId != null) 'swapLockupTxId': tx.swapLockupTxId,
+      if (tx.swapClaimTxId != null) 'swapClaimTxId': tx.swapClaimTxId,
+      if (tx.breezSwapId != null) 'breezSwapId': tx.breezSwapId,
+    };
+  }
+
+  Map<String, dynamic> _swapRowToJson(
+    Swap row, [
+    Map<String, String> breezSwapIdByTxKey = const {},
+  ]) {
+    // Cross-reference the audit row to the V2 chain-swap rows so we
+    // can surface the short Breez swap id (e.g. `gGZYumk53AUX`)
+    // alongside the existing audit metadata. Support tooling uses
+    // that id to query Breez/Boltz for the swap status.
+    String? breezSwapId;
+    final txId = row.txId;
+    if (txId != null) breezSwapId = breezSwapIdByTxKey[txId];
+    return {
+      'id': row.id,
+      'provider': row.provider,
+      'direction': row.direction,
+      'status': row.status,
+      'sendAsset': row.sendAsset,
+      'receiveAsset': row.receiveAsset,
+      'sendAmount': row.sendAmount.toString(),
+      'receiveAmount': row.receiveAmount.toString(),
+      'createdAt': row.createdAt.toUtc().toIso8601String(),
+      if (txId != null) 'txId': txId,
+      if (breezSwapId != null) 'breezSwapId': breezSwapId,
+      if (row.metadata != null) 'metadata': row.metadata,
+    };
+  }
+
   void dispose() {
     _cleanupTimer?.cancel();
+    _flushTimer?.cancel();
+    // Best-effort final flush so logs buffered right before shutdown
+    // still reach the DB / file sink.
+    unawaited(_flushPendingLogs());
     _logStreamController.close();
   }
 }

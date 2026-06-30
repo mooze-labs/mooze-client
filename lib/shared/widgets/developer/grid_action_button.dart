@@ -1,17 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Botão de ação em grid para a tela de desenvolvedor
+/// Action button used inside the developer tools grid
 class GridActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String tooltip;
-  final VoidCallback onPressed;
-  final Color? backgroundColor;
-  final Color? iconColor;
-  final Color? textColor;
-  final bool enabled;
-
   const GridActionButton({
     super.key,
     required this.icon,
@@ -22,68 +13,153 @@ class GridActionButton extends StatelessWidget {
     this.iconColor,
     this.textColor,
     this.enabled = true,
+    this.loading = false,
+    this.subtitle,
   });
+
+  final IconData icon;
+  final String label;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final Color? textColor;
+  final bool enabled;
+  final bool loading;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final defaultBgColor = AppColors.swapCardBackground;
-    final defaultIconColor = AppColors.primaryColor;
-    final defaultTextColor = Colors.white;
+    final cs = context.colorScheme;
+    final tt = context.textTheme;
+    final extra = context.appColors;
+
+    final dim = !enabled || loading;
+    final effectiveIconColor = enabled
+        ? (iconColor ?? cs.primary)
+        : cs.onSurface.withValues(alpha: 0.25);
+    final effectiveLabelColor = enabled
+        ? (textColor ?? cs.onSurface)
+        : cs.onSurface.withValues(alpha: 0.30);
+    final effectiveBgColor = enabled
+        ? (backgroundColor ?? cs.onSurface.withValues(alpha: 0.04))
+        : cs.onSurface.withValues(alpha: 0.02);
+    final borderColor = loading
+        ? cs.primary.withValues(alpha: 0.30)
+        : cs.onSurface.withValues(alpha: enabled ? 0.07 : 0.04);
 
     return Tooltip(
       message: tooltip,
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: enabled ? onPressed : null,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
+          onTap: enabled && !loading ? onPressed : null,
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
             decoration: BoxDecoration(
-              color:
-                  enabled
-                      ? (backgroundColor ?? defaultBgColor)
-                      : Colors.grey[800],
-              borderRadius: BorderRadius.circular(12),
-              boxShadow:
-                  enabled
-                      ? [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                      : null,
+              color: effectiveBgColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor),
+              boxShadow: loading
+                  ? [
+                      BoxShadow(
+                        color: cs.primary.withValues(alpha: 0.18),
+                        blurRadius: 12,
+                        spreadRadius: 0,
+                      ),
+                    ]
+                  : null,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
               children: [
-                Icon(
-                  icon,
-                  color:
-                      enabled
-                          ? (iconColor ?? defaultIconColor)
-                          : Colors.grey[600],
-                  size: 28,
+                _LeadingGlyph(
+                  icon: icon,
+                  color: effectiveIconColor,
+                  loading: loading,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        enabled
-                            ? (textColor ?? defaultTextColor)
-                            : Colors.grey[600],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: dim && !loading ? 0.55 : 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: tt.bodyMedium?.copyWith(
+                            color: effectiveLabelColor,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle!,
+                            style: tt.bodySmall?.copyWith(
+                              color: extra.textTertiary,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LeadingGlyph extends StatelessWidget {
+  const _LeadingGlyph({
+    required this.icon,
+    required this.color,
+    required this.loading,
+  });
+
+  final IconData icon;
+  final Color color;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: loading ? 0.18 : 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: loading
+            ? SizedBox(
+                key: const ValueKey('spinner'),
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              )
+            : Icon(icon, key: ValueKey(icon), color: color, size: 18),
       ),
     );
   }

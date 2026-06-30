@@ -2,11 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_mode_provider.dart';
+import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/utils/result.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+/// Merchant Mode Exit Screen (Presentation Layer)
+///
+/// Confirmation screen displayed when exiting merchant mode.
+/// Provides a polished exit experience with animations.
+///
+/// Features:
+/// - Animated logo with scale, pulse, and slide effects
+/// - "Merchant Mode Off" message
+/// - "Return to Home" button
+/// - Automatically deactivates merchant mode
+/// - Navigates to the origin route (where user came from) or home
+///
+/// Animations:
+/// - Scale: Logo grows from small to full size with elastic effect
+/// - Pulse: Logo continuously pulses to draw attention
+/// - Slide: Content slides up from bottom
+///
+/// State Management:
+/// - Uses merchant mode controller to deactivate mode
+/// - Reads origin route to navigate back correctly
 
 class MerchantModeExitScreen extends ConsumerStatefulWidget {
   const MerchantModeExitScreen({super.key});
@@ -76,20 +99,11 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFEA1E63).withValues(alpha: 0.05),
-              const Color(0xFF841138).withValues(alpha: 0.05),
-            ],
-          ),
-        ),
-        child: SafeArea(
+        child: PlatformSafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Column(
@@ -110,6 +124,10 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                         'assets/logos/logo_primary.svg',
                         width: 150,
                         height: 100,
+                        colorFilter: ColorFilter.mode(
+                          context.colors.logoColor,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -121,7 +139,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Pronto para vender?',
+                        t.merchant_exit_ready,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,
@@ -130,7 +148,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                       ),
                       const SizedBox(height: 32),
                       PrimaryButton(
-                        text: 'Receber novo pagamento',
+                        text: t.merchant_exit_new_payment,
                         onPressed: () {
                           context.go('/merchant');
                         },
@@ -140,36 +158,47 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final merchantModeService = ref.read(
-                              merchantModeServiceProvider,
+                            // Get origin route using Clean Architecture use case
+                            final getOriginUseCase = ref.read(
+                              getMerchantModeOriginUseCaseProvider,
                             );
-                            final origin =
-                                await merchantModeService
-                                    .getMerchantModeOrigin();
+                            final originResult = await getOriginUseCase();
+
+                            // Extract origin from Result using pattern matching
+                            String origin = '/home';
+                            if (originResult is Success<String>) {
+                              origin = originResult.data;
+                            }
 
                             context.push(
                               '/setup/pin/verify',
                               extra: VerifyPinArgs(
                                 onPinConfirmed: () async {
-                                  await merchantModeService
-                                      .setMerchantModeActive(false);
+                                  // Deactivate merchant mode using Clean Architecture use case
+                                  final deactivateUseCase = ref.read(
+                                    deactivateMerchantModeUseCaseProvider,
+                                  );
+                                  await deactivateUseCase();
+
+                                  // Clear cart
                                   ref
                                       .read(cartControllerProvider.notifier)
                                       .clearCart();
                                   ref.invalidate(cartControllerProvider);
                                   context.go(origin);
                                 },
+
                                 forceAuth: true,
                                 canGoBack: true,
                               ),
                             );
                           },
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: theme.colorScheme.outline.withValues(
                                   alpha: 0.2,
@@ -186,7 +215,7 @@ class _MerchantModeExitScreenState extends ConsumerState<MerchantModeExitScreen>
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Quer acessar a carteira?',
+                                  t.merchant_exit_back_to_wallet,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.w600,

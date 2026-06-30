@@ -1,0 +1,127 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
+
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/lbtc_warning_provider.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+const _possibleAssets = [Asset.depix, Asset.lbtc];
+
+class AssetSelectorWidget extends ConsumerWidget {
+  const AssetSelectorWidget({super.key});
+
+  Widget _buildAssetIcon(Asset asset) {
+    return SvgPicture.asset(
+      asset.iconPath,
+      width: 16,
+      height: 16,
+      fit: BoxFit.contain,
+    );
+  }
+
+  Future<bool?> _showLbtcFluctuationDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        final t = AppLocalizations.of(context);
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.appColors.warning.withValues(alpha: 0.2),
+                  ),
+                  child: Icon(
+                    Icons.trending_up,
+                    size: 40,
+                    color: context.appColors.warning,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  t.pix_floating_rate_title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  t.pix_floating_rate_body,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: context.appColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  text: t.common_understood,
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  child: Text(t.pix_dont_show_again),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final selectedAsset = ref.watch(selectedAssetProvider);
+    return FloatingLabelDropdown<Asset>(
+      label: t.pix_select_asset,
+      value: selectedAsset,
+      items: _possibleAssets,
+      onChanged: (asset) async {
+        if (asset == Asset.lbtc) {
+          final warningService = ref.read(lbtcWarningServiceProvider);
+          final hasSeenWarning = await warningService.isWarningShown();
+          if (!hasSeenWarning && context.mounted) {
+            final dontShowAgain = await _showLbtcFluctuationDialog(
+              context,
+              ref,
+            );
+            if (dontShowAgain == true) {
+              await warningService.setWarningShown();
+            }
+          }
+        }
+
+        ref.read(selectedAssetProvider.notifier).state = (asset ?? Asset.depix);
+        ref.invalidate(assetQuoteProvider);
+      },
+      itemIconBuilder: (asset) => _buildAssetIcon(asset),
+      itemLabelBuilder: (asset) => asset.name,
+      borderColor: Theme.of(context).colorScheme.primary,
+    );
+  }
+}

@@ -1,7 +1,15 @@
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/domain/entities/liquid_utxo.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-import '../../domain/entities.dart';
+// Hide the legacy `RefundableSwap` from entities.dart so the V2 domain
+// type from `mooze_mobile/domain/entities/refund.dart` resolves
+// unambiguously here. The legacy type lives in
+// `lib/features/wallet/domain/entities/refundable_swap.dart` and is
+// referenced only by older code paths that are part of the migration
+// surface tracked in V2_PHASE2_PARITY_AND_MIGRATION.
+import '../../domain/entities.dart' hide RefundableSwap;
 import '../../domain/entities/payment_limits.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/errors.dart';
@@ -511,5 +519,58 @@ class FakeWalletRepositoryImpl extends WalletRepository {
   }) {
     // TODO: implement preparePegOut
     throw UnimplementedError();
+  }
+
+  // ─────────────────────────────────────────── chain metadata + refund
+
+  @override
+  TaskEither<WalletError, int> getCurrentBitcoinBlockHeight() {
+    return TaskEither.right(800000);
+  }
+
+  @override
+  TaskEither<WalletError, List<RefundableSwap>> listRefundableSwaps() {
+    return TaskEither.right(const <RefundableSwap>[]);
+  }
+
+  @override
+  TaskEither<WalletError, MempoolFees> getRecommendedFees() {
+    return TaskEither.right(const MempoolFees(
+      minimumFee: 1,
+      economyFee: 2,
+      hourFee: 5,
+      halfHourFee: 10,
+      fastestFee: 20,
+    ));
+  }
+
+  @override
+  TaskEither<WalletError, PrepareRefundOutcome> prepareRefund(
+      PrepareRefundParams params) {
+    return TaskEither.right(const PrepareRefundOutcome(txVsize: 150));
+  }
+
+  @override
+  TaskEither<WalletError, RefundOutcome> executeRefund(
+      ExecuteRefundParams params) {
+    return TaskEither.right(const RefundOutcome(refundTxId: 'fake_refund_tx'));
+  }
+
+  @override
+  TaskEither<WalletError, List<LiquidUtxo>> getLiquidUtxos() {
+    return TaskEither.right(const <LiquidUtxo>[]);
+  }
+
+  @override
+  TaskEither<WalletError, String> signSwapPset({
+    required String pset,
+    required String mnemonic,
+  }) {
+    return TaskEither.right(pset);
+  }
+
+  @override
+  TaskEither<WalletError, String> getLiquidSwapAddress() {
+    return TaskEither.right('fake_liquid_swap_address');
   }
 }

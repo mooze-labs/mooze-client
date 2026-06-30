@@ -17,7 +17,8 @@ class CoingeckoApi {
     return TaskEither.tryCatch(() async {
       final response = await client.get(
         Uri.parse(
-          '$coingeckoBaseUrl/simple/price?ids=${coins.join(',')}&vs_currencies=$currency',
+          '$coingeckoBaseUrl/simple/price?ids=${coins.join(',')}'
+          '&vs_currencies=$currency&precision=full',
         ),
       );
       if (response.statusCode == 200) {

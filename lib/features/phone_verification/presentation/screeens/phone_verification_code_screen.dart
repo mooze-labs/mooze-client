@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:pinput/pinput.dart';
 import 'package:mooze_mobile/themes/pin_theme.dart';
@@ -86,11 +87,12 @@ class _PhoneVerificationCodeScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PopScope(
       canPop: true,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Confirmar Código'),
+          title: Text(t.phone_verif_code_title),
           leading: Icon(Icons.arrow_back_ios_new_rounded),
         ),
         body: PlatformSafeArea(
@@ -103,9 +105,9 @@ class _PhoneVerificationCodeScreenState
                   text: TextSpan(
                     style: Theme.of(context).textTheme.headlineSmall,
                     children: [
-                      const TextSpan(text: 'Digite o '),
+                      TextSpan(text: t.phone_verif_code_prompt_prefix),
                       TextSpan(
-                        text: 'código recebido',
+                        text: t.phone_verif_code_word,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -117,8 +119,7 @@ class _PhoneVerificationCodeScreenState
                 RichText(
                   text: TextSpan(
                     style: Theme.of(context).textTheme.bodyLarge,
-                    text:
-                        'Enviamos um código de 6 dígitos para o número +55 (54) 998446-2341 via Telegram.',
+                    text: t.phone_verif_code_body('+55 (54) 998446-2341'),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -127,18 +128,20 @@ class _PhoneVerificationCodeScreenState
                   keyboardType: TextInputType.number,
                   length: 6,
                   controller: _pinController,
-                  defaultPinTheme: PinThemes.focusedPinTheme,
+                  defaultPinTheme: PinThemes.focusedThemeOf(context),
                 ),
                 const SizedBox(height: 50),
                 PrimaryButton(
-                  text: "Verificar",
+                  text: t.phone_verif_verify,
                   onPressed: _isPinValid ? widget.onPinConfirmed : null,
                   isEnabled: _isPinValid,
                 ),
                 const SizedBox(height: 20),
                 if (_secondsRemaining > 0)
                   Text(
-                    'Reenviar em 00:${_secondsRemaining.toString().padLeft(2, '0')}',
+                    t.phone_verif_resend_in(
+                      _secondsRemaining.toString().padLeft(2, '0'),
+                    ),
                     style: const TextStyle(color: Colors.white),
                   )
                 else
@@ -147,7 +150,7 @@ class _PhoneVerificationCodeScreenState
                       : TextButton(
                         onPressed: _onResendCode,
                         child: Text(
-                          'Reenviar código',
+                          t.phone_verif_resend_code,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                           ),

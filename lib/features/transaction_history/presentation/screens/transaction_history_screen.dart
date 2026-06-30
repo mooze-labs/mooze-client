@@ -1,27 +1,28 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/transaction_list.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_entity.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
-class TransactionHistoryScreen extends StatefulWidget {
+class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
 
   @override
-  State<TransactionHistoryScreen> createState() =>
+  ConsumerState<TransactionHistoryScreen> createState() =>
       _TransactionHistoryScreenState();
 }
 
-class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
+class _TransactionHistoryScreenState
+    extends ConsumerState<TransactionHistoryScreen> {
   TransactionFiltersEntity _filters = TransactionFiltersEntity();
   List<AssetEntity> _allAssets = [];
 
@@ -131,9 +132,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Histórico de transações'),
+        title: Text(t.tx_history_title),
         leading: IconButton(
           onPressed: () {
             context.pop();
@@ -142,60 +144,94 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-          Consumer(
-            builder: (context, ref, _) {
-              return IconButton(
-                icon: Icon(Icons.refresh, color: AppColors.primaryColor),
-                onPressed: () {
-                  ref.invalidate(transactionHistoryProvider);
-                  if (kDebugMode) {
-                    print(
-                      '[TransactionHistoryScreen] Provider invalidado manualmente',
-                    );
-                  }
-                },
-                tooltip: 'Atualizar (Debug)',
-              );
-            },
-          ),
           IconButton(
             icon: Icon(
               Icons.filter_alt_outlined,
-              color: AppColors.primaryColor,
+              color: context.colors.primaryColor,
             ),
             onPressed: _openFilterSheet,
-            tooltip: 'Filtros',
+            tooltip: t.tx_filter_title,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight:
-                MediaQuery.of(context).size.height -
-                MediaQuery.of(context).padding.top -
-                kToolbarHeight -
-                32,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Consumer(
-              builder: (context, ref, _) {
-                final transactionHistory = ref.watch(
-                  transactionHistoryProvider,
-                );
-                final isVisible = ref.watch(isVisibleProvider);
-                return transactionHistory.when(
-                  data:
-                      (data) => data.fold(
-                        (err) => Center(child: ErrorTransactionList()),
-                        (transactions) {
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(v2LegacyTransactionsProvider);
+          try {
+            await ref.read(v2LegacyTransactionsProvider.future);
+          } catch (_) {}
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  kToolbarHeight -
+                  32,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final transactionHistory = ref.watch(
+                    v2LegacyTransactionsProvider,
+                  );
+                  final isVisible = ref.watch(isVisibleProvider);
+                  return transactionHistory.when(
+                    data: (transactions) {
                           final filteredTransactions = _applyFilters(
                             transactions,
                           );
 
-                          if (filteredTransactions.isEmpty) {
+                            if (filteredTransactions.isEmpty) {
+                              return Column(
+                                children: [
+                                  if (_hasActiveFilters) ...[
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: context.colors.primaryColor
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: context.colors.primaryColor
+                                              .withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.info_outline,
+                                            color: context.colors.primaryColor,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              t.tx_history_filters_active(
+                                                _getActiveFiltersDescription(),
+                                              ),
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: _clearFilters,
+                                            child: Text(t.tx_history_clear),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  Center(child: EmptyTransactionList()),
+                                  const SizedBox(height: 80),
+                                ],
+                              );
+                            }
+
                             return Column(
                               children: [
                                 if (_hasActiveFilters) ...[
@@ -204,92 +240,52 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                     padding: const EdgeInsets.all(12),
                                     margin: const EdgeInsets.only(bottom: 16),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primaryColor.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                      color: context.colors.primaryColor
+                                          .withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: AppColors.primaryColor
+                                        color: context.colors.primaryColor
                                             .withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(
-                                          Icons.info_outline,
-                                          color: AppColors.primaryColor,
-                                          size: 20,
-                                        ),
+                                        Icon(Icons.filter_alt, size: 20),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            'Filtros ativos - ${_getActiveFiltersDescription()}',
+                                            t.tx_history_filter_count(
+                                              filteredTransactions.length,
+                                              transactions.length,
+                                              _getActiveFiltersDescription()
+                                                      .isNotEmpty
+                                                  ? _getActiveFiltersDescription()
+                                                  : t.tx_history_filter_default,
+                                            ),
                                             style: TextStyle(fontSize: 12),
                                           ),
                                         ),
                                         TextButton(
                                           onPressed: _clearFilters,
-                                          child: const Text('Limpar'),
+                                          child: Text(t.tx_history_clear),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ],
-                                Center(child: EmptyTransactionList()),
+                                SuccessfulTransactionList(
+                                  transactions: filteredTransactions,
+                                  isVisible: isVisible,
+                                ),
                                 const SizedBox(height: 80),
                               ],
                             );
-                          }
-
-                          return Column(
-                            children: [
-                              if (_hasActiveFilters) ...[
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryColor.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: AppColors.primaryColor.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.filter_alt, size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          '${filteredTransactions.length} de ${transactions.length} transações - ${_getActiveFiltersDescription().isNotEmpty ? _getActiveFiltersDescription() : 'Todos'}',
-                                          style: TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: _clearFilters,
-                                        child: const Text('Limpar'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              SuccessfulTransactionList(
-                                transactions: filteredTransactions,
-                                isVisible: isVisible,
-                              ),
-                              const SizedBox(height: 80),
-                            ],
-                          );
-                        },
-                      ),
-                  error: (err, stackTrace) => ErrorTransactionList(),
-                  loading: () => LoadingTransactionList(),
-                );
-              },
+                          },
+                    error: (err, stackTrace) => ErrorTransactionList(),
+                    loading: () => LoadingTransactionList(),
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -298,22 +294,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   String _getActiveFiltersDescription() {
+    final t = AppLocalizations.of(context);
     List<String> descriptions = [];
 
     final type = _filters.filter?['type'] as String?;
     if (type != null && type != 'all') {
       switch (type) {
         case 'send':
-          descriptions.add('Envios');
+          descriptions.add(t.tx_type_send);
           break;
         case 'receive':
-          descriptions.add('Recebimentos');
+          descriptions.add(t.tx_type_receive);
           break;
         case 'swap':
-          descriptions.add('Swaps');
+          descriptions.add(t.tx_type_swap);
           break;
         case 'refund':
-          descriptions.add('Reembolsos');
+          descriptions.add(t.tx_history_filter_refunds);
           break;
       }
     }
@@ -338,14 +335,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           '${_formatDate(_filters.startDate!)} - ${_formatDate(_filters.endDate!)}',
         );
       } else if (_filters.startDate != null) {
-        descriptions.add('A partir de ${_formatDate(_filters.startDate!)}');
+        descriptions.add(
+          t.tx_history_filter_from(_formatDate(_filters.startDate!)),
+        );
       } else if (_filters.endDate != null) {
-        descriptions.add('Até ${_formatDate(_filters.endDate!)}');
+        descriptions.add(
+          t.tx_history_filter_until(_formatDate(_filters.endDate!)),
+        );
       }
     }
 
     if (_filters.orderByMostRecent != null && !_filters.orderByMostRecent!) {
-      descriptions.add('Mais antigos primeiro');
+      descriptions.add(t.tx_history_filter_oldest_first);
     }
 
     return descriptions.join(' • ');

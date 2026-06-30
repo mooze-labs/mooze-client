@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../models/price_service_config.dart';
 import '../services.dart';
-import '../settings.dart';
+import '../store/price_quotes_notifier.dart';
 
 final priceServiceProvider = Provider<TaskEither<String, PriceService>>((ref) {
-  final service = PriceSettingsRepositoryImpl().getPriceServiceConfig().flatMap(
-    (c) {
-      return TaskEither.right(HybridPriceService(c.currency, c.priceSource));
-    },
+  ref.keepAlive();
+  final currency = ref.watch(
+    priceQuotesProvider.select((s) => s.currency),
   );
-
-  return service;
+  final service = HybridPriceService(currency, PriceSource.coingecko);
+  return TaskEither.right(service);
 });

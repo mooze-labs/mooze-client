@@ -1,140 +1,92 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
-
-import 'package:mooze_mobile/shared/key_management/providers/mnemonic_store_provider.dart';
-import 'package:mooze_mobile/shared/infra/sync/sync_stream_controller.dart';
-import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
-
-import '../wallet/datasource.dart';
-import '../utils/cache_manager.dart';
-import '../utils/liquid_electrum_fallback.dart';
 import 'package:lwk/lwk.dart';
-import 'package:path_provider/path_provider.dart';
-import 'electrum_node_provider.dart';
-import 'network_provider.dart';
 
-final liquidDataSourceProvider = FutureProvider<
-  Either<String, LiquidDataSource>
->((ref) async {
-  // Reset fallback to start from first server on each provider recreation
-  LiquidElectrumFallback.reset();
-  debugPrint(
-    '[LiquidDataSourceProvider] Fallback reset - starting from first server',
-  );
+import 'package:mooze_mobile/app/di/v2_providers.dart';
+import 'package:mooze_mobile/domain/entities/chain.dart' as v2;
+import 'package:mooze_mobile/domain/services/service_state.dart';
+import 'package:mooze_mobile/infra/lwk/liquid_wallet_service_impl.dart';
+import 'package:mooze_mobile/shared/infra/db/providers/app_database_provider.dart';
+import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
 
-  final electrumNodeUrl = ref.read(electrumNodeProvider);
-  final network = ref.read(networkProvider);
-  final mnemonic = ref.read(mnemonicStoreProvider).getMnemonic();
-  final syncStream = ref.read(syncStreamProvider);
+/// V2 BRIDGE — exposes the legacy [LiquidDataSource] shape but shares the
+/// underlying `lwk.Wallet` handle owned by the V2 [LiquidWalletServiceImpl].
+///
+/// Prior to this change the legacy provider built its own `lwk.Wallet`
+/// (sharing the `${appDocs}/lwk-db` working directory with the V2 service),
+/// which produced silent SQLite contention on every wallet read. The V2
+/// service is now the single owner; the legacy `WalletRepositoryImpl`
+/// and the address explorer call through the same handle.
+final liquidDataSourceProvider =
+    FutureProvider<Either<String, LiquidDataSource>>((ref) async {
+  final service =
+      ref.watch(liquidWalletServiceProvider) as LiquidWalletServiceImpl;
   final database = ref.read(appDatabaseProvider);
 
-  debugPrint(
-    '[LiquidDataSourceProvider] Using SyncStreamController hashCode: ${syncStream.hashCode}',
-  );
+  // Stale-reference invalidation — symmetric with `breezClientProvider`.
+  // The same delete + re-import flow that produced
+  // "Liquid SDK instance is not running" on the Breez side would produce
+  // an equivalent LWK-side stale handle (an `lwk.Wallet` whose underlying
+  // electrum client was torn down by `LiquidWalletServiceImpl.disconnect`)
+  // the next time send/swap touched the legacy `LiquidWallet` wrapper.
+  // Self-invalidate on `connected → !connected` so the legacy
+  // `walletRepositoryProvider` re-resolves and picks up the new wallet
+  // handle on the next read.
+  ServiceLifecycle? lastSeen;
+  final lifecycleSub = service.state.listen((s) {
+    final prev = lastSeen;
+    lastSeen = s.lifecycle;
+    if (prev == ServiceLifecycle.connected &&
+        s.lifecycle != ServiceLifecycle.connected) {
+      // Deferred to next microtask — see breez/providers/client_provider.dart
+      // for why synchronous `ref.invalidateSelf()` inside a stream
+      // listener causes the provider's wait loop to capture a
+      // transient disconnected state and return Left after the 6/30s
+      // timeout on the very next read.
+      Future.microtask(() {
+        try {
+          ref.invalidateSelf();
+        } catch (_) {}
+      });
+    }
+  });
+  ref.onDispose(lifecycleSub.cancel);
 
-  final TaskEither<String, String> descriptor = mnemonic.flatMap(
-    (mnemonicOption) => mnemonicOption.fold(
-      () => TaskEither<String, String>.left("Mnemonic has not been defined."),
-      (mnemonic) => deriveNewDescriptorFromMnemonic(
-        mnemonic,
-        network,
-      ).flatMap((descriptor) => TaskEither.right(descriptor.ctDescriptor)),
-    ),
-  );
+  LiquidDataSource build(Wallet wallet) => LiquidDataSource(
+        wallet: wallet,
+        electrumUrl: service.currentElectrumUrl,
+        network: _toLwkNetwork(),
+        validateDomain: service.validateDomain,
+        descriptor: '',
+        dbPath: '',
+        database: database,
+        ref: ref,
+      );
 
-  return descriptor.flatMap((descriptorStr) {
-    final supportDir = TaskEither.tryCatch(
-      () async => getApplicationSupportDirectory(),
-      (error, stackTrace) =>
-          'Failed to get application support directory: ${error.toString()}',
-    ).flatMap((dir) => TaskEither.right("${dir.path}/lwk-db"));
+  if (service.currentState.isOperational && service.sdkClient != null) {
+    return Right(build(service.sdkClient!));
+  }
 
-    final liquidDescriptor = TaskEither.fromEither(
-      Either.tryCatch(() => Descriptor(ctDescriptor: descriptorStr), (
-        error,
-        stackTrace,
-      ) {
-        return 'Failed to create Descriptor: ${error.toString()}';
-      }),
-    );
-
-    return liquidDescriptor.flatMap(
-      (desc) => supportDir.flatMap(
-        (dbpath) => TaskEither.tryCatch(() async {
-          try {
-            final dbDir = Directory(dbpath);
-
-            if (!await dbDir.exists()) {
-              await dbDir.create(recursive: true);
-            } else {
-              await dbDir.list().toList();
-            }
-
-            await dbDir.stat();
-
-            final wallet = await Wallet.init(
-              network: network,
-              dbpath: dbpath,
-              descriptor: desc,
-            );
-
-            return wallet;
-          } catch (error) {
-            String errorMessage =
-                (error is LwkError)
-                    ? 'LwkError: ${error.msg}'
-                    : error.toString();
-            final errorStr = errorMessage.toLowerCase();
-
-            final isCorruption =
-                (errorStr.contains('database') &&
-                    (errorStr.contains('corrupt') ||
-                        errorStr.contains('malform') ||
-                        errorStr.contains('not a database'))) ||
-                errorStr.contains('updateondifferentstatus') ||
-                (errorStr.contains('persisterror') &&
-                    errorStr.contains('notfound'));
-
-            if (isCorruption) {
-              await LwkCacheManager.clearLwkDatabase();
-
-              if (errorStr.contains('updateondifferentstatus') ||
-                  errorStr.contains('persisterror')) {
-                try {
-                  final wallet = await Wallet.init(
-                    network: network,
-                    dbpath: dbpath,
-                    descriptor: desc,
-                  );
-                  return wallet;
-                } catch (retryError) {
-                  rethrow;
-                }
-              }
-            }
-
-            rethrow;
-          }
-        }, (error, stackTrace) => error.toString()).flatMap(
-          (wallet) => electrumNodeUrl.flatMap(
-            (url) => TaskEither<String, LiquidDataSource>.right(
-              LiquidDataSource(
-                wallet: wallet,
-                electrumUrl: url,
-                network: network,
-                validateDomain: true,
-                descriptor: descriptorStr,
-                dbPath: dbpath,
-                syncStream: syncStream,
-                database: database,
-                ref: ref, // Adiciona ref aqui
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }).run();
+  await for (final s in service.state) {
+    if (s.lifecycle == ServiceLifecycle.errored) {
+      return Left(s.failure?.message ?? 'lwk connect failed');
+    }
+    if (s.isOperational && service.sdkClient != null) {
+      return Right(build(service.sdkClient!));
+    }
+  }
+  return const Left('lwk service stream closed without operational state');
 });
+
+/// Maps the V2 app network to the LWK enum. Mainnet is the only path
+/// production builds exercise; testnet/regtest fall through to LWK's
+/// testnet enum (same as V2 `LiquidWalletServiceImpl._toLwkNetwork`).
+Network _toLwkNetwork() {
+  switch (v2.AppNetwork.mainnet) {
+    case v2.AppNetwork.mainnet:
+      return Network.mainnet;
+    case v2.AppNetwork.testnet:
+    case v2.AppNetwork.regtest:
+      return Network.testnet;
+  }
+}

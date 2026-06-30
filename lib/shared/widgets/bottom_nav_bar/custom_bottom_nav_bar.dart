@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'bottom_nav_bar_painter.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final Key? centralButtonKey;
 
   const CustomBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.centralButtonKey,
   });
 
   @override
@@ -20,11 +23,15 @@ class CustomBottomNavBar extends StatefulWidget {
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Stack(
       children: [
         CustomPaint(
           size: Size(MediaQuery.of(context).size.width, 110),
-          painter: BottomNavBarPainter(),
+          // backgroundColor is injected here — painter has no context of its own
+          painter: BottomNavBarPainter(
+            backgroundColor: context.colors.navBarBackground,
+          ),
         ),
         Positioned(
           bottom: 0,
@@ -43,13 +50,13 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/asset.svg',
                   index: 1,
-                  label: 'Ativos',
+                  label: t.wallet_assets_tab,
                 ),
-                const SizedBox(width: 60),
+                SizedBox(width: 60),
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/swap.svg',
                   index: 3,
-                  label: 'Swap',
+                  label: t.swap_title,
                 ),
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/menu.svg',
@@ -74,8 +81,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     required int index,
     required String label,
   }) {
-    bool isSelected = widget.currentIndex == index;
-
+    final isSelected = widget.currentIndex == index;
     return GestureDetector(
       onTap: () => widget.onTap(index),
       child: Container(
@@ -93,22 +99,25 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               colorFilter:
                   isSelected
                       ? ColorFilter.mode(
-                        AppColors.primaryColor,
+                        context.colors.primaryColor,
                         BlendMode.srcIn,
                       )
-                      : null,
+                      : ColorFilter.mode(
+                        context.colors.textTertiary,
+                        BlendMode.srcIn,
+                      ),
             ),
             const SizedBox(height: 4),
             isSelected
                 ? Text(
                   label,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.primaryColor,
+                    color: context.colors.primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 )
-                : const SizedBox(height: 16),
+                : SizedBox(height: 16),
           ],
         ),
       ),
@@ -119,20 +128,24 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     return GestureDetector(
       onTap: () => widget.onTap(2),
       child: Container(
+        key: widget.centralButtonKey,
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryColor, AppColors.navBarFabBackground],
+          gradient: LinearGradient(
+            colors: [
+              context.colors.primaryColor,
+              context.colors.navBarFabBackground,
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryColor.withValues(alpha: 0.4),
+              color: context.colors.primaryColor.withValues(alpha: 0.4),
               blurRadius: 15,
-              offset: const Offset(0, 5),
+              offset: Offset(0, 5),
             ),
           ],
         ),

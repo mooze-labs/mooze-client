@@ -28,6 +28,15 @@ abstract class SwapRepository {
     required String receiveAddress,
     required String changeAddress,
   });
+
+  /// Broadcast stream of every quote emission on the SideSwap WS,
+  /// regardless of which subscription generated it. Exposed so the
+  /// controller can attach a listener even when its own `startQuote`
+  /// preflight (e.g. markets normalization) fails — incoming quotes
+  /// from previously-opened subscriptions can still match the user's
+  /// intent and be adopted as the active quote.
+  Stream<QuoteResponse> get quoteStream;
+
   void stopQuote();
 
   Future<void> forceReconnect();

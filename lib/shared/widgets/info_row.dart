@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
 class InfoRow extends StatelessWidget {
@@ -23,14 +24,16 @@ class InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: labelColor ?? Colors.white70,
+          style: textTheme.labelLarge?.copyWith(
+            color: labelColor,
             fontSize: fontSize,
             fontWeight: labelFontWeight ?? FontWeight.normal,
           ),
@@ -38,8 +41,8 @@ class InfoRow extends StatelessWidget {
         SizedBox(width: 8),
         Text(
           value,
-          style: TextStyle(
-            color: valueColor ?? Colors.white,
+          style: textTheme.labelLarge?.copyWith(
+            color: valueColor,
             fontSize: fontSize,
             fontWeight: valueFontWeight ?? FontWeight.w500,
           ),
@@ -70,27 +73,32 @@ class ShimmerInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: labelColor ?? Colors.white70,
+          style: textTheme.labelLarge?.copyWith(
+            color: labelColor ?? onSurface.withValues(alpha: 0.7),
             fontSize: fontSize,
             fontWeight: labelFontWeight ?? FontWeight.normal,
           ),
         ),
         SizedBox(width: 8),
         Shimmer.fromColors(
-          baseColor: Colors.grey[800]!,
-          highlightColor: Colors.grey[600]!,
+          baseColor: baseColor,
+          highlightColor: highlightColor,
           child: Container(
             width: shimmerWidth,
             height: shimmerHeight,
             decoration: BoxDecoration(
-              color: Colors.grey[800],
+              color: baseColor,
               borderRadius: BorderRadius.circular(4),
             ),
           ),

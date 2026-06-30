@@ -74,7 +74,7 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
   final validationState = ref.watch(sendValidationControllerProvider);
   if (!validationState.canProceed || validationState.errors.isNotEmpty) {
     final hasOnlyBalanceErrors = validationState.errors.every(
-      (error) => error.toLowerCase().contains('saldo'),
+      (error) => error.category == SendValidationErrorCategory.balance,
     );
 
     if (!hasOnlyBalanceErrors) {
@@ -138,6 +138,16 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
                 'Fee estimation failed: insufficient funds — raw: $error',
               );
               return FeeEstimation.error('INSUFFICIENT_FUNDS');
+            }
+
+            if (errorLower.contains('selftransfer') ||
+                errorLower.contains('self transfer') ||
+                errorLower.contains('self-transfer')) {
+              log.warning(
+                _tag,
+                'Fee estimation failed: self-transfer not supported — raw: $error',
+              );
+              return FeeEstimation.error('SELF_TRANSFER');
             }
 
             if (errorLower.contains('unrecognized input type') ||

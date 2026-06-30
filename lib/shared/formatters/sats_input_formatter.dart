@@ -27,8 +27,11 @@ class SatsInputFormatter extends TextInputFormatter {
       newDigits = '0';
     }
 
-    if (newDigits.length > 10) {
-      newDigits = newDigits.substring(0, 10);
+    // 16 raw digits matches the max BTC supply in sats
+    // (2,100,000,000,000,000) and aligns with the BTC/fiat formatter
+    // caps so all three input modes share the same digit budget.
+    if (newDigits.length > 16) {
+      newDigits = newDigits.substring(0, 16);
     }
 
     final formattedText = _formatWithThousandsSeparator(newDigits);

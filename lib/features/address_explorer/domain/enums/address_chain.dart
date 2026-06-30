@@ -1,0 +1,1 @@
+enum AddressChain { bitcoin, liquid }

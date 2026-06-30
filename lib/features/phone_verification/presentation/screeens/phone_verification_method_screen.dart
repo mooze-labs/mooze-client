@@ -3,7 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/features/phone_verification/presentation/widgets/send_method.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 final _phoneFormatter = MaskTextInputFormatter(
@@ -49,11 +50,12 @@ class _PhoneVerificationMethodScreenState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     SendMethod? selectedMethod = sendMethods.first;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Escolher Método'),
+        title: Text(t.phone_verif_method_title),
         leading: const Icon(Icons.arrow_back_ios_new_rounded),
       ),
       body: PlatformSafeArea(
@@ -66,9 +68,9 @@ class _PhoneVerificationMethodScreenState
                 text: TextSpan(
                   style: Theme.of(context).textTheme.headlineSmall,
                   children: [
-                    const TextSpan(text: 'Informe seu '),
+                    TextSpan(text: t.phone_verif_inform_prefix),
                     TextSpan(
-                      text: 'número de telefone',
+                      text: t.phone_verif_phone_number,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                       ),
@@ -78,8 +80,8 @@ class _PhoneVerificationMethodScreenState
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Escolha como deseja receber o código de verificação',
+              Text(
+                t.phone_verif_method_subtitle,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 50),
@@ -91,7 +93,7 @@ class _PhoneVerificationMethodScreenState
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: AppColors.primaryColor,
+                        color: context.colors.primaryColor,
                         width: 1,
                       ),
                       borderRadius: BorderRadius.circular(8),
@@ -105,7 +107,7 @@ class _PhoneVerificationMethodScreenState
                           height: 24,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           '+55',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -123,10 +125,10 @@ class _PhoneVerificationMethodScreenState
                               style: Theme.of(context).textTheme.titleMedium!
                                   .copyWith(fontWeight: FontWeight.bold),
                               cursorColor: Colors.white,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 filled: false,
                                 isCollapsed: true,
-                                contentPadding: EdgeInsets.symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
                                 border: InputBorder.none,
@@ -135,8 +137,8 @@ class _PhoneVerificationMethodScreenState
                                 disabledBorder: InputBorder.none,
                                 errorBorder: InputBorder.none,
                                 focusedErrorBorder: InputBorder.none,
-                                hintText: 'Digite seu número',
-                                hintStyle: TextStyle(color: Colors.white54),
+                                hintText: t.phone_verif_number_hint,
+                                hintStyle: const TextStyle(color: Colors.white54),
                               ),
                             ),
                           ),
@@ -149,10 +151,10 @@ class _PhoneVerificationMethodScreenState
                     top: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      color: AppColors.backgroundColor,
-                      child: const Text(
-                        'Número',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      color: context.colors.backgroundColor,
+                      child: Text(
+                        t.phone_verif_number_label,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ),
                   ),
@@ -184,7 +186,7 @@ class _PhoneVerificationMethodScreenState
               const SizedBox(height: 50),
 
               PrimaryButton(
-                text: "Enviar código",
+                text: t.phone_verif_send_code,
                 onPressed:
                     _isPhoneValid
                         ? () => context.go('/phone-verification/code')

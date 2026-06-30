@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
-import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/settings/domain/entities/session_lock_timeout.dart';
 import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthenticationService {
   static const int maxPinAttemps = 5;
-  static const int sessionTimeoutMinutes = 1;
 
   final secureStorage = SecureStorageProvider.instance;
 
@@ -37,12 +36,9 @@ class AuthenticationService {
   }
 
   Future<bool> authenticate(String pin) async {
-    final isSessionValid = await hasValidSession();
-    debugPrint("Session is considered valid: $isSessionValid");
-    if (isSessionValid) {
-      return true;
-    }
-
+    // Session validity is intentionally not checked here — the bypass belongs
+    // in VerifyPinScreen._checkSession(), which respects forceAuth. Checking it
+    // here would let any wrong PIN succeed while a session is alive.
     var hashedPin = await secureStorage.read(key: "hashedPin");
     if (hashedPin == null) {
       throw Exception('No pin set');
@@ -56,11 +52,7 @@ class AuthenticationService {
     var bytes = utf8.encode("$pin$salt");
     var digest = sha256.convert(bytes);
 
-    print("Digest: $digest");
-    print("Hashed pin: $hashedPin");
-
     bool success = digest.toString() == hashedPin;
-    print("Success: $success");
 
     if (success) {
       await _updateLastAuthTime();
@@ -69,30 +61,19 @@ class AuthenticationService {
     return success;
   }
 
+  /// Unconditionally clears the current session so the next app open always
+  /// requires PIN entry.
+  ///
+  /// Must be called after any operation that changes the PIN so the old
+  /// session cannot bypass the new PIN.
   Future<void> invalidateSession() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastAuthTime = prefs.getInt("lastAuthTime");
-
-    if (lastAuthTime == null) {
-      return;
-    }
-
-    final lastAuth = DateTime.fromMillisecondsSinceEpoch(lastAuthTime);
-    final diff = DateTime.now().difference(lastAuth);
-
-    if (diff.inMinutes > sessionTimeoutMinutes) {
-      await prefs.remove("lastAuthTime");
-      return;
-    }
-
-    return;
+    await prefs.remove("lastAuthTime");
   }
 
   Future<bool> hasValidSession() async {
     final prefs = await SharedPreferences.getInstance();
     final lastAuthTime = prefs.getInt("lastAuthTime");
-
-    print("Last auth time: $lastAuthTime");
 
     if (lastAuthTime == null) {
       return false;
@@ -101,7 +82,9 @@ class AuthenticationService {
     final lastAuth = DateTime.fromMillisecondsSinceEpoch(lastAuthTime);
     final diff = DateTime.now().difference(lastAuth);
 
-    return diff.inMinutes < sessionTimeoutMinutes;
+    // Honour the user-configurable "Lock After" timeout. A zero duration means
+    // any prior session is already invalid, so a cold open re-authenticates.
+    return diff < SessionLockTimeout.fromPrefs(prefs).duration;
   }
 
   Future<int> getAttempts() async {
@@ -110,39 +93,20 @@ class AuthenticationService {
     return attempts;
   }
 
-  Future<bool> _tooManyAttempts() async {
-    final prefs = await SharedPreferences.getInstance();
-    var attempts = prefs.getInt("pinAttempts") ?? 0;
-    if (attempts >= maxPinAttemps) {
-      return true;
-    }
-
-    return false;
-  }
-
   Future<void> _updateAttempts(bool success) async {
     final prefs = await SharedPreferences.getInstance();
     var attempts = prefs.getInt("pinAttempts") ?? 0;
 
     if (!success) {
-      prefs.setInt("pinAttempts", attempts++);
-    }
-
-    //final exceededAttempts = await _tooManyAttempts();
-    //if (exceededAttempts) {
-    //  await secureStorage.deleteAll(); // deletes EVERYTHING
-    //}
-
-    await prefs.setInt("pinAttempts", 0);
-    if (success) {
-      await prefs.setInt("lastAuthTime", DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt("pinAttempts", attempts + 1);
+    } else {
+      await prefs.setInt("pinAttempts", 0);
     }
   }
 
   Future<void> _updateLastAuthTime() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("lastAuthTime", DateTime.now().millisecondsSinceEpoch);
-    print("Updated auth time.");
   }
 
   String _generateSalt() {

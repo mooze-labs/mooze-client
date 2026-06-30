@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
@@ -37,10 +37,10 @@ class SwapToCard extends ConsumerWidget {
     return Container(
       height: 115,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
-          colors: [Color(0xFF2D2E2A), AppColors.primaryColor],
+          colors: [Color(0xFF2D2E2A), context.colors.primaryColor],
         ),
         borderRadius: BorderRadius.circular(15),
       ),
@@ -49,7 +49,7 @@ class SwapToCard extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.surfaceColor,
+            color: context.colors.surfaceColor,
             borderRadius: BorderRadius.circular(13),
           ),
           child: Column(
@@ -71,7 +71,7 @@ class SwapToCard extends ConsumerWidget {
                           return Text(
                             snapshot.data ?? "...",
                             style: Theme.of(context).textTheme.labelLarge!
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: context.colors.textSecondary),
                           );
                         },
                       ),
@@ -118,7 +118,7 @@ class SwapToCard extends ConsumerWidget {
                                           width: 20,
                                           height: 20,
                                         ),
-                                        const SizedBox(width: 8),
+                                        SizedBox(width: 8),
                                         Text(
                                           asset.ticker,
                                           style:
@@ -154,11 +154,11 @@ class SwapToCard extends ConsumerWidget {
 
                         // Display de quantidade
                         Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
+                          padding: EdgeInsets.only(left: 8.0),
                           child: Text(
                             displayAmount,
                             style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppColors.textSecondary),
+                                ?.copyWith(color: context.colors.textSecondary),
                           ),
                         ),
                       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 enum FeeSpeed { low, medium, fast }
 
@@ -29,11 +30,12 @@ class FeeSpeedSelector extends StatefulWidget {
 class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Velocidade da transação',
+          t.wallet_fee_speed_title,
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -44,8 +46,8 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             if (widget.lowFeeLoading) ...[
               Expanded(
                 child: _FeeSpeedOption(
-                  title: 'Econômica',
-                  subtitle: '~60+ min',
+                  title: t.wallet_fee_economic,
+                  subtitle: t.wallet_fee_economic_eta,
                   feeRate: widget.lowFeeSatPerVByte ?? 1,
                   isSelected: widget.selectedSpeed == FeeSpeed.low,
                   onTap: () => widget.onSpeedChanged(FeeSpeed.low),
@@ -56,8 +58,8 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             ],
             Expanded(
               child: _FeeSpeedOption(
-                title: 'Normal',
-                subtitle: '~30 min',
+                title: t.wallet_fee_normal,
+                subtitle: t.wallet_fee_normal_eta,
                 feeRate: widget.mediumFeeSatPerVByte ?? 3,
                 isSelected: widget.selectedSpeed == FeeSpeed.medium,
                 onTap: () => widget.onSpeedChanged(FeeSpeed.medium),
@@ -67,8 +69,8 @@ class _FeeSpeedSelectorState extends State<FeeSpeedSelector> {
             const SizedBox(width: 8),
             Expanded(
               child: _FeeSpeedOption(
-                title: 'Rápida',
-                subtitle: '~10 min',
+                title: t.wallet_fee_fast,
+                subtitle: t.wallet_fee_fast_eta,
                 feeRate: widget.fastFeeSatPerVByte ?? 5,
                 isSelected: widget.selectedSpeed == FeeSpeed.fast,
                 onTap: () => widget.onSpeedChanged(FeeSpeed.fast),
@@ -102,8 +104,8 @@ class _FeeSpeedOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return GestureDetector(
       onTap: isLoading ? null : onTap,
@@ -113,9 +115,9 @@ class _FeeSpeedOption extends StatelessWidget {
           color:
               isSelected
                   ? const Color(0xFFE91E63).withValues(alpha: 0.1)
-                  : const Color(0xFF2C2C2C),
+                  : Theme.of(context).colorScheme.surfaceContainerLow,
           border: Border.all(
-            color: isSelected ? const Color(0xFFE91E63) : Colors.transparent,
+            color: isSelected ? Color(0xFFE91E63) : Colors.transparent,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -126,7 +128,10 @@ class _FeeSpeedOption extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFFE91E63) : Colors.white,
+                color:
+                    isSelected
+                        ? const Color(0xFFE91E63)
+                        : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -145,15 +150,18 @@ class _FeeSpeedOption extends StatelessWidget {
                 )
                 : Text(
                   '$feeRate sat/vB',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                 ),
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[500],
-                fontSize: 10,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],

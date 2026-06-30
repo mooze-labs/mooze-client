@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -8,6 +9,7 @@ class SeedPhraseProgressIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
 
     final targetCount = state.wordCount >= 12 ? 24 : 12;
@@ -20,13 +22,13 @@ class SeedPhraseProgressIndicator extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Progresso',
+              t.setup_progress_label,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
-              '${state.wordCount}/$targetCount palavras',
+              t.setup_progress_count(state.wordCount, targetCount),
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,

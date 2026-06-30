@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import '../providers/terms_acceptance_provider.dart';
 
 class TermsDefinitionWidget extends ConsumerWidget {
@@ -40,15 +41,13 @@ class TermsDefinitionWidget extends ConsumerWidget {
     ColorScheme colorScheme,
     TextStyle? bodyStyle,
   ) {
+    final t = AppLocalizations.of(context);
     return RichText(
       text: TextSpan(
         children: [
+          TextSpan(text: t.first_access_terms_prefix, style: bodyStyle),
           TextSpan(
-            text: "Eu li e concordo com os ",
-            style: bodyStyle?.copyWith(color: colorScheme.onPrimary),
-          ),
-          TextSpan(
-            text: "Termos e Condições",
+            text: t.first_access_terms_link,
             style: bodyStyle?.copyWith(color: colorScheme.primary),
             recognizer:
                 TapGestureRecognizer()

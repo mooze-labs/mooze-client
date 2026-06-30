@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+
+/// Merchant Header Widget (Presentation Layer)
+///
+/// Header component for the merchant mode screen displaying:
+/// - Back button to exit merchant mode
+/// - Title "Merchant Mode"
+/// - Current cart total in BRL (R$)
+/// - "Clear cart" button (only visible when cart has items)
 
 class MerchantHeaderWidget extends StatelessWidget {
-  final double valorReais;
-  final VoidCallback onLimparCarrinho;
+  /// Current total value in BRL (Brazilian Real)
+  final double totalAmountInBRL;
+  final VoidCallback onClearCart;
   final VoidCallback? onBack;
-  final GlobalKey? limparButtonKey;
-  final GlobalKey? valorTotalKey;
+  final GlobalKey? clearButtonKey;
+  final GlobalKey? totalAmountKey;
 
   const MerchantHeaderWidget({
     super.key,
-    required this.valorReais,
-    required this.onLimparCarrinho,
+    required this.totalAmountInBRL,
+    required this.onClearCart,
     this.onBack,
-    this.limparButtonKey,
-    this.valorTotalKey,
+    this.clearButtonKey,
+    this.totalAmountKey,
   });
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Column(
       children: [
         Row(
@@ -32,7 +43,7 @@ class MerchantHeaderWidget extends StatelessWidget {
               ),
             ),
             Text(
-              'Modo comerciante',
+              t.merchant_mode_header,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -44,9 +55,9 @@ class MerchantHeaderWidget extends StatelessWidget {
         ),
         SizedBox(height: 10),
         Container(
-          key: valorTotalKey,
+          key: totalAmountKey,
           child: Text(
-            'R\$${valorReais.toStringAsFixed(2)}',
+            'R\$${totalAmountInBRL.toStringAsFixed(2)}',
             style: TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -54,11 +65,11 @@ class MerchantHeaderWidget extends StatelessWidget {
             ),
           ),
         ),
-        if (valorReais > 0) ...[
+        if (totalAmountInBRL > 0) ...[
           SizedBox(height: 4),
           GestureDetector(
-            key: limparButtonKey,
-            onTap: onLimparCarrinho,
+            key: clearButtonKey,
+            onTap: onClearCart,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
@@ -72,7 +83,7 @@ class MerchantHeaderWidget extends StatelessWidget {
                   Icon(Icons.delete_outline, color: Colors.white, size: 16),
                   SizedBox(width: 6),
                   Text(
-                    'Limpar',
+                    t.merchant_clear_cart,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,

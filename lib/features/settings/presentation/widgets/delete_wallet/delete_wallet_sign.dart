@@ -18,10 +18,12 @@ class DeleteWalletSign extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    final textColor = isSelected ? primaryColor : Colors.white;
-    final borderColor = isSelected ? primaryColor : Colors.white;
-    final checkBorderColor = isSelected ? primaryColor : Colors.grey[600]!;
-    final iconBackground = isSelected ? primaryColor : Colors.white;
+    final colorScheme = theme.colorScheme;
+    final textColor = isSelected ? primaryColor : colorScheme.onSurface;
+    final borderColor = isSelected ? primaryColor : colorScheme.onSurface;
+    final checkBorderColor = isSelected ? primaryColor : colorScheme.outline;
+    final iconBackground =
+        isSelected ? primaryColor : colorScheme.surfaceContainerLowest;
 
     return GestureDetector(
       onTap: onTap,
@@ -56,14 +58,7 @@ class DeleteWalletSign extends StatelessWidget {
                           color: iconBackground,
                           border: Border.all(color: checkBorderColor, width: 2),
                         ),
-                        child:
-                            isSelected
-                                ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                                : null,
+                        child: isSelected ? Icon(Icons.check, size: 16) : null,
                       ),
                     ],
                   ),
@@ -71,7 +66,7 @@ class DeleteWalletSign extends StatelessWidget {
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimary,
+                      color: textColor,
                     ),
                   ),
                 ],

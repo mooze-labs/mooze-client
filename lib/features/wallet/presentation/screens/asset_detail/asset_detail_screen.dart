@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/asset_header_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/period_selector_widget.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_detail/asset_chart_widget.dart';
@@ -16,45 +17,34 @@ class AssetDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   TimePeriod selectedPeriod = TimePeriod.day;
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
+  late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
+    _fadeAnimation = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOut,
     );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
-
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _slideController, curve: Curves.easeOutBack),
-    );
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
 
-    _fadeController.forward();
-    _slideController.forward();
+    _entryController.forward();
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
+    _entryController.dispose();
     super.dispose();
   }
 
@@ -62,92 +52,51 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        title: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Text(
-            widget.asset.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(widget.asset.iconPath, width: 22, height: 22),
+            const SizedBox(width: 8),
+            Text(widget.asset.name),
+          ],
         ),
         centerTitle: true,
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SlideTransition(
-                position: _slideAnimation,
-                child: AssetHeaderWidget(asset: widget.asset),
-              ),
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AssetHeaderWidget(asset: widget.asset),
 
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.3),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _slideController,
-                    curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
-                  ),
-                ),
-                child: PeriodSelectorWidget(
+                PeriodSelectorWidget(
                   selectedPeriod: selectedPeriod,
                   onPeriodChanged: (period) {
-                    setState(() {
-                      selectedPeriod = period;
-                    });
+                    setState(() => selectedPeriod = period);
                   },
                 ),
-              ),
 
-              const SizedBox(height: 24),
-              SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.3),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _slideController,
-                    curve: const Interval(0.4, 1.0, curve: Curves.easeOutBack),
-                  ),
-                ),
-                child: AssetChartWidget(
+                const SizedBox(height: 16),
+
+                AssetChartWidget(
                   asset: widget.asset,
                   selectedPeriod: selectedPeriod,
                 ),
-              ),
 
-              const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-              SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.3),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _slideController,
-                    curve: const Interval(0.6, 1.0, curve: Curves.easeOutBack),
-                  ),
-                ),
-                child: AssetStatsWidget(
+                AssetStatsWidget(
                   asset: widget.asset,
                   selectedPeriod: selectedPeriod,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

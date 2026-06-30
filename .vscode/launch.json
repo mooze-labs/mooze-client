@@ -1,0 +1,53 @@
+{
+    "configurations": [
+        {
+            "name": "Development",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define",
+                "BREEZ_API_KEY=MIIBajCCARygAwIBAgIHPgbGnsVq8TAFBgMrZXAwEDEOMAwGA1UEAxMFQnJlZXowHhcNMjUwNDI5MDEyNDI5WhcNMzUwNDI3MDEyNDI5WjArMRMwEQYDVQQKEwpNb296ZSBMYWJzMRQwEgYDVQQDEwtMdWNjYSBHb2RveTAqMAUGAytlcAMhANCD9cvfIDwcoiDKKYdT9BunHLS2/OuKzV8NS0SzqV13o3oweDAOBgNVHQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2jmj7l5rSw0yVb/vlWAYkK/YBwkwHwYDVR0jBBgwFoAU3qrWklbzjed0khb8TLYgsmsomGswGAYDVR0RBBEwD4ENZGV2QG1vb3plLmFwcDAFBgMrZXADQQAx9hoGj97ubdjFT/C7KqEZOOSVV2C8HHIw4D6//NG9mEJPB1Mc9HTvWmEFaIKhz1vdH6z5zQDyw9RJV4Ej7tEL",
+                "--dart-define",
+                "BLOCKCHAIN_NETWORK_TYPE=testnet",
+                "--dart-define",
+                "BACKEND_API_URL=http://localhost:3000"
+            ]
+        },
+        {
+            "name": "Staging",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define",
+                "BREEZ_API_KEY=MIIBajCCARygAwIBAgIHPgbGnsVq8TAFBgMrZXAwEDEOMAwGA1UEAxMFQnJlZXowHhcNMjUwNDI5MDEyNDI5WhcNMzUwNDI3MDEyNDI5WjArMRMwEQYDVQQKEwpNb296ZSBMYWJzMRQwEgYDVQQDEwtMdWNjYSBHb2RveTAqMAUGAytlcAMhANCD9cvfIDwcoiDKKYdT9BunHLS2/OuKzV8NS0SzqV13o3oweDAOBgNVHQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2jmj7l5rSw0yVb/vlWAYkK/YBwkwHwYDVR0jBBgwFoAU3qrWklbzjed0khb8TLYgsmsomGswGAYDVR0RBBEwD4ENZGV2QG1vb3plLmFwcDAFBgMrZXADQQAx9hoGj97ubdjFT/C7KqEZOOSVV2C8HHIw4D6//NG9mEJPB1Mc9HTvWmEFaIKhz1vdH6z5zQDyw9RJV4Ej7tEL",
+                "--dart-define",
+                "BLOCKCHAIN_NETWORK_TYPE=mainnet",
+                "--dart-define",
+                "BACKEND_API_URL=https://api.mooze.app"
+            ]
+        },
+        {
+            "name": "Production",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": [
+                "--dart-define",
+                "BREEZ_API_KEY=MIIBajCCARygAwIBAgIHPgbGnsVq8TAFBgMrZXAwEDEOMAwGA1UEAxMFQnJlZXowHhcNMjUwNDI5MDEyNDI5WhcNMzUwNDI3MDEyNDI5WjArMRMwEQYDVQQKEwpNb296ZSBMYWJzMRQwEgYDVQQDEwtMdWNjYSBHb2RveTAqMAUGAytlcAMhANCD9cvfIDwcoiDKKYdT9BunHLS2/OuKzV8NS0SzqV13o3oweDAOBgNVHQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2jmj7l5rSw0yVb/vlWAYkK/YBwkwHwYDVR0jBBgwFoAU3qrWklbzjed0khb8TLYgsmsomGswGAYDVR0RBBEwD4ENZGV2QG1vb3plLmFwcDAFBgMrZXADQQAx9hoGj97ubdjFT/C7KqEZOOSVV2C8HHIw4D6//NG9mEJPB1Mc9HTvWmEFaIKhz1vdH6z5zQDyw9RJV4Ej7tEL",
+                "--dart-define",
+                "BLOCKCHAIN_NETWORK_TYPE=mainnet",
+                "--dart-define",
+                "BACKEND_API_URL=https://api.mooze.app"
+            ]
+        }
+    ]
+}
+// flutter clean && flutter pub get &&
+// flutter build apk \
+//   --release \
+//   --dart-define=BREEZ_API_KEY=MIIBajCCARygAwIBAgIHPgbGnsVq8TAFBgMrZXAwEDEOMAwGA1UEAxMFQnJlZXowHhcNMjUwNDI5MDEyNDI5WhcNMzUwNDI3MDEyNDI5WjArMRMwEQYDVQQKEwpNb296ZSBMYWJzMRQwEgYDVQQDEwtMdWNjYSBHb2RveTAqMAUGAytlcAMhANCD9cvfIDwcoiDKKYdT9BunHLS2/OuKzV8NS0SzqV13o3oweDAOBgNVHQ8BAf8EBAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2jmj7l5rSw0yVb/vlWAYkK/YBwkwHwYDVR0jBBgwFoAU3qrWklbzjed0khb8TLYgsmsomGswGAYDVR0RBBEwD4ENZGV2QG1vb3plLmFwcDAFBgMrZXADQQAx9hoGj97ubdjFT/C7KqEZOOSVV2C8HHIw4D6//NG9mEJPB1Mc9HTvWmEFaIKhz1vdH6z5zQDyw9RJV4Ej7tEL \
+//   --dart-define=BLOCKCHAIN_NETWORK_TYPE=mainnet \
+//   --dart-define=BACKEND_API_URL=https://api.mooze.app
+

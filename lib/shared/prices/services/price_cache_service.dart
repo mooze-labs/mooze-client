@@ -83,31 +83,36 @@ class PriceCacheService {
     );
   }
 
+ 
+  TaskEither<String, Option<double>> getAnyCachedPrice(
+    Asset asset,
+    Currency currency,
+  ) {
+    return getCachedPrice(asset, currency).map(
+      (cachedOption) => cachedOption.fold(
+        () => Option<double>.none(),
+        (cached) => Option.of(cached.price),
+      ),
+    );
+  }
+
   TaskEither<String, Unit> cleanExpiredCache() {
     return TaskEither.tryCatch(() async {
       final sharedPreferences = await SharedPreferences.getInstance();
       final allKeys = sharedPreferences.getKeys();
       final cacheKeys = allKeys.where((key) => key.startsWith(_keyPrefix));
 
-      final now = DateTime.now();
-
       for (final key in cacheKeys) {
         final cachedString = sharedPreferences.getString(key);
-        if (cachedString != null) {
-          try {
-            final cachedData = CachedPriceData.fromJsonString(cachedString);
-            final difference = now.difference(cachedData.timestamp);
-
-            if (difference.inHours > 24) {
-              await sharedPreferences.remove(key);
-            }
-          } catch (e) {
-            await sharedPreferences.remove(key);
-          }
+        if (cachedString == null) continue;
+        try {
+          CachedPriceData.fromJsonString(cachedString);
+        } catch (_) {
+          await sharedPreferences.remove(key);
         }
       }
 
       return unit;
-    }, (error, stackTrace) => 'Erro ao limpar cache expirado: $error');
+    }, (error, stackTrace) => 'Erro ao limpar cache corrompido: $error');
   }
 }

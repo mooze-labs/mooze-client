@@ -60,13 +60,15 @@ class _FeeSpeedSelectionWidgetState
     }
 
     if (_isLoadingFees) {
+      final cs = Theme.of(context).colorScheme;
       return Container(
         padding: const EdgeInsets.all(16),
-        margin: EdgeInsets.symmetric(vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[800]!),
+          color: cs.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: cs.onSurface.withValues(alpha: 0.08),
+          ),
         ),
         child: const Center(child: CircularProgressIndicator()),
       );

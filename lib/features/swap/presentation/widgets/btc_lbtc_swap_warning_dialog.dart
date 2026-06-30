@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class BtcLbtcSwapWarningDialog extends StatefulWidget {
   const BtcLbtcSwapWarningDialog({super.key});
@@ -48,6 +49,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context);
     final bool isButtonEnabled = _secondsRemaining == 0;
 
     return AlertDialog(
@@ -56,10 +58,10 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
         children: [
           Icon(Icons.swap_horiz, color: Colors.orange, size: 28),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Atenção: Swap entre Redes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              t.swap_btc_lbtc_warning_title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -70,7 +72,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Informações importantes sobre o swap BTC para LBTC:',
+              t.swap_btc_lbtc_warning_intro,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -99,7 +101,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Este é um swap entre diferentes blockchains (Bitcoin e Liquid Network).',
+                          t.swap_btc_lbtc_warning_cross_chain,
                           style: TextStyle(
                             fontSize: 14,
                             color: colorScheme.onSurface,
@@ -133,7 +135,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'O swap depende de confirmações em ambas as blockchains, o que pode levar algum tempo.',
+                          t.swap_btc_lbtc_warning_confirmations,
                           style: TextStyle(
                             fontSize: 14,
                             color: colorScheme.onSurface,
@@ -171,7 +173,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Em casos de mudanças nas taxas da rede, a Breez pode deixar o ativo como "estorno" (reembolso).',
+                          t.swap_btc_lbtc_warning_fee_changes,
                           style: TextStyle(
                             fontSize: 14,
                             color: colorScheme.onSurface,
@@ -209,7 +211,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Se isso acontecer, você deverá solicitar o reembolso manualmente dentro do aplicativo.',
+                          t.swap_btc_lbtc_warning_manual_refund,
                           style: TextStyle(
                             fontSize: 14,
                             color: colorScheme.onSurface,
@@ -240,7 +242,7 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Seus fundos estão sempre seguros, mesmo em caso de estorno.',
+                      t.swap_btc_lbtc_warning_funds_safe,
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurface.withValues(alpha: 0.8),
@@ -269,8 +271,10 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
             ),
             child: Text(
               isButtonEnabled
-                  ? 'Entendi e Aceito'
-                  : 'Entendi e Aceito ($_secondsRemaining)',
+                  ? t.swap_btc_lbtc_warning_accept_button
+                  : t.swap_btc_lbtc_warning_accept_button_counting(
+                    _secondsRemaining,
+                  ),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),

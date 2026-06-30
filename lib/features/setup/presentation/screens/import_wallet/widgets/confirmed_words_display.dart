@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -8,6 +9,7 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final state = ref.watch(seedPhraseProvider);
     final notifier = ref.read(seedPhraseProvider.notifier);
 
@@ -16,16 +18,6 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,7 +25,7 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Palavras confirmadas (${state.wordCount})',
+                t.seed_confirmed_words_count(state.wordCount),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
@@ -43,7 +35,7 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
                 TextButton.icon(
                   onPressed: notifier.removeLastWord,
                   icon: const Icon(Icons.backspace, size: 16),
-                  label: const Text('Remover última'),
+                  label: Text(t.seed_remove_last),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
@@ -53,12 +45,14 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
+              const spacing = 8.0;
+              final columns = MediaQuery.sizeOf(context).width >= 430 ? 3 : 2;
               final itemWidth =
-                  (constraints.maxWidth - 16) / 3; // 16 = 2 gaps 8px
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
               return Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: spacing,
+                runSpacing: spacing,
                 children:
                     state.confirmedWords.asMap().entries.map((entry) {
                       final index = entry.key;
@@ -157,7 +151,7 @@ class _WordChip extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
-                overflow: TextOverflow.ellipsis,
+                softWrap: true,
               ),
             ),
             if (onDelete != null) ...[

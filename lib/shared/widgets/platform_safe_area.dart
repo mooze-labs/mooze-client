@@ -23,7 +23,7 @@ class PlatformSafeArea extends StatelessWidget {
     this.iosBottom = false,
     this.iosLeft = false,
     this.iosRight = false,
-    this.androidTop = true,
+    this.androidTop = false,
     this.androidBottom = true,
     this.androidLeft = true,
     this.androidRight = true,

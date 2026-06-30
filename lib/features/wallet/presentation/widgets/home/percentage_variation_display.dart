@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
@@ -35,10 +35,10 @@ class SuccessfulPercentageTagDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final backgroundColor =
-        (percentage > 0) ? AppColors.positiveColor : AppColors.errorColor;
+        (percentage > 0) ? context.colors.positiveColor : context.colors.errorColor;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
@@ -109,10 +109,10 @@ class PercentageTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final backgroundColor =
-        (percentage > 0) ? AppColors.positiveColor : AppColors.errorColor;
+        (percentage > 0) ? context.colors.positiveColor : context.colors.errorColor;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),

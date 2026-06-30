@@ -1,4 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'selected_asset_provider.dart';
@@ -9,6 +11,120 @@ import 'selected_asset_balance_provider.dart';
 import 'fee_estimation_provider.dart';
 import 'drain_provider.dart';
 import '../../../providers/payment_limits_provider.dart';
+
+enum SendValidationErrorCategory {
+  address,
+  network,
+  amount,
+  balance,
+  fee,
+  limits,
+  unknown,
+}
+
+enum SendValidationErrorCode {
+  addressRequired,
+  addressInvalid,
+  assetLiquidOnly,
+  liquidOnly,
+  amountPositive,
+  balanceCheck,
+  insufficientBalance,
+  addressUnrecognized,
+  selfTransfer,
+  pendingPayments,
+  validationFailed,
+  amountExceedsBalance,
+  insufficientWithFees,
+  feeCalcFailed,
+  validateBalanceFees,
+  minLightning,
+  maxLightning,
+  minUsdt,
+  minDepix,
+  validateLimits,
+}
+
+class SendValidationError {
+  final SendValidationErrorCode code;
+  final SendValidationErrorCategory category;
+  final Map<String, Object?> params;
+
+  const SendValidationError({
+    required this.code,
+    required this.category,
+    this.params = const {},
+  });
+
+  String localize(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    switch (code) {
+      case SendValidationErrorCode.addressRequired:
+        return t.wallet_send_error_address_required;
+      case SendValidationErrorCode.addressInvalid:
+        return t.wallet_send_error_address_invalid;
+      case SendValidationErrorCode.assetLiquidOnly:
+        return t.wallet_send_error_asset_liquid_only(
+          params['asset'] as String? ?? '',
+        );
+      case SendValidationErrorCode.liquidOnly:
+        return t.wallet_send_error_liquid_only;
+      case SendValidationErrorCode.amountPositive:
+        return t.wallet_send_error_amount_positive;
+      case SendValidationErrorCode.balanceCheck:
+        return t.wallet_send_error_balance_check;
+      case SendValidationErrorCode.insufficientBalance:
+        return t.wallet_send_error_insufficient_balance;
+      case SendValidationErrorCode.addressUnrecognized:
+        return t.wallet_send_error_address_unrecognized;
+      case SendValidationErrorCode.selfTransfer:
+        return t.wallet_send_error_self_transfer;
+      case SendValidationErrorCode.pendingPayments:
+        return t.wallet_send_error_pending_payments;
+      case SendValidationErrorCode.validationFailed:
+        return t.wallet_send_error_validation_failed(
+          params['error'] as String? ?? '',
+        );
+      case SendValidationErrorCode.amountExceedsBalance:
+        return t.wallet_send_error_amount_exceeds_balance;
+      case SendValidationErrorCode.insufficientWithFees:
+        return t.wallet_send_error_insufficient_with_fees(
+          params['total']?.toString() ?? '',
+          params['amount']?.toString() ?? '',
+          params['fee']?.toString() ?? '',
+          params['satText'] as String? ?? '',
+          params['balance']?.toString() ?? '',
+        );
+      case SendValidationErrorCode.feeCalcFailed:
+        return t.wallet_send_error_fee_calc_failed(
+          params['error'] as String? ?? '',
+        );
+      case SendValidationErrorCode.validateBalanceFees:
+        return t.wallet_send_error_validate_balance_fees(
+          params['error'] as String? ?? '',
+        );
+      case SendValidationErrorCode.minLightning:
+        return t.wallet_send_error_min_lightning(
+          (params['amount'] as int?) ?? 0,
+        );
+      case SendValidationErrorCode.maxLightning:
+        return t.wallet_send_error_max_lightning(
+          (params['amount'] as int?) ?? 0,
+        );
+      case SendValidationErrorCode.minUsdt:
+        return t.wallet_send_error_min_usdt;
+      case SendValidationErrorCode.minDepix:
+        return t.wallet_send_error_min_depix;
+      case SendValidationErrorCode.validateLimits:
+        return t.wallet_send_error_validate_limits(
+          params['error'] as String? ?? '',
+        );
+    }
+  }
+
+  @override
+  String toString() => '${category.name}:${code.name}';
+}
 
 class SendValidationController extends StateNotifier<SendValidationState> {
   final Ref ref;
@@ -32,17 +148,27 @@ class SendValidationController extends StateNotifier<SendValidationState> {
       'address: ${address.isEmpty ? "(empty)" : "${address.substring(0, address.length.clamp(0, 12))}..."}',
     );
 
-    final errors = <String>[];
+    final errors = <SendValidationError>[];
 
     if (address.isEmpty) {
       _log.warning(_tag, 'Validation failed: address is empty');
-      errors.add('Endereço é obrigatório');
+      errors.add(
+        const SendValidationError(
+          code: SendValidationErrorCode.addressRequired,
+          category: SendValidationErrorCategory.address,
+        ),
+      );
     } else if (networkType == NetworkType.unknown) {
       _log.warning(
         _tag,
         'Validation failed: unknown network type for address prefix',
       );
-      errors.add('Endereço inválido ou não suportado');
+      errors.add(
+        const SendValidationError(
+          code: SendValidationErrorCode.addressInvalid,
+          category: SendValidationErrorCategory.address,
+        ),
+      );
     }
 
     if (address.isNotEmpty && networkType != NetworkType.unknown) {
@@ -52,7 +178,11 @@ class SendValidationController extends StateNotifier<SendValidationState> {
           'Asset/network mismatch: ${asset.ticker} cannot be sent over Bitcoin network',
         );
         errors.add(
-          '${asset.name} só pode ser enviado pela rede Liquid ou Lightning',
+          SendValidationError(
+            code: SendValidationErrorCode.assetLiquidOnly,
+            category: SendValidationErrorCategory.network,
+            params: {'asset': asset.name},
+          ),
         );
       }
 
@@ -63,13 +193,23 @@ class SendValidationController extends StateNotifier<SendValidationState> {
           _tag,
           'Asset/network mismatch: BTC cannot be sent over Liquid/Lightning network',
         );
-        errors.add('Para enviar ativos Liquid use Bitcoin L2, Depix ou USDT');
+        errors.add(
+          const SendValidationError(
+            code: SendValidationErrorCode.liquidOnly,
+            category: SendValidationErrorCategory.network,
+          ),
+        );
       }
     }
 
     if (amount <= 0) {
       _log.warning(_tag, 'Validation failed: amount is $amount (must be > 0)');
-      errors.add('Valor deve ser maior que zero');
+      errors.add(
+        const SendValidationError(
+          code: SendValidationErrorCode.amountPositive,
+          category: SendValidationErrorCategory.amount,
+        ),
+      );
     }
 
     await _validateAmountLimits(asset, amount, networkType, errors);
@@ -107,7 +247,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
               _tag,
               'Failed to fetch balance for drain transaction: ${error.description}',
             );
-            errors.add('Erro ao verificar saldo disponível');
+            errors.add(
+              const SendValidationError(
+                code: SendValidationErrorCode.balanceCheck,
+                category: SendValidationErrorCategory.balance,
+              ),
+            );
           },
           (balance) {
             _log.debug(_tag, 'Balance for drain: $balance sats');
@@ -116,7 +261,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
                 _tag,
                 'Drain validation failed: balance is zero or negative',
               );
-              errors.add('Saldo insuficiente');
+              errors.add(
+                const SendValidationError(
+                  code: SendValidationErrorCode.insufficientBalance,
+                  category: SendValidationErrorCategory.balance,
+                ),
+              );
             }
           },
         );
@@ -127,14 +277,33 @@ class SendValidationController extends StateNotifier<SendValidationState> {
             'Fee estimation error during drain validation: ${feeEstimation.errorMessage}',
           );
           if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
-            errors.add('Endereço inválido ou não reconhecido');
+            errors.add(
+              const SendValidationError(
+                code: SendValidationErrorCode.addressUnrecognized,
+                category: SendValidationErrorCategory.address,
+              ),
+            );
+          } else if (feeEstimation.errorMessage == 'SELF_TRANSFER') {
+            errors.add(
+              const SendValidationError(
+                code: SendValidationErrorCode.selfTransfer,
+                category: SendValidationErrorCategory.address,
+              ),
+            );
           } else if (feeEstimation.errorMessage == 'PENDING_PAYMENTS') {
             errors.add(
-              'Não é possível enviar o saldo total enquanto há pagamentos pendentes. Aguarde a conclusão dos pagamentos e tente novamente.',
+              const SendValidationError(
+                code: SendValidationErrorCode.pendingPayments,
+                category: SendValidationErrorCategory.balance,
+              ),
             );
           } else if (feeEstimation.errorMessage != 'INSUFFICIENT_FUNDS') {
             errors.add(
-              'Não foi possível validar a transação: ${feeEstimation.errorMessage}',
+              SendValidationError(
+                code: SendValidationErrorCode.validationFailed,
+                category: SendValidationErrorCategory.unknown,
+                params: {'error': feeEstimation.errorMessage ?? ''},
+              ),
             );
           }
         } else {
@@ -147,7 +316,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
           error: e,
           stackTrace: stackTrace,
         );
-        errors.add('Erro ao verificar saldo disponível');
+        errors.add(
+          const SendValidationError(
+            code: SendValidationErrorCode.balanceCheck,
+            category: SendValidationErrorCategory.balance,
+          ),
+        );
       }
     }
 
@@ -174,13 +348,38 @@ class SendValidationController extends StateNotifier<SendValidationState> {
   Future<void> _validateBalanceWithFees(
     Asset asset,
     int amount,
-    List<String> errors,
+    List<SendValidationError> errors,
   ) async {
     if (asset == Asset.btc) {
-      _log.debug(
-        _tag,
-        'Skipping balance+fee validation for BTC (handled by SDK)',
-      );
+      try {
+        final balanceResult = await ref.read(
+          selectedAssetBalanceRawProvider.future,
+        );
+        balanceResult.fold(
+          (_) {},
+          (balance) {
+            if (BigInt.from(amount) > balance) {
+              _log.warning(
+                _tag,
+                'BTC validation: amount $amount sats exceeds raw balance $balance sats',
+              );
+              errors.add(
+                const SendValidationError(
+                  code: SendValidationErrorCode.amountExceedsBalance,
+                  category: SendValidationErrorCategory.balance,
+                ),
+              );
+            }
+          },
+        );
+      } catch (e, stackTrace) {
+        _log.warning(
+          _tag,
+          'BTC balance pre-check failed (deferring to SDK): $e',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
       return;
     }
     try {
@@ -200,7 +399,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
             _tag,
             'Failed to fetch ${asset.ticker} balance: ${error.description}',
           );
-          errors.add('Erro ao verificar saldo disponível');
+          errors.add(
+            const SendValidationError(
+              code: SendValidationErrorCode.balanceCheck,
+              category: SendValidationErrorCategory.balance,
+            ),
+          );
         },
         (balance) {
           _log.debug(
@@ -212,7 +416,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
               _tag,
               'Insufficient balance: requested $amount sats but only $balance sats available',
             );
-            errors.add('Valor informado é maior que o saldo disponível');
+            errors.add(
+              const SendValidationError(
+                code: SendValidationErrorCode.amountExceedsBalance,
+                category: SendValidationErrorCategory.balance,
+              ),
+            );
             return;
           }
 
@@ -233,7 +442,17 @@ class SendValidationController extends StateNotifier<SendValidationState> {
                 '($amount + $feesInSats $satText fee), have $balance sats',
               );
               errors.add(
-                'Saldo insuficiente. Você precisa de $totalNeeded sats ($amount + $feesInSats $satText de taxa), mas tem apenas $balance sats disponíveis',
+                SendValidationError(
+                  code: SendValidationErrorCode.insufficientWithFees,
+                  category: SendValidationErrorCategory.balance,
+                  params: {
+                    'total': totalNeeded.toString(),
+                    'amount': amount.toString(),
+                    'fee': feesInSats.toString(),
+                    'satText': satText,
+                    'balance': balance.toString(),
+                  },
+                ),
               );
             }
           } else if (feeEstimation.hasError) {
@@ -243,14 +462,33 @@ class SendValidationController extends StateNotifier<SendValidationState> {
             );
             if (feeEstimation.errorMessage == 'INSUFFICIENT_FUNDS') {
             } else if (feeEstimation.errorMessage == 'INVALID_ADDRESS') {
-              errors.add('Endereço inválido ou não reconhecido');
+              errors.add(
+                const SendValidationError(
+                  code: SendValidationErrorCode.addressUnrecognized,
+                  category: SendValidationErrorCategory.address,
+                ),
+              );
+            } else if (feeEstimation.errorMessage == 'SELF_TRANSFER') {
+              errors.add(
+                const SendValidationError(
+                  code: SendValidationErrorCode.selfTransfer,
+                  category: SendValidationErrorCategory.address,
+                ),
+              );
             } else if (feeEstimation.errorMessage == 'PENDING_PAYMENTS') {
               errors.add(
-                'Não é possível enviar o saldo total enquanto há pagamentos pendentes. Aguarde a conclusão dos pagamentos e tente novamente.',
+                const SendValidationError(
+                  code: SendValidationErrorCode.pendingPayments,
+                  category: SendValidationErrorCategory.balance,
+                ),
               );
             } else {
               errors.add(
-                'Não foi possível calcular as taxas: ${feeEstimation.errorMessage}',
+                SendValidationError(
+                  code: SendValidationErrorCode.feeCalcFailed,
+                  category: SendValidationErrorCategory.fee,
+                  params: {'error': feeEstimation.errorMessage ?? ''},
+                ),
               );
             }
           }
@@ -263,7 +501,13 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         error: e,
         stackTrace: stackTrace,
       );
-      errors.add('Erro ao validar saldo e taxas: $e');
+      errors.add(
+        SendValidationError(
+          code: SendValidationErrorCode.validateBalanceFees,
+          category: SendValidationErrorCategory.balance,
+          params: {'error': e.toString()},
+        ),
+      );
     }
   }
 
@@ -271,7 +515,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     Asset asset,
     int amount,
     NetworkType networkType,
-    List<String> errors,
+    List<SendValidationError> errors,
   ) async {
     if (amount <= 0) {
       return;
@@ -283,7 +527,6 @@ class SendValidationController extends StateNotifier<SendValidationState> {
     );
 
     try {
-      // BTC e LBTC
       if (asset == Asset.btc) {
         _log.debug(_tag, 'BTC selected: skipping amount limit validation');
         return;
@@ -305,7 +548,13 @@ class SendValidationController extends StateNotifier<SendValidationState> {
               _tag,
               'Amount $amount sats is below Lightning minimum $min sats',
             );
-            errors.add('Valor mínimo para lightning é $min sats');
+            errors.add(
+              SendValidationError(
+                code: SendValidationErrorCode.minLightning,
+                category: SendValidationErrorCategory.limits,
+                params: {'amount': min},
+              ),
+            );
           }
 
           if (max != null && amount > max) {
@@ -313,15 +562,19 @@ class SendValidationController extends StateNotifier<SendValidationState> {
               _tag,
               'Amount $amount sats exceeds Lightning maximum $max sats',
             );
-            errors.add('Valor máximo para lightning é $max sats');
+            errors.add(
+              SendValidationError(
+                code: SendValidationErrorCode.maxLightning,
+                category: SendValidationErrorCategory.limits,
+                params: {'amount': max},
+              ),
+            );
           }
         }
 
-        // networkType == bitcoin ⇒ no extra validation
         return;
       }
 
-      // USDT
       if (asset == Asset.usdt) {
         const minUsdt = 50000000; // 0.5 USDT
         if (amount < minUsdt) {
@@ -329,12 +582,16 @@ class SendValidationController extends StateNotifier<SendValidationState> {
             _tag,
             'USDT amount $amount is below minimum $minUsdt (0.5 USDT)',
           );
-          errors.add('Valor mínimo para USDT é 0.5 USDT');
+          errors.add(
+            const SendValidationError(
+              code: SendValidationErrorCode.minUsdt,
+              category: SendValidationErrorCategory.limits,
+            ),
+          );
         }
         return;
       }
 
-      // Depix
       if (asset == Asset.depix) {
         const minDepix = 100000000; // 1 Depix
         if (amount < minDepix) {
@@ -342,7 +599,12 @@ class SendValidationController extends StateNotifier<SendValidationState> {
             _tag,
             'Depix amount $amount is below minimum $minDepix (1.0 Depix)',
           );
-          errors.add('Valor mínimo para Depix é 1.0 Depix');
+          errors.add(
+            const SendValidationError(
+              code: SendValidationErrorCode.minDepix,
+              category: SendValidationErrorCategory.limits,
+            ),
+          );
         }
         return;
       }
@@ -353,7 +615,13 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         error: e,
         stackTrace: stackTrace,
       );
-      errors.add('Erro ao validar limites de envio: $e');
+      errors.add(
+        SendValidationError(
+          code: SendValidationErrorCode.validateLimits,
+          category: SendValidationErrorCategory.limits,
+          params: {'error': e.toString()},
+        ),
+      );
     }
   }
 
@@ -365,7 +633,7 @@ class SendValidationController extends StateNotifier<SendValidationState> {
 
 class SendValidationState {
   final bool isValid;
-  final List<String> errors;
+  final List<SendValidationError> errors;
   final bool canProceed;
 
   const SendValidationState({

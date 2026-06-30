@@ -2,7 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/refund/refund_confirmation_screen.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart';
+import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
 
 /// Rotas para o fluxo de refund

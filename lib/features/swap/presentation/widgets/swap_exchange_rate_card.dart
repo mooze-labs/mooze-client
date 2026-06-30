@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 
 class SwapExchangeRateCard extends StatelessWidget {
@@ -29,9 +29,9 @@ class SwapExchangeRateCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceColor,
+        color: context.colors.surfaceColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/current_limits_card.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/user_level_card.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_entity.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_header.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_quick_info.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
@@ -61,24 +64,22 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     final colorScheme = theme.colorScheme;
     final walletLevelsAsync = ref.watch(walletLevelsProvider);
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: _buildAppBar(),
-        body: walletLevelsAsync.when(
-          data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
-          loading: () => _buildLoadingBody(theme, colorScheme),
-          error: (error, stackTrace) => _buildError(error, colorScheme),
-        ),
-        floatingActionButton:
-            _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: walletLevelsAsync.when(
+        data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
+        loading: () => _buildLoadingBody(theme, colorScheme),
+        error: (error, stackTrace) => _buildError(error, colorScheme),
       ),
+      floatingActionButton:
+          _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('Níveis da Carteira'),
+      title: Text(AppLocalizations.of(context).wallet_levels_title),
       leading: IconButton(
         onPressed: () {
           context.go('/menu');
@@ -91,7 +92,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             return ApiDownIndicatorIcon(
               onRetry: () {
                 ref.invalidate(walletLevelsProvider);
-                ref.invalidate(levelsProvider);
+                ref.invalidate(walletLevelsRemoteProvider);
+                ref.invalidate(userDataProvider);
               },
             );
           },
@@ -105,10 +107,14 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     ColorScheme colorScheme,
     List<WalletLevelEntity> walletLevels,
   ) {
+    final textTheme = theme.textTheme;
+    final extraColors = theme.extension<AppExtraColors>();
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(walletLevelsProvider);
-        ref.invalidate(levelsProvider);
+        ref.invalidate(walletLevelsRemoteProvider);
+        ref.invalidate(userDataProvider);
 
         try {
           await Future.wait([
@@ -138,17 +144,23 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.1),
+                                color: extraColors?.warning.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.orange.withValues(alpha: 0.3),
+                                  color:
+                                      extraColors?.warning.withValues(
+                                        alpha: 0.3,
+                                      ) ??
+                                      colorScheme.outline,
                                 ),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
                                     Icons.cloud_off_rounded,
-                                    color: Colors.orange[300],
+                                    color: extraColors?.onWarning,
                                     size: 24,
                                   ),
                                   const SizedBox(width: 12),
@@ -158,19 +170,19 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'API Indisponível',
-                                          style: TextStyle(
-                                            color: Colors.orange[300],
-                                            fontSize: 14,
+                                          AppLocalizations.of(context)
+                                              .wallet_levels_api_down_title,
+                                          style: textTheme.titleSmall?.copyWith(
+                                            color: extraColors?.onWarning,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Os dados podem estar desatualizados. Algumas funcionalidades estão temporariamente indisponíveis.',
-                                          style: TextStyle(
-                                            color: Colors.grey[400],
-                                            fontSize: 12,
+                                          AppLocalizations.of(context)
+                                              .wallet_levels_api_down_body,
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ],
@@ -186,13 +198,13 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                       return const SizedBox.shrink();
                     },
                   ),
-                  WalletLevelsHeader(colorScheme: colorScheme),
+                  const WalletLevelsHeader(),
                   const SizedBox(height: 16),
-                  WalletLevelsQuickInfo(colorScheme: colorScheme),
+                  const WalletLevelsQuickInfo(),
                   const SizedBox(height: 16),
                   _buildUserLevelCard(colorScheme),
                   const SizedBox(height: 16),
-                  CurrentLimitsCard(colorScheme: colorScheme),
+                  const CurrentLimitsCard(),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -213,22 +225,19 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                WalletLevelsHeader(colorScheme: colorScheme, isLoading: true),
+                const WalletLevelsHeader(isLoading: true),
                 const SizedBox(height: 16),
-                WalletLevelsQuickInfo(
-                  colorScheme: colorScheme,
-                  isLoading: true,
-                ),
+                const WalletLevelsQuickInfo(isLoading: true),
                 const SizedBox(height: 16),
                 _buildLoadingUserLevelCard(colorScheme),
               ],
             ),
           ),
         ),
-        SliverToBoxAdapter(
+        const SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: CurrentLimitsCard(colorScheme: colorScheme),
+            padding: EdgeInsets.all(16.0),
+            child: CurrentLimitsCard(),
           ),
         ),
       ],
@@ -236,6 +245,9 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildError(Object error, ColorScheme colorScheme) {
+    final t = AppLocalizations.of(context);
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -256,26 +268,24 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Erro ao carregar níveis da carteira',
+              t.wallet_levels_load_error_title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
+              style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 12),
             Text(
-              'Verifique sua conexão com a internet e tente novamente',
+              t.wallet_levels_load_error_body,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
+              style: textTheme.titleSmall?.copyWith(
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 32),
             SecondaryButton(
-              text: 'Tentar Novamente',
+              text: t.common_retry,
               isLoading: _isRetrying,
               onPressed: () async {
                 setState(() {
@@ -283,7 +293,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                 });
 
                 ref.invalidate(walletLevelsProvider);
-                ref.invalidate(levelsProvider);
+                ref.invalidate(walletLevelsRemoteProvider);
+                ref.invalidate(userDataProvider);
 
                 await Future.delayed(const Duration(milliseconds: 500));
 
@@ -317,8 +328,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildLoadingUserLevelCard(ColorScheme colorScheme) {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -340,7 +351,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Shimmer.fromColors(
             baseColor: baseColor,
             highlightColor: highlightColor,
@@ -352,7 +363,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Shimmer.fromColors(
             baseColor: baseColor,
             highlightColor: highlightColor,
@@ -365,7 +376,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -413,15 +424,18 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
   }
 
   Widget _buildErrorUserLevelCard({required ColorScheme colorScheme}) {
+    final t = AppLocalizations.of(context);
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -435,12 +449,12 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: colorScheme.errorContainer,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
-                  color: Colors.red,
+                  color: colorScheme.error,
                   size: 28,
                 ),
               ),
@@ -450,18 +464,16 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Erro ao carregar nível',
-                      style: TextStyle(
-                        fontSize: 16,
+                      t.level_load_error,
+                      style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tente novamente mais tarde.',
-                      style: TextStyle(
-                        fontSize: 14,
+                      t.level_load_retry,
+                      style: textTheme.titleSmall?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
@@ -472,7 +484,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
           ),
           const SizedBox(height: 16),
           SecondaryButton(
-            text: 'Tentar novamente',
+            text: t.common_retry,
             height: 45,
             isLoading: _isRetryingUserLevel,
             onPressed: () async {
@@ -480,7 +492,8 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                 _isRetryingUserLevel = true;
               });
 
-              ref.invalidate(levelsProvider);
+              ref.invalidate(walletLevelsRemoteProvider);
+              ref.invalidate(userDataProvider);
 
               await Future.delayed(const Duration(milliseconds: 500));
 

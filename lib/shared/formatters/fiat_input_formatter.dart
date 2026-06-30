@@ -29,8 +29,12 @@ class FiatInputFormatter extends TextInputFormatter {
       newDigits = '0';
     }
 
-    if (newDigits.length > 12) {
-      newDigits = newDigits.substring(0, 12);
+    // 16 raw digits = 14 integer + 2 decimal, matching the BTC/sats
+    // formatter caps so all three input modes share the same digit
+    // budget. Per-screen tighter caps (e.g. the Pix flow) override via
+    // subclass.
+    if (newDigits.length > 16) {
+      newDigits = newDigits.substring(0, 16);
     }
 
     if (newDigits.length < 3) {

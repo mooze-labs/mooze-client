@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 
 final apiDownProvider = StateProvider<bool>((ref) => false);
@@ -11,111 +12,95 @@ void _showApiDownDialog(
   WidgetRef ref,
   VoidCallback? onRetry,
 ) {
-  final statusCode = ref.read(apiStatusCodeProvider);
-
   showDialog(
     context: context,
-    builder:
-        (context) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.cloud_off_rounded,
-                color: Colors.orange[300],
-                size: 28,
+    builder: (context) {
+      final t = AppLocalizations.of(context);
+      return AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.cloud_off_rounded, color: Colors.orange[300], size: 28),
+            const SizedBox(width: 12),
+            Text(t.api_down_dialog_title),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.api_down_dialog_body,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
               ),
-              const SizedBox(width: 12),
-              const Text('API Indisponível'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'A API da Mooze está temporariamente indisponível.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning_rounded,
-                          color: Colors.orange[300],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'O servidor pode estar em manutenção',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color: Colors.orange[300],
-                              fontWeight: FontWeight.w600,
-                            ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_rounded,
+                        color: Colors.orange[300],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          t.api_down_maintenance_title,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange[300],
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '• PIX não disponível\n• Sincronização pausada\n• Dados em cache sendo usados',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[400],
-                        height: 1.5,
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    t.api_down_warning_list,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[400],
+                      height: 1.5,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              // if (statusCode != null) ...[
-              //   const SizedBox(height: 12),
-              //   Text(
-              //     'Código de erro: $statusCode',
-              //     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              //       color: Colors.grey[400],
-              //       fontFamily: 'monospace',
-              //     ),
-              //   ),
-              // ],
-              const SizedBox(height: 12),
-              Text(
-                'Por favor, tente novamente em alguns minutos.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
             ),
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                onRetry?.call();
-              },
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Tentar Novamente'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.orange[700],
-              ),
+            const SizedBox(height: 12),
+            Text(
+              t.api_down_dialog_footer,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t.common_close),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              onRetry?.call();
+            },
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: Text(t.common_retry),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange[700]),
+          ),
+        ],
+      );
+    },
   );
 }
 
@@ -149,7 +134,7 @@ class ApiDownIndicator extends ConsumerWidget {
             Icon(Icons.cloud_off_rounded, size: 16, color: Colors.orange[300]),
             const SizedBox(width: 5),
             Text(
-              'API Indisponível',
+              AppLocalizations.of(context).api_down_indicator,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.orange[300],
                 fontWeight: FontWeight.w600,
@@ -180,7 +165,7 @@ class ApiDownIndicatorIcon extends ConsumerWidget {
     return IconButton(
       onPressed: () => _showApiDownDialog(context, ref, onRetry),
       icon: Icon(Icons.cloud_off_rounded, color: Colors.orange[300]),
-      tooltip: 'API da Mooze indisponível',
+      tooltip: AppLocalizations.of(context).api_down_dialog_title,
     );
   }
 }

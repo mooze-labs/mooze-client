@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 const double buttonVerticalPadding = 16.0;
@@ -21,7 +22,7 @@ class _ReceiveButtonState extends State<ReceiveButton> {
   @override
   Widget build(BuildContext context) {
     return SecondaryButton(
-      text: "RECEBER",
+      text: AppLocalizations.of(context).wallet_action_receive,
       onPressed: () => _handlePress(context),
     );
   }
@@ -42,7 +43,7 @@ class _SendButtonState extends State<SendButton> {
   @override
   Widget build(BuildContext context) {
     return PrimaryButton(
-      text: "ENVIAR",
+      text: AppLocalizations.of(context).wallet_action_send,
       onPressed: () => _handlePress(context),
     );
   }

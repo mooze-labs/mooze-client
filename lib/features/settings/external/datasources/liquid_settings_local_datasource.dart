@@ -1,0 +1,54 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_mobile/features/settings/infra/datasources/blockchain_settings_datasource.dart';
+import 'package:mooze_mobile/shared/utils/result.dart';
+
+/// Liquid Settings Local Data Source Implementation (External Layer)
+///
+/// Storage Key: 'liquid_node_url'
+/// Returns an empty string when the key is absent — the consumer
+/// (LWK electrum node provider) treats absence as "default mode" and
+/// engages the built-in fallback rotation.
+class LiquidSettingsLocalDataSource implements BlockchainSettingsDataSource {
+  static const String _key = 'liquid_node_url';
+
+  @override
+  Future<Result<void>> setNodeUrl(String url) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, url);
+      return const Success(null);
+    } catch (e) {
+      return Failure(
+        'Erro ao atualizar a URL do node: ${e.toString()}',
+        e as Exception?,
+      );
+    }
+  }
+
+  @override
+  Future<Result<String>> getNodeUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return Success(prefs.getString(_key) ?? '');
+    } catch (e) {
+      return Failure(
+        'Erro ao obter a URL do node: ${e.toString()}',
+        e as Exception?,
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> clearNodeUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_key);
+      return const Success(null);
+    } catch (e) {
+      return Failure(
+        'Erro ao remover a URL do node: ${e.toString()}',
+        e as Exception?,
+      );
+    }
+  }
+}

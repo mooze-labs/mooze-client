@@ -30,12 +30,7 @@ class TitleAndSubtitleCreateWallet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-        ),
+        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }

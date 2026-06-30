@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mooze_mobile/shared/storage/mnemonic_prefetch.dart';
 import 'package:mooze_mobile/shared/storage/secure_storage.dart';
 
 import 'key_store.dart';
@@ -19,7 +20,17 @@ class KeyStoreImpl implements KeyStore {
             "[KeyStoreImpl] Attempting to read from secure storage for key: $key",
           );
         }
-        final result = await storage.read(key: key);
+        // Mnemonic reads go through the shared prefetch cache —
+        // started in `main()` so the platform-channel cost overlaps
+        // with runApp / Riverpod setup. Other keys (pinSalt, etc.)
+        // bypass the cache because they have unrelated lifecycles
+        // and the splash-screen PIN check needs a fresh read.
+        final String? result;
+        if (key == MnemonicPrefetch.key) {
+          result = await MnemonicPrefetch.get();
+        } else {
+          result = await storage.read(key: key);
+        }
         if (kDebugMode) {
           debugPrint(
             "[KeyStoreImpl] Secure storage read completed for key: $key, hasValue: ${result != null}",
@@ -49,6 +60,11 @@ class KeyStoreImpl implements KeyStore {
 
     return TaskEither.tryCatch(() async {
       await storage.write(key: key, value: value);
+      // Mnemonic writes invalidate the prefetch cache so the next
+      // reader sees the freshly-saved value (relevant on import).
+      if (key == MnemonicPrefetch.key) {
+        MnemonicPrefetch.clear();
+      }
       return unit;
     }, (error, stackTrace) => "Erro ao salvar a frase de recuperação: $error");
   }
@@ -68,6 +84,9 @@ class KeyStoreImpl implements KeyStore {
           );
         }
         await storage.delete(key: key);
+        if (key == MnemonicPrefetch.key) {
+          MnemonicPrefetch.clear();
+        }
         if (kDebugMode) {
           debugPrint(
             "[KeyStoreImpl] Secure storage delete completed for key: $key",

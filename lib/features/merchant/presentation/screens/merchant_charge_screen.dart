@@ -1,21 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/cart_provider.dart';
-import 'package:mooze_mobile/features/merchant/presentation/providers/merchant_validation_provider.dart';
-import 'package:mooze_mobile/features/pix/di/providers/pix_onboarding_service_provider.dart';
-import 'package:mooze_mobile/features/pix/presentation/providers.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/receive/providers.dart';
-import 'package:mooze_mobile/features/pix/presentation/screens/receive/widgets.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/first_time_pix_dialog.dart';
-import 'package:mooze_mobile/features/pix/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
+import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/pix_cpf_gate.dart';
+import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/asset_selector_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+/// Merchant Charge Screen (Presentation Layer)
+///
+/// The payment/checkout screen for merchant mode transactions.
+/// This screen is reached after the merchant clicks "Finalizar Venda" (Complete Sale)
+/// from the merchant mode screen.
+///
 
 class MerchantChargeScreen extends ConsumerStatefulWidget {
+  /// Total amount to charge (in BRL)
   final double totalAmount;
-  final List<CartItem> items;
+
+  /// List of cart items being purchased
+  final List<CartItemEntity> items;
 
   const MerchantChargeScreen({
     super.key,
@@ -85,13 +104,20 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     super.dispose();
   }
 
-  void _onSlideComplete() async {
+  void _onConfirm() async {
     setState(() => _isLoading = true);
+
+    // Temporary payer-CPF step (shared with the Pix flow).
+    final cpfGate = await PixCpfGate.ensure(context, ref);
+    if (!mounted) return;
+    if (cpfGate.cancelled) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     _showLoadingOverlay();
     _circleController.forward();
 
-    final controller = await ref.read(pixDepositControllerProvider.future);
     final depositAmount = ref.read(depositAmountProvider);
     final selectedAsset = ref.read(selectedAssetProvider);
 
@@ -99,81 +125,72 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
     final minAnimationTime = Future.delayed(Duration(milliseconds: 1500));
 
-    controller.fold(
-      (err) async {
-        await minAnimationTime;
-        if (mounted) {
-          setState(() => _isLoading = false);
-          _hideLoadingOverlay();
-          _circleController.reset();
+    try {
+      final controller = await ref.read(pixDepositControllerProvider.future);
+      final result =
+          await controller
+              .newDeposit(
+                amountInCents,
+                selectedAsset,
+                taxIdNumber: cpfGate.taxIdNumber,
+              )
+              .run();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err),
-              backgroundColor: Colors.red[700],
-              duration: Duration(seconds: 5),
-              action: SnackBarAction(
-                label: 'OK',
-                textColor: Colors.white,
-                onPressed: () {},
-              ),
-            ),
-          );
-        }
-      },
-      (controller) async {
-        final result =
-            await controller.newDeposit(amountInCents, selectedAsset).run();
+      await minAnimationTime;
 
-        await minAnimationTime;
-
-        result.fold(
-          (err) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              _hideLoadingOverlay();
-              _circleController.reset();
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(err),
-                  backgroundColor: Colors.red[700],
-                  duration: Duration(seconds: 5),
-                  action: SnackBarAction(
-                    label: 'OK',
-                    textColor: Colors.white,
-                    onPressed: () {},
-                  ),
-                ),
-              );
-            }
-          },
-          (deposit) async {
-            if (!mounted) return;
-
+      result.fold(
+        (err) {
+          if (mounted) {
             setState(() => _isLoading = false);
+            _hideLoadingOverlay();
+            _circleController.reset();
 
-            context.push("/pix/payment/${deposit.depositId}").then((_) {
-              if (mounted) {
-                _circleController.reset();
-                ref.read(depositAmountProvider.notifier).state =
-                    widget.totalAmount;
-                ref.invalidate(pixDepositControllerProvider);
-                ref.invalidate(feeRateProvider);
-                ref.invalidate(feeAmountProvider);
-                ref.invalidate(discountedFeesDepositProvider);
-                ref.invalidate(assetQuoteProvider);
-              }
-            });
+            AppSnackBar.show(
+              context,
+              message: err,
+              type: SnackBarType.error,
+              action: SnackBarAction(label: 'OK', onPressed: () {}),
+            );
+          }
+        },
+        (deposit) async {
+          if (!mounted) return;
 
-            await Future.delayed(Duration(milliseconds: 200));
+          setState(() => _isLoading = false);
+
+          context.push("/pix/payment/${deposit.depositId}").then((_) {
             if (mounted) {
-              _hideLoadingOverlay();
+              _circleController.reset();
+              ref.read(depositAmountProvider.notifier).state =
+                  widget.totalAmount;
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(feeRateProvider);
+              ref.invalidate(feeAmountProvider);
+              ref.invalidate(discountedFeesDepositProvider);
+              ref.invalidate(assetQuoteProvider);
             }
-          },
-        );
-      },
-    );
+          });
+
+          await Future.delayed(Duration(milliseconds: 200));
+          if (mounted) {
+            _hideLoadingOverlay();
+          }
+        },
+      );
+    } catch (e) {
+      await minAnimationTime;
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _hideLoadingOverlay();
+      _circleController.reset();
+
+      AppSnackBar.show(
+        context,
+        message: e.toString(),
+        type: SnackBarType.error,
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
+      );
+    }
   }
 
   void _showLoadingOverlay() {
@@ -184,7 +201,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           (context) => LoadingOverlayWidget(
             circleController: _circleController,
             circleAnimation: _circleAnimation,
-            loadingText: 'Gerando QR Code...',
+            loadingText: AppLocalizations.of(context).pix_generating_qr,
             showLoadingText: true,
           ),
     );
@@ -199,6 +216,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -212,6 +230,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             ),
             child: PlatformSafeArea(
               iosTop: true,
+              androidTop: true,
               child: Column(
                 children: [
                   _buildHeader(),
@@ -219,7 +238,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black,
+                        color: context.colors.backgroundColor,
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(40),
                           topRight: Radius.circular(40),
@@ -250,17 +269,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                       widget.totalAmount,
                                     ),
                                   );
-                                  return Opacity(
-                                    opacity: validation.isValid ? 1.0 : 0.5,
-                                    child: IgnorePointer(
-                                      ignoring: !validation.isValid,
-                                      child: SlideToConfirmButton(
-                                        onSlideComplete: _onSlideComplete,
-                                        text: 'Gerar QR Code',
-                                        isLoading: _isLoading,
-                                        isEnabled: validation.isValid,
-                                      ),
-                                    ),
+                                  return PrimaryButton(
+                                    text: t.common_continue,
+                                    isLoading: _isLoading,
+                                    isEnabled: validation.isValid,
+                                    onPressed: _onConfirm,
                                   );
                                 },
                               ),
@@ -282,8 +295,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               ref.invalidate(pixDepositControllerProvider);
               ref.invalidate(depositAmountProvider);
             },
-            customMessage:
-                'Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.',
+            customMessage: t.pix_processing_unavailable,
           ),
         ],
       ),
@@ -291,6 +303,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildHeader() {
+    final t = AppLocalizations.of(context);
     final validation = ref.watch(
       merchantValidationProvider(widget.totalAmount),
     );
@@ -311,10 +324,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                 ),
               ),
               Text(
-                'Receber',
-                style: TextStyle(
+                t.merchant_charge_receive_title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
-                  fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -324,20 +336,18 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           SizedBox(height: 20),
           Text(
             'R\$${widget.totalAmount.toStringAsFixed(2)}',
-            style: TextStyle(
-              color: validation.isValid ? Colors.white : Colors.amber,
-              fontSize: 36,
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
-          if (!validation.isValid && validation.message != null)
+          if (!validation.isValid && validation.localizedMessage(t) != null)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
-                validation.message!,
-                style: TextStyle(
-                  color: Colors.amber,
-                  fontSize: 14,
+                validation.localizedMessage(t)!,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: context.appColors.editColor,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -349,12 +359,18 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildInstructionText() {
+    final t = AppLocalizations.of(context);
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          text: 'Escolha o ativo que deseja receber na ',
-          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+          text: t.merchant_charge_instruction_prefix,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+            height: 1.4,
+          ),
           children: [
             TextSpan(
               text: 'Mooze',
@@ -371,6 +387,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   }
 
   Widget _buildLimitsInfo() {
+    final t = AppLocalizations.of(context);
     return Consumer(
       builder: (context, ref, child) {
         final levelsData = ref.watch(levelsProvider);
@@ -380,17 +397,17 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               (data) => Column(
                 children: [
                   _buildLimitRow(
-                    'Limite diário',
+                    t.merchant_limit_daily,
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 8),
                   _buildLimitRow(
-                    'Por transação',
+                    t.merchant_limit_per_transaction,
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 8),
                   _buildLimitRow(
-                    'Valor mínimo',
+                    t.merchant_limit_min,
                     'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                   ),
                 ],
@@ -398,28 +415,31 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
           loading:
               () => Column(
                 children: [
-                  _buildLimitRow('Limite diário', 'Carregando...'),
+                  _buildLimitRow(t.merchant_limit_daily, t.common_loading),
                   SizedBox(height: 8),
-                  _buildLimitRow('Por transação', 'Carregando...'),
+                  _buildLimitRow(
+                    t.merchant_limit_per_transaction,
+                    t.common_loading,
+                  ),
                   SizedBox(height: 8),
-                  _buildLimitRow('Valor mínimo', 'Carregando...'),
+                  _buildLimitRow(t.merchant_limit_min, t.common_loading),
                 ],
               ),
           error:
               (error, stack) => Column(
                 children: [
                   _buildLimitRow(
-                    'Limite diário',
+                    t.merchant_limit_daily,
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                   ),
                   SizedBox(height: 12),
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: context.appColors.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: context.appColors.warning.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -430,23 +450,25 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                           children: [
                             Icon(
                               Icons.warning_amber_rounded,
-                              color: Colors.orange,
+                              color: context.appColors.warning,
                               size: 20,
                             ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Erro ao carregar limites',
-                                style: TextStyle(
-                                  color: Colors.orange,
-                                  fontSize: 13,
+                                t.merchant_limits_load_error,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelMedium?.copyWith(
+                                  color: context.appColors.warning,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                             GestureDetector(
                               onTap: () {
-                                ref.invalidate(levelsProvider);
+                                ref.invalidate(walletLevelsRemoteProvider);
+                                ref.invalidate(userDataProvider);
                               },
                               child: Container(
                                 padding: EdgeInsets.symmetric(
@@ -454,7 +476,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange,
+                                  color: context.appColors.warning,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
@@ -467,10 +489,11 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                                     ),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Tentar novamente',
-                                      style: TextStyle(
+                                      t.common_retry,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall?.copyWith(
                                         color: Colors.white,
-                                        fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -483,7 +506,13 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                         SizedBox(height: 8),
                         Text(
                           error.toString(),
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
                         ),
                       ],
                     ),
@@ -499,12 +528,18 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 14)),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
         Text(
           value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -517,9 +552,9 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Itens',
-          style: TextStyle(
-            color: Colors.white,
+          AppLocalizations.of(context).merchant_items_section,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -530,7 +565,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     );
   }
 
-  Widget _buildItemRow(CartItem item) {
+  Widget _buildItemRow(CartItemEntity item) {
     return Padding(
       padding: EdgeInsets.only(bottom: 12),
       child: Row(
@@ -541,25 +576,27 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.nome,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
+                  item.name,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
-                  'R\$ ${item.preco.toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  'R\$ ${item.price.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
           ),
           Text(
-            'x${item.quantidade}',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+            AppLocalizations.of(context).merchant_qty_prefix(item.quantity),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w600,
             ),
           ),

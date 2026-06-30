@@ -1,0 +1,2 @@
+"NSFaceIDUsageDescription" = "Usamos o Face ID para autenticação segura.";
+"NSCameraUsageDescription" = "Este aplicativo precisa acessar a câmera para escanear QR Codes.";

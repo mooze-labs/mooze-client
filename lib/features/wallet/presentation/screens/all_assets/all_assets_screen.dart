@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/all_assets/asset_card_with_favorite.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 
@@ -10,6 +11,7 @@ class AllAssetsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final allAssets = ref.watch(assetsForQuotesProvider);
     final favoriteAssets = ref.watch(favoriteAssetsProvider);
 
@@ -20,7 +22,7 @@ class AllAssetsScreen extends ConsumerWidget {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
         ),
-        title: const Text('Todos os Ativos'),
+        title: Text(t.wallet_all_assets_title),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           const SizedBox(width: 16),
@@ -32,15 +34,38 @@ class AllAssetsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Acompanhe a cotação de todos os ativos disponíveis (${favoriteAssets.length}/2 favoritos)',
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              t.wallet_all_assets_subtitle,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Toque no ❤️ para definir seus ativos favoritos na tela principal',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.favorite, color: Colors.red, size: 14),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: t.wallet_all_assets_favorite_hint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      children: [
+                        TextSpan(
+                          text: t.wallet_all_assets_favorite_count(
+                            favoriteAssets.length,
+                          ),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: favoriteAssets.length >= 2
+                                ? Theme.of(context).colorScheme.error
+                                : Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Expanded(
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

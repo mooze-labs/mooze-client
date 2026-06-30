@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 
 class CurrentLimitsCard extends ConsumerStatefulWidget {
-  final ColorScheme colorScheme;
-
-  const CurrentLimitsCard({super.key, required this.colorScheme});
+  const CurrentLimitsCard({super.key});
 
   @override
   ConsumerState<CurrentLimitsCard> createState() => _CurrentLimitsCardState();
@@ -29,17 +29,20 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildLimitsCard(UserLevelsData data) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: widget.colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: widget.colorScheme.shadow.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -53,12 +56,12 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: widget.colorScheme.primaryContainer,
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.account_balance_wallet_outlined,
-                  color: widget.colorScheme.onPrimaryContainer,
+                  color: colorScheme.onPrimaryContainer,
                   size: 20,
                 ),
               ),
@@ -67,20 +70,16 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Seus Limites Atuais',
-                    style: TextStyle(
-                      fontSize: 16,
+                    t.wallet_levels_current_limits_title,
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: widget.colorScheme.onSurface,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
-                    'Nível: ${data.currentLevelName}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.colorScheme.onSurface.withValues(
-                        alpha: 0.6,
-                      ),
+                    t.wallet_levels_current_level(data.currentLevelName),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -93,28 +92,28 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               children: [
                 Expanded(
                   child: _buildLimitInfo(
-                    'Por transação',
+                    t.wallet_levels_limit_per_transaction,
                     'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
                     Icons.trending_up,
-                    widget.colorScheme.primary,
+                    colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
-                    'Limite diário',
+                    t.wallet_levels_limit_daily,
                     'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
                     Icons.flag,
-                    widget.colorScheme.secondary,
+                    colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildLimitInfo(
-                    'Mínimo',
+                    t.wallet_levels_limit_minimum,
                     'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
                     Icons.low_priority,
-                    widget.colorScheme.tertiary,
+                    colorScheme.tertiary,
                   ),
                 ),
               ],
@@ -124,25 +123,22 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: widget.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 16,
-                  color: widget.colorScheme.primary,
-                ),
+                Icon(Icons.info_outline, size: 16, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Continue usando para desbloquear o próximo nível${data.nextLevelName != null ? ' ${data.nextLevelName}' : ''}!',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.colorScheme.onSurface.withValues(
-                        alpha: 0.7,
-                      ),
+                    data.nextLevelName != null
+                        ? t.wallet_levels_next_level_hint_named(
+                          data.nextLevelName!,
+                        )
+                        : t.wallet_levels_next_level_hint,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -155,15 +151,20 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildErrorCard() {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -177,12 +178,12 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: colorScheme.errorContainer,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
-                  color: Colors.red,
+                  color: colorScheme.error,
                   size: 28,
                 ),
               ),
@@ -192,21 +193,17 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Erro ao carregar limites',
-                      style: TextStyle(
-                        fontSize: 16,
+                      t.wallet_levels_load_limits_error_title,
+                      style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: widget.colorScheme.onSurface,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tente novamente mais tarde ou contate o suporte.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: widget.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
+                      t.wallet_levels_load_limits_error_body,
+                      style: textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -218,12 +215,13 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
           Align(
             alignment: Alignment.centerRight,
             child: SecondaryButton(
-              text: 'Tentar novamente',
+              text: t.common_retry,
               isLoading: _isRetrying,
               onPressed: () async {
                 setState(() => _isRetrying = true);
                 await Future.delayed(const Duration(milliseconds: 500));
-                ref.invalidate(levelsProvider);
+                ref.invalidate(walletLevelsRemoteProvider);
+                ref.invalidate(userDataProvider);
                 if (mounted) {
                   setState(() => _isRetrying = false);
                 }
@@ -241,10 +239,14 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
     IconData icon,
     Color iconColor,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -254,17 +256,16 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
           const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(
+            style: textTheme.labelSmall?.copyWith(
               fontSize: 10,
-              color: widget.colorScheme.onSurface.withValues(alpha: 0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 14,
+            style: textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: widget.colorScheme.onSurface,
+              color: colorScheme.onSurface,
             ),
           ),
         ],
@@ -273,17 +274,16 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
   }
 
   Widget _buildLoadingCurrentLimitsCard() {
-    final baseColor = AppColors.baseColor;
-    final highlightColor = AppColors.highlightColor;
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseColor = context.colors.baseColor;
+    final highlightColor = context.colors.highlightColor;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: widget.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: widget.colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,7 +318,7 @@ class _CurrentLimitsCardState extends ConsumerState<CurrentLimitsCard> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Shimmer.fromColors(
                     baseColor: baseColor,
                     highlightColor: highlightColor,

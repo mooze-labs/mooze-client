@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Widget to display and choose between different fee options
 class FeeChooser extends StatelessWidget {
@@ -19,6 +20,7 @@ class FeeChooser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     // Get affordable options
     final affordableFees =
         feeOptions
@@ -28,26 +30,26 @@ class FeeChooser extends StatelessWidget {
     if (affordableFees.isEmpty) {
       return Center(
         child: Text(
-          'Valor muito pequeno para cobrir as taxas',
-          style: TextStyle(color: AppColors.textPrimary),
+          t.refund_amount_too_small_short,
+          style: TextStyle(color: context.colors.textPrimary),
         ),
       );
     }
 
     // Define fee labels based on position
-    final labels = _getFeeLabels(affordableFees.length);
+    final labels = _getFeeLabels(t, affordableFees.length);
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 24.0),
+          padding: EdgeInsets.only(bottom: 24.0),
           child: Text(
-            'Selecione a velocidade da transação',
+            t.refund_speed_select_title,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -59,6 +61,7 @@ class FeeChooser extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: _buildFeeOptionCard(
+              context,
               label: labels[index]['label']!,
               estimatedTime: labels[index]['time']!,
               feeRate: feeOption.feeRateSatPerVbyte.toInt(),
@@ -72,7 +75,8 @@ class FeeChooser extends StatelessWidget {
     );
   }
 
-  Widget _buildFeeOptionCard({
+  Widget _buildFeeOptionCard(
+    BuildContext context, {
     required String label,
     required String estimatedTime,
     required int feeRate,
@@ -87,10 +91,10 @@ class FeeChooser extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? AppColors.primaryColor.withValues(alpha: 0.1)
-                  : AppColors.backgroundCard,
+                  ? context.colors.primaryColor.withValues(alpha: 0.1)
+                  : context.colors.backgroundCard,
           border: Border.all(
-            color: isSelected ? AppColors.primaryColor : Colors.transparent,
+            color: isSelected ? context.colors.primaryColor : Colors.transparent,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -104,7 +108,7 @@ class FeeChooser extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -112,7 +116,7 @@ class FeeChooser extends StatelessWidget {
                 if (isSelected)
                   Icon(
                     Icons.check_circle,
-                    color: AppColors.primaryColor,
+                    color: context.colors.primaryColor,
                     size: 24,
                   ),
               ],
@@ -120,23 +124,25 @@ class FeeChooser extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               estimatedTime,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Taxa: $feeRate sat/vB',
+                  AppLocalizations.of(context).refund_fee_rate(feeRate),
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
                 Text(
-                  'Total: ${_formatSats(txFee)} sats',
+                  AppLocalizations.of(
+                    context,
+                  ).refund_fee_total(_formatSats(txFee)),
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -149,29 +155,29 @@ class FeeChooser extends StatelessWidget {
     );
   }
 
-  List<Map<String, String>> _getFeeLabels(int count) {
+  List<Map<String, String>> _getFeeLabels(AppLocalizations t, int count) {
     if (count == 1) {
       return [
-        {'label': 'Padrão', 'time': '~1 hora'},
+        {'label': t.refund_fee_label_standard, 'time': t.refund_fee_time_1h},
       ];
     } else if (count == 2) {
       return [
-        {'label': 'Economia', 'time': '~24 horas'},
-        {'label': 'Rápido', 'time': '~30 minutos'},
+        {'label': t.refund_fee_label_economy, 'time': t.refund_fee_time_24h},
+        {'label': t.refund_fee_label_fast, 'time': t.refund_fee_time_30m},
       ];
     } else if (count == 3) {
       return [
-        {'label': 'Economia', 'time': '~24 horas'},
-        {'label': 'Padrão', 'time': '~1 hora'},
-        {'label': 'Rápido', 'time': '~30 minutos'},
+        {'label': t.refund_fee_label_economy, 'time': t.refund_fee_time_24h},
+        {'label': t.refund_fee_label_standard, 'time': t.refund_fee_time_1h},
+        {'label': t.refund_fee_label_fast, 'time': t.refund_fee_time_30m},
       ];
     } else {
       // 4 or more options
       return [
-        {'label': 'Economia', 'time': '~24 horas'},
-        {'label': 'Padrão', 'time': '~1 hora'},
-        {'label': 'Rápido', 'time': '~30 minutos'},
-        {'label': 'Urgente', 'time': '~10 minutos'},
+        {'label': t.refund_fee_label_economy, 'time': t.refund_fee_time_24h},
+        {'label': t.refund_fee_label_standard, 'time': t.refund_fee_time_1h},
+        {'label': t.refund_fee_label_fast, 'time': t.refund_fee_time_30m},
+        {'label': t.refund_fee_label_urgent, 'time': t.refund_fee_time_10m},
       ];
     }
   }

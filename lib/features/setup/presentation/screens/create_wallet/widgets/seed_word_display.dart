@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 class SeedWordDisplay extends StatelessWidget {
   final String word;
@@ -12,13 +13,19 @@ class SeedWordDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return SizedBox(
       width: double.infinity,
       child: Row(
         children: [
-          Text("Palavra #$position: ", style: TextStyle(fontFamily: "Inter")),
+          Text(
+            t.setup_seed_word_label(position),
+            style: const TextStyle(fontFamily: "Inter"),
+          ),
           SizedBox(width: (position >= 10) ? 8 : 14),
-          Expanded(child: Text(word, style: TextStyle(fontFamily: "Inter"))),
+          Expanded(
+            child: Text(word, style: const TextStyle(fontFamily: "Inter")),
+          ),
         ],
       ),
     );

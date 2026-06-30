@@ -2,9 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/providers/update_provider.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class UpdateNotificationWidget extends ConsumerStatefulWidget {
@@ -91,6 +92,7 @@ class _UpdateNotificationWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final shouldShow = ref.watch(shouldShowUpdateNotificationProvider);
     final updateState = ref.watch(updateNotifierProvider);
 
@@ -113,16 +115,16 @@ class _UpdateNotificationWidgetState
         child: Container(
           margin: const EdgeInsets.only(top: 16, bottom: 8),
           decoration: BoxDecoration(
-            color: AppColors.backgroundCard,
+            color: context.colors.backgroundCard,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: AppColors.primaryColor.withValues(alpha: 0.3),
+              color: context.colors.primaryColor.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryColor.withValues(alpha: 0.1),
-                offset: const Offset(0, 4),
+                color: context.colors.primaryColor.withValues(alpha: 0.1),
+                offset: Offset(0, 4),
                 blurRadius: 12,
                 spreadRadius: 0,
               ),
@@ -139,12 +141,12 @@ class _UpdateNotificationWidgetState
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryColor.withValues(alpha: 0.15),
+                        color: context.colors.primaryColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.system_update_outlined,
-                        color: AppColors.primaryColor,
+                        color: context.colors.primaryColor,
                         size: 20,
                       ),
                     ),
@@ -153,10 +155,10 @@ class _UpdateNotificationWidgetState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Nova atualização disponível',
+                          Text(
+                            t.update_available_short,
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -164,8 +166,8 @@ class _UpdateNotificationWidgetState
                           const SizedBox(height: 4),
                           Text(
                             'Versão ${updateState.newVersion}',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: context.colors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -178,12 +180,12 @@ class _UpdateNotificationWidgetState
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.textSecondary.withValues(alpha: 0.1),
+                          color: context.colors.textSecondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close,
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                           size: 18,
                         ),
                       ),
@@ -191,13 +193,13 @@ class _UpdateNotificationWidgetState
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Atualize para obter melhorias e correções',
-                  style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                Text(
+                  t.update_available_body,
+                  style: TextStyle(color: context.colors.textTertiary, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
                 PrimaryButton(
-                  text: 'ATUALIZAR',
+                  text: t.update_available_button,
                   height: 44,
                   onPressed: () {
                     _showUpdateDialog(
@@ -220,6 +222,7 @@ class _UpdateNotificationWidgetState
     String newVersion,
     String localVersion,
   ) {
+    final t = AppLocalizations.of(context);
     showGeneralDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -235,7 +238,7 @@ class _UpdateNotificationWidgetState
           child: FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
             child: AlertDialog(
-              backgroundColor: AppColors.backgroundCard,
+              backgroundColor: context.colors.backgroundCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -245,20 +248,20 @@ class _UpdateNotificationWidgetState
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryColor.withValues(alpha: 0.15),
+                      color: context.colors.primaryColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.system_update_outlined,
-                      color: AppColors.primaryColor,
+                      color: context.colors.primaryColor,
                       size: 16,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Atualização Disponível',
+                  Text(
+                    t.update_dialog_title,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -269,10 +272,10 @@ class _UpdateNotificationWidgetState
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Uma nova versão do aplicativo está disponível.',
+                  Text(
+                    t.update_dialog_body,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       fontSize: 15,
                     ),
                   ),
@@ -282,17 +285,17 @@ class _UpdateNotificationWidgetState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Versão atual:',
+                          Text(
+                            t.update_current_version,
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
                           Text(
                             localVersion,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: context.colors.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -303,17 +306,17 @@ class _UpdateNotificationWidgetState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Nova versão:',
+                          Text(
+                            t.update_new_version,
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
                           Text(
                             newVersion,
-                            style: const TextStyle(
-                              color: AppColors.primaryColor,
+                            style: TextStyle(
+                              color: context.colors.primaryColor,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -323,10 +326,10 @@ class _UpdateNotificationWidgetState
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Recomendamos atualizar para obter as melhorias mais recentes e correções de bugs.',
+                  Text(
+                    t.update_dialog_recommend,
                     style: TextStyle(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                       fontSize: 13,
                     ),
                   ),
@@ -337,7 +340,7 @@ class _UpdateNotificationWidgetState
                   children: [
                     Expanded(
                       child: SecondaryButton(
-                        text: 'MAIS TARDE',
+                        text: t.update_later,
                         height: 44,
                         onPressed: () {
                           Navigator.of(context).pop();
@@ -347,7 +350,7 @@ class _UpdateNotificationWidgetState
                     const SizedBox(width: 12),
                     Expanded(
                       child: PrimaryButton(
-                        text: 'ATUALIZAR',
+                        text: t.update_available_button,
                         height: 44,
                         onPressed: () {
                           Navigator.of(context).pop();

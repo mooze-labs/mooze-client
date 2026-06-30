@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 
 import '../entities.dart';
 import 'user_service.dart';
@@ -13,6 +15,10 @@ class UserServiceImpl implements UserService {
 
   final _levelChangeController = StreamController<LevelChange>.broadcast();
 
+  // Coalesces concurrent callers into one network request. Not a cache —
+  // cleared as soon as the request resolves.
+  Future<Either<String, User>>? _inFlightUser;
+
   Stream<LevelChange> get levelChanges => _levelChangeController.stream;
 
   UserServiceImpl(Dio dio, this._levelStorageService) : _dio = dio;
@@ -20,16 +26,38 @@ class UserServiceImpl implements UserService {
   @override
   TaskEither<String, User> getUser() {
     return TaskEither(() async {
-      try {
-        final response = await _dio.get('/users/me');
-        User user = User.fromJson(response.data);
-        await _detectLevelChange(user.spendingLevel);
+      final inFlight = _inFlightUser;
+      if (inFlight != null) return inFlight;
 
-        return Right(user);
-      } catch (e) {
-        return Left(e.toString());
+      final pending = _fetchUser();
+      _inFlightUser = pending;
+      try {
+        return await pending;
+      } finally {
+        _inFlightUser = null;
       }
     });
+  }
+
+  Future<Either<String, User>> _fetchUser() async {
+    try {
+      final response = await _dio.get('/users/me');
+      final user = User.fromJson(response.data);
+      await _detectLevelChange(user.spendingLevel);
+      return Right(user);
+    } catch (e) {
+      return Left(_friendlyMessage(e));
+    }
+  }
+
+  String _friendlyMessage(Object error) {
+    final friendly = UserFriendlyException.fromError(error);
+    if (kDebugMode) {
+      debugPrint(
+        '[UserService] ${friendly.userMessage} | technical: ${friendly.technicalMessage}',
+      );
+    }
+    return friendly.userMessage;
   }
 
   Future<void> _detectLevelChange(int newLevel) async {
@@ -85,7 +113,7 @@ class UserServiceImpl implements UserService {
         if (e is DioException && e.response?.statusCode == 404) {
           return const Right(false);
         }
-        return Left('Erro ao validar código de referral: $e');
+        return Left(_friendlyMessage(e));
       }
     });
   }
@@ -108,7 +136,7 @@ class UserServiceImpl implements UserService {
             return const Left('Código de referral já foi usado');
           }
         }
-        return Left('Erro ao adicionar código de referral: $e');
+        return Left(_friendlyMessage(e));
       }
     });
   }

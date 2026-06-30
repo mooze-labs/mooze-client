@@ -1,69 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:mooze_mobile/features/merchant/models/item.dart';
-import 'package:mooze_mobile/themes/app_colors.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/product_entity.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// Items List Widget (Presentation Layer)
+///
+/// Displays a list of products/items in the merchant mode.
+/// Shows products with their current quantities from the cart.
+///
+/// Features:
+/// - Empty state when no products are available
+/// - Slidable list items with swipe actions (edit/delete)
+/// - Quantity increment/decrement buttons
+/// - Floating action button to add new products
+///
+/// Each list item shows:
+/// - Product name and price
+/// - Current quantity in cart
+/// - Total price for that item (price × quantity)
+///
+/// Uses flutter_slidable for swipe-to-edit/delete functionality.
 class ItemsListWidget extends StatelessWidget {
-  final List<Item> produtos;
-  final Function(int) onEditarItem;
-  final Function(int) onRemoverItem;
-  final Function(int, bool) onAtualizarQuantidade;
-  final VoidCallback onAdicionarItem;
+  /// List of products to display
+  final List<ProductEntity> products;
+
+  /// Cart state mapping product ID to cart items (for quantity display)
+  final Map<int, CartItemEntity> cart;
+
+  /// Callback when user taps edit button for an item
+  /// Parameter: product index to edit
+  final Function(int) onEditItem;
+
+  /// Callback when user taps delete button for an item
+  /// Parameter: product index to remove
+  final Function(int) onRemoveItem;
+
+  /// Callback when quantity is changed (+ or - buttons)
+  /// Parameters: product index, increment (true) or decrement (false)
+  final Function(int, bool) onUpdateQuantity;
+
+  /// Callback when floating action button (add product) is pressed
+  final VoidCallback onAddItem;
+
+  /// Global key for the add button (used for tutorials)
   final GlobalKey? addButtonKey;
-  final GlobalKey? firstProductKey;
+
+  /// Global key for the first product (used for tutorials)
+  final GlobalKey? firstItemKey;
 
   const ItemsListWidget({
     super.key,
-    required this.produtos,
-    required this.onEditarItem,
-    required this.onRemoverItem,
-    required this.onAtualizarQuantidade,
-    required this.onAdicionarItem,
+    required this.products,
+    required this.cart,
+    required this.onEditItem,
+    required this.onRemoveItem,
+    required this.onUpdateQuantity,
+    required this.onAddItem,
     this.addButtonKey,
-    this.firstProductKey,
+    this.firstItemKey,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: produtos.isEmpty ? _buildEmptyState() : _buildProductsList(),
+      backgroundColor: context.colors.backgroundColor,
+      body:
+          products.isEmpty
+              ? _buildEmptyState(context)
+              : _buildItemsList(context),
       floatingActionButton: SizedBox(
         key: addButtonKey,
         width: 56,
         height: 56,
         child: FloatingActionButton(
-          onPressed: onAdicionarItem,
-          backgroundColor: Color(0xFFE91E63),
+          onPressed: onAddItem,
+          backgroundColor: const Color(0xFFE91E63),
           elevation: 8,
-          child: Icon(Icons.add, color: Colors.white, size: 24),
+          child: const Icon(Icons.add, color: Colors.white, size: 24),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final outline = Theme.of(context).colorScheme.outline;
+
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[600]),
-            SizedBox(height: 20),
+            Icon(Icons.inventory_2_outlined, size: 64, color: outline),
+            const SizedBox(height: 20),
             Text(
-              'Nenhum produto cadastrado',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
+              t.merchant_no_products_title,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Comece adicionando seu primeiro produto\nclicando no botão + abaixo',
+              t.merchant_no_products_body,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[400], fontSize: 16),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: outline),
             ),
           ],
         ),
@@ -71,140 +118,210 @@ class ItemsListWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildProductsList() {
+  Widget _buildItemsList(BuildContext context) {
     return ListView.separated(
-      padding: EdgeInsets.all(20).copyWith(bottom: 100),
-      itemCount: produtos.length,
-      separatorBuilder: (context, index) => SizedBox(height: 16),
+      padding: const EdgeInsets.all(20).copyWith(bottom: 100),
+      itemCount: products.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        final produto = produtos[index];
-        final isFirstProduct = index == 0 && firstProductKey != null;
+        final product = products[index];
+        final isFirstItem = index == 0 && firstItemKey != null;
+
+        // Get quantity from cart (0 if product not in cart)
+        final quantity =
+            product.id != null ? (cart[product.id!]?.quantity ?? 0) : 0;
 
         return Slidable(
-          key:
-              isFirstProduct
-                  ? firstProductKey
-                  : Key(produto.nome + index.toString()),
+          key: isFirstItem ? firstItemKey : Key('${product.name}_$index'),
           endActionPane: ActionPane(
             motion: ScrollMotion(),
             children: [
               SlidableAction(
-                onPressed: (context) => onEditarItem(index),
-                backgroundColor: AppColors.editColor.withValues(alpha: 0.3),
-                foregroundColor: AppColors.editColor,
+                onPressed: (context) => onEditItem(index),
+                backgroundColor: context.colors.editColor.withValues(
+                  alpha: 0.3,
+                ),
+                foregroundColor: context.colors.editColor,
                 icon: Icons.edit,
               ),
               SlidableAction(
                 onPressed: (context) async {
                   final confirm = await showDialog<bool>(
                     context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          backgroundColor: Colors.grey[900],
-                          title: Text(
-                            'Deletar item',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: Text(
-                            'Deseja realmente deletar "${produto.nome}"?',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: Text(
-                                'Deletar',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
+                    builder: (context) {
+                      final t = AppLocalizations.of(context);
+                      return Dialog(
+                        backgroundColor: context.colors.backgroundCard,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: context.colors.errorColor.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: context.colors.errorColor,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                t.merchant_delete_item_title,
+                                style: context.textTheme.titleMedium?.copyWith(
+                                  color: context.colors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                t.merchant_delete_item_confirm(product.name),
+                                style: context.textTheme.bodyMedium?.copyWith(
+                                  color: context.colors.textSecondary,
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            context.colors.textPrimary,
+                                        side: BorderSide(
+                                          color: context.colors.textPrimary
+                                              .withValues(alpha: 0.2),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      child: Text(t.common_cancel),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            context.colors.errorColor,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      child: Text(t.merchant_delete_action),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
 
                   if (confirm ?? false) {
-                    onRemoverItem(index);
+                    onRemoveItem(index);
                   }
                 },
-                backgroundColor: AppColors.errorColor.withValues(alpha: 0.3),
-                foregroundColor: AppColors.errorColor,
+                backgroundColor: context.colors.errorColor.withValues(
+                  alpha: 0.3,
+                ),
+                foregroundColor: context.colors.errorColor,
                 icon: Icons.delete,
               ),
             ],
           ),
-          child: Container(
-            padding: EdgeInsets.all(0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        produto.nome,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'R\$ ${produto.preco.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () {
-                        if (produto.quantidade > 0) {
-                          onAtualizarQuantidade(index, false);
-                        }
-                      },
-                      icon: Icon(
-                        Icons.remove,
-                        color:
-                            produto.quantidade < 1
-                                ? AppColors.errorColor.withValues(alpha: 0.3)
-                                : AppColors.errorColor,
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                    ),
                     Text(
-                      produto.quantidade.toString(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                      product.name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {
-                        onAtualizarQuantidade(index, true);
-                      },
-                      icon: Icon(
-                        Icons.add,
-                        color: AppColors.positiveColor,
-                        size: 20,
+                    const SizedBox(height: 4),
+                    Text(
+                      'R\$ ${product.price.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
                       ),
-                      padding: EdgeInsets.zero,
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      if (quantity > 0) {
+                        onUpdateQuantity(index, false);
+                      }
+                    },
+                    icon: Icon(
+                      Icons.remove,
+                      color:
+                          quantity < 1
+                              ? context.colors.errorColor.withValues(alpha: 0.3)
+                              : context.colors.errorColor,
+                      size: 20,
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                  Text(
+                    quantity.toString(),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      onUpdateQuantity(index, true);
+                    },
+                    icon: Icon(
+                      Icons.add,
+                      color: context.colors.positiveColor,
+                      size: 20,
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },

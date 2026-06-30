@@ -1,9 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../settings/price_settings_repository.dart';
 import '../../../features/wallet/presentation/providers/cached_data_provider.dart';
-import '../../../features/wallet/presentation/providers/fiat_price_provider.dart';
-import 'price_service_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 final currencyControllerProvider =
     StateNotifierProvider<CurrencyNotifier, Currency>((ref) {
@@ -36,18 +36,19 @@ class CurrencyNotifier extends StateNotifier<Currency> {
     }
   }
 
-  List<CurrencyItem> get availableCurrencies {
+  List<CurrencyItem> availableCurrencies(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return [
-      const CurrencyItem(
+      CurrencyItem(
         icon: 'R\$',
         code: 'BRL',
-        name: 'Brasil (Brasil Real)',
+        name: t.currency_brl_name,
         currency: Currency.brl,
       ),
-      const CurrencyItem(
+      CurrencyItem(
         icon: '\$',
         code: 'USD',
-        name: 'Estados Unidos (US Dólar)',
+        name: t.currency_usd_name,
         currency: Currency.usd,
       ),
     ];
@@ -65,20 +66,24 @@ class CurrencyNotifier extends StateNotifier<Currency> {
   }
 
   Future<void> setCurrency(Currency currency) async {
+    if (state == currency) return;
+
+
+    final previous = state;
+    state = currency;
+
     final result = await _repo.setPriceCurrency(currency).run();
-    result.match((err) => null, (_) {
-      state = currency;
-      _invalidatePriceCache();
-    });
-  }
+    result.match(
+      (_) {
+        state = previous;
+      },
+      (_) {
 
-  void _invalidatePriceCache() {
-    try {
-      ref.invalidate(assetPriceHistoryCacheProvider);
-
-      ref.invalidate(fiatPriceProvider);
-      ref.invalidate(priceServiceProvider);
-    } catch (e) {}
+        try {
+          ref.invalidate(assetPriceHistoryCacheProvider);
+        } catch (_) {}
+      },
+    );
   }
 
   Currency? currencyFromCode(String code) {
