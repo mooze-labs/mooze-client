@@ -32,11 +32,7 @@ class SwapSuccessDialog extends StatelessWidget {
               color: Colors.green.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 28,
-            ),
+            child: Icon(Icons.check_circle, color: Colors.green, size: 28),
           ),
           const SizedBox(width: 12),
           Expanded(
