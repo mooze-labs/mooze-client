@@ -1,8 +1,15 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'database.g.dart';
+
+const String pegStatusPending = 'pending';
+const String pegStatusCompleted = 'completed';
+const String pegStatusFailed = 'failed';
+const String pegStatusInsufficientAmount = 'insufficient_amount';
 
 /// Immutable audit log of every swap the user has executed.
 ///
@@ -29,7 +36,7 @@ part 'database.g.dart';
 ///    Liquid txid, etc.) so a swap row can be cross-referenced with the
 ///    Transactions table.
 ///  - metadata: optional JSON blob for provider-specific extras
-///    (Breez peg-out fees breakdown, SideSwap order id, etc.).
+///    (SideSwap order id, deposit address, fee breakdown, etc.).
 class Swaps extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get sendAsset => text().withLength(min: 1, max: 128)();
@@ -38,11 +45,17 @@ class Swaps extends Table {
   Int64Column get receiveAmount => int64()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get provider =>
-      text().withLength(min: 1, max: 32).withDefault(const Constant('unknown'))();
+      text()
+          .withLength(min: 1, max: 32)
+          .withDefault(const Constant('unknown'))();
   TextColumn get status =>
-      text().withLength(min: 1, max: 16).withDefault(const Constant('completed'))();
+      text()
+          .withLength(min: 1, max: 16)
+          .withDefault(const Constant('completed'))();
   TextColumn get direction =>
-      text().withLength(min: 1, max: 32).withDefault(const Constant('asset_swap'))();
+      text()
+          .withLength(min: 1, max: 32)
+          .withDefault(const Constant('asset_swap'))();
   TextColumn get txId => text().nullable()();
   TextColumn get metadata => text().nullable()();
   // walletId scopes audit rows to the wallet that produced them. Sourced
@@ -50,7 +63,9 @@ class Swaps extends Table {
   // that pre-date the v10 → v11 migration; those rows remain on disk for
   // audit but are not visible to any active wallet's queries.
   TextColumn get walletId =>
-      text().withLength(min: 1, max: 64).withDefault(const Constant('unknown'))();
+      text()
+          .withLength(min: 1, max: 64)
+          .withDefault(const Constant('unknown'))();
 }
 
 /// Immutable audit log of SideSwap peg-in / peg-out operations.
@@ -68,7 +83,36 @@ class Pegs extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   // See Swaps.walletId — same scoping policy.
   TextColumn get walletId =>
-      text().withLength(min: 1, max: 64).withDefault(const Constant('unknown'))();
+      text()
+          .withLength(min: 1, max: 64)
+          .withDefault(const Constant('unknown'))();
+
+  TextColumn get status =>
+      text()
+          .withLength(min: 1, max: 24)
+          .withDefault(const Constant('completed'))();
+
+  TextColumn get provider =>
+      text()
+          .withLength(min: 1, max: 32)
+          .withDefault(const Constant('sideswap'))();
+
+  /// Funding transaction we broadcast (BDK txid for peg-in, LWK txid for
+  /// peg-out). Null until the broadcast returns.
+  TextColumn get fundingTxId => text().nullable()();
+
+  /// Destination-chain payout transaction reported by SideSwap.
+  TextColumn get payoutTxId => text().nullable()();
+
+  /// Last error, for support and for rendering a failed row.
+  TextColumn get errorMessage => text().nullable()();
+
+  /// Last time the tracker wrote to this row. Drives retention sweeps and
+  /// stale-order detection.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+
+  /// Provider-specific extras as JSON.
+  TextColumn get metadata => text().nullable()();
 }
 
 class Deposits extends Table {
@@ -152,7 +196,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   // ==================== Swap Operations (immutable) ====================
   //
@@ -210,15 +254,14 @@ class AppDatabase extends _$AppDatabase {
         select(swaps)
           ..where((s) => s.walletId.equals(walletId))
           ..where((s) => s.provider.equals(provider))
-          ..where(
-            (s) => s.txId.equals(txId) | s.metadata.lower().like(pattern),
-          )
+          ..where((s) => s.txId.equals(txId) | s.metadata.lower().like(pattern))
           ..limit(1);
     final result = await query.getSingleOrNull();
     return result != null;
   }
 
-  /// Lookup primitive used by the Breez peg-in completion listener, scoped
+  /// Lookup primitive for matching an inbound deposit to a pending peg-in
+  /// audit row by its deposit address. Provider-neutral, scoped
   /// per-wallet: finds the most recent pending peg-in whose metadata
   /// references the given Bitcoin deposit address. Returns null if no
   /// match.
@@ -302,6 +345,65 @@ class AppDatabase extends _$AppDatabase {
   /// 'unknown' are invisible.
   Future<List<Peg>> getAllPegs({required String walletId}) =>
       (select(pegs)..where((p) => p.walletId.equals(walletId))).get();
+
+  Stream<List<Peg>> watchAllPegs({required String walletId}) =>
+      (select(pegs)..where((p) => p.walletId.equals(walletId))).watch();
+
+  /// Non-terminal pegs for [walletId], oldest first. Read at boot to resume
+  /// tracking orders that outlived the process.
+  Future<List<Peg>> getActivePegs({required String walletId}) =>
+      (select(pegs)
+            ..where((p) => p.walletId.equals(walletId))
+            ..where((p) => p.status.equals(pegStatusPending))
+            ..orderBy([(p) => OrderingTerm.asc(p.createdAt)]))
+          .get();
+
+  Future<Peg?> findPegByOrderId({
+    required String orderId,
+    required String walletId,
+  }) =>
+      (select(pegs)
+            ..where((p) => p.orderId.equals(orderId))
+            ..where((p) => p.walletId.equals(walletId))
+            ..limit(1))
+          .getSingleOrNull();
+
+  /// Update the mutable lifecycle fields of a peg row.
+
+  Future<int> updatePegProgress({
+    required String orderId,
+    required String walletId,
+    String? status,
+    String? fundingTxId,
+    String? payoutTxId,
+    String? errorMessage,
+    int? amount,
+    Map<String, dynamic>? metadata,
+    required DateTime updatedAt,
+  }) {
+    return (update(pegs)
+          ..where((p) => p.orderId.equals(orderId))
+          ..where((p) => p.walletId.equals(walletId)))
+        .write(
+          PegsCompanion(
+            status: status == null ? const Value.absent() : Value(status),
+            fundingTxId:
+                fundingTxId == null ? const Value.absent() : Value(fundingTxId),
+            payoutTxId:
+                payoutTxId == null ? const Value.absent() : Value(payoutTxId),
+            errorMessage:
+                errorMessage == null
+                    ? const Value.absent()
+                    : Value(errorMessage),
+            amount: amount == null ? const Value.absent() : Value(amount),
+            metadata:
+                metadata == null
+                    ? const Value.absent()
+                    : Value(jsonEncode(metadata)),
+            updatedAt: Value(updatedAt),
+          ),
+        );
+  }
 
   // Log operations
   Future<int> insertLog(AppLogsCompanion log) => into(appLogs).insert(log);
@@ -444,8 +546,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<FavoritePayerEntry>> getAllFavoritePayers() =>
       (select(favoritePayerEntries)
-            ..orderBy([(p) => OrderingTerm.desc(p.createdAt)]))
-          .get();
+        ..orderBy([(p) => OrderingTerm.desc(p.createdAt)])).get();
 
   Future<int> insertFavoritePayer(FavoritePayerEntriesCompanion entry) =>
       into(favoritePayerEntries).insert(entry);
@@ -453,7 +554,9 @@ class AppDatabase extends _$AppDatabase {
   Future<int> updateFavoritePayerById(
     int id,
     FavoritePayerEntriesCompanion entry,
-  ) => (update(favoritePayerEntries)..where((p) => p.id.equals(id))).write(entry);
+  ) =>
+      (update(favoritePayerEntries)
+        ..where((p) => p.id.equals(id))).write(entry);
 
   Future<int> deleteFavoritePayer(int id) =>
       (delete(favoritePayerEntries)..where((p) => p.id.equals(id))).go();
@@ -463,8 +566,7 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteAllFavoritePayers() => delete(favoritePayerEntries).go();
 
   Future<bool> favoritePayerCpfExists(String cpf, {int? excludingId}) async {
-    final query = select(favoritePayerEntries)
-      ..where((p) => p.cpf.equals(cpf));
+    final query = select(favoritePayerEntries)..where((p) => p.cpf.equals(cpf));
     if (excludingId != null) {
       query.where((p) => p.id.equals(excludingId).not());
     }
@@ -618,6 +720,15 @@ class AppDatabase extends _$AppDatabase {
           // Recreates the table, preserving existing rows.
           await m.alterTable(TableMigration(favoritePayerEntries));
         }
+        if (from <= 13 && to >= 14) {
+          await _addColumnIfMissing(m, pegs, pegs.status);
+          await _addColumnIfMissing(m, pegs, pegs.provider);
+          await _addColumnIfMissing(m, pegs, pegs.fundingTxId);
+          await _addColumnIfMissing(m, pegs, pegs.payoutTxId);
+          await _addColumnIfMissing(m, pegs, pegs.errorMessage);
+          await _addColumnIfMissing(m, pegs, pegs.updatedAt);
+          await _addColumnIfMissing(m, pegs, pegs.metadata);
+        }
       },
     );
   }
@@ -627,9 +738,10 @@ class AppDatabase extends _$AppDatabase {
     TableInfo table,
     GeneratedColumn column,
   ) async {
-    final rows = await customSelect(
-      "PRAGMA table_info('${table.actualTableName}')",
-    ).get();
+    final rows =
+        await customSelect(
+          "PRAGMA table_info('${table.actualTableName}')",
+        ).get();
     final exists = rows.any((r) => r.read<String>('name') == column.name);
     if (exists) return;
     await m.addColumn(table, column);
