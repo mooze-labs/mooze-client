@@ -7,6 +7,7 @@ import 'package:lwk/lwk.dart' as lwk;
 import '../../domain/entities/asset.dart' show lbtcAssetId;
 import '../../domain/entities/balance.dart' as domain;
 import '../../domain/entities/chain.dart';
+import '../../domain/entities/liquid_send_draft.dart';
 import '../../domain/entities/liquid_utxo.dart' as domain;
 import '../../domain/entities/transaction.dart' as domain;
 import '../../domain/entities/wallet_credentials.dart';
@@ -22,6 +23,7 @@ import '../../shared/concurrency/mutex.dart';
 import '../../shared/diagnostics/boot_tracer.dart';
 import '../../shared/logging/structured_logger.dart';
 import '../../shared/streams/replay_value_stream.dart';
+import 'liquid_fee_rate.dart';
 
 /// Production LWK adapter. Owns the wallet handle and the per-wallet
 /// `lwk-db` working directory. Connect/disconnect are mutex-gated.
@@ -103,7 +105,8 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
 
   @override
   Future<Either<ServiceFailure, Unit>> connect(
-      WalletCredentials credentials) async {
+    WalletCredentials credentials,
+  ) async {
     BootTracer.mark('liquid.connect.entered');
     final tEnter = clock.now();
     logger.info('liquid.connect.enter', {});
@@ -129,8 +132,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       BootTracer.mark('liquid.connect.dir_acquire.begin');
       final dirResult = await directoryGuard.acquire(workingDirRelative);
       final dirMs = clock.now().difference(tDirStart).inMilliseconds;
-      BootTracer.mark('liquid.connect.dir_acquire.end',
-          {'dur_ms': dirMs, 'ok': dirResult.isRight()});
+      BootTracer.mark('liquid.connect.dir_acquire.end', {
+        'dur_ms': dirMs,
+        'ok': dirResult.isRight(),
+      });
       logger.info('liquid.connect.dir_acquired', {
         'duration_ms': dirMs,
         'left': dirResult.isLeft(),
@@ -142,13 +147,17 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         return _fail('connect cancelled: shutdown in progress');
       }
       if (dirResult.isLeft()) {
-        return _fail('workdir acquire failed: '
-            '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}');
+        return _fail(
+          'workdir acquire failed: '
+          '${dirResult.swap().getOrElse((_) => const StorageFailure("?")).message}',
+        );
       }
-      _acquiredDirectory =
-          dirResult.getOrElse((_) => throw StateError('unreachable'));
-      logger.info('liquid.connect.dbpath',
-          {'dbpath': _acquiredDirectory ?? '?'});
+      _acquiredDirectory = dirResult.getOrElse(
+        (_) => throw StateError('unreachable'),
+      );
+      logger.info('liquid.connect.dbpath', {
+        'dbpath': _acquiredDirectory ?? '?',
+      });
 
       try {
         // Bug A diagnostic (2026-05-18): the LWK FFI sometimes wedges
@@ -165,16 +174,15 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         BootTracer.mark('liquid.descriptor_build.begin');
         final descriptor = await _withFfiTick(
           phase: 'descriptor_new_confidential',
-          body: () => lwk.Descriptor.newConfidential(
-            network: _toLwkNetwork(_network),
-            mnemonic: credentials.mnemonic,
-          ),
+          body:
+              () => lwk.Descriptor.newConfidential(
+                network: _toLwkNetwork(_network),
+                mnemonic: credentials.mnemonic,
+              ),
         );
         final descMs = clock.now().difference(tDescStart).inMilliseconds;
         BootTracer.mark('liquid.descriptor_build.end', {'dur_ms': descMs});
-        logger.info('liquid.connect.descriptor_built', {
-          'duration_ms': descMs,
-        });
+        logger.info('liquid.connect.descriptor_built', {'duration_ms': descMs});
         if (_shuttingDown) {
           await directoryGuard.release(workingDirRelative);
           _acquiredDirectory = null;
@@ -182,21 +190,21 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         }
         final tInitStart = clock.now();
         BootTracer.mark('liquid.wallet_init.begin');
-        logger.info('liquid.connect.wallet_init.begin',
-            {'dbpath': _acquiredDirectory ?? '?'});
+        logger.info('liquid.connect.wallet_init.begin', {
+          'dbpath': _acquiredDirectory ?? '?',
+        });
         final wallet = await _withFfiTick(
           phase: 'wallet_init',
-          body: () => lwk.Wallet.init(
-            network: _toLwkNetwork(_network),
-            dbpath: _acquiredDirectory!,
-            descriptor: descriptor,
-          ),
+          body:
+              () => lwk.Wallet.init(
+                network: _toLwkNetwork(_network),
+                dbpath: _acquiredDirectory!,
+                descriptor: descriptor,
+              ),
         );
         final initMs = clock.now().difference(tInitStart).inMilliseconds;
         BootTracer.mark('liquid.wallet_init.end', {'dur_ms': initMs});
-        logger.info('liquid.connect.wallet_init.end', {
-          'duration_ms': initMs,
-        });
+        logger.info('liquid.connect.wallet_init.end', {'duration_ms': initMs});
         if (_shuttingDown) {
           // FFI returned but shutdown was signalled while we were in it.
           // Discard the freshly initialised wallet and release the slot.
@@ -208,19 +216,20 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         _emit(ServiceLifecycle.connected, clearFailure: true);
         final totalMs = clock.now().difference(tEnter).inMilliseconds;
         BootTracer.mark('liquid.connected', {'total_ms': totalMs});
-        logger.info('liquid.connected', {
-          'total_ms': totalMs,
-        });
+        logger.info('liquid.connected', {'total_ms': totalMs});
         return const Right(unit);
       } catch (e, st) {
         final desc = _describeLwkError(e);
-        logger.warn('liquid.connect.threw',
-            {
-              'error': desc,
-              'errType': e.runtimeType.toString(),
-              'after_ms': clock.now().difference(tEnter).inMilliseconds,
-            },
-            error: e, stackTrace: st);
+        logger.warn(
+          'liquid.connect.threw',
+          {
+            'error': desc,
+            'errType': e.runtimeType.toString(),
+            'after_ms': clock.now().difference(tEnter).inMilliseconds,
+          },
+          error: e,
+          stackTrace: st,
+        );
 
         // Self-healing recovery for persisted-state inconsistencies.
         //
@@ -254,23 +263,32 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           final wipeResult = await directoryGuard.wipe(workingDirRelative);
           if (wipeResult.isLeft()) {
             final f = wipeResult.swap().getOrElse(
-                (_) => const StorageFailure('wipe failed'));
-            logger.error('liquid.connect.recover_wipe_failed',
-                {'reason': f.message});
-            return _fail('lwk init failed (wipe recovery failed): $desc',
-                cause: e, stackTrace: st);
+              (_) => const StorageFailure('wipe failed'),
+            );
+            logger.error('liquid.connect.recover_wipe_failed', {
+              'reason': f.message,
+            });
+            return _fail(
+              'lwk init failed (wipe recovery failed): $desc',
+              cause: e,
+              stackTrace: st,
+            );
           }
           logger.info('liquid.connect.recover_wiped', {});
           final reAcquire = await directoryGuard.acquire(workingDirRelative);
           if (reAcquire.isLeft()) {
             final f = reAcquire.swap().getOrElse(
-                (_) => const StorageFailure('reacquire failed'));
+              (_) => const StorageFailure('reacquire failed'),
+            );
             return _fail(
-                'lwk init failed (re-acquire after wipe failed): ${f.message}',
-                cause: e, stackTrace: st);
+              'lwk init failed (re-acquire after wipe failed): ${f.message}',
+              cause: e,
+              stackTrace: st,
+            );
           }
-          _acquiredDirectory =
-              reAcquire.getOrElse((_) => throw StateError('unreachable'));
+          _acquiredDirectory = reAcquire.getOrElse(
+            (_) => throw StateError('unreachable'),
+          );
           try {
             final retryStart = clock.now();
             // Rebuild descriptor in this scope — the original was local
@@ -287,8 +305,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
               descriptor: retryDescriptor,
             );
             logger.info('liquid.connect.recover_ok', {
-              'duration_ms':
-                  clock.now().difference(retryStart).inMilliseconds,
+              'duration_ms': clock.now().difference(retryStart).inMilliseconds,
             });
             if (_shuttingDown) {
               await directoryGuard.release(workingDirRelative);
@@ -304,13 +321,19 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
             return const Right(unit);
           } catch (e2, st2) {
             final desc2 = _describeLwkError(e2);
-            logger.error('liquid.connect.recover_failed',
-                {'error': desc2, 'errType': e2.runtimeType.toString()},
-                error: e2, stackTrace: st2);
+            logger.error(
+              'liquid.connect.recover_failed',
+              {'error': desc2, 'errType': e2.runtimeType.toString()},
+              error: e2,
+              stackTrace: st2,
+            );
             await directoryGuard.release(workingDirRelative);
             _acquiredDirectory = null;
-            return _fail('lwk init failed after wipe recovery: $desc2',
-                cause: e2, stackTrace: st2);
+            return _fail(
+              'lwk init failed after wipe recovery: $desc2',
+              cause: e2,
+              stackTrace: st2,
+            );
           }
         }
 
@@ -413,7 +436,9 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       if (msg is String && msg.isNotEmpty) {
         return '${e.runtimeType}($msg)';
       }
-    } catch (_) {/* not a msg-bearing error */}
+    } catch (_) {
+      /* not a msg-bearing error */
+    }
     return e.toString();
   }
 
@@ -452,8 +477,11 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         logger.info('liquid.disconnected', {});
         return const Right(unit);
       } catch (e, st) {
-        return _fail('lwk disconnect failed: ${_describeLwkError(e)}',
-            cause: e, stackTrace: st);
+        return _fail(
+          'lwk disconnect failed: ${_describeLwkError(e)}',
+          cause: e,
+          stackTrace: st,
+        );
       }
     });
   }
@@ -475,8 +503,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         await w
             .sync_(electrumUrl: url, validateDomain: validateDomain)
             .timeout(timeout ?? const Duration(seconds: 60));
-        final electrumMs =
-            clock.now().difference(tElectrum).inMilliseconds;
+        final electrumMs = clock.now().difference(tElectrum).inMilliseconds;
         BootTracer.mark('liquid.sync.electrum.end', {'dur_ms': electrumMs});
         endpointResolver?.reportSuccess(ChainId.liquid);
 
@@ -491,8 +518,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         });
         final tBalances = clock.now();
         final balances = await w.balances();
-        final balancesMs =
-            clock.now().difference(tBalances).inMilliseconds;
+        final balancesMs = clock.now().difference(tBalances).inMilliseconds;
         BootTracer.mark('liquid.sync.fetch.balances', {
           'len': balances.length,
           'dur_ms': balancesMs,
@@ -502,8 +528,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         final tClassify = clock.now();
         BootTracer.mark('liquid.sync.classify.begin', {'n': txs.length});
         final mapped = txs.map(_mapTx).toList();
-        final classifyMs =
-            clock.now().difference(tClassify).inMilliseconds;
+        final classifyMs = clock.now().difference(tClassify).inMilliseconds;
         BootTracer.mark('liquid.sync.classify.end', {
           'n': mapped.length,
           'dur_ms': classifyMs,
@@ -512,8 +537,9 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         });
         final tSort = clock.now();
         mapped.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-        BootTracer.mark('liquid.sync.sort.end',
-            {'dur_ms': clock.now().difference(tSort).inMilliseconds});
+        BootTracer.mark('liquid.sync.sort.end', {
+          'dur_ms': clock.now().difference(tSort).inMilliseconds,
+        });
 
         // ── Phase 4: diff against previous + emit one event per change ──
         final tDiff = clock.now();
@@ -527,8 +553,11 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         _lastList = mapped;
         _lastBalance = _mapBalance(balances);
 
-        _emit(ServiceLifecycle.connected,
-            lastSyncAt: clock.now(), clearFailure: true);
+        _emit(
+          ServiceLifecycle.connected,
+          lastSyncAt: clock.now(),
+          clearFailure: true,
+        );
 
         final totalMs = clock.now().difference(t0).inMilliseconds;
         BootTracer.mark('liquid.sync.end', {
@@ -539,27 +568,41 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           'changed': changed,
         });
 
-        return Right(SyncOutcome(
-          chain: chain,
-          fetched: mapped.length,
-          changed: changed,
-          duration: clock.now().difference(t0),
-        ));
+        return Right(
+          SyncOutcome(
+            chain: chain,
+            fetched: mapped.length,
+            changed: changed,
+            duration: clock.now().difference(t0),
+          ),
+        );
       } on TimeoutException catch (e, st) {
         endpointResolver?.reportFailure(ChainId.liquid, e);
-        return Left(ServiceFailure('lwk sync timeout',
-            chain: chain, cause: e, stackTrace: st));
+        return Left(
+          ServiceFailure(
+            'lwk sync timeout',
+            chain: chain,
+            cause: e,
+            stackTrace: st,
+          ),
+        );
       } catch (e, st) {
         endpointResolver?.reportFailure(ChainId.liquid, e);
-        return Left(ServiceFailure('lwk sync failed: ${_describeLwkError(e)}',
-            chain: chain, cause: e, stackTrace: st));
+        return Left(
+          ServiceFailure(
+            'lwk sync failed: ${_describeLwkError(e)}',
+            chain: chain,
+            cause: e,
+            stackTrace: st,
+          ),
+        );
       }
     });
   }
 
   @override
   Future<Either<ServiceFailure, List<domain.Transaction>>>
-      listTransactions() async {
+  listTransactions() async {
     if (currentState.isOperational) {
       return Right(_lastList);
     }
@@ -597,20 +640,29 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     }
     try {
       final utxos = await w.utxos();
-      final mapped = utxos
-          .map((u) => domain.LiquidUtxo(
-                txid: u.outpoint.txid,
-                vout: u.outpoint.vout,
-                assetId: u.unblinded.asset,
-                assetBlindingFactor: u.unblinded.assetBf,
-                valueSat: u.unblinded.value,
-                valueBlindingFactor: u.unblinded.valueBf,
-              ))
-          .toList();
+      final mapped =
+          utxos
+              .map(
+                (u) => domain.LiquidUtxo(
+                  txid: u.outpoint.txid,
+                  vout: u.outpoint.vout,
+                  assetId: u.unblinded.asset,
+                  assetBlindingFactor: u.unblinded.assetBf,
+                  valueSat: u.unblinded.value,
+                  valueBlindingFactor: u.unblinded.valueBf,
+                ),
+              )
+              .toList();
       return Right(mapped);
     } catch (e, st) {
-      return Left(ServiceFailure('lwk getUtxos failed: ${_describeLwkError(e)}',
-          chain: chain, cause: e, stackTrace: st));
+      return Left(
+        ServiceFailure(
+          'lwk getUtxos failed: ${_describeLwkError(e)}',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
@@ -631,11 +683,191 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       );
       return Right(signed);
     } catch (e, st) {
-      return Left(ServiceFailure(
+      return Left(
+        ServiceFailure(
           'lwk signSwapPset failed: ${_describeLwkError(e)}',
-          chain: chain, cause: e, stackTrace: st));
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
+
+  // ─────────────────────────────────────────── native Liquid send
+
+  @override
+  Future<Either<ServiceFailure, LiquidSendDraft>> buildLbtcSend({
+    required String destination,
+    required BigInt amountSat,
+    double? feeRateSatPerVb,
+    bool drain = false,
+  }) async {
+    final w = _wallet;
+    if (w == null || !currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    if (!drain && amountSat <= BigInt.zero) {
+      return Left(ServiceFailure('amount must be positive', chain: chain));
+    }
+    if (destination.trim().isEmpty) {
+      return Left(ServiceFailure('destination is empty', chain: chain));
+    }
+
+    final syncResult = await sync();
+    syncResult.match(
+      (f) => logger.warn('liquid.build_send.presync_failed', {
+        'reason': f.message,
+      }),
+      (_) {},
+    );
+
+    final feeRateSatPerKvb = LiquidFeeRate.fromSatPerVb(feeRateSatPerVb);
+
+    try {
+      final pset = await w.buildLbtcTx(
+        sats: amountSat,
+        outAddress: destination,
+        feeRate: feeRateSatPerKvb,
+        drain: drain,
+      );
+
+      final amounts = await w.decodeTx(pset: pset);
+      final feeSat = amounts.absoluteFees;
+
+      final BigInt resolvedAmountSat;
+      if (drain) {
+        final drained = await _drainOutputFromBalance(w, feeSat);
+        if (drained == null) {
+          return Left(
+            ServiceFailure(
+              'não foi possível calcular o valor do envio total',
+              chain: chain,
+            ),
+          );
+        }
+        resolvedAmountSat = drained;
+      } else {
+        resolvedAmountSat = amountSat;
+      }
+
+      logger.info('liquid.build_send.ok', {
+        'drain': drain,
+        'amount_sat': resolvedAmountSat.toString(),
+        'fee_sat': feeSat.toString(),
+        'fee_rate_sat_per_kvb': feeRateSatPerKvb,
+      });
+
+      return Right(
+        LiquidSendDraft(
+          pset: pset,
+          destination: destination,
+          amountSat: resolvedAmountSat,
+          feeSat: feeSat,
+          feeRateSatPerKvb: feeRateSatPerKvb,
+          drain: drain,
+        ),
+      );
+    } catch (e, st) {
+      return Left(
+        ServiceFailure(
+          'lwk buildLbtcSend failed: ${_describeLwkError(e)}',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<ServiceFailure, String>> signAndBroadcastPset({
+    required String pset,
+    required String mnemonic,
+  }) async {
+    final w = _wallet;
+    if (w == null || !currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    if (pset.trim().isEmpty) {
+      return Left(ServiceFailure('pset is empty', chain: chain));
+    }
+    if (mnemonic.trim().isEmpty) {
+      return Left(ServiceFailure('mnemonic is empty', chain: chain));
+    }
+
+    final url = endpointResolver?.current(ChainId.liquid) ?? electrumUrl;
+
+    String finalizedPset;
+    try {
+      finalizedPset = await w.signTx(
+        network: _toLwkNetwork(_network),
+        pset: pset,
+        mnemonic: mnemonic,
+      );
+    } catch (e, st) {
+      return Left(
+        ServiceFailure(
+          'lwk signTx failed: ${_describeLwkError(e)}',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
+    }
+
+    try {
+      final txid = await lwk.Blockchain.broadcastSignedPset(
+        electrumUrl: url,
+        signedPset: finalizedPset,
+      );
+      endpointResolver?.reportSuccess(ChainId.liquid);
+      logger.info('liquid.broadcast.ok', {'txid': txid, 'url': url});
+
+      final resync = await sync();
+      resync.match(
+        (f) => logger.warn('liquid.broadcast.postsync_failed', {
+          'txid': txid,
+          'reason': f.message,
+        }),
+        (_) {},
+      );
+
+      return Right(txid);
+    } catch (e, st) {
+      logger.warn('liquid.broadcast.failed', {'url': url, 'error': '$e'});
+      return Left(
+        ServiceFailure(
+          'lwk broadcastSignedPset failed: ${_describeLwkError(e)}',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
+    }
+  }
+
+  Future<BigInt?> _drainOutputFromBalance(lwk.Wallet w, BigInt feeSat) async {
+    try {
+      final balances = await w.balances();
+      final policyAsset = _policyAssetId;
+      for (final b in balances) {
+        if (b.assetId != policyAsset) continue;
+        final out = BigInt.from(b.value) - feeSat;
+        return out > BigInt.zero ? out : null;
+      }
+      return null;
+    } catch (e) {
+      logger.warn('liquid.drain_output.failed', {'error': '$e'});
+      return null;
+    }
+  }
+
+  String get _policyAssetId => switch (_network) {
+    AppNetwork.mainnet => lwk.lBtcAssetId,
+    AppNetwork.testnet => lwk.lTestAssetId,
+    AppNetwork.regtest => lwk.lTestAssetId,
+  };
 
   @override
   Future<Either<ServiceFailure, domain.Balance>> refreshBalance() async {
@@ -722,98 +954,77 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       final address = await w.addressLastUnused();
       return Right(address.confidential);
     } catch (e, st) {
-      return Left(ServiceFailure(
+      return Left(
+        ServiceFailure(
           'lwk getReceiveAddress failed: ${_describeLwkError(e)}',
-          chain: chain, cause: e, stackTrace: st));
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
     }
   }
 
   // ─────────────────────────────────────────── helpers
 
-  void _emit(ServiceLifecycle l,
-      {DateTime? lastSyncAt, ServiceFailure? failure, bool clearFailure = false}) {
+  void _emit(
+    ServiceLifecycle l, {
+    DateTime? lastSyncAt,
+    ServiceFailure? failure,
+    bool clearFailure = false,
+  }) {
     if (_state.isClosed) return;
-    _state.add(currentState.copyWith(
-      lifecycle: l,
-      lastSyncAt: lastSyncAt,
-      failure: failure,
-      clearFailure: clearFailure,
-    ));
+    _state.add(
+      currentState.copyWith(
+        lifecycle: l,
+        lastSyncAt: lastSyncAt,
+        failure: failure,
+        clearFailure: clearFailure,
+      ),
+    );
   }
 
-  Either<ServiceFailure, T> _fail<T>(String msg,
-      {Object? cause, StackTrace? stackTrace}) {
-    final f = ServiceFailure(msg,
-        chain: chain, cause: cause, stackTrace: stackTrace);
+  Either<ServiceFailure, T> _fail<T>(
+    String msg, {
+    Object? cause,
+    StackTrace? stackTrace,
+  }) {
+    final f = ServiceFailure(
+      msg,
+      chain: chain,
+      cause: cause,
+      stackTrace: stackTrace,
+    );
     if (!_state.isClosed) {
-      _state.add(currentState.copyWith(
-        lifecycle: ServiceLifecycle.errored,
-        failure: f,
-      ));
+      _state.add(
+        currentState.copyWith(lifecycle: ServiceLifecycle.errored, failure: f),
+      );
     }
     logger.warn('liquid.fail', {'reason': msg});
     return Left(f);
   }
 
   lwk.Network _toLwkNetwork(AppNetwork n) => switch (n) {
-        AppNetwork.mainnet => lwk.Network.mainnet,
-        AppNetwork.testnet => lwk.Network.testnet,
-        AppNetwork.regtest => lwk.Network.testnet,
-      };
+    AppNetwork.mainnet => lwk.Network.mainnet,
+    AppNetwork.testnet => lwk.Network.testnet,
+    AppNetwork.regtest => lwk.Network.testnet,
+  };
 
-  /// Translates an LWK [Tx] into a domain [Transaction].
-  ///
-  /// **Classification priority** — strictly ordered, mutually exclusive.
-  /// The earlier a branch fires, the higher its precedence. This order
-  /// is deliberate: `selfTransfer` MUST come before `swap` so a
-  /// fee-only consolidation that happens to touch multiple asset
-  /// columns (e.g., consolidating L-BTC + zero-net asset rounds)
-  /// doesn't get misclassified as a swap.
-  ///
-  ///   P1. `t.kind == 'redeposit'`                       → selfTransfer
-  ///   P2. `nonZero.isEmpty && feeSat > 0`               → selfTransfer
-  ///   P3. single L-BTC entry equal to -feeSat           → selfTransfer
-  ///   P4. mixed-sign multi-asset (positive AND negative
-  ///       non-zero entries with ≥2 unique asset ids)    → swap
-  ///   P5. all non-zero balances > 0                     → incoming
-  ///   P6. all non-zero balances < 0                     → outgoing
-  ///   P7. anything else                                 → internal
-  ///
-  /// **Swap detail synthesis (P4)** mirrors the legacy
-  /// `wallet_repository_impl/liquid.dart::ToTransaction.type` heuristic
-  /// that V2 had previously regressed:
-  ///   - `toAssetId`  = largest positive non-L-BTC entry by value
-  ///                    (falls back to any positive entry).
-  ///   - `fromAssetId`= largest negative non-L-BTC entry by abs value
-  ///                    (falls back to any negative entry).
-  ///   - `sentAmountSat`     = abs(fromAsset balance value)
-  ///   - `receivedAmountSat` = positive value of toAsset balance
-  ///   - `amountSat`         = sentAmountSat (headline)
-  ///   - `assetId`           = fromAssetId (so consumers reading
-  ///                            `tx.assetId` see the "from" side)
-  ///
-  /// **Amount selection (P5/P6/P7)**: largest abs-value non-zero
-  /// balance, preferring non-L-BTC so a "Send 100 USDT" surfaces the
-  /// USDT amount rather than the L-BTC fee leg.
-  ///
-  /// Every decision emits a structured `tx.classify` log entry for
-  /// post-hoc triage.
   domain.Transaction _mapTx(lwk.Tx t) {
     final feeSat = t.fee.toInt();
-    final status = t.height == null
-        ? domain.TransactionStatus.pending
-        : domain.TransactionStatus.confirmed;
-    final ts = t.timestamp != null
-        ? DateTime.fromMillisecondsSinceEpoch(t.timestamp! * 1000)
-        : clock.now();
+    final status =
+        t.height == null
+            ? domain.TransactionStatus.pending
+            : domain.TransactionStatus.confirmed;
+    final ts =
+        t.timestamp != null
+            ? DateTime.fromMillisecondsSinceEpoch(t.timestamp! * 1000)
+            : clock.now();
 
     final nonZero = t.balances.where((b) => b.value != 0).toList();
-    final positives =
-        nonZero.where((b) => b.value > 0).toList(growable: false);
-    final negatives =
-        nonZero.where((b) => b.value < 0).toList(growable: false);
-    final uniqueAssets =
-        nonZero.map((b) => b.assetId).toSet();
+    final positives = nonZero.where((b) => b.value > 0).toList(growable: false);
+    final negatives = nonZero.where((b) => b.value < 0).toList(growable: false);
+    final uniqueAssets = nonZero.map((b) => b.assetId).toSet();
 
     final domain.TransactionDirection direction;
     final int amountSat;
@@ -946,8 +1157,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
       if (fromAssetId != null) 'fromAsset': _assetIdLabel(fromAssetId),
       if (toAssetId != null) 'toAsset': _assetIdLabel(toAssetId),
       if (sentAmountSat != null) 'sentAmountSat': sentAmountSat,
-      if (receivedAmountSat != null)
-        'receivedAmountSat': receivedAmountSat,
+      if (receivedAmountSat != null) 'receivedAmountSat': receivedAmountSat,
       'reason': reason,
     });
 
@@ -978,7 +1188,6 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     if (id == lbtcAssetId) return 'lbtc';
     return id.length > 8 ? id.substring(0, 8) : id;
   }
-
 
   ({String assetId, int grossSat})? _detectSelfTransferSubject(lwk.Tx t) {
     final candidates = <String>{};
@@ -1035,24 +1244,23 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
           .where((b) => b.assetId != lbtcAssetId)
           .toList(growable: false);
       if (nonLbtc.isNotEmpty) {
-        return nonLbtc.reduce(
-          (a, b) => a.value.abs() > b.value.abs() ? a : b,
-        );
+        return nonLbtc.reduce((a, b) => a.value.abs() > b.value.abs() ? a : b);
       }
     }
-    return balances.reduce(
-      (a, b) => a.value.abs() > b.value.abs() ? a : b,
-    );
+    return balances.reduce((a, b) => a.value.abs() > b.value.abs() ? a : b);
   }
 
   domain.Balance _mapBalance(List<lwk.Balance> balances) {
-    final assets = balances
-        .map((b) => domain.AssetBalance(
-              chain: chain,
-              assetId: b.assetId,
-              amountSat: b.value.toInt(),
-            ))
-        .toList();
+    final assets =
+        balances
+            .map(
+              (b) => domain.AssetBalance(
+                chain: chain,
+                assetId: b.assetId,
+                amountSat: b.value.toInt(),
+              ),
+            )
+            .toList();
     return domain.Balance(assets: assets, snapshotAt: clock.now());
   }
 
@@ -1068,35 +1276,41 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
         changes++;
         created++;
         _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
-        _emitTx(TransactionEvent(
-          kind: TransactionEventKind.created,
-          transaction: tx,
-          observedAt: now,
-        ));
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.created,
+            transaction: tx,
+            observedAt: now,
+          ),
+        );
         continue;
       }
       if (prev.status != tx.status) {
         changes++;
         statusChanged++;
         _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
-        _emitTx(TransactionEvent(
-          kind: TransactionEventKind.statusChanged,
-          transaction: tx,
-          previousStatus: prev.status,
-          previousConfirmations: prev.confirmations,
-          observedAt: now,
-        ));
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.statusChanged,
+            transaction: tx,
+            previousStatus: prev.status,
+            previousConfirmations: prev.confirmations,
+            observedAt: now,
+          ),
+        );
       } else if (prev.confirmations != tx.confirmations) {
         changes++;
         confirmationsChanged++;
         _seen[tx.id] = _TxFingerprint(tx.status, tx.confirmations);
-        _emitTx(TransactionEvent(
-          kind: TransactionEventKind.confirmationsChanged,
-          transaction: tx,
-          previousStatus: prev.status,
-          previousConfirmations: prev.confirmations,
-          observedAt: now,
-        ));
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.confirmationsChanged,
+            transaction: tx,
+            previousStatus: prev.status,
+            previousConfirmations: prev.confirmations,
+            observedAt: now,
+          ),
+        );
       }
     }
     if (changes > 0) {
