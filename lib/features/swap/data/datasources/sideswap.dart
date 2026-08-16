@@ -10,6 +10,26 @@ import '../../domain/entities.dart';
 
 const String sideswapApiUrl = 'wss://api.sideswap.io/json-rpc-ws';
 
+class SideswapRequestTimeout implements Exception {
+  const SideswapRequestTimeout(this.method, this.timeout);
+  final String method;
+  final Duration timeout;
+
+  @override
+  String toString() =>
+      'SideSwap não respondeu a "$method" em ${timeout.inSeconds}s';
+}
+
+/// SideSwap answered, but with a JSON-RPC error or an unusable payload.
+class SideswapRequestError implements Exception {
+  const SideswapRequestError(this.method, this.message);
+  final String method;
+  final String message;
+
+  @override
+  String toString() => 'SideSwap "$method": $message';
+}
+
 class SideswapApi {
   late WebSocketService _wsService;
   StreamSubscription<dynamic>? _wsSub;
@@ -45,14 +65,81 @@ class SideswapApi {
   Stream<Map<String, dynamic>> get assetsStream => _assetsController.stream;
   Stream<Map<String, dynamic>> get marketStream => _marketController.stream;
 
-  SideswapApi() {
-    _wsService = WebSocketService(Uri.parse(sideswapApiUrl));
+  SideswapApi({WebSocketService? transport}) {
+    _wsService = transport ?? WebSocketService(Uri.parse(sideswapApiUrl));
     _setupStreamListeners();
   }
 
   bool get isConnected => _wsService.isConnected;
 
   Stream<WebSocketConnectionState> get connectionStates => _wsService.states;
+
+  int _nextRequestId = 1;
+  final Map<int, Completer<Map<String, dynamic>>> _pending = {};
+
+  int _allocateRequestId() => _nextRequestId++;
+
+  Future<Map<String, dynamic>> request(
+    String method,
+    Object? params, {
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    if (_isDisposed) {
+      throw SideswapRequestError(method, 'conexão encerrada');
+    }
+    final id = _allocateRequestId();
+    final completer = Completer<Map<String, dynamic>>();
+    _pending[id] = completer;
+    try {
+      _sendMessage({'id': id, 'method': method, 'params': params});
+      final envelope = await completer.future.timeout(
+        timeout,
+        onTimeout: () => throw SideswapRequestTimeout(method, timeout),
+      );
+      final error = envelope['error'];
+      if (error != null) {
+        throw SideswapRequestError(method, _describeRpcError(error));
+      }
+      final result = envelope['result'];
+      if (result is! Map<String, dynamic>) {
+        throw SideswapRequestError(
+          method,
+          'resposta inesperada do servidor SideSwap',
+        );
+      }
+      return result;
+    } finally {
+      _pending.remove(id);
+    }
+  }
+
+  bool _completePending(Map<String, dynamic> data) {
+    final id = data['id'];
+    if (id is! int) return false;
+    final completer = _pending[id];
+    if (completer == null || completer.isCompleted) return false;
+    completer.complete(data);
+    return true;
+  }
+
+  static String _describeRpcError(Object? error) {
+    if (error is Map) {
+      return error['message']?.toString() ??
+          error['error']?.toString() ??
+          'Erro desconhecido';
+    }
+    return error?.toString() ?? 'Erro desconhecido';
+  }
+
+  void _failAllPending(Object error) {
+    final pending = List.of(_pending.entries);
+    _pending.clear();
+    for (final entry in pending) {
+      if (!entry.value.isCompleted) {
+        entry.value.completeError(error);
+      }
+    }
+  }
 
   void _setupStreamListeners() {
     _wsSub = _wsService.stream.listen(
@@ -84,6 +171,8 @@ class SideswapApi {
   }
 
   void _handleMessage(Map<String, dynamic> data) {
+    _completePending(data);
+
     // Handle JSON-RPC error objects (e.g. {id: 1, error: {code, message}})
     if (data.containsKey('error')) {
       final err = data['error'];
@@ -228,13 +317,15 @@ class SideswapApi {
   }
 
   void _sendMessage(Map<String, dynamic> message) {
-    if (!_wsService.isConnected) {
-      debugPrint('WebSocket not connected, attempting to connect...');
-      _wsService.ensureConnected();
-    }
+    if (_isDisposed) return;
+    final connected = _wsService.isConnected;
     _wsService.send(json.encode(message));
     if (kDebugMode) {
-      debugPrint('Sideswap message sent: $message');
+      debugPrint(
+        connected
+            ? 'Sideswap message sent: $message'
+            : 'Sideswap message queued until connect: $message',
+      );
     }
   }
 
@@ -375,6 +466,7 @@ class SideswapApi {
     if (_isDisposed) return;
     _isDisposed = true;
     debugPrint('[SideswapApi] dispose');
+    _failAllPending(const SideswapRequestError('dispose', 'conexão encerrada'));
     // Cancel the upstream WS data subscription before closing the
     // fan-out controllers so no late message can be added to a
     // closing controller.
@@ -668,57 +760,32 @@ class SideswapService {
     return result;
   }
 
-  /// Start a peg-in/peg-out operation
-  Future<PegOrderResponse?> startPegOperation(
-    bool pegIn,
-    String receiveAddress,
-  ) async {
-    final completer = Completer<PegOrderResponse?>();
-
-    final subscription = pegResponseStream.listen((response) {
-      if (!completer.isCompleted) {
-        completer.complete(response);
-      }
+  Future<PegOrderResponse> createPegOrder({
+    required bool pegIn,
+    required String receiveAddress,
+  }) async {
+    final result = await _api.request('peg', {
+      'peg_in': pegIn,
+      'recv_addr': receiveAddress,
     });
-
-    // Request peg operation
-    _api.peg(pegIn, receiveAddress);
-
-    // Add timeout
-    Future.delayed(const Duration(seconds: 10), () {
-      if (!completer.isCompleted) {
-        completer.complete(null);
-      }
-    });
-
-    final result = await completer.future;
-    subscription.cancel();
-    return result;
+    return PegOrderResponse.fromJson(result);
   }
 
-  /// Get status of a peg-in/peg-out operation
-  Future<PegOrderStatus?> getPegStatus(bool pegIn, String orderId) async {
-    final completer = Completer<PegOrderStatus?>();
-
-    final subscription = pegStatusStream.listen((status) {
-      if (!completer.isCompleted) {
-        completer.complete(status);
-      }
+  /// Poll the per-deposit-transaction status of a peg order.
+  Future<PegOrderStatus> fetchPegStatus({
+    required bool pegIn,
+    required String orderId,
+  }) async {
+    final result = await _api.request('peg_status', {
+      'peg_in': pegIn,
+      'order_id': orderId,
     });
+    return PegOrderStatus.fromJson(result);
+  }
 
-    // Request peg status
-    _api.pegStatus(pegIn, orderId);
-
-    // Add timeout
-    Future.delayed(const Duration(seconds: 10), () {
-      if (!completer.isCompleted) {
-        completer.complete(null);
-      }
-    });
-
-    final result = await completer.future;
-    subscription.cancel();
-    return result;
+  Future<ServerStatus> fetchServerStatus() async {
+    final result = await _api.request('server_status', null);
+    return ServerStatus.fromJson(result);
   }
 
   /// Start a quote for a swap
