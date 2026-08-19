@@ -12,7 +12,10 @@ import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
 import '../widgets/btc_lbtc_swap_warning_dialog.dart';
 import '../widgets/no_liquidity_dialog.dart';
-import '../helpers/btc_lbtc_swap_helper.dart';
+import '../helpers/peg_swap_helper.dart';
+import '../../di/providers/peg_providers.dart';
+import '../../domain/entities/peg.dart';
+import '../../domain/usecases/peg_amount_validation.dart';
 import '../providers/swap_onboarding_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
@@ -62,6 +65,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   ValueNotifier<double>? _pageFloatNotifier;
 
+  /// Conservative fallback floor, used only when SideSwap's `server_status`
+  /// is unreachable. The real minimums are per-direction and come from
+  /// [pegLimitsProvider] (10 000 peg-in / 25 000 peg-out).
   static const int _minBtcLbtcSwapSats = 25000;
 
   bool get _isBtcLbtcSwap {
@@ -351,9 +357,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    _isBtcLbtcSwap
-                        ? 'Powered by breez.technology'
-                        : 'Powered by sideswap.io',
+                    'Powered by sideswap.io',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: context.colors.textTertiary,
                     ),
@@ -361,10 +365,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                FutureBuilder<bool>(
-                  future: _hasInsufficientBalance(),
+                FutureBuilder<PegAmountValidation>(
+                  future:
+                      _isBtcLbtcSwap
+                          ? _validatePegAmount()
+                          : Future.value(const PegAmountValidation.empty()),
                   builder: (context, snapshot) {
-                    final hasInsufficientBalance = snapshot.data ?? false;
+                    final pegValidation =
+                        snapshot.data ?? const PegAmountValidation.empty();
                     final hasQuote = swapState.currentQuote?.quote != null;
 
                     final isQuoteValid =
@@ -374,29 +382,28 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
                     final canProceed =
                         _isBtcLbtcSwap
-                            ? _fromAmountController.text.isNotEmpty &&
-                                !isLoading &&
-                                !hasInsufficientBalance &&
-                                _isBtcLbtcSwapAmountValid()
+                            ? (_useDrain || pegValidation.isValid) && !isLoading
                             : _fromAmountController.text.isNotEmpty &&
                                 hasQuote &&
                                 isQuoteValid &&
-                                !isLoading &&
-                                !hasInsufficientBalance;
+                                !isLoading;
 
                     return Column(
                       children: [
-                        if (_isBtcLbtcSwap &&
-                            _fromAmountController.text.isNotEmpty &&
-                            !_isBtcLbtcSwapAmountValid())
+                        if (_isBtcLbtcSwap && pegValidation.showsIssue)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _StatusBanner(
                               tone: _StatusTone.warning,
                               icon: Icons.info_outline,
-                              message: t.swap_min_value_sats(
-                                _minBtcLbtcSwapSats.toString(),
-                              ),
+                              message: switch (pegValidation.issue!) {
+                                PegAmountIssue.belowMinimum => t
+                                    .swap_min_value_sats(
+                                      _formatSats(pegValidation.minimumSats!),
+                                    ),
+                                PegAmountIssue.aboveBalance =>
+                                  t.swap_insufficient_balance,
+                              },
                             ),
                           ),
                         PrimaryButton(
@@ -1068,11 +1075,6 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
   }
 
-  Future<String> _getBalance(core.Asset asset) async {
-    final either = await ref.read(balanceProvider(asset).future);
-    return either.match((l) => '0', (r) => asset.formatBalance(r));
-  }
-
   Future<BigInt> _getBalanceRaw(core.Asset asset) async {
     final either = await ref.read(balanceProvider(asset).future);
     return either.match((l) => BigInt.zero, (r) => r);
@@ -1086,31 +1088,66 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     return amount > balance;
   }
 
-  bool _isBtcLbtcSwapAmountValid() {
-    final text = _fromAmountController.text.trim();
-    final amount = BigInt.tryParse(text);
-    if (amount == null) return false;
-    return amount >= BigInt.from(_minBtcLbtcSwapSats);
+  /// Locale-aware sats formatting, matching the thousands separators used by
+  /// the amount field itself.
+  String _formatSats(BigInt sats) =>
+      NumberFormat('#,##0', _locale).format(sats.toInt());
+
+  Future<PegAmountValidation> _validatePegAmount() async {
+    final results =
+        await (
+          ref.read(pegLimitsProvider.future),
+          _getBalanceRaw(_fromAsset),
+        ).wait;
+
+    return evaluatePegAmount(
+      direction:
+          _fromAsset == core.Asset.btc
+              ? PegDirection.pegIn
+              : PegDirection.pegOut,
+      amountSat: BigInt.tryParse(_fromAmountController.text.trim()),
+      spendableSat: results.$2,
+      limits: results.$1,
+      fallbackMinimumSats: BigInt.from(_minBtcLbtcSwapSats),
+      drain: _useDrain,
+    );
   }
 
   Future<void> _handleBtcLbtcSwap() async {
     final text = _fromAmountController.text.trim();
     final amount = BigInt.tryParse(text);
 
-    if (!_useDrain &&
-        (amount == null || amount < BigInt.from(_minBtcLbtcSwapSats))) {
-      if (mounted) {
-        final t = AppLocalizations.of(context);
-        AppSnackBar.warning(
+    if (!_useDrain && (amount == null || amount <= BigInt.zero)) {
+      if (!mounted) return;
+      AppSnackBar.warning(
+        context,
+        AppLocalizations.of(
           context,
-          t.swap_min_amount_sats(_minBtcLbtcSwapSats.toString()),
-        );
-      }
+        ).swap_min_amount_sats(_formatSats(BigInt.from(_minBtcLbtcSwapSats))),
+      );
       return;
     }
 
-    final helper = BtcLbtcSwapHelper(context, ref);
-    await helper.executeSwap(
+    if (!_useDrain) {
+      final validation = await _validatePegAmount();
+      if (!validation.isValid) {
+        if (!mounted) return;
+        final t = AppLocalizations.of(context);
+        AppSnackBar.warning(context, switch (validation.issue) {
+          PegAmountIssue.aboveBalance => t.swap_insufficient_balance,
+          _ => t.swap_min_amount_sats(
+            _formatSats(
+              validation.minimumSats ?? BigInt.from(_minBtcLbtcSwapSats),
+            ),
+          ),
+        });
+        return;
+      }
+    }
+
+    if (!mounted) return;
+
+    await PegSwapHelper(context, ref).executeSwap(
       amount: amount ?? BigInt.zero,
       fromAsset: _fromAsset,
       toAsset: _toAsset,
@@ -1132,7 +1169,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       );
 
       if (!service.hasSeenBtcLbtcSwapWarning()) {
-        if (!mounted) return;
+        if (!mounted || !context.mounted) return;
         await BtcLbtcSwapWarningDialog.show(context);
         await service.markBtcLbtcSwapWarningAsSeen();
       }
@@ -1675,7 +1712,6 @@ class _SwapDirectionChipState extends State<_SwapDirectionChip>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final dividerColor = theme.colorScheme.outline;
 
     return GestureDetector(
