@@ -6,8 +6,6 @@ import '../entities/broadcast_result.dart';
 import '../entities/chain.dart';
 import '../entities/fee_estimate.dart';
 import '../entities/liquid_utxo.dart';
-import '../entities/payment_limits.dart';
-import '../entities/peg.dart';
 import '../entities/receive_address.dart';
 import '../entities/refund.dart';
 import '../entities/send_request.dart';
@@ -97,7 +95,9 @@ abstract interface class WalletRepository {
   /// appear in any wallet UTXO or historical output, then pins BDK's
   /// internal counter past it (preserving the legacy "no double-used
   /// address" guarantee). Returns the address as a bech32 / legacy string.
-  Future<Either<Failure, ReceiveAddress>> bitcoinReceiveAddress({String? label});
+  Future<Either<Failure, ReceiveAddress>> bitcoinReceiveAddress({
+    String? label,
+  });
 
   /// Build, sign, and broadcast a Bitcoin on-chain send. PSBT is rebuilt
   /// inside this call (NOT reusing an estimate's PSBT) so UTXO selection
@@ -119,33 +119,6 @@ abstract interface class WalletRepository {
   // Two-step flow (prepare → send) preserves user-review-before-pay UX
   // and matches Breez's native API shape; the prepared object is opaque
   // and round-trips through the UI.
-
-  /// Prepare a Lightning send. Parses the destination string (BOLT-11
-  /// invoice, LNURL-pay endpoint, or Lightning Address — exactly one set
-  /// in [LightningSendRequest]) and runs Breez's prepare phase, returning
-  /// a [PreparedLightningSend] the UI can render fees from. Does NOT
-  /// commit the payment.
-  Future<Either<Failure, PreparedLightningSend>> prepareLightningSend(
-      LightningSendRequest request);
-
-  /// Commit a previously-prepared Lightning send. The prepared token
-  /// MUST be the exact one returned from [prepareLightningSend] — it
-  /// carries Breez's `PrepareSendResponse` / `PrepareLnUrlPayResponse`
-  /// internally. On success the resulting [Transaction] is persisted
-  /// via the orchestrator's single-writer pipeline before this method
-  /// returns; the L-BTC balance reflects the debit on next read.
-  Future<Either<Failure, BroadcastResult>> sendLightning(
-      PreparedLightningSend prepared);
-
-  /// Generate a Lightning invoice (BOLT-11) for receiving the given
-  /// amount. The eventual settlement is a Lightning HTLC routed through
-  /// the LSP, settled into the L-BTC pool — visible to the user as an
-  /// L-BTC balance increase tagged Lightning in tx history.
-  Future<Either<Failure, ReceiveAddress>> createLightningInvoice({
-    required int amountSat,
-    String? description,
-    Duration? expiry,
-  });
 
   // ─────────────────────────────────────────── chain metadata
   //
@@ -179,10 +152,12 @@ abstract interface class WalletRepository {
   Future<Either<Failure, MempoolFees>> getRecommendedFees();
 
   Future<Either<Failure, PrepareRefundOutcome>> prepareRefund(
-      PrepareRefundParams params);
+    PrepareRefundParams params,
+  );
 
   Future<Either<Failure, RefundOutcome>> executeRefund(
-      ExecuteRefundParams params);
+    ExecuteRefundParams params,
+  );
 
   // ─────────────────────────────────────────── swap surface (LWK-backed)
   //
@@ -218,29 +193,6 @@ abstract interface class WalletRepository {
   // (Lightning derives from the LSP offer, on-chain from network dust +
   // fee floor). Consumers pick a chain and read min/max for both directions.
 
-  Future<Either<Failure, PaymentLimits>> fetchLimits(ChainId chain);
-
   // ─────────────────────────────────────────── peg-in / peg-out
   //
-  // Cross-stack balance transitions between Bitcoin and L-BTC. Stateless
-  // prepare/execute pair — execute re-derives the swap from the canonical
-  // request rather than consuming a prepared token. No opaque round-trips.
-
-  /// Prepare a peg-in (Bitcoin → L-BTC). Returns a quote with the swap
-  /// server's bitcoinAddress, fees, and final amount. Does NOT broadcast.
-  Future<Either<Failure, PegInQuote>> preparePegIn(PegInRequest request);
-
-  /// Execute the peg-in: build, sign, and broadcast a Bitcoin tx to the
-  /// swap server's address. Resulting tx is persisted via the sync
-  /// orchestrator's single-writer pipeline before this method returns.
-  Future<Either<Failure, BroadcastResult>> executePegIn(PegInRequest request);
-
-  /// Prepare a peg-out (L-BTC → Bitcoin). Returns a quote with total
-  /// fees and the BTC amount that will land at the destination.
-  Future<Either<Failure, PegOutQuote>> preparePegOut(PegOutRequest request);
-
-  /// Execute the peg-out: instructs Breez to settle the swap onto the
-  /// user-supplied BTC address. Resulting tx is persisted via the sync
-  /// orchestrator's single-writer pipeline before this method returns.
-  Future<Either<Failure, BroadcastResult>> executePegOut(PegOutRequest request);
 }
