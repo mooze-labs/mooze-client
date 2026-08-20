@@ -1,8 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../entities/balance.dart';
-import '../entities/broadcast_result.dart';
-import '../entities/peg.dart';
 import '../entities/refund.dart';
 import '../failures/failure.dart';
 import 'spendable_wallet_service.dart';
@@ -21,7 +19,6 @@ import 'wallet_service.dart';
 /// LWK-based send pipeline (which `lwk-dart` does not even expose a
 /// broadcast API for), the V2 service implements both:
 ///
-///   - [SpendableLightningService] for Lightning (BOLT-11 / LNURL).
 ///   - [SpendableWalletService] for Liquid on-chain (`SendRequest.chain
 ///     == ChainId.liquid`). Bitcoin on-chain (`ChainId.bitcoin`) is
 ///     rejected here — it lives on `BitcoinWalletService` (BDK).
@@ -37,10 +34,7 @@ import 'wallet_service.dart';
 /// one Breez client may hold the working dir at a time), so the impl
 /// gates them under a per-instance mutex and a workdir lock.
 abstract interface class LightningWalletService
-    implements
-        WalletService,
-        SpendableWalletService,
-        SpendableLightningService {
+    implements WalletService, SpendableWalletService {
   /// Best-effort onchain swap rescan within the given lookback window.
   /// Used to recover funds sent to previously-issued swap addresses.
   Future<Either<ServiceFailure, Unit>> rescan({required Duration window});
@@ -106,13 +100,15 @@ abstract interface class LightningWalletService
   /// Prepare a refund tx so the UI can display exact fees before
   /// broadcasting. No on-chain state change.
   Future<Either<ServiceFailure, PrepareRefundOutcome>> prepareRefund(
-      PrepareRefundParams params);
+    PrepareRefundParams params,
+  );
 
   /// Build, sign, and broadcast the refund tx. Returns the on-chain
   /// txid of the refund. Like other broadcast paths, the resulting tx
   /// is also persisted via the orchestrator's tx-event pipeline.
   Future<Either<ServiceFailure, RefundOutcome>> executeRefund(
-      ExecuteRefundParams params);
+    ExecuteRefundParams params,
+  );
 
   // ─────────────────────────────────────────── peg surface
   //
@@ -121,30 +117,4 @@ abstract interface class LightningWalletService
   // address — the actual on-chain Bitcoin tx that funds it is built and
   // broadcast by `BitcoinWalletService` (BDK), orchestrated at the
   // repository boundary.
-
-  /// Allocate a one-time Bitcoin deposit address backed by a Breez
-  /// submarine swap. The user (or this app's BDK service) sends BTC to
-  /// the returned address; Breez observes the deposit and credits the
-  /// L-BTC pool less [breezFeesSat]. Stateless wrt prepare/execute —
-  /// caller passes the same `payerAmountSat` to the eventual BDK send.
-  Future<Either<
-      ServiceFailure,
-      ({String bitcoinAddress, int breezFeesSat})>> preparePegInDeposit(
-      {required int payerAmountSat});
-
-  /// Quote a peg-out with Breez. Returns the swap + claim fee total and
-  /// the BTC amount that will land at the destination, given the
-  /// requested [receiverAmountSat] (or computed under [drain]). Does
-  /// NOT settle.
-  Future<Either<ServiceFailure, PegOutQuote>> preparePegOut(
-    PegOutRequest request,
-  );
-
-  /// Execute a peg-out: instructs Breez to settle the swap onto
-  /// [PegOutRequest.btcAddress]. Like other broadcast paths, the
-  /// resulting tx is persisted via the orchestrator's tx-event pipeline
-  /// before this method returns.
-  Future<Either<ServiceFailure, BroadcastResult>> executePegOut(
-    PegOutRequest request,
-  );
 }
