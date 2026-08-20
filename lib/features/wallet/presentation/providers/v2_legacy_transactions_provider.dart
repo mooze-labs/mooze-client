@@ -9,9 +9,12 @@ import 'package:mooze_mobile/domain/entities/transaction.dart' as v2;
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart'
     as legacy;
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/features/wallet/presentation/utils/peg_evidence.dart';
 import 'package:mooze_mobile/features/wallet/presentation/utils/swap_unifier.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+
+import 'peg_evidence_provider.dart';
 
 /// Bridges the V2 `walletRepository.watchTransactions()` stream to the
 /// legacy `Transaction` shape that `TransactionList`, `transaction history
@@ -91,6 +94,18 @@ final v2LegacyTransactionsProvider =
   bool processing = false;
   bool cancelled = false;
 
+  // Local peg records feeding the join's validation layer. Held as a plain
+  // list (not a built `PegEvidence`) so the isolate payload stays trivially
+  // sendable and the no-records case allocates nothing.
+  //
+  // `evidenceVersion` participates in the result cache: when the records
+  // change, the previously cached grouping for the same tx list is stale and
+  // must be recomputed.
+  List<PegRecord> pegRecords = const [];
+  var evidenceVersion = 0;
+  int? lastEvidenceVersion;
+  List<v2.Transaction>? lastInput;
+
   Future<void> drain() async {
     if (processing) return;
     processing = true;
@@ -108,6 +123,7 @@ final v2LegacyTransactionsProvider =
         final fingerprint = _fingerprint(txs);
         final hit = fingerprint == lastFingerprint &&
             txs.length == lastLength &&
+            lastEvidenceVersion == evidenceVersion &&
             lastResult != null;
         if (hit) {
           BootTracer.mark('v2_legacy_txs.cache_hit', {
@@ -128,7 +144,7 @@ final v2LegacyTransactionsProvider =
         if (txs.length >= _isolateThreshold) {
           result = await BootTracer.measureAsync(
             'v2_legacy_txs.compute(n=$seq,len=${txs.length})',
-            () => compute(_adaptAndUnify, txs),
+            () => compute(_adaptAndUnify, _AdaptPayload(txs, pegRecords)),
           );
         } else {
           BootTracer.mark('v2_legacy_txs.inline.before', {
@@ -147,7 +163,10 @@ final v2LegacyTransactionsProvider =
           final pegMerged = _mergeBreezPegSwaps(txs, adapted);
           final mergeMs = DateTime.now().difference(tMerge).inMilliseconds;
           final tUnify = DateTime.now();
-          result = unifyPegSwaps(pegMerged);
+          result = unifyPegSwaps(
+            pegMerged,
+            evidence: pegRecords.isEmpty ? null : PegEvidence(pegRecords),
+          );
           final unifyMs = DateTime.now().difference(tUnify).inMilliseconds;
           BootTracer.mark('v2_legacy_txs.inline.after', {
             'n': seq,
@@ -159,6 +178,8 @@ final v2LegacyTransactionsProvider =
 
         lastFingerprint = fingerprint;
         lastLength = txs.length;
+        lastEvidenceVersion = evidenceVersion;
+        lastInput = txs;
         lastResult = result;
         BootTracer.mark('v2_legacy_txs.yield', {
           'n': seq,
@@ -191,6 +212,18 @@ final v2LegacyTransactionsProvider =
     });
   });
 
+  ref.listen<AsyncValue<PegEvidence>>(pegEvidenceProvider, (previous, next) {
+    final evidence = next.valueOrNull;
+    if (evidence == null || cancelled) return;
+    pegRecords = evidence.records;
+    evidenceVersion += 1;
+    final replay = lastInput;
+    if (replay != null) {
+      pending = replay;
+      drain();
+    }
+  }, fireImmediately: true);
+
   ref.onDispose(() async {
     cancelled = true;
     await sub?.cancel();
@@ -206,7 +239,16 @@ final v2LegacyTransactionsProvider =
 /// them together means the isolate sees the data once and the only
 /// thing crossing isolates is the input list in and the unified
 /// list out.
-List<legacy.Transaction> _adaptAndUnify(List<v2.Transaction> input) {
+/// Isolate payload: the transaction list plus the local peg records the join's
+/// validation layer needs. Both are plain data so `compute` can copy them.
+class _AdaptPayload {
+  const _AdaptPayload(this.txs, this.pegRecords);
+  final List<v2.Transaction> txs;
+  final List<PegRecord> pegRecords;
+}
+
+List<legacy.Transaction> _adaptAndUnify(_AdaptPayload payload) {
+  final input = payload.txs;
   // 1. Per-row adapt V2 → legacy.
   final adapted = input.map(_v2ToLegacy).toList();
 
@@ -223,7 +265,14 @@ List<legacy.Transaction> _adaptAndUnify(List<v2.Transaction> input) {
   //    swap-link fields) via the existing unifier — same behaviour
   //    as before, just with no work to do for fresh pegs that step 2
   //    already merged.
-  return unifyPegSwaps(pegMerged);
+  // 4. Validation layer: local peg records confirm or reject the groupings
+  //    above. Empty records → every check abstains → unchanged behaviour.
+  return unifyPegSwaps(
+    pegMerged,
+    evidence: payload.pegRecords.isEmpty
+        ? null
+        : PegEvidence(payload.pegRecords),
+  );
 }
 
 /// Merge Breez chain-swap rows with their BDK counterparts into a
