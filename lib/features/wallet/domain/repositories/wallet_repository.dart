@@ -8,7 +8,6 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import '../entities/transaction.dart';
 import '../entities/payment_request.dart';
 import '../entities/partially_signed_transaction.dart';
-import '../entities/payment_limits.dart';
 
 import '../enums/blockchain.dart';
 import '../typedefs.dart';
@@ -16,10 +15,6 @@ import '../typedefs.dart';
 abstract class WalletRepository {
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
     Option<BigInt> amount,
-    Option<String> description,
-  );
-  TaskEither<WalletError, PaymentRequest> createLightningInvoice(
-    BigInt amount,
     Option<String> description,
   );
   TaskEither<WalletError, PaymentRequest> createLiquidBitcoinInvoice(
@@ -47,8 +42,6 @@ abstract class WalletRepository {
     Asset? asset,
   ]);
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildLightningPaymentTransaction(String destination, BigInt amount);
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLiquidBitcoinPaymentTransaction(String destination, BigInt amount);
 
   // DRAIN functions - send all available funds
@@ -58,8 +51,6 @@ abstract class WalletRepository {
     Asset? asset,
     int? feeRateSatPerVbyte,
   });
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildDrainLightningTransaction(String destination);
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLiquidBitcoinTransaction(String destination);
   TaskEither<WalletError, PreparedStablecoinTransaction>
@@ -86,45 +77,6 @@ abstract class WalletRepository {
   TaskEither<WalletError, Balance> getBalance();
 
   // Payment Limits
-  TaskEither<WalletError, LightningPaymentLimitsResponse>
-  fetchLightningLimits();
-  TaskEither<WalletError, PaymentLimits> fetchOnchainLimits();
-  TaskEither<WalletError, PaymentLimits> fetchOnchainReceiveLimits();
-
-  // Peg-out (LBTC → BTC)
-  TaskEither<WalletError, BigInt> preparePegOut({
-    required BigInt receiverAmountSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  });
-  TaskEither<WalletError, Transaction> executePegOut({
-    required String btcAddress,
-    required BigInt receiverAmountSat,
-    required BigInt totalFeesSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  });
-
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegIn({required BigInt payerAmountSat});
-
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegInWithFees({
-    required BigInt payerAmountSat,
-    int? feeRateSatPerVByte,
-  });
-
-  TaskEither<WalletError, ({BigInt breezFeesSat, BigInt bdkFeesSat})>
-  preparePegInWithFullFees({
-    required BigInt payerAmountSat,
-    int? feeRateSatPerVByte,
-  });
-
-  TaskEither<WalletError, Transaction> executePegIn({
-    required BigInt amount,
-    int? feeRateSatPerVByte,
-    bool drain = false,
-  });
 
   // Receive Addresses
   TaskEither<WalletError, String> getBitcoinReceiveAddress();
@@ -156,10 +108,12 @@ abstract class WalletRepository {
   TaskEither<WalletError, MempoolFees> getRecommendedFees();
 
   TaskEither<WalletError, PrepareRefundOutcome> prepareRefund(
-      PrepareRefundParams params);
+    PrepareRefundParams params,
+  );
 
   TaskEither<WalletError, RefundOutcome> executeRefund(
-      ExecuteRefundParams params);
+    ExecuteRefundParams params,
+  );
 
   // ─────────────────────────────────────────── swap surface (LWK-backed)
   //

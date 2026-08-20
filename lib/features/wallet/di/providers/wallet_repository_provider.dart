@@ -51,7 +51,7 @@ final walletRepositoryProvider = FutureProvider<
         }
       },
       (b) {
-        breezWallet = BreezWallet(b, swapAudit: swapAudit);
+        breezWallet = BreezWallet(b);
         logger.info(
           'walletRepositoryProvider(legacy)',
           'breez-bridge ok sdkHash=${identityHashCode(b)}',
@@ -119,11 +119,7 @@ final walletRepositoryProvider = FutureProvider<
         }
       },
       (b) {
-        bitcoinWallet = BitcoinWallet(
-          b,
-          database: database,
-          logger: logger,
-        );
+        bitcoinWallet = BitcoinWallet(b, database: database, logger: logger);
         if (kDebugMode) {
           debugPrint('[WalletRepository] BDK initialized successfully');
         }

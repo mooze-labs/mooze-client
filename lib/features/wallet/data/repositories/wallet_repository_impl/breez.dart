@@ -7,14 +7,12 @@ import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/wallet/data/dto/payment_request_dto.dart';
 import 'package:mooze_mobile/features/wallet/data/dto/transaction_dto.dart';
-import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
 
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
-import 'package:mooze_mobile/features/wallet/domain/repositories/swap_audit_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -23,10 +21,8 @@ import '../../dto/psbt_dto.dart';
 
 class BreezWallet {
   final BreezSdkLiquid _breez;
-  final SwapAuditRepository? _swapAudit;
 
-  BreezWallet(this._breez, {SwapAuditRepository? swapAudit})
-    : _swapAudit = swapAudit;
+  BreezWallet(this._breez);
 
   /// Direct access to the Breez SDK client. Exposed (rather than wrapped)
   /// so the legacy `WalletRepositoryImpl` can implement V2-shaped refund
@@ -34,287 +30,6 @@ class BreezWallet {
   /// repository boundary. Phase 2.3.3 atomic flip retires this entire
   /// `BreezWallet` wrapper; until then this getter is the bridge.
   BreezSdkLiquid get sdkClient => _breez;
-
-  TaskEither<WalletError, LightningPaymentLimitsResponse>
-  fetchLightningLimits() {
-    return TaskEither.tryCatch(
-      () async {
-        final breezLimits = await _breez.fetchLightningLimits();
-        return LightningPaymentLimitsResponse(
-          receive: PaymentLimits(
-            minSat: breezLimits.receive.minSat,
-            maxSat: breezLimits.receive.maxSat,
-          ),
-          send: PaymentLimits(
-            minSat: breezLimits.send.minSat,
-            maxSat: breezLimits.send.maxSat,
-          ),
-        );
-      },
-      (err, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        "Falha ao buscar limites lightning: $err",
-      ),
-    );
-  }
-
-  TaskEither<WalletError, (PaymentLimits, PaymentLimits)>
-  fetchOnchainPaymentLimits() {
-    final paymentLimits = TaskEither.tryCatch(
-      () async => await _breez.fetchOnchainLimits(),
-      (err, _) => WalletError(WalletErrorType.sdkError, err.toString()),
-    );
-
-    return paymentLimits.flatMap(
-      (lim) => TaskEither.right((
-        PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
-        PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
-      )),
-    );
-  }
-
-  TaskEither<WalletError, (PaymentLimits, PaymentLimits)>
-  fetchLightningPaymentLimits() {
-    final paymentLimits = TaskEither.tryCatch(
-      () async => await _breez.fetchLightningLimits(),
-      (err, _) => WalletError(WalletErrorType.sdkError, err.toString()),
-    );
-
-    return paymentLimits.flatMap(
-      (lim) => TaskEither.right((
-        PaymentLimits(minSat: lim.receive.minSat, maxSat: lim.receive.maxSat),
-        PaymentLimits(minSat: lim.send.minSat, maxSat: lim.send.maxSat),
-      )),
-    );
-  }
-
-  TaskEither<WalletError, BigInt> preparePegOut({
-    required BigInt receiverAmountSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  }) {
-    return TaskEither.tryCatch(
-      () async {
-        if (kDebugMode) {
-          print(
-            '[BreezWallet] Preparando peg-out - receiverAmount: $receiverAmountSat sats, drain: $drain, feeRate: $feeRateSatPerVbyte sat/vB',
-          );
-        }
-
-        final payAmount =
-            drain
-                ? PayAmount_Drain()
-                : PayAmount_Bitcoin(receiverAmountSat: receiverAmountSat);
-
-        final prepareReq = PreparePayOnchainRequest(
-          amount: payAmount,
-          feeRateSatPerVbyte: feeRateSatPerVbyte,
-        );
-
-        final prepareRes = await _breez.preparePayOnchain(req: prepareReq);
-
-        if (kDebugMode) {
-          print(
-            '[BreezWallet] Peg-out preparado - Total de taxas: ${prepareRes.totalFeesSat} sats',
-          );
-          print(
-            '[BreezWallet] Detalhes - Claim fee: ${prepareRes.claimFeesSat} sats, Receiver amount: ${prepareRes.receiverAmountSat} sats',
-          );
-        }
-
-        return prepareRes.totalFeesSat;
-      },
-      (err, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        "Falha ao preparar peg-out: $err",
-      ),
-    );
-  }
-
-  TaskEither<WalletError, Transaction> executePegOut({
-    required String btcAddress,
-    required BigInt receiverAmountSat,
-    required BigInt totalFeesSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  }) {
-    return TaskEither.tryCatch(
-      () async {
-        if (kDebugMode) {
-          print(
-            '[BreezWallet] Executando peg-out - address: $btcAddress, amount: $receiverAmountSat sats, drain: $drain, fees: $totalFeesSat sats',
-          );
-        }
-
-        final payAmount =
-            drain
-                ? PayAmount_Drain()
-                : PayAmount_Bitcoin(receiverAmountSat: receiverAmountSat);
-
-        final prepareReq = PreparePayOnchainRequest(
-          amount: payAmount,
-          feeRateSatPerVbyte: feeRateSatPerVbyte,
-        );
-
-        final prepareRes = await _breez.preparePayOnchain(req: prepareReq);
-
-        // Record audit row BEFORE the network call so a payOnchain throw
-        // still leaves a `failed` row pinned to the user's intent.
-        // sendAmount = amount sent off LBTC (receiver + fees).
-        final auditId = await _recordPegOutPending(
-          receiverAmountSat: receiverAmountSat,
-          totalFeesSat: totalFeesSat,
-          feeRateSatPerVbyte: feeRateSatPerVbyte,
-          drain: drain,
-          btcAddress: btcAddress,
-        );
-
-        // Executar o peg-out
-        final payReq = PayOnchainRequest(
-          address: btcAddress,
-          prepareResponse: prepareRes,
-        );
-
-        try {
-          final result = await _breez.payOnchain(req: payReq);
-
-          if (kDebugMode) {
-            print('[BreezWallet] Peg-out enviado com sucesso!');
-          }
-
-          final tx =
-              BreezTransactionDto.fromSdk(payment: result.payment).toDomain();
-
-          await _markSwapFinal(
-            auditId: auditId,
-            status: 'completed',
-            txId: tx.id,
-          );
-
-          return tx;
-        } catch (e) {
-          await _markSwapFinal(
-            auditId: auditId,
-            status: 'failed',
-            metadata: {'error': e.toString()},
-          );
-          rethrow;
-        }
-      },
-      (err, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        "Falha ao executar peg-out: $err",
-      ),
-    );
-  }
-
-  /// Best-effort: insert the pending row and return its id, or null on
-  /// any failure. Callers must tolerate null and skip the markFinal call.
-  Future<int?> _recordPegOutPending({
-    required BigInt receiverAmountSat,
-    required BigInt totalFeesSat,
-    int? feeRateSatPerVbyte,
-    required bool drain,
-    required String btcAddress,
-  }) async {
-    final audit = _swapAudit;
-    if (audit == null) return null;
-    final result = await audit.recordPending(
-      provider: 'breez',
-      direction: 'lbtc_to_btc',
-      sendAsset: 'LBTC',
-      receiveAsset: 'BTC',
-      sendAmount: receiverAmountSat + totalFeesSat,
-      receiveAmount: receiverAmountSat,
-      metadata: {
-        'btcAddress': btcAddress,
-        'totalFeesSat': totalFeesSat.toString(),
-        'feeRateSatPerVbyte': feeRateSatPerVbyte,
-        'drain': drain,
-      },
-    );
-    return result.fold((_) => null, (id) => id);
-  }
-
-  Future<void> _markSwapFinal({
-    required int? auditId,
-    required String status,
-    String? txId,
-    Map<String, dynamic>? metadata,
-  }) async {
-    final audit = _swapAudit;
-    if (audit == null || auditId == null) return;
-    await audit.markFinal(
-      id: auditId,
-      status: status,
-      txId: txId,
-      metadata: metadata,
-    );
-  }
-
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegIn({required BigInt payerAmountSat}) {
-    return TaskEither.tryCatch(
-      () async {
-        if (kDebugMode) {
-          print(
-            '[BreezWallet] Preparando peg-in - payerAmount: $payerAmountSat sats',
-          );
-        }
-
-        final prepareReq = PrepareReceiveRequest(
-          paymentMethod: PaymentMethod.bitcoinAddress,
-          amount: ReceiveAmount_Bitcoin(payerAmountSat: payerAmountSat),
-        );
-
-        final prepareRes = await _breez.prepareReceivePayment(req: prepareReq);
-
-        if (kDebugMode) {
-          print(
-            '[BreezWallet] Peg-in preparado - Taxas: ${prepareRes.feesSat} sats',
-          );
-        }
-
-        final receiveRes = await _breez.receivePayment(
-          req: ReceivePaymentRequest(prepareResponse: prepareRes),
-        );
-
-        final bitcoinAddress = receiveRes.destination;
-
-        if (kDebugMode) {
-          print('[BreezWallet] Endereço BTC gerado: $bitcoinAddress');
-        }
-
-        // Record the peg-in intent. The deposit address goes into metadata
-        // so the Breez event-stream listener (see Phase 2 spec §6.3) can
-        // later look the row up via findPendingPegInByDepositAddress and
-        // call markFinal when the BTC deposit lands. If the deposit never
-        // arrives, the row stays `pending` forever — that's intentional;
-        // audit prefers stale pending over data deletion.
-        final audit = _swapAudit;
-        if (audit != null) {
-          await audit.recordPending(
-            provider: 'breez',
-            direction: 'btc_to_lbtc',
-            sendAsset: 'BTC',
-            receiveAsset: 'LBTC',
-            sendAmount: payerAmountSat,
-            receiveAmount: payerAmountSat - prepareRes.feesSat,
-            metadata: {
-              'depositAddress': bitcoinAddress,
-              'feesSat': prepareRes.feesSat.toString(),
-            },
-          );
-        }
-
-        return (bitcoinAddress: bitcoinAddress, feesSat: prepareRes.feesSat);
-      },
-      (err, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        "Falha ao preparar peg-in: $err",
-      ),
-    );
-  }
 
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
     Option<BigInt> amount,
@@ -327,19 +42,6 @@ class BreezWallet {
       description: description.toNullable(),
     );
     return _createOnchainBitcoinPaymentRequest(_breez, amount, description);
-  }
-
-  TaskEither<WalletError, PaymentRequest> createLightningInvoice(
-    BigInt amount,
-    Option<String> description,
-  ) {
-    _logReceiveEntry(
-      flow: 'createLightningInvoice',
-      paymentMethod: PaymentMethod.bolt11Invoice,
-      amount: amount,
-      description: description.toNullable(),
-    );
-    return _createLightningPaymentRequest(_breez, amount, description);
   }
 
   TaskEither<WalletError, PaymentRequest> createLiquidBitcoinInvoice(
@@ -449,32 +151,6 @@ class BreezWallet {
   }
 
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildLightningPaymentTransaction(String destination, BigInt amount) {
-    return prepareLightningTransaction(_breez, destination, amount).flatMap((
-      response,
-    ) {
-      // Handle both PrepareLnUrlPayResponse and PrepareSendResponse
-      final BigInt fees;
-      if (response is PrepareLnUrlPayResponse) {
-        fees = response.feesSat;
-      } else if (response is PrepareSendResponse) {
-        fees = response.feesSat ?? BigInt.zero;
-      } else {
-        fees = BigInt.zero;
-      }
-
-      return TaskEither.right(
-        BreezPreparedLayer2TransactionDto(
-          destination: destination,
-          blockchain: Blockchain.lightning,
-          fees: fees,
-          amount: amount,
-        ).toDomain(),
-      );
-    });
-  }
-
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLiquidBitcoinPaymentTransaction(String destination, BigInt amount) {
     final normalizedDestination = _normalizeLiquidAddress(destination);
     return prepareLayer2BitcoinSendTransaction(
@@ -517,32 +193,11 @@ class BreezWallet {
   TaskEither<WalletError, Transaction> sendL2BitcoinPayment(
     PreparedLayer2BitcoinTransaction psbt,
   ) {
-    if (psbt.blockchain == Blockchain.lightning) {
-      // Check if this is a drain transaction (amount is 0 or very small indicates drain)
-      if (psbt.amount == BigInt.zero) {
-        // Handle Lightning DRAIN payments using LNURL-pay with PayAmount_Drain
-        return _sendDrainLightningPayment(_breez, psbt.destination).flatMap((
-          response,
-        ) {
-          return TaskEither.right(
-            BreezTransactionDto.fromSdk(
-              payment: response.data.payment,
-            ).toDomain(),
-          );
-        });
-      } else {
-        // Handle both LNURL-pay and regular Lightning invoices
-        return _sendLightningPaymentAny(
-          _breez,
-          psbt.destination,
-          psbt.amount,
-        ).flatMap((payment) {
-          return TaskEither.right(
-            BreezTransactionDto.fromSdk(payment: payment).toDomain(),
-          );
-        });
-      }
-    } else {
+    // Lightning sends were removed: `buildLightningPaymentTransaction` no
+    // longer exists, so no `PreparedLayer2BitcoinTransaction` with
+    // `Blockchain.lightning` can be constructed. This method now handles the
+    // Liquid case only.
+    {
       // Handle Liquid payments
       final normalizedDestination = _normalizeLiquidAddress(psbt.destination);
       // Check if this is a drain transaction using the drain flag
@@ -617,32 +272,6 @@ class BreezWallet {
             fees: response.prepareResponse.totalFeesSat,
             amount: response.prepareResponse.receiverAmountSat,
             claimFeesSat: response.prepareResponse.claimFeesSat,
-            drain: true,
-          ).toDomain(),
-        );
-      });
-    });
-  }
-
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildDrainLightningTransaction(String destination) {
-    return getBalance().flatMap((balance) {
-      return _prepareDrainLightningResponse(_breez, destination).flatMap((
-        response,
-      ) {
-        final BigInt resolvedAmount = switch (response.amount) {
-          PayAmount_Bitcoin(receiverAmountSat: final sats) => sats,
-          _ =>
-            (balance[Asset.lbtc] ?? BigInt.zero) -
-                response.feesSat, // balance - fees = receiver amount
-        };
-
-        return TaskEither.right(
-          BreezPreparedLayer2TransactionDto(
-            destination: destination,
-            blockchain: Blockchain.lightning,
-            fees: response.feesSat,
-            amount: resolvedAmount,
             drain: true,
           ).toDomain(),
         );
@@ -854,19 +483,6 @@ TaskEither<WalletError, PaymentRequest> _createLiquidBitcoinPaymentRequest(
   );
 }
 
-TaskEither<WalletError, PaymentRequest> _createLightningPaymentRequest(
-  BreezSdkLiquid breez,
-  BigInt amount,
-  Option<String> description,
-) {
-  return _createBitcoinPaymentRequest(
-    breez,
-    PaymentMethod.bolt11Invoice,
-    Option.of(ReceiveAmount_Bitcoin(payerAmountSat: amount)),
-    description,
-  );
-}
-
 TaskEither<WalletError, PaymentRequest> _createOnchainBitcoinPaymentRequest(
   BreezSdkLiquid breez,
   Option<BigInt> amount,
@@ -1010,10 +626,7 @@ TaskEither<WalletError, ReceivePaymentResponse> _receivePayment(
           '$err\n$stackTrace',
         );
       }
-      return WalletError(
-        WalletErrorType.transactionFailed,
-        err.toString(),
-      );
+      return WalletError(WalletErrorType.transactionFailed, err.toString());
     },
   );
 }
@@ -1203,167 +816,6 @@ TaskEither<WalletError, OnchainPaymentLimitsResponse> _getOnchainPaymentLimits(
 
 // SEND PSBT functions
 
-TaskEither<WalletError, LnUrlPayResult_EndpointSuccess>
-_sendDrainLightningPayment(BreezSdkLiquid breez, String destination) {
-  return TaskEither.tryCatch(
-    () async {
-      final inputType = await breez.parse(input: destination);
-
-      if (inputType is InputType_LnUrlPay) {
-        // Use PayAmount_Drain to send all available funds
-        final drainAmount = PayAmount_Drain();
-
-        final req = PrepareLnUrlPayRequest(
-          data: inputType.data,
-          amount: drainAmount,
-          bip353Address: inputType.bip353Address,
-          comment: null, // Optional comment
-          validateSuccessActionUrl: true,
-        );
-
-        final prepareResponse = await breez.prepareLnurlPay(req: req);
-
-        final result = await breez.lnurlPay(
-          req: LnUrlPayRequest(prepareResponse: prepareResponse),
-        );
-
-        if (result is LnUrlPayResult_EndpointSuccess) {
-          return result;
-        } else if (result is LnUrlPayResult_PayError) {
-          throw Exception('LNURL Drain Payment error: ${result.data.reason}');
-        } else {
-          throw Exception('Unknown LnUrlPayResult type');
-        }
-      } else {
-        throw Exception(
-          'Only LNURL-Pay destinations are supported for Lightning drain transactions',
-        );
-      }
-    },
-    (err, stackTrace) {
-      return WalletError(
-        WalletErrorType.transactionFailed,
-        "Lightning drain payment failed: [BREEZ] $err",
-      );
-    },
-  );
-}
-
-TaskEither<WalletError, LnUrlPayResult_EndpointSuccess> sendLightningPayment(
-  BreezSdkLiquid breez,
-  String destination,
-  BigInt amount,
-) {
-  return TaskEither.tryCatch(
-    () async {
-      final inputType = await breez.parse(input: destination);
-
-      if (inputType is InputType_LnUrlPay) {
-        final payAmount = PayAmount_Bitcoin(receiverAmountSat: amount);
-
-        final req = PrepareLnUrlPayRequest(
-          data: inputType.data,
-          amount: payAmount,
-          bip353Address: inputType.bip353Address,
-          comment: null,
-          validateSuccessActionUrl: true,
-        );
-
-        final prepareResponse = await breez.prepareLnurlPay(req: req);
-
-        final result = await breez.lnurlPay(
-          req: LnUrlPayRequest(prepareResponse: prepareResponse),
-        );
-
-        if (result is LnUrlPayResult_EndpointSuccess) {
-          return result;
-        } else if (result is LnUrlPayResult_PayError) {
-          throw Exception('LNURL Payment error: ${result.data.reason}');
-        } else {
-          throw Exception('Unknown LnUrlPayResult type');
-        }
-      } else {
-        throw Exception(
-          'Only LNURL-Pay destinations are supported in Lightning payments',
-        );
-      }
-    },
-    (err, stackTrace) {
-      return WalletError(
-        WalletErrorType.transactionFailed,
-        "Lightning payment failed: [BREEZ] $err",
-      );
-    },
-  );
-}
-
-// Send Lightning payment - supports both LNURL-pay and regular Bolt11 invoices
-TaskEither<WalletError, Payment> _sendLightningPaymentAny(
-  BreezSdkLiquid breez,
-  String destination,
-  BigInt amount,
-) {
-  return TaskEither.tryCatch(
-    () async {
-      final inputType = await breez.parse(input: destination);
-
-      if (inputType is InputType_LnUrlPay) {
-        // Handle LNURL-pay
-        final payAmount = PayAmount_Bitcoin(receiverAmountSat: amount);
-
-        final req = PrepareLnUrlPayRequest(
-          data: inputType.data,
-          amount: payAmount,
-          bip353Address: inputType.bip353Address,
-          comment: null,
-          validateSuccessActionUrl: true,
-        );
-
-        final prepareResponse = await breez.prepareLnurlPay(req: req);
-
-        final result = await breez.lnurlPay(
-          req: LnUrlPayRequest(prepareResponse: prepareResponse),
-        );
-
-        if (result is LnUrlPayResult_EndpointSuccess) {
-          return result.data.payment;
-        } else if (result is LnUrlPayResult_PayError) {
-          throw Exception('LNURL Payment error: ${result.data.reason}');
-        } else {
-          throw Exception('Unknown LnUrlPayResult type');
-        }
-      } else if (inputType is InputType_Bolt11) {
-        // Handle regular Lightning invoice (Bolt11)
-        final payAmount = PayAmount_Bitcoin(receiverAmountSat: amount);
-        final PrepareSendRequest sendRequest = PrepareSendRequest(
-          destination: destination,
-          amount: payAmount,
-        );
-
-        final prepareResponse = await breez.prepareSendPayment(
-          req: sendRequest,
-        );
-
-        final sendResponse = await breez.sendPayment(
-          req: SendPaymentRequest(prepareResponse: prepareResponse),
-        );
-
-        return sendResponse.payment;
-      } else {
-        throw Exception(
-          'Tipo de destino Lightning não suportado. Use LNURL-pay ou invoice Bolt11.',
-        );
-      }
-    },
-    (err, stackTrace) {
-      return WalletError(
-        WalletErrorType.transactionFailed,
-        "Lightning payment failed: [BREEZ] $err",
-      );
-    },
-  );
-}
-
 TaskEither<WalletError, SendPaymentResponse> sendLayer2Transaction(
   BreezSdkLiquid breez,
   PrepareSendResponse psbt,
@@ -1403,45 +855,6 @@ TaskEither<WalletError, SendPaymentResponse> sendOnchainTransaction(
 }
 
 // DRAIN helper functions - for sending all available funds
-
-TaskEither<WalletError, PrepareLnUrlPayResponse> _prepareDrainLightningResponse(
-  BreezSdkLiquid breez,
-  String destination,
-) {
-  return TaskEither.tryCatch(
-    () async {
-      // Parse the destination to determine the input type
-      final inputType = await breez.parse(input: destination);
-
-      if (inputType is InputType_LnUrlPay) {
-        // Use PayAmount_Drain to send all available funds
-        final drainAmount = PayAmount_Drain();
-
-        final req = PrepareLnUrlPayRequest(
-          data: inputType.data,
-          amount: drainAmount,
-          bip353Address: inputType.bip353Address,
-          comment: null, // Optional comment
-          validateSuccessActionUrl: true,
-        );
-
-        final result = await breez.prepareLnurlPay(req: req);
-
-        return result;
-      } else {
-        throw Exception(
-          'Only LNURL-Pay destinations are supported for Lightning drain transactions',
-        );
-      }
-    },
-    (err, stackTrace) {
-      return WalletError(
-        WalletErrorType.transactionFailed,
-        "Falha ao preparar transação de envio total Lightning: $err",
-      );
-    },
-  );
-}
 
 TaskEither<WalletError, PayOnchainRequest> _prepareDrainOnchainResponse(
   BreezSdkLiquid breez,
