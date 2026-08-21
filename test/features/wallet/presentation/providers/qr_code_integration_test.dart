@@ -70,7 +70,8 @@ void main() {
         );
         expect(amountResult.hasAmount, true);
         expect(amountResult.amountInSats, 50000); // 500 uBTC
-        expect(amountResult.asset, Asset.btc);
+        // O envio Lightning sai de L-BTC, portanto o servico reporta lbtc.
+        expect(amountResult.asset, Asset.lbtc);
       });
 
       test('Plain Bitcoin address - should validate without amount', () {
@@ -93,8 +94,10 @@ void main() {
 
         final validationResult = QrValidationService.validateQrData(qrData);
         expect(validationResult.isValid, false);
-        expect(validationResult.errorMessage, contains('BOLTZ'));
-        expect(validationResult.errorMessage, contains('sem valor'));
+        expect(
+          validationResult.errorCode,
+          QrValidationErrorCode.boltzNoAmount,
+        );
       });
 
       test('Lightning with special symbols - should reject in validation', () {
@@ -102,7 +105,10 @@ void main() {
 
         final validationResult = QrValidationService.validateQrData(qrData);
         expect(validationResult.isValid, false);
-        expect(validationResult.errorMessage, contains('símbolos especiais'));
+        expect(
+          validationResult.errorCode,
+          QrValidationErrorCode.lightningUnsupportedSymbols,
+        );
       });
 
       test('BIP 353 phoenixwallet - should reject in validation', () {
@@ -110,7 +116,10 @@ void main() {
 
         final validationResult = QrValidationService.validateQrData(qrData);
         expect(validationResult.isValid, false);
-        expect(validationResult.errorMessage, contains('BIP 353'));
+        expect(
+          validationResult.errorCode,
+          QrValidationErrorCode.lnurlBip353Unsupported,
+        );
       });
 
       test('Empty QR data - should reject', () {
@@ -118,7 +127,7 @@ void main() {
 
         final validationResult = QrValidationService.validateQrData(qrData);
         expect(validationResult.isValid, false);
-        expect(validationResult.errorMessage, contains('vazio'));
+        expect(validationResult.errorCode, QrValidationErrorCode.empty);
       });
 
       test('Unrecognized format - should reject', () {
@@ -126,28 +135,25 @@ void main() {
 
         final validationResult = QrValidationService.validateQrData(qrData);
         expect(validationResult.isValid, false);
-        expect(validationResult.errorMessage, contains('não reconhecido'));
+        expect(
+          validationResult.errorCode,
+          QrValidationErrorCode.unrecognized,
+        );
       });
     });
 
     group('Edge Cases and Special Scenarios', () {
-      test('Lightning with lightning: prefix - should strip and validate', () {
+      test('Lightning with lightning: prefix - should reject', () {
         const qrData =
             'lightning:lnbc100u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm';
 
         final validationResult = QrValidationService.validateQrData(qrData);
-        expect(validationResult.isValid, true);
+        expect(validationResult.isValid, false);
         expect(
-          validationResult.cleanedData,
-          'lnbc100u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm',
+          validationResult.errorCode,
+          QrValidationErrorCode.lightningUnsupported,
         );
-
-        final amountResult = AmountDetectionService.detectAmount(
-          validationResult.cleanedData!,
-        );
-        // Should detect amount from the invoice
-        expect(amountResult.hasAmount, true);
-        expect(amountResult.amountInSats, 10000); // 100 uBTC
+        expect(validationResult.cleanedData, isNull);
       });
 
       test('Liquid USDT - should detect correct asset', () {
@@ -191,11 +197,15 @@ void main() {
         expect(amountResult.asset, Asset.lbtc);
       });
 
-      test('walletofsatoshi LNURL - should be accepted', () {
+      test('walletofsatoshi LNURL - should be rejected', () {
         const qrData = 'user@walletofsatoshi.com';
 
         final validationResult = QrValidationService.validateQrData(qrData);
-        expect(validationResult.isValid, true);
+        expect(validationResult.isValid, false);
+        expect(
+          validationResult.errorCode,
+          QrValidationErrorCode.lnurlUnsupported,
+        );
       });
     });
 
