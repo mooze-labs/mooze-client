@@ -10,7 +10,6 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 // referenced only by older code paths that are part of the migration
 // surface tracked in V2_PHASE2_PARITY_AND_MIGRATION.
 import '../../domain/entities.dart' hide RefundableSwap;
-import '../../domain/entities/payment_limits.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/errors.dart';
 
@@ -32,23 +31,6 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         asset: Asset.btc,
         fees: BigInt.from(1000),
         amount: amount.fold(() => null, (a) => a),
-        description: description.fold(() => '', (d) => d),
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, PaymentRequest> createLightningInvoice(
-    BigInt amount,
-    Option<String> description,
-  ) {
-    return TaskEither.right(
-      PaymentRequest(
-        address: 'lnbc${amount}n1p0xlkz2pp5...',
-        blockchain: Blockchain.lightning,
-        asset: Asset.btc,
-        fees: BigInt.from(100),
-        amount: amount,
         description: description.fold(() => '', (d) => d),
       ),
     );
@@ -122,20 +104,6 @@ class FakeWalletRepositoryImpl extends WalletRepository {
         destination: destination,
         amount: amount,
         networkFees: BigInt.from(2000),
-        drain: false,
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildLightningPaymentTransaction(String destination, BigInt amount) {
-    return TaskEither.right(
-      PreparedLayer2BitcoinTransaction(
-        destination: destination,
-        amount: amount,
-        networkFees: BigInt.from(100),
-        blockchain: Blockchain.lightning,
         drain: false,
       ),
     );
@@ -236,37 +204,6 @@ class FakeWalletRepositoryImpl extends WalletRepository {
           destination: destination,
           amount: amountAfterFees,
           networkFees: estimatedFees,
-          drain: true,
-        ),
-      );
-    });
-  }
-
-  @override
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildDrainLightningTransaction(String destination) {
-    return getBalance().flatMap((balance) {
-      final btcBalance = balance[Asset.btc] ?? BigInt.zero;
-      if (btcBalance <= BigInt.from(1000)) {
-        // Minimum for lightning
-        return TaskEither.left(
-          WalletError(
-            WalletErrorType.insufficientFunds,
-            "Saldo insuficiente para envio total",
-          ),
-        );
-      }
-
-      // Lightning has lower fees
-      final estimatedFees = BigInt.from(100);
-      final amountAfterFees = btcBalance - estimatedFees;
-
-      return TaskEither.right(
-        PreparedLayer2BitcoinTransaction(
-          destination: destination,
-          amount: amountAfterFees,
-          networkFees: estimatedFees,
-          blockchain: Blockchain.lightning,
           drain: true,
         ),
       );
@@ -424,23 +361,6 @@ class FakeWalletRepositoryImpl extends WalletRepository {
   // }
 
   @override
-  TaskEither<WalletError, LightningPaymentLimitsResponse>
-  fetchLightningLimits() {
-    final mockLimits = LightningPaymentLimitsResponse(
-      send: PaymentLimits(
-        minSat: BigInt.from(100),
-        maxSat: BigInt.from(10000000),
-      ),
-      receive: PaymentLimits(
-        minSat: BigInt.from(1),
-        maxSat: BigInt.from(50000000),
-      ),
-    );
-
-    return TaskEither.right(mockLimits);
-  }
-
-  @override
   TaskEither<WalletError, String> getBitcoinReceiveAddress() {
     return TaskEither.right("bc1abcdefg");
   }
@@ -448,77 +368,6 @@ class FakeWalletRepositoryImpl extends WalletRepository {
   @override
   TaskEither<WalletError, String> getLiquidReceiveAddress() {
     return TaskEither.right("tlq1abcdef");
-  }
-
-  @override
-  TaskEither<WalletError, Transaction> executePegIn({
-    required BigInt amount,
-    int? feeRateSatPerVByte,
-    bool drain = false,
-  }) {
-    // TODO: implement executePegIn
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, Transaction> executePegOut({
-    required String btcAddress,
-    required BigInt receiverAmountSat,
-    required BigInt totalFeesSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  }) {
-    // TODO: implement executePegOut
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, PaymentLimits> fetchOnchainLimits() {
-    // TODO: implement fetchOnchainLimits
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, PaymentLimits> fetchOnchainReceiveLimits() {
-    // TODO: implement fetchOnchainReceiveLimits
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegIn({required BigInt payerAmountSat}) {
-    // TODO: implement preparePegIn
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegInWithFees({
-    required BigInt payerAmountSat,
-    int? feeRateSatPerVByte,
-  }) {
-    // TODO: implement preparePegInWithFees
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, ({BigInt bdkFeesSat, BigInt breezFeesSat})>
-  preparePegInWithFullFees({
-    required BigInt payerAmountSat,
-    int? feeRateSatPerVByte,
-  }) {
-    // TODO: implement preparePegInWithFullFees
-    throw UnimplementedError();
-  }
-
-  @override
-  TaskEither<WalletError, BigInt> preparePegOut({
-    required BigInt receiverAmountSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  }) {
-    // TODO: implement preparePegOut
-    throw UnimplementedError();
   }
 
   // ─────────────────────────────────────────── chain metadata + refund
@@ -535,24 +384,28 @@ class FakeWalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, MempoolFees> getRecommendedFees() {
-    return TaskEither.right(const MempoolFees(
-      minimumFee: 1,
-      economyFee: 2,
-      hourFee: 5,
-      halfHourFee: 10,
-      fastestFee: 20,
-    ));
+    return TaskEither.right(
+      const MempoolFees(
+        minimumFee: 1,
+        economyFee: 2,
+        hourFee: 5,
+        halfHourFee: 10,
+        fastestFee: 20,
+      ),
+    );
   }
 
   @override
   TaskEither<WalletError, PrepareRefundOutcome> prepareRefund(
-      PrepareRefundParams params) {
+    PrepareRefundParams params,
+  ) {
     return TaskEither.right(const PrepareRefundOutcome(txVsize: 150));
   }
 
   @override
   TaskEither<WalletError, RefundOutcome> executeRefund(
-      ExecuteRefundParams params) {
+    ExecuteRefundParams params,
+  ) {
     return TaskEither.right(const RefundOutcome(refundTxId: 'fake_refund_tx'));
   }
 

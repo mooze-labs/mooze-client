@@ -4,6 +4,8 @@ import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
+import 'peg_evidence.dart';
+
 enum SwapDirection { pegIn, pegOut }
 
 /// Collapses the multiple raw entries a Breez chain-swap leaves in the
@@ -23,7 +25,10 @@ enum SwapDirection { pegIn, pegOut }
 /// (b) bucket transactions by `(chain, asset, type)`. Per-anchor leg
 /// lookups then iterate only the 4 relevant buckets instead of the
 /// whole list, dropping anchor pairing from O(n²) to roughly O(n).
-List<Transaction> unifyPegSwaps(List<Transaction> input) {
+List<Transaction> unifyPegSwaps(
+  List<Transaction> input, {
+  PegEvidence? evidence,
+}) {
   if (input.isEmpty) return input;
 
   // Self-timing so the cost shows up regardless of which isolate this
@@ -35,12 +40,18 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
   // Bucket on the original list while also checking the cheap
   // existence predicates. We do both passes inline so we only walk
   // `input` once before deciding whether to bail out.
-  final _Indexed indexed = _indexAndProbe(input);
+  // Normalise empty evidence to null so every downstream check is a single
+  // null test and the no-evidence path costs nothing.
+  final ev = (evidence != null && evidence.isNotEmpty) ? evidence : null;
+
+  final _Indexed indexed = _indexAndProbe(input, ev);
 
   // Fast path: nothing peg-shaped at all — skip dedupe, skip bucket
   // work, skip the final sort. The vast majority of stream ticks for
   // an unswap'd wallet land here.
-  if (!indexed.hasAnchorCandidate && !indexed.hasPairableSend) {
+  if (!indexed.hasAnchorCandidate &&
+      !indexed.hasPairableSend &&
+      !indexed.hasEvidenceMatch) {
     final ms = sw.elapsedMilliseconds;
     if (ms >= 2) {
       debugPrint('[MARK unifier.fastpath n=${input.length} dur_ms=$ms]');
@@ -57,6 +68,25 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
 
   final consumed = <String>{};
   final unified = <Transaction>[];
+  var evJoined = 0;
+  var evRejected = 0;
+
+  if (ev != null) {
+    final byId = <String, Transaction>{};
+    for (final tx in deduped) {
+      byId[tx.id] = tx;
+    }
+    for (final record in ev.joinableRecords) {
+      final send = byId[record.fundingTxId!];
+      final receive = byId[record.payoutTxId!];
+      if (send == null || receive == null) continue;
+      if (consumed.contains(send.id) || consumed.contains(receive.id)) continue;
+      consumed.add(send.id);
+      consumed.add(receive.id);
+      unified.add(_buildEvidenceSwap(record, send, receive));
+      evJoined++;
+    }
+  }
 
   for (final tx in deduped) {
     if (consumed.contains(tx.id)) continue;
@@ -64,6 +94,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
 
     final pair = _pairLegsForAnchor(tx, buckets, consumed);
     if (pair == null) continue;
+    if (ev != null && _evidenceRejectsAnchor(ev, pair)) {
+      evRejected++;
+      continue;
+    }
 
     consumed.add(tx.id);
     if (pair.btcLeg != null) consumed.add(pair.btcLeg!.id);
@@ -76,6 +110,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
     if (consumed.contains(tx.id)) continue;
     final cp = _findFallbackCounterpart(tx, buckets.lbtcReceives, consumed);
     if (cp == null) continue;
+    if (ev != null && _evidenceRejectsPair(ev, tx, cp, isPegIn: true)) {
+      evRejected++;
+      continue;
+    }
     consumed.add(tx.id);
     consumed.add(cp.id);
     unified.add(_buildFallbackSwap(tx, cp));
@@ -84,6 +122,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
     if (consumed.contains(tx.id)) continue;
     final cp = _findFallbackCounterpart(tx, buckets.btcReceives, consumed);
     if (cp == null) continue;
+    if (ev != null && _evidenceRejectsPair(ev, tx, cp, isPegIn: false)) {
+      evRejected++;
+      continue;
+    }
     consumed.add(tx.id);
     consumed.add(cp.id);
     unified.add(_buildFallbackSwap(tx, cp));
@@ -93,6 +135,10 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
     if (consumed.contains(send.id)) continue;
     final refund = _findRefundCounterpart(send, buckets.btcReceives, consumed);
     if (refund == null) continue;
+    if (ev != null && _evidenceRejectsRefund(ev, send)) {
+      evRejected++;
+      continue;
+    }
     final row = _buildRefundedSwap(send, refund);
     if (row == null) continue;
     consumed.add(send.id);
@@ -124,7 +170,8 @@ List<Transaction> unifyPegSwaps(List<Transaction> input) {
   final ms = sw.elapsedMilliseconds;
   debugPrint('[MARK unifier.done '
       'n_in=${input.length} n_out=${result.length} '
-      'consumed=${consumed.length} merged=${unified.length} dur_ms=$ms]');
+      'consumed=${consumed.length} merged=${unified.length} '
+      'ev_joined=$evJoined ev_rejected=$evRejected dur_ms=$ms]');
   return result;
 }
 
@@ -179,10 +226,12 @@ class _Indexed {
   final bool hasAnchorCandidate;
   final bool hasPairableSend;
   final bool hasDuplicateIds;
+  final bool hasEvidenceMatch;
   const _Indexed({
     required this.hasAnchorCandidate,
     required this.hasPairableSend,
     required this.hasDuplicateIds,
+    required this.hasEvidenceMatch,
   });
 }
 
@@ -193,15 +242,23 @@ class _Indexed {
 /// Threshold is low (1k sats) so the unifier wakes up for refunded
 /// peg detection too, where the lockup amount can be well under the
 /// 25k chain-swap minimum (e.g. the 3k refund-test path).
-_Indexed _indexAndProbe(List<Transaction> input) {
+_Indexed _indexAndProbe(List<Transaction> input, PegEvidence? evidence) {
   final minAmount = BigInt.from(1000);
   bool anchor = false;
   bool send = false;
   bool dup = false;
+  bool evidenceMatch = false;
   final seenIds = <String>{};
 
   for (final tx in input) {
     if (!seenIds.add(tx.id)) dup = true;
+
+    if (evidence != null && !evidenceMatch) {
+      if (evidence.recordForTxId(tx.id) != null ||
+          evidence.recordForDepositAddress(tx.destination) != null) {
+        evidenceMatch = true;
+      }
+    }
 
     if (!anchor && _isBreezChainSwapAnchor(tx)) anchor = true;
 
@@ -214,13 +271,16 @@ _Indexed _indexAndProbe(List<Transaction> input) {
       send = true;
     }
 
-    if (anchor && send && dup) break; // nothing left to discover
+    if (anchor && send && dup && (evidence == null || evidenceMatch)) {
+      break; // nothing left to discover
+    }
   }
 
   return _Indexed(
     hasAnchorCandidate: anchor,
     hasPairableSend: send,
     hasDuplicateIds: dup,
+    hasEvidenceMatch: evidenceMatch,
   );
 }
 
@@ -601,4 +661,112 @@ Transaction? _buildRefundedSwap(Transaction send, Transaction receive) {
     destination: receive.destination,
     feesSat: _sumLegFees(send.feesSat, receive.feesSat),
   );
+}
+
+Transaction _buildEvidenceSwap(
+  PegRecord record,
+  Transaction send,
+  Transaction receive,
+) {
+  final earliest = send.createdAt.isBefore(receive.createdAt)
+      ? send.createdAt
+      : receive.createdAt;
+  final isPegIn = record.isPegIn;
+  return Transaction(
+    id: '${send.id}_${receive.id}_swap',
+    amount: receive.amount,
+    blockchain: receive.blockchain,
+    asset: receive.asset,
+    type: TransactionType.swap,
+    status:
+        send.status == TransactionStatus.confirmed &&
+            receive.status == TransactionStatus.confirmed
+        ? TransactionStatus.confirmed
+        : TransactionStatus.pending,
+    createdAt: earliest,
+    fromAsset: isPegIn ? Asset.btc : Asset.lbtc,
+    toAsset: isPegIn ? Asset.lbtc : Asset.btc,
+    sentAmount: send.amount,
+    receivedAmount: receive.amount,
+    sendTxId: send.id,
+    receiveTxId: receive.id,
+    sendBlockchain: isPegIn ? Blockchain.bitcoin : Blockchain.liquid,
+    receiveBlockchain: isPegIn ? Blockchain.liquid : Blockchain.bitcoin,
+    destination: receive.destination,
+    feesSat: _sumLegFees(send.feesSat, receive.feesSat),
+  );
+}
+
+/// Evidence gate for an anchor pairing, including the partial rows the anchor
+/// path emits while one leg is still propagating.
+bool _evidenceRejectsAnchor(PegEvidence ev, _SwapLegs pair) {
+  final isPegIn = pair.direction == SwapDirection.pegIn;
+  final send = isPegIn ? pair.btcLeg : pair.lbtcLeg;
+  final receive = isPegIn ? pair.lbtcLeg : pair.btcLeg;
+
+  if (send != null && receive != null) {
+    return _evidenceRejectsPair(ev, send, receive, isPegIn: isPegIn);
+  }
+  if (send != null) {
+    return ev
+        .validateLeg(
+          txId: send.id,
+          isPegIn: isPegIn,
+          role: PegLeg.funding,
+          destination: send.destination,
+        )
+        .isRejected;
+  }
+  if (receive != null) {
+    return ev
+        .validateLeg(
+          txId: receive.id,
+          isPegIn: isPegIn,
+          role: PegLeg.payout,
+        )
+        .isRejected;
+  }
+  return false;
+}
+
+/// Evidence gate for a two-leg pairing.
+bool _evidenceRejectsPair(
+  PegEvidence ev,
+  Transaction send,
+  Transaction receive, {
+  required bool isPegIn,
+}) {
+  final check = ev.validatePair(
+    sendTxId: send.id,
+    receiveTxId: receive.id,
+    isPegIn: isPegIn,
+    sendDestination: send.destination,
+  );
+  if (check.isRejected) {
+    debugPrint(
+      '[unifier.evidence] rejected ${send.id} + ${receive.id}: ${check.reason}',
+    );
+  }
+  return check.isRejected;
+}
+
+bool _evidenceRejectsRefund(PegEvidence ev, Transaction send) {
+  final byId = ev.recordForTxId(send.id);
+  if (byId != null) {
+    final isFunding = byId.legFor(send.id) == PegLeg.funding;
+    if (isFunding) {
+      debugPrint(
+        '[unifier.evidence] rejected refund for ${send.id}: funding leg of '
+        '${byId.orderId}',
+      );
+    }
+    return isFunding;
+  }
+  final byAddress = ev.recordForDepositAddress(send.destination);
+  if (byAddress == null) return false;
+  debugPrint(
+    '[unifier.evidence] rejected refund for ${send.id}: pays deposit address '
+    'of ${byAddress.orderId}',
+  );
+  return true;
 }

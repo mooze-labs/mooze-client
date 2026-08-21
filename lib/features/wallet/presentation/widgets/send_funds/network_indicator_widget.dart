@@ -66,14 +66,12 @@ class NetworkIndicatorWidget extends ConsumerWidget {
 
   IconData _icon(NetworkType type) => switch (type) {
     NetworkType.bitcoin => Icons.link_rounded,
-    NetworkType.lightning => Icons.bolt_rounded,
     NetworkType.liquid => Icons.water_drop_outlined,
     NetworkType.unknown => Icons.error_outline_rounded,
   };
 
   String _label(AppLocalizations t, NetworkType type) => switch (type) {
     NetworkType.bitcoin => t.wallet_send_network_bitcoin,
-    NetworkType.lightning => t.wallet_send_network_lightning,
     NetworkType.liquid => t.wallet_send_network_liquid,
     NetworkType.unknown => t.wallet_send_network_unknown,
   };

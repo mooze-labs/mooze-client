@@ -28,6 +28,7 @@ class SwapDealCard extends StatelessWidget {
   final core.Asset receiveAsset;
   final int? receiveAmountSats;
   final bool isLoadingReceive;
+  final bool isLoadingSend;
 
   /// "You send" / "You receive" labels — supplied by the caller so this
   /// widget stays free of an `AppLocalizations` import dependency.
@@ -53,6 +54,7 @@ class SwapDealCard extends StatelessWidget {
     this.borderColor,
     this.dividerColor,
     this.isLoadingReceive = false,
+    this.isLoadingSend = false,
   });
 
   @override
@@ -111,7 +113,7 @@ class SwapDealCard extends StatelessWidget {
             asset: sendAsset,
             amount: sendAmountText,
             fiat: sendFiat,
-            isShimmer: false,
+            isShimmer: isLoadingSend || sendAmountSats == null,
             isHero: false,
           ),
           const SizedBox(height: 14),

@@ -68,26 +68,23 @@ class NetworkSelector extends ConsumerWidget {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           alignment: Alignment.topCenter,
-          child: isSingleNetwork
-              ? _NetworkInfoRow(
-                  icon: _icon(availableNetworks.first),
-                  label: _label(t, availableNetworks.first),
-                  subtitle: _subtitle(t, availableNetworks.first),
-                )
-              : _NetworkCardGrid(
-                  networks: availableNetworks,
-                  selectedNetwork: selectedNetwork,
-                  onSelect: (network) {
-                    ref.read(selectedReceiveNetworkProvider.notifier).state =
-                        network;
-                    validationController.validateNetwork(network);
-                  },
-                ),
+          child:
+              isSingleNetwork
+                  ? _NetworkInfoRow(
+                    icon: _icon(availableNetworks.first),
+                    label: _label(t, availableNetworks.first),
+                    subtitle: _subtitle(t, availableNetworks.first),
+                  )
+                  : _NetworkCardGrid(
+                    networks: availableNetworks,
+                    selectedNetwork: selectedNetwork,
+                    onSelect: (network) {
+                      ref.read(selectedReceiveNetworkProvider.notifier).state =
+                          network;
+                      validationController.validateNetwork(network);
+                    },
+                  ),
         ),
-        if (selectedNetwork == NetworkType.lightning) ...[
-          const SizedBox(height: 10),
-          _LightningHint(text: t.receive_lightning_amount_required_hint),
-        ],
       ],
     );
   }
@@ -96,7 +93,7 @@ class NetworkSelector extends ConsumerWidget {
     if (asset == null) return [];
     return switch (asset) {
       Asset.btc => [NetworkType.bitcoin],
-      Asset.lbtc => [NetworkType.lightning, NetworkType.liquid],
+      Asset.lbtc => [NetworkType.liquid],
       Asset.usdt => [NetworkType.liquid],
       Asset.depix => [NetworkType.liquid],
     };
@@ -110,21 +107,18 @@ class NetworkSelector extends ConsumerWidget {
 
 String _label(AppLocalizations t, NetworkType n) => switch (n) {
   NetworkType.bitcoin => t.receive_network_label_bitcoin,
-  NetworkType.lightning => t.receive_network_label_lightning,
   NetworkType.liquid => t.receive_network_label_liquid,
   NetworkType.unknown => t.receive_network_unknown,
 };
 
 String _subtitle(AppLocalizations t, NetworkType n) => switch (n) {
   NetworkType.bitcoin => t.receive_network_subtitle_onchain,
-  NetworkType.lightning => t.receive_network_subtitle_instant,
   NetworkType.liquid => t.receive_network_subtitle_private,
   NetworkType.unknown => '',
 };
 
 IconData _icon(NetworkType n) => switch (n) {
   NetworkType.bitcoin => Icons.link_rounded,
-  NetworkType.lightning => Icons.bolt_rounded,
   NetworkType.liquid => Icons.water_drop_outlined,
   NetworkType.unknown => Icons.help_outline_rounded,
 };
@@ -195,13 +189,13 @@ class _NetworkCard extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final borderColor = isSelected
-        ? cs.primary
-        : cs.onSurface.withValues(alpha: 0.08);
+    final borderColor =
+        isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.08);
 
-    final cardBg = isSelected
-        ? cs.primary.withValues(alpha: 0.08)
-        : cs.onSurface.withValues(alpha: 0.05);
+    final cardBg =
+        isSelected
+            ? cs.primary.withValues(alpha: 0.08)
+            : cs.onSurface.withValues(alpha: 0.05);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -209,20 +203,18 @@ class _NetworkCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: borderColor,
-          width: isSelected ? 1.5 : 1,
-        ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: cs.primary.withValues(alpha: 0.18),
-                  blurRadius: 18,
-                  spreadRadius: -2,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
+        border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+        boxShadow:
+            isSelected
+                ? [
+                  BoxShadow(
+                    color: cs.primary.withValues(alpha: 0.18),
+                    blurRadius: 18,
+                    spreadRadius: -2,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+                : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -230,10 +222,7 @@ class _NetworkCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 18,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -282,15 +271,16 @@ class _CardIconBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.08),
         shape: BoxShape.circle,
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: cs.primary.withValues(alpha: 0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        boxShadow:
+            isSelected
+                ? [
+                  BoxShadow(
+                    color: cs.primary.withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+                : null,
       ),
       alignment: Alignment.center,
       child: Icon(
@@ -329,9 +319,7 @@ class _NetworkInfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cs.onSurface.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       child: Row(
         children: [
@@ -365,36 +353,6 @@ class _NetworkInfoRow extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LightningHint extends StatelessWidget {
-  final String text;
-  const _LightningHint({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final warning = context.appColors.warning;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: warning.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline_rounded, color: warning, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.labelMedium?.copyWith(color: warning),
             ),
           ),
         ],

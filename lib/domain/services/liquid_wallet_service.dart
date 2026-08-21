@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../entities/balance.dart';
+import '../entities/liquid_send_draft.dart';
 import '../entities/liquid_utxo.dart';
 import '../failures/failure.dart';
 import 'wallet_service.dart';
@@ -15,10 +16,6 @@ import 'wallet_service.dart';
 /// service that holds the Liquid descriptor private keys — Breez
 /// Liquid SDK doesn't expose raw PSET signing.
 ///
-/// **Liquid sends through Breez vs LWK** — regular Liquid sends still
-/// route through `LightningWalletService` (Breez-backed); LWK is
-/// read-only EXCEPT for swap PSET signing. The split mirrors legacy
-/// behavior: see V2_PHASE2_PARITY_AND_MIGRATION §G7 / Phase 2.5-Liquid.
 abstract interface class LiquidWalletService implements WalletService {
   /// Enumerate the wallet's spendable UTXOs as V2 domain types. Used by
   /// the swap flow to select inputs for SideSwap-style PayJoin
@@ -48,6 +45,18 @@ abstract interface class LiquidWalletService implements WalletService {
   /// is signed by LWK and the receive output has to be derivable from
   /// the same descriptor that produced the signing keys.
   Future<Either<ServiceFailure, String>> getReceiveAddress();
+
+  Future<Either<ServiceFailure, LiquidSendDraft>> buildLbtcSend({
+    required String destination,
+    required BigInt amountSat,
+    double? feeRateSatPerVb,
+    bool drain = false,
+  });
+
+  Future<Either<ServiceFailure, String>> signAndBroadcastPset({
+    required String pset,
+    required String mnemonic,
+  });
 
   /// Re-read LWK's local balance view (`w.balances()`) and update the
   /// cached `_lastBalance` WITHOUT running a full electrum sync. LWK

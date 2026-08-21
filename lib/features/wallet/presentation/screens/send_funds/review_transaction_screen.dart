@@ -224,7 +224,7 @@ class _ReviewTransactionScreenState
 
     final NetworkType networkType = switch (psbt.blockchain) {
       Blockchain.bitcoin => NetworkType.bitcoin,
-      Blockchain.lightning => NetworkType.lightning,
+      Blockchain.lightning => NetworkType.unknown,
       Blockchain.liquid => NetworkType.liquid,
     };
 
@@ -574,7 +574,6 @@ class _HeroCard extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     return switch (n) {
       NetworkType.bitcoin => t.wallet_onchain_network,
-      NetworkType.lightning => t.wallet_send_network_lightning,
       NetworkType.liquid => t.wallet_send_network_liquid,
       NetworkType.unknown => t.wallet_send_network_unknown,
     };

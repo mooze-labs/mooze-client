@@ -10,8 +10,6 @@ final selectedNetworkProvider = Provider<Blockchain>((ref) {
   switch (networkType) {
     case NetworkType.bitcoin:
       return Blockchain.bitcoin;
-    case NetworkType.lightning:
-      return Blockchain.lightning;
     case NetworkType.liquid:
       return Blockchain.liquid;
     case NetworkType.unknown:

@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/swap/domain/repositories/wallet_repository
 import 'package:mooze_mobile/features/swap/domain/entities.dart';
 import '../datasources/sideswap.dart';
 import '../models.dart';
+import 'package:mooze_mobile/shared/concurrency/liquid_spend_coordinator.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class SwapRepositoryImpl implements SwapRepository {
@@ -141,18 +142,31 @@ class SwapRepositoryImpl implements SwapRepository {
     required int quoteId,
     required String pset,
   }) {
-    return liquidWallet
-        .signSwapOperation(pset)
-        .flatMap(
-          (signed) => TaskEither.tryCatch(
-            () async =>
-                await sideswapService.signQuote(quoteId, signed).then((txid) {
-                  if (txid == null) throw 'Falha ao assinar/enviar swap';
-                  return txid;
-                }),
-            (e, _) => e.toString(),
-          ),
+    return TaskEither(() async {
+      try {
+        return await LiquidSpendCoordinator.instance.protect(
+          'sideswap:assetSwap',
+          () =>
+              liquidWallet
+                  .signSwapOperation(pset)
+                  .flatMap(
+                    (signed) => TaskEither<String, String>.tryCatch(
+                      () async => await sideswapService
+                          .signQuote(quoteId, signed)
+                          .then((txid) {
+                            if (txid == null)
+                              throw 'Falha ao assinar/enviar swap';
+                            return txid;
+                          }),
+                      (e, _) => e.toString(),
+                    ),
+                  )
+                  .run(),
         );
+      } on LiquidSpendLockTimeout catch (e) {
+        return left(e.toString());
+      }
+    });
   }
 
   @override

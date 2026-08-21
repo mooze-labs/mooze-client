@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -9,16 +8,19 @@ import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
-import 'package:mooze_mobile/features/swap/presentation/controllers/btc_lbtc_swap_controller.dart';
 import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
+import '../../domain/entities/peg.dart';
+import '../../domain/usecases/peg_orchestrator.dart';
+
 class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
   final bool isPegIn;
-  final BtcLbtcSwapController controller;
-  final Future<void> Function(int? feeRateSatPerVByte, BigInt totalFeeSat)
+  final PegOrchestrator orchestrator;
+
+  final Future<void> Function(int? feeRateSatPerVByte, PegQuote quote)
   onConfirm;
   final VoidCallback? onCancel;
   final bool drain;
@@ -27,7 +29,7 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     super.key,
     required this.amount,
     required this.isPegIn,
-    required this.controller,
+    required this.orchestrator,
     required this.onConfirm,
     this.onCancel,
     this.drain = false,
@@ -37,8 +39,8 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     BuildContext context, {
     required BigInt amount,
     required bool isPegIn,
-    required BtcLbtcSwapController controller,
-    required Future<void> Function(int? feeRateSatPerVByte, BigInt totalFeeSat)
+    required PegOrchestrator orchestrator,
+    required Future<void> Function(int? feeRateSatPerVByte, PegQuote quote)
     onConfirm,
     VoidCallback? onCancel,
     bool drain = false,
@@ -51,12 +53,12 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
           (context) => BtcLbtcConfirmBottomSheet(
             amount: amount,
             isPegIn: isPegIn,
-            controller: controller,
+            orchestrator: orchestrator,
             onConfirm: onConfirm,
             onCancel: onCancel,
             drain: drain,
           ),
-    );
+    ).whenComplete(() => onCancel?.call());
   }
 
   @override
@@ -71,130 +73,60 @@ class _BtcLbtcConfirmBottomSheetState
   bool _feesExpanded = false;
   FeeSpeed _selectedFeeSpeed = FeeSpeed.medium;
   BitcoinFeeEstimate? _feeEstimate;
-  BtcLbtcFeeEstimate? _currentFeeEstimate;
+  PegQuote? _currentQuote;
+  String? _quoteError;
   final _feeService = BitcoinFeeService();
+
+  PegDirection get _direction =>
+      widget.isPegIn ? PegDirection.pegIn : PegDirection.pegOut;
 
   @override
   void initState() {
     super.initState();
-    if (kDebugMode) {
-      print(
-        '[BtcLbtcConfirmBottomSheet] initState - drain: ${widget.drain}, amount: ${widget.amount}',
-      );
-    }
     _loadFeeEstimates();
   }
 
   Future<void> _loadFeeEstimates() async {
-    if (kDebugMode) {
-      print(
-        '[BtcLbtcConfirmBottomSheet] _loadFeeEstimates - drain: ${widget.drain}',
-      );
-    }
+    final bitcoinEstimate =
+        widget.isPegIn ? await _feeService.fetchFeeEstimate() : null;
 
-    final bitcoinEstimate = await _feeService.fetchFeeEstimate();
-
-    if (bitcoinEstimate == null && kDebugMode) {
-      print('[BtcLbtcConfirm] Failed to fetch fee estimates from APIs');
-    }
-
-    final feeRate = bitcoinEstimate?.mediumFeeSatPerVByte;
-    final feeEstimateResult =
-        await widget.controller
-            .prepareFeeEstimate(
-              amount: widget.amount,
-              isPegIn: widget.isPegIn,
-              feeRateSatPerVByte: feeRate,
-              drain: widget.drain,
-            )
-            .run();
-
-    if (mounted) {
-      setState(() {
-        _feeEstimate = bitcoinEstimate;
-        _currentFeeEstimate = feeEstimateResult.fold(
-          (error) {
-            if (kDebugMode) {
-              print('[BtcLbtcConfirm] Error loading fee estimate: $error');
-            }
-            return null;
-          },
-          (estimate) {
-            if (kDebugMode) {
-              print(
-                '[BtcLbtcConfirm] Fee estimate loaded - Boltz: ${estimate.boltzServiceFeeSat}, Network: ${estimate.networkFeeSat}, Total: ${estimate.totalFeeSat}',
-              );
-              if (widget.drain) {
-                print(
-                  '[BtcLbtcConfirm] Drain mode - SDK calculated fees with rate: $feeRate sat/vB',
-                );
-              }
-            }
-
-            return estimate;
-          },
-        );
-        _isLoadingFees = false;
-      });
-    }
+    await _requote(bitcoinEstimate?.mediumFeeSatPerVByte, bitcoinEstimate);
   }
 
   Future<void> _onFeeSpeedChanged(FeeSpeed speed) async {
-    if (kDebugMode) {
-      print(
-        '[BtcLbtcConfirmBottomSheet] _onFeeSpeedChanged - speed: $speed, drain: ${widget.drain}',
-      );
-    }
-
     setState(() {
       _selectedFeeSpeed = speed;
       _isLoadingFees = true;
     });
+    await _requote(_getSelectedFeeRate());
+  }
 
-    final feeRate = _getSelectedFeeRate();
-    if (kDebugMode) {
-      print(
-        '[BtcLbtcConfirmBottomSheet] Selected fee rate: $feeRate sat/vB for speed: $speed',
-      );
-    }
-
-    final feeEstimateResult =
-        await widget.controller
-            .prepareFeeEstimate(
-              amount: widget.amount,
-              isPegIn: widget.isPegIn,
+  Future<void> _requote(int? feeRate, [BitcoinFeeEstimate? estimate]) async {
+    final result =
+        await widget.orchestrator
+            .quote(
+              direction: _direction,
+              amountSat: widget.amount,
               feeRateSatPerVByte: feeRate,
               drain: widget.drain,
             )
             .run();
 
-    if (mounted) {
-      setState(() {
-        _currentFeeEstimate = feeEstimateResult.fold(
-          (error) {
-            if (kDebugMode) {
-              print('[BtcLbtcConfirm] Error updating fee estimate: $error');
-            }
-            return _currentFeeEstimate;
-          },
-          (estimate) {
-            if (kDebugMode) {
-              print(
-                '[BtcLbtcConfirm] Fee estimate updated - Boltz: ${estimate.boltzServiceFeeSat}, Network: ${estimate.networkFeeSat}, Total: ${estimate.totalFeeSat}',
-              );
-              if (widget.drain) {
-                print(
-                  '[BtcLbtcConfirm] Drain mode - SDK recalculated fees with rate: $feeRate sat/vB',
-                );
-              }
-            }
-
-            return estimate;
-          },
-        );
-        _isLoadingFees = false;
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      if (estimate != null) _feeEstimate = estimate;
+      result.match(
+        (error) {
+          _quoteError = error.message;
+          _currentQuote = null;
+        },
+        (quote) {
+          _quoteError = null;
+          _currentQuote = quote;
+        },
+      );
+      _isLoadingFees = false;
+    });
   }
 
   @override
@@ -203,17 +135,18 @@ class _BtcLbtcConfirmBottomSheetState
     final fromAsset = widget.isPegIn ? core.Asset.btc : core.Asset.lbtc;
     final toAsset = widget.isPegIn ? core.Asset.lbtc : core.Asset.btc;
 
-    final boltzFeeSat = _currentFeeEstimate?.boltzServiceFeeSat ?? BigInt.zero;
-    final networkFeeSat = _currentFeeEstimate?.networkFeeSat ?? BigInt.zero;
-    final totalFeeSat = _currentFeeEstimate?.totalFeeSat ?? BigInt.zero;
+    final quote = _currentQuote;
+    final serviceFeeSat = quote?.serviceFeeSat;
+    final networkFeeSat = quote?.networkFeeSat;
+    final totalFeeSat = quote?.totalFeeSat;
 
-    // Deal-card amounts: send is the user's input (known immediately);
-    // receive is send minus total fees, but only once fees have been
-    // estimated. While fees are loading, pass null so the card shimmers
-    // the receive amount — matching the regular confirm sheet's UX.
-    final sendAmountSats = widget.amount.toInt();
-    final receiveAmountSats =
-        _isLoadingFees ? null : (widget.amount - totalFeeSat).toInt();
+    final int? sendAmountSats =
+        quote?.amountSat.toInt() ??
+        (widget.drain ? null : widget.amount.toInt());
+    final receiveAmountSats = quote?.estimatedReceiveSat.toInt();
+
+    final canConfirm =
+        !_isConfirming && !_isLoadingFees && _currentQuote != null;
 
     return PlatformSafeArea(
       child: Container(
@@ -239,56 +172,72 @@ class _BtcLbtcConfirmBottomSheetState
               ),
             ),
             const SizedBox(height: 8),
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  SwapDealCard(
-                    sendAsset: fromAsset,
-                    sendAmountSats: sendAmountSats,
-                    receiveAsset: toAsset,
-                    receiveAmountSats: receiveAmountSats,
-                    isLoadingReceive: _isLoadingFees,
-                    sendLabel: t.swap_you_send,
-                    receiveLabel: t.swap_you_receive,
-                  ),
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  if (_feeEstimate != null) ...[
-                    FeeSpeedSelector(
-                      selectedSpeed: _selectedFeeSpeed,
-                      lowFeeLoading: false,
-                      onSpeedChanged: _onFeeSpeedChanged,
-                      lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
-                      mediumFeeSatPerVByte: _feeEstimate!.mediumFeeSatPerVByte,
-                      fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    SwapDealCard(
+                      sendAsset: fromAsset,
+                      sendAmountSats: sendAmountSats,
+                      receiveAsset: toAsset,
+                      receiveAmountSats: receiveAmountSats,
+                      isLoadingSend: _isLoadingFees || sendAmountSats == null,
+                      isLoadingReceive: _isLoadingFees || quote == null,
+                      sendLabel: t.swap_you_send,
+                      receiveLabel: t.swap_you_receive,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     const Divider(),
-                    const SizedBox(height: 8),
-                  ] else ...[
-                    _buildFeeSpeedSelectorSkeleton(),
                     const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                  ],
+                    if (widget.isPegIn) ...[
+                      if (_feeEstimate != null)
+                        FeeSpeedSelector(
+                          selectedSpeed: _selectedFeeSpeed,
+                          lowFeeLoading: false,
+                          onSpeedChanged: _onFeeSpeedChanged,
+                          lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
+                          mediumFeeSatPerVByte:
+                              _feeEstimate!.mediumFeeSatPerVByte,
+                          fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
+                        )
+                      else
+                        _buildFeeSpeedSelectorSkeleton(),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                    ],
 
-                  _buildFeeBreakdown(
-                    boltzFeeSat: boltzFeeSat,
-                    networkFeeSat: networkFeeSat,
-                    totalFeeSat: totalFeeSat,
-                    isLoading: _isLoadingFees,
-                  ),
-                ],
+                    _buildFeeBreakdown(
+                      serviceFeeSat: serviceFeeSat,
+                      networkFeeSat: networkFeeSat,
+                      totalFeeSat: totalFeeSat,
+                      isLoading: _isLoadingFees || quote == null,
+                    ),
+
+                    if (_quoteError != null) ...[
+                      const SizedBox(height: 12),
+                      _QuoteErrorNotice(message: _quoteError!),
+                    ],
+
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        'Powered by sideswap.io',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: context.colors.textTertiary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
             SlideToConfirmButton(
               text: _isConfirming ? t.common_confirming : t.swap_confirm_title,
               isLoading: _isConfirming || _isLoadingFees,
-              onSlideComplete:
-                  (_isConfirming || _isLoadingFees) ? () {} : _handleConfirm,
+              onSlideComplete: canConfirm ? _handleConfirm : () {},
             ),
             const SizedBox(height: 24),
           ],
@@ -370,9 +319,9 @@ class _BtcLbtcConfirmBottomSheetState
   }
 
   Widget _buildFeeBreakdown({
-    required BigInt boltzFeeSat,
-    required BigInt networkFeeSat,
-    required BigInt totalFeeSat,
+    required BigInt? serviceFeeSat,
+    required BigInt? networkFeeSat,
+    required BigInt? totalFeeSat,
     required bool isLoading,
   }) {
     final t = AppLocalizations.of(context);
@@ -384,12 +333,12 @@ class _BtcLbtcConfirmBottomSheetState
 
     // ── Total fees row (collapsible) ──────────────────────────────────
     // Mirrors `_FeesSection` in `confirm_swap_bottom_sheet.dart`:
-    // one row showing the total, tap to expand → Boltz + Tx breakdown.
+    // one row showing the total, tap to expand → server + tx breakdown.
     // The "sending" / "receiving" rows that used to live here have
     // been removed because the SwapDealCard already surfaces both
     // amounts above this section.
     final Widget totalValue =
-        isLoading
+        (isLoading || totalFeeSat == null)
             ? _ShimmerBlock(width: 80, height: 16)
             : Text(
               formatSats(totalFeeSat),
@@ -402,8 +351,8 @@ class _BtcLbtcConfirmBottomSheetState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Estimate — kept as a small helper because peg swaps take
-        // minutes (unlike Sideswap which is instant), so users still
-        // need this context.
+        // minutes (unlike Sideswap asset swaps which are instant), so
+        // users still need this context.
         Row(
           children: [
             Icon(
@@ -472,14 +421,17 @@ class _BtcLbtcConfirmBottomSheetState
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOutCubic,
                     child:
-                        (_feesExpanded && !isLoading)
+                        (_feesExpanded &&
+                                !isLoading &&
+                                serviceFeeSat != null &&
+                                networkFeeSat != null)
                             ? Padding(
                               padding: const EdgeInsets.only(top: 10, left: 24),
                               child: Column(
                                 children: [
                                   _BreakdownRow(
-                                    label: t.swap_confirm_boltz_fee,
-                                    value: formatSats(boltzFeeSat),
+                                    label: t.swap_confirm_server_fee,
+                                    value: formatSats(serviceFeeSat),
                                   ),
                                   const SizedBox(height: 6),
                                   _BreakdownRow(
@@ -501,6 +453,10 @@ class _BtcLbtcConfirmBottomSheetState
   }
 
   String _getEstimatedTime() {
+    // A peg-out settles once the Liquid deposit confirms — minutes, and it
+    // does not vary with the Bitcoin fee rate the selector controls.
+    if (!widget.isPegIn) return '~10 minutos';
+
     switch (_selectedFeeSpeed) {
       case FeeSpeed.low:
         return '~60+ minutos';
@@ -530,11 +486,14 @@ class _BtcLbtcConfirmBottomSheetState
     setState(() => _isConfirming = true);
 
     try {
-      // SlideToConfirmButton is disabled while `_isLoadingFees` is
-      // true, so `_currentFeeEstimate` is always non-null here in
+      // The slider is inert until a quote exists, so this is non-null in
       // practice. Default to zero just to keep the callback total.
-      final totalFee = _currentFeeEstimate?.totalFeeSat ?? BigInt.zero;
-      await widget.onConfirm(_getSelectedFeeRate(), totalFee);
+      // `canConfirm` gates the slider on a non-null quote, so this cannot be
+      // null here — and if it somehow were, confirming with invented figures
+      // is worse than doing nothing.
+      final quote = _currentQuote;
+      if (quote == null) return;
+      await widget.onConfirm(_getSelectedFeeRate(), quote);
     } finally {
       if (mounted) {
         setState(() => _isConfirming = false);
@@ -543,9 +502,43 @@ class _BtcLbtcConfirmBottomSheetState
   }
 }
 
+/// Inline notice for a failed quote, so the sheet explains itself instead of
+/// sitting with a permanently inert slider.
+class _QuoteErrorNotice extends StatelessWidget {
+  final String message;
+  const _QuoteErrorNotice({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.error.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 16, color: theme.colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Single breakdown row inside the expanded fees panel
-/// ("Boltz fee · 80 sats", "Tx fee · 2,546 sats"). Mirrors `_SubFeeRow`
-/// in the Sideswap confirm sheet.
+/// ("Server fee · 100 sats", "Transaction fee · 26 sats"). Mirrors
+/// `_SubFeeRow` in the Sideswap asset-swap confirm sheet.
 class _BreakdownRow extends StatelessWidget {
   final String label;
   final String value;

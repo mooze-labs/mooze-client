@@ -105,8 +105,6 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
       } catch (e) {
         displayAddress = cleanedData;
       }
-    } else if (cleanedData.startsWith('lightning:')) {
-      displayAddress = cleanedData.replaceFirst('lightning:', '');
     }
 
     ref.read(addressControllerProvider).text = displayAddress;
@@ -141,7 +139,6 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
           newAsset = Asset.btc;
         }
         break;
-      case NetworkType.lightning:
       case NetworkType.liquid:
         if (currentAsset != Asset.lbtc) {
           newAsset = Asset.lbtc;
@@ -212,11 +209,10 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
     final mediaPadding = MediaQuery.of(context).padding;
     final bottomReserve = 240.0 + mediaPadding.bottom;
     const topReserve = kToolbarHeight;
-    final availableForCutout =
-        (constraints.maxHeight - topReserve - bottomReserve).clamp(
-          200.0,
-          double.infinity,
-        );
+    final availableForCutout = (constraints.maxHeight -
+            topReserve -
+            bottomReserve)
+        .clamp(200.0, double.infinity);
     final cutOutSize = _computeCutOutSize(
       BoxConstraints(
         maxWidth: constraints.maxWidth,
@@ -245,11 +241,10 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
   ) {
     final mediaPadding = MediaQuery.of(context).padding;
     final sidePanelWidth = 320.0;
-    final cameraAreaWidth =
-        (constraints.maxWidth - sidePanelWidth - mediaPadding.right).clamp(
-          240.0,
-          double.infinity,
-        );
+    final cameraAreaWidth = (constraints.maxWidth -
+            sidePanelWidth -
+            mediaPadding.right)
+        .clamp(240.0, double.infinity);
     final availableHeight = (constraints.maxHeight - kToolbarHeight).clamp(
       180.0,
       double.infinity,
@@ -261,9 +256,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
     return Row(
       children: [
-        Expanded(
-          child: _buildScannerStack(cutOutSize, cutOutVerticalOffset),
-        ),
+        Expanded(child: _buildScannerStack(cutOutSize, cutOutVerticalOffset)),
         ConstrainedBox(
           constraints: BoxConstraints(maxWidth: sidePanelWidth),
           child: _buildBottomPanel(context),
@@ -290,8 +283,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
 
   Widget _buildFloatingBottomControls(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-      ),
+      decoration: BoxDecoration(),
       child: SafeArea(
         top: false,
         child: Padding(

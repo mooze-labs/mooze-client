@@ -35,35 +35,8 @@ abstract interface class SpendableWalletService {
   /// Build, sign, and broadcast a transaction. Returns once the tx has been
   /// accepted by the network mempool (on-chain) or by the LSP (Lightning).
   Future<Either<ServiceFailure, BroadcastResult>> sendOnchain(
-      SendRequest request);
-}
-
-/// Lightning-specific spendable surface. Two-step (prepare → send) because
-/// the prepare step does the route-probing and amount-resolution work that
-/// the user must review before the payment goes out.
-abstract interface class SpendableLightningService {
-  Future<Either<ServiceFailure, PreparedLightningSend>> prepareSend(
-      LightningSendRequest request);
-
-  Future<Either<ServiceFailure, BroadcastResult>> sendLightning(
-      PreparedLightningSend prepared);
-
-  /// Receive flow: produces a BOLT-11 invoice (or LNURL-pay metadata if the
-  /// SDK supports it). The caller is responsible for displaying the invoice;
-  /// the listener for the eventual settlement is the service's regular
-  /// `transactions` stream.
-  Future<Either<ServiceFailure, ReceiveAddress>> createInvoice({
-    required int amountSat,
-    String? description,
-    Duration? expiry,
-  });
-
-  /// Limits surfaced by the LSP — used by the UI to gate the amount picker.
-  /// Returned as a generic structure so that domain layer doesn't import the
-  /// SDK's `LightningPaymentLimitsResponse` type.
-  Future<Either<ServiceFailure, LightningPaymentLimits>> fetchLightningLimits();
-
-  Future<Either<ServiceFailure, OnchainPaymentLimits>> fetchOnchainLimits();
+    SendRequest request,
+  );
 }
 
 /// Min/max payment range exposed by the LSP for off-chain payments.

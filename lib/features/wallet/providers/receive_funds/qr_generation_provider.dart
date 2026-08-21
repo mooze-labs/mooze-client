@@ -8,7 +8,6 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/n
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
-import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
 /// Coarse grouping of receive-flow failures, kept for logging/telemetry.
@@ -35,11 +34,7 @@ class ReceiveError {
   /// kept for logging. Never shown to the user for [ReceiveErrorCode.connection].
   final String? detail;
 
-  const ReceiveError({
-    required this.code,
-    required this.category,
-    this.detail,
-  });
+  const ReceiveError({required this.code, required this.category, this.detail});
 
   /// Classifies a [WalletError] returned by invoice generation / validation.
   factory ReceiveError.fromWalletError(WalletError error) {
@@ -240,19 +235,6 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
           amount,
           description,
         ),
-        NetworkType.lightning =>
-          amount == null || amount <= 0
-              ? TaskEither<WalletError, QRGenerationState>.left(
-                const WalletError(
-                  WalletErrorType.invalidAmount,
-                  'Amount é obrigatório para Lightning',
-                ),
-              )
-              : _generateLightningPaymentRequest(
-                walletRepository,
-                amount,
-                description,
-              ),
         NetworkType.liquid =>
           asset == Asset.btc
               ? _generateLiquidBitcoinPaymentRequest(
@@ -365,26 +347,6 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
         });
   }
 
-  TaskEither<WalletError, QRGenerationState> _generateLightningPaymentRequest(
-    WalletRepository walletRepository,
-    double amount,
-    String? description,
-  ) {
-    final amountSats = BigInt.from((amount * 100000000).round());
-
-    return walletRepository
-        .createLightningInvoice(amountSats, Option.fromNullable(description))
-        .map((paymentRequest) {
-          final displayAddress = paymentRequest.address;
-
-          return QRGenerationState(
-            isLoading: false,
-            displayAddress: displayAddress,
-            error: null,
-          );
-        });
-  }
-
   TaskEither<WalletError, QRGenerationState>
   _generateLiquidBitcoinPaymentRequest(
     WalletRepository walletRepository,
@@ -439,28 +401,7 @@ class QRGenerationAsyncNotifier extends AsyncNotifier<QRGenerationState> {
     NetworkType network,
   ) async {
     try {
-      final amountSats = BigInt.from((amount * 100000000).round());
-
       switch (network) {
-        case NetworkType.lightning:
-          final lightningLimits = await ref.read(
-            lightningLimitsProvider.future,
-          );
-          if (lightningLimits != null) {
-            if (amountSats < lightningLimits.send.minSat) {
-              return WalletError(
-                WalletErrorType.invalidAmount,
-                'Valor mínimo para Lightning: ${lightningLimits.send.minSat} sats',
-              );
-            }
-            if (amountSats > lightningLimits.send.maxSat) {
-              return WalletError(
-                WalletErrorType.invalidAmount,
-                'Valor máximo para Lightning: ${lightningLimits.send.maxSat} sats',
-              );
-            }
-          }
-          break;
         case NetworkType.bitcoin:
           break;
         case NetworkType.liquid:

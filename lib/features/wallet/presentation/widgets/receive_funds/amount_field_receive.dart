@@ -5,7 +5,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/receive_conversion_widgets.dart';
-import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_controller.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
@@ -101,10 +100,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     // value provider). Listening here — rather than writing to the
     // controller inside build — avoids the rebuild ↔ controller-write
     // oscillation that produced the visible flicker on fiat input.
-    ref.listen<ReceiveConversionType>(receiveConversionTypeProvider, (
-      _,
-      type,
-    ) {
+    ref.listen<ReceiveConversionType>(receiveConversionTypeProvider, (_, type) {
       _syncControllerFromProvider(_readValueForType(type));
     });
     ref.listen<String>(receiveAssetValueProvider, (_, value) {
@@ -135,7 +131,6 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
 
     final currentValue = controller.getCurrentValueForType(conversionType);
 
-    final isRequired = selectedNetwork == NetworkType.lightning;
     final isDisabled = selectedAsset == null || selectedNetwork == null;
     final hasAmountError = validationState.amountError != null;
 
@@ -144,11 +139,11 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
     final showInfo =
         !isDisabled && currentValue.isNotEmpty && btcAmount != null;
 
+    // Lightning was the only receive network that required an amount up
+    // front; with it gone, the amount is always optional.
     final helperText =
         isDisabled
             ? t.receive_amount_helper_disabled
-            : isRequired
-            ? t.receive_amount_helper_lightning
             : t.receive_amount_helper_optional;
 
     return Column(
@@ -158,9 +153,7 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
           decoration: BoxDecoration(
             color: cs.onSurface.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: cs.onSurface.withValues(alpha: 0.08),
-            ),
+            border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
           ),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
           child: Column(
@@ -174,16 +167,6 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (isRequired) ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      '*',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: cs.error,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
                   const Spacer(),
                   ReceiveConversionOptionsRow(selectedAsset: selectedAsset),
                 ],
@@ -198,9 +181,8 @@ class _AmountFieldReceiveState extends ConsumerState<AmountFieldReceive> {
                 enabled: !isDisabled,
                 isError: hasAmountError,
                 isLoadingConversion: isConversionLoading,
-                hintText: conversionType == ReceiveConversionType.fiat
-                    ? '0,00'
-                    : '0',
+                hintText:
+                    conversionType == ReceiveConversionType.fiat ? '0,00' : '0',
                 inputFormatters: _getInputFormatters(
                   selectedAsset,
                   conversionType,
@@ -349,7 +331,8 @@ class _AmountRow extends StatelessWidget {
         // values shrink down to minFontSize. effectiveChars is clamped
         // so a 20-character sats value still gets a font calculation,
         // not a divide-by-tiny.
-        final currentText = controller.text.isEmpty ? hintText : controller.text;
+        final currentText =
+            controller.text.isEmpty ? hintText : controller.text;
         final effectiveChars = currentText.length.clamp(1, 20).toDouble();
 
         final availableRight = (constraints.maxWidth - leftReserved - gap)
@@ -493,7 +476,7 @@ class _UnitColumn extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        
+
         // Text(
         //   asset?.name ?? '',
         //   style: theme.textTheme.labelSmall?.copyWith(
@@ -594,67 +577,9 @@ class _ValidationChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final amountSats = BigInt.from((btcAmount * 100000000).round());
-
     final positive = context.colors.positiveColor;
-    final warning = context.appColors.warning;
-    final negative = context.colors.negativeColor;
-    final muted = context.colors.textSecondary;
 
-    if (network == NetworkType.lightning) {
-      return ref
-          .watch(lightningLimitsProvider)
-          .when(
-            data: (limits) {
-              if (limits == null) {
-                return _Chip(
-                  icon: Icons.warning_amber_outlined,
-                  text: t.receive_lightning_limits_unavailable,
-                  color: warning,
-                );
-              }
-              if (amountSats < limits.receive.minSat) {
-                return _Chip(
-                  icon: Icons.warning_amber_outlined,
-                  text: t.receive_lightning_min_value(
-                    SatsInputFormatter.formatValue(
-                      limits.receive.minSat.toInt(),
-                    ),
-                  ),
-                  color: warning,
-                );
-              } else if (amountSats > limits.receive.maxSat) {
-                return _Chip(
-                  icon: Icons.error_outline_rounded,
-                  text: t.receive_lightning_max_value(
-                    SatsInputFormatter.formatValue(
-                      limits.receive.maxSat.toInt(),
-                    ),
-                  ),
-                  color: negative,
-                );
-              }
-              return _Chip(
-                icon: Icons.check_circle_outline_rounded,
-                text: t.receive_lightning_valid,
-                color: positive,
-              );
-            },
-            loading:
-                () => _Chip(
-                  icon: Icons.hourglass_empty_rounded,
-                  text: t.receive_lightning_limits_loading,
-                  color: muted,
-                  showFill: false,
-                ),
-            error:
-                (_, _) => _Chip(
-                  icon: Icons.error_outline_rounded,
-                  text: t.receive_lightning_limits_error,
-                  color: negative,
-                ),
-          );
-    } else if (network == NetworkType.bitcoin) {
+    if (network == NetworkType.bitcoin) {
       return _Chip(
         icon: Icons.check_circle_outline_rounded,
         text: t.receive_bitcoin_valid,
@@ -675,14 +600,8 @@ class _Chip extends StatelessWidget {
   final IconData icon;
   final String text;
   final Color color;
-  final bool showFill;
 
-  const _Chip({
-    required this.icon,
-    required this.text,
-    required this.color,
-    this.showFill = true,
-  });
+  const _Chip({required this.icon, required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -690,7 +609,7 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: showFill ? color.withValues(alpha: 0.10) : Colors.transparent,
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(

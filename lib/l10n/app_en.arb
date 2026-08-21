@@ -478,7 +478,6 @@
   "receive_qr_title": "Receive Payment",
   "receive_qr_amount_label": "Amount:",
   "receive_qr_description_label": "Description:",
-  "receive_qr_lightning_invoice": "Lightning Invoice",
   "receive_qr_address_title": "Receiving Address",
   "receive_qr_copy_address": "Copy Address",
   "receive_qr_copied": "Copied!",
@@ -492,7 +491,6 @@
   },
   "receive_connection_error": "There was a connection problem. Please try again.",
   "receive_network_bitcoin_onchain": "Bitcoin On-chain",
-  "receive_network_lightning_network": "Lightning Network",
   "receive_network_liquid_network": "Liquid Network",
   "receive_network_unknown": "Unknown",
   "receive_select_asset": "Select an asset",
@@ -507,10 +505,8 @@
       }
     }
   },
-  "receive_lightning_amount_required_hint": "For Lightning, amount is required",
   "receive_select_asset_first": "Select an asset first",
   "receive_network_label_bitcoin": "Bitcoin",
-  "receive_network_label_lightning": "Lightning",
   "receive_network_label_liquid": "Liquid",
   "receive_network_subtitle_onchain": "On-chain",
   "receive_network_subtitle_instant": "Instant",
@@ -519,29 +515,8 @@
   "receive_amount_hint_required": "Enter amount (required)",
   "receive_amount_hint_optional": "Enter amount (optional)",
   "receive_amount_helper_disabled": "Select an asset and network first",
-  "receive_amount_helper_lightning": "Amount required for Lightning",
   "receive_amount_helper_optional": "Amount optional for Bitcoin/Liquid",
   "receive_amount_sats_label": "Amount in Satoshis:",
-  "receive_lightning_limits_unavailable": "Could not load Lightning limits",
-  "receive_lightning_min_value": "Minimum: {amount} sats",
-  "@receive_lightning_min_value": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "receive_lightning_max_value": "Maximum: {amount} sats",
-  "@receive_lightning_max_value": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "receive_lightning_valid": "Valid amount for Lightning",
-  "receive_lightning_limits_loading": "Loading Lightning limits...",
-  "receive_lightning_limits_error": "Error loading Lightning limits",
   "receive_bitcoin_valid": "Valid amount for Bitcoin",
   "receive_liquid_valid": "Valid amount for Liquid",
   "receive_description_label": "Description (optional)",
@@ -651,6 +626,7 @@
   "swap_rate_line": "1 {from} = {rate} {to}",
   "swap_insufficient_balance": "Insufficient balance to perform the swap",
   "swap_updating_quote": "Updating quote...",
+  "swap_amount_bounds": "Min: {min} sats · Max: {max} sats (balance)",
   "swap_min_value_sats": "Minimum value: {sats} sats",
   "swap_min_amount_sats": "Minimum amount is {sats} sats",
   "swap_no_liquidity_title": "No Liquidity",
@@ -885,7 +861,7 @@
   "qr_scanner_searching": "Searching for QR Code...",
   "qr_scanner_found": "QR Code found!",
   "qr_scanner_position_hint": "Position the QR code inside the highlighted area",
-  "qr_scanner_supported_networks": "Bitcoin • Lightning • Liquid",
+  "qr_scanner_supported_networks": "Bitcoin • Liquid",
   "qr_scanner_flash_label": "Flash",
   "qr_scanner_camera_label": "Camera",
   "qr_validation_empty": "Empty QR code",
@@ -898,7 +874,7 @@
   "qr_validation_liquid_format_error": "Error processing Liquid QR: invalid format",
   "qr_validation_bitcoin_invalid": "Invalid Bitcoin address in QR code",
   "qr_validation_bitcoin_format_error": "Error processing Bitcoin QR: invalid format",
-  "qr_validation_lightning_too_short": "Lightning invoice too short",
+  "qr_validation_lightning_unsupported": "Lightning is not supported for sending",
   "qr_validation_lnurl_unsupported": "LNURL not supported. Use walletofsatoshi.com or another compatible provider",
   "qr_validation_invalid_default": "Invalid QR code",
   "tx_sent_title": "Transaction Sent!",
@@ -1531,7 +1507,6 @@
   "wallet_send_lbtc_banner_action": "Get via SWAP",
   "wallet_send_network_unidentified": "Network not identified",
   "wallet_send_network_bitcoin": "Bitcoin On-chain",
-  "wallet_send_network_lightning": "Lightning Network",
   "wallet_send_network_liquid": "Liquid Network",
   "wallet_send_network_unknown": "Unknown network",
   "wallet_send_predefined_label": "Predefined amount",
@@ -1564,8 +1539,6 @@
   "wallet_send_error_insufficient_with_fees": "Insufficient balance. You need {total} sats ({amount} + {fee} {satText} fee), but only {balance} sats are available",
   "wallet_send_error_fee_calc_failed": "Could not calculate fees: {error}",
   "wallet_send_error_validate_balance_fees": "Error validating balance and fees: {error}",
-  "wallet_send_error_min_lightning": "Minimum Lightning amount is {amount} sats",
-  "wallet_send_error_max_lightning": "Maximum Lightning amount is {amount} sats",
   "wallet_send_error_min_usdt": "Minimum USDT amount is 0.5 USDT",
   "wallet_send_error_min_depix": "Minimum Depix amount is 1.0 Depix",
   "wallet_send_error_validate_limits": "Error validating send limits: {error}",

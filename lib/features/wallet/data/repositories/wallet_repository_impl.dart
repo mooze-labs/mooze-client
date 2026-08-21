@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:fpdart/fpdart.dart';
-import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
 import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
 import 'package:mooze_mobile/domain/entities/liquid_utxo.dart' as v2;
 import 'package:mooze_mobile/domain/entities/refund.dart' as v2;
@@ -9,7 +8,6 @@ import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/breez.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
-import 'package:mooze_mobile/features/wallet/domain/entities/payment_limits.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
@@ -17,6 +15,7 @@ import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories.dart';
 import 'package:mooze_mobile/features/wallet/domain/repositories/swap_audit_repository.dart';
 import 'package:mooze_mobile/features/wallet/domain/typedefs.dart';
+import 'package:mooze_mobile/shared/concurrency/liquid_spend_coordinator.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class _TransactionProcessingData {
@@ -317,34 +316,12 @@ class WalletRepositoryImpl extends WalletRepository {
     return fn(_bitcoinWallet!);
   }
 
-  // Helper to get Liquid wallet or return error
-  TaskEither<WalletError, T> _withLiquid<T>(
-    TaskEither<WalletError, T> Function(LiquidWallet) fn,
-  ) {
-    if (_liquidWallet == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Liquid wallet not available'),
-      );
-    }
-    return fn(_liquidWallet!);
-  }
-
   @override
   TaskEither<WalletError, PaymentRequest> createBitcoinInvoice(
     Option<BigInt> amount,
     Option<String> description,
   ) {
     return _withBitcoin((btc) => btc.createBitcoinInvoice(amount, description));
-  }
-
-  @override
-  TaskEither<WalletError, PaymentRequest> createLightningInvoice(
-    BigInt amount,
-    Option<String> description,
-  ) {
-    return _withBreez(
-      (breez) => breez.createLightningInvoice(amount, description),
-    );
   }
 
   @override
@@ -410,26 +387,10 @@ class WalletRepositoryImpl extends WalletRepository {
 
   @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildLightningPaymentTransaction(String destination, BigInt amount) {
-    return _withBreez(
-      (breez) => breez.buildLightningPaymentTransaction(destination, amount),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLiquidBitcoinPaymentTransaction(String destination, BigInt amount) {
     return _withBreez(
       (breez) =>
           breez.buildLiquidBitcoinPaymentTransaction(destination, amount),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
-  buildDrainLightningTransaction(String destination) {
-    return _withBreez(
-      (breez) => breez.buildDrainLightningTransaction(destination),
     );
   }
 
@@ -477,14 +438,38 @@ class WalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, Transaction> sendL2BitcoinPayment(
     PreparedLayer2BitcoinTransaction psbt,
   ) {
-    return _withBreez((breez) => breez.sendL2BitcoinPayment(psbt));
+    return _withLiquidSpendLock(
+      'breez:sendL2Bitcoin',
+      () => _withBreez((breez) => breez.sendL2BitcoinPayment(psbt)),
+    );
   }
 
   @override
   TaskEither<WalletError, Transaction> sendStablecoinPayment(
     PreparedStablecoinTransaction psbt,
   ) {
-    return _withBreez((breez) => breez.sendStablecoinPayment(psbt));
+    return _withLiquidSpendLock(
+      'breez:sendStablecoin',
+      () => _withBreez((breez) => breez.sendStablecoinPayment(psbt)),
+    );
+  }
+
+  TaskEither<WalletError, Transaction> _withLiquidSpendLock(
+    String label,
+    TaskEither<WalletError, Transaction> Function() body,
+  ) {
+    return TaskEither(() async {
+      try {
+        return await LiquidSpendCoordinator.instance.protect(
+          label,
+          () => body().run(),
+        );
+      } on LiquidSpendLockTimeout catch (e) {
+        return left(
+          WalletError(WalletErrorType.transactionFailed, e.toString()),
+        );
+      }
+    });
   }
 
   @override
@@ -797,370 +782,6 @@ class WalletRepositoryImpl extends WalletRepository {
         },
       );
     }
-  }
-
-  @override
-  TaskEither<WalletError, LightningPaymentLimitsResponse>
-  fetchLightningLimits() {
-    return _withBreez((breez) => breez.fetchLightningLimits());
-  }
-
-  @override
-  TaskEither<WalletError, PaymentLimits> fetchOnchainLimits() {
-    return _withBreez(
-      (breez) => breez.fetchOnchainPaymentLimits().map((limits) => limits.$2),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, PaymentLimits> fetchOnchainReceiveLimits() {
-    return _withBreez(
-      (breez) => breez.fetchOnchainPaymentLimits().map((limits) => limits.$1),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, BigInt> preparePegOut({
-    required BigInt receiverAmountSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  }) {
-    return _withBreez(
-      (breez) => breez.preparePegOut(
-        receiverAmountSat: receiverAmountSat,
-        feeRateSatPerVbyte: feeRateSatPerVbyte,
-        drain: drain,
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, Transaction> executePegOut({
-    required String btcAddress,
-    required BigInt receiverAmountSat,
-    required BigInt totalFeesSat,
-    int? feeRateSatPerVbyte,
-    bool drain = false,
-  }) {
-    return _withBreez(
-      (breez) => breez.executePegOut(
-        btcAddress: btcAddress,
-        receiverAmountSat: receiverAmountSat,
-        totalFeesSat: totalFeesSat,
-        feeRateSatPerVbyte: feeRateSatPerVbyte,
-        drain: drain,
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegIn({required BigInt payerAmountSat}) {
-    return _withBreez(
-      (breez) => breez.preparePegIn(payerAmountSat: payerAmountSat),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, ({String bitcoinAddress, BigInt feesSat})>
-  preparePegInWithFees({
-    required BigInt payerAmountSat,
-    int? feeRateSatPerVByte,
-  }) {
-    if (_bitcoinWallet == null || _breezWallet == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Wallet not available'),
-      );
-    }
-
-    final effectiveFeeRate = feeRateSatPerVByte ?? 3;
-
-    return TaskEither.tryCatch(
-      () async {
-        final dummyAddress = _bitcoinWallet!.datasource.wallet.getAddress(
-          addressIndex: bdk.AddressIndex.peek(index: 0),
-        );
-        return dummyAddress.address.toString();
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        'Erro ao obter endereço: $error',
-      ),
-    ).flatMap((dummyAddressStr) {
-      final balance = _bitcoinWallet!.datasource.wallet.getBalance();
-      final estimateAmount =
-          payerAmountSat < balance.spendable ~/ BigInt.from(2)
-              ? payerAmountSat
-              : balance.spendable ~/ BigInt.from(2);
-
-      return _bitcoinWallet!
-          .buildOnchainBitcoinPaymentTransaction(
-            dummyAddressStr,
-            estimateAmount,
-            effectiveFeeRate,
-          )
-          .flatMap((estimatedTx) {
-            final bdkFees = estimatedTx.networkFees;
-
-            final adjustedAmount = payerAmountSat - bdkFees;
-
-            if (adjustedAmount <= BigInt.zero) {
-              return TaskEither<
-                WalletError,
-                ({String bitcoinAddress, BigInt feesSat})
-              >.left(
-                WalletError(
-                  WalletErrorType.insufficientFunds,
-                  'Saldo insuficiente para cobrir as taxas de rede ($bdkFees sats)',
-                ),
-              );
-            }
-
-            return _breezWallet!
-                .preparePegIn(payerAmountSat: adjustedAmount)
-                .map((pegInResult) {
-                  return (
-                    bitcoinAddress: pegInResult.bitcoinAddress,
-                    feesSat: bdkFees,
-                  );
-                });
-          });
-    });
-  }
-
-  @override
-  TaskEither<WalletError, ({BigInt breezFeesSat, BigInt bdkFeesSat})>
-  preparePegInWithFullFees({
-    required BigInt payerAmountSat,
-    int? feeRateSatPerVByte,
-  }) {
-    if (_bitcoinWallet == null || _breezWallet == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Wallet not available'),
-      );
-    }
-
-    final effectiveFeeRate = feeRateSatPerVByte ?? 3;
-
-    if (kDebugMode) {
-      print(
-        '[WalletRepoImpl] preparePegInWithFullFees - amount: $payerAmountSat, feeRate: $effectiveFeeRate sat/vB',
-      );
-    }
-
-    return TaskEither.tryCatch(
-      () async {
-        final dummyAddress = _bitcoinWallet!.datasource.wallet.getAddress(
-          addressIndex: bdk.AddressIndex.peek(index: 0),
-        );
-        return dummyAddress.address.toString();
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        'Erro ao obter endereço: $error',
-      ),
-    ).flatMap((dummyAddressStr) {
-      final balance = _bitcoinWallet!.datasource.wallet.getBalance();
-      final estimateAmount =
-          payerAmountSat < balance.spendable ~/ BigInt.from(2)
-              ? payerAmountSat
-              : balance.spendable ~/ BigInt.from(2);
-
-      return _bitcoinWallet!
-          .buildOnchainBitcoinPaymentTransaction(
-            dummyAddressStr,
-            estimateAmount,
-            effectiveFeeRate,
-          )
-          .flatMap((estimatedTx) {
-            final bdkFees = estimatedTx.networkFees;
-
-            final adjustedAmount = payerAmountSat - bdkFees;
-
-            if (adjustedAmount <= BigInt.zero) {
-              return TaskEither<
-                WalletError,
-                ({BigInt breezFeesSat, BigInt bdkFeesSat})
-              >.left(
-                WalletError(
-                  WalletErrorType.insufficientFunds,
-                  'Saldo insuficiente para cobrir as taxas de rede ($bdkFees sats)',
-                ),
-              );
-            }
-
-            return _breezWallet!
-                .preparePegIn(payerAmountSat: adjustedAmount)
-                .map((pegInResult) {
-                  return (
-                    breezFeesSat: pegInResult.feesSat,
-                    bdkFeesSat: bdkFees,
-                  );
-                });
-          });
-    });
-  }
-
-  @override
-  TaskEither<WalletError, Transaction> executePegIn({
-    required BigInt amount,
-    int? feeRateSatPerVByte,
-    bool drain = false,
-  }) {
-    if (_bitcoinWallet == null || _breezWallet == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Wallet not available'),
-      );
-    }
-
-    final effectiveFeeRate = feeRateSatPerVByte ?? 3;
-
-    if (drain) {
-      return _executeDrainPegIn(effectiveFeeRate);
-    }
-
-    return _executeNormalPegIn(amount, effectiveFeeRate);
-  }
-
-  TaskEither<WalletError, Transaction> _executeNormalPegIn(
-    BigInt amount,
-    int effectiveFeeRate,
-  ) {
-    if (kDebugMode) {
-      print(
-        '[WalletRepoImpl] ExecutePegIn (normal) - amount total: $amount sats, feeRate: $effectiveFeeRate sat/vB',
-      );
-    }
-
-    return TaskEither.tryCatch(
-      () async {
-        final dummyAddress = _bitcoinWallet!.datasource.wallet.getAddress(
-          addressIndex: bdk.AddressIndex.peek(index: 0),
-        );
-        return dummyAddress.address.toString();
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        'Erro ao obter endereço dummy: $error',
-      ),
-    ).flatMap((dummyAddressStr) {
-      final balance = _bitcoinWallet!.datasource.wallet.getBalance().spendable;
-      final estimateAmount =
-          amount < balance ~/ BigInt.from(2)
-              ? amount
-              : balance ~/ BigInt.from(2);
-
-      return _bitcoinWallet!
-          .buildOnchainBitcoinPaymentTransaction(
-            dummyAddressStr,
-            estimateAmount,
-            effectiveFeeRate,
-          )
-          .flatMap((estimatedTx) {
-            final bdkFee = estimatedTx.networkFees;
-            final payerAmountSat = amount - bdkFee;
-
-            if (payerAmountSat <= BigInt.zero) {
-              return TaskEither<WalletError, Transaction>.left(
-                WalletError(
-                  WalletErrorType.insufficientFunds,
-                  'Saldo insuficiente para cobrir as taxas de rede '
-                  '($bdkFee sats)',
-                ),
-              );
-            }
-
-            return _breezWallet!
-                .preparePegIn(payerAmountSat: payerAmountSat)
-                .flatMap((pegInResult) {
-                  final cleanAddress = _cleanBitcoinAddress(
-                    pegInResult.bitcoinAddress,
-                  );
-                  return _bitcoinWallet!
-                      .buildOnchainBitcoinPaymentTransaction(
-                        cleanAddress,
-                        payerAmountSat,
-                        effectiveFeeRate,
-                      )
-                      .flatMap((preparedTx) {
-                        return _bitcoinWallet!.sendOnchainBitcoinPayment(
-                          preparedTx,
-                        );
-                      });
-                });
-          });
-    });
-  }
-
-  TaskEither<WalletError, Transaction> _executeDrainPegIn(
-    int effectiveFeeRate,
-  ) {
-    final balance = _bitcoinWallet!.datasource.wallet.getBalance().spendable;
-
-    if (balance <= BigInt.zero) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.insufficientFunds, 'Saldo insuficiente'),
-      );
-    }
-
-    return _breezWallet!.preparePegIn(payerAmountSat: balance).flatMap((
-      provisionalSwap,
-    ) {
-      final provisionalAddress = _cleanBitcoinAddress(
-        provisionalSwap.bitcoinAddress,
-      );
-
-      return _bitcoinWallet!
-          .buildDrainOnchainBitcoinTransaction(
-            provisionalAddress,
-            feeRateSatPerVbyte: effectiveFeeRate,
-          )
-          .flatMap((drainEstimate) {
-            final networkFee = drainEstimate.networkFees;
-            final exactOutput = balance - networkFee;
-
-            if (exactOutput <= BigInt.zero) {
-              return TaskEither<WalletError, Transaction>.left(
-                WalletError(
-                  WalletErrorType.insufficientFunds,
-                  'Saldo insuficiente para cobrir as taxas de rede '
-                  '($networkFee sats)',
-                ),
-              );
-            }
-
-            return _breezWallet!
-                .preparePegIn(payerAmountSat: exactOutput)
-                .flatMap((definitivePegIn) {
-                  final swapAddress = _cleanBitcoinAddress(
-                    definitivePegIn.bitcoinAddress,
-                  );
-
-                  return _bitcoinWallet!
-                      .buildDrainOnchainBitcoinTransaction(
-                        swapAddress,
-                        feeRateSatPerVbyte: effectiveFeeRate,
-                      )
-                      .flatMap((drainTx) {
-                        return _bitcoinWallet!.sendOnchainBitcoinPayment(
-                          drainTx,
-                        );
-                      });
-                });
-          });
-    });
-  }
-
-  String _cleanBitcoinAddress(String address) {
-    String clean = address;
-    if (clean.startsWith('bitcoin:')) {
-      clean = clean.substring(8);
-      final queryIndex = clean.indexOf('?');
-      if (queryIndex != -1) {
-        clean = clean.substring(0, queryIndex);
-      }
-    }
-    return clean;
   }
 
   @override

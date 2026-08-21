@@ -1383,9 +1383,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get receive_qr_description_label => 'Descrição:';
 
   @override
-  String get receive_qr_lightning_invoice => 'Lightning Invoice';
-
-  @override
   String get receive_qr_address_title => 'Endereço de Recebimento';
 
   @override
@@ -1405,9 +1402,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get receive_network_bitcoin_onchain => 'Bitcoin On-chain';
-
-  @override
-  String get receive_network_lightning_network => 'Lightning Network';
 
   @override
   String get receive_network_liquid_network => 'Liquid Network';
@@ -1434,17 +1428,10 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get receive_lightning_amount_required_hint =>
-      'Para Lightning, o valor é obrigatório';
-
-  @override
   String get receive_select_asset_first => 'Selecione um ativo primeiro';
 
   @override
   String get receive_network_label_bitcoin => 'Bitcoin';
-
-  @override
-  String get receive_network_label_lightning => 'Lightning';
 
   @override
   String get receive_network_label_liquid => 'Liquid';
@@ -1472,40 +1459,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Selecione um ativo e rede primeiro';
 
   @override
-  String get receive_amount_helper_lightning =>
-      'Valor obrigatório para Lightning';
-
-  @override
   String get receive_amount_helper_optional =>
       'Valor opcional para Bitcoin/Liquid';
 
   @override
   String get receive_amount_sats_label => 'Valor em Satoshis:';
-
-  @override
-  String get receive_lightning_limits_unavailable =>
-      'Não foi possível carregar limites Lightning';
-
-  @override
-  String receive_lightning_min_value(String amount) {
-    return 'Valor mínimo: $amount sats';
-  }
-
-  @override
-  String receive_lightning_max_value(String amount) {
-    return 'Valor máximo: $amount sats';
-  }
-
-  @override
-  String get receive_lightning_valid => 'Valor válido para Lightning';
-
-  @override
-  String get receive_lightning_limits_loading =>
-      'Carregando limites Lightning...';
-
-  @override
-  String get receive_lightning_limits_error =>
-      'Erro ao carregar limites Lightning';
 
   @override
   String get receive_bitcoin_valid => 'Valor válido para Bitcoin';
@@ -1857,6 +1815,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get swap_updating_quote => 'Atualizando cotação...';
+
+  @override
+  String swap_amount_bounds(Object max, Object min) {
+    return 'Mín: $min sats · Máx: $max sats (saldo)';
+  }
 
   @override
   String swap_min_value_sats(String sats) {
@@ -2465,7 +2428,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Posicione o QR code dentro da área destacada';
 
   @override
-  String get qr_scanner_supported_networks => 'Bitcoin • Lightning • Liquid';
+  String get qr_scanner_supported_networks => 'Bitcoin • Liquid';
 
   @override
   String get qr_scanner_flash_label => 'Flash';
@@ -2511,8 +2474,8 @@ class AppLocalizationsPt extends AppLocalizations {
       'Erro ao processar QR Bitcoin: formato inválido';
 
   @override
-  String get qr_validation_lightning_too_short =>
-      'Lightning invoice muito curto';
+  String get qr_validation_lightning_unsupported =>
+      'Lightning não é suportado para envio';
 
   @override
   String get qr_validation_lnurl_unsupported =>
@@ -4305,9 +4268,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_send_network_bitcoin => 'Bitcoin On-chain';
 
   @override
-  String get wallet_send_network_lightning => 'Lightning Network';
-
-  @override
   String get wallet_send_network_liquid => 'Liquid Network';
 
   @override
@@ -4435,16 +4395,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String wallet_send_error_validate_balance_fees(String error) {
     return 'Erro ao validar saldo e taxas: $error';
-  }
-
-  @override
-  String wallet_send_error_min_lightning(int amount) {
-    return 'Valor mínimo para lightning é $amount sats';
-  }
-
-  @override
-  String wallet_send_error_max_lightning(int amount) {
-    return 'Valor máximo para lightning é $amount sats';
   }
 
   @override

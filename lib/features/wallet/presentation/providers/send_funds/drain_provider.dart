@@ -41,9 +41,13 @@ final drainTransactionProvider =
                   .buildDrainOnchainBitcoinTransaction(destination)
                   .run();
             case Blockchain.lightning:
-              return await repository
-                  .buildDrainLightningTransaction(destination)
-                  .run();
+              // Unreachable: Lightning is no longer an offered send network.
+              return left(
+                const WalletError(
+                  WalletErrorType.transactionFailed,
+                  'Lightning não é suportado para envio',
+                ),
+              );
             case Blockchain.liquid:
               return await repository
                   .buildDrainLiquidBitcoinTransaction(destination)

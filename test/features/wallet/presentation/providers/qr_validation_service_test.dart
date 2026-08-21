@@ -12,7 +12,7 @@ void main() {
         final result = QrValidationService.validateQrData(invoice);
 
         expect(result.isValid, true);
-        expect(result.errorMessage, isNull);
+        expect(result.errorCode, isNull);
         expect(result.cleanedData, invoice);
       });
 
@@ -24,17 +24,17 @@ void main() {
         final result = QrValidationService.validateQrData(invoice);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('BOLTZ'));
-        expect(result.errorMessage, contains('sem valor'));
+        expect(result.errorCode, QrValidationErrorCode.boltzNoAmount);
       });
 
-      test('should handle short invoice', () {
+      test('should reject short invoice as unsupported Lightning', () {
+        // Curto demais para a heuristica BOLTZ, cai na rejeicao de Lightning
         const invoice = 'lnbc1p0xlkhkpp5test';
 
         final result = QrValidationService.validateQrData(invoice);
 
-        // Short invoices are accepted but may not have amount
-        expect(result.isValid, true);
+        expect(result.isValid, false);
+        expect(result.errorCode, QrValidationErrorCode.lightningUnsupported);
       });
     });
 
@@ -45,8 +45,10 @@ void main() {
         final result = QrValidationService.validateQrData(address);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('símbolos especiais'));
-        expect(result.errorMessage, contains('₿'));
+        expect(
+          result.errorCode,
+          QrValidationErrorCode.lightningUnsupportedSymbols,
+        );
       });
 
       test('should reject Lightning address with # symbol', () {
@@ -55,7 +57,10 @@ void main() {
         final result = QrValidationService.validateQrData(address);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('símbolos especiais'));
+        expect(
+          result.errorCode,
+          QrValidationErrorCode.lightningUnsupportedSymbols,
+        );
       });
 
       test('should reject Lightning address with \$ symbol', () {
@@ -64,7 +69,10 @@ void main() {
         final result = QrValidationService.validateQrData(address);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('símbolos especiais'));
+        expect(
+          result.errorCode,
+          QrValidationErrorCode.lightningUnsupportedSymbols,
+        );
       });
     });
 
@@ -75,17 +83,19 @@ void main() {
         final result = QrValidationService.validateQrData(address);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('BIP 353'));
-        expect(result.errorMessage, contains('não é suportado'));
+        expect(
+          result.errorCode,
+          QrValidationErrorCode.lnurlBip353Unsupported,
+        );
       });
 
-      test('should accept walletofsatoshi.com LNURL', () {
+      test('should reject walletofsatoshi.com LNURL', () {
         const address = 'user@walletofsatoshi.com';
 
         final result = QrValidationService.validateQrData(address);
 
-        expect(result.isValid, true);
-        expect(result.cleanedData, address);
+        expect(result.isValid, false);
+        expect(result.errorCode, QrValidationErrorCode.lnurlUnsupported);
       });
 
       test('should reject generic LNURL with @ (not walletofsatoshi)', () {
@@ -94,7 +104,10 @@ void main() {
         final result = QrValidationService.validateQrData(address);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('suportado'));
+        expect(
+          result.errorCode,
+          QrValidationErrorCode.lnurlBip353Unsupported,
+        );
       });
     });
 
@@ -134,7 +147,7 @@ void main() {
         final result = QrValidationService.validateQrData(liquidBip21);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('Endereço Liquid inválido'));
+        expect(result.errorCode, QrValidationErrorCode.liquidInvalid);
       });
 
       test('should accept liquid: prefix', () {
@@ -173,33 +186,29 @@ void main() {
         final result = QrValidationService.validateQrData(bitcoinBip21);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('Endereço Bitcoin inválido'));
+        expect(result.errorCode, QrValidationErrorCode.bitcoinInvalid);
       });
     });
 
     group('Lightning Invoice Validation', () {
-      test('should accept valid Lightning invoice', () {
+      test('should reject Lightning invoice', () {
         const invoice =
             'lnbc10u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm';
 
         final result = QrValidationService.validateQrData(invoice);
 
-        expect(result.isValid, true);
-        expect(result.cleanedData, invoice);
+        expect(result.isValid, false);
+        expect(result.errorCode, QrValidationErrorCode.lightningUnsupported);
       });
 
-      test('should accept Lightning invoice with lightning: prefix', () {
+      test('should reject Lightning invoice with lightning: prefix', () {
         const invoice =
             'lightning:lnbc10u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm';
 
         final result = QrValidationService.validateQrData(invoice);
 
-        expect(result.isValid, true);
-        // The service removes the lightning: prefix
-        expect(
-          result.cleanedData,
-          'lnbc10u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm',
-        );
+        expect(result.isValid, false);
+        expect(result.errorCode, QrValidationErrorCode.lightningUnsupported);
       });
 
       test('should reject very short Lightning invoice', () {
@@ -208,7 +217,7 @@ void main() {
         final result = QrValidationService.validateQrData(invoice);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('muito curto'));
+        expect(result.errorCode, QrValidationErrorCode.lightningUnsupported);
       });
     });
 
@@ -263,7 +272,7 @@ void main() {
         final result = QrValidationService.validateQrData(data);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('vazio'));
+        expect(result.errorCode, QrValidationErrorCode.empty);
       });
 
       test('should reject unrecognized format', () {
@@ -272,7 +281,7 @@ void main() {
         final result = QrValidationService.validateQrData(data);
 
         expect(result.isValid, false);
-        expect(result.errorMessage, contains('não reconhecido'));
+        expect(result.errorCode, QrValidationErrorCode.unrecognized);
       });
     });
   });

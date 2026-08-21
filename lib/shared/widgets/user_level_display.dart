@@ -246,6 +246,7 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _scrollToCurrentLevel();
       _progressAnimationController.forward();
       _highlightAnimationController.repeat(reverse: true);

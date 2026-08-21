@@ -32,10 +32,9 @@ class LiquidWalletRepositoryImpl implements SwapWallet {
         (err) => Either.left(err.toString()),
         (utxos) {
           final assetId = Asset.toId(asset);
-          final filteredUtxos = utxos
-              .where((u) => u.assetId == assetId)
-              .toList()
-            ..sort((a, b) => a.valueSat.compareTo(b.valueSat));
+          final filteredUtxos =
+              utxos.where((u) => u.assetId == assetId).toList()
+                ..sort((a, b) => a.valueSat.compareTo(b.valueSat));
 
           final selectedUtxos = <SwapUtxo>[];
           var remaining = amount;

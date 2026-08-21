@@ -341,10 +341,7 @@ class SwapController extends StateNotifier<SwapState> {
       markets: marketsRes.getOrElse((_) => []),
       error:
           upstreamErr != null
-              ? SwapError(
-                code: SwapErrorCode.upstream,
-                rawMessage: upstreamErr,
-              )
+              ? SwapError(code: SwapErrorCode.upstream, rawMessage: upstreamErr)
               : null,
     );
   }
@@ -450,10 +447,7 @@ class SwapController extends StateNotifier<SwapState> {
         () {
           if (!mounted) return;
           if (state.status != QuoteStatus.refreshing) return;
-          _log.warning(
-            _tag,
-            'Soft-refresh stalled — surfacing manual retry',
-          );
+          _log.warning(_tag, 'Soft-refresh stalled — surfacing manual retry');
           state = state.copyWith(status: QuoteStatus.stale);
         },
       );
@@ -707,7 +701,8 @@ class SwapController extends StateNotifier<SwapState> {
     // the active cycle even if `normalizeSwapParams` is unavailable.
     final emissionBase = quote.baseAssetId;
     final emissionQuote = quote.quoteAssetId;
-    final pairMatches = emissionBase != null &&
+    final pairMatches =
+        emissionBase != null &&
         emissionQuote != null &&
         ((emissionBase == sendAsset && emissionQuote == receiveAsset) ||
             (emissionBase == receiveAsset && emissionQuote == sendAsset));
@@ -716,9 +711,9 @@ class SwapController extends StateNotifier<SwapState> {
       _log.debug(
         _tag,
         'Dropped stale stream emission: pair='
-            '${quote.baseAssetId}/${quote.quoteAssetId}, '
-            'amount=${quote.requestedAmount} '
-            '(intent: $sendAsset→$receiveAsset, ${amount.toInt()})',
+        '${quote.baseAssetId}/${quote.quoteAssetId}, '
+        'amount=${quote.requestedAmount} '
+        '(intent: $sendAsset→$receiveAsset, ${amount.toInt()})',
       );
       return;
     }
@@ -759,7 +754,8 @@ class SwapController extends StateNotifier<SwapState> {
       //     giving up. The UI stays in shimmer the whole time
       //     so the user doesn't see error flashes for what is
       //     essentially a reconnect cycle.
-      final isTransient = lower.contains('tempo limite') ||
+      final isTransient =
+          lower.contains('tempo limite') ||
           lower.contains('timeout') ||
           lower.contains('timed out') ||
           lower.contains('tiempo límite') ||
@@ -768,7 +764,8 @@ class SwapController extends StateNotifier<SwapState> {
           lower.contains('connection error') ||
           lower.contains('disconnected');
       if (isTransient) {
-        final hasWorkingSubscription = state.status == QuoteStatus.valid ||
+        final hasWorkingSubscription =
+            state.status == QuoteStatus.valid ||
             state.status == QuoteStatus.refreshing;
         if (hasWorkingSubscription) {
           _log.debug(
@@ -795,10 +792,7 @@ class SwapController extends StateNotifier<SwapState> {
           lower.contains('matching orders')) {
         swapErr = const SwapError(code: SwapErrorCode.noLiquidity);
       } else {
-        swapErr = SwapError(
-          code: SwapErrorCode.upstream,
-          rawMessage: rawMsg,
-        );
+        swapErr = SwapError(code: SwapErrorCode.upstream, rawMessage: rawMsg);
       }
     }
 
@@ -816,9 +810,10 @@ class SwapController extends StateNotifier<SwapState> {
     // Cap displayed TTL — honor a shorter server TTL but clamp any
     // longer one down to _maxDisplayTtlMs so the confirmation
     // countdown stays tight.
-    final ttlMs = rawTtlMs == null
-        ? null
-        : (rawTtlMs > _maxDisplayTtlMs ? _maxDisplayTtlMs : rawTtlMs);
+    final ttlMs =
+        rawTtlMs == null
+            ? null
+            : (rawTtlMs > _maxDisplayTtlMs ? _maxDisplayTtlMs : rawTtlMs);
     final newQuote = quote.quote;
     final prevQuote = state.currentQuote?.quote;
 
@@ -834,7 +829,8 @@ class SwapController extends StateNotifier<SwapState> {
     // and volatile pairs.
     final isWithinLockWindow =
         _ttlDeadline != null && DateTime.now().isBefore(_ttlDeadline!);
-    final isRollingRefresh = swapErr == null &&
+    final isRollingRefresh =
+        swapErr == null &&
         newQuote != null &&
         prevQuote != null &&
         isWithinLockWindow &&
@@ -855,7 +851,8 @@ class SwapController extends StateNotifier<SwapState> {
     // Our soft-expiry handler left displayedQuote on screen but
     // flipped status to `refreshing`. The first push after that
     // becomes the new locked quote and we re-arm the countdown.
-    final isPromotingFromRefreshing = swapErr == null &&
+    final isPromotingFromRefreshing =
+        swapErr == null &&
         newQuote != null &&
         state.status == QuoteStatus.refreshing;
 
@@ -865,9 +862,7 @@ class SwapController extends StateNotifier<SwapState> {
       // Successful promotion ends the auto-retry cycle.
       _consecutiveStartupTimeouts = 0;
       if (ttlMs != null) {
-        _ttlDeadline = DateTime.now().add(
-          Duration(milliseconds: ttlMs),
-        );
+        _ttlDeadline = DateTime.now().add(Duration(milliseconds: ttlMs));
       }
       _log.debug(
         _tag,
@@ -924,9 +919,10 @@ class SwapController extends StateNotifier<SwapState> {
     // transient error doesn't reset the displayed quote.
     final QuoteStatus nextStatus;
     if (swapErr != null) {
-      nextStatus = state.status == QuoteStatus.fetching
-          ? QuoteStatus.idle
-          : state.status;
+      nextStatus =
+          state.status == QuoteStatus.fetching
+              ? QuoteStatus.idle
+              : state.status;
     } else if (newQuote != null) {
       nextStatus = QuoteStatus.valid;
     } else {
@@ -1090,7 +1086,9 @@ class SwapController extends StateNotifier<SwapState> {
     final sendId = state.lastSendAssetId;
     final receiveId = state.lastReceiveAssetId;
     final amount = state.lastAmount;
-    if (sendId == null || receiveId == null || amount == null ||
+    if (sendId == null ||
+        receiveId == null ||
+        amount == null ||
         amount <= BigInt.zero) {
       _log.warning(_tag, 'requestFreshQuote: missing context — aborting');
       return;

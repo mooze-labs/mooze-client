@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-
 class NoLiquidityDialog extends StatelessWidget {
   const NoLiquidityDialog({super.key, this.onRetry});
 
@@ -37,11 +36,7 @@ class NoLiquidityDialog extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: warning.withValues(alpha: 0.2),
               ),
-              child: Icon(
-                Icons.water_drop_outlined,
-                size: 40,
-                color: warning,
-              ),
+              child: Icon(Icons.water_drop_outlined, size: 40, color: warning),
             ),
             const SizedBox(height: 20),
             Text(

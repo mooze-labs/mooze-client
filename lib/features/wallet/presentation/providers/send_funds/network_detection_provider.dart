@@ -1,10 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 
-enum NetworkType { bitcoin, lightning, liquid, unknown }
+enum NetworkType { bitcoin, liquid, unknown }
 
 class NetworkDetectionService {
   static const _tag = 'NetworkDetection';
+
+  static bool isLightningAddress(String address) {
+    final a = address.trim().toLowerCase();
+    if (a.isEmpty) return false;
+    return a.startsWith('lnbc') ||
+        a.startsWith('lntb') ||
+        a.startsWith('lnbcrt') ||
+        a.startsWith('lightning:') ||
+        a.startsWith('lnurl') ||
+        // Lightning Address (user@domain) — never a chain address.
+        RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(a);
+  }
 
   static NetworkType detectNetworkType(String address) {
     final log = AppLoggerService();
@@ -14,16 +26,13 @@ class NetworkDetectionService {
       return NetworkType.unknown;
     }
 
-    // Lightning Network detection
-    if (address.toLowerCase().startsWith('lnbc') ||
-        address.toLowerCase().startsWith('lightning:') ||
-        address.toLowerCase().startsWith('lnurl') ||
-        address.toLowerCase().contains('@')) {
+    if (isLightningAddress(address)) {
       log.debug(
         _tag,
-        'Detected: Lightning — prefix: ${address.substring(0, address.length.clamp(0, 10))}',
+        'Rejected: Lightning is not a supported destination — prefix: '
+        '${address.substring(0, address.length.clamp(0, 10))}',
       );
-      return NetworkType.lightning;
+      return NetworkType.unknown;
     }
 
     // Liquid Network detection

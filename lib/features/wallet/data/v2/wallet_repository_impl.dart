@@ -8,8 +8,6 @@ import '../../../../domain/entities/broadcast_result.dart';
 import '../../../../domain/entities/chain.dart';
 import '../../../../domain/entities/fee_estimate.dart';
 import '../../../../domain/entities/liquid_utxo.dart';
-import '../../../../domain/entities/payment_limits.dart';
-import '../../../../domain/entities/peg.dart';
 import '../../../../domain/entities/receive_address.dart';
 import '../../../../domain/entities/refund.dart';
 import '../../../../domain/entities/send_request.dart';
@@ -52,11 +50,15 @@ class WalletRepositoryImpl implements WalletRepository {
       transactionStore.watch(filter: filter);
 
   @override
-  Future<Either<Failure, List<Transaction>>> listTransactions(
-      {ChainFilter? filter, int? limit}) async {
+  Future<Either<Failure, List<Transaction>>> listTransactions({
+    ChainFilter? filter,
+    int? limit,
+  }) async {
     final r = await transactionStore.list(filter: filter, limit: limit);
-    return r.fold((f) => Left<Failure, List<Transaction>>(f),
-        (xs) => Right<Failure, List<Transaction>>(xs));
+    return r.fold(
+      (f) => Left<Failure, List<Transaction>>(f),
+      (xs) => Right<Failure, List<Transaction>>(xs),
+    );
   }
 
   @override
@@ -68,12 +70,9 @@ class WalletRepositoryImpl implements WalletRepository {
     for (final s in services) {
       if (!s.currentState.isOperational) continue;
       final r = await s.getBalance();
-      r.match(
-        (f) {
-          firstError ??= f;
-        },
-        (b) => assets.addAll(b.assets),
-      );
+      r.match((f) {
+        firstError ??= f;
+      }, (b) => assets.addAll(b.assets));
     }
 
     if (assets.isEmpty && firstError != null) {
@@ -92,7 +91,8 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, Map<Asset, BigInt>>> balanceMap(
-      List<Asset> assets) async {
+    List<Asset> assets,
+  ) async {
     final perChain = await _fetchPerChainSnapshots();
     final out = <Asset, BigInt>{};
     Failure? firstFailure;
@@ -123,10 +123,7 @@ class WalletRepositoryImpl implements WalletRepository {
       if (disposed) return;
       final r = await balanceFor(asset);
       if (disposed || controller.isClosed) return;
-      r.match(
-        (_) => controller.add(BigInt.zero),
-        (v) => controller.add(v),
-      );
+      r.match((_) => controller.add(BigInt.zero), (v) => controller.add(v));
     }
 
     void scheduleEmit() {
@@ -141,7 +138,9 @@ class WalletRepositoryImpl implements WalletRepository {
       if (trigger != null) {
         sub = trigger.listen(
           (_) => scheduleEmit(),
-          onError: (_) {/* upstream errors don't kill the balance stream */},
+          onError: (_) {
+            /* upstream errors don't kill the balance stream */
+          },
         );
       }
     };
@@ -165,13 +164,16 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, FeeEstimate>> estimateLiquidSend(
-      SendRequest request) async {
+    SendRequest request,
+  ) async {
     if (request.chain != ChainId.liquid) {
-      return Left(ServiceFailure(
-        'estimateLiquidSend requires chain == liquid (got: '
-        '${request.chain.name})',
-        chain: ChainId.liquid,
-      ));
+      return Left(
+        ServiceFailure(
+          'estimateLiquidSend requires chain == liquid (got: '
+          '${request.chain.name})',
+          chain: ChainId.liquid,
+        ),
+      );
     }
     final r = await lightning.estimateFee(request);
     return r.fold(
@@ -197,12 +199,15 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, BroadcastResult>> sendLiquid(
-      SendRequest request) async {
+    SendRequest request,
+  ) async {
     if (request.chain != ChainId.liquid) {
-      return Left(ServiceFailure(
-        'sendLiquid requires chain == liquid (got: ${request.chain.name})',
-        chain: ChainId.liquid,
-      ));
+      return Left(
+        ServiceFailure(
+          'sendLiquid requires chain == liquid (got: ${request.chain.name})',
+          chain: ChainId.liquid,
+        ),
+      );
     }
     final r = await lightning.sendOnchain(request);
     return r.fold(
@@ -219,13 +224,16 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, FeeEstimate>> estimateBitcoinSend(
-      SendRequest request) async {
+    SendRequest request,
+  ) async {
     if (request.chain != ChainId.bitcoin) {
-      return Left(ServiceFailure(
-        'estimateBitcoinSend requires chain == bitcoin (got: '
-        '${request.chain.name})',
-        chain: ChainId.bitcoin,
-      ));
+      return Left(
+        ServiceFailure(
+          'estimateBitcoinSend requires chain == bitcoin (got: '
+          '${request.chain.name})',
+          chain: ChainId.bitcoin,
+        ),
+      );
     }
     final r = await bitcoin.estimateFee(request);
     return r.fold(
@@ -247,12 +255,15 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, BroadcastResult>> sendBitcoin(
-      SendRequest request) async {
+    SendRequest request,
+  ) async {
     if (request.chain != ChainId.bitcoin) {
-      return Left(ServiceFailure(
-        'sendBitcoin requires chain == bitcoin (got: ${request.chain.name})',
-        chain: ChainId.bitcoin,
-      ));
+      return Left(
+        ServiceFailure(
+          'sendBitcoin requires chain == bitcoin (got: ${request.chain.name})',
+          chain: ChainId.bitcoin,
+        ),
+      );
     }
     final r = await bitcoin.sendOnchain(request);
     return r.fold(
@@ -261,60 +272,12 @@ class WalletRepositoryImpl implements WalletRepository {
     );
   }
 
-  // ─────────────────────────────────────────── send / receive (Lightning)
-  //
-  // All three Lightning entry points delegate to the Breez-backed
-  // `lightning` service. The service implements both
-  // `SpendableLightningService` (prepare/send/createInvoice) and the
-  // Liquid spendable surface — the V2 model treats Lightning as a rail
-  // on top of the unified Liquid balance, NOT a separate balance domain.
-
-  @override
-  Future<Either<Failure, PreparedLightningSend>> prepareLightningSend(
-      LightningSendRequest request) async {
-    final r = await lightning.prepareSend(request);
-    return r.fold(
-      (f) => Left<Failure, PreparedLightningSend>(f),
-      (p) => Right<Failure, PreparedLightningSend>(p),
-    );
-  }
-
-  @override
-  Future<Either<Failure, BroadcastResult>> sendLightning(
-      PreparedLightningSend prepared) async {
-    final r = await lightning.sendLightning(prepared);
-    return r.fold(
-      (f) => Left<Failure, BroadcastResult>(f),
-      (b) => Right<Failure, BroadcastResult>(b),
-    );
-  }
-
-  @override
-  Future<Either<Failure, ReceiveAddress>> createLightningInvoice({
-    required int amountSat,
-    String? description,
-    Duration? expiry,
-  }) async {
-    final r = await lightning.createInvoice(
-      amountSat: amountSat,
-      description: description,
-      expiry: expiry,
-    );
-    return r.fold(
-      (f) => Left<Failure, ReceiveAddress>(f),
-      (a) => Right<Failure, ReceiveAddress>(a),
-    );
-  }
-
   // ─────────────────────────────────────────── chain metadata
 
   @override
   Future<Either<Failure, int>> getCurrentBitcoinBlockHeight() async {
     final r = await bitcoin.getBlockHeight();
-    return r.fold(
-      (f) => Left<Failure, int>(f),
-      (h) => Right<Failure, int>(h),
-    );
+    return r.fold((f) => Left<Failure, int>(f), (h) => Right<Failure, int>(h));
   }
 
   // ─────────────────────────────────────────── refund surface
@@ -355,7 +318,8 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, PrepareRefundOutcome>> prepareRefund(
-      PrepareRefundParams params) async {
+    PrepareRefundParams params,
+  ) async {
     final r = await lightning.prepareRefund(params);
     return r.fold(
       (f) => Left<Failure, PrepareRefundOutcome>(f),
@@ -365,7 +329,8 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, RefundOutcome>> executeRefund(
-      ExecuteRefundParams params) async {
+    ExecuteRefundParams params,
+  ) async {
     final r = await lightning.executeRefund(params);
     return r.fold(
       (f) => Left<Failure, RefundOutcome>(f),
@@ -406,150 +371,6 @@ class WalletRepositoryImpl implements WalletRepository {
     return r.fold(
       (f) => Left<Failure, String>(f),
       (a) => Right<Failure, String>(a),
-    );
-  }
-
-  // ─────────────────────────────────────────── payment limits
-  //
-  // Single normalised shape over Lightning, Liquid, and Bitcoin. Lightning
-  // and Liquid go through the LSP-aware Breez service; Bitcoin returns
-  // sensible network defaults (BDK has no SDK-level limits API — there is
-  // only network dust on the low end and balance on the high end, which
-  // is the caller's concern).
-
-  @override
-  Future<Either<Failure, PaymentLimits>> fetchLimits(ChainId chain) async {
-    switch (chain) {
-      case ChainId.lightning:
-        final r = await lightning.fetchLightningLimits();
-        return r.fold(
-          (f) => Left<Failure, PaymentLimits>(f),
-          (l) => Right<Failure, PaymentLimits>(PaymentLimits(
-            chain: ChainId.lightning,
-            sendMinSat: l.minSendSat,
-            sendMaxSat: l.maxSendSat,
-            receiveMinSat: l.minReceiveSat,
-            receiveMaxSat: l.maxReceiveSat,
-          )),
-        );
-      case ChainId.liquid:
-        final r = await lightning.fetchOnchainLimits();
-        return r.fold(
-          (f) => Left<Failure, PaymentLimits>(f),
-          (l) => Right<Failure, PaymentLimits>(PaymentLimits(
-            chain: ChainId.liquid,
-            sendMinSat: l.minSendSat,
-            sendMaxSat: l.maxSendSat,
-            receiveMinSat: l.minReceiveSat,
-            receiveMaxSat: l.maxReceiveSat,
-          )),
-        );
-      case ChainId.bitcoin:
-        // BDK has no LSP — limits are network-level only. Dust = 546 sats
-        // (post-segwit-output threshold); upper bound is effectively
-        // unbounded from the SDK's view (caller gates on balance).
-        return Right(const PaymentLimits(
-          chain: ChainId.bitcoin,
-          sendMinSat: 546,
-          sendMaxSat: 0x7FFFFFFFFFFFFFFF,
-          receiveMinSat: null,
-          receiveMaxSat: null,
-        ));
-      case ChainId.aggregate:
-        return Left(ServiceFailure(
-          'fetchLimits requires a specific chain (got: aggregate)',
-          chain: chain,
-        ));
-    }
-  }
-
-  // ─────────────────────────────────────────── peg-in / peg-out
-  //
-  // Cross-stack balance transitions. Peg-in spans both services — Breez
-  // allocates a one-time BTC deposit address, BDK builds + signs +
-  // broadcasts the funding tx. Peg-out is Breez-end-to-end. All four
-  // entry points are stateless: `execute` re-derives state from the
-  // canonical request, no opaque prepared tokens round-trip through UI.
-
-  @override
-  Future<Either<Failure, PegInQuote>> preparePegIn(PegInRequest request) async {
-    final depositResult = await lightning.preparePegInDeposit(
-      payerAmountSat: request.payerAmountSat,
-    );
-    return depositResult.match(
-      (f) async => Left<Failure, PegInQuote>(f),
-      (deposit) async {
-        // Estimate the BDK-side fee for funding the deposit address. We
-        // re-use the SendRequest shape so drain semantics + fee-rate
-        // override flow through the same validation as a normal Bitcoin
-        // send.
-        final fundingRequest = SendRequest(
-          chain: ChainId.bitcoin,
-          destination: deposit.bitcoinAddress,
-          amountSat: request.payerAmountSat,
-          drain: request.drain,
-          feeRateOverrideSatPerVByte: request.feeRateSatPerVByte,
-        );
-        final feeResult = await bitcoin.estimateFee(fundingRequest);
-        return feeResult.fold(
-          (f) => Left<Failure, PegInQuote>(f),
-          (fee) => Right<Failure, PegInQuote>(PegInQuote(
-            bitcoinAddress: deposit.bitcoinAddress,
-            payerAmountSat: request.payerAmountSat,
-            breezFeesSat: deposit.breezFeesSat,
-            bdkFeesSat: fee.absoluteFeeSat,
-            totalFeesSat: deposit.breezFeesSat + fee.absoluteFeeSat,
-          )),
-        );
-      },
-    );
-  }
-
-  @override
-  Future<Either<Failure, BroadcastResult>> executePegIn(
-      PegInRequest request) async {
-    // Allocate a fresh deposit address (Breez addresses are one-time —
-    // we can't reuse the prepare-step address). Rest of the orchestration
-    // mirrors the prepare path but commits the BDK send.
-    final depositResult = await lightning.preparePegInDeposit(
-      payerAmountSat: request.payerAmountSat,
-    );
-    return depositResult.match(
-      (f) async => Left<Failure, BroadcastResult>(f),
-      (deposit) async {
-        final fundingRequest = SendRequest(
-          chain: ChainId.bitcoin,
-          destination: deposit.bitcoinAddress,
-          amountSat: request.payerAmountSat,
-          drain: request.drain,
-          feeRateOverrideSatPerVByte: request.feeRateSatPerVByte,
-        );
-        final sendResult = await bitcoin.sendOnchain(fundingRequest);
-        return sendResult.fold(
-          (f) => Left<Failure, BroadcastResult>(f),
-          (b) => Right<Failure, BroadcastResult>(b),
-        );
-      },
-    );
-  }
-
-  @override
-  Future<Either<Failure, PegOutQuote>> preparePegOut(
-      PegOutRequest request) async {
-    final r = await lightning.preparePegOut(request);
-    return r.fold(
-      (f) => Left<Failure, PegOutQuote>(f),
-      (q) => Right<Failure, PegOutQuote>(q),
-    );
-  }
-
-  @override
-  Future<Either<Failure, BroadcastResult>> executePegOut(
-      PegOutRequest request) async {
-    final r = await lightning.executePegOut(request);
-    return r.fold(
-      (f) => Left<Failure, BroadcastResult>(f),
-      (b) => Right<Failure, BroadcastResult>(b),
     );
   }
 
@@ -616,8 +437,7 @@ class WalletRepositoryImpl implements WalletRepository {
   /// Pull the amount for [asset] from a chain-specific balance snapshot.
   /// Returns null when the asset is not represented on that chain (so the
   /// caller can try the next priority chain).
-  BigInt? _extractAssetAmount(
-      Balance balance, Asset asset, ChainId fromChain) {
+  BigInt? _extractAssetAmount(Balance balance, Asset asset, ChainId fromChain) {
     if (asset.isNativeBitcoin) {
       // BTC: sum entries on the bitcoin chain. The V2 BDK service emits a
       // single asset with `assetId == null`; if multiple were ever emitted
@@ -671,9 +491,9 @@ class _PerChainSnapshots {
   final Either<Failure, Balance>? lightning;
 
   Either<Failure, Balance>? forChain(ChainId chain) => switch (chain) {
-        ChainId.bitcoin => bitcoin,
-        ChainId.liquid => liquid,
-        ChainId.lightning => lightning,
-        ChainId.aggregate => null,
-      };
+    ChainId.bitcoin => bitcoin,
+    ChainId.liquid => liquid,
+    ChainId.lightning => lightning,
+    ChainId.aggregate => null,
+  };
 }

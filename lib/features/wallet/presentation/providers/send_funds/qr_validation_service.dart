@@ -13,7 +13,7 @@ enum QrValidationErrorCode {
   liquidFormatError,
   bitcoinInvalid,
   bitcoinFormatError,
-  lightningTooShort,
+  lightningUnsupported,
   lnurlUnsupported,
 }
 
@@ -60,8 +60,8 @@ class QrValidationResult {
         return t.qr_validation_bitcoin_invalid;
       case QrValidationErrorCode.bitcoinFormatError:
         return t.qr_validation_bitcoin_format_error;
-      case QrValidationErrorCode.lightningTooShort:
-        return t.qr_validation_lightning_too_short;
+      case QrValidationErrorCode.lightningUnsupported:
+        return t.qr_validation_lightning_unsupported;
       case QrValidationErrorCode.lnurlUnsupported:
         return t.qr_validation_lnurl_unsupported;
       case null:
@@ -251,9 +251,7 @@ class QrValidationService {
 
       // Validate that we have a proper address path
       if (uri.path.isEmpty) {
-        return QrValidationResult.invalid(
-          QrValidationErrorCode.bitcoinInvalid,
-        );
+        return QrValidationResult.invalid(QrValidationErrorCode.bitcoinInvalid);
       }
 
       return QrValidationResult.valid(data);
@@ -266,35 +264,13 @@ class QrValidationService {
 
   /// Validates Lightning invoice
   static QrValidationResult _validateLightningInvoice(String invoice) {
-    if (invoice.length < 10) {
-      return QrValidationResult.invalid(
-        QrValidationErrorCode.lightningTooShort,
-      );
-    }
-
-    // Strip lightning: prefix if present
-    String cleanInvoice = invoice;
-    if (invoice.toLowerCase().startsWith('lightning:')) {
-      cleanInvoice = invoice.substring(10);
-    }
-
-    return QrValidationResult.valid(cleanInvoice);
+    return QrValidationResult.invalid(
+      QrValidationErrorCode.lightningUnsupported,
+    );
   }
 
   /// Validates LNURL
   static QrValidationResult _validateLnurl(String lnurl) {
-    // Check for supported LNURL providers
-    final lower = lnurl.toLowerCase();
-
-    if (lower.contains('@walletofsatoshi.com')) {
-      return QrValidationResult.valid(lnurl);
-    }
-
-    // Generic LNURL might work
-    if (lower.startsWith('lnurl') && !lower.contains('@')) {
-      return QrValidationResult.valid(lnurl);
-    }
-
     return QrValidationResult.invalid(QrValidationErrorCode.lnurlUnsupported);
   }
 
