@@ -215,12 +215,21 @@ class AmountDetectionService {
         }
       }
 
-      // Determine asset from address format
+      // Determine asset from the URI scheme or the address format.
+      // Strip the BIP21 scheme first, because a scheme hides the address
+      // prefix that identifies the network.
       Asset asset = Asset.btc;
-      if (baseAddress.startsWith('lq1') ||
-          baseAddress.startsWith('VJL') ||
-          baseAddress.startsWith('VT') ||
-          baseAddress.startsWith('VG')) {
+      final lowerBase = baseAddress.toLowerCase();
+      final schemeIndex = baseAddress.indexOf(':');
+      final bareAddress =
+          schemeIndex >= 0 ? baseAddress.substring(schemeIndex + 1) : baseAddress;
+
+      if (lowerBase.startsWith('liquidnetwork:') ||
+          lowerBase.startsWith('liquid:') ||
+          bareAddress.startsWith('lq1') ||
+          bareAddress.startsWith('VJL') ||
+          bareAddress.startsWith('VT') ||
+          bareAddress.startsWith('VG')) {
         asset = Asset.lbtc; // Liquid Network
       }
 
