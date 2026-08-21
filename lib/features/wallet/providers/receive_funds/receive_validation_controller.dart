@@ -5,7 +5,6 @@ import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_re
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/shared/prices/providers/price_service_provider.dart';
-import 'package:mooze_mobile/features/wallet/providers/payment_limits_provider.dart';
 
 enum AmountDisplayMode { fiat, bitcoin, selectedAsset }
 
@@ -80,17 +79,6 @@ class ReceiveValidationController
         return;
       }
 
-      if (network == NetworkType.lightning &&
-          (state.amountValue == null || state.amountValue! <= 0)) {
-        state = state.copyWith(
-          selectedAsset: asset,
-          selectedNetwork: network,
-          isValid: false,
-          amountError: 'Amount é obrigatório para Lightning',
-        );
-        return;
-      }
-
       final isValid = await _checkIfValid(
         state.amountValue,
         asset,
@@ -118,16 +106,7 @@ class ReceiveValidationController
     String? errorMessage;
 
     try {
-      if (network == NetworkType.lightning) {
-        if (amount == null || amount <= 0) {
-          errorMessage = 'Amount é obrigatório para Lightning';
-        } else {
-          final btcAmount = await _convertToBitcoin(amount, displayMode);
-          if (btcAmount < 0.000001) {
-            errorMessage = 'Valor mínimo: 100 sats (0.000001 BTC)';
-          }
-        }
-      } else if (network == NetworkType.bitcoin) {
+      if (network == NetworkType.bitcoin) {
         // Sem validações pois é onchain
       } else if (amount != null) {
         final btcAmount = await _convertToBitcoin(amount, displayMode);
@@ -278,12 +257,7 @@ class ReceiveValidationController
 
     state = state.copyWith(selectedNetwork: network, isValid: isValid);
 
-    if (network == NetworkType.lightning && amount == null) {
-      state = state.copyWith(
-        amountError: 'Amount é obrigatório para Lightning',
-        isValid: false,
-      );
-    } else if (network == NetworkType.liquid && asset != null) {
+    if (network == NetworkType.liquid && asset != null) {
       state = state.copyWith(isValid: true, amountError: null);
     }
   }
@@ -299,15 +273,6 @@ class ReceiveValidationController
 
       if (network == null) return false;
 
-      if (network == NetworkType.lightning) {
-        if (amount == null || amount <= 0) return false;
-
-        final btcAmount = await _convertToBitcoin(amount, displayMode);
-        if (btcAmount < 0.000001) return false;
-
-        return await _checkDynamicLimits(amount, network, displayMode);
-      }
-
       if (network == NetworkType.bitcoin) {
         return true;
       }
@@ -319,32 +284,6 @@ class ReceiveValidationController
       return true;
     } catch (e) {
       return false;
-    }
-  }
-
-  Future<bool> _checkDynamicLimits(
-    double amount,
-    NetworkType network,
-    AmountDisplayMode displayMode,
-  ) async {
-    try {
-      final btcAmount = await _convertToBitcoin(amount, displayMode);
-      final amountSats = BigInt.from((btcAmount * 100000000).round());
-
-      if (network == NetworkType.lightning) {
-        final lightningLimits = await ref.read(lightningLimitsProvider.future);
-        if (lightningLimits != null) {
-          return amountSats >= lightningLimits.send.minSat &&
-              amountSats <= lightningLimits.send.maxSat;
-        }
-        return true;
-      } else if (network == NetworkType.bitcoin) {
-        return true;
-      }
-
-      return true;
-    } catch (e) {
-      return true;
     }
   }
 
