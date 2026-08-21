@@ -68,7 +68,6 @@ class _AddressFieldState extends ConsumerState<AddressField> {
       case NetworkType.bitcoin:
         if (currentAsset != Asset.btc) newAsset = Asset.btc;
         break;
-      case NetworkType.lightning:
       case NetworkType.liquid:
       case NetworkType.unknown:
         break;
