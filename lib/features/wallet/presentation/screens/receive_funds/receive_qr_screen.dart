@@ -121,10 +121,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final t = AppLocalizations.of(context);
-    final isLightning = widget.network == NetworkType.lightning;
-    final title = isLightning
-        ? t.receive_qr_lightning_invoice
-        : t.receive_qr_address_title;
+    final title = t.receive_qr_address_title;
 
     return Container(
       width: double.infinity,
@@ -138,11 +135,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
         children: [
           Row(
             children: [
-              _IconChip(
-                icon: isLightning
-                    ? Icons.bolt_rounded
-                    : Icons.link_rounded,
-              ),
+              const _IconChip(icon: Icons.link_rounded),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -206,9 +199,7 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
 
   Future<void> _shareAddress() async {
     HapticFeedback.selectionClick();
-    await SharePlus.instance.share(
-      ShareParams(text: _getCleanAddress()),
-    );
+    await SharePlus.instance.share(ShareParams(text: _getCleanAddress()));
   }
 
   String _getCleanAddress() {
@@ -219,7 +210,6 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
     final t = AppLocalizations.of(context);
     return switch (widget.network) {
       NetworkType.bitcoin => t.receive_network_bitcoin_onchain,
-      NetworkType.lightning => t.receive_network_lightning_network,
       NetworkType.liquid => t.receive_network_liquid_network,
       NetworkType.unknown => t.receive_network_unknown,
     };
@@ -302,9 +292,8 @@ class _AmountSide extends StatelessWidget {
     final theme = Theme.of(context);
     final isBtcLike = asset == Asset.btc || asset == Asset.lbtc;
     final assetStr = _formatAssetAmount(amount, isBtcLike);
-    final satsStr = isBtcLike
-        ? _formatSats((amount * 100000000).round())
-        : null;
+    final satsStr =
+        isBtcLike ? _formatSats((amount * 100000000).round()) : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -423,17 +412,18 @@ class _DescriptionExpandableState extends State<_DescriptionExpandable> {
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
                 alignment: Alignment.topCenter,
-                child: _expanded
-                    ? Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          widget.text,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            height: 1.35,
+                child:
+                    _expanded
+                        ? Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            widget.text,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              height: 1.35,
+                            ),
                           ),
-                        ),
-                      )
-                    : const SizedBox(width: double.infinity),
+                        )
+                        : const SizedBox(width: double.infinity),
               ),
             ],
           ),
@@ -456,9 +446,10 @@ class _SoftHairline extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     return Container(
       height: 1,
-      color: isDark
-          ? theme.colorScheme.outlineVariant.withValues(alpha: 0.25)
-          : theme.colorScheme.outline.withValues(alpha: 0.25),
+      color:
+          isDark
+              ? theme.colorScheme.outlineVariant.withValues(alpha: 0.25)
+              : theme.colorScheme.outline.withValues(alpha: 0.25),
     );
   }
 }
@@ -548,31 +539,31 @@ class _CopyButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            boxShadow: isCopied
-                ? null
-                : [
-                    BoxShadow(
-                      color: cs.primary.withValues(alpha: 0.25),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+            boxShadow:
+                isCopied
+                    ? null
+                    : [
+                      BoxShadow(
+                        color: cs.primary.withValues(alpha: 0.25),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
           ),
           alignment: Alignment.center,
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
-            transitionBuilder: (child, anim) => FadeTransition(
-              opacity: anim,
-              child: ScaleTransition(scale: anim, child: child),
-            ),
+            transitionBuilder:
+                (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: ScaleTransition(scale: anim, child: child),
+                ),
             child: Row(
               key: ValueKey(isCopied),
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isCopied
-                      ? Icons.check_rounded
-                      : Icons.copy_rounded,
+                  isCopied ? Icons.check_rounded : Icons.copy_rounded,
                   size: 18,
                   color: fg,
                 ),
@@ -615,9 +606,10 @@ class _ShareIconButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark
-                  ? cs.outlineVariant.withValues(alpha: 0.45)
-                  : cs.outline.withValues(alpha: 0.45),
+              color:
+                  isDark
+                      ? cs.outlineVariant.withValues(alpha: 0.45)
+                      : cs.outline.withValues(alpha: 0.45),
             ),
           ),
           alignment: Alignment.center,
