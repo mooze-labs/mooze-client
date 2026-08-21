@@ -1374,9 +1374,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receive_qr_description_label => 'Description:';
 
   @override
-  String get receive_qr_lightning_invoice => 'Lightning Invoice';
-
-  @override
   String get receive_qr_address_title => 'Receiving Address';
 
   @override
@@ -1396,9 +1393,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receive_network_bitcoin_onchain => 'Bitcoin On-chain';
-
-  @override
-  String get receive_network_lightning_network => 'Lightning Network';
 
   @override
   String get receive_network_liquid_network => 'Liquid Network';
@@ -1426,17 +1420,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get receive_lightning_amount_required_hint =>
-      'For Lightning, amount is required';
-
-  @override
   String get receive_select_asset_first => 'Select an asset first';
 
   @override
   String get receive_network_label_bitcoin => 'Bitcoin';
-
-  @override
-  String get receive_network_label_lightning => 'Lightning';
 
   @override
   String get receive_network_label_liquid => 'Liquid';
@@ -1464,37 +1451,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select an asset and network first';
 
   @override
-  String get receive_amount_helper_lightning => 'Amount required for Lightning';
-
-  @override
   String get receive_amount_helper_optional =>
       'Amount optional for Bitcoin/Liquid';
 
   @override
   String get receive_amount_sats_label => 'Amount in Satoshis:';
-
-  @override
-  String get receive_lightning_limits_unavailable =>
-      'Could not load Lightning limits';
-
-  @override
-  String receive_lightning_min_value(String amount) {
-    return 'Minimum: $amount sats';
-  }
-
-  @override
-  String receive_lightning_max_value(String amount) {
-    return 'Maximum: $amount sats';
-  }
-
-  @override
-  String get receive_lightning_valid => 'Valid amount for Lightning';
-
-  @override
-  String get receive_lightning_limits_loading => 'Loading Lightning limits...';
-
-  @override
-  String get receive_lightning_limits_error => 'Error loading Lightning limits';
 
   @override
   String get receive_bitcoin_valid => 'Valid amount for Bitcoin';
@@ -1842,6 +1803,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swap_updating_quote => 'Updating quote...';
+
+  @override
+  String swap_amount_bounds(Object max, Object min) {
+    return 'Min: $min sats · Max: $max sats (balance)';
+  }
 
   @override
   String swap_min_value_sats(String sats) {
@@ -2448,7 +2414,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Position the QR code inside the highlighted area';
 
   @override
-  String get qr_scanner_supported_networks => 'Bitcoin • Lightning • Liquid';
+  String get qr_scanner_supported_networks => 'Bitcoin • Liquid';
 
   @override
   String get qr_scanner_flash_label => 'Flash';
@@ -2494,7 +2460,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Error processing Bitcoin QR: invalid format';
 
   @override
-  String get qr_validation_lightning_too_short => 'Lightning invoice too short';
+  String get qr_validation_lightning_unsupported =>
+      'Lightning is not supported for sending';
 
   @override
   String get qr_validation_lnurl_unsupported =>
@@ -4271,9 +4238,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallet_send_network_bitcoin => 'Bitcoin On-chain';
 
   @override
-  String get wallet_send_network_lightning => 'Lightning Network';
-
-  @override
   String get wallet_send_network_liquid => 'Liquid Network';
 
   @override
@@ -4401,16 +4365,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String wallet_send_error_validate_balance_fees(String error) {
     return 'Error validating balance and fees: $error';
-  }
-
-  @override
-  String wallet_send_error_min_lightning(int amount) {
-    return 'Minimum Lightning amount is $amount sats';
-  }
-
-  @override
-  String wallet_send_error_max_lightning(int amount) {
-    return 'Maximum Lightning amount is $amount sats';
   }
 
   @override

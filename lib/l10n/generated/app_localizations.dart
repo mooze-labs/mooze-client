@@ -2548,12 +2548,6 @@ abstract class AppLocalizations {
   /// **'Descrição:'**
   String get receive_qr_description_label;
 
-  /// No description provided for @receive_qr_lightning_invoice.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lightning Invoice'**
-  String get receive_qr_lightning_invoice;
-
   /// No description provided for @receive_qr_address_title.
   ///
   /// In pt, this message translates to:
@@ -2589,12 +2583,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Bitcoin On-chain'**
   String get receive_network_bitcoin_onchain;
-
-  /// No description provided for @receive_network_lightning_network.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lightning Network'**
-  String get receive_network_lightning_network;
 
   /// No description provided for @receive_network_liquid_network.
   ///
@@ -2638,12 +2626,6 @@ abstract class AppLocalizations {
   /// **'{name} suporta apenas rede Liquid'**
   String receive_asset_hint_liquid_only(String name);
 
-  /// No description provided for @receive_lightning_amount_required_hint.
-  ///
-  /// In pt, this message translates to:
-  /// **'Para Lightning, o valor é obrigatório'**
-  String get receive_lightning_amount_required_hint;
-
   /// No description provided for @receive_select_asset_first.
   ///
   /// In pt, this message translates to:
@@ -2655,12 +2637,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Bitcoin'**
   String get receive_network_label_bitcoin;
-
-  /// No description provided for @receive_network_label_lightning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lightning'**
-  String get receive_network_label_lightning;
 
   /// No description provided for @receive_network_label_liquid.
   ///
@@ -2710,12 +2686,6 @@ abstract class AppLocalizations {
   /// **'Selecione um ativo e rede primeiro'**
   String get receive_amount_helper_disabled;
 
-  /// No description provided for @receive_amount_helper_lightning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor obrigatório para Lightning'**
-  String get receive_amount_helper_lightning;
-
   /// No description provided for @receive_amount_helper_optional.
   ///
   /// In pt, this message translates to:
@@ -2727,42 +2697,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Valor em Satoshis:'**
   String get receive_amount_sats_label;
-
-  /// No description provided for @receive_lightning_limits_unavailable.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível carregar limites Lightning'**
-  String get receive_lightning_limits_unavailable;
-
-  /// No description provided for @receive_lightning_min_value.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor mínimo: {amount} sats'**
-  String receive_lightning_min_value(String amount);
-
-  /// No description provided for @receive_lightning_max_value.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor máximo: {amount} sats'**
-  String receive_lightning_max_value(String amount);
-
-  /// No description provided for @receive_lightning_valid.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor válido para Lightning'**
-  String get receive_lightning_valid;
-
-  /// No description provided for @receive_lightning_limits_loading.
-  ///
-  /// In pt, this message translates to:
-  /// **'Carregando limites Lightning...'**
-  String get receive_lightning_limits_loading;
-
-  /// No description provided for @receive_lightning_limits_error.
-  ///
-  /// In pt, this message translates to:
-  /// **'Erro ao carregar limites Lightning'**
-  String get receive_lightning_limits_error;
 
   /// No description provided for @receive_bitcoin_valid.
   ///
@@ -3417,6 +3351,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Atualizando cotação...'**
   String get swap_updating_quote;
+
+  /// No description provided for @swap_amount_bounds.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mín: {min} sats · Máx: {max} sats (saldo)'**
+  String swap_amount_bounds(Object max, Object min);
 
   /// No description provided for @swap_min_value_sats.
   ///
@@ -4489,7 +4429,7 @@ abstract class AppLocalizations {
   /// No description provided for @qr_scanner_supported_networks.
   ///
   /// In pt, this message translates to:
-  /// **'Bitcoin • Lightning • Liquid'**
+  /// **'Bitcoin • Liquid'**
   String get qr_scanner_supported_networks;
 
   /// No description provided for @qr_scanner_flash_label.
@@ -4564,11 +4504,11 @@ abstract class AppLocalizations {
   /// **'Erro ao processar QR Bitcoin: formato inválido'**
   String get qr_validation_bitcoin_format_error;
 
-  /// No description provided for @qr_validation_lightning_too_short.
+  /// No description provided for @qr_validation_lightning_unsupported.
   ///
   /// In pt, this message translates to:
-  /// **'Lightning invoice muito curto'**
-  String get qr_validation_lightning_too_short;
+  /// **'Lightning não é suportado para envio'**
+  String get qr_validation_lightning_unsupported;
 
   /// No description provided for @qr_validation_lnurl_unsupported.
   ///
@@ -7720,12 +7660,6 @@ abstract class AppLocalizations {
   /// **'Bitcoin On-chain'**
   String get wallet_send_network_bitcoin;
 
-  /// No description provided for @wallet_send_network_lightning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lightning Network'**
-  String get wallet_send_network_lightning;
-
   /// No description provided for @wallet_send_network_liquid.
   ///
   /// In pt, this message translates to:
@@ -7923,18 +7857,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Erro ao validar saldo e taxas: {error}'**
   String wallet_send_error_validate_balance_fees(String error);
-
-  /// No description provided for @wallet_send_error_min_lightning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor mínimo para lightning é {amount} sats'**
-  String wallet_send_error_min_lightning(int amount);
-
-  /// No description provided for @wallet_send_error_max_lightning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor máximo para lightning é {amount} sats'**
-  String wallet_send_error_max_lightning(int amount);
 
   /// No description provided for @wallet_send_error_min_usdt.
   ///

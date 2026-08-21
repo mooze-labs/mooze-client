@@ -548,7 +548,6 @@
   "receive_qr_title": "Receber Pagamento",
   "receive_qr_amount_label": "Valor:",
   "receive_qr_description_label": "Descrição:",
-  "receive_qr_lightning_invoice": "Lightning Invoice",
   "receive_qr_address_title": "Endereço de Recebimento",
   "receive_qr_copy_address": "Copiar Endereço",
   "receive_qr_copied": "Copiado!",
@@ -562,7 +561,6 @@
   },
   "receive_connection_error": "Houve um problema de conexão. Por favor, tente novamente.",
   "receive_network_bitcoin_onchain": "Bitcoin On-chain",
-  "receive_network_lightning_network": "Lightning Network",
   "receive_network_liquid_network": "Liquid Network",
   "receive_network_unknown": "Desconhecida",
   "receive_select_asset": "Selecione um ativo",
@@ -577,10 +575,8 @@
       }
     }
   },
-  "receive_lightning_amount_required_hint": "Para Lightning, o valor é obrigatório",
   "receive_select_asset_first": "Selecione um ativo primeiro",
   "receive_network_label_bitcoin": "Bitcoin",
-  "receive_network_label_lightning": "Lightning",
   "receive_network_label_liquid": "Liquid",
   "receive_network_subtitle_onchain": "On-chain",
   "receive_network_subtitle_instant": "Instantâneo",
@@ -589,29 +585,8 @@
   "receive_amount_hint_required": "Digite o valor (obrigatório)",
   "receive_amount_hint_optional": "Digite o valor (opcional)",
   "receive_amount_helper_disabled": "Selecione um ativo e rede primeiro",
-  "receive_amount_helper_lightning": "Valor obrigatório para Lightning",
   "receive_amount_helper_optional": "Valor opcional para Bitcoin/Liquid",
   "receive_amount_sats_label": "Valor em Satoshis:",
-  "receive_lightning_limits_unavailable": "Não foi possível carregar limites Lightning",
-  "receive_lightning_min_value": "Valor mínimo: {amount} sats",
-  "@receive_lightning_min_value": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "receive_lightning_max_value": "Valor máximo: {amount} sats",
-  "@receive_lightning_max_value": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "receive_lightning_valid": "Valor válido para Lightning",
-  "receive_lightning_limits_loading": "Carregando limites Lightning...",
-  "receive_lightning_limits_error": "Erro ao carregar limites Lightning",
   "receive_bitcoin_valid": "Valor válido para Bitcoin",
   "receive_liquid_valid": "Valor válido para Liquid",
   "receive_description_label": "Descrição (opcional)",
@@ -769,6 +744,7 @@
   },
   "swap_insufficient_balance": "Saldo insuficiente para realizar o swap",
   "swap_updating_quote": "Atualizando cotação...",
+  "swap_amount_bounds": "Mín: {min} sats · Máx: {max} sats (saldo)",
   "swap_min_value_sats": "Valor mínimo: {sats} sats",
   "@swap_min_value_sats": {
     "placeholders": {
@@ -1069,7 +1045,7 @@
   "qr_scanner_searching": "Procurando QR Code...",
   "qr_scanner_found": "QR Code encontrado!",
   "qr_scanner_position_hint": "Posicione o QR code dentro da área destacada",
-  "qr_scanner_supported_networks": "Bitcoin • Lightning • Liquid",
+  "qr_scanner_supported_networks": "Bitcoin • Liquid",
   "qr_scanner_flash_label": "Flash",
   "qr_scanner_camera_label": "Câmera",
   "qr_validation_empty": "QR code vazio",
@@ -1082,7 +1058,7 @@
   "qr_validation_liquid_format_error": "Erro ao processar QR Liquid: formato inválido",
   "qr_validation_bitcoin_invalid": "Endereço Bitcoin inválido no QR code",
   "qr_validation_bitcoin_format_error": "Erro ao processar QR Bitcoin: formato inválido",
-  "qr_validation_lightning_too_short": "Lightning invoice muito curto",
+  "qr_validation_lightning_unsupported": "Lightning não é suportado para envio",
   "qr_validation_lnurl_unsupported": "LNURL não suportado. Use walletofsatoshi.com ou outro provedor compatível",
   "qr_validation_invalid_default": "QR code inválido",
   "tx_sent_title": "Transação Enviada!",
@@ -1926,7 +1902,6 @@
   "wallet_send_lbtc_banner_action": "Obter via SWAP",
   "wallet_send_network_unidentified": "Rede não identificada",
   "wallet_send_network_bitcoin": "Bitcoin On-chain",
-  "wallet_send_network_lightning": "Lightning Network",
   "wallet_send_network_liquid": "Liquid Network",
   "wallet_send_network_unknown": "Rede desconhecida",
   "wallet_send_predefined_label": "Valor pré-definido",
@@ -2024,22 +1999,6 @@
     "placeholders": {
       "error": {
         "type": "String"
-      }
-    }
-  },
-  "wallet_send_error_min_lightning": "Valor mínimo para lightning é {amount} sats",
-  "@wallet_send_error_min_lightning": {
-    "placeholders": {
-      "amount": {
-        "type": "int"
-      }
-    }
-  },
-  "wallet_send_error_max_lightning": "Valor máximo para lightning é {amount} sats",
-  "@wallet_send_error_max_lightning": {
-    "placeholders": {
-      "amount": {
-        "type": "int"
       }
     }
   },
