@@ -10,7 +10,6 @@ import 'network_detection_provider.dart';
 import 'selected_asset_balance_provider.dart';
 import 'fee_estimation_provider.dart';
 import 'drain_provider.dart';
-import '../../../providers/payment_limits_provider.dart';
 
 enum SendValidationErrorCategory {
   address,
@@ -38,8 +37,6 @@ enum SendValidationErrorCode {
   insufficientWithFees,
   feeCalcFailed,
   validateBalanceFees,
-  minLightning,
-  maxLightning,
   minUsdt,
   minDepix,
   validateLimits,
@@ -102,14 +99,6 @@ class SendValidationError {
       case SendValidationErrorCode.validateBalanceFees:
         return t.wallet_send_error_validate_balance_fees(
           params['error'] as String? ?? '',
-        );
-      case SendValidationErrorCode.minLightning:
-        return t.wallet_send_error_min_lightning(
-          (params['amount'] as int?) ?? 0,
-        );
-      case SendValidationErrorCode.maxLightning:
-        return t.wallet_send_error_max_lightning(
-          (params['amount'] as int?) ?? 0,
         );
       case SendValidationErrorCode.minUsdt:
         return t.wallet_send_error_min_usdt;
@@ -186,12 +175,10 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         );
       }
 
-      if (asset == Asset.btc &&
-          (networkType == NetworkType.liquid ||
-              networkType == NetworkType.lightning)) {
+      if (asset == Asset.btc && networkType == NetworkType.liquid) {
         _log.warning(
           _tag,
-          'Asset/network mismatch: BTC cannot be sent over Liquid/Lightning network',
+          'Asset/network mismatch: BTC cannot be sent over the Liquid network',
         );
         errors.add(
           const SendValidationError(
@@ -355,23 +342,20 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         final balanceResult = await ref.read(
           selectedAssetBalanceRawProvider.future,
         );
-        balanceResult.fold(
-          (_) {},
-          (balance) {
-            if (BigInt.from(amount) > balance) {
-              _log.warning(
-                _tag,
-                'BTC validation: amount $amount sats exceeds raw balance $balance sats',
-              );
-              errors.add(
-                const SendValidationError(
-                  code: SendValidationErrorCode.amountExceedsBalance,
-                  category: SendValidationErrorCategory.balance,
-                ),
-              );
-            }
-          },
-        );
+        balanceResult.fold((_) {}, (balance) {
+          if (BigInt.from(amount) > balance) {
+            _log.warning(
+              _tag,
+              'BTC validation: amount $amount sats exceeds raw balance $balance sats',
+            );
+            errors.add(
+              const SendValidationError(
+                code: SendValidationErrorCode.amountExceedsBalance,
+                category: SendValidationErrorCategory.balance,
+              ),
+            );
+          }
+        });
       } catch (e, stackTrace) {
         _log.warning(
           _tag,
@@ -532,46 +516,9 @@ class SendValidationController extends StateNotifier<SendValidationState> {
         return;
       }
       if (asset == Asset.lbtc) {
-        if (networkType == NetworkType.lightning) {
-          _log.debug(_tag, 'Fetching Lightning send limits for L-BTC');
-          final lightningLimits = await ref.read(
-            lightningSendLimitsProvider.future,
-          );
-
-          final min = lightningLimits?.minSat.toInt() ?? 21;
-          final max = lightningLimits?.maxSat.toInt();
-
-          _log.debug(_tag, 'Lightning limits — min: $min sats, max: $max sats');
-
-          if (amount < min) {
-            _log.warning(
-              _tag,
-              'Amount $amount sats is below Lightning minimum $min sats',
-            );
-            errors.add(
-              SendValidationError(
-                code: SendValidationErrorCode.minLightning,
-                category: SendValidationErrorCategory.limits,
-                params: {'amount': min},
-              ),
-            );
-          }
-
-          if (max != null && amount > max) {
-            _log.warning(
-              _tag,
-              'Amount $amount sats exceeds Lightning maximum $max sats',
-            );
-            errors.add(
-              SendValidationError(
-                code: SendValidationErrorCode.maxLightning,
-                category: SendValidationErrorCategory.limits,
-                params: {'amount': max},
-              ),
-            );
-          }
-        }
-
+        // L-BTC sends go out over Liquid only; there are no provider-imposed
+        // amount limits to fetch. The Lightning min/max lookup that stood here
+        // died with the Lightning send path.
         return;
       }
 
