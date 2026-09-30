@@ -1,18 +1,15 @@
-import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwk/lwk.dart' as lwk;
 
+import 'package:mooze_mobile/infra/bdk/bdk_wallet_x.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/domain/entities/transaction.dart' as v2tx;
 import 'package:mooze_mobile/infra/bdk/bitcoin_wallet_service_impl.dart'
     as bdk_impl;
-import 'package:mooze_mobile/infra/breez/lightning_wallet_service_impl.dart'
-    as breez_impl;
 import 'package:mooze_mobile/infra/lwk/liquid_wallet_service_impl.dart'
     as lwk_impl;
 
@@ -38,7 +35,6 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
   String? _error;
   String _bdkDump = '';
   String _lwkDump = '';
-  String _breezDump = '';
   String _storeDump = '';
 
   @override
@@ -55,13 +51,11 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
     try {
       final bdk = ref.read(v2.bitcoinWalletServiceProvider);
       final lwk = ref.read(v2.liquidWalletServiceProvider);
-      final breez = ref.read(v2.lightningWalletServiceProvider);
       final store = await ref.read(v2.transactionStoreProvider.future);
 
       final results = await Future.wait([
         _dumpBdk(bdk),
         _dumpLwk(lwk),
-        _dumpBreez(breez),
         _dumpStore(store),
       ]);
 
@@ -69,8 +63,7 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
       setState(() {
         _bdkDump = results[0];
         _lwkDump = results[1];
-        _breezDump = results[2];
-        _storeDump = results[3];
+        _storeDump = results[2];
         _loading = false;
       });
     } catch (e, st) {
@@ -91,10 +84,10 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
       return '(BDK not operational)';
     }
     try {
-      final all = w.listTransactions(includeRaw: false);
+      final all = w.txViews();
       all.sort((a, b) {
-        final at = a.confirmationTime?.timestamp.toInt() ?? 0;
-        final bt = b.confirmationTime?.timestamp.toInt() ?? 0;
+        final at = a.confirmationTime?.millisecondsSinceEpoch ?? 0;
+        final bt = b.confirmationTime?.millisecondsSinceEpoch ?? 0;
         return bt.compareTo(at);
       });
       final pick = all.take(_limit).toList();
@@ -109,16 +102,12 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
     }
   }
 
-  String _formatBdk(bdk.TransactionDetails t) {
-    final ts = t.confirmationTime == null
-        ? 'unconfirmed'
-        : DateTime.fromMillisecondsSinceEpoch(
-            t.confirmationTime!.timestamp.toInt() * 1000,
-          ).toIso8601String();
-    final h = t.confirmationTime?.height ?? -1;
+  String _formatBdk(BdkTxView t) {
+    final ts = t.confirmationTime?.toIso8601String() ?? 'unconfirmed';
+    final h = t.confirmationHeight ?? -1;
     return [
       'txid=${t.txid}',
-      '  sent=${t.sent} received=${t.received} fee=${t.fee ?? 0}',
+      '  sent=${t.sentSat} received=${t.receivedSat} fee=${t.feeSat ?? 0}',
       '  height=$h ts=$ts',
     ].join('\n');
   }
@@ -161,54 +150,6 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
     ].join('\n');
   }
 
-  Future<String> _dumpBreez(Object service) async {
-    if (service is! breez_impl.LightningWalletServiceImpl) {
-      return '(Breez service is wrong type: ${service.runtimeType})';
-    }
-    final c = service.sdkClient;
-    if (c == null || !service.currentState.isOperational) {
-      return '(Breez not operational)';
-    }
-    try {
-      final all = await c.listPayments(
-        req: const breez.ListPaymentsRequest(),
-      );
-      // Breez returns newest first already; just take the first N.
-      final pick = all.take(_limit).toList();
-      final buf = StringBuffer();
-      buf.writeln('-- Breez (n=${pick.length}/${all.length}) --');
-      for (final p in pick) {
-        buf.writeln(_formatBreez(p));
-      }
-      return buf.toString();
-    } catch (e) {
-      return '(Breez dump failed: $e)';
-    }
-  }
-
-  String _formatBreez(breez.Payment p) {
-    final ts = DateTime.fromMillisecondsSinceEpoch(p.timestamp * 1000)
-        .toIso8601String();
-    final details = p.details;
-    final detailsStr = switch (details) {
-      breez.PaymentDetails_Liquid d =>
-        'Liquid(assetId=${_short(d.assetId)}, dest=${_short(d.destination)})',
-      breez.PaymentDetails_Bitcoin d =>
-        'Bitcoin(swapId=${d.swapId}, lockup=${_short(d.lockupTxId)}, '
-            'claim=${_short(d.claimTxId)}, addr=${_short(d.bitcoinAddress)})',
-      breez.PaymentDetails_Lightning d =>
-        'Lightning(swapId=${d.swapId}, '
-            'destPubkey=${_short(d.destinationPubkey)}, '
-            'claim=${_short(d.claimTxId)})',
-    };
-    return [
-      'txId=${p.txId ?? "(null)"}',
-      '  paymentType=${p.paymentType.name} status=${p.status.name}',
-      '  amountSat=${p.amountSat} feesSat=${p.feesSat} ts=$ts',
-      '  details=$detailsStr',
-    ].join('\n');
-  }
-
   Future<String> _dumpStore(Object store) async {
     try {
       // ignore: avoid_dynamic_calls
@@ -248,7 +189,7 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
   }
 
   String _allDumps() {
-    return [_bdkDump, _lwkDump, _breezDump, _storeDump]
+    return [_bdkDump, _lwkDump, _storeDump]
         .where((s) => s.isNotEmpty)
         .join('\n');
   }
@@ -299,7 +240,6 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
                   children: [
                     _section('BDK (sdkClient.listTransactions)', _bdkDump),
                     _section('LWK (sdkClient.txs)', _lwkDump),
-                    _section('Breez (sdkClient.listPayments)', _breezDump),
                     _section('V2 store (transactionStore.list)', _storeDump),
                   ],
                 ),

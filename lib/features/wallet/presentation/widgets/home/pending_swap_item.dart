@@ -30,13 +30,7 @@ class PendingSwapItem extends ConsumerWidget {
         isFailed
             ? Colors.redAccent
             : (isRefundable ? Colors.orangeAccent : colors.primaryColor);
-    // Refundable rows skip the converting screen and route straight
-    // into the existing refund flow — the user's next step is to
-    // claim, not to inspect.
-    final route =
-        isRefundable
-            ? '/transactions/refund'
-            : '/swap/converting/${swap.localId}';
+    final route = '/swap/converting/${swap.localId}';
 
     return GestureDetector(
       onTap: () => context.push(route),

@@ -7,7 +7,6 @@ import '../entities/chain.dart';
 import '../entities/fee_estimate.dart';
 import '../entities/liquid_utxo.dart';
 import '../entities/receive_address.dart';
-import '../entities/refund.dart';
 import '../entities/send_request.dart';
 import '../entities/transaction.dart';
 import '../failures/failure.dart';
@@ -51,20 +50,19 @@ abstract interface class WalletRepository {
   // respective Phase 2.5 sub-phases — they will follow the same shape so
   // the UI can switch on the destination chain to pick the entry point.
   //
-  // All three Liquid methods route to `LightningWalletService` (the V2
-  // service backing Breez Liquid SDK), preserving the legacy reality that
-  // Breez owns the active Liquid send/receive engine. LWK is read-only
-  // sync + swap PSET signing.
+  // All three Liquid methods route to `LiquidWalletService` (LWK), the only
+  // Liquid engine: it syncs, holds the balance, and builds, signs and
+  // broadcasts L-BTC and asset sends.
 
-  /// Estimate fees for a Liquid on-chain send (L-BTC or asset). Pure: does
-  /// not build, sign, or broadcast. The returned [FeeEstimate.absoluteFeeSat]
-  /// is the SDK-computed fee for THIS specific payment shape — re-call
-  /// when the user changes the amount/destination.
+  /// Estimate fees for a Liquid on-chain send (L-BTC or asset). Builds the
+  /// transaction but does not sign or broadcast it. The returned
+  /// [FeeEstimate.absoluteFeeSat] is the fee for THIS specific payment
+  /// shape — re-call when the user changes the amount/destination.
   Future<Either<Failure, FeeEstimate>> estimateLiquidSend(SendRequest request);
 
-  /// Generate a Liquid receive address (or asset-specific receive). The
-  /// SDK persists this internally so the eventual incoming payment is
-  /// matched back to it; the caller does NOT need to record anything.
+  /// Next unused Liquid receive address. For an asset other than L-BTC it
+  /// is a `liquidnetwork:` URI that carries the asset id. The caller does
+  /// NOT need to record anything: LWK matches incoming payments by script.
   Future<Either<Failure, ReceiveAddress>> liquidReceiveAddress({
     String? assetId,
     String? label,
@@ -131,33 +129,6 @@ abstract interface class WalletRepository {
   /// to compute confirmation counts. Failure means "unknown" — the UI
   /// should render gracefully without blocking.
   Future<Either<Failure, int>> getCurrentBitcoinBlockHeight();
-
-  // ─────────────────────────────────────────── refund surface
-  //
-  // Recovery flow for stuck or expired Lightning swaps. Routed through
-  // `LightningWalletService` (Breez Liquid SDK), translated to V2
-  // domain types so feature/UI layers don't import the Breez SDK.
-
-  Future<Either<Failure, List<RefundableSwap>>> listRefundableSwaps();
-
-  /// Look up Breez's short opaque chain-swap id (`wCaunaTNZaHv`-style)
-  /// for a lockup tx we just broadcast. Returns `null` when Breez has
-  /// not yet observed the lockup in `listPayments` — caller should
-  /// retry on the next poll. See `LightningWalletService
-  /// .findChainSwapIdByLockup` for the underlying lookup semantics.
-  Future<Either<Failure, String?>> findBreezChainSwapId({
-    required String lockupTxId,
-  });
-
-  Future<Either<Failure, MempoolFees>> getRecommendedFees();
-
-  Future<Either<Failure, PrepareRefundOutcome>> prepareRefund(
-    PrepareRefundParams params,
-  );
-
-  Future<Either<Failure, RefundOutcome>> executeRefund(
-    ExecuteRefundParams params,
-  );
 
   // ─────────────────────────────────────────── swap surface (LWK-backed)
   //

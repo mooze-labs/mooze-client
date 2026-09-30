@@ -2,7 +2,6 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
 
 import 'package:mooze_mobile/domain/entities/liquid_utxo.dart';
-import 'package:mooze_mobile/domain/entities/refund.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 import '../entities/transaction.dart';
@@ -92,28 +91,6 @@ abstract class WalletRepository {
   /// to compute confirmation counts. Returns a typed [WalletError] on
   /// failure; UI should treat that as "confirmations unknown".
   TaskEither<WalletError, int> getCurrentBitcoinBlockHeight();
-
-  // ─────────────────────────────────────────── refund surface
-  //
-  // Phase 2.3.3-prep-A2/A3: refund flows previously read
-  // `breezClientProvider` directly to invoke `listRefundables`,
-  // `recommendedFees`, `prepareRefund`, `refund`. They now route through
-  // here and consume V2 domain types — same field shapes as Breez SDK
-  // types so widgets can switch their imports without changing field
-  // accesses. After Phase 2.3.3 the V2 adapter satisfies these methods
-  // by delegating to `LightningWalletService` directly.
-
-  TaskEither<WalletError, List<RefundableSwap>> listRefundableSwaps();
-
-  TaskEither<WalletError, MempoolFees> getRecommendedFees();
-
-  TaskEither<WalletError, PrepareRefundOutcome> prepareRefund(
-    PrepareRefundParams params,
-  );
-
-  TaskEither<WalletError, RefundOutcome> executeRefund(
-    ExecuteRefundParams params,
-  );
 
   // ─────────────────────────────────────────── swap surface (LWK-backed)
   //

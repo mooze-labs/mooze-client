@@ -4,6 +4,7 @@ import '../entities/balance.dart';
 import '../entities/liquid_send_draft.dart';
 import '../entities/liquid_utxo.dart';
 import '../failures/failure.dart';
+import 'spendable_wallet_service.dart';
 import 'wallet_service.dart';
 
 /// LWK-backed Liquid service.
@@ -16,7 +17,8 @@ import 'wallet_service.dart';
 /// service that holds the Liquid descriptor private keys — Breez
 /// Liquid SDK doesn't expose raw PSET signing.
 ///
-abstract interface class LiquidWalletService implements WalletService {
+abstract interface class LiquidWalletService
+    implements WalletService, SpendableWalletService {
   /// Enumerate the wallet's spendable UTXOs as V2 domain types. Used by
   /// the swap flow to select inputs for SideSwap-style PayJoin
   /// transactions.

@@ -1,12 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
 import 'package:mooze_mobile/domain/entities/liquid_utxo.dart' as v2;
-import 'package:mooze_mobile/domain/entities/refund.dart' as v2;
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/bitcoin.dart';
-import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/breez.dart';
 import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid.dart';
+import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid_spend.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -19,12 +17,10 @@ import 'package:mooze_mobile/shared/concurrency/liquid_spend_coordinator.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class _TransactionProcessingData {
-  final List<Transaction> breezTxs;
   final List<Transaction> liquidTxs;
   final List<Transaction> btcTxs;
 
   _TransactionProcessingData({
-    required this.breezTxs,
     required this.liquidTxs,
     required this.btcTxs,
   });
@@ -34,103 +30,10 @@ List<Transaction> _processTransactionsInIsolate(
   _TransactionProcessingData data,
 ) {
   debugPrint(
-    '[_processTransactionsInIsolate] Input - Breez: ${data.breezTxs.length}, Liquid: ${data.liquidTxs.length}, BTC: ${data.btcTxs.length}',
+    '[_processTransactionsInIsolate] Input - Liquid: ${data.liquidTxs.length}, BTC: ${data.btcTxs.length}',
   );
 
-  // Print all Breez transactions before filtering
-  if (data.breezTxs.isNotEmpty) {
-    debugPrint('==================== BREEZ TRANSACTIONS ====================');
-    for (var i = 0; i < data.breezTxs.length; i++) {
-      final tx = data.breezTxs[i];
-      debugPrint(
-        '[$i] Breez: ${tx.id} | ${tx.type} | ${tx.asset.ticker} | ${tx.status} | ${tx.amount} sats | ${tx.createdAt}',
-      );
-      if (tx.type == TransactionType.submarine) {
-        debugPrint(
-          '    Submarine: ${tx.fromAsset?.ticker} → ${tx.toAsset?.ticker} | sendTx: ${tx.sendTxId} | receiveTx: ${tx.receiveTxId}',
-        );
-      }
-    }
-  }
-
-  // // Print all Liquid transactions before filtering
-  // if (data.liquidTxs.isNotEmpty) {
-  //   debugPrint('==================== LIQUID TRANSACTIONS ====================');
-  //   for (var i = 0; i < data.liquidTxs.length; i++) {
-  //     final tx = data.liquidTxs[i];
-  //     debugPrint(
-  //       '[$i] Liquid: ${tx.id} | ${tx.type} | ${tx.asset.ticker} | ${tx.status} | ${tx.amount} sats | ${tx.createdAt}',
-  //     );
-  //   }
-  // }
-
-  // // Print all Bitcoin transactions before filtering
-  // if (data.btcTxs.isNotEmpty) {
-  //   debugPrint('==================== BITCOIN TRANSACTIONS ====================');
-  //   for (var i = 0; i < data.btcTxs.length; i++) {
-  //     final tx = data.btcTxs[i];
-  //     debugPrint(
-  //       '[$i] Bitcoin: ${tx.id} | ${tx.type} | ${tx.asset.ticker} | ${tx.status} | ${tx.amount} sats | ${tx.createdAt}',
-  //     );
-  //   }
-  // }
-
-  final breezIds = data.breezTxs.map((tx) => tx.id).toSet();
-  final filteredLiquidTxs =
-      data.liquidTxs.where((tx) => !breezIds.contains(tx.id)).toList();
-
-  debugPrint(
-    '[_processTransactionsInIsolate] Filtered ${data.liquidTxs.length - filteredLiquidTxs.length} duplicate Liquid transactions',
-  );
-
-  // Collect all transaction IDs that are part of submarine swaps
-  final submarineSwapTxIds = <String>{};
-  for (final tx in data.breezTxs) {
-    if (tx.type == TransactionType.submarine) {
-      if (tx.sendTxId != null) {
-        submarineSwapTxIds.add(tx.sendTxId!);
-        debugPrint(
-          '[_processTransactionsInIsolate] Submarine swap ${tx.id} has sendTxId: ${tx.sendTxId}',
-        );
-      }
-      if (tx.receiveTxId != null) {
-        submarineSwapTxIds.add(tx.receiveTxId!);
-        debugPrint(
-          '[_processTransactionsInIsolate] Submarine swap ${tx.id} has receiveTxId: ${tx.receiveTxId}',
-        );
-      }
-    }
-  }
-
-  debugPrint(
-    '[_processTransactionsInIsolate] Found ${submarineSwapTxIds.length} transaction IDs that are part of submarine swaps: $submarineSwapTxIds',
-  );
-
-  // Filter out Bitcoin transactions that are already part of submarine swaps
-  final filteredBtcTxs =
-      data.btcTxs.where((tx) => !submarineSwapTxIds.contains(tx.id)).toList();
-
-  final removedBtcTxs = data.btcTxs.length - filteredBtcTxs.length;
-  if (removedBtcTxs > 0) {
-    debugPrint(
-      '[_processTransactionsInIsolate] Filtered $removedBtcTxs Bitcoin transactions that are part of submarine swaps',
-    );
-    for (final tx in data.btcTxs) {
-      if (submarineSwapTxIds.contains(tx.id)) {
-        debugPrint('  - Removed Bitcoin TX: ${tx.id} (${tx.amount} sats)');
-      }
-    }
-  } else {
-    debugPrint(
-      '[_processTransactionsInIsolate] No Bitcoin transactions were filtered',
-    );
-  }
-
-  final allTransactions = [
-    ...data.breezTxs,
-    ...filteredLiquidTxs,
-    ...filteredBtcTxs,
-  ];
+  final allTransactions = [...data.liquidTxs, ...data.btcTxs];
 
   debugPrint(
     '[_processTransactionsInIsolate] Total before sort: ${allTransactions.length}',
@@ -277,31 +180,32 @@ List<Transaction> _identifyInternalSwapsStatic(List<Transaction> transactions) {
 }
 
 class WalletRepositoryImpl extends WalletRepository {
-  final BreezWallet? _breezWallet;
+  final LiquidSpendWallet? _liquidSpend;
   final BitcoinWallet? _bitcoinWallet;
   final LiquidWallet? _liquidWallet;
   final SwapAuditRepository? _swapAudit;
 
   WalletRepositoryImpl(
-    BreezWallet? breezWallet,
+    LiquidSpendWallet? liquidSpend,
     BitcoinWallet? bitcoinWallet,
     LiquidWallet? liquidWallet, {
     SwapAuditRepository? swapAudit,
-  }) : _breezWallet = breezWallet,
+  }) : _liquidSpend = liquidSpend,
        _bitcoinWallet = bitcoinWallet,
        _liquidWallet = liquidWallet,
        _swapAudit = swapAudit;
 
-  // Helper to get Breez wallet or return error
-  TaskEither<WalletError, T> _withBreez<T>(
-    TaskEither<WalletError, T> Function(BreezWallet) fn,
+  // Helper to get the LWK-backed Liquid spend wallet or return error
+  TaskEither<WalletError, T> _withLiquidSpend<T>(
+    TaskEither<WalletError, T> Function(LiquidSpendWallet) fn,
   ) {
-    if (_breezWallet == null) {
+    final spend = _liquidSpend;
+    if (spend == null) {
       return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
+        WalletError(WalletErrorType.sdkError, 'Liquid wallet not available'),
       );
     }
-    return fn(_breezWallet!);
+    return fn(spend);
   }
 
   // Helper to get Bitcoin wallet or return error
@@ -329,8 +233,8 @@ class WalletRepositoryImpl extends WalletRepository {
     Option<BigInt> amount,
     Option<String> description,
   ) {
-    return _withBreez(
-      (breez) => breez.createLiquidBitcoinInvoice(amount, description),
+    return _withLiquidSpend(
+      (liquid) => liquid.createLiquidBitcoinInvoice(amount, description),
     );
   }
 
@@ -340,8 +244,8 @@ class WalletRepositoryImpl extends WalletRepository {
     Option<BigInt> amount,
     Option<String> description,
   ) {
-    return _withBreez(
-      (breez) => breez.createStablecoinInvoice(asset, amount, description),
+    return _withLiquidSpend(
+      (liquid) => liquid.createStablecoinInvoice(asset, amount, description),
     );
   }
 
@@ -352,9 +256,9 @@ class WalletRepositoryImpl extends WalletRepository {
     Asset asset,
     double amount,
   ) {
-    return _withBreez(
-      (breez) =>
-          breez.buildStablecoinPaymentTransaction(destination, asset, amount),
+    return _withLiquidSpend(
+      (liquid) =>
+          liquid.buildStablecoinPaymentTransaction(destination, asset, amount),
     );
   }
 
@@ -366,9 +270,9 @@ class WalletRepositoryImpl extends WalletRepository {
     int? feeRateSatPerVByte,
     Asset? asset,
   ]) {
-    if (asset == Asset.lbtc || destination.startsWith('lq1')) {
-      return _withBreez(
-        (breez) => breez.buildOnchainBitcoinPaymentTransaction(
+    if (asset == Asset.lbtc || isLiquidDestination(destination)) {
+      return _withLiquidSpend(
+        (liquid) => liquid.buildOnchainBitcoinPaymentTransaction(
           destination,
           amount,
           feeRateSatPerVByte,
@@ -388,25 +292,25 @@ class WalletRepositoryImpl extends WalletRepository {
   @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildLiquidBitcoinPaymentTransaction(String destination, BigInt amount) {
-    return _withBreez(
-      (breez) =>
-          breez.buildLiquidBitcoinPaymentTransaction(destination, amount),
+    return _withLiquidSpend(
+      (liquid) =>
+          liquid.buildLiquidBitcoinPaymentTransaction(destination, amount),
     );
   }
 
   @override
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLiquidBitcoinTransaction(String destination) {
-    return _withBreez(
-      (breez) => breez.buildDrainLiquidBitcoinTransaction(destination),
+    return _withLiquidSpend(
+      (liquid) => liquid.buildDrainLiquidBitcoinTransaction(destination),
     );
   }
 
   @override
   TaskEither<WalletError, PreparedStablecoinTransaction>
   buildDrainStablecoinTransaction(String destination, Asset asset) {
-    return _withBreez(
-      (breez) => breez.buildDrainStablecoinTransaction(destination, asset),
+    return _withLiquidSpend(
+      (liquid) => liquid.buildDrainStablecoinTransaction(destination, asset),
     );
   }
 
@@ -417,9 +321,9 @@ class WalletRepositoryImpl extends WalletRepository {
     Asset? asset,
     int? feeRateSatPerVbyte,
   }) {
-    if (asset == Asset.lbtc || destination.startsWith('lq1')) {
-      return _withBreez(
-        (breez) => breez.buildDrainOnchainBitcoinTransaction(
+    if (asset == Asset.lbtc || isLiquidDestination(destination)) {
+      return _withLiquidSpend(
+        (liquid) => liquid.buildDrainOnchainBitcoinTransaction(
           destination,
           feeRateSatPerVbyte: feeRateSatPerVbyte,
         ),
@@ -439,8 +343,8 @@ class WalletRepositoryImpl extends WalletRepository {
     PreparedLayer2BitcoinTransaction psbt,
   ) {
     return _withLiquidSpendLock(
-      'breez:sendL2Bitcoin',
-      () => _withBreez((breez) => breez.sendL2BitcoinPayment(psbt)),
+      'lwk:sendL2Bitcoin',
+      () => _withLiquidSpend((liquid) => liquid.sendL2BitcoinPayment(psbt)),
     );
   }
 
@@ -449,8 +353,8 @@ class WalletRepositoryImpl extends WalletRepository {
     PreparedStablecoinTransaction psbt,
   ) {
     return _withLiquidSpendLock(
-      'breez:sendStablecoin',
-      () => _withBreez((breez) => breez.sendStablecoinPayment(psbt)),
+      'lwk:sendStablecoin',
+      () => _withLiquidSpend((liquid) => liquid.sendStablecoinPayment(psbt)),
     );
   }
 
@@ -476,8 +380,8 @@ class WalletRepositoryImpl extends WalletRepository {
   TaskEither<WalletError, Transaction> sendOnchainBitcoinPayment(
     PreparedOnchainBitcoinTransaction psbt,
   ) {
-    if (psbt.destination.startsWith('lq1')) {
-      return _withBreez((breez) => breez.sendOnchainBitcoinPayment(psbt));
+    if (isLiquidDestination(psbt.destination)) {
+      return _withLiquidSpend((liquid) => liquid.sendOnchainBitcoinPayment(psbt));
     }
     return _withBitcoin((btc) => btc.sendOnchainBitcoinPayment(psbt));
   }
@@ -488,33 +392,7 @@ class WalletRepositoryImpl extends WalletRepository {
       () async {
         final Balance balance = {};
 
-        // Try to get Breez balance (L-BTC and Liquid assets)
-        if (_breezWallet != null) {
-          final breezResult = await _breezWallet!.getBalance().run();
-          breezResult.fold(
-            (err) {
-              if (kDebugMode) {
-                debugPrint('[getBalance] Breez balance failed: $err');
-              }
-            },
-            (breezBal) {
-              balance.addAll(breezBal);
-              if (kDebugMode) {
-                debugPrint(
-                  '[getBalance] Breez balance loaded: ${breezBal.keys.map((a) => a.ticker).join(", ")}',
-                );
-              }
-            },
-          );
-        } else {
-          if (kDebugMode) {
-            debugPrint('[getBalance] Breez wallet not available');
-          }
-        }
-
-        // Try LWK for Liquid assets (independent from Breez)
-        // LWK manages on-chain Liquid assets, while Breez manages Lightning/Liquid channels
-        // Both sources can have balances simultaneously
+        // LWK holds every Liquid asset (L-BTC, USDt, DePix).
         if (_liquidWallet != null) {
           try {
             final liquidResult = await _liquidWallet!.getBalance().run();
@@ -525,11 +403,7 @@ class WalletRepositoryImpl extends WalletRepository {
                 }
               },
               (liquidBal) {
-                // Add L-BTC and other Liquid assets from LWK
-                // Use putIfAbsent to avoid overwriting Breez balances
-                for (final entry in liquidBal.entries) {
-                  balance.putIfAbsent(entry.key, () => entry.value);
-                }
+                balance.addAll(liquidBal);
                 if (kDebugMode) {
                   debugPrint(
                     '[getBalance] Liquid (LWK) balance loaded: ${liquidBal.keys.map((a) => a.ticker).join(", ")}',
@@ -600,22 +474,6 @@ class WalletRepositoryImpl extends WalletRepository {
       () async {
         final List<Future<Either<WalletError, List<Transaction>>>> futures = [];
 
-        // Add Breez transactions if available
-        if (_breezWallet != null) {
-          futures.add(
-            _breezWallet!
-                .getTransactions(
-                  type: type,
-                  status: status,
-                  asset: asset,
-                  blockchain: blockchain,
-                  startDate: startDate,
-                  endDate: endDate,
-                )
-                .run(),
-          );
-        }
-
         // Add Liquid transactions if available
         if (_liquidWallet != null) {
           futures.add(
@@ -657,25 +515,8 @@ class WalletRepositoryImpl extends WalletRepository {
         // Parse results based on available wallets
         int resultIndex = 0;
 
-        List<Transaction> breezTxs = <Transaction>[];
         List<Transaction> liquidTxs = <Transaction>[];
         List<Transaction> btcTxs = <Transaction>[];
-
-        if (_breezWallet != null && resultIndex < results.length) {
-          breezTxs = results[resultIndex].fold(
-            (error) {
-              debugPrint('Error fetching breez transactions: $error');
-              return <Transaction>[];
-            },
-            (txs) {
-              debugPrint(
-                '[WalletRepository] 🔵 Breez: ${txs.length} transactions',
-              );
-              return txs;
-            },
-          );
-          resultIndex++;
-        }
 
         if (_liquidWallet != null && resultIndex < results.length) {
           liquidTxs = results[resultIndex].fold(
@@ -709,13 +550,12 @@ class WalletRepositoryImpl extends WalletRepository {
         }
 
         debugPrint(
-          '[WalletRepository] 📊 Total BEFORE processing: ${breezTxs.length + liquidTxs.length + btcTxs.length}',
+          '[WalletRepository] 📊 Total BEFORE processing: ${liquidTxs.length + btcTxs.length}',
         );
 
         final processedTransactions = await compute(
           _processTransactionsInIsolate,
           _TransactionProcessingData(
-            breezTxs: breezTxs,
             liquidTxs: liquidTxs,
             btcTxs: btcTxs,
           ),
@@ -829,137 +669,10 @@ class WalletRepositoryImpl extends WalletRepository {
       );
     }
     return TaskEither.tryCatch(
-      () async => await wallet.datasource.blockchain.getHeight(),
+      () async => await wallet.datasource.electrum.tipHeight(),
       (error, stackTrace) => WalletError(
         WalletErrorType.networkError,
         'Erro ao obter altura do bloco Bitcoin: $error',
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────── refund surface
-  //
-  // Phase 2.3.3-prep-A2/A3: refund flows route through here instead of
-  // reading `breezClientProvider` directly. Translates Breez SDK types
-  // to V2 domain types at the boundary so feature/UI layers stay free
-  // of `flutter_breez_liquid` imports.
-
-  @override
-  TaskEither<WalletError, List<v2.RefundableSwap>> listRefundableSwaps() {
-    final w = _breezWallet;
-    if (w == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
-      );
-    }
-    return TaskEither.tryCatch(
-      () async {
-        final list = await w.sdkClient.listRefundables();
-        return list
-            .map(
-              (r) => v2.RefundableSwap(
-                swapAddress: r.swapAddress,
-                amountSat: r.amountSat.toInt(),
-                lastRefundTxId: r.lastRefundTxId,
-                timestamp:
-                    r.timestamp == 0
-                        ? null
-                        : DateTime.fromMillisecondsSinceEpoch(
-                          r.timestamp * 1000,
-                        ),
-              ),
-            )
-            .toList();
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.networkError,
-        'Erro ao listar reembolsos disponíveis: $error',
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, v2.MempoolFees> getRecommendedFees() {
-    final w = _breezWallet;
-    if (w == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
-      );
-    }
-    return TaskEither.tryCatch(
-      () async {
-        final f = await w.sdkClient.recommendedFees();
-        return v2.MempoolFees(
-          minimumFee: f.minimumFee.toInt(),
-          economyFee: f.economyFee.toInt(),
-          hourFee: f.hourFee.toInt(),
-          halfHourFee: f.halfHourFee.toInt(),
-          fastestFee: f.fastestFee.toInt(),
-        );
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.networkError,
-        'Erro ao obter taxas recomendadas: $error',
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, v2.PrepareRefundOutcome> prepareRefund(
-    v2.PrepareRefundParams params,
-  ) {
-    final w = _breezWallet;
-    if (w == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
-      );
-    }
-    return TaskEither.tryCatch(
-      () async {
-        final resp = await w.sdkClient.prepareRefund(
-          req: breez.PrepareRefundRequest(
-            swapAddress: params.swapAddress,
-            refundAddress: params.refundAddress,
-            feeRateSatPerVbyte: params.feeRateSatPerVbyte,
-          ),
-        );
-        return v2.PrepareRefundOutcome(
-          txVsize: resp.txVsize,
-          feesSat: resp.txFeeSat.toInt(),
-          refundTxId: resp.lastRefundTxId,
-        );
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        'Erro ao preparar reembolso: $error',
-      ),
-    );
-  }
-
-  @override
-  TaskEither<WalletError, v2.RefundOutcome> executeRefund(
-    v2.ExecuteRefundParams params,
-  ) {
-    final w = _breezWallet;
-    if (w == null) {
-      return TaskEither.left(
-        WalletError(WalletErrorType.sdkError, 'Breez wallet not available'),
-      );
-    }
-    return TaskEither.tryCatch(
-      () async {
-        final resp = await w.sdkClient.refund(
-          req: breez.RefundRequest(
-            swapAddress: params.swapAddress,
-            refundAddress: params.refundAddress,
-            feeRateSatPerVbyte: params.feeRateSatPerVbyte,
-          ),
-        );
-        return v2.RefundOutcome(refundTxId: resp.refundTxId);
-      },
-      (error, stackTrace) => WalletError(
-        WalletErrorType.transactionFailed,
-        'Erro ao executar reembolso: $error',
       ),
     );
   }

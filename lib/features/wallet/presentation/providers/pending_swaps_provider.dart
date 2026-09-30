@@ -5,8 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mooze_mobile/app/di/v2_providers.dart';
-import 'package:mooze_mobile/domain/entities/refund.dart' as v2refund;
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/v2_legacy_transactions_provider.dart';
@@ -171,131 +169,17 @@ class PendingSwapsNotifier extends Notifier<List<PendingSwap>> {
   // load (so a stale row from days ago doesn't haunt the home list)
   // and on every `reconcileWith` pass.
   static const _maxAge = Duration(hours: 6);
-  // Refund detection is a poll (Breez doesn't push refundable state
-  // into the V2 transaction store — the only authoritative API is
-  // `listRefundableSwaps`). 30 s is fast enough to feel responsive
-  // and cheap enough to leave on permanently; the call is skipped
-  // entirely when nothing is in `broadcasted` phase.
-  static const _refundPollInterval = Duration(seconds: 30);
 
   // Monotonic counter on top of the timestamp so two starts within
   // the same millisecond get unique ids.
   int _seq = 0;
 
   late final SharedPreferences _prefs;
-  Timer? _refundTimer;
 
   @override
   List<PendingSwap> build() {
     _prefs = ref.read(sharedPreferencesProvider);
-    _startRefundWatcher();
     return _loadFromPrefs();
-  }
-
-  void _startRefundWatcher() {
-    _refundTimer?.cancel();
-    _refundTimer = Timer.periodic(
-      _refundPollInterval,
-      (_) => _pollRefundableSwaps(),
-    );
-    ref.onDispose(() => _refundTimer?.cancel());
-  }
-
-  Future<void> _pollRefundableSwaps() async {
-    // Two things happen in this tick when there's an in-flight swap:
-    //
-    //   1. Refund detection — only for peg-ins. Peg-out refunds are
-    //      auto-handled by Breez (the LBTC returns to LWK without
-    //      user action); surfacing a "Tap to claim refund" CTA there
-    //      would mislead the user. Peg-out failures retire through
-    //      `_isRefundLanded` when the LBTC shows up on the source
-    //      chain.
-    //
-    //   2. Swap-id enrichment — for any broadcasted row whose
-    //      `breezSwapId` is still missing (or stale-equals the
-    //      lockup tx id, which is what the helper used to write).
-    //      Looks up the real short Breez id via `findBreezChainSwapId`
-    //      and stores it. Cheap: the SDK call is the same regardless
-    //      of direction, so we run it for peg-in *and* peg-out.
-    final refundCandidates = state
-        .where((p) =>
-            p.phase == PendingSwapPhase.broadcasted && p.isPegIn)
-        .toList(growable: false);
-    final enrichCandidates = state
-        .where((p) =>
-            p.phase == PendingSwapPhase.broadcasted &&
-            p.breezTxId != null &&
-            (p.breezSwapId == null || p.breezSwapId == p.breezTxId))
-        .toList(growable: false);
-    if (refundCandidates.isEmpty && enrichCandidates.isEmpty) return;
-    await _enrichBreezSwapIds(enrichCandidates);
-    if (refundCandidates.isEmpty) return;
-    final candidates = refundCandidates;
-
-    final repoAsync = ref.read(walletRepositoryProvider);
-    final repo = repoAsync.valueOrNull;
-    if (repo == null) return;
-
-    // V2 repo returns a Future<Either<...>> directly (the legacy
-    // TaskEither wrapper lives in the other repo impl).
-    final result = await repo.listRefundableSwaps();
-    result.match(
-      (failure) {
-        if (kDebugMode) {
-          debugPrint('[BREEZ-REFUND] poll failed: $failure');
-        }
-      },
-      (refundables) {
-        if (kDebugMode) {
-          debugPrint(
-            '[BREEZ-REFUND] poll returned ${refundables.length} refundable '
-            'swap(s); checking against ${candidates.length} candidate(s)',
-          );
-          for (final r in refundables) {
-            debugPrint(
-              '[BREEZ-REFUND]   swap addr=${r.swapAddress} '
-              'amountSat=${r.amountSat} lastRefundTx=${r.lastRefundTxId} '
-              'ts=${r.timestamp}',
-            );
-          }
-        }
-        for (final r in refundables) {
-          for (final p in candidates) {
-            if (_matchesRefundable(p, r)) {
-              if (kDebugMode) {
-                debugPrint(
-                  '[BREEZ-REFUND] match → flipping ${p.localId} to '
-                  'refundable (addr=${r.swapAddress})',
-                );
-              }
-              markRefundable(
-                p.localId,
-                swapAddress: r.swapAddress,
-              );
-              break;
-            }
-          }
-        }
-      },
-    );
-  }
-
-  bool _matchesRefundable(PendingSwap pending, v2refund.RefundableSwap r) {
-    // Strongest match: the swap address we captured at broadcast time
-    // equals the refundable's lockup address. Falls back to amount +
-    // timestamp when no address was captured (e.g. swaps started
-    // before address capture was wired in, restored from prefs).
-    if (pending.swapAddress != null && pending.swapAddress == r.swapAddress) {
-      return true;
-    }
-    if (r.timestamp != null && r.timestamp!.isBefore(pending.createdAt)) {
-      return false; // belongs to an older swap
-    }
-    return _amountsApproxMatch(
-      BigInt.from(r.amountSat),
-      pending.sentAmount,
-      0.05,
-    );
   }
 
   void markRefundable(String localId, {String? swapAddress}) {
@@ -310,70 +194,6 @@ class PendingSwapsNotifier extends Notifier<List<PendingSwap>> {
           s,
     ];
     _persist();
-  }
-
-  /// Stores the real Breez short swap id (`wCaunaTNZaHv`-style) once
-  /// the poll has enriched it from `findBreezChainSwapId`. Idempotent
-  /// — if the stored id already matches, no state churn or persist
-  /// happens (avoids waking the home list for no reason).
-  void setBreezSwapId(String localId, String swapId) {
-    var changed = false;
-    state = [
-      for (final s in state)
-        if (s.localId == localId && s.breezSwapId != swapId)
-          () {
-            changed = true;
-            return s.copyWith(breezSwapId: swapId);
-          }()
-        else
-          s,
-    ];
-    if (changed) _persist();
-  }
-
-  /// For each pending in [candidates], hit Breez to resolve the real
-  /// chain-swap id and persist it. Failures are silently retried on
-  /// the next poll tick. Called from [_pollRefundableSwaps] alongside
-  /// the refund detection so we only spawn one timer.
-  Future<void> _enrichBreezSwapIds(List<PendingSwap> candidates) async {
-    if (candidates.isEmpty) return;
-    final repoAsync = ref.read(walletRepositoryProvider);
-    final repo = repoAsync.valueOrNull;
-    if (repo == null) return;
-
-    for (final p in candidates) {
-      final lockupTxId = p.breezTxId;
-      if (lockupTxId == null) continue;
-      final result =
-          await repo.findBreezChainSwapId(lockupTxId: lockupTxId);
-      result.match(
-        (failure) {
-          if (kDebugMode) {
-            debugPrint(
-              '[BREEZ-SWAP-ID] enrichment failed for ${p.localId}: $failure',
-            );
-          }
-        },
-        (swapId) {
-          if (swapId == null) {
-            if (kDebugMode) {
-              debugPrint(
-                '[BREEZ-SWAP-ID] no swap yet for lockup=$lockupTxId '
-                '(${p.localId}) — will retry next poll',
-              );
-            }
-            return;
-          }
-          if (kDebugMode) {
-            debugPrint(
-              '[BREEZ-SWAP-ID] enriched ${p.localId}: $swapId '
-              '(lockup=$lockupTxId)',
-            );
-          }
-          setBreezSwapId(p.localId, swapId);
-        },
-      );
-    }
   }
 
   List<PendingSwap> _loadFromPrefs() {

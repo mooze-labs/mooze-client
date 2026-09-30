@@ -7,7 +7,6 @@ import '../../../domain/failures/failure.dart';
 import '../../../domain/repositories/secure_credential_store.dart';
 import '../../../domain/repositories/transaction_store.dart';
 import '../../../domain/services/bitcoin_wallet_service.dart';
-import '../../../domain/services/lightning_wallet_service.dart';
 import '../../../domain/services/liquid_wallet_service.dart';
 import '../../../domain/services/platform_initializer.dart';
 import '../../../domain/services/session_authenticator.dart';
@@ -26,7 +25,6 @@ class BootOrchestratorImpl implements BootOrchestrator {
     required this.transactionStore,
     required this.liquid,
     required this.bitcoin,
-    required this.lightning,
     required this.session,
     required this.logger,
     required this.clock,
@@ -39,7 +37,6 @@ class BootOrchestratorImpl implements BootOrchestrator {
   final TransactionStore transactionStore;
   final LiquidWalletService liquid;
   final BitcoinWalletService bitcoin;
-  final LightningWalletService lightning;
   final SessionAuthenticator session;
   final StructuredLogger logger;
   final Clock clock;
@@ -252,18 +249,15 @@ class BootOrchestratorImpl implements BootOrchestrator {
 
     final liquidF = instrumented('liquid', () => liquid.connect(creds));
     final bitcoinF = instrumented('bitcoin', () => bitcoin.connect(creds));
-    final lightningF = instrumented('lightning', () => lightning.connect(creds));
 
-    final results = await Future.wait([liquidF, bitcoinF, lightningF]);
+    final results = await Future.wait([liquidF, bitcoinF]);
     logger.info('boot.connect.fanout_end', {
       'duration_ms': clock.now().difference(tStart).inMilliseconds,
     });
     final liquidR = results[0];
     final bitcoinR = results[1];
-    final lightningR = results[2];
 
-    final allFailed =
-        liquidR.isLeft() && bitcoinR.isLeft() && lightningR.isLeft();
+    final allFailed = liquidR.isLeft() && bitcoinR.isLeft();
     if (allFailed) {
       final f = liquidR.swap().getOrElse(
         (_) => ServiceFailure('all services failed',
@@ -273,8 +267,8 @@ class BootOrchestratorImpl implements BootOrchestrator {
           phase: 'connectingServices', cause: f));
     }
 
-    // Lightning being down is a soft-degrade only when the user has no
-    // lightning balance. We still consider boot successful, but log loudly.
+    // One chain being down is a soft-degrade. Boot still succeeds, but the
+    // failure is logged loudly.
     for (final r in results) {
       r.match((f) {
         logger.warn('boot.connect.partial', {
@@ -339,16 +333,14 @@ class BootOrchestratorImpl implements BootOrchestrator {
   @override
   Future<void> shutdown() async {
     logger.info('boot.shutdown.begin', {});
-    // Hard ceiling per service: a stuck FFI call (lwk.Wallet.init mid-flight,
-    // Breez SDK disconnect waiting on a network probe) must not block the
+    // Hard ceiling per service: a stuck FFI call (for example lwk.Wallet.init
+    // mid-flight) must not block the
     // delete-and-reimport flow. The directory wipe in DeleteWalletUseCase
     // that follows is what actually deletes the wallet, so partial cleanup
     // here is acceptable. The per-service `_shuttingDown` flag (currently
     // only liquid) covers the cancellable path; this timeout covers the
     // case where the underlying call is wedged inside an FFI/native frame
     // that does not yield.
-    await _safeTimed(() => lightning.disconnect(), 'lightning.disconnect',
-        _lightningDisconnectCap);
     await _safeTimed(
         () => bitcoin.disconnect(), 'bitcoin.disconnect', _disconnectCap);
     await _safeTimed(
@@ -367,16 +359,6 @@ class BootOrchestratorImpl implements BootOrchestrator {
 
   static const Duration _disconnectCap = Duration(seconds: 5);
 
-  // Breez's native disconnect routinely needs several seconds (local
-  // ledger flush + Greenlight gRPC teardown). The Lightning service
-  // self-bounds that call at 12 s and always returns to a clean
-  // `disconnected` state (see
-  // `LightningWalletServiceImpl._nativeDisconnectTimeout`). Give the
-  // orchestrator a slightly larger ceiling so it does not abandon a
-  // routine disconnect mid-flight — abandoning here is what previously
-  // left the service's `_connectMutex` held, deadlocking the next
-  // `connect()` (delete → re-import) until an app restart.
-  static const Duration _lightningDisconnectCap = Duration(seconds: 15);
 
   Future<void> _safeTimed(
     Future<Object?> Function() fn,

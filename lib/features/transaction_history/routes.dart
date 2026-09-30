@@ -7,7 +7,6 @@ import 'package:mooze_mobile/features/transaction_history/presentation/screens/p
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_detail_screen.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/transaction_history_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 final transactionHistoryRoutes = [
@@ -16,14 +15,6 @@ final transactionHistoryRoutes = [
     builder: (context, state) {
       final transaction = state.extra as Transaction;
       return TransactionDetailScreen(transaction: transaction);
-    },
-  ),
-  GoRoute(
-    path: '/transactions/refund',
-    builder: (context, state) {
-      // Navigate to the new refund flow instead
-      // The old TransactionRefundScreen is deprecated
-      return const GetRefundScreen();
     },
   ),
   GoRoute(

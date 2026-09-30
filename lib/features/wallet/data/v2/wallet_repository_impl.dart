@@ -9,7 +9,6 @@ import '../../../../domain/entities/chain.dart';
 import '../../../../domain/entities/fee_estimate.dart';
 import '../../../../domain/entities/liquid_utxo.dart';
 import '../../../../domain/entities/receive_address.dart';
-import '../../../../domain/entities/refund.dart';
 import '../../../../domain/entities/send_request.dart';
 import '../../../../domain/entities/transaction.dart';
 import '../../../../domain/events/transaction_event.dart';
@@ -17,7 +16,6 @@ import '../../../../domain/failures/failure.dart';
 import '../../../../domain/repositories/transaction_store.dart';
 import '../../../../domain/repositories/wallet_repository.dart';
 import '../../../../domain/services/bitcoin_wallet_service.dart';
-import '../../../../domain/services/lightning_wallet_service.dart';
 import '../../../../domain/services/liquid_wallet_service.dart';
 import '../../../../domain/services/wallet_service.dart';
 import '../../../../shared/clock/clock.dart';
@@ -27,7 +25,6 @@ class WalletRepositoryImpl implements WalletRepository {
     required this.transactionStore,
     required this.liquid,
     required this.bitcoin,
-    required this.lightning,
     required this.clock,
     Stream<TransactionEvent>? balanceTriggerStream,
   }) : _balanceTriggerStream = balanceTriggerStream;
@@ -35,7 +32,6 @@ class WalletRepositoryImpl implements WalletRepository {
   final TransactionStore transactionStore;
   final LiquidWalletService liquid;
   final BitcoinWalletService bitcoin;
-  final LightningWalletService lightning;
   final Clock clock;
 
   /// The orchestrator's merged transaction-event stream. Used by
@@ -63,7 +59,7 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Either<Failure, Balance>> aggregateBalance() async {
-    final services = <WalletService>[liquid, bitcoin, lightning];
+    final services = <WalletService>[liquid, bitcoin];
     final assets = <AssetBalance>[];
     Failure? firstError;
 
@@ -156,9 +152,8 @@ class WalletRepositoryImpl implements WalletRepository {
 
   // ─────────────────────────────────────────── send / receive (Liquid)
   //
-  // All three Liquid methods delegate to the Breez Liquid service
-  // (`lightning` here, despite the name — see the docstring on
-  // `LightningWalletService`). Failures are folded into the domain
+  // All three Liquid methods delegate to the LWK-backed `liquid` service.
+  // Failures are folded into the domain
   // [Failure] hierarchy: `ServiceFailure` from the service is preserved
   // unwrapped because it already carries chain + cause + stackTrace.
 
@@ -175,7 +170,7 @@ class WalletRepositoryImpl implements WalletRepository {
         ),
       );
     }
-    final r = await lightning.estimateFee(request);
+    final r = await liquid.estimateFee(request);
     return r.fold(
       (f) => Left<Failure, FeeEstimate>(f),
       (e) => Right<Failure, FeeEstimate>(e),
@@ -187,7 +182,7 @@ class WalletRepositoryImpl implements WalletRepository {
     String? assetId,
     String? label,
   }) async {
-    final r = await lightning.nextReceiveAddress(
+    final r = await liquid.nextReceiveAddress(
       assetId: assetId,
       label: label,
     );
@@ -209,7 +204,7 @@ class WalletRepositoryImpl implements WalletRepository {
         ),
       );
     }
-    final r = await lightning.sendOnchain(request);
+    final r = await liquid.sendOnchain(request);
     return r.fold(
       (f) => Left<Failure, BroadcastResult>(f),
       (b) => Right<Failure, BroadcastResult>(b),
@@ -280,64 +275,6 @@ class WalletRepositoryImpl implements WalletRepository {
     return r.fold((f) => Left<Failure, int>(f), (h) => Right<Failure, int>(h));
   }
 
-  // ─────────────────────────────────────────── refund surface
-  //
-  // All refund methods delegate to the Breez-backed lightning service
-  // (the SDK exposes refund APIs on the Breez Liquid client; LWK has no
-  // refund concept). Errors fold cleanly — `ServiceFailure` is already
-  // a `Failure` subtype so no wrapping needed.
-
-  @override
-  Future<Either<Failure, List<RefundableSwap>>> listRefundableSwaps() async {
-    final r = await lightning.listRefundables();
-    return r.fold(
-      (f) => Left<Failure, List<RefundableSwap>>(f),
-      (xs) => Right<Failure, List<RefundableSwap>>(xs),
-    );
-  }
-
-  @override
-  Future<Either<Failure, String?>> findBreezChainSwapId({
-    required String lockupTxId,
-  }) async {
-    final r = await lightning.findChainSwapIdByLockup(lockupTxId: lockupTxId);
-    return r.fold(
-      (f) => Left<Failure, String?>(f),
-      (id) => Right<Failure, String?>(id),
-    );
-  }
-
-  @override
-  Future<Either<Failure, MempoolFees>> getRecommendedFees() async {
-    final r = await lightning.recommendedFees();
-    return r.fold(
-      (f) => Left<Failure, MempoolFees>(f),
-      (fees) => Right<Failure, MempoolFees>(fees),
-    );
-  }
-
-  @override
-  Future<Either<Failure, PrepareRefundOutcome>> prepareRefund(
-    PrepareRefundParams params,
-  ) async {
-    final r = await lightning.prepareRefund(params);
-    return r.fold(
-      (f) => Left<Failure, PrepareRefundOutcome>(f),
-      (o) => Right<Failure, PrepareRefundOutcome>(o),
-    );
-  }
-
-  @override
-  Future<Either<Failure, RefundOutcome>> executeRefund(
-    ExecuteRefundParams params,
-  ) async {
-    final r = await lightning.executeRefund(params);
-    return r.fold(
-      (f) => Left<Failure, RefundOutcome>(f),
-      (o) => Right<Failure, RefundOutcome>(o),
-    );
-  }
-
   // ─────────────────────────────────────────── swap surface (LWK-backed)
   //
   // Routes to the LWK service. PSET signing + UTXO enumeration are
@@ -381,7 +318,6 @@ class WalletRepositoryImpl implements WalletRepository {
   Future<_PerChainSnapshots> _fetchPerChainSnapshots() async {
     Either<Failure, Balance>? bitcoinSnap;
     Either<Failure, Balance>? liquidSnap;
-    Either<Failure, Balance>? lightningSnap;
 
     final futures = <Future<void>>[];
     if (bitcoin.currentState.isOperational) {
@@ -390,15 +326,11 @@ class WalletRepositoryImpl implements WalletRepository {
     if (liquid.currentState.isOperational) {
       futures.add(liquid.getBalance().then((r) => liquidSnap = r));
     }
-    if (lightning.currentState.isOperational) {
-      futures.add(lightning.getBalance().then((r) => lightningSnap = r));
-    }
     await Future.wait(futures);
 
     return _PerChainSnapshots(
       bitcoin: bitcoinSnap,
       liquid: liquidSnap,
-      lightning: lightningSnap,
     );
   }
 
@@ -441,8 +373,7 @@ class WalletRepositoryImpl implements WalletRepository {
     if (asset.isNativeBitcoin) {
       // BTC: sum entries on the bitcoin chain. The V2 BDK service emits a
       // single asset with `assetId == null`; if multiple were ever emitted
-      // we'd still want to sum them. Lightning's `assetId == null` BTC entry
-      // is intentionally NOT routed here — see `Asset.btc.resolutionChains`.
+      // we'd still want to sum them.
       var sum = BigInt.zero;
       var sawAny = false;
       for (final ab in balance.assets) {
@@ -454,9 +385,8 @@ class WalletRepositoryImpl implements WalletRepository {
       return sawAny ? sum : null;
     }
 
-    // Liquid asset: match by asset id. Sum across multiple entries (defensive —
-    // Breez Liquid currently emits one row per asset, but this keeps the
-    // implementation correct if that ever changes).
+    // Liquid asset: match by asset id. Sum across multiple entries
+    // (defensive — LWK emits one row per asset today).
     final assetId = asset.id;
     var sum = BigInt.zero;
     var sawAny = false;
@@ -483,17 +413,15 @@ class _PerChainSnapshots {
   const _PerChainSnapshots({
     required this.bitcoin,
     required this.liquid,
-    required this.lightning,
   });
 
   final Either<Failure, Balance>? bitcoin;
   final Either<Failure, Balance>? liquid;
-  final Either<Failure, Balance>? lightning;
 
   Either<Failure, Balance>? forChain(ChainId chain) => switch (chain) {
     ChainId.bitcoin => bitcoin,
     ChainId.liquid => liquid,
-    ChainId.lightning => lightning,
-    ChainId.aggregate => null,
+    // No service backs these chains; historical rows may still carry them.
+    ChainId.lightning || ChainId.aggregate => null,
   };
 }

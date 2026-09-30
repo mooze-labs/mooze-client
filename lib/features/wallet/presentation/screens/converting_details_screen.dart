@@ -58,9 +58,8 @@ class _ActiveView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Refundable swaps suppress the "in progress" affordances
-    // (timeline + animated explanation) and surface a refund CTA in
-    // their place. The user's next action is no longer "wait" but
-    // "claim", and the screen should reflect that.
+    // (timeline + animated explanation). Boltz refunds no longer exist,
+    // so the callout only explains the state; it has no action.
     final isRefundable = swap.phase == PendingSwapPhase.refundable;
 
     return SingleChildScrollView(
@@ -126,19 +125,6 @@ class _RefundCallout extends StatelessWidget {
           Text(
             t.converting_details_refund_message,
             style: const TextStyle(fontSize: 13, height: 1.5),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.orangeAccent,
-                foregroundColor: Colors.black,
-              ),
-              icon: const Icon(Icons.south_east),
-              label: Text(t.converting_details_refund_button),
-              onPressed: () => context.push('/transactions/refund'),
-            ),
           ),
         ],
       ),

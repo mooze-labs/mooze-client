@@ -1,6 +1,7 @@
-import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:bdk_dart/bdk_dart.dart' as bdk;
 import 'package:fpdart/fpdart.dart';
 import 'package:lwk/lwk.dart' as lwk;
+import 'package:mooze_mobile/infra/bdk/bdk_wallet_x.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/address_match.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/address_utxo.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/wallet_address.dart';
@@ -49,13 +50,13 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
         // comparing scripts against derived addresses up to a reasonable cap.
         final byScript = await _deriveBitcoinScriptMap(_kBitcoinNextUnusedScanCap);
         return utxos.where((u) => !u.isSpent).map((u) {
-          final hex = _hex(u.txout.scriptPubkey.bytes);
+          final hex = bdkScriptHex(u.txout.scriptPubkey);
           final entry = byScript[hex];
           return AddressUtxo(
             address: entry?.address ?? '',
             chain: AddressChain.bitcoin,
             outpoint: '${u.outpoint.txid}:${u.outpoint.vout}',
-            value: u.txout.value,
+            value: BigInt.from(u.txout.value.toSat()),
             confirmed: true,
           );
         }).toList();
@@ -68,8 +69,8 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
   TaskEither<WalletError, AddressMatch> isOwnedBitcoinAddress(String address) {
     return TaskEither(() async {
       try {
-        final parsed = await bdk.Address.fromString(
-          s: address,
+        final parsed = bdk.Address(
+          address: address,
           network: _bdk.wallet.network(),
         );
         final script = parsed.scriptPubkey();
@@ -77,12 +78,11 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
         if (!isMine) return Either.right(AddressMatch.notOwned(address));
 
         // Identify the derivation index by walking the descriptor.
-        final scriptHex = _hex(script.bytes);
+        final scriptHex = bdkScriptHex(script);
         int? foundIndex;
         for (int i = 0; i < _kBitcoinNextUnusedScanCap; i++) {
-          final info = _bdk.wallet
-              .getAddress(addressIndex: bdk.AddressIndex.peek(index: i));
-          final derivedHex = _hex(info.address.scriptPubkey().bytes);
+          final info = _bdk.wallet.peekReceive(i);
+          final derivedHex = bdkScriptHex(info.address.scriptPubkey());
           if (derivedHex == scriptHex) {
             foundIndex = i;
             break;
@@ -93,12 +93,12 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
         final utxos = _bdk.wallet
             .listUnspent()
             .where((u) => !u.isSpent &&
-                _hex(u.txout.scriptPubkey.bytes) == scriptHex)
+                bdkScriptHex(u.txout.scriptPubkey) == scriptHex)
             .map((u) => AddressUtxo(
                   address: address,
                   chain: AddressChain.bitcoin,
                   outpoint: '${u.outpoint.txid}:${u.outpoint.vout}',
-                  value: u.txout.value,
+                  value: BigInt.from(u.txout.value.toSat()),
                 ))
             .toList();
         return Either.right(
@@ -124,36 +124,13 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
   TaskEither<WalletError, WalletAddress> getNextUnusedBitcoinAddress() {
     return TaskEither.tryCatch(
       () async {
-        final usedScripts = _buildBitcoinUsedScriptSet();
-
-        // Start from BDK's current "lastUnused" view and walk forward
-        // until we find one with no on-chain history.
-        final last = _bdk.wallet
-            .getAddress(addressIndex: bdk.AddressIndex.lastUnused());
-        var index = last.index;
-        var scriptHex = _hex(last.address.scriptPubkey().bytes);
-        var addrStr = last.address.asString();
-
-        final cap = index + _kBitcoinNextUnusedScanCap;
-        while (usedScripts.contains(scriptHex) && index < cap) {
-          index++;
-          final info = _bdk.wallet
-              .getAddress(addressIndex: bdk.AddressIndex.peek(index: index));
-          scriptHex = _hex(info.address.scriptPubkey().bytes);
-          addrStr = info.address.asString();
-        }
-
-        if (usedScripts.contains(scriptHex)) {
-          throw StateError(
-            'Não foi possível encontrar um endereço não utilizado dentro '
-            'da janela de varredura de $_kBitcoinNextUnusedScanCap índices.',
-          );
-        }
-
-        // Advance BDK's internal counter so subsequent .increase() calls
-        // start beyond this address.
-        _bdk.wallet
-            .getAddress(addressIndex: bdk.AddressIndex.reset(index: index));
+        // Walk forward from BDK's first unused address past any address
+        // with on-chain history, reveal it and persist the index.
+        final info = _bdk.wallet
+            .nextFreshReceiveAddress(cap: _kBitcoinNextUnusedScanCap);
+        _bdk.persist();
+        final index = info.index;
+        final addrStr = info.address.toString();
 
         return WalletAddress(
           address: addrStr,
@@ -170,33 +147,28 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
     final byScript = await _deriveBitcoinScriptMap(limit);
 
     // Group UTXOs by script hex.
-    final utxosByScript = <String, List<bdk.LocalUtxo>>{};
+    final utxosByScript = <String, List<bdk.LocalOutput>>{};
     for (final u in _bdk.wallet.listUnspent()) {
       if (u.isSpent) continue;
-      final hex = _hex(u.txout.scriptPubkey.bytes);
+      final hex = bdkScriptHex(u.txout.scriptPubkey);
       if (!byScript.containsKey(hex)) continue;
       utxosByScript.putIfAbsent(hex, () => []).add(u);
     }
 
     // Mark scripts that have ever received funds, even if since spent.
     final receivedTo = <String>{...utxosByScript.keys};
-    for (final tx in _bdk.wallet.listTransactions(includeRaw: true)) {
-      final raw = tx.transaction;
-      if (raw == null) continue;
-      for (final out in raw.output()) {
-        final hex = _hex(out.scriptPubkey.bytes);
-        if (byScript.containsKey(hex)) receivedTo.add(hex);
-      }
+    for (final hex in _bdk.wallet.usedScriptHexes()) {
+      if (byScript.containsKey(hex)) receivedTo.add(hex);
     }
 
     final result = <WalletAddress>[];
     byScript.forEach((scriptHex, entry) {
-      final us = (utxosByScript[scriptHex] ?? const <bdk.LocalUtxo>[])
+      final us = (utxosByScript[scriptHex] ?? const <bdk.LocalOutput>[])
           .map((u) => AddressUtxo(
                 address: entry.address,
                 chain: AddressChain.bitcoin,
                 outpoint: '${u.outpoint.txid}:${u.outpoint.vout}',
-                value: u.txout.value,
+                value: BigInt.from(u.txout.value.toSat()),
               ))
           .toList();
       final received = us.fold<BigInt>(BigInt.zero, (s, u) => s + u.value);
@@ -221,42 +193,16 @@ class AddressExplorerRepositoryImpl implements AddressExplorerRepository {
   ) async {
     final map = <String, _BitcoinDerivedEntry>{};
     for (int i = 0; i < limit; i++) {
-      final info = _bdk.wallet
-          .getAddress(addressIndex: bdk.AddressIndex.peek(index: i));
-      final addr = info.address.asString();
-      final hex = _hex(info.address.scriptPubkey().bytes);
+      final info = _bdk.wallet.peekReceive(i);
+      final addr = info.address.toString();
+      final hex = bdkScriptHex(info.address.scriptPubkey());
       map[hex] = _BitcoinDerivedEntry(index: i, address: addr);
     }
     return map;
   }
 
-  Set<String> _buildBitcoinUsedScriptSet() {
-    final used = <String>{};
-    for (final u in _bdk.wallet.listUnspent()) {
-      used.add(_hex(u.txout.scriptPubkey.bytes));
-    }
-    for (final tx in _bdk.wallet.listTransactions(includeRaw: true)) {
-      final raw = tx.transaction;
-      if (raw == null) continue;
-      for (final out in raw.output()) {
-        used.add(_hex(out.scriptPubkey.bytes));
-      }
-    }
-    return used;
-  }
-
   Future<bool> _bitcoinAddressIsUsed(String scriptHex) async {
-    for (final u in _bdk.wallet.listUnspent()) {
-      if (_hex(u.txout.scriptPubkey.bytes) == scriptHex) return true;
-    }
-    for (final tx in _bdk.wallet.listTransactions(includeRaw: true)) {
-      final raw = tx.transaction;
-      if (raw == null) continue;
-      for (final out in raw.output()) {
-        if (_hex(out.scriptPubkey.bytes) == scriptHex) return true;
-      }
-    }
-    return false;
+    return _bdk.wallet.usedScriptHexes().contains(scriptHex);
   }
 
   // ────────────────────────────────────────────────────────────────────
@@ -438,12 +384,4 @@ class _LiquidDerivedEntry {
   final int index;
   final String confidential;
   const _LiquidDerivedEntry({required this.index, required this.confidential});
-}
-
-String _hex(List<int> bytes) {
-  final buf = StringBuffer();
-  for (final b in bytes) {
-    buf.write((b & 0xff).toRadixString(16).padLeft(2, '0'));
-  }
-  return buf.toString();
 }

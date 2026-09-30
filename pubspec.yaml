@@ -7,7 +7,10 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.5.1+1
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.10.0
+  # Pinned in .fvmrc. Flutter 3.47+ uses Dart dot shorthands, which the
+  # analyzer behind build_runner (7.x) cannot parse.
+  flutter: ">=3.41.0"
 
 dependencies:
   flutter:
@@ -19,11 +22,6 @@ dependencies:
       url: https://github.com/mooze-labs/slip-21-dart.git
       ref: main
 
-  flutter_breez_liquid:
-    path: ./packages/breez-sdk-liquid-flutter
-    #git:
-    # url: https://github.com/breez/breez-sdk-liquid-flutter
-    # ref: main
 
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8
@@ -80,7 +78,6 @@ dependencies:
   hex: ^0.2.0
   mockito: ^5.4.6
   cryptography: ^2.7.0
-  dart_nostr: ^8.0.3
   freezed: ^3.0.6
   bitcoin_ui: ^2.0.0
   persistent_bottom_nav_bar: ^6.2.1
@@ -95,8 +92,10 @@ dependencies:
   firebase_messaging: ^16.0.0
   pointycastle: ^3.9.1
   tutorial_coach_mark: ^1.2.11
-  bdk_flutter:
-    path: ./packages/bdk-flutter
+  bdk_dart:
+    git:
+      url: https://github.com/bitcoindevkit/bdk-dart.git
+      ref: db0ec383250979143f1f3ce6acc3406fe2fdc535 # v1.0.0
   safe_device: ^1.3.8
   battery_plus: ^6.0.3
   screen_brightness: ^2.1.7

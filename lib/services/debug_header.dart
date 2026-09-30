@@ -5,7 +5,6 @@ class DebugHeader {
     required this.buildNumber,
     required this.lwkVersion,
     required this.bdkVersion,
-    required this.breezVersion,
     required this.bitcoinTip,
     required this.totalSats,
     required this.totalLogsMemory,
@@ -20,7 +19,6 @@ class DebugHeader {
   final String buildNumber;
   final String lwkVersion;
   final String bdkVersion;
-  final String breezVersion;
   final int? bitcoinTip;
   final int totalSats;
   final int totalLogsMemory;
@@ -58,7 +56,6 @@ App Version: $appVersion
 Build Number: $buildNumber
 LWK: $lwkVersion
 BDK: $bdkVersion
-Breez SDK: $breezVersion
 Bitcoin tip: $tipLine
 Total Sats (sum across chains): $totalSats
 Total Logs (Memory): $totalLogsMemory

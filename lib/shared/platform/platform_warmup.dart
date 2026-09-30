@@ -1,40 +1,35 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_breez_liquid/flutter_breez_liquid.dart' as breez;
 import 'package:lwk/lwk.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../diagnostics/boot_tracer.dart';
 
-/// Process-wide cache for the Rust FFI library initializations.
+/// Process-wide cache for the Rust FFI library initialization.
 ///
-/// The V2 boot's `PlatformInitializerImpl` calls `LibLwk.init()` and
-/// `FlutterBreezLiquid.init()` sequentially during the `platform`
-/// phase — each one performs `flutter_rust_bridge` codegen
-/// registration plus loading of the Rust dynamic library. Profiled
-/// boots on the iOS simulator showed the two combined taking ~900 ms
-/// of UI-thread blocking work, surfacing as a JANK of >1 s right
-/// before the splash screen could route.
+/// The V2 boot's `PlatformInitializerImpl` calls `LibLwk.init()` during
+/// the `platform` phase — it performs `flutter_rust_bridge` codegen
+/// registration plus loading of the Rust dynamic library, which showed
+/// up as UI-thread jank right before the splash screen could route.
+/// (`bdk_dart` uses native assets and needs no init call.)
 ///
-/// This helper warms both inits up from `main()` — they fire in
+/// This helper warms the init up from `main()` — it fires in
 /// parallel with the mnemonic prefetch and the `SharedPreferences`
 /// load that already happen there. By the time the boot orchestrator
 /// reaches the `platform` phase, the inits are usually finished, so
-/// awaiting them is a no-op.
+/// awaiting it is a no-op.
 ///
 /// `flutter_rust_bridge` will throw "Bad state: Should not initialize
 /// flutter_rust_bridge twice" if `init()` is called twice — the cache
-/// keeps both calls referring to a single Future, satisfying that
+/// keeps every call referring to a single Future, satisfying that
 /// invariant while exposing the same await semantics to consumers.
 class PlatformWarmup {
   PlatformWarmup._();
 
   static Future<void>? _lwkFuture;
-  static Future<void>? _breezFuture;
   static Future<void>? _fsFuture;
   static int? _lwkMs;
-  static int? _breezMs;
   static int? _fsMs;
 
   /// Kicks the FFI inits AND the filesystem warmup off without
@@ -54,7 +49,6 @@ class PlatformWarmup {
   /// later in boot are sub-millisecond.
   static void start() {
     _lwkFuture ??= _runLwkInit();
-    _breezFuture ??= _runBreezInit();
     _fsFuture ??= _runFsWarmup();
   }
 
@@ -65,7 +59,7 @@ class PlatformWarmup {
   /// the unlocked sandbox without explicitly waiting on us.
   static Future<void> awaitAll() async {
     start();
-    await Future.wait([_lwkFuture!, _breezFuture!]);
+    await _lwkFuture!;
   }
 
   /// Awaits the filesystem warmup specifically. Callers that are
@@ -80,7 +74,6 @@ class PlatformWarmup {
   /// Wall-clock time the LWK FFI init took, in ms. Null until the
   /// future resolves. Exposed only for diagnostics / trace reports.
   static int? get lwkInitMs => _lwkMs;
-  static int? get breezInitMs => _breezMs;
   static int? get fsWarmupMs => _fsMs;
 
   static Future<void> _runLwkInit() async {
@@ -89,14 +82,6 @@ class PlatformWarmup {
     await LibLwk.init();
     _lwkMs = DateTime.now().difference(t0).inMilliseconds;
     BootTracer.mark('platform_warmup.lwk.end', {'dur_ms': _lwkMs});
-  }
-
-  static Future<void> _runBreezInit() async {
-    final t0 = DateTime.now();
-    BootTracer.mark('platform_warmup.breez.begin');
-    await breez.FlutterBreezLiquid.init();
-    _breezMs = DateTime.now().difference(t0).inMilliseconds;
-    BootTracer.mark('platform_warmup.breez.end', {'dur_ms': _breezMs});
   }
 
   static Future<void> _runFsWarmup() async {

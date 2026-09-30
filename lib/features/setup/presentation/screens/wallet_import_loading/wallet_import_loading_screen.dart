@@ -182,26 +182,23 @@ class _WalletImportLoadingScreenState
     // we hold the splash + animations until the chain whose data the
     // user is most likely to look for first has settled.
     //
-    // Gate condition (2026-05-24): wait specifically for Lightning
-    // (Breez). Rationale: Breez is the source of Liquid asset swaps,
-    // which is the data the user typically wants to see immediately
-    // after importing — Liquid native (LWK) txs and Bitcoin (BDK) txs
-    // surface fine via progressive hydration once the home mounts.
-    // If Lightning fails, its entry still lands in `firstSyncedChains`
-    // (the orchestrator counts a failure as "we got an answer"), so
-    // the gate releases.
+    // Gate condition: wait specifically for Liquid (LWK). Rationale: LWK
+    // is the source of Liquid assets and swaps, which is the data the
+    // user typically wants to see immediately after importing — Bitcoin
+    // (BDK) txs surface fine via progressive hydration once the home
+    // mounts. If Liquid fails, its entry still lands in
+    // `firstSyncedChains` (the orchestrator counts a failure as "we got
+    // an answer"), so the gate releases.
     //
     // Belt-and-suspenders: also release on `phase == cooling`
     // (everything settled) or `lastError` (all chains hard-failed) so
-    // we never strand the user if Lightning hangs in a non-timeout
-    // state.
+    // we never strand the user if Liquid hangs in a non-timeout state.
     final appState = ref.read(appStateProvider).valueOrNull;
-    final lightningSettled =
-        state.firstSyncedChains.contains(ChainId.lightning);
+    final liquidSettled = state.firstSyncedChains.contains(ChainId.liquid);
     final allSettled = state.phase == SyncPhase.cooling &&
         (state.lastSuccessAt != null || state.lastError != null);
     final firstSyncCycleDone =
-        lightningSettled || allSettled || state.lastError != null;
+        liquidSettled || allSettled || state.lastError != null;
     if (appState?.phase == AppPhase.ready &&
         firstSyncCycleDone &&
         !_isHandlingSuccess &&

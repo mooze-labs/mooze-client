@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -25,8 +24,6 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_
 import 'package:mooze_mobile/features/wallet/presentation/providers/transaction_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/refund/refund_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/refund/get_refund_screen.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/domain/entities/balance.dart';
 import 'package:mooze_mobile/domain/entities/transaction.dart';
@@ -273,7 +270,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       onComplete: () async {
         if (!mounted) return;
         _invalidateWalletProviders();
-        await _checkRefundables();
       },
     );
   }
@@ -286,64 +282,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     ref.invalidate(transactionControllerProvider);
     ref.invalidate(transactionHistoryProvider);
     ref.invalidate(transactionHistoryCacheProvider);
-    ref.invalidate(refundProvider);
     _logger.info('DeveloperScreen', 'Wallet providers invalidated');
-  }
-
-  /// Checks for refundable swaps and navigates to refund screen if any exist
-  Future<void> _checkRefundables() async {
-    try {
-      final repo = await ref.read(walletRepositoryProvider.future);
-      final result = await repo.listRefundableSwaps();
-      final refundables = result.getOrElse((_) => const []);
-
-      _logger.info(
-        'DeveloperScreen',
-        'Found ${refundables.length} refundable swap(s)',
-      );
-
-      if (refundables.isNotEmpty && mounted) {
-        final t = AppLocalizations.of(context);
-        final shouldNavigate = await showDialog<bool>(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                title: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(t.developer_refundables_title),
-                  ],
-                ),
-                content: Text(
-                  t.developer_refundables_message(refundables.length),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(t.developer_later),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text(t.developer_view_now),
-                  ),
-                ],
-              ),
-        );
-
-        if (shouldNavigate == true && mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const GetRefundScreen()),
-          );
-        }
-      }
-    } catch (e) {
-      _logger.error('DeveloperScreen', 'Error checking refundables', error: e);
-    }
   }
 
   Future<void> _exportLogs() async {
@@ -487,10 +426,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     }
   }
 
-  Future<void> _onRefund() async {
-    context.push('/transactions/refund');
-  }
-
   Future<void> _clearLogs() async {
     final clearOption = await ClearLogsDialog.show(
       context,
@@ -545,7 +480,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
       buildNumber: _buildNumber,
       lwkVersion: sdkVersions.lwk,
       bdkVersion: sdkVersions.bdk,
-      breezVersion: sdkVersions.breez,
       bitcoinTip: _bitcoinTip,
       totalSats: btcEquivalentSats,
       totalLogsMemory: _totalLogs,
@@ -635,8 +569,7 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
                   buildNumber: _buildNumber,
                   lwkVersion: sdkVersions.lwk,
                   bdkVersion: sdkVersions.bdk,
-                  breezVersion: sdkVersions.breez,
-                  bitcoinTip: _bitcoinTip,
+                              bitcoinTip: _bitcoinTip,
                   totalLogs: _totalLogs,
                   dbLogs: _dbLogs,
                   logRetention:
@@ -668,7 +601,6 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
                   onViewLogs: _viewLogs,
                   onExportLogs: _exportLogs,
                   onClearLogs: _clearLogs,
-                  onRefund: _onRefund,
                 ),
               ],
             ),
