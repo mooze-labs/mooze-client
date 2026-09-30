@@ -1,13 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/liquid_glass/liquid_glass_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'bottom_nav_bar_painter.dart';
 import 'liquid_glass_bottom_nav_bar.dart';
 
-class CustomBottomNavBar extends ConsumerStatefulWidget {
+class CustomBottomNavBar extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
   final Key? centralButtonKey;
@@ -20,15 +20,14 @@ class CustomBottomNavBar extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CustomBottomNavBar> createState() =>
-      _CustomBottomNavBarState();
+  State<CustomBottomNavBar> createState() => _CustomBottomNavBarState();
 }
 
-class _CustomBottomNavBarState extends ConsumerState<CustomBottomNavBar> {
+class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   @override
   Widget build(BuildContext context) {
-    // On iPhone, use the Liquid Glass bar unless the user switched it off.
-    if (ref.watch(liquidGlassActiveProvider)) {
+    // iPhone always uses the Liquid Glass bar.
+    if (Platform.isIOS) {
       return LiquidGlassBottomNavBar(
         centralButtonKey: widget.centralButtonKey,
         currentIndex: widget.currentIndex,

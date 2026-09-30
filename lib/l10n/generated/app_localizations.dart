@@ -466,12 +466,6 @@ abstract class AppLocalizations {
   /// **'Deletar carteira'**
   String get settings_delete_wallet;
 
-  /// No description provided for @settings_liquid_glass.
-  ///
-  /// In pt, this message translates to:
-  /// **'Liquid Glass'**
-  String get settings_liquid_glass;
-
   /// No description provided for @settings_theme.
   ///
   /// In pt, this message translates to:

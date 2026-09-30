@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -200,9 +199,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings_delete_wallet => 'Delete wallet';
-
-  @override
-  String get settings_liquid_glass => 'Liquid Glass';
 
   @override
   String get settings_theme => 'Theme';

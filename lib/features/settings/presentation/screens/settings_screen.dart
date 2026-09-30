@@ -11,7 +11,6 @@ import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart'
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
-import 'package:mooze_mobile/shared/liquid_glass/liquid_glass_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
@@ -107,8 +106,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Derived values with safe defaults while the futures resolve.
     final biometricAvailable = isBiometricAvailable.value ?? false;
     final biometricEnabled = isBiometricEnabled.value ?? false;
-    final liquidGlassSupported = ref.watch(liquidGlassSupportedProvider);
-    final liquidGlassEnabled = ref.watch(liquidGlassEnabledProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -213,18 +210,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     rota: '/settings/theme-selector',
                   ),
                 ),
-                // Liquid Glass is available on iPhone only.
-                if (liquidGlassSupported)
-                  ConfigStructure(
-                    title: t.settings_liquid_glass,
-                    iconSvgPath: 'assets/icons/menu/settings/theme.svg',
-                    action: Toggle(
-                      value: liquidGlassEnabled,
-                      onChange: ref
-                          .read(liquidGlassEnabledProvider.notifier)
-                          .setEnabled,
-                    ),
-                  ),
                 ConfigStructure(
                   title: t.settings_language,
                   iconSvgPath: 'assets/icons/menu/settings/language.svg',
