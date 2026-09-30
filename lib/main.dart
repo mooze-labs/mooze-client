@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import 'package:safe_device/safe_device.dart';
 import 'package:safe_device/safe_device_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,6 +53,14 @@ void main() async {
   // initialized only once per process.
   PlatformWarmup.start();
   BootTracer.mark('main.platform_warmup_started');
+
+  // Compile the Liquid Glass shaders early on iPhone, so the first glass
+  // surface refracts on its first frame. Fire-and-forget: a lens that builds
+  // before the load completes shows a frosted look for a moment.
+  if (Platform.isIOS) {
+    LiquidGlassShaders.ensureLoaded();
+    BootTracer.mark('main.liquid_glass_shaders_started');
+  }
 
   SafeDevice.init(SafeDeviceConfig(mockLocationCheckEnabled: false));
   BootTracer.mark('main.safe_device_init');

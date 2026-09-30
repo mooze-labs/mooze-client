@@ -78,6 +78,7 @@ dependencies:
   device_info_plus: ^11.5.0
   package_info_plus: ^8.3.0
   hex: ^0.2.0
+  liquid_glass_easy: ^4.3.4
   mockito: ^5.4.6
   cryptography: ^2.7.0
   dart_nostr: ^8.0.3
