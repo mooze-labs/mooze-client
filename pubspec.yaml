@@ -25,8 +25,7 @@ dependencies:
 
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8
-  lwk:
-    path: ./packages/lwk-dart
+  lwk: ^0.5.0
   ffi: ^2.1.4
   shared_preferences: ^2.5.2
   path_provider: ^2.1.5

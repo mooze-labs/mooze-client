@@ -1,3 +1,0 @@
-[submodule "packages/lwk-dart"]
-	path = packages/lwk-dart
-	url = git@github.com:mooze-labs/lwk-dart.git

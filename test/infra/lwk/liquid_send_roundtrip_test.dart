@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:lwk/lwk.dart' as lwk;
 
+import 'package:mooze_mobile/domain/entities/asset.dart'
+    show lbtcAssetId, lbtcTestnetAssetId;
 import 'package:mooze_mobile/domain/entities/chain.dart';
 import 'package:mooze_mobile/domain/entities/liquid_utxo.dart';
 import 'package:mooze_mobile/domain/entities/wallet_credentials.dart';
@@ -365,7 +367,7 @@ String _left<L extends Failure, R>(Either<L, R> e) =>
 /// on it reports 0 on testnet even with 75 funded UTXOs. Measuring the policy
 /// asset directly keeps the gate honest on both networks.
 String get _policyAsset =>
-    _networkName == 'mainnet' ? lwk.lBtcAssetId : lwk.lTestAssetId;
+    _networkName == 'mainnet' ? lbtcAssetId : lbtcTestnetAssetId;
 
 /// Spendable policy-asset total, summed from UTXOs rather than the mapped
 /// balance, for the same reason.

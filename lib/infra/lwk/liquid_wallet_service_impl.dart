@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:lwk/lwk.dart' as lwk;
 
-import '../../domain/entities/asset.dart' show lbtcAssetId;
+import '../../domain/entities/asset.dart'
+    show lbtcAssetId, lbtcTestnetAssetId;
 import '../../domain/entities/balance.dart' as domain;
 import '../../domain/entities/broadcast_result.dart' as domain;
 import '../../domain/entities/chain.dart';
@@ -1093,9 +1094,9 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   }
 
   String get _policyAssetId => switch (_network) {
-    AppNetwork.mainnet => lwk.lBtcAssetId,
-    AppNetwork.testnet => lwk.lTestAssetId,
-    AppNetwork.regtest => lwk.lTestAssetId,
+    AppNetwork.mainnet => lbtcAssetId,
+    AppNetwork.testnet => lbtcTestnetAssetId,
+    AppNetwork.regtest => lbtcTestnetAssetId,
   };
 
   @override
@@ -1233,10 +1234,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     return Left(f);
   }
 
-  lwk.Network _toLwkNetwork(AppNetwork n) => switch (n) {
-    AppNetwork.mainnet => lwk.Network.mainnet,
-    AppNetwork.testnet => lwk.Network.testnet,
-    AppNetwork.regtest => lwk.Network.testnet,
+  lwk.LiquidNetwork _toLwkNetwork(AppNetwork n) => switch (n) {
+    AppNetwork.mainnet => lwk.LiquidNetwork.mainnet,
+    AppNetwork.testnet => lwk.LiquidNetwork.testnet,
+    AppNetwork.regtest => lwk.LiquidNetwork.testnet,
   };
 
   domain.Transaction _mapTx(lwk.Tx t) {

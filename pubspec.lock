@@ -720,10 +720,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_rust_bridge
-      sha256: "37ef40bc6f863652e865f0b2563ea07f0d3c58d8efad803cc01933a4b2ee067e"
+      sha256: e87d6b9ee934dcd24a128ccb2bd91905d2d5fe5c06245d6a8f5477d4907a437a
       url: "https://pub.dev"
     source: hosted
-    version: "2.11.1"
+    version: "2.12.0"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -1065,10 +1065,11 @@ packages:
   lwk:
     dependency: "direct main"
     description:
-      path: "packages/lwk-dart"
-      relative: true
-    source: path
-    version: "0.2.1"
+      name: lwk
+      sha256: "9dfcf316ebc46973b61d57f10d1562f243a3120c34884a85b302742eb8173708"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   mailto:
     dependency: "direct main"
     description:
