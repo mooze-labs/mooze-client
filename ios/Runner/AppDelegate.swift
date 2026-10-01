@@ -2,29 +2,30 @@ import Flutter
 import UIKit
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
 
-    let controller = window?.rootViewController as! FlutterViewController
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
     let bootTimeChannel = FlutterMethodChannel(
       name: "com.mooze.deviceinfo/boot_time",
-      binaryMessenger: controller.binaryMessenger
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
 
-    bootTimeChannel.setMethodCallHandler {
+    bootTimeChannel.setMethodCallHandler { [weak self]
       (call: FlutterMethodCall, result: @escaping FlutterResult) in
-      if call.method == "getBootTime" {
+      if call.method == "getBootTime", let self = self {
         result(self.getBootTime())
       } else {
         result(FlutterMethodNotImplemented)
       }
     }
-
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
   private func getBootTime() -> Int64 {

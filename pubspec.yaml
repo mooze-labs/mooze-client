@@ -10,7 +10,7 @@ environment:
   sdk: ^3.10.0
   # Pinned in .fvmrc. Flutter 3.47+ uses Dart dot shorthands, which the
   # analyzer behind build_runner (7.x) cannot parse.
-  flutter: ">=3.41.0"
+  flutter: ">=3.41.0 <3.42.0"
 
 dependencies:
   flutter:
