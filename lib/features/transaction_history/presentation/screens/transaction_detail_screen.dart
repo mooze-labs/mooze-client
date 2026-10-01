@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -642,21 +641,6 @@ class _TransactionDetailScreenState
   List<Widget> _buildSwapActions(BuildContext context) {
     final t = AppLocalizations.of(context);
     final tx = widget.transaction;
-    final isRefundable = tx.status == TransactionStatus.refundable;
-
-    if (isRefundable) {
-      return [
-        InCardActionButton(
-          label: t.tx_detail_request_refund,
-          subtitle: t.tx_detail_request_refund_subtitle,
-          icon: Icons.refresh,
-          onPressed: () {
-            context.push('/transactions/refund', extra: tx);
-          },
-          isPrimary: true,
-        ),
-      ];
-    }
 
     if (_isCrossChainSwap()) {
       final sendEnabled = _isExplorerEnabledFor(

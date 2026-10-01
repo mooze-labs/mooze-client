@@ -13,7 +13,6 @@ class DeveloperInfoCard extends StatelessWidget {
     required this.buildNumber,
     required this.lwkVersion,
     required this.bdkVersion,
-    required this.breezVersion,
     required this.bitcoinTip,
     required this.totalLogs,
     required this.dbLogs,
@@ -25,7 +24,6 @@ class DeveloperInfoCard extends StatelessWidget {
   final String buildNumber;
   final String lwkVersion;
   final String bdkVersion;
-  final String breezVersion;
   final int? bitcoinTip;
   final int totalLogs;
   final int dbLogs;
@@ -76,7 +74,6 @@ class DeveloperInfoCard extends StatelessWidget {
           const SizedBox(height: 6),
           _SdkRow(label: 'BDK', version: bdkVersion),
           const SizedBox(height: 6),
-          _SdkRow(label: 'Breez SDK', version: breezVersion),
           const SizedBox(height: 12),
           _RuntimeRow(
             label: t.developer_bitcoin_tip,

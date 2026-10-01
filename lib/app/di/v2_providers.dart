@@ -14,7 +14,6 @@ import '../../domain/repositories/wallet_directory_guard.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/services/bitcoin_wallet_service.dart';
 import '../../domain/services/electrum_endpoint_resolver.dart';
-import '../../domain/services/lightning_wallet_service.dart';
 import '../../domain/services/liquid_wallet_service.dart';
 import '../../domain/services/platform_initializer.dart';
 import '../../domain/services/session_authenticator.dart';
@@ -32,7 +31,6 @@ import '../../features/wallet/domain/usecases/import_wallet.dart';
 import '../../features/wallet/domain/usecases/refresh_wallet.dart';
 import '../../infra/auth/session_authenticator_impl.dart';
 import '../../infra/bdk/bitcoin_wallet_service_impl.dart';
-import '../../infra/breez/lightning_wallet_service_impl.dart';
 import '../../infra/db/transaction_database.dart';
 import '../../infra/fs/wallet_directory_guard_impl.dart';
 import '../../infra/lwk/liquid_wallet_service_impl.dart';
@@ -117,6 +115,7 @@ final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
     endpointResolver: ref.read(electrumEndpointResolverProvider),
+    credentialStore: ref.read(secureCredentialStoreProvider),
   );
   ref.onDispose(s.dispose);
   return s;
@@ -124,16 +123,6 @@ final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
 
 final bitcoinWalletServiceProvider = Provider<BitcoinWalletService>((ref) {
   final s = BitcoinWalletServiceImpl(
-    directoryGuard: ref.read(walletDirectoryGuardProvider),
-    logger: ref.read(loggerProvider),
-    clock: ref.read(clockProvider),
-  );
-  ref.onDispose(s.dispose);
-  return s;
-});
-
-final lightningWalletServiceProvider = Provider<LightningWalletService>((ref) {
-  final s = LightningWalletServiceImpl(
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
@@ -161,7 +150,6 @@ final bootOrchestratorProvider =
     transactionStore: txStore,
     liquid: ref.read(liquidWalletServiceProvider),
     bitcoin: ref.read(bitcoinWalletServiceProvider),
-    lightning: ref.read(lightningWalletServiceProvider),
     session: ref.read(sessionAuthenticatorProvider),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
@@ -176,7 +164,6 @@ final syncOrchestratorProvider =
   final o = SyncOrchestratorImpl(
     liquid: ref.read(liquidWalletServiceProvider),
     bitcoin: ref.read(bitcoinWalletServiceProvider),
-    lightning: ref.read(lightningWalletServiceProvider),
     transactionStore: txStore,
     config: ref.read(syncConfigProvider),
     logger: ref.read(loggerProvider),
@@ -272,7 +259,6 @@ final walletRepositoryProvider =
     transactionStore: txStore,
     liquid: ref.read(liquidWalletServiceProvider),
     bitcoin: ref.read(bitcoinWalletServiceProvider),
-    lightning: ref.read(lightningWalletServiceProvider),
     clock: ref.read(clockProvider),
     balanceTriggerStream: orchestrator.transactions,
   );

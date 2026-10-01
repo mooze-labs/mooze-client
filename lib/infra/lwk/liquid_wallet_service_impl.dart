@@ -4,16 +4,22 @@ import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:lwk/lwk.dart' as lwk;
 
-import '../../domain/entities/asset.dart' show lbtcAssetId;
+import '../../domain/entities/asset.dart'
+    show lbtcAssetId, lbtcTestnetAssetId;
 import '../../domain/entities/balance.dart' as domain;
+import '../../domain/entities/broadcast_result.dart' as domain;
 import '../../domain/entities/chain.dart';
+import '../../domain/entities/fee_estimate.dart' as domain;
 import '../../domain/entities/liquid_send_draft.dart';
 import '../../domain/entities/liquid_utxo.dart' as domain;
+import '../../domain/entities/receive_address.dart' as domain;
+import '../../domain/entities/send_request.dart' as domain;
 import '../../domain/entities/transaction.dart' as domain;
 import '../../domain/entities/wallet_credentials.dart';
 import '../../domain/events/sync_outcome.dart';
 import '../../domain/events/transaction_event.dart';
 import '../../domain/failures/failure.dart';
+import '../../domain/repositories/secure_credential_store.dart';
 import '../../domain/repositories/wallet_directory_guard.dart';
 import '../../domain/services/electrum_endpoint_resolver.dart';
 import '../../domain/services/liquid_wallet_service.dart';
@@ -33,6 +39,7 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     required this.logger,
     required this.clock,
     this.endpointResolver,
+    this.credentialStore,
     this.electrumUrl = 'blockstream.info:995',
     this.validateDomain = true,
     this.workingDirRelative = 'lwk-db',
@@ -47,6 +54,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
   /// success / failure to advance rotation. When null the service falls
   /// back to [electrumUrl] (used by tests and pre-G12 wiring).
   final ElectrumEndpointResolver? endpointResolver;
+
+  /// Source of the mnemonic for [sendOnchain]. Read once per send and never
+  /// cached, which keeps V2's "no in-memory mnemonic" rule.
+  final SecureCredentialStore? credentialStore;
 
   /// Fallback endpoint when [endpointResolver] is null. Production wiring
   /// always supplies a resolver; this default exists so tests can
@@ -863,10 +874,229 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     }
   }
 
+  // ─────────────────────────────────────────── SpendableWalletService
+  //
+  // LWK is the only Liquid engine: L-BTC and asset (USDt, DePix) sends,
+  // fee estimates and receive addresses all come from the same descriptor
+  // that syncs the balance. The fee is always paid in L-BTC.
+
+  @override
+  Future<Either<ServiceFailure, domain.FeeEstimate>> estimateFee(
+    domain.SendRequest request,
+  ) async {
+    final built = await _buildSend(request);
+    return built.map(
+      (b) => domain.FeeEstimate(
+        chain: ChainId.liquid,
+        priority: request.feePriority,
+        absoluteFeeSat: b.feeSat.toInt(),
+        feeRateSatPerVByte: b.feeRateSatPerKvb / 1000,
+      ),
+    );
+  }
+
+  @override
+  Future<Either<ServiceFailure, domain.ReceiveAddress>> nextReceiveAddress({
+    String? assetId,
+    String? label,
+  }) async {
+    final r = await getReceiveAddress();
+    return r.map((address) {
+      // Same format Breez produced: a bare address for L-BTC, and a
+      // BIP21 URI carrying the asset id for any other asset.
+      final isAsset = assetId != null && assetId != _policyAssetId;
+      return domain.ReceiveAddress(
+        chain: ChainId.liquid,
+        address: isAsset ? 'liquidnetwork:$address?assetid=$assetId' : address,
+        assetId: assetId,
+        label: label,
+      );
+    });
+  }
+
+  @override
+  Future<Either<ServiceFailure, domain.BroadcastResult>> sendOnchain(
+    domain.SendRequest request,
+  ) async {
+    final store = credentialStore;
+    if (store == null) {
+      return Left(ServiceFailure('no credential store', chain: chain));
+    }
+    final built = await _buildSend(request);
+    if (built.isLeft()) {
+      return Left(built.getLeft().toNullable()!);
+    }
+    final send = built.getOrElse((_) => throw StateError('unreachable'));
+
+    final credentials = await store.load();
+    final mnemonic = credentials.toNullable()?.mnemonic;
+    if (mnemonic == null || mnemonic.isEmpty) {
+      return Left(ServiceFailure('mnemonic not available', chain: chain));
+    }
+
+    final broadcast = await signAndBroadcastPset(
+      pset: send.pset,
+      mnemonic: mnemonic,
+    );
+    return broadcast.map((txid) {
+      final tx = domain.Transaction(
+        id: txid,
+        chain: chain,
+        direction: domain.TransactionDirection.outgoing,
+        status: domain.TransactionStatus.pending,
+        amountSat: send.amountSat.toInt(),
+        feeSat: send.feeSat.toInt(),
+        timestamp: clock.now(),
+        confirmations: 0,
+        assetId: send.assetId,
+        address: request.destination,
+        label: request.label,
+        source: domain.TransactionSource.lwk,
+      );
+      // Persist-before-republish: the orchestrator upserts this event into
+      // the store before any UI subscriber sees the new row. The next sync
+      // keeps the same (id, chain) key and fills in confirmations.
+      if (!_seen.containsKey(txid)) {
+        _seen[txid] = _TxFingerprint(tx.status, tx.confirmations);
+        _lastList = [tx, ..._lastList];
+        _emitTx(
+          TransactionEvent(
+            kind: TransactionEventKind.created,
+            transaction: tx,
+            observedAt: clock.now(),
+          ),
+        );
+      }
+      return domain.BroadcastResult(
+        chain: ChainId.liquid,
+        txId: txid,
+        transaction: tx,
+        feePaidSat: send.feeSat.toInt(),
+      );
+    });
+  }
+
+  /// Builds (but does not sign) the PSET for [request].
+  ///
+  /// - `assetId` null or L-BTC: `buildLbtcTx`. `drain` and
+  ///   `subtractFeeFromAmount` send the whole L-BTC balance minus the fee,
+  ///   as Breez's `PayAmount_Drain` did.
+  /// - any other asset: `buildAssetTx` with the amount in the asset's base
+  ///   units. `drain` sends the whole asset balance; the fee is paid in
+  ///   L-BTC, so it never reduces the asset amount.
+  Future<Either<ServiceFailure, _BuiltSend>> _buildSend(
+    domain.SendRequest request,
+  ) async {
+    if (request.chain != ChainId.liquid) {
+      return Left(
+        ServiceFailure(
+          'liquid service only handles Liquid sends '
+          '(got: ${request.chain.name})',
+          chain: chain,
+        ),
+      );
+    }
+    final w = _wallet;
+    if (w == null || !currentState.isOperational) {
+      return Left(ServiceFailure('not connected', chain: chain));
+    }
+    final destination = request.destination.trim();
+    if (destination.isEmpty) {
+      return Left(ServiceFailure('destination is empty', chain: chain));
+    }
+
+    final assetId = request.assetId;
+    final isAsset = assetId != null && assetId != _policyAssetId;
+    if (!isAsset) {
+      final drain = request.drain || request.subtractFeeFromAmount;
+      final draft = await buildLbtcSend(
+        destination: destination,
+        amountSat: BigInt.from(request.amountSat),
+        feeRateSatPerVb: request.feeRateOverrideSatPerVByte,
+        drain: drain,
+      );
+      return draft.map(
+        (d) => _BuiltSend(
+          pset: d.pset,
+          amountSat: d.amountSat,
+          feeSat: d.feeSat,
+          feeRateSatPerKvb: d.feeRateSatPerKvb,
+          assetId: lbtcAssetId,
+        ),
+      );
+    }
+
+    final syncResult = await sync();
+    syncResult.match(
+      (f) => logger.warn('liquid.build_asset_send.presync_failed', {
+        'reason': f.message,
+      }),
+      (_) {},
+    );
+
+    final feeRateSatPerKvb = LiquidFeeRate.fromSatPerVb(
+      request.feeRateOverrideSatPerVByte,
+    );
+    try {
+      final BigInt amount;
+      if (request.drain) {
+        final balance = await _assetBalance(w, assetId);
+        if (balance <= BigInt.zero) {
+          return Left(ServiceFailure('asset balance is zero', chain: chain));
+        }
+        amount = balance;
+      } else {
+        amount = BigInt.from(request.amountSat);
+      }
+      if (amount <= BigInt.zero) {
+        return Left(ServiceFailure('amount must be positive', chain: chain));
+      }
+
+      final pset = await w.buildAssetTx(
+        sats: amount,
+        outAddress: destination,
+        feeRate: feeRateSatPerKvb,
+        asset: assetId,
+      );
+      final decoded = await w.decodeTx(pset: pset);
+      logger.info('liquid.build_asset_send.ok', {
+        'asset': _assetIdLabel(assetId),
+        'drain': request.drain,
+        'amount': amount.toString(),
+        'fee_sat': decoded.absoluteFees.toString(),
+      });
+      return Right(
+        _BuiltSend(
+          pset: pset,
+          amountSat: amount,
+          feeSat: decoded.absoluteFees,
+          feeRateSatPerKvb: feeRateSatPerKvb,
+          assetId: assetId,
+        ),
+      );
+    } catch (e, st) {
+      return Left(
+        ServiceFailure(
+          'lwk buildAssetTx failed: ${_describeLwkError(e)}',
+          chain: chain,
+          cause: e,
+          stackTrace: st,
+        ),
+      );
+    }
+  }
+
+  Future<BigInt> _assetBalance(lwk.Wallet w, String assetId) async {
+    for (final b in await w.balances()) {
+      if (b.assetId == assetId) return BigInt.from(b.value);
+    }
+    return BigInt.zero;
+  }
+
   String get _policyAssetId => switch (_network) {
-    AppNetwork.mainnet => lwk.lBtcAssetId,
-    AppNetwork.testnet => lwk.lTestAssetId,
-    AppNetwork.regtest => lwk.lTestAssetId,
+    AppNetwork.mainnet => lbtcAssetId,
+    AppNetwork.testnet => lbtcTestnetAssetId,
+    AppNetwork.regtest => lbtcTestnetAssetId,
   };
 
   @override
@@ -1004,10 +1234,10 @@ class LiquidWalletServiceImpl implements LiquidWalletService {
     return Left(f);
   }
 
-  lwk.Network _toLwkNetwork(AppNetwork n) => switch (n) {
-    AppNetwork.mainnet => lwk.Network.mainnet,
-    AppNetwork.testnet => lwk.Network.testnet,
-    AppNetwork.regtest => lwk.Network.testnet,
+  lwk.LiquidNetwork _toLwkNetwork(AppNetwork n) => switch (n) {
+    AppNetwork.mainnet => lwk.LiquidNetwork.mainnet,
+    AppNetwork.testnet => lwk.LiquidNetwork.testnet,
+    AppNetwork.regtest => lwk.LiquidNetwork.testnet,
   };
 
   domain.Transaction _mapTx(lwk.Tx t) {
@@ -1345,3 +1575,24 @@ class _TxFingerprint {
 // Suppress unused-warning for `Platform` if we ever need to log.
 // ignore: unused_element
 typedef _UnusedPlatform = Platform;
+
+/// Unsigned send built by [LiquidWalletServiceImpl._buildSend].
+class _BuiltSend {
+  const _BuiltSend({
+    required this.pset,
+    required this.amountSat,
+    required this.feeSat,
+    required this.feeRateSatPerKvb,
+    required this.assetId,
+  });
+
+  final String pset;
+
+  /// Amount the destination receives, in the asset's base units.
+  final BigInt amountSat;
+
+  /// Network fee, always in L-BTC satoshis.
+  final BigInt feeSat;
+  final double feeRateSatPerKvb;
+  final String assetId;
+}

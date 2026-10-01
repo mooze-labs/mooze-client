@@ -81,12 +81,12 @@ final liquidDataSourceProvider =
 /// Maps the V2 app network to the LWK enum. Mainnet is the only path
 /// production builds exercise; testnet/regtest fall through to LWK's
 /// testnet enum (same as V2 `LiquidWalletServiceImpl._toLwkNetwork`).
-Network _toLwkNetwork() {
+LiquidNetwork _toLwkNetwork() {
   switch (v2.AppNetwork.mainnet) {
     case v2.AppNetwork.mainnet:
-      return Network.mainnet;
+      return LiquidNetwork.mainnet;
     case v2.AppNetwork.testnet:
     case v2.AppNetwork.regtest:
-      return Network.testnet;
+      return LiquidNetwork.testnet;
   }
 }

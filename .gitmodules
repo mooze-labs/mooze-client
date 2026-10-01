@@ -1,9 +1,0 @@
-[submodule "packages/lwk-dart"]
-	path = packages/lwk-dart
-	url = git@github.com:mooze-labs/lwk-dart.git
-[submodule "packages/bdk-flutter"]
-	path = packages/bdk-flutter
-	url = git@github.com:mooze-labs/bdk-flutter.git
-[submodule "packages/breez-sdk-liquid-flutter"]
-	path = packages/breez-sdk-liquid-flutter
-	url = git@github.com:mooze-labs/breez-sdk-liquid-flutter.git

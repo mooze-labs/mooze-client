@@ -61,3 +61,6 @@ android/app/google-services.json
 !ios/Runner/
 !ios/Runner/*.lproj/
 !ios/Runner/*.lproj/InfoPlist.strings
+
+# FVM Version Cache
+.fvm/

@@ -16,7 +16,6 @@ class DeveloperActionGrid extends StatelessWidget {
     required this.onViewLogs,
     required this.onExportLogs,
     required this.onClearLogs,
-    required this.onRefund,
   });
 
   final DeveloperOperation? activeOperation;
@@ -26,7 +25,6 @@ class DeveloperActionGrid extends StatelessWidget {
   final VoidCallback onViewLogs;
   final VoidCallback onExportLogs;
   final VoidCallback onClearLogs;
-  final VoidCallback onRefund;
 
   bool get _busy => activeOperation != null;
 
@@ -106,15 +104,6 @@ class DeveloperActionGrid extends StatelessWidget {
                 onPressed: onRescan,
                 enabled: !_busy,
                 loading: activeOperation == DeveloperOperation.rescan,
-              ),
-              GridActionButton(
-                icon: Icons.task_alt_rounded,
-                label: t.developer_action_refund,
-                subtitle: 'Pending refunds',
-                tooltip: t.developer_action_refund_tooltip,
-                onPressed: onRefund,
-                enabled: !_busy,
-                iconColor: warningColor,
               ),
             ],
           ),

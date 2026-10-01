@@ -37,8 +37,8 @@ const _refreshSchedule = <Duration>[
 /// every `sync()` returns `changed=0` and the UI shows the
 /// pre-swap balance.
 ///
-/// The fix: directly mutate the cached `_lastBalance` on both
-/// services with the known swap deltas (-send, +receive). The
+/// The fix: directly mutate the LWK service's cached `_lastBalance`
+/// with the known swap deltas (-send, +receive). The
 /// next successful sync overwrites the cache with the real values,
 /// so the optimistic update is *transparently* corrected if the
 /// swap details we computed turn out to be off (e.g. server fee
@@ -54,12 +54,9 @@ void triggerPostSwapOptimisticBalanceUpdate(
   required int receiveAmountSat,
 }) {
   if (sendAmountSat <= 0 && receiveAmountSat <= 0) return;
-  // Apply the same deltas to both services. Breez is the primary
-  // resolver for all Liquid assets at the home screen (see
-  // `Asset.<x>.resolutionChains == [lightning, liquid]`), so its
-  // cache is the one users actually see; LWK is updated for parity
-  // and so screens that read LWK directly (e.g. utxo / debug views)
-  // also see consistent state.
+  // LWK resolves every Liquid asset on the home screen (see
+  // `Asset.<x>.resolutionChains == [liquid]`), so its cache is the one
+  // users see.
   // Accumulate per-asset deltas so a (nonsensical but defensible)
   // same-asset swap doesn't clobber itself on the second key write.
   final deltas = <String, int>{};
@@ -76,12 +73,8 @@ void triggerPostSwapOptimisticBalanceUpdate(
 
   Future<void>.microtask(() async {
     try {
-      final lightning = ref.read(lightningWalletServiceProvider);
       final liquid = ref.read(liquidWalletServiceProvider);
-      await Future.wait([
-        lightning.applyOptimisticBalanceDelta(deltas: deltas),
-        liquid.applyOptimisticBalanceDelta(deltas: deltas),
-      ]);
+      await liquid.applyOptimisticBalanceDelta(deltas: deltas);
       // Nudge the home screen to re-read the freshly-mutated cache.
       // `allBalancesProvider` is the unified read used by the home
       // balance widget; invalidating it re-runs the fan-out and

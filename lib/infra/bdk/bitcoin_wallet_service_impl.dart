@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:bdk_dart/bdk_dart.dart' as bdk;
 import 'package:fpdart/fpdart.dart';
 
 import '../../domain/entities/balance.dart' as domain;
@@ -22,6 +23,8 @@ import '../../shared/concurrency/mutex.dart';
 import '../../shared/diagnostics/boot_tracer.dart';
 import '../../shared/logging/structured_logger.dart';
 import '../../shared/streams/replay_value_stream.dart';
+import 'bdk_electrum.dart';
+import 'bdk_wallet_x.dart';
 
 class BitcoinWalletServiceImpl implements BitcoinWalletService {
   BitcoinWalletServiceImpl({
@@ -48,13 +51,31 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 
   static const _externalDerivationPath = "m/84h/0h/0h/0";
   static const _internalDerivationPath = "m/84h/0h/0h/1";
-  static const _walletDbFilename = 'wallet.sqlite';
+
+  /// BDK 1.x+ store. A new file name, because the schema is incompatible
+  /// with the pre-1.0 store that `bdk_flutter` wrote.
+  static const _walletDbFilename = 'wallet_v1.sqlite';
+
+  /// Pre-1.0 `bdk_flutter` store. Read once, to carry the last derivation
+  /// indexes over to the new store. Never written.
+  static const _legacyWalletDbFilename = 'wallet.sqlite';
+
+  /// Addresses BDK derives ahead of the last revealed index when it
+  /// matches incoming transactions.
+  static const _lookahead = 25;
 
   final Mutex _connectMutex = Mutex();
   final Mutex _syncMutex = Mutex();
 
   bdk.Wallet? _wallet;
-  bdk.Blockchain? _blockchain;
+  bdk.Persister? _persister;
+  BdkElectrum? _electrum;
+
+  /// True until a full scan succeeds in this session. The first sync after
+  /// connect is a full scan, so funds sent to unrevealed addresses (restored
+  /// seed, first launch after the BDK 1.x migration) are found. Later syncs
+  /// only check revealed scripts.
+  bool _needsFullScan = true;
   AppNetwork _network = AppNetwork.mainnet;
   String? _acquiredDirectory;
 
@@ -87,10 +108,18 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   /// through this class.
   bdk.Wallet? get sdkClient => _wallet;
 
-  /// Underlying BDK Electrum blockchain handle. Required by the legacy
-  /// `BdkDataSource.sync()` shim. Same constraints as [sdkClient] —
-  /// V2 owns the lifecycle.
-  bdk.Blockchain? get sdkBlockchain => _blockchain;
+  /// Electrum access for the wallet. Legacy callers use it to broadcast.
+  /// Same constraints as [sdkClient] — V2 owns the lifecycle.
+  BdkElectrum? get sdkElectrum => _electrum;
+
+  /// Writes staged wallet changes to the sqlite store. Legacy callers run
+  /// it after they reveal addresses on [sdkClient].
+  void persist() {
+    final w = _wallet;
+    final p = _persister;
+    if (w == null || p == null) return;
+    w.persist(persister: p);
+  }
 
   @override
   Future<Either<ServiceFailure, Unit>> connect(
@@ -135,68 +164,62 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 
         BootTracer.mark('bitcoin.mnemonic_parse.begin');
         final tMn = clock.now();
-        final mnemonic = await bdk.Mnemonic.fromString(credentials.mnemonic);
-        final secret = await bdk.DescriptorSecretKey.create(
-          network: _toBdkNetwork(_network),
+        final networkKind = _toBdkNetworkKind(_network);
+        final mnemonic = bdk.Mnemonic.fromString(mnemonic: credentials.mnemonic);
+        final secret = bdk.DescriptorSecretKey(
+          networkKind: networkKind,
           mnemonic: mnemonic,
+          password: null,
         );
         BootTracer.mark('bitcoin.mnemonic_parse.end',
             {'dur_ms': clock.now().difference(tMn).inMilliseconds});
 
         BootTracer.mark('bitcoin.descriptors_build.begin');
         final tDesc = clock.now();
-        final externalDesc = await _buildDescriptor(
-            secret, _externalDerivationPath, _toBdkNetwork(_network));
-        final internalDesc = await _buildDescriptor(
-            secret, _internalDerivationPath, _toBdkNetwork(_network));
+        final externalDesc =
+            _buildDescriptor(secret, _externalDerivationPath, networkKind);
+        final internalDesc =
+            _buildDescriptor(secret, _internalDerivationPath, networkKind);
         BootTracer.mark('bitcoin.descriptors_build.end',
             {'dur_ms': clock.now().difference(tDesc).inMilliseconds});
 
         BootTracer.mark('bitcoin.wallet_create.begin');
         final tWal = clock.now();
-        final wallet = await bdk.Wallet.create(
-          descriptor: externalDesc,
-          changeDescriptor: internalDesc,
-          network: _toBdkNetwork(_network),
-          databaseConfig: bdk.DatabaseConfig.sqlite(
-            config: bdk.SqliteDbConfiguration(path: dbPath),
-          ),
-        );
-        BootTracer.mark('bitcoin.wallet_create.end',
-            {'dur_ms': clock.now().difference(tWal).inMilliseconds});
+        final persister = bdk.Persister.newSqlite(path: dbPath);
+        final (wallet, created) =
+            _loadOrCreateWallet(externalDesc, internalDesc, persister);
+        if (created) {
+          _migrateLegacyIndexes(wallet, '$_acquiredDirectory');
+        }
+        wallet.persist(persister: persister);
+        BootTracer.mark('bitcoin.wallet_create.end', {
+          'dur_ms': clock.now().difference(tWal).inMilliseconds,
+          'created': created,
+        });
 
-        BootTracer.mark('bitcoin.blockchain_create.begin');
-        final tBc = clock.now();
-        final blockchain = await bdk.Blockchain.create(
-          config: bdk.BlockchainConfig.electrum(
-            config: bdk.ElectrumConfig(
-              url: electrumUrl,
-              retry: retry,
-              timeout: timeoutSec,
-              stopGap: BigInt.from(stopGap),
-              validateDomain: validateDomain,
-            ),
-          ),
+        final electrum = BdkElectrum(
+          url: electrumUrl,
+          timeoutSec: timeoutSec,
+          retry: retry,
+          validateDomain: validateDomain,
         );
-        BootTracer.mark('bitcoin.blockchain_create.end',
-            {'dur_ms': clock.now().difference(tBc).inMilliseconds});
 
         _wallet = wallet;
-        _blockchain = blockchain;
+        _persister = persister;
+        _electrum = electrum;
+        _needsFullScan = true;
 
-        // Cold-restore: BDK's `getBalance` and `listTransactions` are
-        // local reads against the just-opened sqlite db, so they return
-        // the last-known state from the previous session without an
-        // electrum round-trip. We're inside `_connectMutex` and `sync()`
-        // hasn't started, so `_syncMutex` is free — the `#[frb(sync)]`
-        // FFI call won't contend. `_seen` is primed from the restored
+        // Cold-restore: BDK's `balance` and `transactions` are local reads
+        // against the just-opened sqlite db, so they return the last-known
+        // state from the previous session without an electrum round-trip.
+        // `_seen` is primed from the restored
         // tx list so the first post-sync `_diffAndEmit` only fires
         // events for actual changes, not a full replay.
         try {
           BootTracer.mark('bitcoin.cold_restore.begin');
           final tCold = clock.now();
-          _lastBalance = _mapBalance(wallet.getBalance());
-          final txs = wallet.listTransactions(includeRaw: false);
+          _lastBalance = _mapBalance(wallet.balance());
+          final txs = wallet.txViews();
           final mapped = txs.map(_mapTx).toList()
             ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
           _lastList = mapped;
@@ -236,14 +259,80 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
     });
   }
 
-  Future<bdk.Descriptor> _buildDescriptor(
-      bdk.DescriptorSecretKey root, String path, bdk.Network network) async {
-    final dp = await bdk.DerivationPath.create(path: path);
-    final derived = root.derive(dp);
-    return bdk.Descriptor.create(
+  /// Loads the wallet from [persister], or creates it when the store is
+  /// empty. The flag is true for a new wallet.
+  (bdk.Wallet, bool) _loadOrCreateWallet(bdk.Descriptor external,
+      bdk.Descriptor internal, bdk.Persister persister) {
+    try {
+      final wallet = bdk.Wallet.load(
+        descriptor: external,
+        changeDescriptor: internal,
+        persister: persister,
+        lookahead: _lookahead,
+      );
+      return (wallet, false);
+    } on bdk.CouldNotLoadLoadWithPersistException {
+      // An empty store fails to load: first launch, or first launch after
+      // the BDK 1.x migration. Other load errors (for example, a
+      // descriptor mismatch) propagate.
+      final wallet = bdk.Wallet(
+        descriptor: external,
+        changeDescriptor: internal,
+        network: _toBdkNetwork(_network),
+        persister: persister,
+        lookahead: _lookahead,
+      );
+      return (wallet, true);
+    }
+  }
+
+  /// Builds `wpkh(<root>/<path>/*)`. Kept identical to the `bdk_flutter`
+  /// derivation (coin type 0' on every network), so existing wallets keep
+  /// their addresses.
+  bdk.Descriptor _buildDescriptor(
+      bdk.DescriptorSecretKey root, String path, bdk.NetworkKind networkKind) {
+    final derived = root.derive(path: bdk.DerivationPath(path: path));
+    return bdk.Descriptor(
       descriptor: 'wpkh(${derived.toString()})',
-      network: network,
+      networkKind: networkKind,
     );
+  }
+
+  /// Carries the last derivation indexes from the pre-1.0 `bdk_flutter`
+  /// store into a freshly created wallet, so addresses already handed out
+  /// stay revealed and are never offered again as new.
+  ///
+  /// Best-effort: a missing or unreadable legacy store only means the
+  /// first full scan rebuilds the indexes from chain history.
+  void _migrateLegacyIndexes(bdk.Wallet wallet, String directory) {
+    final legacyPath = '$directory/$_legacyWalletDbFilename';
+    if (!File(legacyPath).existsSync()) return;
+    bdk.Persister? legacy;
+    try {
+      legacy = bdk.Persister.newSqlite(path: legacyPath);
+      final keychains = legacy.getPreV1WalletKeychains();
+      for (final k in keychains) {
+        // Only trust indexes recorded for these exact descriptors.
+        final checksum = wallet.descriptorChecksum(keychain: k.keychain);
+        if (k.checksum != checksum) {
+          logger.warn('bitcoin.migrate.checksum_mismatch',
+              {'keychain': k.keychain.name});
+          continue;
+        }
+        wallet.revealAddressesTo(
+            keychain: k.keychain, index: k.lastDerivationIndex);
+      }
+      logger.info('bitcoin.migrate.indexes', {
+        'keychains': keychains
+            .map((k) => '${k.keychain.name}:${k.lastDerivationIndex}')
+            .join(','),
+      });
+    } catch (e, st) {
+      logger.warn('bitcoin.migrate.failed', {'error': '$e'},
+          error: e, stackTrace: st);
+    } finally {
+      legacy?.dispose();
+    }
   }
 
   @override
@@ -255,8 +344,10 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         return const Right(unit);
       }
       _emit(ServiceLifecycle.disconnecting);
+      _electrum?.dispose();
+      _electrum = null;
       _wallet = null;
-      _blockchain = null;
+      _persister = null;
       _seen.clear();
       // Clear cached snapshots so a subsequent reconnect (e.g.
       // delete + re-import with a different mnemonic) doesn't surface
@@ -277,18 +368,34 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   Future<Either<ServiceFailure, SyncOutcome>> sync({Duration? timeout}) async {
     return _syncMutex.protect(() async {
       final w = _wallet;
-      final bc = _blockchain;
-      if (w == null || bc == null || !currentState.isOperational) {
+      final p = _persister;
+      final electrum = _electrum;
+      if (w == null ||
+          p == null ||
+          electrum == null ||
+          !currentState.isOperational) {
         return Left(ServiceFailure('not connected', chain: chain));
       }
       final t0 = clock.now();
       try {
-        await w
-            .sync(blockchain: bc)
-            .timeout(timeout ?? const Duration(seconds: 60));
+        // Build the request on this isolate, run the Electrum I/O in the
+        // background (see [BdkElectrum]), then apply the update here.
+        final fullScan = _needsFullScan;
+        final Future<bdk.Update> pending = fullScan
+            ? electrum.fullScan(w.startFullScan().build(), stopGap)
+            : electrum.sync(w.startSyncWithRevealedSpks().build());
+        final update =
+            await pending.timeout(timeout ?? const Duration(seconds: 60));
+        try {
+          w.applyUpdate(update: update);
+        } finally {
+          update.dispose();
+        }
+        w.persist(persister: p);
+        if (fullScan) _needsFullScan = false;
 
-        final txs = w.listTransactions(includeRaw: false);
-        final balance = w.getBalance();
+        final txs = w.txViews();
+        final balance = w.balance();
 
         final mapped = txs.map(_mapTx).toList()
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -324,12 +431,12 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 
   @override
   Future<Either<ServiceFailure, int>> getBlockHeight() async {
-    final bc = _blockchain;
-    if (bc == null || !currentState.isOperational) {
+    final electrum = _electrum;
+    if (electrum == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
-      final height = await bc.getHeight();
+      final height = await electrum.tipHeight();
       return Right(height);
     } catch (e, st) {
       return Left(ServiceFailure('bdk getHeight failed: $e',
@@ -339,11 +446,7 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
 
   @override
   Future<Either<ServiceFailure, domain.Balance>> getBalance() async {
-    // Cache-only read. `w.getBalance()` is a `#[frb(sync)]` FFI call that
-    // acquires BDK's `Mutex<Wallet>` synchronously on the dart isolate —
-    // when the orchestrator's `sync()` is in flight that mutex is held
-    // for the duration of the electrum cycle (~3s), wedging the dart
-    // event loop. `_lastBalance` is populated inside `sync()` while the
+    // Cache-only read. `_lastBalance` is populated inside `sync()` while the
     // same `_syncMutex` is held, so the cache is always at least as
     // fresh as the most recent successful sync. UI surfaces wanting to
     // observe progressive updates subscribe via `watchBalanceFor`.
@@ -393,8 +496,8 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       final result = await _buildPsbt(request);
       return result.fold(
         (f) => Left<ServiceFailure, domain.FeeEstimate>(f),
-        (psbtTuple) {
-          final fee = (psbtTuple.$2.fee ?? BigInt.zero).toInt();
+        (psbt) {
+          final fee = psbt.fee();
           return Right<ServiceFailure, domain.FeeEstimate>(domain.FeeEstimate(
             chain: ChainId.bitcoin,
             priority: request.feePriority,
@@ -428,40 +531,12 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
-      // Walk-forward unused-address logic — ported verbatim from legacy
-      // `BitcoinWallet._nextUnusedReceiveAddress`. `AddressIndex.lastUnused()`
-      // can return an address that received funds via a prior wallet on the
-      // same descriptor (BDK doesn't track that across recreates), so we
-      // skip any address whose script appears in current UTXOs OR
-      // historical outputs, then `reset(index)` to advance the internal
-      // counter past the chosen address.
-      final usedScripts = _buildUsedScriptSet(w);
-      final last = w.getAddress(addressIndex: bdk.AddressIndex.lastUnused());
-      var index = last.index;
-      var addrStr = last.address.asString();
-      var scriptHex = _scriptHex(last.address.scriptPubkey().bytes);
-
-      const cap = 100;
-      var walked = 0;
-      while (usedScripts.contains(scriptHex) && walked < cap) {
-        index++;
-        walked++;
-        final info =
-            w.getAddress(addressIndex: bdk.AddressIndex.peek(index: index));
-        addrStr = info.address.asString();
-        scriptHex = _scriptHex(info.address.scriptPubkey().bytes);
-      }
-
-      if (usedScripts.contains(scriptHex)) {
-        return Left(ServiceFailure(
-          'no unused receive address found within $cap-index window',
-          chain: chain,
-        ));
-      }
-
-      // Pin BDK's internal counter past this index so subsequent
-      // `.increase()` calls don't return earlier addresses.
-      w.getAddress(addressIndex: bdk.AddressIndex.reset(index: index));
+      // Walk-forward unused-address logic, shared with the legacy
+      // repositories. It skips any address whose script already appears in
+      // the wallet history and reveals up to the chosen index.
+      final info = w.nextFreshReceiveAddress();
+      persist();
+      final addrStr = info.address.toString();
 
       return Right(domain.ReceiveAddress(
         chain: ChainId.bitcoin,
@@ -492,8 +567,8 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       ));
     }
     final w = _wallet;
-    final bc = _blockchain;
-    if (w == null || bc == null || !currentState.isOperational) {
+    final electrum = _electrum;
+    if (w == null || electrum == null || !currentState.isOperational) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
 
@@ -504,26 +579,16 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       // double-spending a UTXO that another flow consumed between
       // estimate and send.
       final buildResult = await _buildPsbt(request);
-      final psbtTuple = buildResult.fold<
-          ({bdk.PartiallySignedTransaction psbt, bdk.TransactionDetails details})?>(
-        (_) => null,
-        (t) => (psbt: t.$1, details: t.$2),
-      );
-      if (psbtTuple == null) {
-        return buildResult.fold(
-          (f) => Left<ServiceFailure, domain.BroadcastResult>(f),
-          (_) => Left<ServiceFailure, domain.BroadcastResult>(
-            ServiceFailure('unreachable: build returned right but null tuple',
-                chain: chain),
-          ),
-        );
-      }
+      final buildFailure = buildResult.getLeft().toNullable();
+      if (buildFailure != null) return Left(buildFailure);
+      final psbt =
+          buildResult.getOrElse((_) => throw StateError('unreachable'));
 
-      // Step 2: sign. `wallet.sign` is synchronous and returns true on
-      // success (BDK-Flutter API). A false return means the wallet
-      // couldn't sign — most commonly a watch-only descriptor, which we
-      // don't support here.
-      final signed = w.sign(psbt: psbtTuple.psbt);
+      // Step 2: sign. `wallet.sign` returns true when the PSBT is fully
+      // signed and finalized. A false return means the wallet couldn't
+      // sign — most commonly a watch-only descriptor, which we don't
+      // support here.
+      final signed = w.sign(psbt: psbt, signOptions: null);
       if (!signed) {
         return Left(ServiceFailure(
           'bdk sign returned false (watch-only descriptor?)',
@@ -531,11 +596,11 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         ));
       }
 
-      // Step 3: extract raw tx and broadcast via Electrum. The txid
-      // returned here is BDK's deterministic computation from the signed
-      // bytes — never null, always a valid 64-char hex string.
-      final rawTx = psbtTuple.psbt.extractTx();
-      final txid = await bc.broadcast(transaction: rawTx);
+      // Step 3: extract raw tx and broadcast via Electrum (off the UI
+      // isolate). The txid is computed from the signed bytes.
+      final feeSat = psbt.fee();
+      final rawTx = psbt.extractTx();
+      final txid = await electrum.broadcast(rawTx);
       if (txid.isEmpty) {
         return Left(ServiceFailure(
           'bdk broadcast returned empty txid',
@@ -544,11 +609,9 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
       }
 
       // Step 4: build domain `Transaction` for the synthetic event +
-      // BroadcastResult. The amount/fee come from `details` (BDK's
-      // structured view of the build); the timestamp is now (the chain
-      // doesn't have a confirmation timestamp yet — the next sync tick
-      // upgrades `confirmations` from 0 to 1+).
-      final feeSat = (psbtTuple.details.fee ?? BigInt.zero).toInt();
+      // BroadcastResult. The fee comes from the PSBT; the timestamp is now
+      // (the chain doesn't have a confirmation timestamp yet — the next
+      // sync tick upgrades `confirmations` from 0 to 1+).
       final mapped = domain.Transaction(
         id: txid,
         chain: ChainId.bitcoin,
@@ -646,79 +709,59 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
         AppNetwork.regtest => bdk.Network.regtest,
       };
 
+  bdk.NetworkKind _toBdkNetworkKind(AppNetwork n) => switch (n) {
+        AppNetwork.mainnet => bdk.NetworkKind.main,
+        AppNetwork.testnet || AppNetwork.regtest => bdk.NetworkKind.test,
+      };
+
   /// Build a PSBT for a [domain.SendRequest]. Routing rules:
   ///
   ///   - `drain` (or legacy `subtractFeeFromAmount`) true → drain:
   ///     `drainWallet().drainTo(...)`. The destination receives the wallet
   ///     balance minus fees; `request.amountSat` is ignored.
-  ///   - else → standard: `addRecipient(scriptBuf, amount)`.
-  ///   - RBF is always enabled (legacy default).
-  ///   - `feeRateOverrideSatPerVByte` → `builder.feeRate(rate.toDouble())`.
-  ///     When null, BDK's default fee rate is used (legacy doesn't set a
-  ///     priority-derived default either; tracked as a follow-up).
+  ///   - else → standard: `addRecipient(script, amount)`.
+  ///   - RBF is always signaled (BDK 1.x default).
+  ///   - `feeRateOverrideSatPerVByte` → `builder.feeRate(...)`. When null,
+  ///     BDK's default fee rate is used.
   ///
-  /// Returns the resulting `(PartiallySignedTransaction, TransactionDetails)`
-  /// pair. The caller is responsible for signing + broadcasting.
-  Future<Either<ServiceFailure, (bdk.PartiallySignedTransaction, bdk.TransactionDetails)>>
-      _buildPsbt(domain.SendRequest request) async {
+  /// `TxBuilder` methods return a new builder, so each step reassigns it.
+  /// The caller is responsible for signing + broadcasting.
+  Future<Either<ServiceFailure, bdk.Psbt>> _buildPsbt(
+      domain.SendRequest request) async {
     final w = _wallet;
     if (w == null) {
       return Left(ServiceFailure('not connected', chain: chain));
     }
     try {
-      final scriptBuf = await bdk.Address.fromString(
-        s: request.destination,
+      final script = bdk.Address(
+        address: request.destination,
         network: w.network(),
-      ).then((a) => a.scriptPubkey());
+      ).scriptPubkey();
 
-      var builder = bdk.TxBuilder().enableRbf();
+      var builder = bdk.TxBuilder();
       if (request.drain || request.subtractFeeFromAmount) {
-        builder = builder.drainWallet().drainTo(scriptBuf);
+        builder = builder.drainWallet().drainTo(script: script);
       } else {
-        builder = builder.addRecipient(scriptBuf, BigInt.from(request.amountSat));
+        builder = builder.addRecipient(
+          script: script,
+          amount: bdk.Amount.fromSat(satoshi: request.amountSat),
+        );
       }
 
       final rateOverride = request.feeRateOverrideSatPerVByte;
       if (rateOverride != null) {
-        builder = builder.feeRate(rateOverride);
+        builder = builder.feeRate(
+            feeRate: bdk.FeeRate.fromSatPerVb(satVb: rateOverride.ceil()));
       }
 
-      final result = await builder.finish(w);
-      return Right(result);
-    } on bdk.AddressException catch (e, st) {
+      return Right(builder.finish(wallet: w));
+    } on bdk.AddressParseException catch (e, st) {
       return Left(ServiceFailure('invalid address: ${e.toString()}',
           chain: chain, cause: e, stackTrace: st));
     } catch (e, st) {
       return Left(ServiceFailure('bdk build PSBT failed: $e',
           chain: chain, cause: e, stackTrace: st));
     }
-  }
-
-  /// Walk the wallet's UTXOs + historical outputs and collect every script
-  /// hex they reference. Used by [nextReceiveAddress] to detect addresses
-  /// that already received funds (which BDK's `lastUnused()` may hand back
-  /// after a wallet recreate). Ported from legacy `BitcoinWallet`.
-  Set<String> _buildUsedScriptSet(bdk.Wallet w) {
-    final used = <String>{};
-    for (final u in w.listUnspent()) {
-      used.add(_scriptHex(u.txout.scriptPubkey.bytes));
-    }
-    for (final tx in w.listTransactions(includeRaw: true)) {
-      final raw = tx.transaction;
-      if (raw == null) continue;
-      for (final out in raw.output()) {
-        used.add(_scriptHex(out.scriptPubkey.bytes));
-      }
-    }
-    return used;
-  }
-
-  String _scriptHex(List<int> bytes) {
-    final buf = StringBuffer();
-    for (final b in bytes) {
-      buf.write((b & 0xff).toRadixString(16).padLeft(2, '0'));
-    }
-    return buf.toString();
   }
 
   /// Classify a BDK transaction.
@@ -747,10 +790,10 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   /// arithmetic `sent - received` (RBF reconstructions, BIP-69
   /// reordering). We allow `|sent - received - fee| <= max(1, fee/100)`
   /// to absorb that without misclassifying.
-  domain.Transaction _mapTx(bdk.TransactionDetails t) {
-    final received = t.received.toInt();
-    final sent = t.sent.toInt();
-    final feeSat = (t.fee ?? BigInt.zero).toInt();
+  domain.Transaction _mapTx(BdkTxView t) {
+    final received = t.receivedSat;
+    final sent = t.sentSat;
+    final feeSat = t.feeSat ?? 0;
 
     final domain.TransactionDirection direction;
     final int amountSat;
@@ -790,9 +833,7 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
     final status = ct == null
         ? domain.TransactionStatus.pending
         : domain.TransactionStatus.confirmed;
-    final ts = ct == null
-        ? clock.now()
-        : DateTime.fromMillisecondsSinceEpoch(ct.timestamp.toInt() * 1000);
+    final ts = ct ?? clock.now();
 
     logger.debug('tx.classify', {
       'chain': 'bitcoin',
@@ -824,10 +865,12 @@ class BitcoinWalletServiceImpl implements BitcoinWalletService {
   }
 
   domain.Balance _mapBalance(bdk.Balance b) {
-    final pending = (b.trustedPending + b.untrustedPending + b.immature).toInt();
+    final pending = b.trustedPending.toSat() +
+        b.untrustedPending.toSat() +
+        b.immature.toSat();
     final asset = domain.AssetBalance(
       chain: chain,
-      amountSat: b.total.toInt(),
+      amountSat: b.total.toSat(),
       ticker: 'BTC',
       pendingSat: pending,
     );

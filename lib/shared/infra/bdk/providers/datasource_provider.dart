@@ -21,7 +21,7 @@ final bdkDatasourceProvider =
   // Wait for the V2 boot pipeline to bring the Bitcoin service to an
   // operational lifecycle. `appStateProvider` reaches `ready` ONLY after
   // boot's `connectingServices` phase resolved (which is when the BDK
-  // wallet + Electrum blockchain handles are constructed). We also
+  // wallet + Electrum handles are constructed). We also
   // listen to the service's own state stream so a later re-connect (e.g.
   // after `node_settings.save()`) is observed transparently.
   final service =
@@ -30,13 +30,13 @@ final bdkDatasourceProvider =
 
   // Stale-reference invalidation — symmetric with `breezClientProvider`
   // and `liquidDataSourceProvider`. BDK address derivation tolerates a
-  // disconnected blockchain handle (it's offline-capable), which is why
+  // disconnected Electrum handle (it's offline-capable), which is why
   // the Liquid receive bug surfaced first — but any operation that
   // actually touches Electrum (broadcast, fee fetch, sync) after a
   // delete + re-import would see the same stale-handle behaviour. The
   // listener invalidates this provider on `connected → !connected` so
   // the legacy `walletRepositoryProvider` re-resolves with the new
-  // BDK wallet + Electrum blockchain on the next read.
+  // BDK wallet + Electrum client on the next read.
   ServiceLifecycle? lastSeen;
   final lifecycleSub = service.state.listen((s) {
     final prev = lastSeen;
@@ -57,10 +57,11 @@ final bdkDatasourceProvider =
   // If already operational, return immediately.
   if (service.currentState.isOperational &&
       service.sdkClient != null &&
-      service.sdkBlockchain != null) {
+      service.sdkElectrum != null) {
     return Right(BdkDataSource(
       wallet: service.sdkClient!,
-      blockchain: service.sdkBlockchain!,
+      electrum: service.sdkElectrum!,
+      persist: service.persist,
       ref: ref,
       database: database,
     ));
@@ -74,10 +75,11 @@ final bdkDatasourceProvider =
     }
     if (s.isOperational &&
         service.sdkClient != null &&
-        service.sdkBlockchain != null) {
+        service.sdkElectrum != null) {
       return Right(BdkDataSource(
         wallet: service.sdkClient!,
-        blockchain: service.sdkBlockchain!,
+        electrum: service.sdkElectrum!,
+        persist: service.persist,
         ref: ref,
         database: database,
       ));

@@ -28,7 +28,7 @@ class LiquidDataSource {
   });
 
   final Wallet wallet;
-  final Network network;
+  final LiquidNetwork network;
   final String electrumUrl;
   final bool validateDomain;
   final String descriptor;

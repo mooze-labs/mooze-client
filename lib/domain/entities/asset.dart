@@ -6,6 +6,10 @@ import 'chain.dart';
 const String btcNativeAssetId = 'btc-native-blockchain';
 const String lbtcAssetId =
     '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
+
+/// L-BTC asset id on Liquid testnet and regtest.
+const String lbtcTestnetAssetId =
+    '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49';
 const String usdtAssetId =
     'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2';
 const String depixAssetId =
@@ -62,24 +66,13 @@ enum Asset {
 extension AssetChains on Asset {
   /// Chains that can hold this asset, in resolution-priority order.
   ///
-  /// **Order matters and preserves legacy semantics**
-  /// (`WalletRepositoryImpl.getBalance` in legacy):
-  ///
-  /// - `Asset.btc`     → bitcoin only (legacy reads BDK; does NOT fall back
-  ///                     to Lightning BTC. Preserved here so user balance
-  ///                     numbers don't shift after migration.)
-  /// - `Asset.lbtc`    → lightning first (Breez Liquid view), then liquid
-  ///                     (LWK on-chain) as fallback.
-  /// - `Asset.usdt`    → same as `lbtc` — lightning first, then liquid.
-  /// - `Asset.depix`   → same as `lbtc`.
-  ///
-  /// If product later wants `Asset.btc` to sum BDK + Lightning BTC, that is
-  /// a deliberate behaviour change (not a parity port) — track it as a
-  /// separate decision and update this list.
+  /// - `Asset.btc` → bitcoin (BDK).
+  /// - `Asset.lbtc`, `Asset.usdt`, `Asset.depix` → liquid (LWK), the only
+  ///   Liquid engine.
   List<ChainId> get resolutionChains => switch (this) {
         Asset.btc => const [ChainId.bitcoin],
-        Asset.lbtc => const [ChainId.lightning, ChainId.liquid],
-        Asset.usdt => const [ChainId.lightning, ChainId.liquid],
-        Asset.depix => const [ChainId.lightning, ChainId.liquid],
+        Asset.lbtc => const [ChainId.liquid],
+        Asset.usdt => const [ChainId.liquid],
+        Asset.depix => const [ChainId.liquid],
       };
 }

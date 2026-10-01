@@ -167,11 +167,7 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
       return 'Preparing chains…';
     }
     // Pick the first non-connected chain to describe.
-    for (final chain in const [
-      ChainId.liquid,
-      ChainId.bitcoin,
-      ChainId.lightning,
-    ]) {
+    for (final chain in const [ChainId.liquid, ChainId.bitcoin]) {
       final lc = perChain[chain];
       if (lc == ServiceLifecycle.connecting) {
         return 'Connecting to ${_chainName(chain)}…';
@@ -181,7 +177,7 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
       return 'Refreshing balances, then rescanning swaps…';
     }
     if (op == DeveloperOperation.fullSync) {
-      return 'Liquid → Bitcoin → Lightning, then rescan';
+      return 'Liquid → Bitcoin, then rescan';
     }
     return 'Refreshing balances and transactions…';
   }
@@ -299,7 +295,7 @@ class _ChainList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chains = const [ChainId.liquid, ChainId.bitcoin, ChainId.lightning];
+    final chains = const [ChainId.liquid, ChainId.bitcoin];
     return Row(
       children: [
         for (int i = 0; i < chains.length; i++) ...[

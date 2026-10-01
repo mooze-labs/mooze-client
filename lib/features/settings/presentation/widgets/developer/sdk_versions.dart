@@ -8,20 +8,17 @@ class SdkVersions {
   const SdkVersions({
     required this.lwk,
     required this.bdk,
-    required this.breez,
   });
 
   final String lwk;
   final String bdk;
-  final String breez;
 
-  static const SdkVersions loading = SdkVersions(lwk: '…', bdk: '…', breez: '…');
+  static const SdkVersions loading = SdkVersions(lwk: '…', bdk: '…');
 
 
   static const SdkVersions unavailable = SdkVersions(
     lwk: 'unavailable',
     bdk: 'unavailable',
-    breez: 'unavailable',
   );
 
   static Future<SdkVersions> load() async {
@@ -30,8 +27,7 @@ class SdkVersions {
 
     return SdkVersions(
       lwk: _versionFor(lock, 'lwk') ?? 'unavailable',
-      bdk: _versionFor(lock, 'bdk_flutter') ?? 'unavailable',
-      breez: _versionFor(lock, 'flutter_breez_liquid') ?? 'unavailable',
+      bdk: _versionFor(lock, 'bdk_dart') ?? 'unavailable',
     );
   }
 

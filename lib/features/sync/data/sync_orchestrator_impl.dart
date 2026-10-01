@@ -9,7 +9,6 @@ import '../../../domain/events/transaction_event.dart';
 import '../../../domain/failures/failure.dart';
 import '../../../domain/repositories/transaction_store.dart';
 import '../../../domain/services/bitcoin_wallet_service.dart';
-import '../../../domain/services/lightning_wallet_service.dart';
 import '../../../domain/services/liquid_wallet_service.dart';
 import '../../../domain/services/service_state.dart';
 import '../../../domain/services/wallet_service.dart';
@@ -28,7 +27,6 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
   SyncOrchestratorImpl({
     required this.liquid,
     required this.bitcoin,
-    required this.lightning,
     required this.transactionStore,
     required this.config,
     required this.logger,
@@ -37,13 +35,12 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
 
   final LiquidWalletService liquid;
   final BitcoinWalletService bitcoin;
-  final LightningWalletService lightning;
   final TransactionStore transactionStore;
   final SyncConfig config;
   final StructuredLogger logger;
   final Clock clock;
 
-  late final List<WalletService> _services = [liquid, bitcoin, lightning];
+  late final List<WalletService> _services = [liquid, bitcoin];
 
   final Mutex _mutex = Mutex();
   final SingleFlight<String, Either<SyncFailure, SyncOutcome>> _flight =
@@ -352,15 +349,6 @@ class SyncOrchestratorImpl implements SyncOrchestrator {
         },
       );
     }));
-
-    // Lightning rescan only on full strategy.
-    if (strategy == SyncStrategy.full) {
-      final lr = await lightning.rescan(window: config.fullSyncRescanWindow);
-      lr.match(
-        (f) => logger.warn('sync.lightning.rescan.failed', {'reason': f.message}),
-        (_) => logger.info('sync.lightning.rescan.ok', {}),
-      );
-    }
 
     final duration = clock.now().difference(t0);
     final aggregate = SyncOutcome(

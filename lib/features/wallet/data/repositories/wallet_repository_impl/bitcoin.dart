@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
+import 'package:bdk_dart/bdk_dart.dart' as bdk;
 import 'package:drift/drift.dart' show Value;
 import 'package:fpdart/fpdart.dart';
 // `Transaction` collides with the domain Transaction below; we only need
@@ -15,6 +15,7 @@ import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dar
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/infra/bdk/bdk_wallet_x.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/infra/bdk/wallet.dart';
@@ -36,7 +37,9 @@ class BitcoinWallet {
 
   Either<WalletError, BigInt> get balance {
     return Either.tryCatch(
-      () => _datasource.wallet.getBalance().spendable,
+      () => BigInt.from(
+        _datasource.wallet.balance().trustedSpendable.toSat(),
+      ),
       (err, _) => WalletError(
         WalletErrorType.connectionError,
         "Falha ao acessar saldo.",
@@ -64,74 +67,20 @@ class BitcoinWallet {
 
   /// Returns the next receive address with no on-chain history.
   ///
-  /// `AddressIndex.increase()` blindly advances the descriptor index without
-  /// checking history; after a wallet restore (or if BDK's internal counter
-  /// drifts), it can hand out an address that has already received funds.
-  /// This method walks the descriptor forward from BDK's `lastUnused()`
-  /// position until it finds an address whose script does not appear in any
-  /// known UTXO or historical output, and only then advances the internal
-  /// counter past it.
+  /// Walks forward from BDK's first unused address past any address whose
+  /// script already appears in the wallet history, then persists the
+  /// revealed index so later calls never go backwards. See
+  /// [BdkWalletX.nextFreshReceiveAddress].
   TaskEither<WalletError, String> _nextUnusedReceiveAddress() {
     return TaskEither.tryCatch(
       () async {
-        final usedScripts = _buildUsedScriptSet();
-
-        final last = _datasource.wallet
-            .getAddress(addressIndex: bdk.AddressIndex.lastUnused());
-        var index = last.index;
-        var addrStr = last.address.asString();
-        var scriptHex = _scriptHex(last.address.scriptPubkey().bytes);
-
-        const cap = 100;
-        var walked = 0;
-        while (usedScripts.contains(scriptHex) && walked < cap) {
-          index++;
-          walked++;
-          final info = _datasource.wallet
-              .getAddress(addressIndex: bdk.AddressIndex.peek(index: index));
-          addrStr = info.address.asString();
-          scriptHex = _scriptHex(info.address.scriptPubkey().bytes);
-        }
-
-        if (usedScripts.contains(scriptHex)) {
-          throw StateError(
-            'No unused receive address found within $cap-index window.',
-          );
-        }
-
-        // Pin BDK's internal counter past this index so subsequent
-        // .increase() calls won't return earlier addresses.
-        _datasource.wallet
-            .getAddress(addressIndex: bdk.AddressIndex.reset(index: index));
-
-        return addrStr;
+        final info = _datasource.wallet.nextFreshReceiveAddress();
+        _datasource.persist();
+        return info.address.toString();
       },
       (err, _) =>
           WalletError(WalletErrorType.sdkError, err.toString()),
     );
-  }
-
-  Set<String> _buildUsedScriptSet() {
-    final used = <String>{};
-    for (final u in _datasource.wallet.listUnspent()) {
-      used.add(_scriptHex(u.txout.scriptPubkey.bytes));
-    }
-    for (final tx in _datasource.wallet.listTransactions(includeRaw: true)) {
-      final raw = tx.transaction;
-      if (raw == null) continue;
-      for (final out in raw.output()) {
-        used.add(_scriptHex(out.scriptPubkey.bytes));
-      }
-    }
-    return used;
-  }
-
-  String _scriptHex(List<int> bytes) {
-    final buf = StringBuffer();
-    for (final b in bytes) {
-      buf.write((b & 0xff).toRadixString(16).padLeft(2, '0'));
-    }
-    return buf.toString();
   }
 
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
@@ -140,14 +89,12 @@ class BitcoinWallet {
     BigInt amount, [
     int? feeRateSatPerVByte,
   ]) {
-    if (amount > _datasource.wallet.getBalance().spendable) {}
-
-    return _buildPsbt(destination, amount, feeRateSatPerVByte).flatMap((r) {
+    return _buildPsbt(destination, amount, feeRateSatPerVByte).flatMap((psbt) {
       return TaskEither.right(
         PreparedOnchainBitcoinTransaction(
           destination: destination,
           amount: amount,
-          networkFees: r.$2.fee ?? BigInt.zero,
+          networkFees: BigInt.from(psbt.fee()),
           drain: false,
           feeRateSatPerVByte: feeRateSatPerVByte,
         ),
@@ -160,22 +107,19 @@ class BitcoinWallet {
     String destination, {
     int? feeRateSatPerVbyte,
   }) {
-    return _parseAddress(destination).flatMap(
-      (scriptPubKey) => TaskEither.tryCatch(
+    return _buildDrainPsbt(destination, feeRateSatPerVbyte).flatMap(
+      (psbt) => TaskEither.tryCatch(
         () async {
-          final builder =
-              bdk.TxBuilder().drainWallet().drainTo(scriptPubKey).enableRbf();
-
-          if (feeRateSatPerVbyte != null) {
-            builder.feeRate(feeRateSatPerVbyte.toDouble());
-          }
-
-          final (tx, details) = await builder.finish(_datasource.wallet);
+          // Same meaning as the legacy `details.sent`: the total value of
+          // the wallet inputs the drain spends.
+          final values = _datasource.wallet.sentAndReceived(
+            tx: psbt.extractTxUncheckedFeeRate(),
+          );
 
           return PreparedOnchainBitcoinTransaction(
             destination: destination,
-            amount: details.sent,
-            networkFees: tx.feeAmount() ?? BigInt.zero,
+            amount: BigInt.from(values.sent.toSat()),
+            networkFees: BigInt.from(psbt.fee()),
             drain: true,
             feeRateSatPerVByte: feeRateSatPerVbyte,
           );
@@ -198,14 +142,15 @@ class BitcoinWallet {
               psbt.feeRateSatPerVByte,
             );
 
-    return partialTransaction.flatMap((psbtTuple) {
-      return TaskEither.fromEither(_signTransaction(psbtTuple.$1)).flatMap((
+    return partialTransaction.flatMap((unsignedPsbt) {
+      return TaskEither.fromEither(_signTransaction(unsignedPsbt)).flatMap((
         signedPsbt,
       ) {
         return TaskEither.tryCatch(
           () async {
-            final txid = await _datasource.blockchain.broadcast(
-              transaction: signedPsbt.extractTx(),
+            final feePaidSat = signedPsbt.fee();
+            final txid = await _datasource.electrum.broadcast(
+              signedPsbt.extractTx(),
             );
 
             // Best-effort persistence: a DB error MUST NOT fail the operation,
@@ -231,8 +176,6 @@ class BitcoinWallet {
             try {
               final btcService = _datasource.ref
                   .read(v2.bitcoinWalletServiceProvider);
-              final feePaidSat =
-                  signedPsbt.feeAmount()?.toInt() ?? 0;
               btcService.registerExternalBroadcast(v2tx.Transaction(
                 id: txid,
                 chain: v2chain.ChainId.bitcoin,
@@ -331,31 +274,27 @@ class BitcoinWallet {
       () async {
         await _datasource.sync();
 
-        final rawTxs = _datasource.wallet.listTransactions(includeRaw: false);
+        final rawTxs = _datasource.wallet.txViews();
 
         final transactions =
             rawTxs.map((tx) {
-              final isSend = tx.sent > tx.received;
-              final amount = isSend ? (tx.sent - tx.received) : tx.received;
+              final isSend = tx.sentSat > tx.receivedSat;
+              final amount =
+                  isSend ? (tx.sentSat - tx.receivedSat) : tx.receivedSat;
 
               return Transaction(
                 id: tx.txid,
-                amount: amount,
+                amount: BigInt.from(amount),
                 blockchain: Blockchain.bitcoin,
                 asset: Asset.btc,
                 type: isSend ? TransactionType.send : TransactionType.receive,
                 status:
-                    (tx.confirmationTime == null)
-                        ? TransactionStatus.pending
-                        : TransactionStatus.confirmed,
+                    tx.isConfirmed
+                        ? TransactionStatus.confirmed
+                        : TransactionStatus.pending,
 
-                createdAt:
-                    (tx.confirmationTime == null)
-                        ? DateTime.now()
-                        : DateTime.fromMillisecondsSinceEpoch(
-                          tx.confirmationTime!.timestamp.toInt() * 1000,
-                        ),
-                confirmationHeight: tx.confirmationTime?.height,
+                createdAt: tx.confirmationTime ?? DateTime.now(),
+                confirmationHeight: tx.confirmationHeight,
               );
             }).toList();
 
@@ -370,27 +309,28 @@ class BitcoinWallet {
     );
   }
 
-  TaskEither<
-    WalletError,
-    (bdk.PartiallySignedTransaction, bdk.TransactionDetails)
-  >
-  _buildPsbt(String address, BigInt amount, [int? feeRateSatPerVByte]) {
+  // `TxBuilder` methods return a new builder, so each step reassigns it.
+  // RBF is signaled by default in BDK 1.x.
+  TaskEither<WalletError, bdk.Psbt> _buildPsbt(
+    String address,
+    BigInt amount, [
+    int? feeRateSatPerVByte,
+  ]) {
     return _parseAddress(address).flatMap(
-      (scriptBuf) => TaskEither.tryCatch(
+      (script) => TaskEither.tryCatch(
         () async {
-          final builder =
-              bdk.TxBuilder().addRecipient(scriptBuf, amount).enableRbf();
-
-          // Custom fee
-          // final testFeeRate = 0.1;
-          // builder.feeRate(testFeeRate);
+          var builder = bdk.TxBuilder().addRecipient(
+            script: script,
+            amount: bdk.Amount.fromSat(satoshi: amount.toInt()),
+          );
 
           if (feeRateSatPerVByte != null) {
-            builder.feeRate(feeRateSatPerVByte.toDouble());
+            builder = builder.feeRate(
+              feeRate: bdk.FeeRate.fromSatPerVb(satVb: feeRateSatPerVByte),
+            );
           }
 
-          final (psbt, details) = await builder.finish(_datasource.wallet);
-          return (psbt, details);
+          return builder.finish(wallet: _datasource.wallet);
         },
         (err, _) {
           return WalletError(WalletErrorType.transactionFailed, err.toString());
@@ -399,22 +339,22 @@ class BitcoinWallet {
     );
   }
 
-  TaskEither<
-    WalletError,
-    (bdk.PartiallySignedTransaction, bdk.TransactionDetails)
-  >
-  _buildDrainPsbt(String address, [int? feeRateSatPerVByte]) {
+  TaskEither<WalletError, bdk.Psbt> _buildDrainPsbt(
+    String address, [
+    int? feeRateSatPerVByte,
+  ]) {
     return _parseAddress(address).flatMap(
-      (scriptBuf) => TaskEither.tryCatch(
+      (script) => TaskEither.tryCatch(
         () async {
-          final builder =
-              bdk.TxBuilder().drainWallet().drainTo(scriptBuf).enableRbf();
+          var builder = bdk.TxBuilder().drainWallet().drainTo(script: script);
 
           if (feeRateSatPerVByte != null) {
-            builder.feeRate(feeRateSatPerVByte.toDouble());
+            builder = builder.feeRate(
+              feeRate: bdk.FeeRate.fromSatPerVb(satVb: feeRateSatPerVByte),
+            );
           }
 
-          return await builder.finish(_datasource.wallet);
+          return builder.finish(wallet: _datasource.wallet);
         },
         (err, _) =>
             WalletError(WalletErrorType.transactionFailed, err.toString()),
@@ -422,24 +362,21 @@ class BitcoinWallet {
     );
   }
 
-  TaskEither<WalletError, bdk.ScriptBuf> _parseAddress(String address) {
+  TaskEither<WalletError, bdk.Script> _parseAddress(String address) {
     return TaskEither.tryCatch(
-      () async => await bdk.Address.fromString(
-        s: address,
+      () async => bdk.Address(
+        address: address,
         network: _datasource.wallet.network(),
-      ).then((a) => a.scriptPubkey()),
+      ).scriptPubkey(),
       (err, _) => WalletError(WalletErrorType.invalidAddress, err.toString()),
     );
   }
 
-  Either<WalletError, bdk.PartiallySignedTransaction> _signTransaction(
-    bdk.PartiallySignedTransaction psbt,
-  ) {
-    final psbtClone = psbt;
-    final sign = _datasource.wallet.sign(psbt: psbtClone);
+  Either<WalletError, bdk.Psbt> _signTransaction(bdk.Psbt psbt) {
+    final sign = _datasource.wallet.sign(psbt: psbt, signOptions: null);
 
     if (sign) {
-      return Either.right(psbtClone);
+      return Either.right(psbt);
     }
 
     return Either.left(
