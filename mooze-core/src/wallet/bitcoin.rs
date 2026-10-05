@@ -24,6 +24,7 @@ use super::backend::ChainBackend;
 use super::backend::{BitcoinElectrum, ElectrumConfig};
 use super::descriptors::{bitcoin_descriptors, bitcoin_network, bitcoin_network_kind, BitcoinDescriptors};
 use super::endpoints::EndpointResolver;
+use super::explorer::{hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
 use super::fees::BitcoinFeeEstimate;
 use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
@@ -194,7 +195,8 @@ fn used_scripts(wallet: &Wallet) -> HashSet<ScriptBuf> {
 /// Next receive address with no on-chain history. Port of
 /// `nextFreshReceiveAddress`: start at BDK's first unused address, walk
 /// past used scripts, reveal up to the chosen index. Stages changes.
-pub fn next_fresh_receive_address(wallet: &mut Wallet, cap: u32) -> Result<Address> {
+/// Returns the address and its external index.
+pub fn next_fresh_receive_address(wallet: &mut Wallet, cap: u32) -> Result<(u32, Address)> {
     let used = used_scripts(wallet);
     let mut info = wallet.next_unused_address(KeychainKind::External);
     let mut walked = 0;
@@ -206,7 +208,88 @@ pub fn next_fresh_receive_address(wallet: &mut Wallet, cap: u32) -> Result<Addre
         return Err(svc(format!("no unused receive address found within {cap}-index window")));
     }
     let _ = wallet.reveal_addresses_to(KeychainKind::External, info.index);
-    Ok(info.address)
+    Ok((info.index, info.address))
+}
+
+fn to_keychain(k: KeychainKind) -> Keychain {
+    match k {
+        KeychainKind::External => Keychain::External,
+        KeychainKind::Internal => Keychain::Internal,
+    }
+}
+
+fn to_bdk_keychain(k: Keychain) -> KeychainKind {
+    match k {
+        Keychain::External => KeychainKind::External,
+        Keychain::Internal => KeychainKind::Internal,
+    }
+}
+
+/// Addresses of `keychain` at `start..start + count`, without revealing them.
+/// An address is used if its script holds a UTXO or appears in any wallet
+/// transaction output (Dart `usedScriptHexes`).
+pub fn derived_addresses(wallet: &Wallet, keychain: Keychain, start: u32, count: u32) -> Vec<DerivedAddressInfo> {
+    let used = used_scripts(wallet);
+    index_range(start, count)
+        .map(|i| {
+            let info = wallet.peek_address(to_bdk_keychain(keychain), i);
+            let script = info.address.script_pubkey();
+            DerivedAddressInfo {
+                keychain,
+                index: i,
+                address: info.address.to_string(),
+                unconfidential: None,
+                script_hex: hex(script.as_bytes()),
+                used: used.contains(&script),
+            }
+        })
+        .collect()
+}
+
+/// Unspent wallet outputs with their address and derivation.
+pub fn unspent_outputs(wallet: &Wallet) -> Vec<WalletUtxoInfo> {
+    wallet
+        .list_unspent()
+        .filter(|u| !u.is_spent)
+        .map(|u| {
+            let (height, time) = match &u.chain_position {
+                ChainPosition::Confirmed { anchor, .. } => {
+                    (Some(anchor.block_id.height), Some(anchor.confirmation_time))
+                }
+                ChainPosition::Unconfirmed { .. } => (None, None),
+            };
+            let address = Address::from_script(&u.txout.script_pubkey, wallet.network())
+                .map(|a| a.to_string())
+                .unwrap_or_default();
+            WalletUtxoInfo {
+                txid: u.outpoint.txid.to_string(),
+                vout: u.outpoint.vout,
+                address,
+                unconfidential: None,
+                script_hex: hex(u.txout.script_pubkey.as_bytes()),
+                keychain: to_keychain(u.keychain),
+                index: u.derivation_index,
+                amount_sat: u.txout.value.to_sat(),
+                asset_id: None,
+                confirmation_height: height,
+                confirmation_time_s: time,
+            }
+        })
+        .collect()
+}
+
+/// Derivation of `address` if the wallet owns it.
+///
+/// BDK knows the scripts up to the last revealed index plus the lookahead,
+/// so an owned address past that window reports `None`, as `isMine` did in Dart.
+/// Fails for an unparseable address or one of another network.
+pub fn address_ownership(wallet: &Wallet, address: &str) -> Result<Option<AddressOwnership>> {
+    let parsed = Address::from_str(address.trim())
+        .and_then(|a| a.require_network(wallet.network()))
+        .map_err(|e| Error::invalid(format!("invalid bitcoin address: {e}")))?;
+    Ok(wallet
+        .derivation_of_spk(parsed.script_pubkey())
+        .map(|(k, index)| AddressOwnership { keychain: to_keychain(k), index }))
 }
 
 /// Signers for the receive and change descriptors.
@@ -625,12 +708,38 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         if let Some(a) = asset_id {
             return Err(svc(format!("bitcoin service does not handle asset receives (got assetId: {a})")));
         }
-        let address = next_fresh_receive_address(&mut self.wallet, FRESH_ADDRESS_CAP)
+        let (_, address) = next_fresh_receive_address(&mut self.wallet, FRESH_ADDRESS_CAP)
             .map_err(|e| svc(format!("bdk nextReceiveAddress failed: {e}")))?;
         self.persist().await?;
         let mut r = ReceiveAddress::onchain(CHAIN, address.to_string());
         r.label = label.map(str::to_owned);
         Ok(r)
+    }
+
+    /// Next receive address with no on-chain history, with its index.
+    ///
+    /// Same walk as [`Self::next_receive_address`]: it reveals up to the
+    /// chosen index and persists, as Dart `getNextUnusedBitcoinAddress` did.
+    pub async fn next_unused_address(&mut self) -> Result<NextUnusedAddress> {
+        let (index, address) = next_fresh_receive_address(&mut self.wallet, FRESH_ADDRESS_CAP)
+            .map_err(|e| svc(format!("bdk nextUnusedAddress failed: {e}")))?;
+        self.persist().await?;
+        Ok(NextUnusedAddress { index, address: address.to_string(), used: false })
+    }
+
+    /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
+    pub fn derived_addresses(&self, keychain: Keychain, start: u32, count: u32) -> Vec<DerivedAddressInfo> {
+        derived_addresses(&self.wallet, keychain, start, count)
+    }
+
+    /// Unspent outputs with address, derivation and confirmation.
+    pub fn unspent_outputs(&self) -> Vec<WalletUtxoInfo> {
+        unspent_outputs(&self.wallet)
+    }
+
+    /// Derivation of `address` if the wallet owns it. See [`address_ownership`].
+    pub fn is_mine(&self, address: &str) -> Result<Option<AddressOwnership>> {
+        address_ownership(&self.wallet, address)
     }
 
     /// Builds and signs the request. Returns the raw transaction and its fee.
@@ -917,6 +1026,67 @@ mod tests {
         assert_eq!(tx.output.len(), 1);
         assert_eq!(tx.output[0].value.to_sat(), 100_000 - fee);
         assert_eq!(fee, p.network_fee_sat);
+    }
+
+    const ADDR0: &str = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu";
+    const ADDR1: &str = "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g";
+    const CHANGE0: &str = "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el";
+
+    #[test]
+    fn derived_addresses_follow_bip84_and_reveal_nothing() {
+        let w = connect(MemoryKv::new());
+        let ext = w.derived_addresses(Keychain::External, 0, 2);
+        assert_eq!(ext.iter().map(|a| a.address.as_str()).collect::<Vec<_>>(), [ADDR0, ADDR1]);
+        assert_eq!(ext.iter().map(|a| a.index).collect::<Vec<_>>(), [0, 1]);
+        assert!(ext.iter().all(|a| !a.used && a.keychain == Keychain::External && a.unconfidential.is_none()));
+        assert!(ext[0].script_hex.starts_with("0014") && ext[0].script_hex.len() == 44, "{}", ext[0].script_hex);
+        let int = w.derived_addresses(Keychain::Internal, 0, 1);
+        assert_eq!((int[0].address.as_str(), int[0].keychain), (CHANGE0, Keychain::Internal));
+        let page = w.derived_addresses(Keychain::External, 1, 1);
+        assert_eq!(page[0].address, ADDR1);
+        assert!(w.derived_addresses(Keychain::External, 0, 0).is_empty());
+        assert_eq!(w.bdk().derivation_index(KeychainKind::External), None);
+    }
+
+    #[test]
+    fn is_mine_reports_keychain_and_index() {
+        let w = connect(MemoryKv::new());
+        assert_eq!(w.is_mine(ADDR1).unwrap(), Some(AddressOwnership { keychain: Keychain::External, index: 1 }));
+        assert_eq!(w.is_mine(CHANGE0).unwrap(), Some(AddressOwnership { keychain: Keychain::Internal, index: 0 }));
+        // Foreign mainnet address.
+        assert_eq!(w.is_mine("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").unwrap(), None);
+        // Past the lookahead window (no index revealed yet).
+        let far = w.wallet.peek_address(KeychainKind::External, LOOKAHEAD + 5).address.to_string();
+        assert_eq!(w.is_mine(&far).unwrap(), None);
+        assert!(matches!(w.is_mine("not-an-address"), Err(Error::InvalidInput(_))));
+        assert!(matches!(w.is_mine("tb1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx"), Err(Error::InvalidInput(_))));
+    }
+
+    #[test]
+    fn utxos_used_flags_and_next_unused_follow_history() {
+        let mut w = connect(MemoryKv::new());
+        assert!(w.unspent_outputs().is_empty());
+        let first = block_on(w.next_unused_address()).unwrap();
+        assert_eq!(first, NextUnusedAddress { index: 0, address: ADDR0.into(), used: false });
+
+        fund(&mut w, 42_000);
+        let utxos = w.unspent_outputs();
+        assert_eq!(utxos.len(), 1);
+        let u = &utxos[0];
+        assert_eq!((u.address.as_str(), u.keychain, u.index, u.amount_sat), (ADDR0, Keychain::External, 0, 42_000));
+        assert_eq!((u.vout, u.asset_id.clone(), u.is_confirmed()), (0, None, false));
+        assert_eq!(u.outpoint(), format!("{}:0", u.txid));
+        assert_eq!(u.script_hex, w.derived_addresses(Keychain::External, 0, 1)[0].script_hex);
+
+        let ext = w.derived_addresses(Keychain::External, 0, 2);
+        assert_eq!((ext[0].used, ext[1].used), (true, false));
+
+        // Index 0 has history: the walk moves to index 1 and reveals it.
+        let next = block_on(w.next_unused_address()).unwrap();
+        assert_eq!(next, NextUnusedAddress { index: 1, address: ADDR1.into(), used: false });
+        assert_eq!(w.bdk().derivation_index(KeychainKind::External), Some(1));
+        // Unused: the same address comes back.
+        assert_eq!(block_on(w.next_unused_address()).unwrap().index, 1);
     }
 
     #[test]

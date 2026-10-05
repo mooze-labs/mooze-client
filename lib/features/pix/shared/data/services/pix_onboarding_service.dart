@@ -1,72 +1,41 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart';
 
+/// First-time PIX dialog flags, stored in mooze-core.
 class PixOnboardingService {
-  static const String _pixMainFirstTimeDialogKey =
-      'pix_main_first_time_dialog_shown';
-  static const String _pixMerchantFirstTimeDialogKey =
-      'pix_merchant_first_time_dialog_shown';
+  PixOnboardingService(this._core);
 
-  final SharedPreferences _prefs;
+  final Future<MoozeCore> _core;
 
-  PixOnboardingService(this._prefs);
+  /// True if the user has already seen the main PIX first-time dialog.
+  Future<bool> hasSeenFirstTimeDialog() =>
+      _isSet(PixFlagDto.mainFirstTimeDialogShown);
 
-  /// Checks if the user has already seen the main PIX first-time dialog
-  bool hasSeenFirstTimeDialog() {
-    return _prefs.getBool(_pixMainFirstTimeDialogKey) ?? false;
-  }
+  /// Marks the main PIX first-time dialog as seen and accepted.
+  Future<void> markFirstTimeDialogAsSeen() =>
+      _set(PixFlagDto.mainFirstTimeDialogShown);
 
-  /// Marks that the user has already seen and accepted the main PIX first-time dialog
-  Future<void> markFirstTimeDialogAsSeen() async {
-    await _prefs.setBool(_pixMainFirstTimeDialogKey, true);
-  }
+  /// Clears the main PIX dialog flag.
+  Future<void> resetFirstTimeDialog() =>
+      _reset(PixFlagDto.mainFirstTimeDialogShown);
 
-  /// Resets the main PIX dialog state (useful for tests or if it needs to be shown again)
-  Future<void> resetFirstTimeDialog() async {
-    await _prefs.remove(_pixMainFirstTimeDialogKey);
-  }
+  /// True if the user has already seen the Merchant PIX first-time dialog.
+  Future<bool> hasSeenMerchantFirstTimeDialog() =>
+      _isSet(PixFlagDto.merchantFirstTimeDialogShown);
 
-  /// Checks if the user has already seen the Merchant PIX first-time dialog
-  bool hasSeenMerchantFirstTimeDialog() {
-    return _prefs.getBool(_pixMerchantFirstTimeDialogKey) ?? false;
-  }
+  /// Marks the Merchant PIX first-time dialog as seen and accepted.
+  Future<void> markMerchantFirstTimeDialogAsSeen() =>
+      _set(PixFlagDto.merchantFirstTimeDialogShown);
 
-  /// Marks that the user has already seen and accepted the Merchant PIX first-time dialog
-  Future<void> markMerchantFirstTimeDialogAsSeen() async {
-    await _prefs.setBool(_pixMerchantFirstTimeDialogKey, true);
-  }
+  /// Clears the Merchant dialog flag.
+  Future<void> resetMerchantFirstTimeDialog() =>
+      _reset(PixFlagDto.merchantFirstTimeDialogShown);
 
-  /// Resets the Merchant dialog state (useful for tests or if it needs to be shown again)
-  Future<void> resetMerchantFirstTimeDialog() async {
-    await _prefs.remove(_pixMerchantFirstTimeDialogKey);
-  }
+  Future<bool> _isSet(PixFlagDto flag) async =>
+      (await _core).pixFlagIsSet(flag: flag);
 
-  // Methods prepared for future API integration
+  Future<void> _set(PixFlagDto flag) async =>
+      (await _core).pixFlagSet(flag: flag);
 
-  /// Syncs the onboarding state with the backend
-  /// TODO: Implement when the backend endpoint is available
-  Future<void> syncWithBackend() async {
-    // Future implementation:
-    // - Fetch state from the server
-    // - Update local state if needed
-    // - Send local state if needed
-  }
-
-  /// Checks if the user has accepted the terms on the server
-  /// TODO: Implement when the backend endpoint is available
-  Future<bool> hasAcceptedTermsOnBackend() async {
-    // Future implementation:
-    // - Make request to the backend
-    // - Return whether the user has already accepted
-    return hasSeenFirstTimeDialog(); // For now, uses local state
-  }
-
-  /// Sends terms acceptance to the backend
-  /// TODO: Implement when the backend endpoint is available
-  Future<void> submitTermsAcceptance() async {
-    // Future implementation:
-    // - Send acceptance timestamp
-    // - Accepted terms version
-    // - Device info if needed
-    await markFirstTimeDialogAsSeen();
-  }
+  Future<void> _reset(PixFlagDto flag) async =>
+      (await _core).pixFlagReset(flag: flag);
 }

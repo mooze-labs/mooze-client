@@ -7,7 +7,47 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `to_domain`, `to_domain`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+
+/// Derivation of an address the wallet owns.
+class AddressOwnershipDto {
+  final KeychainDto keychain;
+  final int index;
+
+  const AddressOwnershipDto({required this.keychain, required this.index});
+
+  @override
+  int get hashCode => keychain.hashCode ^ index.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AddressOwnershipDto &&
+          runtimeType == other.runtimeType &&
+          keychain == other.keychain &&
+          index == other.index;
+}
+
+/// Response of `MoozeCore.apiRequest`. Non-2xx statuses are not errors.
+class ApiResponseDto {
+  final int status;
+
+  /// Body as UTF-8 text, lossy.
+  final String body;
+
+  const ApiResponseDto({required this.status, required this.body});
+
+  @override
+  int get hashCode => status.hashCode ^ body.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApiResponseDto &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          body == other.body;
+}
 
 /// Balance of one asset.
 class AssetBalanceDto {
@@ -47,6 +87,47 @@ class AssetBalanceDto {
           precision == other.precision &&
           ticker == other.ticker &&
           pendingSat == other.pendingSat;
+}
+
+/// Outcome of the boot-time session check.
+class AuthEnsureDto {
+  final AuthEnsureKind kind;
+
+  /// The 5xx status for `ApiDown`, if the error text holds one.
+  final int? statusCode;
+
+  /// Error text for `Failed`.
+  final String? message;
+
+  const AuthEnsureDto({required this.kind, this.statusCode, this.message});
+
+  @override
+  int get hashCode => kind.hashCode ^ statusCode.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuthEnsureDto &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          statusCode == other.statusCode &&
+          message == other.message;
+}
+
+/// Result of `MoozeCore.authEnsureSession`. Mirrors the flags of the Dart
+/// `ensureAuthSessionProvider`.
+enum AuthEnsureKind {
+  /// A valid session exists.
+  ready,
+
+  /// The secure store holds no mnemonic, so the core cannot sign in.
+  missingMnemonic,
+
+  /// The backend looks down (Dart `apiDownProvider`).
+  apiDown,
+
+  /// Any other failure (Dart `syncErrorMessageProvider`).
+  failed,
 }
 
 /// Protocol used to reach the chains.
@@ -176,6 +257,97 @@ enum CoreErrorKind {
   invalidState,
   timeout,
   other,
+
+  /// The API session is missing or could not be refreshed.
+  session,
+}
+
+/// One derived wallet address.
+class DerivedAddressDto {
+  final KeychainDto keychain;
+  final int index;
+
+  /// Address the UI shows. Liquid: the confidential address.
+  final String address;
+
+  /// Liquid: the unconfidential address. Bitcoin: `None`.
+  final String? unconfidential;
+
+  /// Hex of the script pubkey.
+  final String scriptHex;
+
+  /// True if a wallet transaction ever paid to the address.
+  final bool used;
+
+  const DerivedAddressDto({
+    required this.keychain,
+    required this.index,
+    required this.address,
+    this.unconfidential,
+    required this.scriptHex,
+    required this.used,
+  });
+
+  @override
+  int get hashCode =>
+      keychain.hashCode ^
+      index.hashCode ^
+      address.hashCode ^
+      unconfidential.hashCode ^
+      scriptHex.hashCode ^
+      used.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DerivedAddressDto &&
+          runtimeType == other.runtimeType &&
+          keychain == other.keychain &&
+          index == other.index &&
+          address == other.address &&
+          unconfidential == other.unconfidential &&
+          scriptHex == other.scriptHex &&
+          used == other.used;
+}
+
+/// Device metrics the API client adds to JSON request bodies
+/// (Dart `AuthInterceptor._collectMetrics`).
+class DeviceMetricsDto {
+  /// Value of `MoozeCore.authDeviceId`.
+  final String deviceId;
+
+  /// Battery level, 0 to 100.
+  final PlatformInt64? batteryLevel;
+
+  /// Screen brightness, 0.0 to 1.0.
+  final double? screenBrightness;
+
+  /// Boot time as an ISO-8601 string.
+  final String? bootTime;
+
+  const DeviceMetricsDto({
+    required this.deviceId,
+    this.batteryLevel,
+    this.screenBrightness,
+    this.bootTime,
+  });
+
+  @override
+  int get hashCode =>
+      deviceId.hashCode ^
+      batteryLevel.hashCode ^
+      screenBrightness.hashCode ^
+      bootTime.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DeviceMetricsDto &&
+          runtimeType == other.runtimeType &&
+          deviceId == other.deviceId &&
+          batteryLevel == other.batteryLevel &&
+          screenBrightness == other.screenBrightness &&
+          bootTime == other.bootTime;
 }
 
 /// Transaction direction.
@@ -219,6 +391,18 @@ class FeeEstimateDto {
 
 /// Fee priority.
 enum FeePriorityDto { low, medium, high }
+
+/// HTTP method of `MoozeCore.apiRequest`.
+enum HttpMethodDto { get_, post, put, patch, delete }
+
+/// Keychain of a derived address.
+enum KeychainDto {
+  /// Receive chain.
+  external_,
+
+  /// Change chain.
+  internal,
+}
 
 /// Unsigned L-BTC send, ready for review and signing.
 class LiquidSendDraftDto {
@@ -327,6 +511,35 @@ class MigrationReportDto {
 
 /// Network the wallet runs on.
 enum NetworkDto { mainnet, testnet, regtest }
+
+/// Next receive address with its index.
+class NextUnusedAddressDto {
+  final int index;
+
+  /// Address the UI shows. Liquid: the confidential address.
+  final String address;
+
+  /// True if a wallet transaction already paid to it. Bitcoin: always false.
+  final bool used;
+
+  const NextUnusedAddressDto({
+    required this.index,
+    required this.address,
+    required this.used,
+  });
+
+  @override
+  int get hashCode => index.hashCode ^ address.hashCode ^ used.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NextUnusedAddressDto &&
+          runtimeType == other.runtimeType &&
+          index == other.index &&
+          address == other.address &&
+          used == other.used;
+}
 
 /// Address or invoice to receive funds.
 class ReceiveAddressDto {
@@ -620,3 +833,77 @@ class TransactionEventDto {
 
 /// Kind of transaction change found by a sync.
 enum TransactionEventKindDto { created, statusChanged, confirmationsChanged }
+
+/// One unspent wallet output.
+class WalletUtxoDto {
+  final String txid;
+  final int vout;
+
+  /// Address of the output. Liquid: the confidential address.
+  final String address;
+
+  /// Liquid: the unconfidential address. Bitcoin: `None`.
+  final String? unconfidential;
+
+  /// Hex of the script pubkey.
+  final String scriptHex;
+  final KeychainDto keychain;
+  final int index;
+
+  /// Value in sats (Bitcoin) or asset base units (Liquid).
+  final BigInt amountSat;
+
+  /// Liquid asset id. Bitcoin: `None`.
+  final String? assetId;
+
+  /// Height of the confirming block. `None` while unconfirmed.
+  final int? confirmationHeight;
+
+  /// Block time (seconds) of the confirming block, if known.
+  final BigInt? confirmationTimeS;
+
+  const WalletUtxoDto({
+    required this.txid,
+    required this.vout,
+    required this.address,
+    this.unconfidential,
+    required this.scriptHex,
+    required this.keychain,
+    required this.index,
+    required this.amountSat,
+    this.assetId,
+    this.confirmationHeight,
+    this.confirmationTimeS,
+  });
+
+  @override
+  int get hashCode =>
+      txid.hashCode ^
+      vout.hashCode ^
+      address.hashCode ^
+      unconfidential.hashCode ^
+      scriptHex.hashCode ^
+      keychain.hashCode ^
+      index.hashCode ^
+      amountSat.hashCode ^
+      assetId.hashCode ^
+      confirmationHeight.hashCode ^
+      confirmationTimeS.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WalletUtxoDto &&
+          runtimeType == other.runtimeType &&
+          txid == other.txid &&
+          vout == other.vout &&
+          address == other.address &&
+          unconfidential == other.unconfidential &&
+          scriptHex == other.scriptHex &&
+          keychain == other.keychain &&
+          index == other.index &&
+          amountSat == other.amountSat &&
+          assetId == other.assetId &&
+          confirmationHeight == other.confirmationHeight &&
+          confirmationTimeS == other.confirmationTimeS;
+}

@@ -194,7 +194,7 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
 
     final onboardingService = ref.read(pixOnboardingServiceProvider);
 
-    if (!onboardingService.hasSeenFirstTimeDialog() && mounted) {
+    if (!await onboardingService.hasSeenFirstTimeDialog() && mounted) {
       final accepted = await FirstTimePixDialog.show(context);
 
       if (accepted == true && mounted) {

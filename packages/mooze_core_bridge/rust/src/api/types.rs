@@ -6,6 +6,7 @@
 
 use mooze_core::domain as d;
 use mooze_core::migration::MigrationReport;
+use mooze_core::wallet as w;
 
 /// Network the wallet runs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -456,6 +457,131 @@ impl From<&d::LiquidUtxo> for LiquidUtxoDto {
     }
 }
 
+/// Keychain of a derived address.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeychainDto {
+    /// Receive chain.
+    External,
+    /// Change chain.
+    Internal,
+}
+
+impl From<w::Keychain> for KeychainDto {
+    fn from(k: w::Keychain) -> Self {
+        match k {
+            w::Keychain::External => KeychainDto::External,
+            w::Keychain::Internal => KeychainDto::Internal,
+        }
+    }
+}
+
+impl From<KeychainDto> for w::Keychain {
+    fn from(k: KeychainDto) -> Self {
+        match k {
+            KeychainDto::External => w::Keychain::External,
+            KeychainDto::Internal => w::Keychain::Internal,
+        }
+    }
+}
+
+/// One derived wallet address.
+#[derive(Debug, Clone)]
+pub struct DerivedAddressDto {
+    pub keychain: KeychainDto,
+    pub index: u32,
+    /// Address the UI shows. Liquid: the confidential address.
+    pub address: String,
+    /// Liquid: the unconfidential address. Bitcoin: `None`.
+    pub unconfidential: Option<String>,
+    /// Hex of the script pubkey.
+    pub script_hex: String,
+    /// True if a wallet transaction ever paid to the address.
+    pub used: bool,
+}
+
+impl From<&w::DerivedAddressInfo> for DerivedAddressDto {
+    fn from(a: &w::DerivedAddressInfo) -> Self {
+        Self {
+            keychain: a.keychain.into(),
+            index: a.index,
+            address: a.address.clone(),
+            unconfidential: a.unconfidential.clone(),
+            script_hex: a.script_hex.clone(),
+            used: a.used,
+        }
+    }
+}
+
+/// One unspent wallet output.
+#[derive(Debug, Clone)]
+pub struct WalletUtxoDto {
+    pub txid: String,
+    pub vout: u32,
+    /// Address of the output. Liquid: the confidential address.
+    pub address: String,
+    /// Liquid: the unconfidential address. Bitcoin: `None`.
+    pub unconfidential: Option<String>,
+    /// Hex of the script pubkey.
+    pub script_hex: String,
+    pub keychain: KeychainDto,
+    pub index: u32,
+    /// Value in sats (Bitcoin) or asset base units (Liquid).
+    pub amount_sat: u64,
+    /// Liquid asset id. Bitcoin: `None`.
+    pub asset_id: Option<String>,
+    /// Height of the confirming block. `None` while unconfirmed.
+    pub confirmation_height: Option<u32>,
+    /// Block time (seconds) of the confirming block, if known.
+    pub confirmation_time_s: Option<u64>,
+}
+
+impl From<&w::WalletUtxoInfo> for WalletUtxoDto {
+    fn from(u: &w::WalletUtxoInfo) -> Self {
+        Self {
+            txid: u.txid.clone(),
+            vout: u.vout,
+            address: u.address.clone(),
+            unconfidential: u.unconfidential.clone(),
+            script_hex: u.script_hex.clone(),
+            keychain: u.keychain.into(),
+            index: u.index,
+            amount_sat: u.amount_sat,
+            asset_id: u.asset_id.clone(),
+            confirmation_height: u.confirmation_height,
+            confirmation_time_s: u.confirmation_time_s,
+        }
+    }
+}
+
+/// Derivation of an address the wallet owns.
+#[derive(Debug, Clone, Copy)]
+pub struct AddressOwnershipDto {
+    pub keychain: KeychainDto,
+    pub index: u32,
+}
+
+impl From<w::AddressOwnership> for AddressOwnershipDto {
+    fn from(o: w::AddressOwnership) -> Self {
+        Self { keychain: o.keychain.into(), index: o.index }
+    }
+}
+
+/// Next receive address with its index.
+#[derive(Debug, Clone)]
+pub struct NextUnusedAddressDto {
+    pub index: u32,
+    /// Address the UI shows. Liquid: the confidential address.
+    pub address: String,
+    /// True if a wallet transaction already paid to it. Bitcoin: always false.
+    pub used: bool,
+}
+
+impl From<&w::NextUnusedAddress> for NextUnusedAddressDto {
+    fn from(n: &w::NextUnusedAddress) -> Self {
+        Self { index: n.index, address: n.address.clone(), used: n.used }
+    }
+}
+
 /// Rows copied from one source table.
 #[derive(Debug, Clone)]
 pub struct TableCountDto {
@@ -493,6 +619,87 @@ impl From<MigrationReport> for MigrationReportDto {
     }
 }
 
+/// Result of `MoozeCore.authEnsureSession`. Mirrors the flags of the Dart
+/// `ensureAuthSessionProvider`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AuthEnsureKind {
+    /// A valid session exists.
+    Ready,
+    /// The secure store holds no mnemonic, so the core cannot sign in.
+    MissingMnemonic,
+    /// The backend looks down (Dart `apiDownProvider`).
+    ApiDown,
+    /// Any other failure (Dart `syncErrorMessageProvider`).
+    Failed,
+}
+
+/// Outcome of the boot-time session check.
+#[derive(Debug, Clone)]
+pub struct AuthEnsureDto {
+    pub kind: AuthEnsureKind,
+    /// The 5xx status for `ApiDown`, if the error text holds one.
+    pub status_code: Option<u16>,
+    /// Error text for `Failed`.
+    pub message: Option<String>,
+}
+
+impl From<mooze_core::auth::EnsureOutcome> for AuthEnsureDto {
+    fn from(o: mooze_core::auth::EnsureOutcome) -> Self {
+        use mooze_core::auth::EnsureOutcome as O;
+        match o {
+            O::Ready => Self { kind: AuthEnsureKind::Ready, status_code: None, message: None },
+            O::MissingMnemonic => Self { kind: AuthEnsureKind::MissingMnemonic, status_code: None, message: None },
+            O::ApiDown { status_code } => Self { kind: AuthEnsureKind::ApiDown, status_code, message: None },
+            O::Failed { message } => Self { kind: AuthEnsureKind::Failed, status_code: None, message: Some(message) },
+        }
+    }
+}
+
+/// HTTP method of `MoozeCore.apiRequest`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HttpMethodDto {
+    Get,
+    Post,
+    Put,
+    Patch,
+    Delete,
+}
+
+impl From<HttpMethodDto> for mooze_core::ports::HttpMethod {
+    fn from(m: HttpMethodDto) -> Self {
+        use mooze_core::ports::HttpMethod as M;
+        match m {
+            HttpMethodDto::Get => M::Get,
+            HttpMethodDto::Post => M::Post,
+            HttpMethodDto::Put => M::Put,
+            HttpMethodDto::Patch => M::Patch,
+            HttpMethodDto::Delete => M::Delete,
+        }
+    }
+}
+
+/// Response of `MoozeCore.apiRequest`. Non-2xx statuses are not errors.
+#[derive(Debug, Clone)]
+pub struct ApiResponseDto {
+    pub status: u16,
+    /// Body as UTF-8 text, lossy.
+    pub body: String,
+}
+
+/// Device metrics the API client adds to JSON request bodies
+/// (Dart `AuthInterceptor._collectMetrics`).
+#[derive(Debug, Clone)]
+pub struct DeviceMetricsDto {
+    /// Value of `MoozeCore.authDeviceId`.
+    pub device_id: String,
+    /// Battery level, 0 to 100.
+    pub battery_level: Option<i64>,
+    /// Screen brightness, 0.0 to 1.0.
+    pub screen_brightness: Option<f64>,
+    /// Boot time as an ISO-8601 string.
+    pub boot_time: Option<String>,
+}
+
 /// Category of a bridge error. Dart maps it to its failure classes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoreErrorKind {
@@ -504,6 +711,8 @@ pub enum CoreErrorKind {
     InvalidState,
     Timeout,
     Other,
+    /// The API session is missing or could not be refreshed.
+    Session,
 }
 
 /// Error thrown on the Dart side by every failing bridge call.
@@ -532,6 +741,7 @@ impl From<mooze_core::Error> for CoreError {
             E::InvalidInput(_) => CoreErrorKind::InvalidInput,
             E::InvalidState(_) => CoreErrorKind::InvalidState,
             E::Timeout(_) => CoreErrorKind::Timeout,
+            E::Session(_) => CoreErrorKind::Session,
             _ => CoreErrorKind::Other,
         };
         Self { kind, message: e.to_string() }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/referral_input/presentation/widgets/referral_submit_button.dart';
+import '../../../../shared/test_app.dart';
 
 void main() {
   Widget buildWidget({
@@ -8,8 +9,7 @@ void main() {
     bool isLoading = false,
     VoidCallback? onSubmit,
   }) {
-    return MaterialApp(
-      home: Scaffold(
+    return wrapForTest(Scaffold(
         body: ReferralSubmitButton(
           isApiDown: isApiDown,
           isLoading: isLoading,

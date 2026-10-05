@@ -1,27 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:mooze_mobile/features/address_explorer/data/repositories/address_explorer_repository_impl.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart'
+    show moozeCoreProvider;
+import 'package:mooze_mobile/features/address_explorer/data/repositories/core_address_explorer_repository.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/repositories/address_explorer_repository.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/services/address_chain_detector.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/usecases/find_address.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/usecases/get_next_unused_address.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/usecases/list_addresses.dart';
-import 'package:mooze_mobile/shared/infra/bdk/providers/datasource_provider.dart';
-import 'package:mooze_mobile/shared/infra/lwk/providers/datasource_provider.dart';
 
 final addressChainDetectorProvider =
     Provider<AddressChainDetector>((ref) => const AddressChainDetector());
 
 final addressExplorerRepositoryProvider =
     FutureProvider<Either<String, AddressExplorerRepository>>((ref) async {
-  final bdk = await ref.watch(bdkDatasourceProvider.future);
-  final lwk = await ref.watch(liquidDataSourceProvider.future);
-
-  return bdk.flatMap(
-    (bdkDs) => lwk.map(
-      (lwkDs) => AddressExplorerRepositoryImpl(bdk: bdkDs, lwk: lwkDs),
-    ),
-  );
+  // An open failure becomes a Left.
+  try {
+    final core = await ref.watch(moozeCoreProvider.future);
+    return Either.right(CoreAddressExplorerRepository(core: core));
+  } catch (e) {
+    return Either.left(e.toString());
+  }
 });
 
 final findAddressUseCaseProvider =

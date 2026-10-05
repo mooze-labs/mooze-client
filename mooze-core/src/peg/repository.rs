@@ -111,9 +111,11 @@ fn decode<T: DeserializeOwned>(v: serde_json::Value) -> Result<T, PegError> {
     serde_json::from_value(v).map_err(|e| PegError::TransportFailure(e.to_string()))
 }
 
-impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
+/// The client itself is a repository, so one connection can serve swaps and
+/// pegs: pass `&mut client` where a [`PegRepository`] is expected.
+impl<C: WsConnector> PegRepository for SideSwapClient<C> {
     async fn get_limits(&mut self) -> Result<PegServerLimits, PegError> {
-        let v = self.client.call(&Request::server_status()).await.map_err(read_failure)?;
+        let v = self.call(&Request::server_status()).await.map_err(read_failure)?;
         let status: ServerStatus = decode(v)?;
         Ok(PegServerLimits::from(&status))
     }
@@ -123,7 +125,7 @@ impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
             return Err(PegError::WalletFailure("endereço de destino vazio".into()));
         }
         let req = Request::peg(direction.as_peg_in_flag(), payout_address);
-        let v = match self.client.call(&req).await {
+        let v = match self.call(&req).await {
             Ok(v) => v,
             // A create is not idempotent: the order may exist server-side.
             Err(Error::Timeout(d)) => {
@@ -145,7 +147,7 @@ impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
 
     async fn get_status(&mut self, direction: PegDirection, order_id: &str) -> Result<PegProgress, PegError> {
         let req = Request::peg_status(direction.as_peg_in_flag(), order_id);
-        let v = match self.client.call(&req).await {
+        let v = match self.call(&req).await {
             Ok(v) => v,
             Err(Error::Protocol(m)) if looks_like_not_found(&m) => {
                 return Err(PegError::OrderNotFound(order_id.to_owned()))
@@ -154,6 +156,51 @@ impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
         };
         let status: PegOrderStatus = decode(v)?;
         Ok(to_progress(&status, direction))
+    }
+}
+
+impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
+    fn get_limits(&mut self) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend {
+        self.client.get_limits()
+    }
+
+    fn create_order(
+        &mut self,
+        direction: PegDirection,
+        payout_address: &str,
+    ) -> impl Future<Output = Result<PegOrder, PegError>> + MaybeSend {
+        self.client.create_order(direction, payout_address)
+    }
+
+    fn get_status(
+        &mut self,
+        direction: PegDirection,
+        order_id: &str,
+    ) -> impl Future<Output = Result<PegProgress, PegError>> + MaybeSend {
+        self.client.get_status(direction, order_id)
+    }
+}
+
+/// A borrowed repository is a repository. Lets a caller keep ownership.
+impl<R: PegRepository> PegRepository for &mut R {
+    fn get_limits(&mut self) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend {
+        (**self).get_limits()
+    }
+
+    fn create_order(
+        &mut self,
+        direction: PegDirection,
+        payout_address: &str,
+    ) -> impl Future<Output = Result<PegOrder, PegError>> + MaybeSend {
+        (**self).create_order(direction, payout_address)
+    }
+
+    fn get_status(
+        &mut self,
+        direction: PegDirection,
+        order_id: &str,
+    ) -> impl Future<Output = Result<PegProgress, PegError>> + MaybeSend {
+        (**self).get_status(direction, order_id)
     }
 }
 
@@ -235,6 +282,22 @@ mod tests {
         assert_eq!(p.total_deposited_sat(), 100_000);
         assert_eq!(p.payout_tx_id(), Some("pa"));
         assert_eq!(block_on(r.get_status(PegDirection::PegIn, "gone")), Err(PegError::OrderNotFound("gone".into())));
+    }
+
+    #[test]
+    fn borrowed_client_is_a_repository() {
+        let mut client = SideSwapClient::new(
+            ws(|_, _| {
+                json!({"result": {"elements_fee_rate": 0.1, "min_peg_in_amount": 1000,
+                "min_peg_out_amount": 2000, "server_fee_percent_peg_in": 0.1, "server_fee_percent_peg_out": 0.1}})
+            }),
+            "k",
+        );
+        async fn limits<R: PegRepository>(mut repository: R) -> Result<PegServerLimits, PegError> {
+            repository.get_limits().await
+        }
+        assert_eq!(block_on(limits(&mut client)).unwrap().min_peg_out_sat, 2000);
+        assert!(client.is_connected());
     }
 
     #[test]

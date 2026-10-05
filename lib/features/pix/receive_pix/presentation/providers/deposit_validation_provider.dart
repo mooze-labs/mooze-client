@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart'
+    show DepositLimitsDto, DepositValidationErrorDto;
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
@@ -55,40 +58,34 @@ class DepositValidation {
 final depositValidationProvider = Provider<DepositValidation>((ref) {
   final depositAmount = ref.watch(depositAmountProvider);
   final levelsAsync = ref.watch(levelsProvider);
+  final levels = levelsAsync.isLoading || levelsAsync.hasError
+      ? null
+      : levelsAsync.valueOrNull;
 
-  if (depositAmount <= 0) {
-    return const DepositValidation.errorWith(
-      DepositValidationError.invalidAmount,
-    );
-  }
-
-  if (levelsAsync.isLoading) {
-    return const DepositValidation.valid();
-  }
-
-  if (levelsAsync.hasError) {
-    return const DepositValidation.valid();
-  }
-
-  return levelsAsync.when(
-    data: (levels) {
-      if (depositAmount < levels.absoluteMinLimit) {
-        return DepositValidation.errorWith(
-          DepositValidationError.belowMinimum,
-          limitAmount: levels.absoluteMinLimit,
-        );
-      }
-
-      if (depositAmount > levels.allowedSpending) {
-        return DepositValidation.errorWith(
-          DepositValidationError.aboveTransaction,
-          limitAmount: levels.allowedSpending,
-        );
-      }
-
-      return const DepositValidation.valid();
+  // While the levels load, or after a load error, the core treats every
+  // positive amount as valid.
+  final result = CoreSyncHelpers.instance.pixValidateAmount(
+    amountBrl: depositAmount,
+    limits: levels == null
+        ? null
+        : DepositLimitsDto(
+            absoluteMinLimit: levels.absoluteMinLimit,
+            allowedSpending: levels.allowedSpending,
+          ),
+  );
+  if (result.isValid) return const DepositValidation.valid();
+  return DepositValidation.errorWith(
+    switch (result.error) {
+      DepositValidationErrorDto.belowMinimum =>
+        DepositValidationError.belowMinimum,
+      DepositValidationErrorDto.aboveTransaction =>
+        DepositValidationError.aboveTransaction,
+      DepositValidationErrorDto.aboveRemaining =>
+        DepositValidationError.aboveRemaining,
+      DepositValidationErrorDto.invalidAmount ||
+      null =>
+        DepositValidationError.invalidAmount,
     },
-    loading: () => const DepositValidation.valid(),
-    error: (_, _) => const DepositValidation.valid(),
+    limitAmount: result.limitAmount,
   );
 });

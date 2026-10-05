@@ -2,21 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lwk/lwk.dart' as lwk;
+import 'package:mooze_core_bridge/mooze_core_bridge.dart' as core;
 
-import 'package:mooze_mobile/infra/bdk/bdk_wallet_x.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/domain/entities/transaction.dart' as v2tx;
-import 'package:mooze_mobile/infra/bdk/bitcoin_wallet_service_impl.dart'
-    as bdk_impl;
-import 'package:mooze_mobile/infra/lwk/liquid_wallet_service_impl.dart'
-    as lwk_impl;
 
 /// Dev-only diagnostic surface that dumps the most recent transactions
-/// straight out of each chain SDK plus the V2 transaction store. Use
+/// straight out of mooze-core plus the V2 transaction store. Use
 /// this when the home tx list looks wrong — copy each section to a
-/// chat and we can see *exactly* what the SDKs are giving us versus
+/// chat and we can see *exactly* what the core is giving us versus
 /// how the unifier is collapsing them.
 ///
 /// Route: `/dev/raw-tx-dump`. Compiled out of release builds via the
@@ -33,8 +28,8 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
 
   bool _loading = false;
   String? _error;
-  String _bdkDump = '';
-  String _lwkDump = '';
+  String _btcDump = '';
+  String _liquidDump = '';
   String _storeDump = '';
 
   @override
@@ -49,20 +44,19 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
       _error = null;
     });
     try {
-      final bdk = ref.read(v2.bitcoinWalletServiceProvider);
-      final lwk = ref.read(v2.liquidWalletServiceProvider);
       final store = await ref.read(v2.transactionStoreProvider.future);
-
+      // The core owns both wallets: dump its transaction DTOs.
+      final moozeCore = await ref.read(v2.moozeCoreProvider.future);
       final results = await Future.wait([
-        _dumpBdk(bdk),
-        _dumpLwk(lwk),
+        _dumpCore('BTC', moozeCore.bitcoinTransactions),
+        _dumpCore('L-BTC/Liquid', moozeCore.liquidTransactions),
         _dumpStore(store),
       ]);
 
       if (!mounted) return;
       setState(() {
-        _bdkDump = results[0];
-        _lwkDump = results[1];
+        _btcDump = results[0];
+        _liquidDump = results[1];
         _storeDump = results[2];
         _loading = false;
       });
@@ -75,78 +69,36 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
     }
   }
 
-  Future<String> _dumpBdk(Object service) async {
-    if (service is! bdk_impl.BitcoinWalletServiceImpl) {
-      return '(BDK service is wrong type: ${service.runtimeType})';
-    }
-    final w = service.sdkClient;
-    if (w == null || !service.currentState.isOperational) {
-      return '(BDK not operational)';
-    }
+  /// Dumps the newest [_limit] core transactions of one chain.
+  Future<String> _dumpCore(
+    String label,
+    Future<List<core.TransactionDto>> Function() load,
+  ) async {
     try {
-      final all = w.txViews();
-      all.sort((a, b) {
-        final at = a.confirmationTime?.millisecondsSinceEpoch ?? 0;
-        final bt = b.confirmationTime?.millisecondsSinceEpoch ?? 0;
-        return bt.compareTo(at);
-      });
+      final all = await load();
+      // The core returns newest first.
       final pick = all.take(_limit).toList();
       final buf = StringBuffer();
-      buf.writeln('-- BDK (n=${pick.length}/${all.length}) --');
+      buf.writeln('-- core $label (n=${pick.length}/${all.length}) --');
       for (final t in pick) {
-        buf.writeln(_formatBdk(t));
+        buf.writeln(_formatCore(t));
       }
       return buf.toString();
     } catch (e) {
-      return '(BDK dump failed: $e)';
+      final detail = e is core.CoreError ? '${e.kind.name}: ${e.message}' : '$e';
+      return '(core $label dump failed: $detail)';
     }
   }
 
-  String _formatBdk(BdkTxView t) {
-    final ts = t.confirmationTime?.toIso8601String() ?? 'unconfirmed';
-    final h = t.confirmationHeight ?? -1;
+  String _formatCore(core.TransactionDto t) {
+    final ts = DateTime.fromMillisecondsSinceEpoch(t.timestampMs.toInt())
+        .toIso8601String();
     return [
-      'txid=${t.txid}',
-      '  sent=${t.sentSat} received=${t.receivedSat} fee=${t.feeSat ?? 0}',
-      '  height=$h ts=$ts',
-    ].join('\n');
-  }
-
-  Future<String> _dumpLwk(Object service) async {
-    if (service is! lwk_impl.LiquidWalletServiceImpl) {
-      return '(LWK service is wrong type: ${service.runtimeType})';
-    }
-    final w = service.sdkClient;
-    if (w == null || !service.currentState.isOperational) {
-      return '(LWK not operational)';
-    }
-    try {
-      final all = await w.txs();
-      all.sort((a, b) => (b.timestamp ?? 0).compareTo(a.timestamp ?? 0));
-      final pick = all.take(_limit).toList();
-      final buf = StringBuffer();
-      buf.writeln('-- LWK (n=${pick.length}/${all.length}) --');
-      for (final t in pick) {
-        buf.writeln(_formatLwk(t));
-      }
-      return buf.toString();
-    } catch (e) {
-      return '(LWK dump failed: $e)';
-    }
-  }
-
-  String _formatLwk(lwk.Tx t) {
-    final ts = t.timestamp == null
-        ? 'unconfirmed'
-        : DateTime.fromMillisecondsSinceEpoch(t.timestamp! * 1000)
-            .toIso8601String();
-    final bs = t.balances
-        .map((b) => '${_short(b.assetId)}:${b.value}')
-        .join(', ');
-    return [
-      'txid=${t.txid}',
-      '  kind=${t.kind} fee=${t.fee} height=${t.height ?? -1} ts=$ts',
-      '  balances=[$bs]',
+      'id=${t.id}',
+      '  chain=${t.chain.name} dir=${t.direction.name} status=${t.status.name}',
+      '  amountSat=${t.amountSat} feeSat=${t.feeSat} conf=${t.confirmations}',
+      '  assetId=${_short(t.assetId)} source=${t.source?.name}',
+      '  ts=$ts',
     ].join('\n');
   }
 
@@ -189,7 +141,7 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
   }
 
   String _allDumps() {
-    return [_bdkDump, _lwkDump, _storeDump]
+    return [_btcDump, _liquidDump, _storeDump]
         .where((s) => s.isNotEmpty)
         .join('\n');
   }
@@ -238,8 +190,11 @@ class _RawTxDumpScreenState extends ConsumerState<RawTxDumpScreen> {
               : ListView(
                   padding: const EdgeInsets.all(12),
                   children: [
-                    _section('BDK (sdkClient.listTransactions)', _bdkDump),
-                    _section('LWK (sdkClient.txs)', _lwkDump),
+                    _section('Core BTC (core.bitcoinTransactions)', _btcDump),
+                    _section(
+                      'Core Liquid (core.liquidTransactions)',
+                      _liquidDump,
+                    ),
                     _section('V2 store (transactionStore.list)', _storeDump),
                   ],
                 ),

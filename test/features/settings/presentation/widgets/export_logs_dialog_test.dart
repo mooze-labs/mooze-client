@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/settings/domain/entities/export_method.dart';
-import 'package:mooze_mobile/features/settings/presentation/screens/developer_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
+import '../../../../shared/test_app.dart';
 
 void main() {
   Future<void> openDialog(WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
+      wrapForTest(Builder(
           builder: (context) => Scaffold(
             body: ElevatedButton(
               onPressed: () {
@@ -58,7 +57,7 @@ void main() {
     testWidgets('should display download icon', (tester) async {
       await openDialog(tester);
 
-      expect(find.byIcon(Icons.file_download), findsOneWidget);
+      expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
     });
 
     testWidgets('should return email when email button is tapped',
@@ -66,8 +65,7 @@ void main() {
       ExportMethod? result;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
+        wrapForTest(Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
                 onPressed: () async {
@@ -94,8 +92,7 @@ void main() {
       ExportMethod? result;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
+        wrapForTest(Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
                 onPressed: () async {

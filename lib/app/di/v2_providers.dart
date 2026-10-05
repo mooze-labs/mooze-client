@@ -15,7 +15,6 @@ import '../../domain/repositories/transaction_store.dart';
 import '../../domain/repositories/wallet_directory_guard.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/services/bitcoin_wallet_service.dart';
-import '../../domain/services/electrum_endpoint_resolver.dart';
 import '../../domain/services/liquid_wallet_service.dart';
 import '../../domain/services/platform_initializer.dart';
 import '../../domain/services/session_authenticator.dart';
@@ -31,15 +30,13 @@ import '../../features/wallet/data/v2/wallet_repository_impl.dart';
 import '../../features/wallet/domain/usecases/delete_wallet.dart';
 import '../../features/wallet/domain/usecases/import_wallet.dart';
 import '../../features/wallet/domain/usecases/refresh_wallet.dart';
-import '../../infra/auth/session_authenticator_impl.dart';
-import '../../infra/bdk/bitcoin_wallet_service_impl.dart';
+import '../../infra/auth/core_session_authenticator.dart';
 import '../../infra/core/core_bitcoin_wallet_service.dart';
 import '../../infra/core/core_bridge.dart';
 import '../../infra/core/core_liquid_wallet_service.dart';
+import '../../infra/core/core_platform_setup.dart';
 import '../../infra/db/transaction_database.dart';
 import '../../infra/fs/wallet_directory_guard_impl.dart';
-import '../../infra/lwk/liquid_wallet_service_impl.dart';
-import '../../infra/network/electrum_endpoint_resolver_impl.dart';
 import '../../infra/notification/transaction_notifier_impl.dart';
 import '../../infra/platform/platform_initializer_impl.dart';
 import '../../infra/storage/asset_catalog_impl.dart';
@@ -103,32 +100,22 @@ final secureCredentialStoreProvider = Provider<SecureCredentialStore>(
   (_) => FlutterSecureCredentialStore(),
 );
 
-// ─────────────────────────────────────────── network resolvers
-
-/// Round-robin Electrum endpoint resolver. Single instance per app —
-/// rotation state must be shared across chains so a failure-induced
-/// rotation is observed by the next sync attempt regardless of which
-/// service instance triggers it.
-final electrumEndpointResolverProvider = Provider<ElectrumEndpointResolver>(
-  (_) => RoundRobinElectrumEndpointResolver(),
-);
-
 // ─────────────────────────────────────────── mooze-core
-
-/// Selects the Rust core (mooze-core) for the Bitcoin and Liquid services.
-/// Set it with `--dart-define=MOOZE_CORE=true`. Off by default.
-const bool useMoozeCore = bool.fromEnvironment('MOOZE_CORE');
 
 /// The opened mooze-core handle, after the one-time Flutter data import.
 ///
-/// Only the Core* services read it, and only when [useMoozeCore] is true.
-/// The services take its future, so they stay synchronous providers. The
+/// Only the Core* services read it. The services take its future, so they stay synchronous providers. The
 /// boot orchestrator's `connect` call awaits the core inside the
 /// connect timeout. An open failure becomes a connect failure.
 final moozeCoreProvider = FutureProvider<MoozeCore>((ref) async {
   final txDb = await ref.watch(transactionDatabaseProvider.future);
-  final core = await MoozeCoreBridge(logger: ref.read(loggerProvider))
-      .openForApp(
+  final logger = ref.read(loggerProvider);
+  final core = await MoozeCoreBridge(
+    logger: logger,
+    // Registers secure storage, base URL and device checks before any
+    // other core call.
+    configure: CorePlatformSetup(logger: logger).apply,
+  ).openForApp(
     // The app runs on mainnet only. See `FlutterSecureCredentialStore`.
     network: AppNetwork.mainnet,
     appDatabase: ref.read(appDatabaseProvider),
@@ -141,21 +128,10 @@ final moozeCoreProvider = FutureProvider<MoozeCore>((ref) async {
 // ─────────────────────────────────────────── chain services
 
 final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
-  if (useMoozeCore) {
-    final s = CoreLiquidWalletService.deferred(
-      core: ref.read(moozeCoreProvider.future),
-      logger: ref.read(loggerProvider),
-      clock: ref.read(clockProvider),
-      credentialStore: ref.read(secureCredentialStoreProvider),
-    );
-    ref.onDispose(s.dispose);
-    return s;
-  }
-  final s = LiquidWalletServiceImpl(
-    directoryGuard: ref.read(walletDirectoryGuardProvider),
+  final s = CoreLiquidWalletService.deferred(
+    core: ref.read(moozeCoreProvider.future),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
-    endpointResolver: ref.read(electrumEndpointResolverProvider),
     credentialStore: ref.read(secureCredentialStoreProvider),
   );
   ref.onDispose(s.dispose);
@@ -163,17 +139,8 @@ final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
 });
 
 final bitcoinWalletServiceProvider = Provider<BitcoinWalletService>((ref) {
-  if (useMoozeCore) {
-    final s = CoreBitcoinWalletService.deferred(
-      core: ref.read(moozeCoreProvider.future),
-      logger: ref.read(loggerProvider),
-      clock: ref.read(clockProvider),
-    );
-    ref.onDispose(s.dispose);
-    return s;
-  }
-  final s = BitcoinWalletServiceImpl(
-    directoryGuard: ref.read(walletDirectoryGuardProvider),
+  final s = CoreBitcoinWalletService.deferred(
+    core: ref.read(moozeCoreProvider.future),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
   );
@@ -184,8 +151,16 @@ final bitcoinWalletServiceProvider = Provider<BitcoinWalletService>((ref) {
 // ─────────────────────────────────────────── session
 
 final sessionAuthenticatorProvider = Provider<SessionAuthenticator>((ref) {
-  return NoOpSessionAuthenticator(ref.read(loggerProvider));
+  return CoreSessionAuthenticator(
+    core: () => ref.read(moozeCoreProvider.future),
+    logger: ref.read(loggerProvider),
+  );
 });
+
+/// Boot waits this long for the API session. The session is not needed
+/// for the wallet, so an offline start must not wait long. The core call
+/// continues after the timeout.
+const Duration bootAuthTimeout = Duration(seconds: 3);
 
 // ─────────────────────────────────────────── orchestrators
 
@@ -203,6 +178,7 @@ final bootOrchestratorProvider =
     session: ref.read(sessionAuthenticatorProvider),
     logger: ref.read(loggerProvider),
     clock: ref.read(clockProvider),
+    authTimeout: bootAuthTimeout,
   );
   ref.onDispose(o.dispose);
   return o;
@@ -240,7 +216,7 @@ final deleteWalletUseCaseProvider =
     logger: ref.read(loggerProvider),
     sessionCleanup: buildSessionCleanupHook(ref),
     pixCleanup: buildPixCleanupHook(ref),
-    postDeleteHooks: buildLegacyCleanupHooks(),
+    postDeleteHooks: [...buildLegacyCleanupHooks(), buildAuthResetHook(ref)],
   );
 });
 

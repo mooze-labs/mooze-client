@@ -4,6 +4,8 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/core.dart';
+import 'api/pix.dart';
+import 'api/swap.dart';
 import 'api/types.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -67,7 +69,7 @@ class MoozeCoreLib
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1722389062;
+  int get rustContentHash => -618218610;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,6 +80,54 @@ class MoozeCoreLib
 }
 
 abstract class MoozeCoreLibApi extends BaseApi {
+  Future<ApiResponseDto> crateApiCoreMoozeCoreApiRequest({
+    required MoozeCore that,
+    required HttpMethodDto method,
+    required String path,
+    String? jsonBody,
+  });
+
+  Future<void> crateApiCoreMoozeCoreApiSetBaseUrl({
+    required MoozeCore that,
+    required String baseUrl,
+  });
+
+  Future<void> crateApiCoreMoozeCoreApiSetMetrics({
+    required MoozeCore that,
+    DeviceMetricsDto? metrics,
+  });
+
+  Future<String> crateApiCoreMoozeCoreAuthAccessToken({
+    required MoozeCore that,
+  });
+
+  Future<String> crateApiCoreMoozeCoreAuthDeviceId({
+    required MoozeCore that,
+    String? serial,
+    String? platformId,
+  });
+
+  Future<AuthEnsureDto> crateApiCoreMoozeCoreAuthEnsureSession({
+    required MoozeCore that,
+  });
+
+  Future<String> crateApiCoreMoozeCoreAuthForceRefresh({
+    required MoozeCore that,
+  });
+
+  Future<void> crateApiCoreMoozeCoreAuthInvalidate({required MoozeCore that});
+
+  Future<bool> crateApiCoreMoozeCoreAuthRefreshCurrent({
+    required MoozeCore that,
+  });
+
+  Future<void> crateApiCoreMoozeCoreAuthReset({required MoozeCore that});
+
+  Future<void> crateApiCoreMoozeCoreAuthSetDeviceSafe({
+    required MoozeCore that,
+    required bool safe,
+  });
+
   Future<BalanceDto> crateApiCoreMoozeCoreBitcoinBalance({
     required MoozeCore that,
   });
@@ -91,6 +141,13 @@ abstract class MoozeCoreLibApi extends BaseApi {
     required String mnemonic,
   });
 
+  Future<List<DerivedAddressDto>> crateApiCoreMoozeCoreBitcoinDerivedAddresses({
+    required MoozeCore that,
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  });
+
   Future<void> crateApiCoreMoozeCoreBitcoinDisconnect({
     required MoozeCore that,
   });
@@ -98,6 +155,15 @@ abstract class MoozeCoreLibApi extends BaseApi {
   Future<FeeEstimateDto> crateApiCoreMoozeCoreBitcoinEstimateFee({
     required MoozeCore that,
     required SendRequestDto request,
+  });
+
+  Future<AddressOwnershipDto?> crateApiCoreMoozeCoreBitcoinIsMine({
+    required MoozeCore that,
+    required String address,
+  });
+
+  Future<NextUnusedAddressDto> crateApiCoreMoozeCoreBitcoinNextUnusedAddress({
+    required MoozeCore that,
   });
 
   Future<ReceiveAddressDto> crateApiCoreMoozeCoreBitcoinReceiveAddress({
@@ -124,6 +190,36 @@ abstract class MoozeCoreLibApi extends BaseApi {
   });
 
   Future<List<TransactionDto>> crateApiCoreMoozeCoreBitcoinTransactions({
+    required MoozeCore that,
+  });
+
+  Future<List<WalletUtxoDto>> crateApiCoreMoozeCoreBitcoinUnspentOutputs({
+    required MoozeCore that,
+  });
+
+  Future<bool> crateApiCoreMoozeCoreFavoritePayerCpfExists({
+    required MoozeCore that,
+    required String cpf,
+    BigInt? excludingId,
+  });
+
+  Future<void> crateApiCoreMoozeCoreFavoritePayerDelete({
+    required MoozeCore that,
+    required BigInt id,
+  });
+
+  Future<FavoritePayerSaveErrorDto?> crateApiCoreMoozeCoreFavoritePayerSave({
+    required MoozeCore that,
+    BigInt? id,
+    required String label,
+    required String cpf,
+  });
+
+  Future<void> crateApiCoreMoozeCoreFavoritePayersClear({
+    required MoozeCore that,
+  });
+
+  Future<List<FavoritePayerDto>> crateApiCoreMoozeCoreFavoritePayersList({
     required MoozeCore that,
   });
 
@@ -157,11 +253,28 @@ abstract class MoozeCoreLibApi extends BaseApi {
     required String mnemonic,
   });
 
+  Future<List<DerivedAddressDto>> crateApiCoreMoozeCoreLiquidDerivedAddresses({
+    required MoozeCore that,
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  });
+
   Future<void> crateApiCoreMoozeCoreLiquidDisconnect({required MoozeCore that});
 
   Future<FeeEstimateDto> crateApiCoreMoozeCoreLiquidEstimateFee({
     required MoozeCore that,
     required SendRequestDto request,
+  });
+
+  Future<AddressOwnershipDto?> crateApiCoreMoozeCoreLiquidIsMine({
+    required MoozeCore that,
+    required String address,
+    required int scanLimit,
+  });
+
+  Future<NextUnusedAddressDto> crateApiCoreMoozeCoreLiquidNextUnusedAddress({
+    required MoozeCore that,
   });
 
   Future<ReceiveAddressDto> crateApiCoreMoozeCoreLiquidReceiveAddress({
@@ -204,11 +317,237 @@ abstract class MoozeCoreLibApi extends BaseApi {
     required MoozeCore that,
   });
 
+  Future<List<WalletUtxoDto>> crateApiCoreMoozeCoreLiquidUnspentOutputs({
+    required MoozeCore that,
+  });
+
   Future<List<LiquidUtxoDto>> crateApiCoreMoozeCoreLiquidUtxos({
     required MoozeCore that,
   });
 
   Future<MoozeCore> crateApiCoreMoozeCoreOpen({required CoreConfig config});
+
+  Future<PegExecutionDto> crateApiCoreMoozeCorePegExecute({
+    required MoozeCore that,
+    required String walletId,
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+    String? externalPayoutAddress,
+  });
+
+  Future<PegServerLimitsDto> crateApiCoreMoozeCorePegLimits({
+    required MoozeCore that,
+  });
+
+  Future<List<PegRecordDto>> crateApiCoreMoozeCorePegList({
+    required MoozeCore that,
+    required String walletId,
+  });
+
+  Future<PegQuoteDto> crateApiCoreMoozeCorePegQuote({
+    required MoozeCore that,
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+  });
+
+  Future<PegRefreshDto> crateApiCoreMoozeCorePegRefreshDue({
+    required MoozeCore that,
+    required String walletId,
+  });
+
+  Future<List<TrackedPegDto>> crateApiCoreMoozeCorePegRestore({
+    required MoozeCore that,
+    required String walletId,
+  });
+
+  Future<PegProgressDto> crateApiCoreMoozeCorePegStatus({
+    required MoozeCore that,
+    required PegDirectionDto direction,
+    required String orderId,
+  });
+
+  Future<List<TrackedPegDto>> crateApiCoreMoozeCorePegTracked({
+    required MoozeCore that,
+  });
+
+  Future<void> crateApiCoreMoozeCorePegUntrack({
+    required MoozeCore that,
+    required String orderId,
+  });
+
+  Future<int> crateApiCoreMoozeCorePixActivePolls({required MoozeCore that});
+
+  Future<void> crateApiCoreMoozeCorePixCancelPolls({required MoozeCore that});
+
+  Future<void> crateApiCoreMoozeCorePixClearDeposits({required MoozeCore that});
+
+  Future<PixDepositDto> crateApiCoreMoozeCorePixCreateDeposit({
+    required MoozeCore that,
+    required BigInt amountInCents,
+    required String assetId,
+    String? taxIdNumber,
+    String? address,
+  });
+
+  Future<bool> crateApiCoreMoozeCorePixFlagIsSet({
+    required MoozeCore that,
+    required PixFlagDto flag,
+  });
+
+  Future<void> crateApiCoreMoozeCorePixFlagReset({
+    required MoozeCore that,
+    required PixFlagDto flag,
+  });
+
+  Future<void> crateApiCoreMoozeCorePixFlagSet({
+    required MoozeCore that,
+    required PixFlagDto flag,
+  });
+
+  Future<PixDepositDto?> crateApiCoreMoozeCorePixGetDeposit({
+    required MoozeCore that,
+    required String depositId,
+  });
+
+  Future<List<PixDepositDto>> crateApiCoreMoozeCorePixHistory({
+    required MoozeCore that,
+    int? limit,
+    int? offset,
+  });
+
+  Future<List<PixDepositDto>> crateApiCoreMoozeCorePixListDeposits({
+    required MoozeCore that,
+    int? limit,
+    int? offset,
+  });
+
+  Future<List<PixStatusEventDto>> crateApiCoreMoozeCorePixPollTick({
+    required MoozeCore that,
+  });
+
+  Future<List<PixDepositDto>> crateApiCoreMoozeCorePixUpdateDepositDetails({
+    required MoozeCore that,
+    required List<String> depositIds,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSecureDelete({
+    required MoozeCore that,
+    required String key,
+  });
+
+  Future<String?> crateApiCoreMoozeCoreSecureGet({
+    required MoozeCore that,
+    required String key,
+  });
+
+  Future<List<String>> crateApiCoreMoozeCoreSecureListKeys({
+    required MoozeCore that,
+    required String prefix,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSecurePut({
+    required MoozeCore that,
+    required String key,
+    required String value,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSetSecureStorage({
+    required MoozeCore that,
+    required FutureOr<String?> Function(String) read,
+    required FutureOr<void> Function(String, String) write,
+    required FutureOr<void> Function(String) delete,
+    required FutureOr<List<String>> Function(String) listKeys,
+  });
+
+  Future<List<SideswapAssetDto>> crateApiCoreMoozeCoreSideswapAssets({
+    required MoozeCore that,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSideswapCloseEvents({
+    required MoozeCore that,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSideswapConnect({
+    required MoozeCore that,
+    required String apiKey,
+    String? url,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSideswapDisconnect({
+    required MoozeCore that,
+  });
+
+  Stream<SideSwapEventDto> crateApiCoreMoozeCoreSideswapEvents({
+    required MoozeCore that,
+  });
+
+  Future<bool> crateApiCoreMoozeCoreSideswapEventsRunning({
+    required MoozeCore that,
+  });
+
+  Future<String> crateApiCoreMoozeCoreSideswapExecuteSwap({
+    required MoozeCore that,
+    required BigInt quoteId,
+  });
+
+  Future<bool> crateApiCoreMoozeCoreSideswapIsConnected({
+    required MoozeCore that,
+  });
+
+  Future<List<SideswapMarketDto>> crateApiCoreMoozeCoreSideswapMarkets({
+    required MoozeCore that,
+  });
+
+  Future<StartQuoteDto> crateApiCoreMoozeCoreSideswapStartQuote({
+    required MoozeCore that,
+    required String sendAssetId,
+    required String receiveAssetId,
+    required BigInt amount,
+  });
+
+  Future<void> crateApiCoreMoozeCoreSideswapStopQuote({
+    required MoozeCore that,
+  });
+
+  PegAmountValidationDto crateApiSwapPegValidateAmount({
+    required PegDirectionDto direction,
+    BigInt? amountSat,
+    required BigInt spendableSat,
+    PegServerLimitsDto? limits,
+    required BigInt fallbackMinimumSats,
+    required bool drain,
+  });
+
+  PixFeeDto crateApiPixPixFee({
+    required double amountBrl,
+    required bool hasReferral,
+    double? quoteBrl,
+  });
+
+  bool crateApiPixPixLooksLikeKey({required String value});
+
+  int crateApiPixPixPollIntervalMs();
+
+  DepositValidationDto crateApiPixPixValidateAmount({
+    required double amountBrl,
+    DepositLimitsDto? limits,
+  });
+
+  String crateApiSwapSideswapDefaultUrl();
+
+  String crateApiPixTaxIdFormat({required String digits});
+
+  bool crateApiPixTaxIdIsValid({required String input});
+
+  String crateApiPixTaxIdMaskInput({required String text});
+
+  String crateApiPixTaxIdStrip({required String input});
+
+  CpfValidationErrorDto? crateApiPixTaxIdValidate({required String input});
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_MoozeCore;
@@ -229,6 +568,414 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   });
 
   @override
+  Future<ApiResponseDto> crateApiCoreMoozeCoreApiRequest({
+    required MoozeCore that,
+    required HttpMethodDto method,
+    required String path,
+    String? jsonBody,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_http_method_dto(method, serializer);
+          sse_encode_String(path, serializer);
+          sse_encode_opt_String(jsonBody, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_api_response_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreApiRequestConstMeta,
+        argValues: [that, method, path, jsonBody],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreApiRequestConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_api_request",
+        argNames: ["that", "method", "path", "jsonBody"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreApiSetBaseUrl({
+    required MoozeCore that,
+    required String baseUrl,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(baseUrl, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreApiSetBaseUrlConstMeta,
+        argValues: [that, baseUrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreApiSetBaseUrlConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_api_set_base_url",
+        argNames: ["that", "baseUrl"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreApiSetMetrics({
+    required MoozeCore that,
+    DeviceMetricsDto? metrics,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_opt_box_autoadd_device_metrics_dto(metrics, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreApiSetMetricsConstMeta,
+        argValues: [that, metrics],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreApiSetMetricsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_api_set_metrics",
+        argNames: ["that", "metrics"],
+      );
+
+  @override
+  Future<String> crateApiCoreMoozeCoreAuthAccessToken({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthAccessTokenConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthAccessTokenConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_access_token",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<String> crateApiCoreMoozeCoreAuthDeviceId({
+    required MoozeCore that,
+    String? serial,
+    String? platformId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_opt_String(serial, serializer);
+          sse_encode_opt_String(platformId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthDeviceIdConstMeta,
+        argValues: [that, serial, platformId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthDeviceIdConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_device_id",
+        argNames: ["that", "serial", "platformId"],
+      );
+
+  @override
+  Future<AuthEnsureDto> crateApiCoreMoozeCoreAuthEnsureSession({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_auth_ensure_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthEnsureSessionConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthEnsureSessionConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_ensure_session",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<String> crateApiCoreMoozeCoreAuthForceRefresh({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthForceRefreshConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthForceRefreshConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_force_refresh",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreAuthInvalidate({required MoozeCore that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthInvalidateConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthInvalidateConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_invalidate",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<bool> crateApiCoreMoozeCoreAuthRefreshCurrent({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthRefreshCurrentConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthRefreshCurrentConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_refresh_current",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreAuthReset({required MoozeCore that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthResetConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthResetConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_reset",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreAuthSetDeviceSafe({
+    required MoozeCore that,
+    required bool safe,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_bool(safe, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreAuthSetDeviceSafeConstMeta,
+        argValues: [that, safe],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreAuthSetDeviceSafeConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_auth_set_device_safe",
+        argNames: ["that", "safe"],
+      );
+
+  @override
   Future<BalanceDto> crateApiCoreMoozeCoreBitcoinBalance({
     required MoozeCore that,
   }) {
@@ -243,7 +990,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 12,
             port: port_,
           );
         },
@@ -279,7 +1026,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 13,
             port: port_,
           );
         },
@@ -317,7 +1064,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 14,
             port: port_,
           );
         },
@@ -339,6 +1086,48 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       );
 
   @override
+  Future<List<DerivedAddressDto>> crateApiCoreMoozeCoreBitcoinDerivedAddresses({
+    required MoozeCore that,
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_keychain_dto(keychain, serializer);
+          sse_encode_u_32(start, serializer);
+          sse_encode_u_32(count, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_derived_address_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreBitcoinDerivedAddressesConstMeta,
+        argValues: [that, keychain, start, count],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreBitcoinDerivedAddressesConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_bitcoin_derived_addresses",
+        argNames: ["that", "keychain", "start", "count"],
+      );
+
+  @override
   Future<void> crateApiCoreMoozeCoreBitcoinDisconnect({
     required MoozeCore that,
   }) {
@@ -353,7 +1142,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 16,
             port: port_,
           );
         },
@@ -391,7 +1180,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 17,
             port: port_,
           );
         },
@@ -413,6 +1202,80 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       );
 
   @override
+  Future<AddressOwnershipDto?> crateApiCoreMoozeCoreBitcoinIsMine({
+    required MoozeCore that,
+    required String address,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(address, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_address_ownership_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreBitcoinIsMineConstMeta,
+        argValues: [that, address],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreBitcoinIsMineConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_bitcoin_is_mine",
+        argNames: ["that", "address"],
+      );
+
+  @override
+  Future<NextUnusedAddressDto> crateApiCoreMoozeCoreBitcoinNextUnusedAddress({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_next_unused_address_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreBitcoinNextUnusedAddressConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreBitcoinNextUnusedAddressConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_bitcoin_next_unused_address",
+        argNames: ["that"],
+      );
+
+  @override
   Future<ReceiveAddressDto> crateApiCoreMoozeCoreBitcoinReceiveAddress({
     required MoozeCore that,
     String? label,
@@ -429,7 +1292,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 20,
             port: port_,
           );
         },
@@ -467,7 +1330,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 21,
             port: port_,
           );
         },
@@ -507,7 +1370,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 22,
             port: port_,
           );
         },
@@ -543,7 +1406,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 23,
             port: port_,
           );
         },
@@ -579,7 +1442,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 24,
             port: port_,
           );
         },
@@ -615,7 +1478,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 25,
             port: port_,
           );
         },
@@ -637,6 +1500,235 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       );
 
   @override
+  Future<List<WalletUtxoDto>> crateApiCoreMoozeCoreBitcoinUnspentOutputs({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 26,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_wallet_utxo_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreBitcoinUnspentOutputsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreBitcoinUnspentOutputsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_bitcoin_unspent_outputs",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<bool> crateApiCoreMoozeCoreFavoritePayerCpfExists({
+    required MoozeCore that,
+    required String cpf,
+    BigInt? excludingId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(cpf, serializer);
+          sse_encode_opt_box_autoadd_u_64(excludingId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreFavoritePayerCpfExistsConstMeta,
+        argValues: [that, cpf, excludingId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreFavoritePayerCpfExistsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_favorite_payer_cpf_exists",
+        argNames: ["that", "cpf", "excludingId"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreFavoritePayerDelete({
+    required MoozeCore that,
+    required BigInt id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_u_64(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreFavoritePayerDeleteConstMeta,
+        argValues: [that, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreFavoritePayerDeleteConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_favorite_payer_delete",
+        argNames: ["that", "id"],
+      );
+
+  @override
+  Future<FavoritePayerSaveErrorDto?> crateApiCoreMoozeCoreFavoritePayerSave({
+    required MoozeCore that,
+    BigInt? id,
+    required String label,
+    required String cpf,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_opt_box_autoadd_u_64(id, serializer);
+          sse_encode_String(label, serializer);
+          sse_encode_String(cpf, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_favorite_payer_save_error_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreFavoritePayerSaveConstMeta,
+        argValues: [that, id, label, cpf],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreFavoritePayerSaveConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_favorite_payer_save",
+        argNames: ["that", "id", "label", "cpf"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreFavoritePayersClear({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreFavoritePayersClearConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreFavoritePayersClearConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_favorite_payers_clear",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<FavoritePayerDto>> crateApiCoreMoozeCoreFavoritePayersList({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_favorite_payer_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreFavoritePayersListConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreFavoritePayersListConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_favorite_payers_list",
+        argNames: ["that"],
+      );
+
+  @override
   Future<MigrationReportDto> crateApiCoreMoozeCoreImportFlutterSnapshot({
     required MoozeCore that,
     required String snapshotJson,
@@ -653,7 +1745,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 32,
             port: port_,
           );
         },
@@ -687,7 +1779,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 33,
             port: port_,
           );
         },
@@ -727,7 +1819,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 34,
             port: port_,
           );
         },
@@ -763,7 +1855,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 35,
             port: port_,
           );
         },
@@ -807,7 +1899,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 36,
             port: port_,
           );
         },
@@ -851,7 +1943,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 37,
             port: port_,
           );
         },
@@ -873,6 +1965,48 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       );
 
   @override
+  Future<List<DerivedAddressDto>> crateApiCoreMoozeCoreLiquidDerivedAddresses({
+    required MoozeCore that,
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_keychain_dto(keychain, serializer);
+          sse_encode_u_32(start, serializer);
+          sse_encode_u_32(count, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_derived_address_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreLiquidDerivedAddressesConstMeta,
+        argValues: [that, keychain, start, count],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreLiquidDerivedAddressesConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_liquid_derived_addresses",
+        argNames: ["that", "keychain", "start", "count"],
+      );
+
+  @override
   Future<void> crateApiCoreMoozeCoreLiquidDisconnect({
     required MoozeCore that,
   }) {
@@ -887,7 +2021,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 39,
             port: port_,
           );
         },
@@ -925,7 +2059,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 40,
             port: port_,
           );
         },
@@ -947,6 +2081,82 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       );
 
   @override
+  Future<AddressOwnershipDto?> crateApiCoreMoozeCoreLiquidIsMine({
+    required MoozeCore that,
+    required String address,
+    required int scanLimit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(address, serializer);
+          sse_encode_u_32(scanLimit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 41,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_address_ownership_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreLiquidIsMineConstMeta,
+        argValues: [that, address, scanLimit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreLiquidIsMineConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_liquid_is_mine",
+        argNames: ["that", "address", "scanLimit"],
+      );
+
+  @override
+  Future<NextUnusedAddressDto> crateApiCoreMoozeCoreLiquidNextUnusedAddress({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_next_unused_address_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreLiquidNextUnusedAddressConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreLiquidNextUnusedAddressConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_liquid_next_unused_address",
+        argNames: ["that"],
+      );
+
+  @override
   Future<ReceiveAddressDto> crateApiCoreMoozeCoreLiquidReceiveAddress({
     required MoozeCore that,
     String? assetId,
@@ -965,7 +2175,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1001,7 +2211,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1041,7 +2251,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1081,7 +2291,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1121,7 +2331,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1157,7 +2367,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1193,7 +2403,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 49,
             port: port_,
           );
         },
@@ -1229,7 +2439,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 50,
             port: port_,
           );
         },
@@ -1251,6 +2461,42 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       );
 
   @override
+  Future<List<WalletUtxoDto>> crateApiCoreMoozeCoreLiquidUnspentOutputs({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 51,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_wallet_utxo_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreLiquidUnspentOutputsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreLiquidUnspentOutputsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_liquid_unspent_outputs",
+        argNames: ["that"],
+      );
+
+  @override
   Future<List<LiquidUtxoDto>> crateApiCoreMoozeCoreLiquidUtxos({
     required MoozeCore that,
   }) {
@@ -1265,7 +2511,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 52,
             port: port_,
           );
         },
@@ -1296,7 +2542,7 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 53,
             port: port_,
           );
         },
@@ -1315,6 +2561,1912 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   TaskConstMeta get kCrateApiCoreMoozeCoreOpenConstMeta =>
       const TaskConstMeta(debugName: "MoozeCore_open", argNames: ["config"]);
 
+  @override
+  Future<PegExecutionDto> crateApiCoreMoozeCorePegExecute({
+    required MoozeCore that,
+    required String walletId,
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+    String? externalPayoutAddress,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(walletId, serializer);
+          sse_encode_peg_direction_dto(direction, serializer);
+          sse_encode_u_64(amountSat, serializer);
+          sse_encode_opt_box_autoadd_u_32(feeRateSatPerVbyte, serializer);
+          sse_encode_bool(drain, serializer);
+          sse_encode_opt_String(externalPayoutAddress, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 54,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_peg_execution_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegExecuteConstMeta,
+        argValues: [
+          that,
+          walletId,
+          direction,
+          amountSat,
+          feeRateSatPerVbyte,
+          drain,
+          externalPayoutAddress,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegExecuteConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_execute",
+        argNames: [
+          "that",
+          "walletId",
+          "direction",
+          "amountSat",
+          "feeRateSatPerVbyte",
+          "drain",
+          "externalPayoutAddress",
+        ],
+      );
+
+  @override
+  Future<PegServerLimitsDto> crateApiCoreMoozeCorePegLimits({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 55,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_peg_server_limits_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegLimitsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegLimitsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_limits",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<PegRecordDto>> crateApiCoreMoozeCorePegList({
+    required MoozeCore that,
+    required String walletId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(walletId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 56,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_peg_record_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegListConstMeta,
+        argValues: [that, walletId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegListConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_list",
+        argNames: ["that", "walletId"],
+      );
+
+  @override
+  Future<PegQuoteDto> crateApiCoreMoozeCorePegQuote({
+    required MoozeCore that,
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_peg_direction_dto(direction, serializer);
+          sse_encode_u_64(amountSat, serializer);
+          sse_encode_opt_box_autoadd_u_32(feeRateSatPerVbyte, serializer);
+          sse_encode_bool(drain, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 57,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_peg_quote_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegQuoteConstMeta,
+        argValues: [that, direction, amountSat, feeRateSatPerVbyte, drain],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegQuoteConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_quote",
+        argNames: [
+          "that",
+          "direction",
+          "amountSat",
+          "feeRateSatPerVbyte",
+          "drain",
+        ],
+      );
+
+  @override
+  Future<PegRefreshDto> crateApiCoreMoozeCorePegRefreshDue({
+    required MoozeCore that,
+    required String walletId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(walletId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 58,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_peg_refresh_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegRefreshDueConstMeta,
+        argValues: [that, walletId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegRefreshDueConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_refresh_due",
+        argNames: ["that", "walletId"],
+      );
+
+  @override
+  Future<List<TrackedPegDto>> crateApiCoreMoozeCorePegRestore({
+    required MoozeCore that,
+    required String walletId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(walletId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 59,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_tracked_peg_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegRestoreConstMeta,
+        argValues: [that, walletId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegRestoreConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_restore",
+        argNames: ["that", "walletId"],
+      );
+
+  @override
+  Future<PegProgressDto> crateApiCoreMoozeCorePegStatus({
+    required MoozeCore that,
+    required PegDirectionDto direction,
+    required String orderId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_peg_direction_dto(direction, serializer);
+          sse_encode_String(orderId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 60,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_peg_progress_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegStatusConstMeta,
+        argValues: [that, direction, orderId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_status",
+        argNames: ["that", "direction", "orderId"],
+      );
+
+  @override
+  Future<List<TrackedPegDto>> crateApiCoreMoozeCorePegTracked({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 61,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_tracked_peg_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegTrackedConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegTrackedConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_tracked",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCorePegUntrack({
+    required MoozeCore that,
+    required String orderId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(orderId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 62,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePegUntrackConstMeta,
+        argValues: [that, orderId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePegUntrackConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_peg_untrack",
+        argNames: ["that", "orderId"],
+      );
+
+  @override
+  Future<int> crateApiCoreMoozeCorePixActivePolls({required MoozeCore that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 63,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixActivePollsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixActivePollsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_active_polls",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCorePixCancelPolls({required MoozeCore that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 64,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixCancelPollsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixCancelPollsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_cancel_polls",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCorePixClearDeposits({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 65,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixClearDepositsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixClearDepositsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_clear_deposits",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<PixDepositDto> crateApiCoreMoozeCorePixCreateDeposit({
+    required MoozeCore that,
+    required BigInt amountInCents,
+    required String assetId,
+    String? taxIdNumber,
+    String? address,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_u_64(amountInCents, serializer);
+          sse_encode_String(assetId, serializer);
+          sse_encode_opt_String(taxIdNumber, serializer);
+          sse_encode_opt_String(address, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 66,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pix_deposit_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixCreateDepositConstMeta,
+        argValues: [that, amountInCents, assetId, taxIdNumber, address],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixCreateDepositConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_create_deposit",
+        argNames: [
+          "that",
+          "amountInCents",
+          "assetId",
+          "taxIdNumber",
+          "address",
+        ],
+      );
+
+  @override
+  Future<bool> crateApiCoreMoozeCorePixFlagIsSet({
+    required MoozeCore that,
+    required PixFlagDto flag,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_pix_flag_dto(flag, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 67,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixFlagIsSetConstMeta,
+        argValues: [that, flag],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixFlagIsSetConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_flag_is_set",
+        argNames: ["that", "flag"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCorePixFlagReset({
+    required MoozeCore that,
+    required PixFlagDto flag,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_pix_flag_dto(flag, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 68,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixFlagResetConstMeta,
+        argValues: [that, flag],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixFlagResetConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_flag_reset",
+        argNames: ["that", "flag"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCorePixFlagSet({
+    required MoozeCore that,
+    required PixFlagDto flag,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_pix_flag_dto(flag, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 69,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixFlagSetConstMeta,
+        argValues: [that, flag],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixFlagSetConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_flag_set",
+        argNames: ["that", "flag"],
+      );
+
+  @override
+  Future<PixDepositDto?> crateApiCoreMoozeCorePixGetDeposit({
+    required MoozeCore that,
+    required String depositId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(depositId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 70,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_pix_deposit_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixGetDepositConstMeta,
+        argValues: [that, depositId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixGetDepositConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_get_deposit",
+        argNames: ["that", "depositId"],
+      );
+
+  @override
+  Future<List<PixDepositDto>> crateApiCoreMoozeCorePixHistory({
+    required MoozeCore that,
+    int? limit,
+    int? offset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_opt_box_autoadd_u_32(limit, serializer);
+          sse_encode_opt_box_autoadd_u_32(offset, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 71,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_pix_deposit_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixHistoryConstMeta,
+        argValues: [that, limit, offset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixHistoryConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_history",
+        argNames: ["that", "limit", "offset"],
+      );
+
+  @override
+  Future<List<PixDepositDto>> crateApiCoreMoozeCorePixListDeposits({
+    required MoozeCore that,
+    int? limit,
+    int? offset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_opt_box_autoadd_u_32(limit, serializer);
+          sse_encode_opt_box_autoadd_u_32(offset, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 72,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_pix_deposit_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixListDepositsConstMeta,
+        argValues: [that, limit, offset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixListDepositsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_list_deposits",
+        argNames: ["that", "limit", "offset"],
+      );
+
+  @override
+  Future<List<PixStatusEventDto>> crateApiCoreMoozeCorePixPollTick({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 73,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_pix_status_event_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixPollTickConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixPollTickConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_poll_tick",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<PixDepositDto>> crateApiCoreMoozeCorePixUpdateDepositDetails({
+    required MoozeCore that,
+    required List<String> depositIds,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_list_String(depositIds, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 74,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_pix_deposit_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCorePixUpdateDepositDetailsConstMeta,
+        argValues: [that, depositIds],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCorePixUpdateDepositDetailsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_pix_update_deposit_details",
+        argNames: ["that", "depositIds"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSecureDelete({
+    required MoozeCore that,
+    required String key,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(key, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 75,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSecureDeleteConstMeta,
+        argValues: [that, key],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSecureDeleteConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_secure_delete",
+        argNames: ["that", "key"],
+      );
+
+  @override
+  Future<String?> crateApiCoreMoozeCoreSecureGet({
+    required MoozeCore that,
+    required String key,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(key, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 76,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSecureGetConstMeta,
+        argValues: [that, key],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSecureGetConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_secure_get",
+        argNames: ["that", "key"],
+      );
+
+  @override
+  Future<List<String>> crateApiCoreMoozeCoreSecureListKeys({
+    required MoozeCore that,
+    required String prefix,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(prefix, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 77,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSecureListKeysConstMeta,
+        argValues: [that, prefix],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSecureListKeysConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_secure_list_keys",
+        argNames: ["that", "prefix"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSecurePut({
+    required MoozeCore that,
+    required String key,
+    required String value,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(key, serializer);
+          sse_encode_String(value, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 78,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSecurePutConstMeta,
+        argValues: [that, key, value],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSecurePutConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_secure_put",
+        argNames: ["that", "key", "value"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSetSecureStorage({
+    required MoozeCore that,
+    required FutureOr<String?> Function(String) read,
+    required FutureOr<void> Function(String, String) write,
+    required FutureOr<void> Function(String) delete,
+    required FutureOr<List<String>> Function(String) listKeys,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
+            read,
+            serializer,
+          );
+          sse_encode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
+            write,
+            serializer,
+          );
+          sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+            delete,
+            serializer,
+          );
+          sse_encode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+            listKeys,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 79,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSetSecureStorageConstMeta,
+        argValues: [that, read, write, delete, listKeys],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSetSecureStorageConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_set_secure_storage",
+        argNames: ["that", "read", "write", "delete", "listKeys"],
+      );
+
+  @override
+  Future<List<SideswapAssetDto>> crateApiCoreMoozeCoreSideswapAssets({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 80,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_sideswap_asset_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapAssetsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapAssetsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_assets",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSideswapCloseEvents({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 81,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapCloseEventsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapCloseEventsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_close_events",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSideswapConnect({
+    required MoozeCore that,
+    required String apiKey,
+    String? url,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(apiKey, serializer);
+          sse_encode_opt_String(url, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 82,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapConnectConstMeta,
+        argValues: [that, apiKey, url],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapConnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_connect",
+        argNames: ["that", "apiKey", "url"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSideswapDisconnect({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 83,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapDisconnectConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapDisconnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_disconnect",
+        argNames: ["that"],
+      );
+
+  @override
+  Stream<SideSwapEventDto> crateApiCoreMoozeCoreSideswapEvents({
+    required MoozeCore that,
+  }) {
+    final sink = RustStreamSink<SideSwapEventDto>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+              that,
+              serializer,
+            );
+            sse_encode_StreamSink_side_swap_event_dto_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 84,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_core_error,
+          ),
+          constMeta: kCrateApiCoreMoozeCoreSideswapEventsConstMeta,
+          argValues: [that, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapEventsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_events",
+        argNames: ["that", "sink"],
+      );
+
+  @override
+  Future<bool> crateApiCoreMoozeCoreSideswapEventsRunning({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 85,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapEventsRunningConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapEventsRunningConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_events_running",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<String> crateApiCoreMoozeCoreSideswapExecuteSwap({
+    required MoozeCore that,
+    required BigInt quoteId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_u_64(quoteId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 86,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapExecuteSwapConstMeta,
+        argValues: [that, quoteId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapExecuteSwapConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_execute_swap",
+        argNames: ["that", "quoteId"],
+      );
+
+  @override
+  Future<bool> crateApiCoreMoozeCoreSideswapIsConnected({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 87,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapIsConnectedConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapIsConnectedConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_is_connected",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<SideswapMarketDto>> crateApiCoreMoozeCoreSideswapMarkets({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 88,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_sideswap_market_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapMarketsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapMarketsConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_markets",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<StartQuoteDto> crateApiCoreMoozeCoreSideswapStartQuote({
+    required MoozeCore that,
+    required String sendAssetId,
+    required String receiveAssetId,
+    required BigInt amount,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          sse_encode_String(sendAssetId, serializer);
+          sse_encode_String(receiveAssetId, serializer);
+          sse_encode_u_64(amount, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 89,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_start_quote_dto,
+          decodeErrorData: sse_decode_core_error,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapStartQuoteConstMeta,
+        argValues: [that, sendAssetId, receiveAssetId, amount],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapStartQuoteConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_start_quote",
+        argNames: ["that", "sendAssetId", "receiveAssetId", "amount"],
+      );
+
+  @override
+  Future<void> crateApiCoreMoozeCoreSideswapStopQuote({
+    required MoozeCore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 90,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreMoozeCoreSideswapStopQuoteConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreMoozeCoreSideswapStopQuoteConstMeta =>
+      const TaskConstMeta(
+        debugName: "MoozeCore_sideswap_stop_quote",
+        argNames: ["that"],
+      );
+
+  @override
+  PegAmountValidationDto crateApiSwapPegValidateAmount({
+    required PegDirectionDto direction,
+    BigInt? amountSat,
+    required BigInt spendableSat,
+    PegServerLimitsDto? limits,
+    required BigInt fallbackMinimumSats,
+    required bool drain,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_peg_direction_dto(direction, serializer);
+          sse_encode_opt_box_autoadd_u_64(amountSat, serializer);
+          sse_encode_u_64(spendableSat, serializer);
+          sse_encode_opt_box_autoadd_peg_server_limits_dto(limits, serializer);
+          sse_encode_u_64(fallbackMinimumSats, serializer);
+          sse_encode_bool(drain, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 91)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_peg_amount_validation_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSwapPegValidateAmountConstMeta,
+        argValues: [
+          direction,
+          amountSat,
+          spendableSat,
+          limits,
+          fallbackMinimumSats,
+          drain,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSwapPegValidateAmountConstMeta =>
+      const TaskConstMeta(
+        debugName: "peg_validate_amount",
+        argNames: [
+          "direction",
+          "amountSat",
+          "spendableSat",
+          "limits",
+          "fallbackMinimumSats",
+          "drain",
+        ],
+      );
+
+  @override
+  PixFeeDto crateApiPixPixFee({
+    required double amountBrl,
+    required bool hasReferral,
+    double? quoteBrl,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_f_64(amountBrl, serializer);
+          sse_encode_bool(hasReferral, serializer);
+          sse_encode_opt_box_autoadd_f_64(quoteBrl, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 92)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pix_fee_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixPixFeeConstMeta,
+        argValues: [amountBrl, hasReferral, quoteBrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixPixFeeConstMeta => const TaskConstMeta(
+    debugName: "pix_fee",
+    argNames: ["amountBrl", "hasReferral", "quoteBrl"],
+  );
+
+  @override
+  bool crateApiPixPixLooksLikeKey({required String value}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(value, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 93)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixPixLooksLikeKeyConstMeta,
+        argValues: [value],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixPixLooksLikeKeyConstMeta =>
+      const TaskConstMeta(debugName: "pix_looks_like_key", argNames: ["value"]);
+
+  @override
+  int crateApiPixPixPollIntervalMs() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 94)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixPixPollIntervalMsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixPixPollIntervalMsConstMeta =>
+      const TaskConstMeta(debugName: "pix_poll_interval_ms", argNames: []);
+
+  @override
+  DepositValidationDto crateApiPixPixValidateAmount({
+    required double amountBrl,
+    DepositLimitsDto? limits,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_f_64(amountBrl, serializer);
+          sse_encode_opt_box_autoadd_deposit_limits_dto(limits, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 95)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_deposit_validation_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixPixValidateAmountConstMeta,
+        argValues: [amountBrl, limits],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixPixValidateAmountConstMeta =>
+      const TaskConstMeta(
+        debugName: "pix_validate_amount",
+        argNames: ["amountBrl", "limits"],
+      );
+
+  @override
+  String crateApiSwapSideswapDefaultUrl() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 96)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSwapSideswapDefaultUrlConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSwapSideswapDefaultUrlConstMeta =>
+      const TaskConstMeta(debugName: "sideswap_default_url", argNames: []);
+
+  @override
+  String crateApiPixTaxIdFormat({required String digits}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(digits, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 97)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixTaxIdFormatConstMeta,
+        argValues: [digits],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixTaxIdFormatConstMeta =>
+      const TaskConstMeta(debugName: "tax_id_format", argNames: ["digits"]);
+
+  @override
+  bool crateApiPixTaxIdIsValid({required String input}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(input, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 98)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixTaxIdIsValidConstMeta,
+        argValues: [input],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixTaxIdIsValidConstMeta =>
+      const TaskConstMeta(debugName: "tax_id_is_valid", argNames: ["input"]);
+
+  @override
+  String crateApiPixTaxIdMaskInput({required String text}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(text, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 99)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixTaxIdMaskInputConstMeta,
+        argValues: [text],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixTaxIdMaskInputConstMeta =>
+      const TaskConstMeta(debugName: "tax_id_mask_input", argNames: ["text"]);
+
+  @override
+  String crateApiPixTaxIdStrip({required String input}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(input, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 100,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixTaxIdStripConstMeta,
+        argValues: [input],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixTaxIdStripConstMeta =>
+      const TaskConstMeta(debugName: "tax_id_strip", argNames: ["input"]);
+
+  @override
+  CpfValidationErrorDto? crateApiPixTaxIdValidate({required String input}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(input, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 101,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_cpf_validation_error_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPixTaxIdValidateConstMeta,
+        argValues: [input],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPixTaxIdValidateConstMeta =>
+      const TaskConstMeta(debugName: "tax_id_validate", argNames: ["input"]);
+
+  Future<void> Function(int, dynamic)
+  encode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    FutureOr<List<String>> Function(String) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_String(rawArg0);
+
+      Box<List<String>>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_list_String(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
+  Future<void> Function(int, dynamic)
+  encode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
+    FutureOr<String?> Function(String) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_String(rawArg0);
+
+      Box<String?>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_opt_String(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
+  Future<void> Function(int, dynamic)
+  encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_String(rawArg0);
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
+  Future<void> Function(int, dynamic, dynamic)
+  encode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String, String) raw,
+  ) {
+    return (callId, rawArg0, rawArg1) async {
+      final arg0 = dco_decode_String(rawArg0);
+      final arg1 = dco_decode_String(rawArg1);
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0, arg1));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_MoozeCore => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore;
@@ -1322,6 +4474,12 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_MoozeCore => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore;
+
+  @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnyhowException(raw as String);
+  }
 
   @protected
   MoozeCore
@@ -1342,6 +4500,46 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  FutureOr<List<String>> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
+  }
+
+  @protected
+  FutureOr<String?> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
+  }
+
+  @protected
+  FutureOr<void> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
+  }
+
+  @protected
+  FutureOr<void> Function(String, String)
+  dco_decode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
+  }
+
+  @protected
+  Object dco_decode_DartOpaque(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return decodeDartOpaque(raw, generalizedFrbRustBinding);
+  }
+
+  @protected
   MoozeCore
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     dynamic raw,
@@ -1351,9 +4549,40 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  RustStreamSink<SideSwapEventDto>
+  dco_decode_StreamSink_side_swap_event_dto_Sse(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
+  }
+
+  @protected
+  AddressOwnershipDto dco_decode_address_ownership_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return AddressOwnershipDto(
+      keychain: dco_decode_keychain_dto(arr[0]),
+      index: dco_decode_u_32(arr[1]),
+    );
+  }
+
+  @protected
+  ApiResponseDto dco_decode_api_response_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ApiResponseDto(
+      status: dco_decode_u_16(arr[0]),
+      body: dco_decode_String(arr[1]),
+    );
   }
 
   @protected
@@ -1370,6 +4599,25 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       ticker: dco_decode_opt_String(arr[4]),
       pendingSat: dco_decode_u_64(arr[5]),
     );
+  }
+
+  @protected
+  AuthEnsureDto dco_decode_auth_ensure_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return AuthEnsureDto(
+      kind: dco_decode_auth_ensure_kind(arr[0]),
+      statusCode: dco_decode_opt_box_autoadd_u_16(arr[1]),
+      message: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
+  AuthEnsureKind dco_decode_auth_ensure_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AuthEnsureKind.values[raw as int];
   }
 
   @protected
@@ -1397,9 +4645,51 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  AddressOwnershipDto dco_decode_box_autoadd_address_ownership_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_address_ownership_dto(raw);
+  }
+
+  @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
   CoreConfig dco_decode_box_autoadd_core_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_core_config(raw);
+  }
+
+  @protected
+  CpfValidationErrorDto dco_decode_box_autoadd_cpf_validation_error_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_cpf_validation_error_dto(raw);
+  }
+
+  @protected
+  DepositLimitsDto dco_decode_box_autoadd_deposit_limits_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_deposit_limits_dto(raw);
+  }
+
+  @protected
+  DepositValidationErrorDto dco_decode_box_autoadd_deposit_validation_error_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_deposit_validation_error_dto(raw);
+  }
+
+  @protected
+  DeviceMetricsDto dco_decode_box_autoadd_device_metrics_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_device_metrics_dto(raw);
   }
 
   @protected
@@ -1409,9 +4699,40 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  FavoritePayerSaveErrorDto
+  dco_decode_box_autoadd_favorite_payer_save_error_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_favorite_payer_save_error_dto(raw);
+  }
+
+  @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_i_64(raw);
+  }
+
+  @protected
+  PegAmountIssueDto dco_decode_box_autoadd_peg_amount_issue_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_peg_amount_issue_dto(raw);
+  }
+
+  @protected
+  PegServerLimitsDto dco_decode_box_autoadd_peg_server_limits_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_peg_server_limits_dto(raw);
+  }
+
+  @protected
+  PixDepositDto dco_decode_box_autoadd_pix_deposit_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pix_deposit_dto(raw);
+  }
+
+  @protected
+  QuoteDto dco_decode_box_autoadd_quote_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_quote_dto(raw);
   }
 
   @protected
@@ -1510,6 +4831,81 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  CpfValidationErrorDto dco_decode_cpf_validation_error_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return CpfValidationErrorDto.values[raw as int];
+  }
+
+  @protected
+  DepositLimitsDto dco_decode_deposit_limits_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return DepositLimitsDto(
+      absoluteMinLimit: dco_decode_f_64(arr[0]),
+      allowedSpending: dco_decode_f_64(arr[1]),
+    );
+  }
+
+  @protected
+  DepositStatusDto dco_decode_deposit_status_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DepositStatusDto.values[raw as int];
+  }
+
+  @protected
+  DepositValidationDto dco_decode_deposit_validation_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return DepositValidationDto(
+      isValid: dco_decode_bool(arr[0]),
+      error: dco_decode_opt_box_autoadd_deposit_validation_error_dto(arr[1]),
+      limitAmount: dco_decode_opt_box_autoadd_f_64(arr[2]),
+    );
+  }
+
+  @protected
+  DepositValidationErrorDto dco_decode_deposit_validation_error_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DepositValidationErrorDto.values[raw as int];
+  }
+
+  @protected
+  DerivedAddressDto dco_decode_derived_address_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return DerivedAddressDto(
+      keychain: dco_decode_keychain_dto(arr[0]),
+      index: dco_decode_u_32(arr[1]),
+      address: dco_decode_String(arr[2]),
+      unconfidential: dco_decode_opt_String(arr[3]),
+      scriptHex: dco_decode_String(arr[4]),
+      used: dco_decode_bool(arr[5]),
+    );
+  }
+
+  @protected
+  DeviceMetricsDto dco_decode_device_metrics_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return DeviceMetricsDto(
+      deviceId: dco_decode_String(arr[0]),
+      batteryLevel: dco_decode_opt_box_autoadd_i_64(arr[1]),
+      screenBrightness: dco_decode_opt_box_autoadd_f_64(arr[2]),
+      bootTime: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
   DirectionDto dco_decode_direction_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DirectionDto.values[raw as int];
@@ -1519,6 +4915,28 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   double dco_decode_f_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as double;
+  }
+
+  @protected
+  FavoritePayerDto dco_decode_favorite_payer_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return FavoritePayerDto(
+      id: dco_decode_opt_box_autoadd_u_64(arr[0]),
+      label: dco_decode_String(arr[1]),
+      cpf: dco_decode_String(arr[2]),
+      maskedCpf: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  FavoritePayerSaveErrorDto dco_decode_favorite_payer_save_error_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return FavoritePayerSaveErrorDto.values[raw as int];
   }
 
   @protected
@@ -1543,6 +4961,12 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  HttpMethodDto dco_decode_http_method_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return HttpMethodDto.values[raw as int];
+  }
+
+  @protected
   int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -1552,6 +4976,18 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  PlatformInt64 dco_decode_isize(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
+  KeychainDto dco_decode_keychain_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return KeychainDto.values[raw as int];
   }
 
   @protected
@@ -1599,9 +5035,39 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  List<DerivedAddressDto> dco_decode_list_derived_address_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_derived_address_dto).toList();
+  }
+
+  @protected
+  List<FavoritePayerDto> dco_decode_list_favorite_payer_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_favorite_payer_dto).toList();
+  }
+
+  @protected
   List<LiquidUtxoDto> dco_decode_list_liquid_utxo_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_liquid_utxo_dto).toList();
+  }
+
+  @protected
+  List<PegRecordDto> dco_decode_list_peg_record_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_peg_record_dto).toList();
+  }
+
+  @protected
+  List<PixDepositDto> dco_decode_list_pix_deposit_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pix_deposit_dto).toList();
+  }
+
+  @protected
+  List<PixStatusEventDto> dco_decode_list_pix_status_event_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pix_status_event_dto).toList();
   }
 
   @protected
@@ -1617,6 +5083,18 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  List<SideswapAssetDto> dco_decode_list_sideswap_asset_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_sideswap_asset_dto).toList();
+  }
+
+  @protected
+  List<SideswapMarketDto> dco_decode_list_sideswap_market_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_sideswap_market_dto).toList();
+  }
+
+  @protected
   List<SkippedRowDto> dco_decode_list_skipped_row_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_skipped_row_dto).toList();
@@ -1626,6 +5104,12 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   List<TableCountDto> dco_decode_list_table_count_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_table_count_dto).toList();
+  }
+
+  @protected
+  List<TrackedPegDto> dco_decode_list_tracked_peg_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_tracked_peg_dto).toList();
   }
 
   @protected
@@ -1640,6 +5124,12 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     return (raw as List<dynamic>)
         .map(dco_decode_transaction_event_dto)
         .toList();
+  }
+
+  @protected
+  List<WalletUtxoDto> dco_decode_list_wallet_utxo_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_wallet_utxo_dto).toList();
   }
 
   @protected
@@ -1662,9 +5152,69 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  NextUnusedAddressDto dco_decode_next_unused_address_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return NextUnusedAddressDto(
+      index: dco_decode_u_32(arr[0]),
+      address: dco_decode_String(arr[1]),
+      used: dco_decode_bool(arr[2]),
+    );
+  }
+
+  @protected
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  AddressOwnershipDto? dco_decode_opt_box_autoadd_address_ownership_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_address_ownership_dto(raw);
+  }
+
+  @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
+  CpfValidationErrorDto? dco_decode_opt_box_autoadd_cpf_validation_error_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_cpf_validation_error_dto(raw);
+  }
+
+  @protected
+  DepositLimitsDto? dco_decode_opt_box_autoadd_deposit_limits_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_deposit_limits_dto(raw);
+  }
+
+  @protected
+  DepositValidationErrorDto?
+  dco_decode_opt_box_autoadd_deposit_validation_error_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_deposit_validation_error_dto(raw);
+  }
+
+  @protected
+  DeviceMetricsDto? dco_decode_opt_box_autoadd_device_metrics_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_device_metrics_dto(raw);
   }
 
   @protected
@@ -1674,9 +5224,50 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  FavoritePayerSaveErrorDto?
+  dco_decode_opt_box_autoadd_favorite_payer_save_error_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_favorite_payer_save_error_dto(raw);
+  }
+
+  @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
+  }
+
+  @protected
+  PegAmountIssueDto? dco_decode_opt_box_autoadd_peg_amount_issue_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_peg_amount_issue_dto(raw);
+  }
+
+  @protected
+  PegServerLimitsDto? dco_decode_opt_box_autoadd_peg_server_limits_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_peg_server_limits_dto(raw);
+  }
+
+  @protected
+  PixDepositDto? dco_decode_opt_box_autoadd_pix_deposit_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_pix_deposit_dto(raw);
+  }
+
+  @protected
+  QuoteDto? dco_decode_opt_box_autoadd_quote_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_quote_dto(raw);
   }
 
   @protected
@@ -1707,6 +5298,238 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
+  PegAmountIssueDto dco_decode_peg_amount_issue_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PegAmountIssueDto.values[raw as int];
+  }
+
+  @protected
+  PegAmountValidationDto dco_decode_peg_amount_validation_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return PegAmountValidationDto(
+      hasAmount: dco_decode_bool(arr[0]),
+      isValid: dco_decode_bool(arr[1]),
+      issue: dco_decode_opt_box_autoadd_peg_amount_issue_dto(arr[2]),
+      minimumSats: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      maximumSats: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      showsIssue: dco_decode_bool(arr[5]),
+    );
+  }
+
+  @protected
+  PegDirectionDto dco_decode_peg_direction_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PegDirectionDto.values[raw as int];
+  }
+
+  @protected
+  PegExecutionDto dco_decode_peg_execution_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PegExecutionDto(
+      order: dco_decode_peg_order_dto(arr[0]),
+      fundingTxId: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  PegOrderDto dco_decode_peg_order_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return PegOrderDto(
+      orderId: dco_decode_String(arr[0]),
+      direction: dco_decode_peg_direction_dto(arr[1]),
+      depositAddress: dco_decode_String(arr[2]),
+      payoutAddress: dco_decode_String(arr[3]),
+      createdAtMs: dco_decode_u_64(arr[4]),
+      expiresAtMs: dco_decode_opt_box_autoadd_u_64(arr[5]),
+    );
+  }
+
+  @protected
+  PegPhaseDto dco_decode_peg_phase_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PegPhaseDto.values[raw as int];
+  }
+
+  @protected
+  PegProgressDto dco_decode_peg_progress_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return PegProgressDto(
+      orderId: dco_decode_String(arr[0]),
+      direction: dco_decode_peg_direction_dto(arr[1]),
+      phase: dco_decode_peg_phase_dto(arr[2]),
+      depositAddress: dco_decode_String(arr[3]),
+      payoutAddress: dco_decode_String(arr[4]),
+      totalDepositedSat: dco_decode_u_64(arr[5]),
+      totalPayoutSat: dco_decode_u_64(arr[6]),
+      payoutTxId: dco_decode_opt_String(arr[7]),
+    );
+  }
+
+  @protected
+  PegQuoteDto dco_decode_peg_quote_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return PegQuoteDto(
+      direction: dco_decode_peg_direction_dto(arr[0]),
+      amountSat: dco_decode_u_64(arr[1]),
+      networkFeeSat: dco_decode_u_64(arr[2]),
+      serviceFeeSat: dco_decode_u_64(arr[3]),
+      minimumSat: dco_decode_u_64(arr[4]),
+      totalFeeSat: dco_decode_u_64(arr[5]),
+      estimatedReceiveSat: dco_decode_u_64(arr[6]),
+    );
+  }
+
+  @protected
+  PegRecordDto dco_decode_peg_record_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return PegRecordDto(
+      orderId: dco_decode_String(arr[0]),
+      direction: dco_decode_peg_direction_dto(arr[1]),
+      sideswapAddress: dco_decode_String(arr[2]),
+      payoutAddress: dco_decode_String(arr[3]),
+      amountSat: dco_decode_u_64(arr[4]),
+      createdAtMs: dco_decode_u_64(arr[5]),
+      walletId: dco_decode_String(arr[6]),
+      status: dco_decode_String(arr[7]),
+      fundingTxId: dco_decode_opt_String(arr[8]),
+      payoutTxId: dco_decode_opt_String(arr[9]),
+      errorMessage: dco_decode_opt_String(arr[10]),
+      updatedAtMs: dco_decode_opt_box_autoadd_u_64(arr[11]),
+    );
+  }
+
+  @protected
+  PegRefreshDto dco_decode_peg_refresh_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PegRefreshDto(
+      pegs: dco_decode_list_tracked_peg_dto(arr[0]),
+      changed: dco_decode_list_String(arr[1]),
+      finished: dco_decode_list_tracked_peg_dto(arr[2]),
+      nextWakeupMs: dco_decode_opt_box_autoadd_u_64(arr[3]),
+    );
+  }
+
+  @protected
+  PegServerLimitsDto dco_decode_peg_server_limits_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PegServerLimitsDto(
+      minPegInSat: dco_decode_u_64(arr[0]),
+      minPegOutSat: dco_decode_u_64(arr[1]),
+      serverFeePercentPegIn: dco_decode_f_64(arr[2]),
+      serverFeePercentPegOut: dco_decode_f_64(arr[3]),
+    );
+  }
+
+  @protected
+  PixDepositDto dco_decode_pix_deposit_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return PixDepositDto(
+      depositId: dco_decode_String(arr[0]),
+      pixKey: dco_decode_String(arr[1]),
+      assetId: dco_decode_String(arr[2]),
+      amountInCents: dco_decode_u_64(arr[3]),
+      network: dco_decode_String(arr[4]),
+      status: dco_decode_deposit_status_dto(arr[5]),
+      createdAtMs: dco_decode_u_64(arr[6]),
+      blockchainTxid: dco_decode_opt_String(arr[7]),
+      assetAmount: dco_decode_opt_box_autoadd_u_64(arr[8]),
+    );
+  }
+
+  @protected
+  PixFeeDto dco_decode_pix_fee_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return PixFeeDto(
+      feeRatePercent: dco_decode_f_64(arr[0]),
+      feeAmount: dco_decode_f_64(arr[1]),
+      discountedAmount: dco_decode_f_64(arr[2]),
+      estimatedAssetUnits: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      activeTier: dco_decode_opt_box_autoadd_u_32(arr[4]),
+      amountInCents: dco_decode_u_64(arr[5]),
+    );
+  }
+
+  @protected
+  PixFlagDto dco_decode_pix_flag_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PixFlagDto.values[raw as int];
+  }
+
+  @protected
+  PixStatusEventDto dco_decode_pix_status_event_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return PixStatusEventDto(
+      depositId: dco_decode_String(arr[0]),
+      status: dco_decode_deposit_status_dto(arr[1]),
+      blockchainTxid: dco_decode_opt_String(arr[2]),
+      assetAmount: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      errorMessage: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  QuoteDto dco_decode_quote_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return QuoteDto(
+      status: dco_decode_quote_status_dto(arr[0]),
+      quoteId: dco_decode_opt_box_autoadd_u_64(arr[1]),
+      baseAmount: dco_decode_opt_box_autoadd_u_64(arr[2]),
+      quoteAmount: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      serverFee: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      fixedFee: dco_decode_opt_box_autoadd_u_64(arr[5]),
+      ttlMs: dco_decode_opt_box_autoadd_u_64(arr[6]),
+      available: dco_decode_opt_box_autoadd_u_64(arr[7]),
+      errorMessage: dco_decode_opt_String(arr[8]),
+      quoteSubId: dco_decode_opt_box_autoadd_u_64(arr[9]),
+      requestedAmount: dco_decode_opt_box_autoadd_u_64(arr[10]),
+      baseAssetId: dco_decode_opt_String(arr[11]),
+      quoteAssetId: dco_decode_opt_String(arr[12]),
+    );
+  }
+
+  @protected
+  QuoteStatusDto dco_decode_quote_status_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return QuoteStatusDto.values[raw as int];
   }
 
   @protected
@@ -1743,6 +5566,56 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  SideSwapEventDto dco_decode_side_swap_event_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return SideSwapEventDto(
+      kind: dco_decode_side_swap_event_kind(arr[0]),
+      quote: dco_decode_opt_box_autoadd_quote_dto(arr[1]),
+      balanceSat: dco_decode_opt_box_autoadd_u_64(arr[2]),
+      message: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
+  SideSwapEventKind dco_decode_side_swap_event_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SideSwapEventKind.values[raw as int];
+  }
+
+  @protected
+  SideswapAssetDto dco_decode_sideswap_asset_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return SideswapAssetDto(
+      assetId: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      ticker: dco_decode_String(arr[2]),
+      precision: dco_decode_u_8(arr[3]),
+      iconUrl: dco_decode_opt_String(arr[4]),
+      instantSwaps: dco_decode_opt_box_autoadd_bool(arr[5]),
+    );
+  }
+
+  @protected
+  SideswapMarketDto dco_decode_sideswap_market_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return SideswapMarketDto(
+      baseAssetId: dco_decode_String(arr[0]),
+      quoteAssetId: dco_decode_String(arr[1]),
+      feeAsset: dco_decode_String(arr[2]),
+      marketType: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
   SkippedRowDto dco_decode_skipped_row_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1759,6 +5632,20 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   SourceDto dco_decode_source_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return SourceDto.values[raw as int];
+  }
+
+  @protected
+  StartQuoteDto dco_decode_start_quote_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return StartQuoteDto(
+      started: dco_decode_bool(arr[0]),
+      quoteSubId: dco_decode_opt_box_autoadd_u_64(arr[1]),
+      baseAssetId: dco_decode_opt_String(arr[2]),
+      quoteAssetId: dco_decode_opt_String(arr[3]),
+    );
   }
 
   @protected
@@ -1790,6 +5677,26 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     return TableCountDto(
       table: dco_decode_String(arr[0]),
       count: dco_decode_u_32(arr[1]),
+    );
+  }
+
+  @protected
+  TrackedPegDto dco_decode_tracked_peg_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return TrackedPegDto(
+      orderId: dco_decode_String(arr[0]),
+      direction: dco_decode_peg_direction_dto(arr[1]),
+      phase: dco_decode_peg_phase_dto(arr[2]),
+      amountSat: dco_decode_u_64(arr[3]),
+      depositAddress: dco_decode_String(arr[4]),
+      fundingTxId: dco_decode_opt_String(arr[5]),
+      payoutTxId: dco_decode_opt_String(arr[6]),
+      confirmations: dco_decode_opt_box_autoadd_u_32(arr[7]),
+      requiredConfirmations: dco_decode_opt_box_autoadd_u_32(arr[8]),
+      errorMessage: dco_decode_opt_String(arr[9]),
     );
   }
 
@@ -1879,6 +5786,34 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  WalletUtxoDto dco_decode_wallet_utxo_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return WalletUtxoDto(
+      txid: dco_decode_String(arr[0]),
+      vout: dco_decode_u_32(arr[1]),
+      address: dco_decode_String(arr[2]),
+      unconfidential: dco_decode_opt_String(arr[3]),
+      scriptHex: dco_decode_String(arr[4]),
+      keychain: dco_decode_keychain_dto(arr[5]),
+      index: dco_decode_u_32(arr[6]),
+      amountSat: dco_decode_u_64(arr[7]),
+      assetId: dco_decode_opt_String(arr[8]),
+      confirmationHeight: dco_decode_opt_box_autoadd_u_32(arr[9]),
+      confirmationTimeS: dco_decode_opt_box_autoadd_u_64(arr[10]),
+    );
+  }
+
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_String(deserializer);
+    return AnyhowException(inner);
+  }
+
+  @protected
   MoozeCore
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     SseDeserializer deserializer,
@@ -1903,6 +5838,13 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  Object sse_decode_DartOpaque(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_isize(deserializer);
+    return decodeDartOpaque(inner, generalizedFrbRustBinding);
+  }
+
+  @protected
   MoozeCore
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     SseDeserializer deserializer,
@@ -1915,10 +5857,35 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  RustStreamSink<SideSwapEventDto>
+  sse_decode_StreamSink_side_swap_event_dto_Sse(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
+  }
+
+  @protected
+  AddressOwnershipDto sse_decode_address_ownership_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_keychain = sse_decode_keychain_dto(deserializer);
+    var var_index = sse_decode_u_32(deserializer);
+    return AddressOwnershipDto(keychain: var_keychain, index: var_index);
+  }
+
+  @protected
+  ApiResponseDto sse_decode_api_response_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_status = sse_decode_u_16(deserializer);
+    var var_body = sse_decode_String(deserializer);
+    return ApiResponseDto(status: var_status, body: var_body);
   }
 
   @protected
@@ -1938,6 +5905,26 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
       ticker: var_ticker,
       pendingSat: var_pendingSat,
     );
+  }
+
+  @protected
+  AuthEnsureDto sse_decode_auth_ensure_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_kind = sse_decode_auth_ensure_kind(deserializer);
+    var var_statusCode = sse_decode_opt_box_autoadd_u_16(deserializer);
+    var var_message = sse_decode_opt_String(deserializer);
+    return AuthEnsureDto(
+      kind: var_kind,
+      statusCode: var_statusCode,
+      message: var_message,
+    );
+  }
+
+  @protected
+  AuthEnsureKind sse_decode_auth_ensure_kind(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return AuthEnsureKind.values[inner];
   }
 
   @protected
@@ -1962,9 +5949,55 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  AddressOwnershipDto sse_decode_box_autoadd_address_ownership_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_address_ownership_dto(deserializer));
+  }
+
+  @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bool(deserializer));
+  }
+
+  @protected
   CoreConfig sse_decode_box_autoadd_core_config(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_core_config(deserializer));
+  }
+
+  @protected
+  CpfValidationErrorDto sse_decode_box_autoadd_cpf_validation_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_cpf_validation_error_dto(deserializer));
+  }
+
+  @protected
+  DepositLimitsDto sse_decode_box_autoadd_deposit_limits_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_deposit_limits_dto(deserializer));
+  }
+
+  @protected
+  DepositValidationErrorDto sse_decode_box_autoadd_deposit_validation_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_deposit_validation_error_dto(deserializer));
+  }
+
+  @protected
+  DeviceMetricsDto sse_decode_box_autoadd_device_metrics_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_device_metrics_dto(deserializer));
   }
 
   @protected
@@ -1974,9 +6007,48 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  FavoritePayerSaveErrorDto
+  sse_decode_box_autoadd_favorite_payer_save_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_favorite_payer_save_error_dto(deserializer));
+  }
+
+  @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
+  PegAmountIssueDto sse_decode_box_autoadd_peg_amount_issue_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_peg_amount_issue_dto(deserializer));
+  }
+
+  @protected
+  PegServerLimitsDto sse_decode_box_autoadd_peg_server_limits_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_peg_server_limits_dto(deserializer));
+  }
+
+  @protected
+  PixDepositDto sse_decode_box_autoadd_pix_deposit_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pix_deposit_dto(deserializer));
+  }
+
+  @protected
+  QuoteDto sse_decode_box_autoadd_quote_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_quote_dto(deserializer));
   }
 
   @protected
@@ -2082,6 +6154,95 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  CpfValidationErrorDto sse_decode_cpf_validation_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return CpfValidationErrorDto.values[inner];
+  }
+
+  @protected
+  DepositLimitsDto sse_decode_deposit_limits_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_absoluteMinLimit = sse_decode_f_64(deserializer);
+    var var_allowedSpending = sse_decode_f_64(deserializer);
+    return DepositLimitsDto(
+      absoluteMinLimit: var_absoluteMinLimit,
+      allowedSpending: var_allowedSpending,
+    );
+  }
+
+  @protected
+  DepositStatusDto sse_decode_deposit_status_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DepositStatusDto.values[inner];
+  }
+
+  @protected
+  DepositValidationDto sse_decode_deposit_validation_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_isValid = sse_decode_bool(deserializer);
+    var var_error = sse_decode_opt_box_autoadd_deposit_validation_error_dto(
+      deserializer,
+    );
+    var var_limitAmount = sse_decode_opt_box_autoadd_f_64(deserializer);
+    return DepositValidationDto(
+      isValid: var_isValid,
+      error: var_error,
+      limitAmount: var_limitAmount,
+    );
+  }
+
+  @protected
+  DepositValidationErrorDto sse_decode_deposit_validation_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DepositValidationErrorDto.values[inner];
+  }
+
+  @protected
+  DerivedAddressDto sse_decode_derived_address_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_keychain = sse_decode_keychain_dto(deserializer);
+    var var_index = sse_decode_u_32(deserializer);
+    var var_address = sse_decode_String(deserializer);
+    var var_unconfidential = sse_decode_opt_String(deserializer);
+    var var_scriptHex = sse_decode_String(deserializer);
+    var var_used = sse_decode_bool(deserializer);
+    return DerivedAddressDto(
+      keychain: var_keychain,
+      index: var_index,
+      address: var_address,
+      unconfidential: var_unconfidential,
+      scriptHex: var_scriptHex,
+      used: var_used,
+    );
+  }
+
+  @protected
+  DeviceMetricsDto sse_decode_device_metrics_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_batteryLevel = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_screenBrightness = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_bootTime = sse_decode_opt_String(deserializer);
+    return DeviceMetricsDto(
+      deviceId: var_deviceId,
+      batteryLevel: var_batteryLevel,
+      screenBrightness: var_screenBrightness,
+      bootTime: var_bootTime,
+    );
+  }
+
+  @protected
   DirectionDto sse_decode_direction_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -2092,6 +6253,30 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   double sse_decode_f_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getFloat64();
+  }
+
+  @protected
+  FavoritePayerDto sse_decode_favorite_payer_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    var var_cpf = sse_decode_String(deserializer);
+    var var_maskedCpf = sse_decode_String(deserializer);
+    return FavoritePayerDto(
+      id: var_id,
+      label: var_label,
+      cpf: var_cpf,
+      maskedCpf: var_maskedCpf,
+    );
+  }
+
+  @protected
+  FavoritePayerSaveErrorDto sse_decode_favorite_payer_save_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return FavoritePayerSaveErrorDto.values[inner];
   }
 
   @protected
@@ -2119,6 +6304,13 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  HttpMethodDto sse_decode_http_method_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return HttpMethodDto.values[inner];
+  }
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
@@ -2128,6 +6320,19 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  PlatformInt64 sse_decode_isize(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  KeychainDto sse_decode_keychain_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return KeychainDto.values[inner];
   }
 
   @protected
@@ -2197,6 +6402,34 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  List<DerivedAddressDto> sse_decode_list_derived_address_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <DerivedAddressDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_derived_address_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<FavoritePayerDto> sse_decode_list_favorite_payer_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FavoritePayerDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_favorite_payer_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<LiquidUtxoDto> sse_decode_list_liquid_utxo_dto(
     SseDeserializer deserializer,
   ) {
@@ -2206,6 +6439,48 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     var ans_ = <LiquidUtxoDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_liquid_utxo_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PegRecordDto> sse_decode_list_peg_record_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PegRecordDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_peg_record_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PixDepositDto> sse_decode_list_pix_deposit_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PixDepositDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pix_deposit_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PixStatusEventDto> sse_decode_list_pix_status_event_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PixStatusEventDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pix_status_event_dto(deserializer));
     }
     return ans_;
   }
@@ -2222,6 +6497,34 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<SideswapAssetDto> sse_decode_list_sideswap_asset_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SideswapAssetDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_sideswap_asset_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<SideswapMarketDto> sse_decode_list_sideswap_market_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SideswapMarketDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_sideswap_market_dto(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -2248,6 +6551,20 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     var ans_ = <TableCountDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_table_count_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<TrackedPegDto> sse_decode_list_tracked_peg_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <TrackedPegDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_tracked_peg_dto(deserializer));
     }
     return ans_;
   }
@@ -2281,6 +6598,20 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  List<WalletUtxoDto> sse_decode_list_wallet_utxo_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <WalletUtxoDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_wallet_utxo_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   MigrationReportDto sse_decode_migration_report_dto(
     SseDeserializer deserializer,
   ) {
@@ -2303,11 +6634,105 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  NextUnusedAddressDto sse_decode_next_unused_address_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_index = sse_decode_u_32(deserializer);
+    var var_address = sse_decode_String(deserializer);
+    var var_used = sse_decode_bool(deserializer);
+    return NextUnusedAddressDto(
+      index: var_index,
+      address: var_address,
+      used: var_used,
+    );
+  }
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  AddressOwnershipDto? sse_decode_opt_box_autoadd_address_ownership_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_address_ownership_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bool(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  CpfValidationErrorDto? sse_decode_opt_box_autoadd_cpf_validation_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_cpf_validation_error_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  DepositLimitsDto? sse_decode_opt_box_autoadd_deposit_limits_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_deposit_limits_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  DepositValidationErrorDto?
+  sse_decode_opt_box_autoadd_deposit_validation_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_deposit_validation_error_dto(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  DeviceMetricsDto? sse_decode_opt_box_autoadd_device_metrics_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_device_metrics_dto(deserializer));
     } else {
       return null;
     }
@@ -2325,11 +6750,77 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  FavoritePayerSaveErrorDto?
+  sse_decode_opt_box_autoadd_favorite_payer_save_error_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_favorite_payer_save_error_dto(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_i_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PegAmountIssueDto? sse_decode_opt_box_autoadd_peg_amount_issue_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_peg_amount_issue_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PegServerLimitsDto? sse_decode_opt_box_autoadd_peg_server_limits_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_peg_server_limits_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PixDepositDto? sse_decode_opt_box_autoadd_pix_deposit_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_pix_deposit_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  QuoteDto? sse_decode_opt_box_autoadd_quote_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_quote_dto(deserializer));
     } else {
       return null;
     }
@@ -2395,6 +6886,296 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  PegAmountIssueDto sse_decode_peg_amount_issue_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return PegAmountIssueDto.values[inner];
+  }
+
+  @protected
+  PegAmountValidationDto sse_decode_peg_amount_validation_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_hasAmount = sse_decode_bool(deserializer);
+    var var_isValid = sse_decode_bool(deserializer);
+    var var_issue = sse_decode_opt_box_autoadd_peg_amount_issue_dto(
+      deserializer,
+    );
+    var var_minimumSats = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_maximumSats = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_showsIssue = sse_decode_bool(deserializer);
+    return PegAmountValidationDto(
+      hasAmount: var_hasAmount,
+      isValid: var_isValid,
+      issue: var_issue,
+      minimumSats: var_minimumSats,
+      maximumSats: var_maximumSats,
+      showsIssue: var_showsIssue,
+    );
+  }
+
+  @protected
+  PegDirectionDto sse_decode_peg_direction_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return PegDirectionDto.values[inner];
+  }
+
+  @protected
+  PegExecutionDto sse_decode_peg_execution_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_order = sse_decode_peg_order_dto(deserializer);
+    var var_fundingTxId = sse_decode_String(deserializer);
+    return PegExecutionDto(order: var_order, fundingTxId: var_fundingTxId);
+  }
+
+  @protected
+  PegOrderDto sse_decode_peg_order_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_orderId = sse_decode_String(deserializer);
+    var var_direction = sse_decode_peg_direction_dto(deserializer);
+    var var_depositAddress = sse_decode_String(deserializer);
+    var var_payoutAddress = sse_decode_String(deserializer);
+    var var_createdAtMs = sse_decode_u_64(deserializer);
+    var var_expiresAtMs = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return PegOrderDto(
+      orderId: var_orderId,
+      direction: var_direction,
+      depositAddress: var_depositAddress,
+      payoutAddress: var_payoutAddress,
+      createdAtMs: var_createdAtMs,
+      expiresAtMs: var_expiresAtMs,
+    );
+  }
+
+  @protected
+  PegPhaseDto sse_decode_peg_phase_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return PegPhaseDto.values[inner];
+  }
+
+  @protected
+  PegProgressDto sse_decode_peg_progress_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_orderId = sse_decode_String(deserializer);
+    var var_direction = sse_decode_peg_direction_dto(deserializer);
+    var var_phase = sse_decode_peg_phase_dto(deserializer);
+    var var_depositAddress = sse_decode_String(deserializer);
+    var var_payoutAddress = sse_decode_String(deserializer);
+    var var_totalDepositedSat = sse_decode_u_64(deserializer);
+    var var_totalPayoutSat = sse_decode_u_64(deserializer);
+    var var_payoutTxId = sse_decode_opt_String(deserializer);
+    return PegProgressDto(
+      orderId: var_orderId,
+      direction: var_direction,
+      phase: var_phase,
+      depositAddress: var_depositAddress,
+      payoutAddress: var_payoutAddress,
+      totalDepositedSat: var_totalDepositedSat,
+      totalPayoutSat: var_totalPayoutSat,
+      payoutTxId: var_payoutTxId,
+    );
+  }
+
+  @protected
+  PegQuoteDto sse_decode_peg_quote_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_direction = sse_decode_peg_direction_dto(deserializer);
+    var var_amountSat = sse_decode_u_64(deserializer);
+    var var_networkFeeSat = sse_decode_u_64(deserializer);
+    var var_serviceFeeSat = sse_decode_u_64(deserializer);
+    var var_minimumSat = sse_decode_u_64(deserializer);
+    var var_totalFeeSat = sse_decode_u_64(deserializer);
+    var var_estimatedReceiveSat = sse_decode_u_64(deserializer);
+    return PegQuoteDto(
+      direction: var_direction,
+      amountSat: var_amountSat,
+      networkFeeSat: var_networkFeeSat,
+      serviceFeeSat: var_serviceFeeSat,
+      minimumSat: var_minimumSat,
+      totalFeeSat: var_totalFeeSat,
+      estimatedReceiveSat: var_estimatedReceiveSat,
+    );
+  }
+
+  @protected
+  PegRecordDto sse_decode_peg_record_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_orderId = sse_decode_String(deserializer);
+    var var_direction = sse_decode_peg_direction_dto(deserializer);
+    var var_sideswapAddress = sse_decode_String(deserializer);
+    var var_payoutAddress = sse_decode_String(deserializer);
+    var var_amountSat = sse_decode_u_64(deserializer);
+    var var_createdAtMs = sse_decode_u_64(deserializer);
+    var var_walletId = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_fundingTxId = sse_decode_opt_String(deserializer);
+    var var_payoutTxId = sse_decode_opt_String(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    var var_updatedAtMs = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return PegRecordDto(
+      orderId: var_orderId,
+      direction: var_direction,
+      sideswapAddress: var_sideswapAddress,
+      payoutAddress: var_payoutAddress,
+      amountSat: var_amountSat,
+      createdAtMs: var_createdAtMs,
+      walletId: var_walletId,
+      status: var_status,
+      fundingTxId: var_fundingTxId,
+      payoutTxId: var_payoutTxId,
+      errorMessage: var_errorMessage,
+      updatedAtMs: var_updatedAtMs,
+    );
+  }
+
+  @protected
+  PegRefreshDto sse_decode_peg_refresh_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_pegs = sse_decode_list_tracked_peg_dto(deserializer);
+    var var_changed = sse_decode_list_String(deserializer);
+    var var_finished = sse_decode_list_tracked_peg_dto(deserializer);
+    var var_nextWakeupMs = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return PegRefreshDto(
+      pegs: var_pegs,
+      changed: var_changed,
+      finished: var_finished,
+      nextWakeupMs: var_nextWakeupMs,
+    );
+  }
+
+  @protected
+  PegServerLimitsDto sse_decode_peg_server_limits_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_minPegInSat = sse_decode_u_64(deserializer);
+    var var_minPegOutSat = sse_decode_u_64(deserializer);
+    var var_serverFeePercentPegIn = sse_decode_f_64(deserializer);
+    var var_serverFeePercentPegOut = sse_decode_f_64(deserializer);
+    return PegServerLimitsDto(
+      minPegInSat: var_minPegInSat,
+      minPegOutSat: var_minPegOutSat,
+      serverFeePercentPegIn: var_serverFeePercentPegIn,
+      serverFeePercentPegOut: var_serverFeePercentPegOut,
+    );
+  }
+
+  @protected
+  PixDepositDto sse_decode_pix_deposit_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_depositId = sse_decode_String(deserializer);
+    var var_pixKey = sse_decode_String(deserializer);
+    var var_assetId = sse_decode_String(deserializer);
+    var var_amountInCents = sse_decode_u_64(deserializer);
+    var var_network = sse_decode_String(deserializer);
+    var var_status = sse_decode_deposit_status_dto(deserializer);
+    var var_createdAtMs = sse_decode_u_64(deserializer);
+    var var_blockchainTxid = sse_decode_opt_String(deserializer);
+    var var_assetAmount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return PixDepositDto(
+      depositId: var_depositId,
+      pixKey: var_pixKey,
+      assetId: var_assetId,
+      amountInCents: var_amountInCents,
+      network: var_network,
+      status: var_status,
+      createdAtMs: var_createdAtMs,
+      blockchainTxid: var_blockchainTxid,
+      assetAmount: var_assetAmount,
+    );
+  }
+
+  @protected
+  PixFeeDto sse_decode_pix_fee_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_feeRatePercent = sse_decode_f_64(deserializer);
+    var var_feeAmount = sse_decode_f_64(deserializer);
+    var var_discountedAmount = sse_decode_f_64(deserializer);
+    var var_estimatedAssetUnits = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_activeTier = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_amountInCents = sse_decode_u_64(deserializer);
+    return PixFeeDto(
+      feeRatePercent: var_feeRatePercent,
+      feeAmount: var_feeAmount,
+      discountedAmount: var_discountedAmount,
+      estimatedAssetUnits: var_estimatedAssetUnits,
+      activeTier: var_activeTier,
+      amountInCents: var_amountInCents,
+    );
+  }
+
+  @protected
+  PixFlagDto sse_decode_pix_flag_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return PixFlagDto.values[inner];
+  }
+
+  @protected
+  PixStatusEventDto sse_decode_pix_status_event_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_depositId = sse_decode_String(deserializer);
+    var var_status = sse_decode_deposit_status_dto(deserializer);
+    var var_blockchainTxid = sse_decode_opt_String(deserializer);
+    var var_assetAmount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    return PixStatusEventDto(
+      depositId: var_depositId,
+      status: var_status,
+      blockchainTxid: var_blockchainTxid,
+      assetAmount: var_assetAmount,
+      errorMessage: var_errorMessage,
+    );
+  }
+
+  @protected
+  QuoteDto sse_decode_quote_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_status = sse_decode_quote_status_dto(deserializer);
+    var var_quoteId = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_baseAmount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_quoteAmount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_serverFee = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_fixedFee = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_ttlMs = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_available = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    var var_quoteSubId = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_requestedAmount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_baseAssetId = sse_decode_opt_String(deserializer);
+    var var_quoteAssetId = sse_decode_opt_String(deserializer);
+    return QuoteDto(
+      status: var_status,
+      quoteId: var_quoteId,
+      baseAmount: var_baseAmount,
+      quoteAmount: var_quoteAmount,
+      serverFee: var_serverFee,
+      fixedFee: var_fixedFee,
+      ttlMs: var_ttlMs,
+      available: var_available,
+      errorMessage: var_errorMessage,
+      quoteSubId: var_quoteSubId,
+      requestedAmount: var_requestedAmount,
+      baseAssetId: var_baseAssetId,
+      quoteAssetId: var_quoteAssetId,
+    );
+  }
+
+  @protected
+  QuoteStatusDto sse_decode_quote_status_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return QuoteStatusDto.values[inner];
+  }
+
+  @protected
   ReceiveAddressDto sse_decode_receive_address_dto(
     SseDeserializer deserializer,
   ) {
@@ -2439,6 +7220,68 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  SideSwapEventDto sse_decode_side_swap_event_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_kind = sse_decode_side_swap_event_kind(deserializer);
+    var var_quote = sse_decode_opt_box_autoadd_quote_dto(deserializer);
+    var var_balanceSat = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_message = sse_decode_opt_String(deserializer);
+    return SideSwapEventDto(
+      kind: var_kind,
+      quote: var_quote,
+      balanceSat: var_balanceSat,
+      message: var_message,
+    );
+  }
+
+  @protected
+  SideSwapEventKind sse_decode_side_swap_event_kind(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return SideSwapEventKind.values[inner];
+  }
+
+  @protected
+  SideswapAssetDto sse_decode_sideswap_asset_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_assetId = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_ticker = sse_decode_String(deserializer);
+    var var_precision = sse_decode_u_8(deserializer);
+    var var_iconUrl = sse_decode_opt_String(deserializer);
+    var var_instantSwaps = sse_decode_opt_box_autoadd_bool(deserializer);
+    return SideswapAssetDto(
+      assetId: var_assetId,
+      name: var_name,
+      ticker: var_ticker,
+      precision: var_precision,
+      iconUrl: var_iconUrl,
+      instantSwaps: var_instantSwaps,
+    );
+  }
+
+  @protected
+  SideswapMarketDto sse_decode_sideswap_market_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_baseAssetId = sse_decode_String(deserializer);
+    var var_quoteAssetId = sse_decode_String(deserializer);
+    var var_feeAsset = sse_decode_String(deserializer);
+    var var_marketType = sse_decode_String(deserializer);
+    return SideswapMarketDto(
+      baseAssetId: var_baseAssetId,
+      quoteAssetId: var_quoteAssetId,
+      feeAsset: var_feeAsset,
+      marketType: var_marketType,
+    );
+  }
+
+  @protected
   SkippedRowDto sse_decode_skipped_row_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_table = sse_decode_String(deserializer);
@@ -2452,6 +7295,21 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return SourceDto.values[inner];
+  }
+
+  @protected
+  StartQuoteDto sse_decode_start_quote_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_started = sse_decode_bool(deserializer);
+    var var_quoteSubId = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_baseAssetId = sse_decode_opt_String(deserializer);
+    var var_quoteAssetId = sse_decode_opt_String(deserializer);
+    return StartQuoteDto(
+      started: var_started,
+      quoteSubId: var_quoteSubId,
+      baseAssetId: var_baseAssetId,
+      quoteAssetId: var_quoteAssetId,
+    );
   }
 
   @protected
@@ -2482,6 +7340,35 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     var var_table = sse_decode_String(deserializer);
     var var_count = sse_decode_u_32(deserializer);
     return TableCountDto(table: var_table, count: var_count);
+  }
+
+  @protected
+  TrackedPegDto sse_decode_tracked_peg_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_orderId = sse_decode_String(deserializer);
+    var var_direction = sse_decode_peg_direction_dto(deserializer);
+    var var_phase = sse_decode_peg_phase_dto(deserializer);
+    var var_amountSat = sse_decode_u_64(deserializer);
+    var var_depositAddress = sse_decode_String(deserializer);
+    var var_fundingTxId = sse_decode_opt_String(deserializer);
+    var var_payoutTxId = sse_decode_opt_String(deserializer);
+    var var_confirmations = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_requiredConfirmations = sse_decode_opt_box_autoadd_u_32(
+      deserializer,
+    );
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    return TrackedPegDto(
+      orderId: var_orderId,
+      direction: var_direction,
+      phase: var_phase,
+      amountSat: var_amountSat,
+      depositAddress: var_depositAddress,
+      fundingTxId: var_fundingTxId,
+      payoutTxId: var_payoutTxId,
+      confirmations: var_confirmations,
+      requiredConfirmations: var_requiredConfirmations,
+      errorMessage: var_errorMessage,
+    );
   }
 
   @protected
@@ -2595,6 +7482,44 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  WalletUtxoDto sse_decode_wallet_utxo_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_txid = sse_decode_String(deserializer);
+    var var_vout = sse_decode_u_32(deserializer);
+    var var_address = sse_decode_String(deserializer);
+    var var_unconfidential = sse_decode_opt_String(deserializer);
+    var var_scriptHex = sse_decode_String(deserializer);
+    var var_keychain = sse_decode_keychain_dto(deserializer);
+    var var_index = sse_decode_u_32(deserializer);
+    var var_amountSat = sse_decode_u_64(deserializer);
+    var var_assetId = sse_decode_opt_String(deserializer);
+    var var_confirmationHeight = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_confirmationTimeS = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return WalletUtxoDto(
+      txid: var_txid,
+      vout: var_vout,
+      address: var_address,
+      unconfidential: var_unconfidential,
+      scriptHex: var_scriptHex,
+      keychain: var_keychain,
+      index: var_index,
+      amountSat: var_amountSat,
+      assetId: var_assetId,
+      confirmationHeight: var_confirmationHeight,
+      confirmationTimeS: var_confirmationTimeS,
+    );
+  }
+
+  @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     MoozeCore self,
@@ -2621,6 +7546,69 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    FutureOr<List<String>> Function(String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_String_Output_list_String_AnyhowException(self),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
+    FutureOr<String?> Function(String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_String_Output_opt_String_AnyhowException(self),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_String_Output_unit_AnyhowException(self),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String, String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_String_String_Output_unit_AnyhowException(self),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_DartOpaque(Object self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_isize(
+      PlatformPointerUtil.ptrToPlatformInt64(
+        encodeDartOpaque(
+          self,
+          portManager.dartHandlerPort,
+          generalizedFrbRustBinding,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     MoozeCore self,
@@ -2634,9 +7622,46 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_StreamSink_side_swap_event_dto_Sse(
+    RustStreamSink<SideSwapEventDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_side_swap_event_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_address_ownership_dto(
+    AddressOwnershipDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_keychain_dto(self.keychain, serializer);
+    sse_encode_u_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_api_response_dto(
+    ApiResponseDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_16(self.status, serializer);
+    sse_encode_String(self.body, serializer);
   }
 
   @protected
@@ -2651,6 +7676,26 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     sse_encode_u_8(self.precision, serializer);
     sse_encode_opt_String(self.ticker, serializer);
     sse_encode_u_64(self.pendingSat, serializer);
+  }
+
+  @protected
+  void sse_encode_auth_ensure_dto(
+    AuthEnsureDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_auth_ensure_kind(self.kind, serializer);
+    sse_encode_opt_box_autoadd_u_16(self.statusCode, serializer);
+    sse_encode_opt_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_auth_ensure_kind(
+    AuthEnsureKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -2673,6 +7718,21 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_box_autoadd_address_ownership_dto(
+    AddressOwnershipDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_address_ownership_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_core_config(
     CoreConfig self,
     SseSerializer serializer,
@@ -2682,9 +7742,54 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_box_autoadd_cpf_validation_error_dto(
+    CpfValidationErrorDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_cpf_validation_error_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_deposit_limits_dto(
+    DepositLimitsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_deposit_limits_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_deposit_validation_error_dto(
+    DepositValidationErrorDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_deposit_validation_error_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_device_metrics_dto(
+    DeviceMetricsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_device_metrics_dto(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_f_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_favorite_payer_save_error_dto(
+    FavoritePayerSaveErrorDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_favorite_payer_save_error_dto(self, serializer);
   }
 
   @protected
@@ -2694,6 +7799,42 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_peg_amount_issue_dto(
+    PegAmountIssueDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_peg_amount_issue_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_peg_server_limits_dto(
+    PegServerLimitsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_peg_server_limits_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pix_deposit_dto(
+    PixDepositDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pix_deposit_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_quote_dto(
+    QuoteDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_quote_dto(self, serializer);
   }
 
   @protected
@@ -2795,6 +7936,83 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_cpf_validation_error_dto(
+    CpfValidationErrorDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_deposit_limits_dto(
+    DepositLimitsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self.absoluteMinLimit, serializer);
+    sse_encode_f_64(self.allowedSpending, serializer);
+  }
+
+  @protected
+  void sse_encode_deposit_status_dto(
+    DepositStatusDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_deposit_validation_dto(
+    DepositValidationDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.isValid, serializer);
+    sse_encode_opt_box_autoadd_deposit_validation_error_dto(
+      self.error,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_f_64(self.limitAmount, serializer);
+  }
+
+  @protected
+  void sse_encode_deposit_validation_error_dto(
+    DepositValidationErrorDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_derived_address_dto(
+    DerivedAddressDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_keychain_dto(self.keychain, serializer);
+    sse_encode_u_32(self.index, serializer);
+    sse_encode_String(self.address, serializer);
+    sse_encode_opt_String(self.unconfidential, serializer);
+    sse_encode_String(self.scriptHex, serializer);
+    sse_encode_bool(self.used, serializer);
+  }
+
+  @protected
+  void sse_encode_device_metrics_dto(
+    DeviceMetricsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.batteryLevel, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.screenBrightness, serializer);
+    sse_encode_opt_String(self.bootTime, serializer);
+  }
+
+  @protected
   void sse_encode_direction_dto(DirectionDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -2804,6 +8022,27 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   void sse_encode_f_64(double self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putFloat64(self);
+  }
+
+  @protected
+  void sse_encode_favorite_payer_dto(
+    FavoritePayerDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_u_64(self.id, serializer);
+    sse_encode_String(self.label, serializer);
+    sse_encode_String(self.cpf, serializer);
+    sse_encode_String(self.maskedCpf, serializer);
+  }
+
+  @protected
+  void sse_encode_favorite_payer_save_error_dto(
+    FavoritePayerSaveErrorDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -2829,6 +8068,15 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_http_method_dto(
+    HttpMethodDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
@@ -2838,6 +8086,18 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_isize(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_keychain_dto(KeychainDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -2890,6 +8150,30 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_list_derived_address_dto(
+    List<DerivedAddressDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_derived_address_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_favorite_payer_dto(
+    List<FavoritePayerDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_favorite_payer_dto(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_liquid_utxo_dto(
     List<LiquidUtxoDto> self,
     SseSerializer serializer,
@@ -2898,6 +8182,42 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_liquid_utxo_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_peg_record_dto(
+    List<PegRecordDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_peg_record_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_pix_deposit_dto(
+    List<PixDepositDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pix_deposit_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_pix_status_event_dto(
+    List<PixStatusEventDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pix_status_event_dto(item, serializer);
     }
   }
 
@@ -2922,6 +8242,30 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_list_sideswap_asset_dto(
+    List<SideswapAssetDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_sideswap_asset_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_sideswap_market_dto(
+    List<SideswapMarketDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_sideswap_market_dto(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_skipped_row_dto(
     List<SkippedRowDto> self,
     SseSerializer serializer,
@@ -2942,6 +8286,18 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_table_count_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_tracked_peg_dto(
+    List<TrackedPegDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_tracked_peg_dto(item, serializer);
     }
   }
 
@@ -2970,6 +8326,18 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_list_wallet_utxo_dto(
+    List<WalletUtxoDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_wallet_utxo_dto(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_migration_report_dto(
     MigrationReportDto self,
     SseSerializer serializer,
@@ -2987,12 +8355,98 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_next_unused_address_dto(
+    NextUnusedAddressDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.index, serializer);
+    sse_encode_String(self.address, serializer);
+    sse_encode_bool(self.used, serializer);
+  }
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_address_ownership_dto(
+    AddressOwnershipDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_address_ownership_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_cpf_validation_error_dto(
+    CpfValidationErrorDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_cpf_validation_error_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_deposit_limits_dto(
+    DepositLimitsDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_deposit_limits_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_deposit_validation_error_dto(
+    DepositValidationErrorDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_deposit_validation_error_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_device_metrics_dto(
+    DeviceMetricsDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_device_metrics_dto(self, serializer);
     }
   }
 
@@ -3007,6 +8461,19 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_favorite_payer_save_error_dto(
+    FavoritePayerSaveErrorDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_favorite_payer_save_error_dto(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_i_64(
     PlatformInt64? self,
     SseSerializer serializer,
@@ -3016,6 +8483,58 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_i_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_peg_amount_issue_dto(
+    PegAmountIssueDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_peg_amount_issue_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_peg_server_limits_dto(
+    PegServerLimitsDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_peg_server_limits_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_pix_deposit_dto(
+    PixDepositDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_pix_deposit_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_quote_dto(
+    QuoteDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_quote_dto(self, serializer);
     }
   }
 
@@ -3076,6 +8595,208 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_peg_amount_issue_dto(
+    PegAmountIssueDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_amount_validation_dto(
+    PegAmountValidationDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.hasAmount, serializer);
+    sse_encode_bool(self.isValid, serializer);
+    sse_encode_opt_box_autoadd_peg_amount_issue_dto(self.issue, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.minimumSats, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.maximumSats, serializer);
+    sse_encode_bool(self.showsIssue, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_direction_dto(
+    PegDirectionDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_execution_dto(
+    PegExecutionDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_peg_order_dto(self.order, serializer);
+    sse_encode_String(self.fundingTxId, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_order_dto(PegOrderDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.orderId, serializer);
+    sse_encode_peg_direction_dto(self.direction, serializer);
+    sse_encode_String(self.depositAddress, serializer);
+    sse_encode_String(self.payoutAddress, serializer);
+    sse_encode_u_64(self.createdAtMs, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.expiresAtMs, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_phase_dto(PegPhaseDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_progress_dto(
+    PegProgressDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.orderId, serializer);
+    sse_encode_peg_direction_dto(self.direction, serializer);
+    sse_encode_peg_phase_dto(self.phase, serializer);
+    sse_encode_String(self.depositAddress, serializer);
+    sse_encode_String(self.payoutAddress, serializer);
+    sse_encode_u_64(self.totalDepositedSat, serializer);
+    sse_encode_u_64(self.totalPayoutSat, serializer);
+    sse_encode_opt_String(self.payoutTxId, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_quote_dto(PegQuoteDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_peg_direction_dto(self.direction, serializer);
+    sse_encode_u_64(self.amountSat, serializer);
+    sse_encode_u_64(self.networkFeeSat, serializer);
+    sse_encode_u_64(self.serviceFeeSat, serializer);
+    sse_encode_u_64(self.minimumSat, serializer);
+    sse_encode_u_64(self.totalFeeSat, serializer);
+    sse_encode_u_64(self.estimatedReceiveSat, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_record_dto(PegRecordDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.orderId, serializer);
+    sse_encode_peg_direction_dto(self.direction, serializer);
+    sse_encode_String(self.sideswapAddress, serializer);
+    sse_encode_String(self.payoutAddress, serializer);
+    sse_encode_u_64(self.amountSat, serializer);
+    sse_encode_u_64(self.createdAtMs, serializer);
+    sse_encode_String(self.walletId, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.fundingTxId, serializer);
+    sse_encode_opt_String(self.payoutTxId, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.updatedAtMs, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_refresh_dto(
+    PegRefreshDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_tracked_peg_dto(self.pegs, serializer);
+    sse_encode_list_String(self.changed, serializer);
+    sse_encode_list_tracked_peg_dto(self.finished, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.nextWakeupMs, serializer);
+  }
+
+  @protected
+  void sse_encode_peg_server_limits_dto(
+    PegServerLimitsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.minPegInSat, serializer);
+    sse_encode_u_64(self.minPegOutSat, serializer);
+    sse_encode_f_64(self.serverFeePercentPegIn, serializer);
+    sse_encode_f_64(self.serverFeePercentPegOut, serializer);
+  }
+
+  @protected
+  void sse_encode_pix_deposit_dto(
+    PixDepositDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.depositId, serializer);
+    sse_encode_String(self.pixKey, serializer);
+    sse_encode_String(self.assetId, serializer);
+    sse_encode_u_64(self.amountInCents, serializer);
+    sse_encode_String(self.network, serializer);
+    sse_encode_deposit_status_dto(self.status, serializer);
+    sse_encode_u_64(self.createdAtMs, serializer);
+    sse_encode_opt_String(self.blockchainTxid, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.assetAmount, serializer);
+  }
+
+  @protected
+  void sse_encode_pix_fee_dto(PixFeeDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self.feeRatePercent, serializer);
+    sse_encode_f_64(self.feeAmount, serializer);
+    sse_encode_f_64(self.discountedAmount, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.estimatedAssetUnits, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.activeTier, serializer);
+    sse_encode_u_64(self.amountInCents, serializer);
+  }
+
+  @protected
+  void sse_encode_pix_flag_dto(PixFlagDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_pix_status_event_dto(
+    PixStatusEventDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.depositId, serializer);
+    sse_encode_deposit_status_dto(self.status, serializer);
+    sse_encode_opt_String(self.blockchainTxid, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.assetAmount, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
+  }
+
+  @protected
+  void sse_encode_quote_dto(QuoteDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_quote_status_dto(self.status, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.quoteId, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.baseAmount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.quoteAmount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.serverFee, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.fixedFee, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.ttlMs, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.available, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.quoteSubId, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.requestedAmount, serializer);
+    sse_encode_opt_String(self.baseAssetId, serializer);
+    sse_encode_opt_String(self.quoteAssetId, serializer);
+  }
+
+  @protected
+  void sse_encode_quote_status_dto(
+    QuoteStatusDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_receive_address_dto(
     ReceiveAddressDto self,
     SseSerializer serializer,
@@ -3108,6 +8829,53 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   }
 
   @protected
+  void sse_encode_side_swap_event_dto(
+    SideSwapEventDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_side_swap_event_kind(self.kind, serializer);
+    sse_encode_opt_box_autoadd_quote_dto(self.quote, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.balanceSat, serializer);
+    sse_encode_opt_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_side_swap_event_kind(
+    SideSwapEventKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_sideswap_asset_dto(
+    SideswapAssetDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.assetId, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.ticker, serializer);
+    sse_encode_u_8(self.precision, serializer);
+    sse_encode_opt_String(self.iconUrl, serializer);
+    sse_encode_opt_box_autoadd_bool(self.instantSwaps, serializer);
+  }
+
+  @protected
+  void sse_encode_sideswap_market_dto(
+    SideswapMarketDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.baseAssetId, serializer);
+    sse_encode_String(self.quoteAssetId, serializer);
+    sse_encode_String(self.feeAsset, serializer);
+    sse_encode_String(self.marketType, serializer);
+  }
+
+  @protected
   void sse_encode_skipped_row_dto(
     SkippedRowDto self,
     SseSerializer serializer,
@@ -3122,6 +8890,18 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
   void sse_encode_source_dto(SourceDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_start_quote_dto(
+    StartQuoteDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.started, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.quoteSubId, serializer);
+    sse_encode_opt_String(self.baseAssetId, serializer);
+    sse_encode_opt_String(self.quoteAssetId, serializer);
   }
 
   @protected
@@ -3150,6 +8930,24 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.table, serializer);
     sse_encode_u_32(self.count, serializer);
+  }
+
+  @protected
+  void sse_encode_tracked_peg_dto(
+    TrackedPegDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.orderId, serializer);
+    sse_encode_peg_direction_dto(self.direction, serializer);
+    sse_encode_peg_phase_dto(self.phase, serializer);
+    sse_encode_u_64(self.amountSat, serializer);
+    sse_encode_String(self.depositAddress, serializer);
+    sse_encode_opt_String(self.fundingTxId, serializer);
+    sse_encode_opt_String(self.payoutTxId, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.confirmations, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.requiredConfirmations, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
   }
 
   @protected
@@ -3234,6 +9032,25 @@ class MoozeCoreLibApiImpl extends MoozeCoreLibApiImplPlatform
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
   }
+
+  @protected
+  void sse_encode_wallet_utxo_dto(
+    WalletUtxoDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.txid, serializer);
+    sse_encode_u_32(self.vout, serializer);
+    sse_encode_String(self.address, serializer);
+    sse_encode_opt_String(self.unconfidential, serializer);
+    sse_encode_String(self.scriptHex, serializer);
+    sse_encode_keychain_dto(self.keychain, serializer);
+    sse_encode_u_32(self.index, serializer);
+    sse_encode_u_64(self.amountSat, serializer);
+    sse_encode_opt_String(self.assetId, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.confirmationHeight, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.confirmationTimeS, serializer);
+  }
 }
 
 @sealed
@@ -3255,6 +9072,84 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
         MoozeCoreLib.instance.api.rust_arc_decrement_strong_count_MoozeCorePtr,
   );
 
+  /// Sends one request to the Mooze backend with the session
+  /// (Dart authenticated Dio client).
+  ///
+  /// Attaches `Authorization: Bearer <jwt>` except on `/auth/*` paths. On
+  /// 401 or 403 it refreshes the session once and retries once. Returns
+  /// non-2xx statuses; throws `CoreErrorKind.session` if the refresh fails.
+  /// `json_body` must be JSON text.
+  Future<ApiResponseDto> apiRequest({
+    required HttpMethodDto method,
+    required String path,
+    String? jsonBody,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreApiRequest(
+    that: this,
+    method: method,
+    path: path,
+    jsonBody: jsonBody,
+  );
+
+  /// Sets the backend base URL (Dart `BACKEND_API_URL`). Default
+  /// `https://api.mooze.app`. Drops the session manager.
+  Future<void> apiSetBaseUrl({required String baseUrl}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreApiSetBaseUrl(that: this, baseUrl: baseUrl);
+
+  /// Sets the metrics the API client adds to JSON request bodies.
+  /// `None` stops adding them.
+  Future<void> apiSetMetrics({DeviceMetricsDto? metrics}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreApiSetMetrics(that: this, metrics: metrics);
+
+  /// A valid JWT: stored, refreshed or newly created
+  /// (Dart `SessionManagerService.getSession`).
+  Future<String> authAccessToken() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreAuthAccessToken(that: this);
+
+  /// The persisted device id, or a new one derived from `serial`
+  /// (`UniqueIdentifier.serial`) or `platform_id` (Android id or iOS
+  /// identifierForVendor), else a random UUID (Dart `DeviceIdService`).
+  Future<String> authDeviceId({String? serial, String? platformId}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreAuthDeviceId(
+        that: this,
+        serial: serial,
+        platformId: platformId,
+      );
+
+  /// Boot-time session check (Dart `ensureAuthSessionProvider`). Signs a
+  /// login challenge with the stored mnemonic if needed and stores the
+  /// tokens under `jwt` and `refresh_token`.
+  Future<AuthEnsureDto> authEnsureSession() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreAuthEnsureSession(that: this);
+
+  /// Refreshes the session regardless of local expiry and returns the new
+  /// JWT (Dart `SessionManagerService.forceRefresh`).
+  Future<String> authForceRefresh() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreAuthForceRefresh(that: this);
+
+  /// Deletes the stored session (Dart `SessionAuthenticator.invalidate`).
+  Future<void> authInvalidate() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreAuthInvalidate(that: this);
+
+  /// Manual refresh (Dart `refreshAuthSessionProvider`). Returns success.
+  Future<bool> authRefreshCurrent() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreAuthRefreshCurrent(that: this);
+
+  /// Drops the session manager, so the next auth call reads the mnemonic
+  /// again. Call it after the wallet mnemonic changes or is deleted.
+  Future<void> authReset() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreAuthReset(that: this);
+
+  /// Sets the device integrity result (Dart `SafeDevice.isSafeDevice`).
+  /// Unsafe devices cannot sign in and send API requests without a token.
+  Future<void> authSetDeviceSafe({required bool safe}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreAuthSetDeviceSafe(that: this, safe: safe);
+
   /// Bitcoin balance from local state.
   Future<BalanceDto> bitcoinBalance() =>
       MoozeCoreLib.instance.api.crateApiCoreMoozeCoreBitcoinBalance(that: this);
@@ -3269,6 +9164,18 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
       .api
       .crateApiCoreMoozeCoreBitcoinConnect(that: this, mnemonic: mnemonic);
 
+  /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
+  Future<List<DerivedAddressDto>> bitcoinDerivedAddresses({
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreBitcoinDerivedAddresses(
+    that: this,
+    keychain: keychain,
+    start: start,
+    count: count,
+  );
+
   /// Drops the Bitcoin wallet. Idempotent.
   Future<void> bitcoinDisconnect() => MoozeCoreLib.instance.api
       .crateApiCoreMoozeCoreBitcoinDisconnect(that: this);
@@ -3280,6 +9187,20 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
     that: this,
     request: request,
   );
+
+  /// Derivation of `address` if the wallet owns it. Throws
+  /// `CoreErrorKind.invalidInput` for an address it cannot parse.
+  Future<AddressOwnershipDto?> bitcoinIsMine({required String address}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreBitcoinIsMine(
+        that: this,
+        address: address,
+      );
+
+  /// Next receive address with no history. Reveals up to it and persists.
+  Future<NextUnusedAddressDto> bitcoinNextUnusedAddress() => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreBitcoinNextUnusedAddress(that: this);
 
   /// Next unused receive address.
   Future<ReceiveAddressDto> bitcoinReceiveAddress({String? label}) =>
@@ -3319,6 +9240,52 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
       .instance
       .api
       .crateApiCoreMoozeCoreBitcoinTransactions(that: this);
+
+  /// Unspent outputs with address, derivation and confirmation.
+  Future<List<WalletUtxoDto>> bitcoinUnspentOutputs() => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreBitcoinUnspentOutputs(that: this);
+
+  /// True if a payer other than `excluding_id` has `cpf` (digits, or masked).
+  Future<bool> favoritePayerCpfExists({
+    required String cpf,
+    BigInt? excludingId,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreFavoritePayerCpfExists(
+    that: this,
+    cpf: cpf,
+    excludingId: excludingId,
+  );
+
+  /// Deletes one payer.
+  Future<void> favoritePayerDelete({required BigInt id}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreFavoritePayerDelete(that: this, id: id);
+
+  /// Inserts (`id` null) or updates a payer, as the Dart controller does:
+  /// strips the CPF mask, trims the label, refuses a CPF that another
+  /// payer has. Returns the refusal reason, or `null` when saved.
+  Future<FavoritePayerSaveErrorDto?> favoritePayerSave({
+    BigInt? id,
+    required String label,
+    required String cpf,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreFavoritePayerSave(
+    that: this,
+    id: id,
+    label: label,
+    cpf: cpf,
+  );
+
+  /// Deletes every payer (wallet delete or import).
+  Future<void> favoritePayersClear() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreFavoritePayersClear(that: this);
+
+  /// Every favorite payer, newest first.
+  Future<List<FavoritePayerDto>> favoritePayersList() => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreFavoritePayersList(that: this);
 
   /// Imports the snapshot from `FlutterDataExporter`, once.
   Future<MigrationReportDto> importFlutterSnapshot({
@@ -3366,6 +9333,18 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
       .api
       .crateApiCoreMoozeCoreLiquidConnect(that: this, mnemonic: mnemonic);
 
+  /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
+  Future<List<DerivedAddressDto>> liquidDerivedAddresses({
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreLiquidDerivedAddresses(
+    that: this,
+    keychain: keychain,
+    start: start,
+    count: count,
+  );
+
   /// Drops the Liquid wallet. Idempotent.
   Future<void> liquidDisconnect() => MoozeCoreLib.instance.api
       .crateApiCoreMoozeCoreLiquidDisconnect(that: this);
@@ -3376,6 +9355,24 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
         that: this,
         request: request,
       );
+
+  /// Derivation of `address` among the first `scan_limit` addresses of
+  /// each chain. Throws `CoreErrorKind.invalidInput` for an address it
+  /// cannot parse.
+  Future<AddressOwnershipDto?> liquidIsMine({
+    required String address,
+    required int scanLimit,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreLiquidIsMine(
+    that: this,
+    address: address,
+    scanLimit: scanLimit,
+  );
+
+  /// LWK's last unused receive address, with a history check.
+  Future<NextUnusedAddressDto> liquidNextUnusedAddress() => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreLiquidNextUnusedAddress(that: this);
 
   /// Receive address, optionally for one asset.
   Future<ReceiveAddressDto> liquidReceiveAddress({
@@ -3435,7 +9432,293 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
   Future<List<TransactionDto>> liquidTransactions() => MoozeCoreLib.instance.api
       .crateApiCoreMoozeCoreLiquidTransactions(that: this);
 
+  /// Unspent outputs with address, derivation, asset and confirmation.
+  Future<List<WalletUtxoDto>> liquidUnspentOutputs() => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreLiquidUnspentOutputs(that: this);
+
   /// Unblinded UTXOs, for SideSwap.
   Future<List<LiquidUtxoDto>> liquidUtxos() =>
       MoozeCoreLib.instance.api.crateApiCoreMoozeCoreLiquidUtxos(that: this);
+
+  /// Creates a peg order, stores it under `wallet_id`, funds it from the
+  /// wallet and starts tracking it. `external_payout_address` is allowed
+  /// only for peg-outs; null pays to the own wallet.
+  Future<PegExecutionDto> pegExecute({
+    required String walletId,
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+    String? externalPayoutAddress,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegExecute(
+    that: this,
+    walletId: walletId,
+    direction: direction,
+    amountSat: amountSat,
+    feeRateSatPerVbyte: feeRateSatPerVbyte,
+    drain: drain,
+    externalPayoutAddress: externalPayoutAddress,
+  );
+
+  /// Peg minimums and fees from `server_status`.
+  Future<PegServerLimitsDto> pegLimits() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegLimits(that: this);
+
+  /// Stored pegs of `wallet_id`, oldest first. Needs no connection.
+  Future<List<PegRecordDto>> pegList({required String walletId}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCorePegList(that: this, walletId: walletId);
+
+  /// Prices a peg without creating an order.
+  Future<PegQuoteDto> pegQuote({
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegQuote(
+    that: this,
+    direction: direction,
+    amountSat: amountSat,
+    feeRateSatPerVbyte: feeRateSatPerVbyte,
+    drain: drain,
+  );
+
+  /// Polls every tracked peg whose time has come, persists terminal ones
+  /// under `wallet_id`, and returns the new state (Dart `PegTracker`).
+  /// Transport errors only reschedule.
+  Future<PegRefreshDto> pegRefreshDue({required String walletId}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegRefreshDue(
+        that: this,
+        walletId: walletId,
+      );
+
+  /// Resumes tracking of the pending pegs stored under `wallet_id`.
+  /// Idempotent. Returns every tracked peg.
+  Future<List<TrackedPegDto>> pegRestore({required String walletId}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegRestore(
+        that: this,
+        walletId: walletId,
+      );
+
+  /// One-shot status of an order.
+  Future<PegProgressDto> pegStatus({
+    required PegDirectionDto direction,
+    required String orderId,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegStatus(
+    that: this,
+    direction: direction,
+    orderId: orderId,
+  );
+
+  /// Every tracked peg.
+  Future<List<TrackedPegDto>> pegTracked() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePegTracked(that: this);
+
+  /// Stops tracking `order_id`. Storage is unchanged.
+  Future<void> pegUntrack({required String orderId}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCorePegUntrack(that: this, orderId: orderId);
+
+  /// Number of deposits still polled.
+  Future<int> pixActivePolls() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixActivePolls(that: this);
+
+  /// Stops polling every deposit (Dart `PixRepository.dispose`).
+  Future<void> pixCancelPolls() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixCancelPolls(that: this);
+
+  /// Deletes every stored deposit and stops polling (wallet delete or import).
+  Future<void> pixClearDeposits() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCorePixClearDeposits(that: this);
+
+  /// Creates a PIX deposit (Dart `PixRepository.newDeposit`).
+  ///
+  /// Pays to `address`, or to a new address of the connected Liquid wallet
+  /// when `None`. Stores the deposit and starts polling its status. A
+  /// backend failure throws with the Portuguese text the Dart UI showed.
+  Future<PixDepositDto> pixCreateDeposit({
+    required BigInt amountInCents,
+    required String assetId,
+    String? taxIdNumber,
+    String? address,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixCreateDeposit(
+    that: this,
+    amountInCents: amountInCents,
+    assetId: assetId,
+    taxIdNumber: taxIdNumber,
+    address: address,
+  );
+
+  /// True if `flag` is set.
+  Future<bool> pixFlagIsSet({required PixFlagDto flag}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCorePixFlagIsSet(that: this, flag: flag);
+
+  /// Clears `flag`.
+  Future<void> pixFlagReset({required PixFlagDto flag}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCorePixFlagReset(that: this, flag: flag);
+
+  /// Sets `flag`.
+  Future<void> pixFlagSet({required PixFlagDto flag}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCorePixFlagSet(that: this, flag: flag);
+
+  /// Reads one stored deposit.
+  Future<PixDepositDto?> pixGetDeposit({required String depositId}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixGetDeposit(
+        that: this,
+        depositId: depositId,
+      );
+
+  /// History page: stored deposits, with a backend refresh of the
+  /// non-terminal ones (Dart `PixHistoryController`). A failed refresh
+  /// returns the local data.
+  Future<List<PixDepositDto>> pixHistory({int? limit, int? offset}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixHistory(
+        that: this,
+        limit: limit,
+        offset: offset,
+      );
+
+  /// Stored deposits, newest first. `offset` applies only with a `limit`.
+  Future<List<PixDepositDto>> pixListDeposits({int? limit, int? offset}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixListDeposits(
+        that: this,
+        limit: limit,
+        offset: offset,
+      );
+
+  /// Runs one poll tick for every deposit created in this session and
+  /// returns the status changes (Dart `statusUpdates` stream). Call it
+  /// every `pixPollIntervalMs`. Expired and changed deposits stop polling.
+  Future<List<PixStatusEventDto>> pixPollTick() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixPollTick(that: this);
+
+  /// Refreshes deposits from the backend and returns the stored ones with
+  /// these ids (Dart `updateDepositDetails`).
+  Future<List<PixDepositDto>> pixUpdateDepositDetails({
+    required List<String> depositIds,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCorePixUpdateDepositDetails(
+    that: this,
+    depositIds: depositIds,
+  );
+
+  /// Deletes `key` from the secure store, through the Dart callbacks.
+  Future<void> secureDelete({required String key}) => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSecureDelete(that: this, key: key);
+
+  /// Reads `key` from the secure store, through the Dart callbacks.
+  Future<String?> secureGet({required String key}) => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSecureGet(that: this, key: key);
+
+  /// Keys of the secure store that start with `prefix`, sorted.
+  Future<List<String>> secureListKeys({required String prefix}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreSecureListKeys(that: this, prefix: prefix);
+
+  /// Writes `key` to the secure store, through the Dart callbacks.
+  Future<void> securePut({required String key, required String value}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSecurePut(
+        that: this,
+        key: key,
+        value: value,
+      );
+
+  /// Registers the Dart secure-storage callbacks (`flutter_secure_storage`).
+  ///
+  /// - `read(key)`: the value, or `null` if absent.
+  /// - `write(key, value)`: stores the value.
+  /// - `delete(key)`: removes the value. Absent keys are not an error.
+  /// - `listKeys(prefix)`: keys that start with `prefix` (filter `readAll()`).
+  ///
+  /// Call it once after `open`, before any auth or `secure*` call.
+  /// A second call replaces the callbacks and drops the session manager.
+  Future<void> setSecureStorage({
+    required FutureOr<String?> Function(String) read,
+    required FutureOr<void> Function(String, String) write,
+    required FutureOr<void> Function(String) delete,
+    required FutureOr<List<String>> Function(String) listKeys,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSetSecureStorage(
+    that: this,
+    read: read,
+    write: write,
+    delete: delete,
+    listKeys: listKeys,
+  );
+
+  /// SideSwap assets.
+  Future<List<SideswapAssetDto>> sideswapAssets() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSideswapAssets(that: this);
+
+  /// Stops the event stream task. The stream ends with a `closed` item.
+  Future<void> sideswapCloseEvents() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSideswapCloseEvents(that: this);
+
+  /// Opens the SideSwap connection and logs in (Dart `SideswapService.init`).
+  /// `url` null uses `sideswapDefaultUrl`. No-op when connected.
+  Future<void> sideswapConnect({required String apiKey, String? url}) =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSideswapConnect(
+        that: this,
+        apiKey: apiKey,
+        url: url,
+      );
+
+  /// Closes the connection and stops the event stream. Idempotent.
+  Future<void> sideswapDisconnect() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSideswapDisconnect(that: this);
+
+  /// Server pushes: quotes, peg wallet balances, disconnects. A bridge task
+  /// reads the socket while the stream is open. Opening a new stream
+  /// replaces the old one, which ends with a `closed` item. Close it with
+  /// `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling the Dart
+  /// subscription (the task stops at its next item).
+  Stream<SideSwapEventDto> sideswapEvents() =>
+      MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSideswapEvents(that: this);
+
+  /// True while the event stream task runs.
+  Future<bool> sideswapEventsRunning() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSideswapEventsRunning(that: this);
+
+  /// Accepts a quote: stops quotes, fetches the PSET, signs it with the
+  /// Liquid wallet and the mnemonic from the secure store, submits it.
+  /// Returns the txid.
+  Future<String> sideswapExecuteSwap({required BigInt quoteId}) => MoozeCoreLib
+      .instance
+      .api
+      .crateApiCoreMoozeCoreSideswapExecuteSwap(that: this, quoteId: quoteId);
+
+  /// True while the socket is open.
+  Future<bool> sideswapIsConnected() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSideswapIsConnected(that: this);
+
+  /// SideSwap markets.
+  Future<List<SideswapMarketDto>> sideswapMarkets() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSideswapMarkets(that: this);
+
+  /// Starts a quote subscription for `amount` of `send_asset_id`
+  /// (Dart `SwapController.startQuote`). Stops the previous one. Funds it
+  /// with the Liquid wallet UTXOs. Quotes arrive on `sideswapEvents`.
+  Future<StartQuoteDto> sideswapStartQuote({
+    required String sendAssetId,
+    required String receiveAssetId,
+    required BigInt amount,
+  }) => MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSideswapStartQuote(
+    that: this,
+    sendAssetId: sendAssetId,
+    receiveAssetId: receiveAssetId,
+    amount: amount,
+  );
+
+  /// Stops the quote subscription. Best-effort.
+  Future<void> sideswapStopQuote() => MoozeCoreLib.instance.api
+      .crateApiCoreMoozeCoreSideswapStopQuote(that: this);
 }

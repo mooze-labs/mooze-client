@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/shared/authentication/providers/session_manager_service_provider.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart' show moozeCoreProvider;
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
 
 class AuthInitializer extends StateNotifier<AsyncValue<bool>> {
@@ -44,38 +44,14 @@ class AuthInitializer extends StateNotifier<AsyncValue<bool>> {
         debugPrint('[AuthInitializer] Forçando refresh de sessão...');
       }
 
-      final sessionManager = _ref.read(sessionManagerServiceProvider);
-
-      final currentSessionResult = await sessionManager.getSession().run();
-
-      await currentSessionResult.fold(
-        (error) async {
-          if (kDebugMode) {
-            debugPrint('[AuthInitializer] Erro ao obter sessão: $error');
-          }
-          state = const AsyncValue.data(false);
-        },
-        (currentSession) async {
-          final refreshResult =
-              await sessionManager.refreshSession(currentSession).run();
-
-          await refreshResult.fold(
-            (error) async {
-              if (kDebugMode) {
-                debugPrint('[AuthInitializer] Erro ao refresh: $error');
-              }
-              state = const AsyncValue.data(false);
-            },
-            (refreshedSession) async {
-              await sessionManager.saveSession(refreshedSession).run();
-              if (kDebugMode) {
-                debugPrint('[AuthInitializer] Sessão refreshada com sucesso');
-              }
-              state = const AsyncValue.data(true);
-            },
-          );
-        },
-      );
+      final core = await _ref.read(moozeCoreProvider.future);
+      final ok = await core.authRefreshCurrent();
+      if (kDebugMode) {
+        debugPrint(ok
+            ? '[AuthInitializer] Sessão refreshada com sucesso'
+            : '[AuthInitializer] Erro ao refresh');
+      }
+      state = AsyncValue.data(ok);
     } catch (e, stack) {
       if (kDebugMode) {
         debugPrint('[AuthInitializer] Erro ao refresh: $e');

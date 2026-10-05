@@ -12,6 +12,7 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/authentication/providers.dart';
 
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
   const ConfirmMnemonicScreen({super.key});
@@ -187,6 +188,8 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   void _confirm() async {
     if (_checkInputs()) {
       await ref.read(mnemonicStoreProvider).saveMnemonic(words.join(" ")).run();
+      // The core reads the new mnemonic on the next auth call.
+      await ref.read(sessionManagerServiceProvider).resetIdentity().run();
 
       // A brand-new wallet must start from an empty balance state. Wipe any
       // persisted snapshot (defence-in-depth — the create flow is reachable

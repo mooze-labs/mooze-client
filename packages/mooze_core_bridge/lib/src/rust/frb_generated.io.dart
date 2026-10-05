@@ -4,6 +4,8 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/core.dart';
+import 'api/pix.dart';
+import 'api/swap.dart';
 import 'api/types.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -25,6 +27,9 @@ abstract class MoozeCoreLibApiImplPlatform
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCorePtr;
 
   @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
   MoozeCore
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     dynamic raw,
@@ -37,16 +42,57 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  FutureOr<List<String>> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<String?> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<void> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw);
+
+  @protected
+  FutureOr<void> Function(String, String)
+  dco_decode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  Object dco_decode_DartOpaque(dynamic raw);
+
+  @protected
   MoozeCore
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     dynamic raw,
   );
 
   @protected
+  RustStreamSink<SideSwapEventDto>
+  dco_decode_StreamSink_side_swap_event_dto_Sse(dynamic raw);
+
+  @protected
   String dco_decode_String(dynamic raw);
 
   @protected
+  AddressOwnershipDto dco_decode_address_ownership_dto(dynamic raw);
+
+  @protected
+  ApiResponseDto dco_decode_api_response_dto(dynamic raw);
+
+  @protected
   AssetBalanceDto dco_decode_asset_balance_dto(dynamic raw);
+
+  @protected
+  AuthEnsureDto dco_decode_auth_ensure_dto(dynamic raw);
+
+  @protected
+  AuthEnsureKind dco_decode_auth_ensure_kind(dynamic raw);
 
   @protected
   BackendDto dco_decode_backend_dto(dynamic raw);
@@ -58,13 +104,51 @@ abstract class MoozeCoreLibApiImplPlatform
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  AddressOwnershipDto dco_decode_box_autoadd_address_ownership_dto(dynamic raw);
+
+  @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
   CoreConfig dco_decode_box_autoadd_core_config(dynamic raw);
+
+  @protected
+  CpfValidationErrorDto dco_decode_box_autoadd_cpf_validation_error_dto(
+    dynamic raw,
+  );
+
+  @protected
+  DepositLimitsDto dco_decode_box_autoadd_deposit_limits_dto(dynamic raw);
+
+  @protected
+  DepositValidationErrorDto dco_decode_box_autoadd_deposit_validation_error_dto(
+    dynamic raw,
+  );
+
+  @protected
+  DeviceMetricsDto dco_decode_box_autoadd_device_metrics_dto(dynamic raw);
 
   @protected
   double dco_decode_box_autoadd_f_64(dynamic raw);
 
   @protected
+  FavoritePayerSaveErrorDto
+  dco_decode_box_autoadd_favorite_payer_save_error_dto(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  PegAmountIssueDto dco_decode_box_autoadd_peg_amount_issue_dto(dynamic raw);
+
+  @protected
+  PegServerLimitsDto dco_decode_box_autoadd_peg_server_limits_dto(dynamic raw);
+
+  @protected
+  PixDepositDto dco_decode_box_autoadd_pix_deposit_dto(dynamic raw);
+
+  @protected
+  QuoteDto dco_decode_box_autoadd_quote_dto(dynamic raw);
 
   @protected
   SendRequestDto dco_decode_box_autoadd_send_request_dto(dynamic raw);
@@ -103,10 +187,41 @@ abstract class MoozeCoreLibApiImplPlatform
   CoreErrorKind dco_decode_core_error_kind(dynamic raw);
 
   @protected
+  CpfValidationErrorDto dco_decode_cpf_validation_error_dto(dynamic raw);
+
+  @protected
+  DepositLimitsDto dco_decode_deposit_limits_dto(dynamic raw);
+
+  @protected
+  DepositStatusDto dco_decode_deposit_status_dto(dynamic raw);
+
+  @protected
+  DepositValidationDto dco_decode_deposit_validation_dto(dynamic raw);
+
+  @protected
+  DepositValidationErrorDto dco_decode_deposit_validation_error_dto(
+    dynamic raw,
+  );
+
+  @protected
+  DerivedAddressDto dco_decode_derived_address_dto(dynamic raw);
+
+  @protected
+  DeviceMetricsDto dco_decode_device_metrics_dto(dynamic raw);
+
+  @protected
   DirectionDto dco_decode_direction_dto(dynamic raw);
 
   @protected
   double dco_decode_f_64(dynamic raw);
+
+  @protected
+  FavoritePayerDto dco_decode_favorite_payer_dto(dynamic raw);
+
+  @protected
+  FavoritePayerSaveErrorDto dco_decode_favorite_payer_save_error_dto(
+    dynamic raw,
+  );
 
   @protected
   FeeEstimateDto dco_decode_fee_estimate_dto(dynamic raw);
@@ -115,10 +230,19 @@ abstract class MoozeCoreLibApiImplPlatform
   FeePriorityDto dco_decode_fee_priority_dto(dynamic raw);
 
   @protected
+  HttpMethodDto dco_decode_http_method_dto(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_isize(dynamic raw);
+
+  @protected
+  KeychainDto dco_decode_keychain_dto(dynamic raw);
 
   @protected
   LiquidSendDraftDto dco_decode_liquid_send_draft_dto(dynamic raw);
@@ -133,7 +257,22 @@ abstract class MoozeCoreLibApiImplPlatform
   List<AssetBalanceDto> dco_decode_list_asset_balance_dto(dynamic raw);
 
   @protected
+  List<DerivedAddressDto> dco_decode_list_derived_address_dto(dynamic raw);
+
+  @protected
+  List<FavoritePayerDto> dco_decode_list_favorite_payer_dto(dynamic raw);
+
+  @protected
   List<LiquidUtxoDto> dco_decode_list_liquid_utxo_dto(dynamic raw);
+
+  @protected
+  List<PegRecordDto> dco_decode_list_peg_record_dto(dynamic raw);
+
+  @protected
+  List<PixDepositDto> dco_decode_list_pix_deposit_dto(dynamic raw);
+
+  @protected
+  List<PixStatusEventDto> dco_decode_list_pix_status_event_dto(dynamic raw);
 
   @protected
   Int64List dco_decode_list_prim_i_64_strict(dynamic raw);
@@ -142,10 +281,19 @@ abstract class MoozeCoreLibApiImplPlatform
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SideswapAssetDto> dco_decode_list_sideswap_asset_dto(dynamic raw);
+
+  @protected
+  List<SideswapMarketDto> dco_decode_list_sideswap_market_dto(dynamic raw);
+
+  @protected
   List<SkippedRowDto> dco_decode_list_skipped_row_dto(dynamic raw);
 
   @protected
   List<TableCountDto> dco_decode_list_table_count_dto(dynamic raw);
+
+  @protected
+  List<TrackedPegDto> dco_decode_list_tracked_peg_dto(dynamic raw);
 
   @protected
   List<TransactionDto> dco_decode_list_transaction_dto(dynamic raw);
@@ -154,19 +302,68 @@ abstract class MoozeCoreLibApiImplPlatform
   List<TransactionEventDto> dco_decode_list_transaction_event_dto(dynamic raw);
 
   @protected
+  List<WalletUtxoDto> dco_decode_list_wallet_utxo_dto(dynamic raw);
+
+  @protected
   MigrationReportDto dco_decode_migration_report_dto(dynamic raw);
 
   @protected
   NetworkDto dco_decode_network_dto(dynamic raw);
 
   @protected
+  NextUnusedAddressDto dco_decode_next_unused_address_dto(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  AddressOwnershipDto? dco_decode_opt_box_autoadd_address_ownership_dto(
+    dynamic raw,
+  );
+
+  @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
+
+  @protected
+  CpfValidationErrorDto? dco_decode_opt_box_autoadd_cpf_validation_error_dto(
+    dynamic raw,
+  );
+
+  @protected
+  DepositLimitsDto? dco_decode_opt_box_autoadd_deposit_limits_dto(dynamic raw);
+
+  @protected
+  DepositValidationErrorDto?
+  dco_decode_opt_box_autoadd_deposit_validation_error_dto(dynamic raw);
+
+  @protected
+  DeviceMetricsDto? dco_decode_opt_box_autoadd_device_metrics_dto(dynamic raw);
 
   @protected
   double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
 
   @protected
+  FavoritePayerSaveErrorDto?
+  dco_decode_opt_box_autoadd_favorite_payer_save_error_dto(dynamic raw);
+
+  @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  PegAmountIssueDto? dco_decode_opt_box_autoadd_peg_amount_issue_dto(
+    dynamic raw,
+  );
+
+  @protected
+  PegServerLimitsDto? dco_decode_opt_box_autoadd_peg_server_limits_dto(
+    dynamic raw,
+  );
+
+  @protected
+  PixDepositDto? dco_decode_opt_box_autoadd_pix_deposit_dto(dynamic raw);
+
+  @protected
+  QuoteDto? dco_decode_opt_box_autoadd_quote_dto(dynamic raw);
 
   @protected
   SourceDto? dco_decode_opt_box_autoadd_source_dto(dynamic raw);
@@ -184,16 +381,82 @@ abstract class MoozeCoreLibApiImplPlatform
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
+  PegAmountIssueDto dco_decode_peg_amount_issue_dto(dynamic raw);
+
+  @protected
+  PegAmountValidationDto dco_decode_peg_amount_validation_dto(dynamic raw);
+
+  @protected
+  PegDirectionDto dco_decode_peg_direction_dto(dynamic raw);
+
+  @protected
+  PegExecutionDto dco_decode_peg_execution_dto(dynamic raw);
+
+  @protected
+  PegOrderDto dco_decode_peg_order_dto(dynamic raw);
+
+  @protected
+  PegPhaseDto dco_decode_peg_phase_dto(dynamic raw);
+
+  @protected
+  PegProgressDto dco_decode_peg_progress_dto(dynamic raw);
+
+  @protected
+  PegQuoteDto dco_decode_peg_quote_dto(dynamic raw);
+
+  @protected
+  PegRecordDto dco_decode_peg_record_dto(dynamic raw);
+
+  @protected
+  PegRefreshDto dco_decode_peg_refresh_dto(dynamic raw);
+
+  @protected
+  PegServerLimitsDto dco_decode_peg_server_limits_dto(dynamic raw);
+
+  @protected
+  PixDepositDto dco_decode_pix_deposit_dto(dynamic raw);
+
+  @protected
+  PixFeeDto dco_decode_pix_fee_dto(dynamic raw);
+
+  @protected
+  PixFlagDto dco_decode_pix_flag_dto(dynamic raw);
+
+  @protected
+  PixStatusEventDto dco_decode_pix_status_event_dto(dynamic raw);
+
+  @protected
+  QuoteDto dco_decode_quote_dto(dynamic raw);
+
+  @protected
+  QuoteStatusDto dco_decode_quote_status_dto(dynamic raw);
+
+  @protected
   ReceiveAddressDto dco_decode_receive_address_dto(dynamic raw);
 
   @protected
   SendRequestDto dco_decode_send_request_dto(dynamic raw);
 
   @protected
+  SideSwapEventDto dco_decode_side_swap_event_dto(dynamic raw);
+
+  @protected
+  SideSwapEventKind dco_decode_side_swap_event_kind(dynamic raw);
+
+  @protected
+  SideswapAssetDto dco_decode_sideswap_asset_dto(dynamic raw);
+
+  @protected
+  SideswapMarketDto dco_decode_sideswap_market_dto(dynamic raw);
+
+  @protected
   SkippedRowDto dco_decode_skipped_row_dto(dynamic raw);
 
   @protected
   SourceDto dco_decode_source_dto(dynamic raw);
+
+  @protected
+  StartQuoteDto dco_decode_start_quote_dto(dynamic raw);
 
   @protected
   StatusDto dco_decode_status_dto(dynamic raw);
@@ -203,6 +466,9 @@ abstract class MoozeCoreLibApiImplPlatform
 
   @protected
   TableCountDto dco_decode_table_count_dto(dynamic raw);
+
+  @protected
+  TrackedPegDto dco_decode_tracked_peg_dto(dynamic raw);
 
   @protected
   TransactionDto dco_decode_transaction_dto(dynamic raw);
@@ -232,6 +498,12 @@ abstract class MoozeCoreLibApiImplPlatform
   BigInt dco_decode_usize(dynamic raw);
 
   @protected
+  WalletUtxoDto dco_decode_wallet_utxo_dto(dynamic raw);
+
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+  @protected
   MoozeCore
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     SseDeserializer deserializer,
@@ -244,16 +516,37 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  Object sse_decode_DartOpaque(SseDeserializer deserializer);
+
+  @protected
   MoozeCore
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     SseDeserializer deserializer,
   );
 
   @protected
+  RustStreamSink<SideSwapEventDto>
+  sse_decode_StreamSink_side_swap_event_dto_Sse(SseDeserializer deserializer);
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  AddressOwnershipDto sse_decode_address_ownership_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResponseDto sse_decode_api_response_dto(SseDeserializer deserializer);
+
+  @protected
   AssetBalanceDto sse_decode_asset_balance_dto(SseDeserializer deserializer);
+
+  @protected
+  AuthEnsureDto sse_decode_auth_ensure_dto(SseDeserializer deserializer);
+
+  @protected
+  AuthEnsureKind sse_decode_auth_ensure_kind(SseDeserializer deserializer);
 
   @protected
   BackendDto sse_decode_backend_dto(SseDeserializer deserializer);
@@ -265,13 +558,65 @@ abstract class MoozeCoreLibApiImplPlatform
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  AddressOwnershipDto sse_decode_box_autoadd_address_ownership_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   CoreConfig sse_decode_box_autoadd_core_config(SseDeserializer deserializer);
+
+  @protected
+  CpfValidationErrorDto sse_decode_box_autoadd_cpf_validation_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DepositLimitsDto sse_decode_box_autoadd_deposit_limits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DepositValidationErrorDto sse_decode_box_autoadd_deposit_validation_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceMetricsDto sse_decode_box_autoadd_device_metrics_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
 
   @protected
+  FavoritePayerSaveErrorDto
+  sse_decode_box_autoadd_favorite_payer_save_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  PegAmountIssueDto sse_decode_box_autoadd_peg_amount_issue_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PegServerLimitsDto sse_decode_box_autoadd_peg_server_limits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PixDepositDto sse_decode_box_autoadd_pix_deposit_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  QuoteDto sse_decode_box_autoadd_quote_dto(SseDeserializer deserializer);
 
   @protected
   SendRequestDto sse_decode_box_autoadd_send_request_dto(
@@ -316,10 +661,47 @@ abstract class MoozeCoreLibApiImplPlatform
   CoreErrorKind sse_decode_core_error_kind(SseDeserializer deserializer);
 
   @protected
+  CpfValidationErrorDto sse_decode_cpf_validation_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DepositLimitsDto sse_decode_deposit_limits_dto(SseDeserializer deserializer);
+
+  @protected
+  DepositStatusDto sse_decode_deposit_status_dto(SseDeserializer deserializer);
+
+  @protected
+  DepositValidationDto sse_decode_deposit_validation_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DepositValidationErrorDto sse_decode_deposit_validation_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DerivedAddressDto sse_decode_derived_address_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceMetricsDto sse_decode_device_metrics_dto(SseDeserializer deserializer);
+
+  @protected
   DirectionDto sse_decode_direction_dto(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
+  FavoritePayerDto sse_decode_favorite_payer_dto(SseDeserializer deserializer);
+
+  @protected
+  FavoritePayerSaveErrorDto sse_decode_favorite_payer_save_error_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   FeeEstimateDto sse_decode_fee_estimate_dto(SseDeserializer deserializer);
@@ -328,10 +710,19 @@ abstract class MoozeCoreLibApiImplPlatform
   FeePriorityDto sse_decode_fee_priority_dto(SseDeserializer deserializer);
 
   @protected
+  HttpMethodDto sse_decode_http_method_dto(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
+
+  @protected
+  KeychainDto sse_decode_keychain_dto(SseDeserializer deserializer);
 
   @protected
   LiquidSendDraftDto sse_decode_liquid_send_draft_dto(
@@ -350,7 +741,32 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  List<DerivedAddressDto> sse_decode_list_derived_address_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FavoritePayerDto> sse_decode_list_favorite_payer_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<LiquidUtxoDto> sse_decode_list_liquid_utxo_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<PegRecordDto> sse_decode_list_peg_record_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<PixDepositDto> sse_decode_list_pix_deposit_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<PixStatusEventDto> sse_decode_list_pix_status_event_dto(
     SseDeserializer deserializer,
   );
 
@@ -361,12 +777,27 @@ abstract class MoozeCoreLibApiImplPlatform
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SideswapAssetDto> sse_decode_list_sideswap_asset_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<SideswapMarketDto> sse_decode_list_sideswap_market_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<SkippedRowDto> sse_decode_list_skipped_row_dto(
     SseDeserializer deserializer,
   );
 
   @protected
   List<TableCountDto> sse_decode_list_table_count_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<TrackedPegDto> sse_decode_list_tracked_peg_dto(
     SseDeserializer deserializer,
   );
 
@@ -381,6 +812,11 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  List<WalletUtxoDto> sse_decode_list_wallet_utxo_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   MigrationReportDto sse_decode_migration_report_dto(
     SseDeserializer deserializer,
   );
@@ -389,13 +825,71 @@ abstract class MoozeCoreLibApiImplPlatform
   NetworkDto sse_decode_network_dto(SseDeserializer deserializer);
 
   @protected
+  NextUnusedAddressDto sse_decode_next_unused_address_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  AddressOwnershipDto? sse_decode_opt_box_autoadd_address_ownership_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
+  CpfValidationErrorDto? sse_decode_opt_box_autoadd_cpf_validation_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DepositLimitsDto? sse_decode_opt_box_autoadd_deposit_limits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DepositValidationErrorDto?
+  sse_decode_opt_box_autoadd_deposit_validation_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceMetricsDto? sse_decode_opt_box_autoadd_device_metrics_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
 
   @protected
+  FavoritePayerSaveErrorDto?
+  sse_decode_opt_box_autoadd_favorite_payer_save_error_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  PegAmountIssueDto? sse_decode_opt_box_autoadd_peg_amount_issue_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PegServerLimitsDto? sse_decode_opt_box_autoadd_peg_server_limits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PixDepositDto? sse_decode_opt_box_autoadd_pix_deposit_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  QuoteDto? sse_decode_opt_box_autoadd_quote_dto(SseDeserializer deserializer);
 
   @protected
   SourceDto? sse_decode_opt_box_autoadd_source_dto(
@@ -417,6 +911,65 @@ abstract class MoozeCoreLibApiImplPlatform
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
+  PegAmountIssueDto sse_decode_peg_amount_issue_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PegAmountValidationDto sse_decode_peg_amount_validation_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PegDirectionDto sse_decode_peg_direction_dto(SseDeserializer deserializer);
+
+  @protected
+  PegExecutionDto sse_decode_peg_execution_dto(SseDeserializer deserializer);
+
+  @protected
+  PegOrderDto sse_decode_peg_order_dto(SseDeserializer deserializer);
+
+  @protected
+  PegPhaseDto sse_decode_peg_phase_dto(SseDeserializer deserializer);
+
+  @protected
+  PegProgressDto sse_decode_peg_progress_dto(SseDeserializer deserializer);
+
+  @protected
+  PegQuoteDto sse_decode_peg_quote_dto(SseDeserializer deserializer);
+
+  @protected
+  PegRecordDto sse_decode_peg_record_dto(SseDeserializer deserializer);
+
+  @protected
+  PegRefreshDto sse_decode_peg_refresh_dto(SseDeserializer deserializer);
+
+  @protected
+  PegServerLimitsDto sse_decode_peg_server_limits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PixDepositDto sse_decode_pix_deposit_dto(SseDeserializer deserializer);
+
+  @protected
+  PixFeeDto sse_decode_pix_fee_dto(SseDeserializer deserializer);
+
+  @protected
+  PixFlagDto sse_decode_pix_flag_dto(SseDeserializer deserializer);
+
+  @protected
+  PixStatusEventDto sse_decode_pix_status_event_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  QuoteDto sse_decode_quote_dto(SseDeserializer deserializer);
+
+  @protected
+  QuoteStatusDto sse_decode_quote_status_dto(SseDeserializer deserializer);
+
+  @protected
   ReceiveAddressDto sse_decode_receive_address_dto(
     SseDeserializer deserializer,
   );
@@ -425,10 +978,29 @@ abstract class MoozeCoreLibApiImplPlatform
   SendRequestDto sse_decode_send_request_dto(SseDeserializer deserializer);
 
   @protected
+  SideSwapEventDto sse_decode_side_swap_event_dto(SseDeserializer deserializer);
+
+  @protected
+  SideSwapEventKind sse_decode_side_swap_event_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SideswapAssetDto sse_decode_sideswap_asset_dto(SseDeserializer deserializer);
+
+  @protected
+  SideswapMarketDto sse_decode_sideswap_market_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SkippedRowDto sse_decode_skipped_row_dto(SseDeserializer deserializer);
 
   @protected
   SourceDto sse_decode_source_dto(SseDeserializer deserializer);
+
+  @protected
+  StartQuoteDto sse_decode_start_quote_dto(SseDeserializer deserializer);
 
   @protected
   StatusDto sse_decode_status_dto(SseDeserializer deserializer);
@@ -438,6 +1010,9 @@ abstract class MoozeCoreLibApiImplPlatform
 
   @protected
   TableCountDto sse_decode_table_count_dto(SseDeserializer deserializer);
+
+  @protected
+  TrackedPegDto sse_decode_tracked_peg_dto(SseDeserializer deserializer);
 
   @protected
   TransactionDto sse_decode_transaction_dto(SseDeserializer deserializer);
@@ -471,6 +1046,15 @@ abstract class MoozeCoreLibApiImplPlatform
   BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
+  WalletUtxoDto sse_decode_wallet_utxo_dto(SseDeserializer deserializer);
+
+  @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     MoozeCore self,
@@ -485,6 +1069,33 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    FutureOr<List<String>> Function(String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
+    FutureOr<String?> Function(String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String, String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartOpaque(Object self, SseSerializer serializer);
+
+  @protected
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMoozeCore(
     MoozeCore self,
@@ -492,11 +1103,38 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_StreamSink_side_swap_event_dto_Sse(
+    RustStreamSink<SideSwapEventDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_address_ownership_dto(
+    AddressOwnershipDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_api_response_dto(
+    ApiResponseDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_asset_balance_dto(
     AssetBalanceDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_auth_ensure_dto(AuthEnsureDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_auth_ensure_kind(
+    AuthEnsureKind self,
     SseSerializer serializer,
   );
 
@@ -510,8 +1148,41 @@ abstract class MoozeCoreLibApiImplPlatform
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_address_ownership_dto(
+    AddressOwnershipDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_core_config(
     CoreConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_cpf_validation_error_dto(
+    CpfValidationErrorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_deposit_limits_dto(
+    DepositLimitsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_deposit_validation_error_dto(
+    DepositValidationErrorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_device_metrics_dto(
+    DeviceMetricsDto self,
     SseSerializer serializer,
   );
 
@@ -519,8 +1190,38 @@ abstract class MoozeCoreLibApiImplPlatform
   void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_favorite_payer_save_error_dto(
+    FavoritePayerSaveErrorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_i_64(
     PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_peg_amount_issue_dto(
+    PegAmountIssueDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_peg_server_limits_dto(
+    PegServerLimitsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pix_deposit_dto(
+    PixDepositDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_quote_dto(
+    QuoteDto self,
     SseSerializer serializer,
   );
 
@@ -576,10 +1277,64 @@ abstract class MoozeCoreLibApiImplPlatform
   void sse_encode_core_error_kind(CoreErrorKind self, SseSerializer serializer);
 
   @protected
+  void sse_encode_cpf_validation_error_dto(
+    CpfValidationErrorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_deposit_limits_dto(
+    DepositLimitsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_deposit_status_dto(
+    DepositStatusDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_deposit_validation_dto(
+    DepositValidationDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_deposit_validation_error_dto(
+    DepositValidationErrorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_derived_address_dto(
+    DerivedAddressDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_device_metrics_dto(
+    DeviceMetricsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_direction_dto(DirectionDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_favorite_payer_dto(
+    FavoritePayerDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_favorite_payer_save_error_dto(
+    FavoritePayerSaveErrorDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_fee_estimate_dto(
@@ -594,10 +1349,19 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_http_method_dto(HttpMethodDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_keychain_dto(KeychainDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_liquid_send_draft_dto(
@@ -618,8 +1382,38 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_list_derived_address_dto(
+    List<DerivedAddressDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_favorite_payer_dto(
+    List<FavoritePayerDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_liquid_utxo_dto(
     List<LiquidUtxoDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_peg_record_dto(
+    List<PegRecordDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_pix_deposit_dto(
+    List<PixDepositDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_pix_status_event_dto(
+    List<PixStatusEventDto> self,
     SseSerializer serializer,
   );
 
@@ -636,6 +1430,18 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_list_sideswap_asset_dto(
+    List<SideswapAssetDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_sideswap_market_dto(
+    List<SideswapMarketDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_skipped_row_dto(
     List<SkippedRowDto> self,
     SseSerializer serializer,
@@ -644,6 +1450,12 @@ abstract class MoozeCoreLibApiImplPlatform
   @protected
   void sse_encode_list_table_count_dto(
     List<TableCountDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_tracked_peg_dto(
+    List<TrackedPegDto> self,
     SseSerializer serializer,
   );
 
@@ -660,6 +1472,12 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_list_wallet_utxo_dto(
+    List<WalletUtxoDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_migration_report_dto(
     MigrationReportDto self,
     SseSerializer serializer,
@@ -669,14 +1487,83 @@ abstract class MoozeCoreLibApiImplPlatform
   void sse_encode_network_dto(NetworkDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_next_unused_address_dto(
+    NextUnusedAddressDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_address_ownership_dto(
+    AddressOwnershipDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_cpf_validation_error_dto(
+    CpfValidationErrorDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_deposit_limits_dto(
+    DepositLimitsDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_deposit_validation_error_dto(
+    DepositValidationErrorDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_device_metrics_dto(
+    DeviceMetricsDto? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_favorite_payer_save_error_dto(
+    FavoritePayerSaveErrorDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_i_64(
     PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_peg_amount_issue_dto(
+    PegAmountIssueDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_peg_server_limits_dto(
+    PegServerLimitsDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_pix_deposit_dto(
+    PixDepositDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_quote_dto(
+    QuoteDto? self,
     SseSerializer serializer,
   );
 
@@ -702,6 +1589,81 @@ abstract class MoozeCoreLibApiImplPlatform
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_peg_amount_issue_dto(
+    PegAmountIssueDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_peg_amount_validation_dto(
+    PegAmountValidationDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_peg_direction_dto(
+    PegDirectionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_peg_execution_dto(
+    PegExecutionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_peg_order_dto(PegOrderDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_peg_phase_dto(PegPhaseDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_peg_progress_dto(
+    PegProgressDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_peg_quote_dto(PegQuoteDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_peg_record_dto(PegRecordDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_peg_refresh_dto(PegRefreshDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_peg_server_limits_dto(
+    PegServerLimitsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pix_deposit_dto(PixDepositDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pix_fee_dto(PixFeeDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pix_flag_dto(PixFlagDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pix_status_event_dto(
+    PixStatusEventDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_quote_dto(QuoteDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_quote_status_dto(
+    QuoteStatusDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_receive_address_dto(
     ReceiveAddressDto self,
     SseSerializer serializer,
@@ -714,10 +1676,37 @@ abstract class MoozeCoreLibApiImplPlatform
   );
 
   @protected
+  void sse_encode_side_swap_event_dto(
+    SideSwapEventDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_side_swap_event_kind(
+    SideSwapEventKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sideswap_asset_dto(
+    SideswapAssetDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sideswap_market_dto(
+    SideswapMarketDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_skipped_row_dto(SkippedRowDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_source_dto(SourceDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_start_quote_dto(StartQuoteDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_status_dto(StatusDto self, SseSerializer serializer);
@@ -730,6 +1719,9 @@ abstract class MoozeCoreLibApiImplPlatform
 
   @protected
   void sse_encode_table_count_dto(TableCountDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_tracked_peg_dto(TrackedPegDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_transaction_dto(
@@ -766,6 +1758,9 @@ abstract class MoozeCoreLibApiImplPlatform
 
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_wallet_utxo_dto(WalletUtxoDto self, SseSerializer serializer);
 }
 
 // Section: wire_class

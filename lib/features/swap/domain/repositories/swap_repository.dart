@@ -1,7 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../data/models.dart';
-import '../entities.dart';
 
 abstract class SwapRepository {
   TaskEither<String, List<SideswapAsset>> getAssets();
@@ -18,15 +17,13 @@ abstract class SwapRepository {
     required String receiveAsset,
   });
 
-  Either<String, Stream<QuoteResponse>> startQuote({
-    required String baseAsset,
-    required String quoteAsset,
-    required String assetType,
+  /// Starts a quote subscription for [amount] of [sendAsset]. The core
+  /// picks the market, the UTXOs and the receive address. Returns the
+  /// quote stream, or the reason the subscription did not start.
+  Future<Either<String, Stream<QuoteResponse>>> startQuote({
+    required String sendAsset,
+    required String receiveAsset,
     required BigInt amount,
-    required SwapDirection direction,
-    required List<SwapUtxo> utxos,
-    required String receiveAddress,
-    required String changeAddress,
   });
 
   /// Broadcast stream of every quote emission on the SideSwap WS,
@@ -41,16 +38,9 @@ abstract class SwapRepository {
 
   Future<void> forceReconnect();
 
-  void resetQuoteProgress();
+  /// Accepts a quote: the core fetches the PSET, signs it with the wallet
+  /// and submits it. Returns the txid.
+  TaskEither<String, String> executeSwap(int quoteId);
 
-  TaskEither<String, String> getQuotePset(int quoteId);
-  TaskEither<String, String> signAndBroadcast({
-    required int quoteId,
-    required String pset,
-  });
-  TaskEither<String, List<SwapUtxo>> selectUtxos({
-    required String assetId,
-    required BigInt amount,
-  });
-  TaskEither<String, String> getNewAddress();
+  void dispose();
 }

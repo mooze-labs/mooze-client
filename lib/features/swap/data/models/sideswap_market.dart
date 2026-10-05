@@ -11,14 +11,4 @@ class SideswapMarket {
     required this.feeAsset,
     required this.type,
   });
-
-  factory SideswapMarket.fromJson(Map<String, dynamic> json) {
-    final assetPair = json['asset_pair'];
-    return SideswapMarket(
-      baseAssetId: assetPair['base'],
-      quoteAssetId: assetPair['quote'],
-      feeAsset: json['fee_asset'],
-      type: json['type'],
-    );
-  }
 }

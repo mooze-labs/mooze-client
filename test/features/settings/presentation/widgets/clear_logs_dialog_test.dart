@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_dialog.dart';
+import '../../../../shared/test_app.dart';
 
 void main() {
   void setLargeScreen(WidgetTester tester) {
@@ -15,8 +16,7 @@ void main() {
     int totalLogs = 42,
     int dbLogs = 100,
   }) {
-    return MaterialApp(
-      home: Builder(
+    return wrapForTest(Builder(
         builder: (context) => Scaffold(
           body: ElevatedButton(
             onPressed: () async {
@@ -57,7 +57,7 @@ void main() {
       await openDialog(tester);
 
       expect(find.text('Memória'), findsOneWidget);
-      expect(find.text('Banco de Dados'), findsOneWidget);
+      expect(find.text('Banco de dados'), findsOneWidget);
       expect(find.text('Todos'), findsOneWidget);
     });
 
@@ -83,15 +83,15 @@ void main() {
     testWidgets('should display warning icon', (tester) async {
       await openDialog(tester);
 
-      expect(find.byIcon(Icons.delete_sweep), findsWidgets);
+      expect(find.byIcon(Icons.delete_sweep_outlined), findsWidgets);
     });
 
     testWidgets('should display option icons', (tester) async {
       await openDialog(tester);
 
-      expect(find.byIcon(Icons.memory), findsOneWidget);
-      expect(find.byIcon(Icons.storage), findsOneWidget);
-      expect(find.byIcon(Icons.delete_forever), findsOneWidget);
+      expect(find.byIcon(Icons.memory_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.storage_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.delete_forever_outlined), findsOneWidget);
     });
 
     testWidgets('should return memory when memory option is tapped',
@@ -128,7 +128,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Banco de Dados'));
+      await tester.tap(find.text('Banco de dados'));
       await tester.pumpAndSettle();
 
       expect(result, 'database');

@@ -41,7 +41,7 @@ void main() {
 
         // Assert
         expect(result.isFailure, true);
-        expect(result.error, 'Código não pode ser vazio');
+        expect(result.error, 'referral_error_empty_code');
         verifyNever(() => mockRepository.validateReferralCode(any()));
         verifyNever(() => mockRepository.applyReferralCode(any()));
       });
@@ -56,7 +56,7 @@ void main() {
 
         // Assert
         expect(result.isFailure, true);
-        expect(result.error, 'Código inválido. Verifique e tente novamente.');
+        expect(result.error, 'referral_error_invalid_code');
         verify(() => mockRepository.validateReferralCode('INVALID')).called(1);
         verifyNever(() => mockRepository.applyReferralCode(any()));
       });
@@ -71,7 +71,7 @@ void main() {
 
         // Assert
         expect(result.isFailure, true);
-        expect(result.error, 'Código inválido. Verifique e tente novamente.');
+        expect(result.error, 'referral_error_invalid_code');
         verifyNever(() => mockRepository.applyReferralCode(any()));
       });
     });
@@ -91,7 +91,7 @@ void main() {
         expect(result.isFailure, true);
         expect(
           result.error,
-          'Erro ao adicionar código. Tente novamente.',
+          'referral_error_apply_failed',
         );
         verify(() => mockRepository.validateReferralCode('MOOZE123')).called(1);
         verify(() => mockRepository.applyReferralCode('MOOZE123')).called(1);

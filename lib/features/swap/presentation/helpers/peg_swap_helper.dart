@@ -32,15 +32,7 @@ class PegSwapHelper {
     final direction =
         fromAsset == core.Asset.btc ? PegDirection.pegIn : PegDirection.pegOut;
 
-    final orchestrator = await ref.read(pegOrchestratorProvider.future);
-    if (orchestrator == null) {
-      if (context.mounted) {
-        AppSnackBar.error(context, 'Carteira indisponível. Tente novamente.');
-      }
-      onError?.call();
-      return;
-    }
-    if (!context.mounted) return;
+    final orchestrator = ref.read(pegOrchestratorProvider);
 
     BtcLbtcConfirmBottomSheet.show(
       context,

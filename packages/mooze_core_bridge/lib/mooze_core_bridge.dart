@@ -5,5 +5,7 @@
 library;
 
 export 'src/rust/api/core.dart';
+export 'src/rust/api/pix.dart';
+export 'src/rust/api/swap.dart';
 export 'src/rust/api/types.dart';
 export 'src/rust/frb_generated.dart' show MoozeCoreLib;

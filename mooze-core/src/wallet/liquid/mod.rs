@@ -9,6 +9,7 @@ pub mod classify;
 pub mod store;
 pub mod uri;
 
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -16,12 +17,13 @@ use lwk_common::Signer;
 use lwk_wollet::asyncr::EsploraClient;
 use lwk_wollet::elements::pset::PartiallySignedTransaction;
 use lwk_wollet::elements::{Address, AssetId, OutPoint, Txid};
-use lwk_wollet::{Wollet, WolletBuilder, WolletDescriptor};
+use lwk_wollet::{Chain, Wollet, WolletBuilder, WolletDescriptor};
 
 use self::classify::{apply_optimistic_delta, map_balance, map_tx, LwkTxView};
 use self::store::{flush_journal, load_journal, wipe_prefix, JournalStore, STORE_PREFIX};
 use super::descriptors::{liquid_descriptor, liquid_network, liquid_policy_asset, liquid_signer};
 use super::endpoints::EndpointResolver;
+use super::explorer::{hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
 use crate::wallet::backend::ChainBackend;
 #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
 use crate::wallet::backend::{ElectrumConfig, LiquidElectrum};
@@ -52,6 +54,16 @@ pub fn is_recoverable_persistence_error(desc: &str) -> bool {
 
 fn describe(e: &lwk_wollet::Error) -> String {
     format!("{e} ({e:?})")
+}
+
+/// Ownership scan limit per chain of the Liquid explorer (Dart `_kLiquidOwnershipScanLimit`).
+pub const OWNERSHIP_SCAN_LIMIT: u32 = 200;
+
+fn to_keychain(c: Chain) -> Keychain {
+    match c {
+        Chain::External => Keychain::External,
+        Chain::Internal => Keychain::Internal,
+    }
 }
 
 /// Unsigned send plus the numbers the UI shows. Port of `_BuiltSend`.
@@ -368,6 +380,98 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
             .collect())
     }
 
+    fn address_at(&self, keychain: Keychain, index: u32) -> Result<Address> {
+        let r = match keychain {
+            Keychain::External => self.wollet.address(Some(index)),
+            Keychain::Internal => self.wollet.change(Some(index)),
+        };
+        r.map(|a| a.address().clone()).map_err(|e| svc(format!("lwk address failed: {e}")))
+    }
+
+    /// Scripts of every wallet output, spent or not (Dart: UTXO addresses
+    /// plus the wallet outputs of every transaction).
+    fn history_scripts(&self) -> Result<HashSet<lwk_wollet::elements::Script>> {
+        let txos = self.wollet.txos().map_err(|e| svc(format!("lwk txos failed: {e}")))?;
+        Ok(txos.into_iter().map(|t| t.script_pubkey).collect())
+    }
+
+    /// Addresses of `keychain` at `start..start + count`. LWK derives
+    /// addresses on demand, so nothing is revealed or stored.
+    pub fn derived_addresses(&self, keychain: Keychain, start: u32, count: u32) -> Result<Vec<DerivedAddressInfo>> {
+        let used = self.history_scripts()?;
+        index_range(start, count)
+            .map(|i| {
+                let a = self.address_at(keychain, i)?;
+                let script = a.script_pubkey();
+                Ok(DerivedAddressInfo {
+                    keychain,
+                    index: i,
+                    address: a.to_string(),
+                    unconfidential: Some(a.to_unconfidential().to_string()),
+                    script_hex: hex(script.as_bytes()),
+                    used: used.contains(&script),
+                })
+            })
+            .collect()
+    }
+
+    /// Unspent unblinded outputs with address, derivation and asset.
+    pub fn unspent_outputs(&self) -> Result<Vec<WalletUtxoInfo>> {
+        let utxos = self.wollet.utxos().map_err(|e| svc(format!("lwk getUtxos failed: {e}")))?;
+        Ok(utxos
+            .into_iter()
+            .filter(|u| !u.is_spent)
+            .map(|u| WalletUtxoInfo {
+                txid: u.outpoint.txid.to_string(),
+                vout: u.outpoint.vout,
+                address: u.address.to_string(),
+                unconfidential: Some(u.address.to_unconfidential().to_string()),
+                script_hex: hex(u.script_pubkey.as_bytes()),
+                keychain: to_keychain(u.ext_int),
+                index: u.wildcard_index,
+                amount_sat: u.unblinded.value,
+                asset_id: Some(u.unblinded.asset.to_string()),
+                confirmation_height: u.height,
+                // NOTE(core): LWK keeps block times per transaction, not per output.
+                confirmation_time_s: None,
+            })
+            .collect())
+    }
+
+    /// Derivation of `address` if it is one of the first `scan_limit`
+    /// addresses of the external chain, then of the internal chain.
+    ///
+    /// A confidential input must match the derived confidential address; an
+    /// unconfidential input matches by script. This equals the Dart string
+    /// compare against `standard` and `confidential`. Fails for an
+    /// unparseable address or one of another network.
+    pub fn is_mine(&self, address: &str, scan_limit: u32) -> Result<Option<AddressOwnership>> {
+        let parsed = Address::from_str(address.trim()).map_err(|e| Error::invalid(format!("invalid liquid address: {e}")))?;
+        if parsed.params != self.wollet.network().address_params() {
+            return Err(Error::invalid("liquid address of another network"));
+        }
+        let script = parsed.script_pubkey();
+        for keychain in [Keychain::External, Keychain::Internal] {
+            for index in index_range(0, scan_limit) {
+                let a = self.address_at(keychain, index)?;
+                let blinding_ok = parsed.blinding_pubkey.is_none() || parsed.blinding_pubkey == a.blinding_pubkey;
+                if a.script_pubkey() == script && blinding_ok {
+                    return Ok(Some(AddressOwnership { keychain, index }));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// LWK's last unused external address, with a history check. Port of
+    /// Dart `getNextUnusedLiquidAddress` (`addressLastUnused`). Reveals nothing.
+    pub async fn next_unused_address(&mut self) -> Result<NextUnusedAddress> {
+        let r = self.wollet.address(None).map_err(|e| svc(format!("lwk addressLastUnused failed: {e}")))?;
+        let used = self.history_scripts()?.contains(&r.address().script_pubkey());
+        self.flush().await?;
+        Ok(NextUnusedAddress { index: r.index(), address: r.address().to_string(), used })
+    }
+
     fn pset_fee(&self, pset: &PartiallySignedTransaction) -> std::result::Result<u64, lwk_wollet::Error> {
         let details = self.wollet.get_details(pset)?;
         Ok(details.fees_in(&self.wollet.policy_asset()))
@@ -675,6 +779,33 @@ mod tests {
         let b = w.apply_optimistic_balance_delta(&[(LBTC_ASSET_ID.into(), 500)]).clone();
         assert_eq!(b.amount_for_asset(LBTC_ASSET_ID), 500);
         assert_eq!(w.balance().amount_for_asset(LBTC_ASSET_ID), 500);
+    }
+
+    #[test]
+    fn explorer_derives_checks_ownership_and_reveals_nothing() {
+        let mut w = connect(MemoryKv::new());
+        let ext = w.derived_addresses(Keychain::External, 0, 4).unwrap();
+        assert_eq!(ext.iter().map(|a| a.index).collect::<Vec<_>>(), [0, 1, 2, 3]);
+        assert!(ext.iter().all(|a| a.address.starts_with("lq1") && !a.used && a.keychain == Keychain::External));
+        assert!(ext.iter().all(|a| a.unconfidential.as_deref().is_some_and(|u| u.starts_with("ex1"))));
+        assert_eq!(ext[0].address, block_on(w.receive_address()).unwrap());
+        let int = w.derived_addresses(Keychain::Internal, 0, 3).unwrap();
+        assert_ne!(int[0].address, ext[0].address);
+        assert_eq!(w.derived_addresses(Keychain::External, 2, 1).unwrap()[0], ext[2]);
+
+        let own = |k, i| Some(AddressOwnership { keychain: k, index: i });
+        assert_eq!(w.is_mine(&ext[3].address, OWNERSHIP_SCAN_LIMIT).unwrap(), own(Keychain::External, 3));
+        assert_eq!(w.is_mine(ext[3].unconfidential.as_ref().unwrap(), 200).unwrap(), own(Keychain::External, 3));
+        assert_eq!(w.is_mine(&int[2].address, 200).unwrap(), own(Keychain::Internal, 2));
+        assert_eq!(w.is_mine(&ext[3].address, 3).unwrap(), None);
+        assert!(matches!(w.is_mine("garbage", 200), Err(Error::InvalidInput(_))));
+        assert!(matches!(w.is_mine("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", 200), Err(Error::InvalidInput(_))));
+
+        assert!(w.unspent_outputs().unwrap().is_empty());
+        let next = block_on(w.next_unused_address()).unwrap();
+        assert_eq!(next, NextUnusedAddress { index: 0, address: ext[0].address.clone(), used: false });
+        // Nothing is revealed: the same address comes back.
+        assert_eq!(block_on(w.next_unused_address()).unwrap(), next);
     }
 
     #[test]

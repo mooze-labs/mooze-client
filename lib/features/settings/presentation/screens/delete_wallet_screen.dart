@@ -140,8 +140,9 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
           final success = result.isRight();
           if (success) {
             ref.invalidate(mnemonicProvider);
+            // The core forgets the identity of the deleted mnemonic.
+            await ref.read(sessionManagerServiceProvider).resetIdentity().run();
             ref.invalidate(sessionManagerServiceProvider);
-            ref.invalidate(authInterceptorProvider);
             ref.invalidate(authenticatedClientProvider);
             ref.invalidate(pixRepositoryProvider);
             ref.invalidate(userDataProvider);

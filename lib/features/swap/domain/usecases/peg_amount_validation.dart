@@ -1,3 +1,7 @@
+import 'package:mooze_core_bridge/mooze_core_bridge.dart' show PegAmountIssueDto;
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
+
+import '../../data/mappers/core_swap_mapper.dart';
 import '../entities/peg.dart';
 
 /// Why a peg amount cannot be used.
@@ -54,6 +58,9 @@ class PegAmountValidation {
   bool get showsIssue => hasAmount && issue != null;
 }
 
+/// Validates a peg amount with the mooze-core rules. The minimum comes from
+/// [limits], or [fallbackMinimumSats] while the limits are unknown. A drain
+/// is always valid.
 PegAmountValidation evaluatePegAmount({
   required PegDirection direction,
   required BigInt? amountSat,
@@ -62,40 +69,24 @@ PegAmountValidation evaluatePegAmount({
   required BigInt fallbackMinimumSats,
   bool drain = false,
 }) {
-  final minimum =
-      limits == null
-          ? fallbackMinimumSats
-          : BigInt.from(limits.minimumFor(direction));
-
-  if (drain) {
-    return PegAmountValidation.valid(
-      minimumSats: minimum,
-      maximumSats: spendableSat,
-    );
-  }
-
-  if (amountSat == null || amountSat <= BigInt.zero) {
-    return const PegAmountValidation.empty();
-  }
-
-  if (amountSat < minimum) {
-    return PegAmountValidation.invalid(
-      reason: PegAmountIssue.belowMinimum,
-      minimumSats: minimum,
-      maximumSats: spendableSat,
-    );
-  }
-
-  if (amountSat > spendableSat) {
-    return PegAmountValidation.invalid(
-      reason: PegAmountIssue.aboveBalance,
-      minimumSats: minimum,
-      maximumSats: spendableSat,
-    );
-  }
-
-  return PegAmountValidation.valid(
-    minimumSats: minimum,
-    maximumSats: spendableSat,
+  final result = CoreSyncHelpers.instance.pegValidateAmount(
+    direction: pegDirectionToDto(direction),
+    amountSat: amountSat,
+    spendableSat: spendableSat,
+    limits: limits == null ? null : pegLimitsToDto(limits),
+    fallbackMinimumSats: fallbackMinimumSats,
+    drain: drain,
+  );
+  if (!result.hasAmount) return const PegAmountValidation.empty();
+  return PegAmountValidation._(
+    hasAmount: true,
+    isValid: result.isValid,
+    issue: switch (result.issue) {
+      null => null,
+      PegAmountIssueDto.belowMinimum => PegAmountIssue.belowMinimum,
+      PegAmountIssueDto.aboveBalance => PegAmountIssue.aboveBalance,
+    },
+    minimumSats: result.minimumSats,
+    maximumSats: result.maximumSats,
   );
 }

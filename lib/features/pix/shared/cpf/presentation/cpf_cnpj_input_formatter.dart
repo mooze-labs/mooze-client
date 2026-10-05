@@ -1,17 +1,15 @@
 import 'package:flutter/services.dart';
-import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 
-/// Live mask that formats input as a CPF (≤11 digits) or CNPJ (12–14 digits),
-/// capped at 14 digits.
+/// Live mask that formats input as a CPF (up to 11 digits) or CNPJ (12 to 14
+/// digits), capped at 14 digits. The mask rules run in mooze-core.
 class CpfCnpjInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    var digits = CpfValidator.strip(newValue.text);
-    if (digits.length > 14) digits = digits.substring(0, 14);
-    final text = formatCpfCnpj(digits);
+    final text = CoreSyncHelpers.instance.taxIdMaskInput(newValue.text);
     return TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),

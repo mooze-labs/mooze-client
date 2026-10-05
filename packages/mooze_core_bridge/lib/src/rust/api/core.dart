@@ -5,13 +5,69 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'pix.dart';
+import 'swap.dart';
 import 'types.dart';
 
-// These functions are ignored because they are not marked as `pub`: `not_connected`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Inner`
+// These functions are ignored because they are not marked as `pub`: `api_base_url`, `auth`, `not_connected`, `reset_auth`, `secure_store`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Auth`, `Inner`, `SerializedSession`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `access_token`, `clone`, `drop`, `force_refresh_token`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>
 abstract class MoozeCore implements RustOpaqueInterface {
+  /// Sends one request to the Mooze backend with the session
+  /// (Dart authenticated Dio client).
+  ///
+  /// Attaches `Authorization: Bearer <jwt>` except on `/auth/*` paths. On
+  /// 401 or 403 it refreshes the session once and retries once. Returns
+  /// non-2xx statuses; throws `CoreErrorKind.session` if the refresh fails.
+  /// `json_body` must be JSON text.
+  Future<ApiResponseDto> apiRequest({
+    required HttpMethodDto method,
+    required String path,
+    String? jsonBody,
+  });
+
+  /// Sets the backend base URL (Dart `BACKEND_API_URL`). Default
+  /// `https://api.mooze.app`. Drops the session manager.
+  Future<void> apiSetBaseUrl({required String baseUrl});
+
+  /// Sets the metrics the API client adds to JSON request bodies.
+  /// `None` stops adding them.
+  Future<void> apiSetMetrics({DeviceMetricsDto? metrics});
+
+  /// A valid JWT: stored, refreshed or newly created
+  /// (Dart `SessionManagerService.getSession`).
+  Future<String> authAccessToken();
+
+  /// The persisted device id, or a new one derived from `serial`
+  /// (`UniqueIdentifier.serial`) or `platform_id` (Android id or iOS
+  /// identifierForVendor), else a random UUID (Dart `DeviceIdService`).
+  Future<String> authDeviceId({String? serial, String? platformId});
+
+  /// Boot-time session check (Dart `ensureAuthSessionProvider`). Signs a
+  /// login challenge with the stored mnemonic if needed and stores the
+  /// tokens under `jwt` and `refresh_token`.
+  Future<AuthEnsureDto> authEnsureSession();
+
+  /// Refreshes the session regardless of local expiry and returns the new
+  /// JWT (Dart `SessionManagerService.forceRefresh`).
+  Future<String> authForceRefresh();
+
+  /// Deletes the stored session (Dart `SessionAuthenticator.invalidate`).
+  Future<void> authInvalidate();
+
+  /// Manual refresh (Dart `refreshAuthSessionProvider`). Returns success.
+  Future<bool> authRefreshCurrent();
+
+  /// Drops the session manager, so the next auth call reads the mnemonic
+  /// again. Call it after the wallet mnemonic changes or is deleted.
+  Future<void> authReset();
+
+  /// Sets the device integrity result (Dart `SafeDevice.isSafeDevice`).
+  /// Unsafe devices cannot sign in and send API requests without a token.
+  Future<void> authSetDeviceSafe({required bool safe});
+
   /// Bitcoin balance from local state.
   Future<BalanceDto> bitcoinBalance();
 
@@ -21,11 +77,25 @@ abstract class MoozeCore implements RustOpaqueInterface {
   /// Loads or creates the Bitcoin wallet for `mnemonic`.
   Future<void> bitcoinConnect({required String mnemonic});
 
+  /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
+  Future<List<DerivedAddressDto>> bitcoinDerivedAddresses({
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  });
+
   /// Drops the Bitcoin wallet. Idempotent.
   Future<void> bitcoinDisconnect();
 
   /// Fee estimate for a send.
   Future<FeeEstimateDto> bitcoinEstimateFee({required SendRequestDto request});
+
+  /// Derivation of `address` if the wallet owns it. Throws
+  /// `CoreErrorKind.invalidInput` for an address it cannot parse.
+  Future<AddressOwnershipDto?> bitcoinIsMine({required String address});
+
+  /// Next receive address with no history. Reveals up to it and persists.
+  Future<NextUnusedAddressDto> bitcoinNextUnusedAddress();
 
   /// Next unused receive address.
   Future<ReceiveAddressDto> bitcoinReceiveAddress({String? label});
@@ -46,6 +116,33 @@ abstract class MoozeCore implements RustOpaqueInterface {
 
   /// Bitcoin transactions from local state, newest first.
   Future<List<TransactionDto>> bitcoinTransactions();
+
+  /// Unspent outputs with address, derivation and confirmation.
+  Future<List<WalletUtxoDto>> bitcoinUnspentOutputs();
+
+  /// True if a payer other than `excluding_id` has `cpf` (digits, or masked).
+  Future<bool> favoritePayerCpfExists({
+    required String cpf,
+    BigInt? excludingId,
+  });
+
+  /// Deletes one payer.
+  Future<void> favoritePayerDelete({required BigInt id});
+
+  /// Inserts (`id` null) or updates a payer, as the Dart controller does:
+  /// strips the CPF mask, trims the label, refuses a CPF that another
+  /// payer has. Returns the refusal reason, or `null` when saved.
+  Future<FavoritePayerSaveErrorDto?> favoritePayerSave({
+    BigInt? id,
+    required String label,
+    required String cpf,
+  });
+
+  /// Deletes every payer (wallet delete or import).
+  Future<void> favoritePayersClear();
+
+  /// Every favorite payer, newest first.
+  Future<List<FavoritePayerDto>> favoritePayersList();
 
   /// Imports the snapshot from `FlutterDataExporter`, once.
   Future<MigrationReportDto> importFlutterSnapshot({
@@ -75,11 +172,29 @@ abstract class MoozeCore implements RustOpaqueInterface {
   /// Loads or creates the Liquid wallet for `mnemonic`.
   Future<void> liquidConnect({required String mnemonic});
 
+  /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
+  Future<List<DerivedAddressDto>> liquidDerivedAddresses({
+    required KeychainDto keychain,
+    required int start,
+    required int count,
+  });
+
   /// Drops the Liquid wallet. Idempotent.
   Future<void> liquidDisconnect();
 
   /// Fee estimate for a send.
   Future<FeeEstimateDto> liquidEstimateFee({required SendRequestDto request});
+
+  /// Derivation of `address` among the first `scan_limit` addresses of
+  /// each chain. Throws `CoreErrorKind.invalidInput` for an address it
+  /// cannot parse.
+  Future<AddressOwnershipDto?> liquidIsMine({
+    required String address,
+    required int scanLimit,
+  });
+
+  /// LWK's last unused receive address, with a history check.
+  Future<NextUnusedAddressDto> liquidNextUnusedAddress();
 
   /// Receive address, optionally for one asset.
   Future<ReceiveAddressDto> liquidReceiveAddress({
@@ -117,10 +232,189 @@ abstract class MoozeCore implements RustOpaqueInterface {
   /// Liquid transactions from local state, newest first.
   Future<List<TransactionDto>> liquidTransactions();
 
+  /// Unspent outputs with address, derivation, asset and confirmation.
+  Future<List<WalletUtxoDto>> liquidUnspentOutputs();
+
   /// Unblinded UTXOs, for SideSwap.
   Future<List<LiquidUtxoDto>> liquidUtxos();
 
   /// Opens the core in `config.data_dir`.
+  ///
+  /// Also installs ring as the rustls crypto provider of the process,
+  /// before any TLS use. Opening more than once is safe.
   static Future<MoozeCore> open({required CoreConfig config}) =>
       MoozeCoreLib.instance.api.crateApiCoreMoozeCoreOpen(config: config);
+
+  /// Creates a peg order, stores it under `wallet_id`, funds it from the
+  /// wallet and starts tracking it. `external_payout_address` is allowed
+  /// only for peg-outs; null pays to the own wallet.
+  Future<PegExecutionDto> pegExecute({
+    required String walletId,
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+    String? externalPayoutAddress,
+  });
+
+  /// Peg minimums and fees from `server_status`.
+  Future<PegServerLimitsDto> pegLimits();
+
+  /// Stored pegs of `wallet_id`, oldest first. Needs no connection.
+  Future<List<PegRecordDto>> pegList({required String walletId});
+
+  /// Prices a peg without creating an order.
+  Future<PegQuoteDto> pegQuote({
+    required PegDirectionDto direction,
+    required BigInt amountSat,
+    int? feeRateSatPerVbyte,
+    required bool drain,
+  });
+
+  /// Polls every tracked peg whose time has come, persists terminal ones
+  /// under `wallet_id`, and returns the new state (Dart `PegTracker`).
+  /// Transport errors only reschedule.
+  Future<PegRefreshDto> pegRefreshDue({required String walletId});
+
+  /// Resumes tracking of the pending pegs stored under `wallet_id`.
+  /// Idempotent. Returns every tracked peg.
+  Future<List<TrackedPegDto>> pegRestore({required String walletId});
+
+  /// One-shot status of an order.
+  Future<PegProgressDto> pegStatus({
+    required PegDirectionDto direction,
+    required String orderId,
+  });
+
+  /// Every tracked peg.
+  Future<List<TrackedPegDto>> pegTracked();
+
+  /// Stops tracking `order_id`. Storage is unchanged.
+  Future<void> pegUntrack({required String orderId});
+
+  /// Number of deposits still polled.
+  Future<int> pixActivePolls();
+
+  /// Stops polling every deposit (Dart `PixRepository.dispose`).
+  Future<void> pixCancelPolls();
+
+  /// Deletes every stored deposit and stops polling (wallet delete or import).
+  Future<void> pixClearDeposits();
+
+  /// Creates a PIX deposit (Dart `PixRepository.newDeposit`).
+  ///
+  /// Pays to `address`, or to a new address of the connected Liquid wallet
+  /// when `None`. Stores the deposit and starts polling its status. A
+  /// backend failure throws with the Portuguese text the Dart UI showed.
+  Future<PixDepositDto> pixCreateDeposit({
+    required BigInt amountInCents,
+    required String assetId,
+    String? taxIdNumber,
+    String? address,
+  });
+
+  /// True if `flag` is set.
+  Future<bool> pixFlagIsSet({required PixFlagDto flag});
+
+  /// Clears `flag`.
+  Future<void> pixFlagReset({required PixFlagDto flag});
+
+  /// Sets `flag`.
+  Future<void> pixFlagSet({required PixFlagDto flag});
+
+  /// Reads one stored deposit.
+  Future<PixDepositDto?> pixGetDeposit({required String depositId});
+
+  /// History page: stored deposits, with a backend refresh of the
+  /// non-terminal ones (Dart `PixHistoryController`). A failed refresh
+  /// returns the local data.
+  Future<List<PixDepositDto>> pixHistory({int? limit, int? offset});
+
+  /// Stored deposits, newest first. `offset` applies only with a `limit`.
+  Future<List<PixDepositDto>> pixListDeposits({int? limit, int? offset});
+
+  /// Runs one poll tick for every deposit created in this session and
+  /// returns the status changes (Dart `statusUpdates` stream). Call it
+  /// every `pixPollIntervalMs`. Expired and changed deposits stop polling.
+  Future<List<PixStatusEventDto>> pixPollTick();
+
+  /// Refreshes deposits from the backend and returns the stored ones with
+  /// these ids (Dart `updateDepositDetails`).
+  Future<List<PixDepositDto>> pixUpdateDepositDetails({
+    required List<String> depositIds,
+  });
+
+  /// Deletes `key` from the secure store, through the Dart callbacks.
+  Future<void> secureDelete({required String key});
+
+  /// Reads `key` from the secure store, through the Dart callbacks.
+  Future<String?> secureGet({required String key});
+
+  /// Keys of the secure store that start with `prefix`, sorted.
+  Future<List<String>> secureListKeys({required String prefix});
+
+  /// Writes `key` to the secure store, through the Dart callbacks.
+  Future<void> securePut({required String key, required String value});
+
+  /// Registers the Dart secure-storage callbacks (`flutter_secure_storage`).
+  ///
+  /// - `read(key)`: the value, or `null` if absent.
+  /// - `write(key, value)`: stores the value.
+  /// - `delete(key)`: removes the value. Absent keys are not an error.
+  /// - `listKeys(prefix)`: keys that start with `prefix` (filter `readAll()`).
+  ///
+  /// Call it once after `open`, before any auth or `secure*` call.
+  /// A second call replaces the callbacks and drops the session manager.
+  Future<void> setSecureStorage({
+    required FutureOr<String?> Function(String) read,
+    required FutureOr<void> Function(String, String) write,
+    required FutureOr<void> Function(String) delete,
+    required FutureOr<List<String>> Function(String) listKeys,
+  });
+
+  /// SideSwap assets.
+  Future<List<SideswapAssetDto>> sideswapAssets();
+
+  /// Stops the event stream task. The stream ends with a `closed` item.
+  Future<void> sideswapCloseEvents();
+
+  /// Opens the SideSwap connection and logs in (Dart `SideswapService.init`).
+  /// `url` null uses `sideswapDefaultUrl`. No-op when connected.
+  Future<void> sideswapConnect({required String apiKey, String? url});
+
+  /// Closes the connection and stops the event stream. Idempotent.
+  Future<void> sideswapDisconnect();
+
+  /// Server pushes: quotes, peg wallet balances, disconnects. A bridge task
+  /// reads the socket while the stream is open. Opening a new stream
+  /// replaces the old one, which ends with a `closed` item. Close it with
+  /// `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling the Dart
+  /// subscription (the task stops at its next item).
+  Stream<SideSwapEventDto> sideswapEvents();
+
+  /// True while the event stream task runs.
+  Future<bool> sideswapEventsRunning();
+
+  /// Accepts a quote: stops quotes, fetches the PSET, signs it with the
+  /// Liquid wallet and the mnemonic from the secure store, submits it.
+  /// Returns the txid.
+  Future<String> sideswapExecuteSwap({required BigInt quoteId});
+
+  /// True while the socket is open.
+  Future<bool> sideswapIsConnected();
+
+  /// SideSwap markets.
+  Future<List<SideswapMarketDto>> sideswapMarkets();
+
+  /// Starts a quote subscription for `amount` of `send_asset_id`
+  /// (Dart `SwapController.startQuote`). Stops the previous one. Funds it
+  /// with the Liquid wallet UTXOs. Quotes arrive on `sideswapEvents`.
+  Future<StartQuoteDto> sideswapStartQuote({
+    required String sendAssetId,
+    required String receiveAssetId,
+    required BigInt amount,
+  });
+
+  /// Stops the quote subscription. Best-effort.
+  Future<void> sideswapStopQuote();
 }

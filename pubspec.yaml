@@ -25,9 +25,7 @@ dependencies:
 
   bip39_mnemonic: ^3.0.7
   cupertino_icons: ^1.0.8
-  lwk:
-    path: ./packages/lwk-dart
-  # Rust core over flutter_rust_bridge. Selected with --dart-define=MOOZE_CORE=true.
+  # Rust core (mooze-core) over flutter_rust_bridge.
   mooze_core_bridge:
     path: ./packages/mooze_core_bridge
   ffi: ^2.1.4
@@ -97,10 +95,6 @@ dependencies:
   firebase_messaging: ^16.0.0
   pointycastle: ^3.9.1
   tutorial_coach_mark: ^1.2.11
-  bdk_dart:
-    git:
-      url: https://github.com/bitcoindevkit/bdk-dart.git
-      ref: db0ec383250979143f1f3ce6acc3406fe2fdc535 # v1.0.0
   safe_device: ^1.3.8
   battery_plus: ^6.0.3
   screen_brightness: ^2.1.7
@@ -114,6 +108,8 @@ dependency_overrides:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0

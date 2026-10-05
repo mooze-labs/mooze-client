@@ -126,4 +126,60 @@ void main() {
     verifyNever(() =>
         core.importFlutterSnapshot(snapshotJson: any(named: 'snapshotJson')));
   });
+
+  test('configure runs right after open, before the import', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final order = <String>[];
+    when(() => core.isMigrated()).thenAnswer((_) async {
+      order.add('isMigrated');
+      return true;
+    });
+    final configured = MoozeCoreBridge(
+      logger: logger,
+      initLib: () async {},
+      opener: (_) async {
+        order.add('open');
+        return core;
+      },
+      dataDirResolver: () async => '/d',
+      configure: (c) async {
+        expect(c, same(core));
+        order.add('configure');
+      },
+    );
+
+    await configured.open(
+      network: AppNetwork.mainnet,
+      preferences: prefs,
+      snapshotJson: () async => '{}',
+    );
+
+    expect(order, ['open', 'configure', 'isMigrated']);
+  });
+
+  test('a failed configure is logged and does not block the core', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    when(() => core.isMigrated()).thenAnswer((_) async => true);
+    final configured = MoozeCoreBridge(
+      logger: logger,
+      initLib: () async {},
+      opener: (_) async => core,
+      dataDirResolver: () async => '/d',
+      configure: (_) async => throw const CoreError(
+          kind: CoreErrorKind.invalidState, message: 'boom'),
+    );
+
+    final opened = await configured.open(
+      network: AppNetwork.mainnet,
+      preferences: prefs,
+      snapshotJson: () async => '{}',
+    );
+
+    expect(opened, same(core));
+    final failed =
+        logger.logs.firstWhere((r) => r.tag == 'core.configure.failed');
+    expect(failed.fields['error'], 'boom');
+  });
 }

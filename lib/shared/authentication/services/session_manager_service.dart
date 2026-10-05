@@ -23,4 +23,9 @@ abstract class SessionManagerService {
   /// rejected an otherwise-valid-looking JWT (401/403). Concurrent callers
   /// share the in-flight refresh.
   TaskEither<String, Session> forceRefresh();
+
+  /// Forget the signing identity, so the next call reads the mnemonic
+  /// again. Call it after the wallet mnemonic is created, imported or
+  /// deleted.
+  TaskEither<String, Unit> resetIdentity();
 }

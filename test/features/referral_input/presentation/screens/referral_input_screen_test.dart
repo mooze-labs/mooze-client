@@ -13,6 +13,7 @@ import 'package:mooze_mobile/features/referral_input/presentation/widgets/referr
 import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
+import '../../../../shared/test_app.dart';
 
 class MockGetExistingReferralUseCase extends Mock
     implements GetExistingReferralUseCase {}
@@ -50,8 +51,7 @@ void main() {
             ),
         ),
       ],
-      child: const MaterialApp(
-        home: ReferralInputScreen(),
+      child: wrapForTest(ReferralInputScreen(),
       ),
     );
   }

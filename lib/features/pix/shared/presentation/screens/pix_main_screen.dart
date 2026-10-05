@@ -37,7 +37,7 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
     final onboardingService = ref.read(pixOnboardingServiceProvider);
 
     // Verifica se já viu o dialog
-    if (!onboardingService.hasSeenFirstTimeDialog() && mounted) {
+    if (!await onboardingService.hasSeenFirstTimeDialog() && mounted) {
       final accepted = await FirstTimePixDialog.show(context);
 
       if (accepted == true && mounted) {

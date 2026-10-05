@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
+import '../../../../shared/test_app.dart';
 
 void main() {
   LogEntry createLogEntry({
@@ -19,8 +20,7 @@ void main() {
   }
 
   Widget buildWidget(LogEntry log, {VoidCallback? onTap}) {
-    return MaterialApp(
-      home: Scaffold(
+    return wrapForTest(Scaffold(
         body: LogItem(
           log: log,
           onTap: onTap ?? () {},

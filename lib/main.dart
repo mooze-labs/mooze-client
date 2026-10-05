@@ -43,11 +43,9 @@ void main() async {
   MnemonicPrefetch.start();
   BootTracer.mark('main.mnemonic_prefetch_started');
 
-  // Platform FFI inits (LibLwk + FlutterBreezLiquid). Started here (cached as
-  // Futures inside `PlatformWarmup`) so they overlap with the rest of boot
-  // instead of blocking the UI thread sequentially during the `platform` phase.
-  // The boot orchestrator awaits the same Futures, so each library is still
-  // initialized only once per process.
+  // Filesystem warmup. Started here (cached as a Future inside
+  // `PlatformWarmup`) so the iOS sandbox unlock overlaps with the rest of
+  // boot. The wallet directory guard awaits the same Future.
   PlatformWarmup.start();
   BootTracer.mark('main.platform_warmup_started');
 

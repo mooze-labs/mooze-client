@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid_spend.dart';
+import 'package:mooze_mobile/features/wallet/data/repositories/liquid_spend_wallet.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 // Expected strings are the exact `destination` values Breez Liquid SDK

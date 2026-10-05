@@ -16,13 +16,21 @@ mooze-core = { path = "../../../mooze-core", version = "=0.1.0", features = ["el
 # Must equal the Dart flutter_rust_bridge package version in pubspec.lock.
 flutter_rust_bridge = { version = "=2.11.1" }
 # Same version as the tokio that mooze-core already pulls in through reqwest.
-tokio = { version = "=1.53.2", default-features = false, features = ["rt-multi-thread", "sync"] }
+# `time`: WebSocket receive timeout and the SideSwap event driver's timers.
+tokio = { version = "=1.53.2", default-features = false, features = ["rt-multi-thread", "sync", "time"] }
 anyhow = { version = "=1.0.104" }
 # Not used directly. Pins libc below 0.2.190, which limits the dyld image
 # functions to macOS. backtrace 0.3.76 (through flutter_rust_bridge and
 # allo-isolate) calls them on every Apple target, so iOS builds break.
 # Drop this pin once backtrace or libc fixes the mismatch.
 libc = { version = "=0.2.189" }
+# WebSocket port (TungsteniteConnector). TLS through rustls with the webpki roots.
+tokio-tungstenite = { version = "=0.30.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+# Same version as Cargo.lock. Used only to install ring as the process crypto provider.
+rustls = { version = "=0.23.45", default-features = false, features = ["ring", "std"] }
+# Same version that mooze-core uses. Sink and Stream helpers for the WebSocket port.
+futures = { version = "=0.3.34", default-features = false, features = ["std"] }
+serde_json = "=1.0.151"
 
 [profile.release]
 lto = true
@@ -35,3 +43,6 @@ strip = "debuginfo"
 # flutter_rust_bridge expands macros under this cfg.
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[dev-dependencies]
+tokio = { version = "=1.53.2", default-features = false, features = ["net", "io-util", "macros", "rt-multi-thread"] }

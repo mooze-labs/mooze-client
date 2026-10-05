@@ -81,7 +81,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   Future<void> _checkFirstTimeAccess() async {
     final onboardingService = ref.read(pixOnboardingServiceProvider);
 
-    if (!onboardingService.hasSeenMerchantFirstTimeDialog() && mounted) {
+    if (!await onboardingService.hasSeenMerchantFirstTimeDialog() &&
+        mounted) {
       final accepted = await FirstTimePixDialog.show(context);
 
       if (accepted == true && mounted) {

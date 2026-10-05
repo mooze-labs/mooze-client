@@ -38,6 +38,16 @@ where
     runtime().spawn(fut).await.map_err(|e| Error::Unexpected(format!("core task failed: {e}")))?
 }
 
+/// Installs ring as the process-wide rustls crypto provider.
+///
+/// The dependency tree compiles both rustls backends (ring and aws-lc).
+/// rustls then cannot pick a default, and a TLS client built without an
+/// explicit provider panics. Call this before any TLS use. Later calls,
+/// and calls after another provider was installed, do nothing.
+pub fn install_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 /// [`BlockingSpawner`] over tokio's blocking thread pool.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TokioSpawner;

@@ -14,14 +14,4 @@ class PixStatusEvent {
     this.assetAmount,
     this.errorMessage,
   });
-
-  factory PixStatusEvent.fromJson(Map<String, dynamic> json) {
-    return PixStatusEvent(
-      depositId: json["transaction_id"] as String,
-      status: DepositStatus.fromString(json["status"] as String),
-      blockchainTxid: json["blockchain_txid"] as String?,
-      assetAmount: json["asset_amount"] as int?,
-      errorMessage: json["error_message"] as String?,
-    );
-  }
 }

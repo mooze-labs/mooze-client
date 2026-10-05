@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_payer.dart';
 import 'package:mooze_mobile/features/favorite_payers/domain/repositories/favorite_payers_repository.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/providers/favorite_payers_providers.dart';
-import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
 
-enum FavoritePayerSaveError { duplicateCpf }
+export 'package:mooze_mobile/features/favorite_payers/domain/repositories/favorite_payers_repository.dart'
+    show FavoritePayerSaveError;
 
 class FavoritePayersController extends AsyncNotifier<List<FavoritePayer>> {
   FavoritePayersRepository get _repo =>
@@ -13,16 +13,16 @@ class FavoritePayersController extends AsyncNotifier<List<FavoritePayer>> {
   @override
   Future<List<FavoritePayer>> build() => _repo.getAll();
 
+  /// Saves a payer. The core strips the CPF mask, trims the label and
+  /// refuses a CPF that another payer has.
   Future<FavoritePayerSaveError?> save({
     int? id,
     required String label,
     required String cpf,
   }) async {
-    final digits = CpfValidator.strip(cpf);
-    if (await _repo.cpfExists(digits, excludingId: id)) {
-      return FavoritePayerSaveError.duplicateCpf;
-    }
-    await _repo.save(FavoritePayer(id: id, label: label.trim(), cpf: digits));
+    final error =
+        await _repo.save(FavoritePayer(id: id, label: label, cpf: cpf));
+    if (error != null) return error;
     state = AsyncData(await _repo.getAll());
     return null;
   }

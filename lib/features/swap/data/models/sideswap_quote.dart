@@ -15,16 +15,4 @@ class SideswapQuote {
     required this.fixedFee,
     required this.ttl,
   });
-
-  factory SideswapQuote.fromJson(Map<String, dynamic> json) {
-    final success = json['status']['Success'];
-    return SideswapQuote(
-      quoteId: success['quote_id'],
-      baseAmount: success['base_amount'],
-      quoteAmount: success['quote_amount'],
-      serverFee: success['server_fee'],
-      fixedFee: success['fixed_fee'],
-      ttl: success['ttl'],
-    );
-  }
 }

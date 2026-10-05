@@ -88,8 +88,9 @@ class ImportButton extends ConsumerWidget {
             // Rebuild the auth chain (new ECDSA identity from the imported
             // mnemonic) and drop the Pix + user/level caches so the imported
             // wallet authenticates fresh and reuses no prior wallet data.
+            // The core reads the new mnemonic on the next auth call.
+            await ref.read(sessionManagerServiceProvider).resetIdentity().run();
             ref.invalidate(sessionManagerServiceProvider);
-            ref.invalidate(authInterceptorProvider);
             ref.invalidate(authenticatedClientProvider);
             ref.invalidate(pixRepositoryProvider);
             ref.invalidate(userDataProvider);

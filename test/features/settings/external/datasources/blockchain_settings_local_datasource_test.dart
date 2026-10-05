@@ -96,13 +96,15 @@ void main() {
         );
       });
 
-      test('should return default URL when no value is saved', () async {
+      // An empty string means "default mode": the consumer engages the
+      // built-in fallback rotation.
+      test('should return empty string when no value is saved', () async {
         SharedPreferences.setMockInitialValues({});
 
         final result = await dataSource.getNodeUrl();
 
         result.fold(
-          (url) => expect(url, 'blockstream.info:465'),
+          (url) => expect(url, ''),
           (error) => fail('Expected Success, got Failure: $error'),
         );
       });

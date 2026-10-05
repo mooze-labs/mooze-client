@@ -92,3 +92,12 @@ class PegUnknownOutcome extends PegError {
       'Não foi possível confirmar a operação. Verifique o histórico '
       'antes de tentar novamente.';
 }
+
+/// A failure that mooze-core reported. [message] is the core's Portuguese
+/// text, ready for a snackbar.
+class PegCoreFailure extends PegError {
+  const PegCoreFailure(this.message);
+
+  @override
+  final String message;
+}

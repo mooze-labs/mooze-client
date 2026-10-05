@@ -1,84 +1,62 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart'
+    show CpfValidationErrorDto;
 import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_cnpj_input_formatter.dart';
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 
+import '../../../../shared/fake_core_sync_helpers.dart';
+
+class _MockHelpers extends Mock implements CoreSyncHelpers {}
+
+/// The tax id rules run in mooze-core. These tests pin the Dart side: the
+/// calls reach the core helpers and the results map to the app enum.
 void main() {
-  group('CpfValidator.strip', () {
-    test('removes mask characters, keeping only digits', () {
-      expect(CpfValidator.strip('529.982.247-25'), '52998224725');
-      expect(CpfValidator.strip('  529 982 247 25 '), '52998224725');
-      expect(CpfValidator.strip('abc'), '');
-    });
-  });
+  final helpers = _MockHelpers();
+  useCoreSyncHelpers(helpers);
+  tearDown(() => reset(helpers));
 
   group('CpfValidator.validate', () {
-    test('accepts valid CPFs (masked or raw)', () {
-      // Well-known valid test CPFs.
+    test('returns null when the core accepts the input', () {
+      when(() => helpers.taxIdValidate('529.982.247-25')).thenReturn(null);
       expect(CpfValidator.validate('529.982.247-25'), isNull);
-      expect(CpfValidator.validate('52998224725'), isNull);
-      expect(CpfValidator.validate('111.444.777-35'), isNull);
     });
 
-    test('flags an empty field', () {
-      expect(CpfValidator.validate(''), CpfValidationError.empty);
-      expect(CpfValidator.validate('   '), CpfValidationError.empty);
-    });
-
-    test('flags fewer than 11 digits as incomplete', () {
-      expect(CpfValidator.validate('529.982.247'), CpfValidationError.incomplete);
-      expect(CpfValidator.validate('5299822472'), CpfValidationError.incomplete);
-    });
-
-    test('rejects repeated-digit sequences', () {
-      expect(CpfValidator.validate('000.000.000-00'), CpfValidationError.invalid);
-      expect(CpfValidator.validate('111.111.111-11'), CpfValidationError.invalid);
-      expect(CpfValidator.validate('99999999999'), CpfValidationError.invalid);
-    });
-
-    test('rejects bad check digits', () {
-      expect(CpfValidator.validate('529.982.247-26'), CpfValidationError.invalid);
-      expect(CpfValidator.validate('111.444.777-30'), CpfValidationError.invalid);
+    test('maps every core error to the app enum', () {
+      const cases = {
+        CpfValidationErrorDto.empty: CpfValidationError.empty,
+        CpfValidationErrorDto.incomplete: CpfValidationError.incomplete,
+        CpfValidationErrorDto.invalid: CpfValidationError.invalid,
+      };
+      for (final entry in cases.entries) {
+        when(() => helpers.taxIdValidate('x')).thenReturn(entry.key);
+        expect(CpfValidator.validate('x'), entry.value);
+      }
     });
   });
 
-  group('CpfValidator.validate (CNPJ)', () {
-    test('accepts valid CNPJs (masked or raw)', () {
-      expect(CpfValidator.validate('11.222.333/0001-81'), isNull);
-      expect(CpfValidator.validate('11222333000181'), isNull);
-    });
+  test('strip, isValid and formatCpfCnpj delegate to the core', () {
+    when(() => helpers.taxIdStrip('529.982.247-25')).thenReturn('52998224725');
+    when(() => helpers.taxIdIsValid('11222333000181')).thenReturn(true);
+    when(() => helpers.taxIdFormat('52998224725'))
+        .thenReturn('529.982.247-25');
 
-    test('rejects bad CNPJ check digits', () {
-      expect(
-        CpfValidator.validate('11222333000180'),
-        CpfValidationError.invalid,
-      );
-    });
-
-    test('rejects repeated-digit CNPJ', () {
-      expect(
-        CpfValidator.validate('00000000000000'),
-        CpfValidationError.invalid,
-      );
-    });
-
-    test('treats 12-13 digits as incomplete', () {
-      expect(CpfValidator.validate('112223330001'), CpfValidationError.incomplete);
-      expect(CpfValidator.validate('1122233300018'), CpfValidationError.incomplete);
-    });
+    expect(CpfValidator.strip('529.982.247-25'), '52998224725');
+    expect(CpfValidator.isValid('11222333000181'), isTrue);
+    expect(formatCpfCnpj('52998224725'), '529.982.247-25');
   });
 
-  group('formatCpfCnpj', () {
-    test('formats CPF and CNPJ', () {
-      expect(formatCpfCnpj('52998224725'), '529.982.247-25');
-      expect(formatCpfCnpj('11222333000181'), '11.222.333/0001-81');
-    });
-  });
+  test('CpfCnpjInputFormatter applies the core mask and moves the cursor', () {
+    when(() => helpers.taxIdMaskInput('5299822')).thenReturn('529.982.2');
 
-  group('CpfValidator.isValid', () {
-    test('mirrors validate()', () {
-      expect(CpfValidator.isValid('529.982.247-25'), isTrue);
-      expect(CpfValidator.isValid('529.982.247-26'), isFalse);
-      expect(CpfValidator.isValid('11222333000181'), isTrue);
-      expect(CpfValidator.isValid(''), isFalse);
-    });
+    final result = CpfCnpjInputFormatter().formatEditUpdate(
+      TextEditingValue.empty,
+      const TextEditingValue(text: '5299822'),
+    );
+
+    expect(result.text, '529.982.2');
+    expect(result.selection, const TextSelection.collapsed(offset: 9));
   });
 }

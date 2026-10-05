@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/referral_provider.dart';
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -41,16 +42,13 @@ List<_FeeTier> _localizedTiers(AppLocalizations t) => [
   ),
 ];
 
-int _activeTierIndex(double amount) {
-  if (amount <= 0) return -1;
-  // Tier 0 (fixed fee) matches the same boundary used by fee_rate_provider.
-  if (amount <= fixedFeeRateThreshold) return 0;
-  // Walk percentage tiers (index 1+) by their upper bound.
-  for (int i = 1; i < _tierBounds.length; i++) {
-    if (i == _tierBounds.length - 1 || amount < _tierBounds[i].max) return i;
-  }
-  return -1;
-}
+/// Index of the fee tier for [amount], or -1 for no amount. The tier rules
+/// run in mooze-core.
+int _activeTierIndex(double amount) =>
+    CoreSyncHelpers.instance
+        .pixFee(amountBrl: amount, hasReferral: false)
+        .activeTier ??
+    -1;
 
 const _discountColor = Color(0xFF2A9D6B);
 const _expandDuration = Duration(milliseconds: 220);

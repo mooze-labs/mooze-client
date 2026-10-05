@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/referral_input/presentation/widgets/referral_code_input.dart';
+import '../../../../shared/test_app.dart';
 
 void main() {
   late TextEditingController controller;
@@ -18,8 +19,7 @@ void main() {
     bool isApiDown = false,
     VoidCallback? onChanged,
   }) {
-    return MaterialApp(
-      home: Scaffold(
+    return wrapForTest(Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: ReferralCodeInput(

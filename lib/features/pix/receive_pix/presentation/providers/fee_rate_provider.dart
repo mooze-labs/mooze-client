@@ -1,52 +1,49 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart' show PixFeeDto;
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 
 import 'deposit_amount_provider.dart';
 import 'referral_provider.dart';
 
+/// Upper bound of the fixed-fee tier, in BRL. The UI uses it to pick the
+/// fee wording. The fee math runs in mooze-core (`pixFee`).
 const fixedFeeRateThreshold = 55.00;
-const fixedFeeRateMooze = 1.00;
-const fixedFeeRateProcessadora = 1.00;
 
-// Family provider that takes deposit amount as parameter
+/// Fee breakdown from mooze-core for a deposit amount in BRL.
+final pixFeeProvider = FutureProvider.autoDispose.family<PixFeeDto, double>((
+  ref,
+  depositAmount,
+) async {
+  final hasReferral = await ref.read(hasReferralProvider.future);
+  return CoreSyncHelpers.instance.pixFee(
+    amountBrl: depositAmount,
+    hasReferral: hasReferral,
+  );
+});
+
+/// Percent fee rate, after the referral discount.
 final feeRateProvider = FutureProvider.autoDispose.family<double, double>((
   ref,
   depositAmount,
 ) async {
-  double feeRate;
-  final hasReferral = await ref.read(hasReferralProvider.future);
-
-  if (depositAmount < 500) {
-    feeRate = 3.5;
-  } else {
-    feeRate = 3;
-  }
-
-  if (hasReferral) feeRate *= 0.85;
-
-  return feeRate;
+  final fee = await ref.read(pixFeeProvider(depositAmount).future);
+  return fee.feeRatePercent;
 });
 
-// Family provider that takes deposit amount as parameter
+/// Fee in BRL.
 final feeAmountProvider = FutureProvider.autoDispose.family<double, double>((
   ref,
   depositAmount,
 ) async {
-  if (depositAmount <= fixedFeeRateThreshold)
-    return fixedFeeRateMooze + fixedFeeRateProcessadora;
-
-  final feeRate = await ref.read(feeRateProvider(depositAmount).future);
-  return depositAmount / 100 * feeRate;
+  final fee = await ref.read(pixFeeProvider(depositAmount).future);
+  return fee.feeAmount;
 });
 
-// Family provider that takes deposit amount as parameter
+/// BRL left after fees.
 final discountedFeesDepositProvider = FutureProvider.autoDispose
     .family<double, double>((ref, depositAmount) async {
-      if (depositAmount <= fixedFeeRateThreshold) {
-        return depositAmount - (fixedFeeRateMooze + fixedFeeRateProcessadora);
-      }
-
-      final feeAmount = await ref.read(feeAmountProvider(depositAmount).future);
-      return depositAmount - feeAmount - fixedFeeRateProcessadora;
+      final fee = await ref.read(pixFeeProvider(depositAmount).future);
+      return fee.discountedAmount;
     });
 
 // Legacy providers for backward compatibility - use selected deposit amount

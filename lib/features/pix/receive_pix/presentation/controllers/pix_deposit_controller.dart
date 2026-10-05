@@ -1,32 +1,26 @@
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/features/pix/receive_pix/domain/repositories/pix_repository.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/domain/repositories/address_generator_repository.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
 class PixDepositController {
   final PixRepository _pixRepository;
-  final AddressGeneratorRepository _addressRepository;
 
-  PixDepositController(
-    PixRepository pixRepository,
-    AddressGeneratorRepository addrGenRepository,
-  ) : _pixRepository = pixRepository,
-      _addressRepository = addrGenRepository;
+  PixDepositController(PixRepository pixRepository)
+      : _pixRepository = pixRepository;
 
+  /// Creates a deposit that pays to a new Liquid wallet address. The core
+  /// generates the address.
   TaskEither<String, PixDeposit> newDeposit(
     int amountInCents,
     Asset asset, {
     String? taxIdNumber,
   }) {
-    return _addressRepository.generateNewAddress().flatMap(
-      (address) => _pixRepository.newDeposit(
-        amountInCents,
-        address,
-        asset: asset,
-        taxIdNumber: taxIdNumber,
-      ),
+    return _pixRepository.newDeposit(
+      amountInCents,
+      asset: asset,
+      taxIdNumber: taxIdNumber,
     );
   }
 

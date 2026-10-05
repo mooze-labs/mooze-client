@@ -18,7 +18,9 @@ import 'core_dto_mapper.dart';
 /// 1. Initialize `MoozeCoreLib` once per process.
 /// 2. Open the core in `<application support>/mooze_core` with the
 ///    Electrum backend and the custom node URLs from SharedPreferences.
-/// 3. If the core is not migrated, export the Flutter data and import it.
+/// 3. Run [configure] (secure storage, API base URL, device checks).
+///    Nothing else uses the core before this step.
+/// 4. If the core is not migrated, export the Flutter data and import it.
 ///
 /// A failed import does not block the wallet. The core keeps its migration
 /// marker unset, so the import runs again on the next launch.
@@ -28,7 +30,9 @@ class MoozeCoreBridge {
     Future<void> Function()? initLib,
     Future<MoozeCore> Function(CoreConfig config)? opener,
     Future<String> Function()? dataDirResolver,
+    Future<void> Function(MoozeCore core)? configure,
   })  : _initLib = initLib ?? _initOnce,
+        _configure = configure,
         _opener = opener ?? ((config) => MoozeCore.open(config: config)),
         _dataDirResolver = dataDirResolver ?? _defaultDataDir;
 
@@ -36,6 +40,7 @@ class MoozeCoreBridge {
   final Future<void> Function() _initLib;
   final Future<MoozeCore> Function(CoreConfig config) _opener;
   final Future<String> Function() _dataDirResolver;
+  final Future<void> Function(MoozeCore core)? _configure;
 
   /// SharedPreferences key of the custom Bitcoin node.
   static const String bitcoinNodeUrlKey = 'bitcoin_node_url';
@@ -96,8 +101,23 @@ class MoozeCoreBridge {
       'custom_liquid_node': config.liquidNodeUrl.isNotEmpty,
       'dur_ms': DateTime.now().difference(t0).inMilliseconds,
     });
+    await runConfigure(core);
     await runImport(core, snapshotJson);
     return core;
+  }
+
+  /// Runs [configure] on [core]. Never throws: a failure is logged, and
+  /// the wallet works without the API session.
+  Future<void> runConfigure(MoozeCore core) async {
+    final configure = _configure;
+    if (configure == null) return;
+    try {
+      await configure(core);
+    } catch (e, st) {
+      final detail = e is CoreError ? coreErrorMessage(e) : '$e';
+      logger.error('core.configure.failed', {'error': detail},
+          error: e, stackTrace: st);
+    }
   }
 
   /// Runs the one-time Flutter data import if the core needs it. Never

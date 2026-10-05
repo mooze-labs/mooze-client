@@ -8,7 +8,6 @@ import 'package:mooze_mobile/services/app_logger_service.dart';
 
 import 'package:mooze_mobile/features/swap/domain/repositories/swap_repository.dart';
 import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider.dart';
-import 'package:mooze_mobile/features/swap/domain/entities.dart';
 import 'package:mooze_mobile/features/swap/data/models.dart';
 
 /// Lifecycle of a quote subscription against the SideSwap stream.
@@ -273,7 +272,6 @@ class SwapController extends StateNotifier<SwapState> {
     final repository = await _repositoryFuture;
     try {
       await repository.forceReconnect();
-      repository.resetQuoteProgress();
       _log.info(_tag, 'Force reconnect succeeded');
     } catch (e, stackTrace) {
       _log.error(
@@ -350,9 +348,6 @@ class SwapController extends StateNotifier<SwapState> {
     required String sendAsset,
     required String receiveAsset,
     required BigInt amount,
-    List<SwapUtxo>? explicitUtxos,
-    String? explicitReceiveAddress,
-    String? explicitChangeAddress,
     // When `true`, the displayed quote (`state.currentQuote`) stays on
     // screen while we open a new subscription — status transitions to
     // [QuoteStatus.refreshing] rather than wiping to
@@ -581,57 +576,30 @@ class SwapController extends StateNotifier<SwapState> {
       return;
     }
 
-    _log.debug(
-      _tag,
-      'Fetching new receive address and selecting UTXOs for asset=$utxoAsset, amount=$amount sats',
-    );
-    final addrRes = await repository.getNewAddress().run();
-    final utxosRes =
-        await repository.selectUtxos(assetId: utxoAsset, amount: amount).run();
-    if (!mounted) return;
-    // The two awaits above can take long enough (UTXO selection
-    // sometimes 100–500 ms on slow devices) that a later
-    // `startQuote` invocation has fully landed by the time we resume.
-    // Abort here so we never reach the synchronous
-    // `repository.startQuote(...)` below — that would set the
-    // SideSwap service's `_isQuoteInProgress` lock for our stale
-    // intent and silently block the newer invocation's `start_quotes`
-    // from being sent, leaving the UI stuck in shimmer.
+    // Re-check before the send: a later invocation may have landed while
+    // the markets reloaded. Sending an outdated intent would replace the
+    // newer subscription in the core.
     if (myToken != _startQuoteToken) {
       _log.debug(
         _tag,
-        'startQuote token=$myToken superseded — '
-        'aborting after address/utxo selection',
+        'startQuote token=$myToken superseded — aborting before start',
       );
       return;
     }
-    if (addrRes.isLeft() || utxosRes.isLeft()) {
-      final err = addrRes.match(
-        (l) => l,
-        (_) => utxosRes.match((l2) => l2, (_) => 'Unexpected error'),
-      );
-      _log.error(_tag, 'Failed to get address or UTXOs: $err');
-      if (!mounted) return;
-      state = state.copyWith(
-        loading: false,
-        error: SwapError(code: SwapErrorCode.upstream, rawMessage: err),
-      );
-      return;
-    }
-    final receiveAddress =
-        explicitReceiveAddress ?? addrRes.getRight().toNullable()!;
-    final changeAddress = explicitChangeAddress ?? receiveAddress;
-    final utxos = explicitUtxos ?? utxosRes.getOrElse((_) => []);
-    final result = repository.startQuote(
-      baseAsset: baseAsset,
-      quoteAsset: quoteAsset,
-      assetType: assetType,
+    // The core picks the UTXOs and the receive address.
+    final result = await repository.startQuote(
+      sendAsset: sendAsset,
+      receiveAsset: receiveAsset,
       amount: amount,
-      direction: direction,
-      utxos: utxos,
-      receiveAddress: receiveAddress,
-      changeAddress: changeAddress,
     );
+    if (!mounted) return;
+    if (myToken != _startQuoteToken) {
+      _log.debug(
+        _tag,
+        'startQuote token=$myToken superseded — dropping started stream',
+      );
+      return;
+    }
     _log.debug(
       _tag,
       'Quote request sent — baseAsset=$baseAsset, quoteAsset=$quoteAsset, '
@@ -1300,13 +1268,10 @@ class SwapController extends StateNotifier<SwapState> {
     SwapRepository repository,
     int quoteId,
   ) async {
-    _log.debug(_tag, 'Fetching PSET for quoteId=$quoteId');
-    final psetRes = await repository.getQuotePset(quoteId).run();
+    _log.debug(_tag, 'Executing swap for quoteId=$quoteId');
+    final txidRes = await repository.executeSwap(quoteId).run();
     if (!mounted) {
-      _log.warning(
-        _tag,
-        '_performSwap: controller disposed after fetching PSET',
-      );
+      _log.warning(_tag, '_performSwap: controller disposed after executeSwap');
       return Either.left(
         const SwapError(
           code: SwapErrorCode.upstream,
@@ -1314,50 +1279,16 @@ class SwapController extends StateNotifier<SwapState> {
         ),
       );
     }
-
-    return await psetRes.match(
-      (err) async {
-        _log.error(_tag, 'Failed to get PSET for quoteId=$quoteId: $err');
+    return txidRes.match(
+      (err) {
+        _log.error(_tag, 'executeSwap failed for quoteId=$quoteId: $err');
         return Either.left(
           SwapError(code: SwapErrorCode.upstream, rawMessage: err),
         );
       },
-      (pset) async {
-        _log.debug(
-          _tag,
-          'PSET obtained for quoteId=$quoteId — signing and broadcasting',
-        );
-        final txidRes =
-            await repository
-                .signAndBroadcast(quoteId: quoteId, pset: pset)
-                .run();
-        if (!mounted) {
-          _log.warning(
-            _tag,
-            '_performSwap: controller disposed after signAndBroadcast',
-          );
-          return Either.left(
-            const SwapError(
-              code: SwapErrorCode.upstream,
-              rawMessage: 'Controller disposed',
-            ),
-          );
-        }
-        return txidRes.match(
-          (err) {
-            _log.error(
-              _tag,
-              'signAndBroadcast failed for quoteId=$quoteId: $err',
-            );
-            return Either.left(
-              SwapError(code: SwapErrorCode.upstream, rawMessage: err),
-            );
-          },
-          (txid) {
-            _log.info(_tag, 'signAndBroadcast succeeded — txid: $txid');
-            return Either.right(txid);
-          },
-        );
+      (txid) {
+        _log.info(_tag, 'executeSwap succeeded — txid: $txid');
+        return Either.right(txid);
       },
     );
   }

@@ -5,6 +5,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 void main() {
   group('AmountDetectionService', () {
     group('Lightning Invoice Amount Detection', () {
+      // Lightning payments go through a Liquid swap, so the asset is L-BTC.
       test('should extract amount from invoice with milli-bitcoin (m)', () {
         // 0.5 mBTC = 50000 sats
         const invoice = 'lnbc500m1p0xlkhkpp5test';
@@ -13,7 +14,7 @@ void main() {
 
         expect(result.hasAmount, true);
         expect(result.amountInSats, 50000000);
-        expect(result.asset, Asset.btc);
+        expect(result.asset, Asset.lbtc);
       });
 
       test('should extract amount from invoice with micro-bitcoin (u)', () {
@@ -24,7 +25,7 @@ void main() {
 
         expect(result.hasAmount, true);
         expect(result.amountInSats, 50000);
-        expect(result.asset, Asset.btc);
+        expect(result.asset, Asset.lbtc);
       });
 
       test('should extract amount from invoice with nano-bitcoin (n)', () {
@@ -35,7 +36,7 @@ void main() {
 
         expect(result.hasAmount, true);
         expect(result.amountInSats, 5000);
-        expect(result.asset, Asset.btc);
+        expect(result.asset, Asset.lbtc);
       });
 
       test('should extract amount from invoice with pico-bitcoin (p)', () {
@@ -46,7 +47,7 @@ void main() {
 
         expect(result.hasAmount, true);
         expect(result.amountInSats, 5000);
-        expect(result.asset, Asset.btc);
+        expect(result.asset, Asset.lbtc);
       });
 
       test('should detect invoice without amount', () {
@@ -67,7 +68,7 @@ void main() {
 
         expect(result.hasAmount, true);
         expect(result.amountInSats, 50000); // 500 uBTC = 50000 sats
-        expect(result.asset, Asset.btc);
+        expect(result.asset, Asset.lbtc);
       });
     });
 
@@ -101,8 +102,10 @@ void main() {
 
         final result = AmountDetectionService.detectAmount(bip21);
 
+        // A URI without a query string gives no detection result. The
+        // service does not override the asset that the user selected.
         expect(result.hasAmount, false);
-        expect(result.asset, Asset.btc);
+        expect(result.asset, isNull);
       });
 
       test('should handle fractional satoshi amounts', () {

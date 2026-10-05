@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/clipboard_suggestion_banner.dart';
 
@@ -11,28 +12,10 @@ import 'package:mooze_mobile/shared/widgets/clipboard_suggestion_banner.dart';
 class PixKeyDetector {
   PixKeyDetector._();
 
-  static final _email = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
-  static final _evp = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  );
-  static final _digits = RegExp(r'^\d+$');
-  static final _phone = RegExp(r'^\+?55?\s?\(?\d{2}\)?\s?9?\d{4}-?\d{4}$');
-
-  static bool looksLikePixKey(String value) {
-    final v = value.trim();
-    if (v.isEmpty || v.length > 1024) return false;
-    if (v.startsWith('000201')) return true; // BR Code payload
-    if (_email.hasMatch(v)) return true;
-    if (_evp.hasMatch(v)) return true;
-    if (_phone.hasMatch(v)) return true;
-    final digits = v.replaceAll(RegExp(r'[.\-/\s()+]'), '');
-    if (_digits.hasMatch(digits) &&
-        (digits.length == 11 || digits.length == 13 || digits.length == 14)) {
-      return true;
-    }
-    return false;
-  }
+  /// True if [value] looks like a PIX key or a BR Code payload. The rules
+  /// run in mooze-core.
+  static bool looksLikePixKey(String value) =>
+      CoreSyncHelpers.instance.pixLooksLikeKey(value);
 }
 
 /// Offers to fill the PIX key field with a key found in the clipboard.

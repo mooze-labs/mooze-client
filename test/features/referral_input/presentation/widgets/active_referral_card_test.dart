@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/referral_input/presentation/widgets/active_referral_card.dart';
+import '../../../../shared/test_app.dart';
 
 void main() {
   Widget buildWidget({required String referralCode}) {
-    return MaterialApp(
-      home: Scaffold(
+    return wrapForTest(Scaffold(
         body: SingleChildScrollView(
           child: ActiveReferralCard(referralCode: referralCode),
         ),

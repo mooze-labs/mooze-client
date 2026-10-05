@@ -29,22 +29,4 @@ class SideswapAsset {
     required this.precision,
     required this.ticker,
   });
-
-  factory SideswapAsset.fromJson(Map<String, dynamic> json) {
-    return SideswapAsset(
-      assetId: json['asset_id'],
-      alwaysShow: json['always_show'],
-      contract: json['contract'],
-      domain: json['domain'],
-      iconUrl: json['icon_url'],
-      instantSwaps: json['instant_swaps'],
-      issuancePrevout: json['issuance_prevout'],
-      issuerPubkey: json['issuer_pubkey'],
-      marketType: json['market_type'],
-      name: json['name'],
-      payjoin: json['payjoin'],
-      precision: json['precision'],
-      ticker: json['ticker'],
-    );
-  }
 }

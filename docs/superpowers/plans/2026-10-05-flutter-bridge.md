@@ -98,3 +98,42 @@ Builds there keep `build/` and `.dart_tool` on the external disk.
    cd /Volumes/Kingston/mooze-client-build
    GRADLE_USER_HOME=/Volumes/Kingston/gradle $F build apk --debug --target-platform android-arm64 --dart-define=MOOZE_CORE=true
    ```
+
+## Phase 2
+
+1. Validate on a device build. Done: `integration_test/core_bridge_test.dart` runs inside the iOS app on the
+   simulator. It connects the test mnemonic over Electrum and syncs 273 Bitcoin and 380 Liquid transactions,
+   the same counts as the host test.
+2. Move the address explorer and the dev raw-transaction screen to the core.
+3. Remove `lwk-dart`, `bdk_dart`, the old services, the legacy datasources and the `MOOZE_CORE` flag.
+4. Bridge auth, PIX and SideSwap, in this order, one bridge change at a time:
+   - Ports: secure storage through Dart callbacks to `flutter_secure_storage`, WebSocket with
+     `tokio-tungstenite` 0.30.0 (identity checked: snapview repositories, same maintainers since years).
+   - rustls has both the ring and the aws-lc backends compiled in. Install ring as the process default
+     when the core opens, before any TLS connection, or rustls panics.
+   - Session tokens keep the `flutter_secure_storage` key names (`jwt`, `refresh_token`).
+
+### Status of phase 2
+
+Done:
+- Step 1: the device integration test passes on the iOS simulator.
+- Step 2: the address explorer and the dev raw-transaction screen use the core.
+- Step 3: `lwk-dart` (submodule), `bdk_dart`, the old services, the legacy datasources, the v1 lwk/bdk repository and
+  the `MOOZE_CORE` flag are removed. The core is the only wallet path.
+- Step 4: auth, PIX, favorite payers, SideSwap swaps and pegs run on the core.
+  - Bridge ports: secure storage through Dart callbacks, WebSocket through `tokio-tungstenite`.
+  - Dart: `CoreSessionManagerService`, `MoozeApiClient` (backend calls through `apiRequest`), `CorePixRepository`,
+    `CoreFavoritePayersRepository`, `CoreSwapRepository`, `CorePegOrchestrator`, `CorePegTracker`.
+- The 83 old test failures are fixed (stale tests, no app code changed).
+
+Behavior changes to know:
+- Boot waits for the login session, with a 3 s limit. An offline start can take up to 3 s longer.
+- Device metrics are collected once per launch, not per request. GET requests no longer carry them.
+- The peg audit row is written after funding, not at order creation.
+- Unused drift tables stay in the schema for the one-time import: Deposits, Pegs, FavoritePayerEntries.
+
+Open gaps:
+- PIX send/withdraw: the core has no API. The Dart mock stays.
+- `PixClient` does not refresh and retry on 401, unlike `apiRequest`.
+- Without an open SideSwap event stream, an idle socket can make the next call fail once before it reconnects.
+- The private `_extractBip21Amount` helper has no caller after a deliberate change. Remove it in a cleanup.

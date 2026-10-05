@@ -1,21 +1,17 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart';
 
+/// PIX tutorial flag, stored in mooze-core.
 class PixTutorialService {
-  static const String _tutorialShownKey = 'hasSeenPixTutorial';
+  PixTutorialService(this._core);
 
-  final SharedPreferences _prefs;
+  final Future<MoozeCore> _core;
 
-  PixTutorialService(this._prefs);
+  Future<bool> isTutorialShown() async =>
+      (await _core).pixFlagIsSet(flag: PixFlagDto.tutorialShown);
 
-  bool isTutorialShown() {
-    return _prefs.getBool(_tutorialShownKey) ?? false;
-  }
+  Future<void> setTutorialShown() async =>
+      (await _core).pixFlagSet(flag: PixFlagDto.tutorialShown);
 
-  Future<void> setTutorialShown() async {
-    await _prefs.setBool(_tutorialShownKey, true);
-  }
-
-  Future<void> resetTutorial() async {
-    await _prefs.remove(_tutorialShownKey);
-  }
+  Future<void> resetTutorial() async =>
+      (await _core).pixFlagReset(flag: PixFlagDto.tutorialShown);
 }

@@ -13,15 +13,4 @@ class QuoteLowBalance {
     required this.serverFee,
     required this.fixedFee,
   });
-
-  factory QuoteLowBalance.fromJson(Map<String, dynamic> json) {
-    final lowBalance = json['status']['LowBalance'];
-    return QuoteLowBalance(
-      available: lowBalance['available'],
-      baseAmount: lowBalance['base_amount'],
-      quoteAmount: lowBalance['quote_amount'],
-      serverFee: lowBalance['server_fee'],
-      fixedFee: lowBalance['fixed_fee'],
-    );
-  }
 }

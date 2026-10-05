@@ -11,6 +11,8 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../shared/fake_core_sync_helpers.dart';
+
 class _FakeRepo implements FavoritePayersRepository {
   _FakeRepo({this.items = const [], this.throwOnGet = false, this.hang = false});
 
@@ -26,7 +28,7 @@ class _FakeRepo implements FavoritePayersRepository {
   }
 
   @override
-  Future<void> save(FavoritePayer payer) async {}
+  Future<FavoritePayerSaveError?> save(FavoritePayer payer) async => null;
   @override
   Future<void> delete(int id) async {}
   @override
@@ -47,6 +49,8 @@ Widget _app(FavoritePayersRepository repo) => ProviderScope(
 );
 
 void main() {
+  useCoreSyncHelpers();
+
   testWidgets('loading state shows a shimmer skeleton', (tester) async {
     await tester.pumpWidget(_app(_FakeRepo(hang: true)));
     await tester.pump();

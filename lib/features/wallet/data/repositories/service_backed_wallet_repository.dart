@@ -15,7 +15,7 @@ import 'package:mooze_mobile/domain/failures/failure.dart';
 import 'package:mooze_mobile/domain/services/bitcoin_wallet_service.dart';
 import 'package:mooze_mobile/domain/services/liquid_wallet_service.dart';
 import 'package:mooze_mobile/features/wallet/data/mappers/v2_transaction_mapper.dart';
-import 'package:mooze_mobile/features/wallet/data/repositories/wallet_repository_impl/liquid_spend.dart';
+import 'package:mooze_mobile/features/wallet/data/repositories/liquid_spend_wallet.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/partially_signed_transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/payment_request.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -31,11 +31,10 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 /// Legacy [WalletRepository] backed only by the V2 domain services.
 ///
 /// It depends on [LiquidWalletService] and [BitcoinWalletService], never on
-/// LWK, BDK or mooze-core types. So it works with the LWK/BDK services and
-/// with the Core* services (`--dart-define=MOOZE_CORE=true`).
+/// mooze-core types. The Core* services implement both interfaces.
 ///
-/// Each method reproduces the behavior of `WalletRepositoryImpl` and its
-/// `BitcoinWallet` / `LiquidWallet` / `LiquidSpendWallet` parts. Liquid send
+/// Each method reproduces the behavior of the removed legacy
+/// `WalletRepositoryImpl` (BDK/LWK datasources). Liquid send
 /// and receive delegate to [LiquidSpendWallet], which already uses only the
 /// Liquid service.
 class ServiceBackedWalletRepository extends WalletRepository {

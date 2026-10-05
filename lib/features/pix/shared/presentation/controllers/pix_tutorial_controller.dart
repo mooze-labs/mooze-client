@@ -33,7 +33,7 @@ class PixTutorialController extends Notifier<PixTutorialState> {
   @override
   PixTutorialState build() => const PixTutorialState();
 
-  bool get hasSeen => ref.read(pixTutorialServiceProvider).isTutorialShown();
+  Future<bool> hasSeen() => ref.read(pixTutorialServiceProvider).isTutorialShown();
 
   /// Starts the tutorial on the receive screen. The tutorial no longer
   /// auto-runs on the home screen; it begins the first time the user opens
@@ -46,9 +46,12 @@ class PixTutorialController extends Notifier<PixTutorialState> {
     );
   }
 
-  /// Starts the tutorial only on the user's first visit to PIX.
-  void startIfUnseen() {
-    if (state.isActive || hasSeen) return;
+  /// Starts the tutorial only on the user's first visit to PIX. The flag
+  /// read is async, so the tutorial starts one tick after the call.
+  Future<void> startIfUnseen() async {
+    if (state.isActive) return;
+    final seen = await hasSeen().catchError((Object _) => true);
+    if (seen || state.isActive) return;
     start();
   }
 

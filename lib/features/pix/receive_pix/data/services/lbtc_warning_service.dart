@@ -1,20 +1,17 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart';
 
+/// L-BTC price fluctuation warning flag, stored in mooze-core.
 class LbtcWarningService {
-  static const String _warningShownKey = 'lbtc_fluctuation_warning_shown';
+  LbtcWarningService(this._core);
 
-  Future<bool> isWarningShown() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_warningShownKey) ?? false;
-  }
+  final Future<MoozeCore> _core;
 
-  Future<void> setWarningShown() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_warningShownKey, true);
-  }
+  Future<bool> isWarningShown() async =>
+      (await _core).pixFlagIsSet(flag: PixFlagDto.lbtcWarningShown);
 
-  Future<void> resetWarning() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_warningShownKey);
-  }
+  Future<void> setWarningShown() async =>
+      (await _core).pixFlagSet(flag: PixFlagDto.lbtcWarningShown);
+
+  Future<void> resetWarning() async =>
+      (await _core).pixFlagReset(flag: PixFlagDto.lbtcWarningShown);
 }

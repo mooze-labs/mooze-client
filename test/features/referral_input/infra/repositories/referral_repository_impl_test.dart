@@ -68,7 +68,7 @@ void main() {
 
         // Assert
         expect(result.isFailure, true);
-        expect(result.error, contains('Erro ao buscar código de indicação'));
+        expect(result.error, 'referral_error_fetch_failed');
       });
     });
 
@@ -123,7 +123,7 @@ void main() {
 
         // Assert
         expect(result.isFailure, true);
-        expect(result.error, contains('Erro ao validar código'));
+        expect(result.error, 'referral_error_validate_failed');
       });
     });
 
@@ -164,7 +164,7 @@ void main() {
 
         // Assert
         expect(result.isFailure, true);
-        expect(result.error, contains('Erro ao aplicar código'));
+        expect(result.error, 'referral_error_apply_failed');
       });
     });
   });

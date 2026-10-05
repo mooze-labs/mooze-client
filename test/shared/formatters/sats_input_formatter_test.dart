@@ -99,13 +99,14 @@ void main() {
       expect(result.text, '123');
     });
 
-    test('deve limitar a 10 dígitos', () {
-      const oldValue = TextEditingValue(text: '9.999.999.999');
-      const newValue = TextEditingValue(text: '99999999999');
+    // 16 dígitos cobrem a oferta máxima de BTC em sats.
+    test('deve limitar a 16 dígitos', () {
+      const oldValue = TextEditingValue(text: '9.999.999.999.999.999');
+      const newValue = TextEditingValue(text: '99999999999999999');
 
       final result = formatter.formatEditUpdate(oldValue, newValue);
 
-      expect(result.text, '9.999.999.999');
+      expect(result.text, '9.999.999.999.999.999');
     });
 
     test('parseValue deve converter texto formatado para int', () {

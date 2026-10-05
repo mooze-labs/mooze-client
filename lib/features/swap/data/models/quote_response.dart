@@ -45,52 +45,6 @@ class QuoteResponse {
     this.quoteAssetId,
   });
 
-  factory QuoteResponse.fromJson(Map<String, dynamic> json) {
-    final assetPair = json['asset_pair'] as Map<String, dynamic>?;
-    final identity = _QuoteIdentity(
-      quoteSubId: (json['quote_sub_id'] as num?)?.toInt(),
-      requestedAmount: (json['amount'] as num?)?.toInt(),
-      baseAssetId: assetPair?['base'] as String?,
-      quoteAssetId: assetPair?['quote'] as String?,
-    );
-
-    final status = json['status'];
-    if (status is Map<String, dynamic>) {
-      if (status.containsKey('Success')) {
-        return QuoteResponse(
-          quote: SideswapQuote.fromJson(json),
-          quoteSubId: identity.quoteSubId,
-          requestedAmount: identity.requestedAmount,
-          baseAssetId: identity.baseAssetId,
-          quoteAssetId: identity.quoteAssetId,
-        );
-      } else if (status.containsKey('Error')) {
-        return QuoteResponse(
-          error: QuoteError.fromJson(json),
-          quoteSubId: identity.quoteSubId,
-          requestedAmount: identity.requestedAmount,
-          baseAssetId: identity.baseAssetId,
-          quoteAssetId: identity.quoteAssetId,
-        );
-      } else if (status.containsKey('LowBalance')) {
-        return QuoteResponse(
-          lowBalance: QuoteLowBalance.fromJson(json),
-          quoteSubId: identity.quoteSubId,
-          requestedAmount: identity.requestedAmount,
-          baseAssetId: identity.baseAssetId,
-          quoteAssetId: identity.quoteAssetId,
-        );
-      }
-    }
-    return QuoteResponse(
-      error: QuoteError(errorMessage: "Unknown quote response"),
-      quoteSubId: identity.quoteSubId,
-      requestedAmount: identity.requestedAmount,
-      baseAssetId: identity.baseAssetId,
-      quoteAssetId: identity.quoteAssetId,
-    );
-  }
-
   bool get isSuccess => quote != null;
   bool get isError => error != null;
   bool get isLowBalance => lowBalance != null;
@@ -108,17 +62,4 @@ class QuoteResponse {
         this.quoteAssetId == quoteAssetId &&
         this.requestedAmount == requestedAmount;
   }
-}
-
-class _QuoteIdentity {
-  final int? quoteSubId;
-  final int? requestedAmount;
-  final String? baseAssetId;
-  final String? quoteAssetId;
-  const _QuoteIdentity({
-    this.quoteSubId,
-    this.requestedAmount,
-    this.baseAssetId,
-    this.quoteAssetId,
-  });
 }
