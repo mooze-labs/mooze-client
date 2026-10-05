@@ -1,0 +1,34 @@
+[package]
+name = "mooze-app"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Host-neutral application facade of the Mooze wallet over mooze-core."
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = []
+# Pass-through of the mooze-core features.
+http-reqwest = ["mooze-core/http-reqwest"]
+electrum = ["mooze-core/electrum"]
+# TypeScript generation. Never needed by a host build.
+codegen = ["dep:ts-rs"]
+
+[dependencies]
+mooze-core = { path = "../mooze-core", version = "=0.1.0" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151" }
+thiserror = { version = "=2.0.21" }
+futures = { version = "=0.3.34", default-features = false, features = ["std", "async-await"] }
+# Runtime-free primitives only. Builds on wasm32. The Mutex is FIFO fair.
+tokio = { version = "=1.53.2", default-features = false, features = ["sync"] }
+ts-rs = { version = "=12.0.1", optional = true, features = ["serde-compat"] }
+
+[dev-dependencies]
+futures = { version = "=0.3.34", features = ["executor"] }
+
+[workspace]
