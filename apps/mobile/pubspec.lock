@@ -1127,7 +1127,7 @@ packages:
   mooze_core_bridge:
     dependency: "direct main"
     description:
-      path: "packages/mooze_core_bridge"
+      path: "../../packages/mooze_core_bridge"
       relative: true
     source: path
     version: "0.1.0"

@@ -29,38 +29,12 @@ firebase.json
 # is commented out by default.
 #.vscode/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Dart tool caches in any package
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-*.g.dart
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-ios/GoogleService-Info.plist
-android/app/google-services.json
-
-!ios/Runner.xcodeproj/project.pbxproj
-!ios/Runner/Info.plist
-!ios/Runner/*.lproj/
-!ios/Runner/*.lproj/InfoPlist.strings
-!ios/Runner/
-!ios/Runner/*.lproj/
-!ios/Runner/*.lproj/InfoPlist.strings
 
 # FVM Version Cache
 .fvm/

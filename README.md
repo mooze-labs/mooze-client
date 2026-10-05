@@ -37,14 +37,22 @@ Mooze is built with a modern Flutter architecture:
 - Dart SDK (2.16.0 or higher)
 - Android Studio / Xcode for native development
 
+### Repository layout
+
+- `apps/mobile`: Flutter app.
+- `crates/mooze-core`: Rust core with the application logic.
+- `packages/mooze_core_bridge`: flutter_rust_bridge plugin that connects the app to `mooze-core`.
+
 ### Setup
 
 1. Clone the repository:
 
    ```bash
    git clone https://github.com/mooze-app/mooze-client.git
-   cd mooze-client
+   cd mooze-client/apps/mobile
    ```
+
+   Run all Flutter commands below from `apps/mobile`.
 
 2. Install dependencies:
 

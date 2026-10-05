@@ -1,0 +1,28 @@
+# Flutter app rules. Paths are relative to apps/mobile.
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+/build/
+*.g.dart
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+ios/GoogleService-Info.plist
+android/app/google-services.json
+
+!ios/Runner.xcodeproj/project.pbxproj
+!ios/Runner/Info.plist
+!ios/Runner/*.lproj/
+!ios/Runner/*.lproj/InfoPlist.strings
+!ios/Runner/
+!ios/Runner/*.lproj/
+!ios/Runner/*.lproj/InfoPlist.strings

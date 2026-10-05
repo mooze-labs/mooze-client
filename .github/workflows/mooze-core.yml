@@ -3,17 +3,17 @@ name: mooze-core
 on:
   push:
     branches: ["main", "develop"]
-    paths: ["mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
+    paths: ["crates/mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
   pull_request:
     branches: ["main", "develop"]
-    paths: ["mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
+    paths: ["crates/mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
 
 permissions:
   contents: read
 
 defaults:
   run:
-    working-directory: mooze-core
+    working-directory: crates/mooze-core
 
 jobs:
   build-test:
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          manifest-path: mooze-core/Cargo.toml
+          manifest-path: crates/mooze-core/Cargo.toml
           command: check advisories bans sources
 
   bridge:

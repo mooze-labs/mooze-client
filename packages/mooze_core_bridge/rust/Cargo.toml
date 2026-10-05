@@ -12,7 +12,7 @@ publish = false
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-mooze-core = { path = "../../../mooze-core", version = "=0.1.0", features = ["electrum", "http-reqwest"] }
+mooze-core = { path = "../../../crates/mooze-core", version = "=0.1.0", features = ["electrum", "http-reqwest"] }
 # Must equal the Dart flutter_rust_bridge package version in pubspec.lock.
 flutter_rust_bridge = { version = "=2.11.1" }
 # Same version as the tokio that mooze-core already pulls in through reqwest.

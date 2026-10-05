@@ -12,9 +12,10 @@ import 'package:mooze_mobile/infra/migration/flutter_data_exporter.dart';
 import '../../shared/database_test_helpers.dart';
 
 /// Golden file shared with the Rust importer test in
-/// `mooze-core/tests/flutter_snapshot.rs`. A format change must update
+/// `crates/mooze-core/tests/flutter_snapshot.rs`. A format change must update
 /// both sides, or one of the two tests fails.
-const _fixturePath = 'mooze-core/tests/fixtures/flutter_snapshot_v1.json';
+const _fixturePath =
+    '../../crates/mooze-core/tests/fixtures/flutter_snapshot_v1.json';
 
 final _t0 = DateTime.fromMillisecondsSinceEpoch(1700000000000, isUtc: true);
 

@@ -27,7 +27,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   # Rust core (mooze-core) over flutter_rust_bridge.
   mooze_core_bridge:
-    path: ./packages/mooze_core_bridge
+    path: ../../packages/mooze_core_bridge
   ffi: ^2.1.4
   shared_preferences: ^2.5.2
   path_provider: ^2.1.5
