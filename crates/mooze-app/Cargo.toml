@@ -10,6 +10,11 @@ publish = false
 [lib]
 crate-type = ["rlib"]
 
+[[bin]]
+name = "codegen"
+path = "src/bin/codegen.rs"
+required-features = ["codegen"]
+
 [features]
 default = []
 # Pass-through of the mooze-core features.

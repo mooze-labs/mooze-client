@@ -11,6 +11,7 @@ pub mod dto;
 pub mod error;
 pub mod events;
 pub mod glue;
+pub mod methods;
 pub mod platform;
 pub mod rules;
 pub mod runtime;
