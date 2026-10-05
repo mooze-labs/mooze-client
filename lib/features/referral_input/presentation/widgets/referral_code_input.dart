@@ -57,6 +57,7 @@ class ReferralCodeInput extends StatelessWidget {
                 child: SizedBox(
                   height: 50,
                   child: TextField(
+                    autofocus: true,
                     controller: controller,
                     onChanged: (_) => onChanged(),
                     enabled: isEnabled,

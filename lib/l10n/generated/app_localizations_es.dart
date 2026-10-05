@@ -72,6 +72,44 @@ class AppLocalizationsEs extends AppLocalizations {
   String get common_redo => 'Rehacer';
 
   @override
+  String get nav_home => 'Inicio';
+
+  @override
+  String get nav_menu => 'Menú';
+
+  @override
+  String get onboarding_get_started => 'Comenzar';
+
+  @override
+  String get pix_send_confirm_title => 'Confirmar pago';
+
+  @override
+  String get pix_send_error_title => 'Error en el pago';
+
+  @override
+  String get pix_send_processing_payment => 'Procesando pago...';
+
+  @override
+  String get common_taking_longer =>
+      'Está tardando más de lo normal. Verifica tu conexión.';
+
+  @override
+  String get error_something_went_wrong =>
+      'Algo salió mal. Inténtalo de nuevo.';
+
+  @override
+  String get send_clipboard_address_found => 'Dirección copiada detectada';
+
+  @override
+  String get send_clipboard_use => 'Usar';
+
+  @override
+  String get pix_clipboard_key_found => 'Clave PIX copiada detectada';
+
+  @override
+  String get deeplink_invalid_payment => 'Enlace de pago inválido';
+
+  @override
   String get error_open_link => 'No se pudo abrir el enlace';
 
   @override

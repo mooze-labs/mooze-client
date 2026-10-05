@@ -18,3 +18,4 @@ export 'section_label.dart';
 export 'send_conversion_widgets.dart';
 export 'validation_errors_widget.dart';
 export 'transaction_card.dart';
+export 'clipboard_address_suggestion.dart';

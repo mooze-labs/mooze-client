@@ -127,6 +127,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
                     BalanceCard(),
                     SizedBox(height: 28),
                     LbtcZeroBalanceBanner(),
+                    ClipboardAddressSuggestion(),
                     AddressField(),
                     SizedBox(height: 12),
                     NetworkIndicatorWidget(),

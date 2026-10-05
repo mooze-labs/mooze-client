@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
@@ -607,7 +608,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       if (mounted) {
         AppSnackBar.error(
           context,
-          AppLocalizations.of(context).merchant_add_product_error(e.toString()),
+          AppLocalizations.of(context).merchant_add_product_error(humanizeError(context, e)),
         );
       }
     }
@@ -638,7 +639,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
             context,
             AppLocalizations.of(
               context,
-            ).merchant_update_product_error(e.toString()),
+            ).merchant_update_product_error(humanizeError(context, e)),
           );
         }
       }
@@ -667,7 +668,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
           context,
           AppLocalizations.of(
             context,
-          ).merchant_remove_product_error(e.toString()),
+          ).merchant_remove_product_error(humanizeError(context, e)),
         );
       }
     }
@@ -922,7 +923,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
                                               ),
                                               const SizedBox(height: 8),
                                               Text(
-                                                error.toString(),
+                                                humanizeError(context, error),
                                                 style: TextStyle(
                                                   color: Colors.grey[400],
                                                   fontSize: 12,

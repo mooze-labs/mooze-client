@@ -119,6 +119,7 @@ class _PhoneVerificationMethodScreenState
                           child: SizedBox(
                             height: 50,
                             child: TextField(
+                              autofocus: true,
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
                               inputFormatters: [_phoneFormatter],

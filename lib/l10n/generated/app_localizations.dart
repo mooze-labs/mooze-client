@@ -226,6 +226,78 @@ abstract class AppLocalizations {
   /// **'Refazer'**
   String get common_redo;
 
+  /// No description provided for @nav_home.
+  ///
+  /// In pt, this message translates to:
+  /// **'Início'**
+  String get nav_home;
+
+  /// No description provided for @nav_menu.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menu'**
+  String get nav_menu;
+
+  /// No description provided for @onboarding_get_started.
+  ///
+  /// In pt, this message translates to:
+  /// **'Começar'**
+  String get onboarding_get_started;
+
+  /// No description provided for @pix_send_confirm_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar pagamento'**
+  String get pix_send_confirm_title;
+
+  /// No description provided for @pix_send_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro no pagamento'**
+  String get pix_send_error_title;
+
+  /// No description provided for @pix_send_processing_payment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Processando pagamento...'**
+  String get pix_send_processing_payment;
+
+  /// No description provided for @common_taking_longer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Está demorando mais que o normal. Verifique sua conexão.'**
+  String get common_taking_longer;
+
+  /// No description provided for @error_something_went_wrong.
+  ///
+  /// In pt, this message translates to:
+  /// **'Algo deu errado. Tente novamente.'**
+  String get error_something_went_wrong;
+
+  /// No description provided for @send_clipboard_address_found.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço copiado detectado'**
+  String get send_clipboard_address_found;
+
+  /// No description provided for @send_clipboard_use.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar'**
+  String get send_clipboard_use;
+
+  /// No description provided for @pix_clipboard_key_found.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave PIX copiada detectada'**
+  String get pix_clipboard_key_found;
+
+  /// No description provided for @deeplink_invalid_payment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link de pagamento inválido'**
+  String get deeplink_invalid_payment;
+
   /// No description provided for @error_open_link.
   ///
   /// In pt, this message translates to:

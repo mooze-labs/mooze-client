@@ -110,79 +110,18 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
 
     _receiveCoach = buildPixCoachMark(
       targets: [
-        // Step 3 & 4 — same target (asset selector), different copy. Advancing
-        // to step 4 previews the L-BTC option so the user sees the selector can
-        // change; advancing to step 5 restores the default dePIX asset.
+        // Step 1 — the asset selector. Advancing pre-fills the demo amount
+        // so the next step highlights a populated field.
         assetTarget(
           "pix_asset_default",
           t.pix_tutorial_step3_title,
           t.pix_tutorial_step3_body,
           onNext: (coach) {
-            controller.previewLbtcAsset();
+            controller.applyDemoAmount();
             coach.next();
           },
         ),
-        assetTarget(
-          "pix_asset_change",
-          t.pix_tutorial_step4_title,
-          t.pix_tutorial_step4_body,
-          onNext: (coach) {
-            controller.restoreDefaultAsset();
-            coach.next();
-          },
-        ),
-        // Step 5 — centered info (no specific element).
-        TargetFocus(
-          identify: "pix_swap_later",
-          targetPosition: pixTutorialCenteredPosition(context),
-          shape: ShapeLightFocus.RRect,
-          radius: 20,
-          enableTargetTab: false,
-          contents: [
-            TargetContent(
-              align: ContentAlign.custom,
-              customPosition: CustomTargetContentPosition(
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-              ),
-              builder:
-                  (context, coach) => pixTutorialContentCard(
-                    title: t.pix_tutorial_step5_title,
-                    body: t.pix_tutorial_step5_body,
-                    buttonLabel: t.common_next,
-                    onPressed: () => coach.next(),
-                    center: true,
-                  ),
-            ),
-          ],
-        ),
-        // Step 6 — receiving limits.
-        TargetFocus(
-          identify: "pix_limits",
-          keyTarget: controller.limitsKey,
-          shape: ShapeLightFocus.RRect,
-          radius: 12,
-          enableTargetTab: false,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              builder:
-                  (context, coach) => pixTutorialContentCard(
-                    title: t.pix_tutorial_step6_title,
-                    body: t.pix_tutorial_step6_body,
-                    buttonLabel: t.common_next,
-                    onPressed: () {
-                      // Pre-fill the demo amount before highlighting the field.
-                      controller.applyDemoAmount();
-                      coach.next();
-                    },
-                  ),
-            ),
-          ],
-        ),
-        // Step 7 — amount input (last target → triggers onFinish).
+        // Step 2 — amount input (last target here → triggers onFinish).
         TargetFocus(
           identify: "pix_amount",
           keyTarget: controller.amountInputKey,

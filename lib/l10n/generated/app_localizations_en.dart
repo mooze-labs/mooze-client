@@ -72,6 +72,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get common_redo => 'Redo';
 
   @override
+  String get nav_home => 'Home';
+
+  @override
+  String get nav_menu => 'Menu';
+
+  @override
+  String get onboarding_get_started => 'Get started';
+
+  @override
+  String get pix_send_confirm_title => 'Confirm payment';
+
+  @override
+  String get pix_send_error_title => 'Payment error';
+
+  @override
+  String get pix_send_processing_payment => 'Processing payment...';
+
+  @override
+  String get common_taking_longer =>
+      'This is taking longer than usual. Check your connection.';
+
+  @override
+  String get error_something_went_wrong => 'Something went wrong. Try again.';
+
+  @override
+  String get send_clipboard_address_found => 'Copied address detected';
+
+  @override
+  String get send_clipboard_use => 'Use';
+
+  @override
+  String get pix_clipboard_key_found => 'Copied PIX key detected';
+
+  @override
+  String get deeplink_invalid_payment => 'Invalid payment link';
+
+  @override
   String get error_open_link => 'Could not open the link';
 
   @override

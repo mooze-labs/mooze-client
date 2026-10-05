@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_tutorial_content.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_main_screen.dart';
-import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
@@ -71,14 +68,6 @@ class _MainNavigationScaffoldState
   late final ValueNotifier<double> _pageFloatNotifier;
   bool _isPageChanging = false;
 
-  // PIX onboarding tutorial (steps 1–2: home PIX button + bottom-nav button).
-  TutorialCoachMark? _homeCoach;
-  int? _shownHomeRunId;
-  int? _pendingHomeRunId;
-  // Guards the onFinish transition so the dispose-time finish() (cleanup)
-  // doesn't re-fire it during widget-tree teardown. See ReceivePixScreen.
-  bool _homeAdvancing = false;
-
   @override
   void initState() {
     super.initState();
@@ -87,115 +76,6 @@ class _MainNavigationScaffoldState
     _currentPageNotifier = ValueNotifier<int>(initialPage);
     _pageFloatNotifier = ValueNotifier<double>(initialPage.toDouble());
     _pageController.addListener(_onPageScroll);
-
-    // Handle the case where the tutorial is already in its home stage by the
-    // time the shell first builds (auto-start fires from HomeScreen.initState,
-    // which runs in the same frame as this shell).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncHomeTutorial());
-  }
-
-  /// Shows or hides the steps 1–2 coach mark to match the tutorial stage.
-  void _syncHomeTutorial() {
-    if (!mounted) return;
-    final tutorial = ref.read(pixTutorialControllerProvider);
-    final onHomePage = _getIndexFromLocation(widget.currentLocation) == 0;
-
-    if (tutorial.stage == PixTutorialStage.home &&
-        onHomePage &&
-        _shownHomeRunId != tutorial.runId &&
-        _pendingHomeRunId != tutorial.runId) {
-      final runId = tutorial.runId;
-      _pendingHomeRunId = runId;
-      final controller = ref.read(pixTutorialControllerProvider.notifier);
-      showPixCoachMarkWhenReady(
-        controller.homePixButtonKey,
-        () {
-          _pendingHomeRunId = null;
-          if (!mounted) return;
-          _shownHomeRunId = runId;
-          _showHomeTutorial();
-        },
-        label: 'home/pix-button',
-        onTimeout: () => _pendingHomeRunId = null,
-      );
-    }
-  }
-
-  void _showHomeTutorial() {
-    final controller = ref.read(pixTutorialControllerProvider.notifier);
-    final t = AppLocalizations.of(context);
-
-    _homeCoach = buildPixCoachMark(
-      targets: [
-        TargetFocus(
-          identify: "pix_home_button",
-          keyTarget: controller.homePixButtonKey,
-          shape: ShapeLightFocus.RRect,
-          radius: 12,
-          enableTargetTab: false,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              builder:
-                  (context, coach) => pixTutorialContentCard(
-                    title: t.pix_tutorial_step1_title,
-                    body: t.pix_tutorial_step1_body,
-                    buttonLabel: t.common_next,
-                    onPressed: () => coach.next(),
-                  ),
-            ),
-          ],
-        ),
-        TargetFocus(
-          identify: "pix_nav_button",
-          keyTarget: controller.bottomNavPixKey,
-          shape: ShapeLightFocus.Circle,
-          enableTargetTab: false,
-          contents: [
-            TargetContent(
-              align: ContentAlign.top,
-              builder:
-                  (context, coach) => pixTutorialContentCard(
-                    title: t.pix_tutorial_step2_title,
-                    body: t.pix_tutorial_step2_body,
-                    buttonLabel: t.common_next,
-                    onPressed: () {
-                      _homeAdvancing = true;
-                      coach.next();
-                    },
-                  ),
-            ),
-          ],
-        ),
-      ],
-      onFinish: () {
-        // Only transition on genuine completion — dispose()'s finish() lands
-        if (!_homeAdvancing) {
-          _shownHomeRunId = null;
-          return;
-        }
-        _homeAdvancing = false;
-        // Advance to the receive group and bring the PIX page into view;
-        // ReceivePixScreen picks up the `receive` stage and shows steps 3–7.
-        controller.toReceive();
-        if (_pageController.hasClients) {
-          _pageController.jumpToPage(2);
-        }
-      },
-      onSkip: _skipTutorial,
-    );
-
-    _homeCoach?.show(context: context);
-  }
-
-  /// Skipping the tutorial exits it and returns the user to Home (a no-op
-  /// navigation when already there, but keeps Skip behaviour uniform).
-  void _skipTutorial() {
-    Future(() async {
-      if (!mounted) return;
-      await ref.read(pixTutorialControllerProvider.notifier).skip();
-      if (mounted) context.go('/home');
-    });
   }
 
   void _onPageScroll() {
@@ -222,7 +102,6 @@ class _MainNavigationScaffoldState
     _pageController.dispose();
     _currentPageNotifier.dispose();
     _pageFloatNotifier.dispose();
-    _homeCoach?.finish();
     super.dispose();
   }
 
@@ -237,11 +116,6 @@ class _MainNavigationScaffoldState
         _pageController.jumpToPage(newIndex);
       }
 
-      if (newIndex == 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _syncHomeTutorial();
-        });
-      }
     }
   }
 
@@ -263,12 +137,6 @@ class _MainNavigationScaffoldState
   @override
   Widget build(BuildContext context) {
     final currentIndex = _getIndexFromLocation(widget.currentLocation);
-
-    // React to tutorial stage changes (auto-start, restart, advancing past
-    // the home group) so the steps 1–2 coach mark appears/clears correctly.
-    ref.listen<PixTutorialState>(pixTutorialControllerProvider, (_, _) {
-      _syncHomeTutorial();
-    });
 
     final tutorialActive = ref.watch(pixTutorialControllerProvider).isActive;
 
@@ -296,12 +164,14 @@ class _MainNavigationScaffoldState
             extendBody: true,
             resizeToAvoidBottomInset: false,
             bottomNavigationBar: CustomBottomNavBar(
-              centralButtonKey:
-                  ref
-                      .read(pixTutorialControllerProvider.notifier)
-                      .bottomNavPixKey,
               currentIndex: currentIndex,
               onTap: (index) {
+                if (index == 2) {
+                  // First visit to PIX starts the receive-screen tutorial.
+                  ref
+                      .read(pixTutorialControllerProvider.notifier)
+                      .startIfUnseen();
+                }
                 if (_pageController.hasClients) {
                   _pageController.jumpToPage(index);
                 }
