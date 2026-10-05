@@ -3,10 +3,10 @@ name: mooze-core
 on:
   push:
     branches: ["main", "develop"]
-    paths: ["mooze-core/**", ".github/workflows/mooze-core.yml"]
+    paths: ["mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
   pull_request:
     branches: ["main", "develop"]
-    paths: ["mooze-core/**", ".github/workflows/mooze-core.yml"]
+    paths: ["mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
 
 permissions:
   contents: read
@@ -52,3 +52,30 @@ jobs:
         with:
           manifest-path: mooze-core/Cargo.toml
           command: check advisories bans sources
+
+  bridge:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/mooze_core_bridge
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test the bridge crate
+        working-directory: packages/mooze_core_bridge/rust
+        run: |
+          cargo build --locked
+          cargo test --locked
+          cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9 # Keep in sync with .fvmrc
+
+      # Calls the host library built above from Dart.
+      - name: Dart smoke test
+        run: |
+          flutter pub get
+          flutter test test/bridge_smoke_test.dart

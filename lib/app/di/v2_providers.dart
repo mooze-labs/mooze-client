@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_core_bridge/mooze_core_bridge.dart' show MoozeCore;
 
 import '../../domain/entities/asset.dart';
 import '../../domain/entities/asset_catalog.dart';
 import '../../domain/entities/balance.dart';
+import '../../domain/entities/chain.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/events/transaction_event.dart';
 import '../../domain/repositories/notified_tx_registry.dart';
@@ -31,6 +33,9 @@ import '../../features/wallet/domain/usecases/import_wallet.dart';
 import '../../features/wallet/domain/usecases/refresh_wallet.dart';
 import '../../infra/auth/session_authenticator_impl.dart';
 import '../../infra/bdk/bitcoin_wallet_service_impl.dart';
+import '../../infra/core/core_bitcoin_wallet_service.dart';
+import '../../infra/core/core_bridge.dart';
+import '../../infra/core/core_liquid_wallet_service.dart';
 import '../../infra/db/transaction_database.dart';
 import '../../infra/fs/wallet_directory_guard_impl.dart';
 import '../../infra/lwk/liquid_wallet_service_impl.dart';
@@ -42,6 +47,7 @@ import '../../infra/storage/notified_tx_registry_impl.dart';
 import '../../infra/storage/secure_credential_store_impl.dart';
 import '../../infra/storage/transaction_store_impl.dart';
 import '../../shared/clock/clock.dart';
+import '../../shared/infra/db/providers/app_database_provider.dart';
 import '../../shared/logging/structured_logger.dart';
 import '../lifecycle/app_lifecycle_controller.dart';
 import '../lifecycle/app_lifecycle_controller_impl.dart';
@@ -107,9 +113,44 @@ final electrumEndpointResolverProvider = Provider<ElectrumEndpointResolver>(
   (_) => RoundRobinElectrumEndpointResolver(),
 );
 
+// ─────────────────────────────────────────── mooze-core
+
+/// Selects the Rust core (mooze-core) for the Bitcoin and Liquid services.
+/// Set it with `--dart-define=MOOZE_CORE=true`. Off by default.
+const bool useMoozeCore = bool.fromEnvironment('MOOZE_CORE');
+
+/// The opened mooze-core handle, after the one-time Flutter data import.
+///
+/// Only the Core* services read it, and only when [useMoozeCore] is true.
+/// The services take its future, so they stay synchronous providers. The
+/// boot orchestrator's `connect` call awaits the core inside the
+/// connect timeout. An open failure becomes a connect failure.
+final moozeCoreProvider = FutureProvider<MoozeCore>((ref) async {
+  final txDb = await ref.watch(transactionDatabaseProvider.future);
+  final core = await MoozeCoreBridge(logger: ref.read(loggerProvider))
+      .openForApp(
+    // The app runs on mainnet only. See `FlutterSecureCredentialStore`.
+    network: AppNetwork.mainnet,
+    appDatabase: ref.read(appDatabaseProvider),
+    transactionDatabase: txDb.db,
+  );
+  ref.onDispose(core.dispose);
+  return core;
+});
+
 // ─────────────────────────────────────────── chain services
 
 final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
+  if (useMoozeCore) {
+    final s = CoreLiquidWalletService.deferred(
+      core: ref.read(moozeCoreProvider.future),
+      logger: ref.read(loggerProvider),
+      clock: ref.read(clockProvider),
+      credentialStore: ref.read(secureCredentialStoreProvider),
+    );
+    ref.onDispose(s.dispose);
+    return s;
+  }
   final s = LiquidWalletServiceImpl(
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     logger: ref.read(loggerProvider),
@@ -122,6 +163,15 @@ final liquidWalletServiceProvider = Provider<LiquidWalletService>((ref) {
 });
 
 final bitcoinWalletServiceProvider = Provider<BitcoinWalletService>((ref) {
+  if (useMoozeCore) {
+    final s = CoreBitcoinWalletService.deferred(
+      core: ref.read(moozeCoreProvider.future),
+      logger: ref.read(loggerProvider),
+      clock: ref.read(clockProvider),
+    );
+    ref.onDispose(s.dispose);
+    return s;
+  }
   final s = BitcoinWalletServiceImpl(
     directoryGuard: ref.read(walletDirectoryGuardProvider),
     logger: ref.read(loggerProvider),

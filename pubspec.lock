@@ -1141,6 +1141,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.4"
+  mooze_core_bridge:
+    dependency: "direct main"
+    description:
+      path: "packages/mooze_core_bridge"
+      relative: true
+    source: path
+    version: "0.1.0"
   mutex:
     dependency: "direct main"
     description:

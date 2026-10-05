@@ -19,8 +19,18 @@ import 'package:mooze_mobile/shared/infra/lwk/wallet.dart';
 /// and the address explorer call through the same handle.
 final liquidDataSourceProvider =
     FutureProvider<Either<String, LiquidDataSource>>((ref) async {
-  final service =
-      ref.watch(liquidWalletServiceProvider) as LiquidWalletServiceImpl;
+  // With mooze-core on, the service is a `CoreLiquidWalletService`, which
+  // has no `lwk.Wallet` handle. Return a Left instead of a cast error, so
+  // readers (address explorer) degrade gracefully.
+  final raw = ref.watch(liquidWalletServiceProvider);
+  if (useMoozeCore || raw is! LiquidWalletServiceImpl) {
+    return Left(
+      'Raw LWK wallet handle unavailable: the Liquid service is '
+      '${raw.runtimeType} (MOOZE_CORE=$useMoozeCore). '
+      'Use LiquidWalletService instead.',
+    );
+  }
+  final service = raw;
   final database = ref.read(appDatabaseProvider);
 
   // Stale-reference invalidation — symmetric with `breezClientProvider`.

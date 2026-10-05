@@ -27,6 +27,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   lwk:
     path: ./packages/lwk-dart
+  # Rust core over flutter_rust_bridge. Selected with --dart-define=MOOZE_CORE=true.
+  mooze_core_bridge:
+    path: ./packages/mooze_core_bridge
   ffi: ^2.1.4
   shared_preferences: ^2.5.2
   path_provider: ^2.1.5

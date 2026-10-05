@@ -24,8 +24,18 @@ final bdkDatasourceProvider =
   // wallet + Electrum handles are constructed). We also
   // listen to the service's own state stream so a later re-connect (e.g.
   // after `node_settings.save()`) is observed transparently.
-  final service =
-      ref.watch(bitcoinWalletServiceProvider) as BitcoinWalletServiceImpl;
+  // With mooze-core on, the service is a `CoreBitcoinWalletService`, which
+  // has no `bdk.Wallet` handle. Return a Left instead of a cast error, so
+  // readers (address explorer) degrade gracefully.
+  final raw = ref.watch(bitcoinWalletServiceProvider);
+  if (useMoozeCore || raw is! BitcoinWalletServiceImpl) {
+    return Left(
+      'Raw BDK wallet handle unavailable: the Bitcoin service is '
+      '${raw.runtimeType} (MOOZE_CORE=$useMoozeCore). '
+      'Use BitcoinWalletService instead.',
+    );
+  }
+  final service = raw;
   final database = ref.read(appDatabaseProvider);
 
   // Stale-reference invalidation — symmetric with `breezClientProvider`

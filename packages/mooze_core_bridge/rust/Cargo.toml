@@ -1,0 +1,37 @@
+[package]
+# Package and library name must equal the plugin name: cargokit looks for
+# lib<package>.a, and the Dart loader opens the framework of that name.
+name = "mooze_core_bridge"
+version = "0.1.0"
+edition = "2021"
+description = "flutter_rust_bridge bindings for mooze-core."
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+mooze-core = { path = "../../../mooze-core", version = "=0.1.0", features = ["electrum", "http-reqwest"] }
+# Must equal the Dart flutter_rust_bridge package version in pubspec.lock.
+flutter_rust_bridge = { version = "=2.11.1" }
+# Same version as the tokio that mooze-core already pulls in through reqwest.
+tokio = { version = "=1.53.2", default-features = false, features = ["rt-multi-thread", "sync"] }
+anyhow = { version = "=1.0.104" }
+# Not used directly. Pins libc below 0.2.190, which limits the dyld image
+# functions to macOS. backtrace 0.3.76 (through flutter_rust_bridge and
+# allo-isolate) calls them on every Apple target, so iOS builds break.
+# Drop this pin once backtrace or libc fixes the mismatch.
+libc = { version = "=0.2.189" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "debuginfo"
+
+# Standalone crate, not part of another workspace.
+[workspace]
+
+# flutter_rust_bridge expands macros under this cfg.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
