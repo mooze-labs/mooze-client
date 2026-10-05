@@ -314,7 +314,7 @@ impl SideSwapState {
         tokio::spawn(async move {
             drive(&state, &ctl, &emit).await;
             ctl.cancelled.store(true, Ordering::SeqCst);
-            let _ = emit(SideSwapEventDto::closed());
+            let _ = emit(mooze_app::convert::sideswap_closed_event());
         });
     }
 }
@@ -345,9 +345,9 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
                 None => Step::Idle,
                 Some(swap) => {
                     let mut ready: Vec<SideSwapEventDto> =
-                        swap.drain_quotes().into_iter().map(|q| SideSwapEventDto::quote(QuoteDto::from(&q))).collect();
+                        swap.drain_quotes().into_iter().map(|q| mooze_app::convert::sideswap_quote_event(QuoteDto::from(&q))).collect();
                     if let Some(t) = swap.poll_quote_timeout(SystemClock.now_ms()) {
-                        ready.push(SideSwapEventDto::quote(QuoteDto::from(&t)));
+                        ready.push(mooze_app::convert::sideswap_quote_event(QuoteDto::from(&t)));
                     }
                     if !ready.is_empty() {
                         drop(guard);
@@ -389,7 +389,7 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             }
             Step::Quote(Ok(q)) => {
                 attempt = 0;
-                if !emit(SideSwapEventDto::quote(QuoteDto::from(&q))) {
+                if !emit(mooze_app::convert::sideswap_quote_event(QuoteDto::from(&q))) {
                     return;
                 }
                 continue;
@@ -397,9 +397,9 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             Step::Note(Ok(n)) => {
                 attempt = 0;
                 let event = match n {
-                    Notification::PegInWalletBalance(sat) => Some(SideSwapEventDto::balance(SideSwapEventKind::PegInWalletBalance, sat)),
+                    Notification::PegInWalletBalance(sat) => Some(mooze_app::convert::sideswap_balance_event(SideSwapEventKind::PegInWalletBalance, sat)),
                     Notification::PegOutWalletBalance(sat) => {
-                        Some(SideSwapEventDto::balance(SideSwapEventKind::PegOutWalletBalance, sat))
+                        Some(mooze_app::convert::sideswap_balance_event(SideSwapEventKind::PegOutWalletBalance, sat))
                     }
                     _ => None,
                 };
@@ -414,7 +414,7 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             Step::Quote(Err(Error::Timeout(_))) | Step::Note(Err(Error::Timeout(_))) => continue,
             Step::Quote(Err(e)) | Step::Note(Err(e)) => e,
         };
-        if !emit(SideSwapEventDto::disconnected(failed.to_string())) {
+        if !emit(mooze_app::convert::sideswap_disconnected_event(failed.to_string())) {
             return;
         }
         attempt += 1;

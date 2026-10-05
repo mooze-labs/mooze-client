@@ -4,9 +4,11 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import '../third_party/mooze_app/dto/config.dart';
+import '../third_party/mooze_app/dto/pix.dart';
+import '../third_party/mooze_app/dto/swap.dart';
+import '../third_party/mooze_app/dto/wallet.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'pix.dart';
-import 'swap.dart';
 import 'types.dart';
 
 // These functions are ignored because they are not marked as `pub`: `api_base_url`, `auth`, `not_connected`, `reset_auth`, `secure_store`

@@ -4,7 +4,11 @@ use serde::{Deserialize, Serialize};
 
 /// Stable error category. Serialized as `snake_case` text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "codegen", derive(ts_rs::TS), ts(export, export_to = "../generated/"))]
+#[cfg_attr(
+    feature = "codegen",
+    derive(ts_rs::TS),
+    ts(export, export_to = "../generated/")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     Service,
@@ -24,7 +28,11 @@ pub enum ErrorCode {
 
 /// Error every facade method returns.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
-#[cfg_attr(feature = "codegen", derive(ts_rs::TS), ts(export, export_to = "../generated/"))]
+#[cfg_attr(
+    feature = "codegen",
+    derive(ts_rs::TS),
+    ts(export, export_to = "../generated/")
+)]
 #[error("{code:?}: {message}")]
 pub struct AppError {
     pub code: ErrorCode,
@@ -37,7 +45,11 @@ pub type Result<T> = std::result::Result<T, AppError>;
 
 impl AppError {
     pub fn new(code: ErrorCode, message: impl Into<String>) -> Self {
-        Self { code, message: message.into(), details: None }
+        Self {
+            code,
+            message: message.into(),
+            details: None,
+        }
     }
 
     pub fn invalid_input(message: impl Into<String>) -> Self {
@@ -63,7 +75,11 @@ impl From<mooze_core::Error> for AppError {
             E::Session(_) => ErrorCode::Session,
             _ => ErrorCode::Other,
         };
-        Self { code, message: e.to_string(), details: None }
+        Self {
+            code,
+            message: e.to_string(),
+            details: None,
+        }
     }
 }
 
@@ -80,7 +96,13 @@ mod tests {
             (E::storage("x"), ErrorCode::Storage),
             (E::Credential("x".into()), ErrorCode::Credential),
             (E::Network("x".into()), ErrorCode::Network),
-            (E::Http { status: 500, body: "x".into() }, ErrorCode::Network),
+            (
+                E::Http {
+                    status: 500,
+                    body: "x".into(),
+                },
+                ErrorCode::Network,
+            ),
             (E::InvalidInput("x".into()), ErrorCode::InvalidInput),
             (E::InvalidState("x".into()), ErrorCode::InvalidState),
             (E::Timeout("x".into()), ErrorCode::Timeout),
@@ -94,6 +116,9 @@ mod tests {
 
     #[test]
     fn code_serializes_as_snake_case() {
-        assert_eq!(serde_json::to_string(&ErrorCode::InvalidInput).unwrap(), "\"invalid_input\"");
+        assert_eq!(
+            serde_json::to_string(&ErrorCode::InvalidInput).unwrap(),
+            "\"invalid_input\""
+        );
     }
 }

@@ -466,7 +466,7 @@ impl MoozeCore {
         let f = on_runtime(async move {
             let mut guard = inner.bitcoin.lock().await;
             let w = guard.as_mut().ok_or_else(|| mooze_core::Error::InvalidState("bitcoin wallet not connected".into()))?;
-            w.estimate_fee(&request.to_domain(ChainId::Bitcoin)).await
+            w.estimate_fee(&mooze_app::convert::send_request(&request, ChainId::Bitcoin)).await
         })
         .await?;
         Ok((&f).into())
@@ -478,7 +478,7 @@ impl MoozeCore {
         let r = on_runtime(async move {
             let mut guard = inner.bitcoin.lock().await;
             let w = guard.as_mut().ok_or_else(|| mooze_core::Error::InvalidState("bitcoin wallet not connected".into()))?;
-            w.send_onchain(&request.to_domain(ChainId::Bitcoin)).await
+            w.send_onchain(&mooze_app::convert::send_request(&request, ChainId::Bitcoin)).await
         })
         .await?;
         Ok((&r).into())
@@ -538,7 +538,7 @@ impl MoozeCore {
     pub async fn bitcoin_register_external_broadcast(&self, transaction: TransactionDto) -> Result<(), CoreError> {
         let mut guard = self.inner.bitcoin.lock().await;
         let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
-        w.register_external_broadcast(transaction.to_domain());
+        w.register_external_broadcast((&transaction).into());
         Ok(())
     }
 
@@ -692,7 +692,7 @@ impl MoozeCore {
         let f = on_runtime(async move {
             let mut guard = inner.liquid.lock().await;
             let w = guard.as_mut().ok_or_else(|| mooze_core::Error::InvalidState("liquid wallet not connected".into()))?;
-            w.estimate_fee(&request.to_domain(ChainId::Liquid)).await
+            w.estimate_fee(&mooze_app::convert::send_request(&request, ChainId::Liquid)).await
         })
         .await?;
         Ok((&f).into())
@@ -722,7 +722,7 @@ impl MoozeCore {
         let r = on_runtime(async move {
             let mut guard = inner.liquid.lock().await;
             let w = guard.as_mut().ok_or_else(|| mooze_core::Error::InvalidState("liquid wallet not connected".into()))?;
-            w.send_onchain(&request.to_domain(ChainId::Liquid), &mnemonic).await
+            w.send_onchain(&mooze_app::convert::send_request(&request, ChainId::Liquid), &mnemonic).await
         })
         .await?;
         Ok((&r).into())

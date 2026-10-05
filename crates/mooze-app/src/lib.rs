@@ -5,6 +5,7 @@
 //! flutter_rust_bridge, Tauri, wasm-bindgen, UniFFI. The crate does no I/O
 //! and starts no tasks by itself. A [`Platform`] supplies the ports.
 
+pub mod convert;
 pub mod dto;
 pub mod error;
 pub mod platform;

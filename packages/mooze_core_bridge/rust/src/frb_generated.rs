@@ -71,7 +71,7 @@ fn wire__crate__api__core__MoozeCore_api_request_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_method = <crate::api::types::HttpMethodDto>::sse_decode(&mut deserializer);
+            let api_method = <mooze_app::dto::wallet::HttpMethodDto>::sse_decode(&mut deserializer);
             let api_path = <String>::sse_decode(&mut deserializer);
             let api_json_body = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -198,7 +198,7 @@ fn wire__crate__api__core__MoozeCore_api_set_metrics_impl(
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
             let api_metrics =
-                <Option<crate::api::types::DeviceMetricsDto>>::sse_decode(&mut deserializer);
+                <Option<mooze_app::dto::wallet::DeviceMetricsDto>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
@@ -898,7 +898,7 @@ fn wire__crate__api__core__MoozeCore_bitcoin_derived_addresses_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_keychain = <crate::api::types::KeychainDto>::sse_decode(&mut deserializer);
+            let api_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(&mut deserializer);
             let api_start = <u32>::sse_decode(&mut deserializer);
             let api_count = <u32>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -1019,7 +1019,8 @@ fn wire__crate__api__core__MoozeCore_bitcoin_estimate_fee_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_request = <crate::api::types::SendRequestDto>::sse_decode(&mut deserializer);
+            let api_request =
+                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -1258,7 +1259,7 @@ fn wire__crate__api__core__MoozeCore_bitcoin_register_external_broadcast_impl(
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
             let api_transaction =
-                <crate::api::types::TransactionDto>::sse_decode(&mut deserializer);
+                <mooze_app::dto::wallet::TransactionDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -1319,7 +1320,8 @@ fn wire__crate__api__core__MoozeCore_bitcoin_send_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_request = <crate::api::types::SendRequestDto>::sse_decode(&mut deserializer);
+            let api_request =
+                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -2266,7 +2268,7 @@ fn wire__crate__api__core__MoozeCore_liquid_derived_addresses_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_keychain = <crate::api::types::KeychainDto>::sse_decode(&mut deserializer);
+            let api_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(&mut deserializer);
             let api_start = <u32>::sse_decode(&mut deserializer);
             let api_count = <u32>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -2387,7 +2389,8 @@ fn wire__crate__api__core__MoozeCore_liquid_estimate_fee_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_request = <crate::api::types::SendRequestDto>::sse_decode(&mut deserializer);
+            let api_request =
+                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -2686,7 +2689,8 @@ fn wire__crate__api__core__MoozeCore_liquid_send_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_request = <crate::api::types::SendRequestDto>::sse_decode(&mut deserializer);
+            let api_request =
+                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             let api_mnemonic = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
@@ -3192,7 +3196,8 @@ fn wire__crate__api__core__MoozeCore_peg_execute_impl(
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
             let api_wallet_id = <String>::sse_decode(&mut deserializer);
-            let api_direction = <crate::api::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let api_direction =
+                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_amount_sat = <u64>::sse_decode(&mut deserializer);
             let api_fee_rate_sat_per_vbyte = <Option<u32>>::sse_decode(&mut deserializer);
             let api_drain = <bool>::sse_decode(&mut deserializer);
@@ -3375,7 +3380,8 @@ fn wire__crate__api__core__MoozeCore_peg_quote_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_direction = <crate::api::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let api_direction =
+                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_amount_sat = <u64>::sse_decode(&mut deserializer);
             let api_fee_rate_sat_per_vbyte = <Option<u32>>::sse_decode(&mut deserializer);
             let api_drain = <bool>::sse_decode(&mut deserializer);
@@ -3561,7 +3567,8 @@ fn wire__crate__api__core__MoozeCore_peg_status_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_direction = <crate::api::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let api_direction =
+                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_order_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
@@ -3979,7 +3986,7 @@ fn wire__crate__api__core__MoozeCore_pix_flag_is_set_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_flag = <crate::api::pix::PixFlagDto>::sse_decode(&mut deserializer);
+            let api_flag = <mooze_app::dto::pix::PixFlagDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -4039,7 +4046,7 @@ fn wire__crate__api__core__MoozeCore_pix_flag_reset_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_flag = <crate::api::pix::PixFlagDto>::sse_decode(&mut deserializer);
+            let api_flag = <mooze_app::dto::pix::PixFlagDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -4097,7 +4104,7 @@ fn wire__crate__api__core__MoozeCore_pix_flag_set_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
-            let api_flag = <crate::api::pix::PixFlagDto>::sse_decode(&mut deserializer);
+            let api_flag = <mooze_app::dto::pix::PixFlagDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
@@ -5004,7 +5011,7 @@ fn wire__crate__api__core__MoozeCore_sideswap_events_impl(
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
             >>::sse_decode(&mut deserializer);
             let api_sink = <StreamSink<
-                crate::api::swap::SideSwapEventDto,
+                mooze_app::dto::swap::SideSwapEventDto,
                 flutter_rust_bridge::for_generated::SseCodec,
             >>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -5416,11 +5423,12 @@ fn wire__crate__api__swap__peg_validate_amount_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_direction = <crate::api::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let api_direction =
+                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_amount_sat = <Option<u64>>::sse_decode(&mut deserializer);
             let api_spendable_sat = <u64>::sse_decode(&mut deserializer);
             let api_limits =
-                <Option<crate::api::swap::PegServerLimitsDto>>::sse_decode(&mut deserializer);
+                <Option<mooze_app::dto::swap::PegServerLimitsDto>>::sse_decode(&mut deserializer);
             let api_fallback_minimum_sats = <u64>::sse_decode(&mut deserializer);
             let api_drain = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -5557,7 +5565,7 @@ fn wire__crate__api__pix__pix_validate_amount_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_amount_brl = <f64>::sse_decode(&mut deserializer);
             let api_limits =
-                <Option<crate::api::pix::DepositLimitsDto>>::sse_decode(&mut deserializer);
+                <Option<mooze_app::dto::pix::DepositLimitsDto>>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Result::<_, ()>::Ok(crate::api::pix::pix_validate_amount(
@@ -5749,6 +5757,362 @@ fn wire__crate__api__pix__tax_id_validate_impl(
     )
 }
 
+// Section: static_checks
+
+#[allow(clippy::unnecessary_literal_unwrap)]
+const _: fn() = || {
+    {
+        let AddressOwnershipDto = None::<mooze_app::dto::wallet::AddressOwnershipDto>.unwrap();
+        let _: mooze_app::dto::wallet::KeychainDto = AddressOwnershipDto.keychain;
+        let _: u32 = AddressOwnershipDto.index;
+    }
+    {
+        let ApiResponseDto = None::<mooze_app::dto::wallet::ApiResponseDto>.unwrap();
+        let _: u16 = ApiResponseDto.status;
+        let _: String = ApiResponseDto.body;
+    }
+    {
+        let AssetBalanceDto = None::<mooze_app::dto::wallet::AssetBalanceDto>.unwrap();
+        let _: mooze_app::dto::wallet::ChainDto = AssetBalanceDto.chain;
+        let _: Option<String> = AssetBalanceDto.asset_id;
+        let _: u64 = AssetBalanceDto.amount_sat;
+        let _: u8 = AssetBalanceDto.precision;
+        let _: Option<String> = AssetBalanceDto.ticker;
+        let _: u64 = AssetBalanceDto.pending_sat;
+    }
+    {
+        let AuthEnsureDto = None::<mooze_app::dto::wallet::AuthEnsureDto>.unwrap();
+        let _: mooze_app::dto::wallet::AuthEnsureKind = AuthEnsureDto.kind;
+        let _: Option<u16> = AuthEnsureDto.status_code;
+        let _: Option<String> = AuthEnsureDto.message;
+    }
+    {
+        let BalanceDto = None::<mooze_app::dto::wallet::BalanceDto>.unwrap();
+        let _: Vec<mooze_app::dto::wallet::AssetBalanceDto> = BalanceDto.assets;
+        let _: u64 = BalanceDto.snapshot_at_ms;
+    }
+    {
+        let BroadcastResultDto = None::<mooze_app::dto::wallet::BroadcastResultDto>.unwrap();
+        let _: mooze_app::dto::wallet::ChainDto = BroadcastResultDto.chain;
+        let _: String = BroadcastResultDto.tx_id;
+        let _: mooze_app::dto::wallet::TransactionDto = BroadcastResultDto.transaction;
+        let _: Option<u64> = BroadcastResultDto.fee_paid_sat;
+    }
+    {
+        let DepositLimitsDto = None::<mooze_app::dto::pix::DepositLimitsDto>.unwrap();
+        let _: f64 = DepositLimitsDto.absolute_min_limit;
+        let _: f64 = DepositLimitsDto.allowed_spending;
+    }
+    {
+        let DepositValidationDto = None::<mooze_app::dto::pix::DepositValidationDto>.unwrap();
+        let _: bool = DepositValidationDto.is_valid;
+        let _: Option<mooze_app::dto::pix::DepositValidationErrorDto> = DepositValidationDto.error;
+        let _: Option<f64> = DepositValidationDto.limit_amount;
+    }
+    {
+        let DerivedAddressDto = None::<mooze_app::dto::wallet::DerivedAddressDto>.unwrap();
+        let _: mooze_app::dto::wallet::KeychainDto = DerivedAddressDto.keychain;
+        let _: u32 = DerivedAddressDto.index;
+        let _: String = DerivedAddressDto.address;
+        let _: Option<String> = DerivedAddressDto.unconfidential;
+        let _: String = DerivedAddressDto.script_hex;
+        let _: bool = DerivedAddressDto.used;
+    }
+    {
+        let DeviceMetricsDto = None::<mooze_app::dto::wallet::DeviceMetricsDto>.unwrap();
+        let _: String = DeviceMetricsDto.device_id;
+        let _: Option<i64> = DeviceMetricsDto.battery_level;
+        let _: Option<f64> = DeviceMetricsDto.screen_brightness;
+        let _: Option<String> = DeviceMetricsDto.boot_time;
+    }
+    {
+        let FavoritePayerDto = None::<mooze_app::dto::pix::FavoritePayerDto>.unwrap();
+        let _: Option<u64> = FavoritePayerDto.id;
+        let _: String = FavoritePayerDto.label;
+        let _: String = FavoritePayerDto.cpf;
+        let _: String = FavoritePayerDto.masked_cpf;
+    }
+    {
+        let FeeEstimateDto = None::<mooze_app::dto::wallet::FeeEstimateDto>.unwrap();
+        let _: mooze_app::dto::wallet::ChainDto = FeeEstimateDto.chain;
+        let _: mooze_app::dto::wallet::FeePriorityDto = FeeEstimateDto.priority;
+        let _: u64 = FeeEstimateDto.absolute_fee_sat;
+        let _: Option<f64> = FeeEstimateDto.fee_rate_sat_per_vbyte;
+        let _: Option<u16> = FeeEstimateDto.estimated_blocks;
+    }
+    {
+        let LiquidSendDraftDto = None::<mooze_app::dto::wallet::LiquidSendDraftDto>.unwrap();
+        let _: String = LiquidSendDraftDto.pset;
+        let _: String = LiquidSendDraftDto.destination;
+        let _: u64 = LiquidSendDraftDto.amount_sat;
+        let _: u64 = LiquidSendDraftDto.fee_sat;
+        let _: f64 = LiquidSendDraftDto.fee_rate_sat_per_kvb;
+        let _: bool = LiquidSendDraftDto.drain;
+    }
+    {
+        let LiquidUtxoDto = None::<mooze_app::dto::wallet::LiquidUtxoDto>.unwrap();
+        let _: String = LiquidUtxoDto.txid;
+        let _: u32 = LiquidUtxoDto.vout;
+        let _: String = LiquidUtxoDto.asset_id;
+        let _: String = LiquidUtxoDto.asset_blinding_factor;
+        let _: u64 = LiquidUtxoDto.value_sat;
+        let _: String = LiquidUtxoDto.value_blinding_factor;
+    }
+    {
+        let MigrationReportDto = None::<mooze_app::dto::wallet::MigrationReportDto>.unwrap();
+        let _: bool = MigrationReportDto.already_done;
+        let _: Vec<mooze_app::dto::wallet::TableCountDto> = MigrationReportDto.copied;
+        let _: Vec<mooze_app::dto::wallet::SkippedRowDto> = MigrationReportDto.skipped;
+    }
+    {
+        let NextUnusedAddressDto = None::<mooze_app::dto::wallet::NextUnusedAddressDto>.unwrap();
+        let _: u32 = NextUnusedAddressDto.index;
+        let _: String = NextUnusedAddressDto.address;
+        let _: bool = NextUnusedAddressDto.used;
+    }
+    {
+        let PegAmountValidationDto = None::<mooze_app::dto::swap::PegAmountValidationDto>.unwrap();
+        let _: bool = PegAmountValidationDto.has_amount;
+        let _: bool = PegAmountValidationDto.is_valid;
+        let _: Option<mooze_app::dto::swap::PegAmountIssueDto> = PegAmountValidationDto.issue;
+        let _: Option<u64> = PegAmountValidationDto.minimum_sats;
+        let _: Option<u64> = PegAmountValidationDto.maximum_sats;
+        let _: bool = PegAmountValidationDto.shows_issue;
+    }
+    {
+        let PegExecutionDto = None::<mooze_app::dto::swap::PegExecutionDto>.unwrap();
+        let _: mooze_app::dto::swap::PegOrderDto = PegExecutionDto.order;
+        let _: String = PegExecutionDto.funding_tx_id;
+    }
+    {
+        let PegOrderDto = None::<mooze_app::dto::swap::PegOrderDto>.unwrap();
+        let _: String = PegOrderDto.order_id;
+        let _: mooze_app::dto::swap::PegDirectionDto = PegOrderDto.direction;
+        let _: String = PegOrderDto.deposit_address;
+        let _: String = PegOrderDto.payout_address;
+        let _: u64 = PegOrderDto.created_at_ms;
+        let _: Option<u64> = PegOrderDto.expires_at_ms;
+    }
+    {
+        let PegProgressDto = None::<mooze_app::dto::swap::PegProgressDto>.unwrap();
+        let _: String = PegProgressDto.order_id;
+        let _: mooze_app::dto::swap::PegDirectionDto = PegProgressDto.direction;
+        let _: mooze_app::dto::swap::PegPhaseDto = PegProgressDto.phase;
+        let _: String = PegProgressDto.deposit_address;
+        let _: String = PegProgressDto.payout_address;
+        let _: u64 = PegProgressDto.total_deposited_sat;
+        let _: u64 = PegProgressDto.total_payout_sat;
+        let _: Option<String> = PegProgressDto.payout_tx_id;
+    }
+    {
+        let PegQuoteDto = None::<mooze_app::dto::swap::PegQuoteDto>.unwrap();
+        let _: mooze_app::dto::swap::PegDirectionDto = PegQuoteDto.direction;
+        let _: u64 = PegQuoteDto.amount_sat;
+        let _: u64 = PegQuoteDto.network_fee_sat;
+        let _: u64 = PegQuoteDto.service_fee_sat;
+        let _: u64 = PegQuoteDto.minimum_sat;
+        let _: u64 = PegQuoteDto.total_fee_sat;
+        let _: u64 = PegQuoteDto.estimated_receive_sat;
+    }
+    {
+        let PegRecordDto = None::<mooze_app::dto::swap::PegRecordDto>.unwrap();
+        let _: String = PegRecordDto.order_id;
+        let _: mooze_app::dto::swap::PegDirectionDto = PegRecordDto.direction;
+        let _: String = PegRecordDto.sideswap_address;
+        let _: String = PegRecordDto.payout_address;
+        let _: u64 = PegRecordDto.amount_sat;
+        let _: u64 = PegRecordDto.created_at_ms;
+        let _: String = PegRecordDto.wallet_id;
+        let _: String = PegRecordDto.status;
+        let _: Option<String> = PegRecordDto.funding_tx_id;
+        let _: Option<String> = PegRecordDto.payout_tx_id;
+        let _: Option<String> = PegRecordDto.error_message;
+        let _: Option<u64> = PegRecordDto.updated_at_ms;
+    }
+    {
+        let PegRefreshDto = None::<mooze_app::dto::swap::PegRefreshDto>.unwrap();
+        let _: Vec<mooze_app::dto::swap::TrackedPegDto> = PegRefreshDto.pegs;
+        let _: Vec<String> = PegRefreshDto.changed;
+        let _: Vec<mooze_app::dto::swap::TrackedPegDto> = PegRefreshDto.finished;
+        let _: Option<u64> = PegRefreshDto.next_wakeup_ms;
+    }
+    {
+        let PegServerLimitsDto = None::<mooze_app::dto::swap::PegServerLimitsDto>.unwrap();
+        let _: u64 = PegServerLimitsDto.min_peg_in_sat;
+        let _: u64 = PegServerLimitsDto.min_peg_out_sat;
+        let _: f64 = PegServerLimitsDto.server_fee_percent_peg_in;
+        let _: f64 = PegServerLimitsDto.server_fee_percent_peg_out;
+    }
+    {
+        let PixDepositDto = None::<mooze_app::dto::pix::PixDepositDto>.unwrap();
+        let _: String = PixDepositDto.deposit_id;
+        let _: String = PixDepositDto.pix_key;
+        let _: String = PixDepositDto.asset_id;
+        let _: u64 = PixDepositDto.amount_in_cents;
+        let _: String = PixDepositDto.network;
+        let _: mooze_app::dto::pix::DepositStatusDto = PixDepositDto.status;
+        let _: u64 = PixDepositDto.created_at_ms;
+        let _: Option<String> = PixDepositDto.blockchain_txid;
+        let _: Option<u64> = PixDepositDto.asset_amount;
+    }
+    {
+        let PixFeeDto = None::<mooze_app::dto::pix::PixFeeDto>.unwrap();
+        let _: f64 = PixFeeDto.fee_rate_percent;
+        let _: f64 = PixFeeDto.fee_amount;
+        let _: f64 = PixFeeDto.discounted_amount;
+        let _: Option<f64> = PixFeeDto.estimated_asset_units;
+        let _: Option<u32> = PixFeeDto.active_tier;
+        let _: u64 = PixFeeDto.amount_in_cents;
+    }
+    {
+        let PixStatusEventDto = None::<mooze_app::dto::pix::PixStatusEventDto>.unwrap();
+        let _: String = PixStatusEventDto.deposit_id;
+        let _: mooze_app::dto::pix::DepositStatusDto = PixStatusEventDto.status;
+        let _: Option<String> = PixStatusEventDto.blockchain_txid;
+        let _: Option<u64> = PixStatusEventDto.asset_amount;
+        let _: Option<String> = PixStatusEventDto.error_message;
+    }
+    {
+        let QuoteDto = None::<mooze_app::dto::swap::QuoteDto>.unwrap();
+        let _: mooze_app::dto::swap::QuoteStatusDto = QuoteDto.status;
+        let _: Option<u64> = QuoteDto.quote_id;
+        let _: Option<u64> = QuoteDto.base_amount;
+        let _: Option<u64> = QuoteDto.quote_amount;
+        let _: Option<u64> = QuoteDto.server_fee;
+        let _: Option<u64> = QuoteDto.fixed_fee;
+        let _: Option<u64> = QuoteDto.ttl_ms;
+        let _: Option<u64> = QuoteDto.available;
+        let _: Option<String> = QuoteDto.error_message;
+        let _: Option<u64> = QuoteDto.quote_sub_id;
+        let _: Option<u64> = QuoteDto.requested_amount;
+        let _: Option<String> = QuoteDto.base_asset_id;
+        let _: Option<String> = QuoteDto.quote_asset_id;
+    }
+    {
+        let ReceiveAddressDto = None::<mooze_app::dto::wallet::ReceiveAddressDto>.unwrap();
+        let _: mooze_app::dto::wallet::ChainDto = ReceiveAddressDto.chain;
+        let _: Option<String> = ReceiveAddressDto.address;
+        let _: Option<String> = ReceiveAddressDto.asset_id;
+        let _: Option<String> = ReceiveAddressDto.label;
+        let _: Option<u64> = ReceiveAddressDto.amount_sat;
+    }
+    {
+        let SendRequestDto = None::<mooze_app::dto::wallet::SendRequestDto>.unwrap();
+        let _: String = SendRequestDto.destination;
+        let _: u64 = SendRequestDto.amount_sat;
+        let _: Option<String> = SendRequestDto.asset_id;
+        let _: mooze_app::dto::wallet::FeePriorityDto = SendRequestDto.fee_priority;
+        let _: Option<String> = SendRequestDto.label;
+        let _: bool = SendRequestDto.subtract_fee_from_amount;
+        let _: Option<f64> = SendRequestDto.fee_rate_override_sat_per_vbyte;
+        let _: bool = SendRequestDto.drain;
+    }
+    {
+        let SideSwapEventDto = None::<mooze_app::dto::swap::SideSwapEventDto>.unwrap();
+        let _: mooze_app::dto::swap::SideSwapEventKind = SideSwapEventDto.kind;
+        let _: Option<mooze_app::dto::swap::QuoteDto> = SideSwapEventDto.quote;
+        let _: Option<u64> = SideSwapEventDto.balance_sat;
+        let _: Option<String> = SideSwapEventDto.message;
+    }
+    {
+        let SideswapAssetDto = None::<mooze_app::dto::swap::SideswapAssetDto>.unwrap();
+        let _: String = SideswapAssetDto.asset_id;
+        let _: String = SideswapAssetDto.name;
+        let _: String = SideswapAssetDto.ticker;
+        let _: u8 = SideswapAssetDto.precision;
+        let _: Option<String> = SideswapAssetDto.icon_url;
+        let _: Option<bool> = SideswapAssetDto.instant_swaps;
+    }
+    {
+        let SideswapMarketDto = None::<mooze_app::dto::swap::SideswapMarketDto>.unwrap();
+        let _: String = SideswapMarketDto.base_asset_id;
+        let _: String = SideswapMarketDto.quote_asset_id;
+        let _: String = SideswapMarketDto.fee_asset;
+        let _: String = SideswapMarketDto.market_type;
+    }
+    {
+        let SkippedRowDto = None::<mooze_app::dto::wallet::SkippedRowDto>.unwrap();
+        let _: String = SkippedRowDto.table;
+        let _: String = SkippedRowDto.key;
+        let _: String = SkippedRowDto.reason;
+    }
+    {
+        let StartQuoteDto = None::<mooze_app::dto::swap::StartQuoteDto>.unwrap();
+        let _: bool = StartQuoteDto.started;
+        let _: Option<u64> = StartQuoteDto.quote_sub_id;
+        let _: Option<String> = StartQuoteDto.base_asset_id;
+        let _: Option<String> = StartQuoteDto.quote_asset_id;
+    }
+    {
+        let SyncOutcomeDto = None::<mooze_app::dto::wallet::SyncOutcomeDto>.unwrap();
+        let _: mooze_app::dto::wallet::ChainDto = SyncOutcomeDto.chain;
+        let _: u32 = SyncOutcomeDto.fetched;
+        let _: u32 = SyncOutcomeDto.changed;
+        let _: u64 = SyncOutcomeDto.duration_ms;
+    }
+    {
+        let TableCountDto = None::<mooze_app::dto::wallet::TableCountDto>.unwrap();
+        let _: String = TableCountDto.table;
+        let _: u32 = TableCountDto.count;
+    }
+    {
+        let TrackedPegDto = None::<mooze_app::dto::swap::TrackedPegDto>.unwrap();
+        let _: String = TrackedPegDto.order_id;
+        let _: mooze_app::dto::swap::PegDirectionDto = TrackedPegDto.direction;
+        let _: mooze_app::dto::swap::PegPhaseDto = TrackedPegDto.phase;
+        let _: u64 = TrackedPegDto.amount_sat;
+        let _: String = TrackedPegDto.deposit_address;
+        let _: Option<String> = TrackedPegDto.funding_tx_id;
+        let _: Option<String> = TrackedPegDto.payout_tx_id;
+        let _: Option<u32> = TrackedPegDto.confirmations;
+        let _: Option<u32> = TrackedPegDto.required_confirmations;
+        let _: Option<String> = TrackedPegDto.error_message;
+    }
+    {
+        let TransactionDto = None::<mooze_app::dto::wallet::TransactionDto>.unwrap();
+        let _: String = TransactionDto.id;
+        let _: mooze_app::dto::wallet::ChainDto = TransactionDto.chain;
+        let _: mooze_app::dto::wallet::DirectionDto = TransactionDto.direction;
+        let _: mooze_app::dto::wallet::StatusDto = TransactionDto.status;
+        let _: i64 = TransactionDto.amount_sat;
+        let _: i64 = TransactionDto.fee_sat;
+        let _: u64 = TransactionDto.timestamp_ms;
+        let _: u32 = TransactionDto.confirmations;
+        let _: Option<String> = TransactionDto.asset_id;
+        let _: Option<String> = TransactionDto.address;
+        let _: Option<String> = TransactionDto.label;
+        let _: Option<String> = TransactionDto.from_asset_id;
+        let _: Option<String> = TransactionDto.to_asset_id;
+        let _: Option<i64> = TransactionDto.sent_amount_sat;
+        let _: Option<i64> = TransactionDto.received_amount_sat;
+        let _: Option<mooze_app::dto::wallet::SourceDto> = TransactionDto.source;
+        let _: Option<String> = TransactionDto.swap_lockup_tx_id;
+        let _: Option<String> = TransactionDto.swap_claim_tx_id;
+    }
+    {
+        let TransactionEventDto = None::<mooze_app::dto::wallet::TransactionEventDto>.unwrap();
+        let _: mooze_app::dto::wallet::TransactionEventKindDto = TransactionEventDto.kind;
+        let _: mooze_app::dto::wallet::TransactionDto = TransactionEventDto.transaction;
+        let _: u64 = TransactionEventDto.observed_at_ms;
+        let _: Option<mooze_app::dto::wallet::StatusDto> = TransactionEventDto.previous_status;
+        let _: Option<u32> = TransactionEventDto.previous_confirmations;
+    }
+    {
+        let WalletUtxoDto = None::<mooze_app::dto::wallet::WalletUtxoDto>.unwrap();
+        let _: String = WalletUtxoDto.txid;
+        let _: u32 = WalletUtxoDto.vout;
+        let _: String = WalletUtxoDto.address;
+        let _: Option<String> = WalletUtxoDto.unconfidential;
+        let _: String = WalletUtxoDto.script_hex;
+        let _: mooze_app::dto::wallet::KeychainDto = WalletUtxoDto.keychain;
+        let _: u32 = WalletUtxoDto.index;
+        let _: u64 = WalletUtxoDto.amount_sat;
+        let _: Option<String> = WalletUtxoDto.asset_id;
+        let _: Option<u32> = WalletUtxoDto.confirmation_height;
+        let _: Option<u64> = WalletUtxoDto.confirmation_time_s;
+    }
+};
+
 // Section: related_funcs
 
 fn decode_DartFn_Inputs_String_Output_list_String_AnyhowException(
@@ -5926,7 +6290,10 @@ impl SseDecode
 }
 
 impl SseDecode
-    for StreamSink<crate::api::swap::SideSwapEventDto, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<
+        mooze_app::dto::swap::SideSwapEventDto,
+        flutter_rust_bridge::for_generated::SseCodec,
+    >
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5943,40 +6310,40 @@ impl SseDecode for String {
     }
 }
 
-impl SseDecode for crate::api::types::AddressOwnershipDto {
+impl SseDecode for mooze_app::dto::wallet::AddressOwnershipDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_keychain = <crate::api::types::KeychainDto>::sse_decode(deserializer);
+        let mut var_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(deserializer);
         let mut var_index = <u32>::sse_decode(deserializer);
-        return crate::api::types::AddressOwnershipDto {
+        return mooze_app::dto::wallet::AddressOwnershipDto {
             keychain: var_keychain,
             index: var_index,
         };
     }
 }
 
-impl SseDecode for crate::api::types::ApiResponseDto {
+impl SseDecode for mooze_app::dto::wallet::ApiResponseDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_status = <u16>::sse_decode(deserializer);
         let mut var_body = <String>::sse_decode(deserializer);
-        return crate::api::types::ApiResponseDto {
+        return mooze_app::dto::wallet::ApiResponseDto {
             status: var_status,
             body: var_body,
         };
     }
 }
 
-impl SseDecode for crate::api::types::AssetBalanceDto {
+impl SseDecode for mooze_app::dto::wallet::AssetBalanceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_chain = <crate::api::types::ChainDto>::sse_decode(deserializer);
+        let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
         let mut var_assetId = <Option<String>>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
         let mut var_precision = <u8>::sse_decode(deserializer);
         let mut var_ticker = <Option<String>>::sse_decode(deserializer);
         let mut var_pendingSat = <u64>::sse_decode(deserializer);
-        return crate::api::types::AssetBalanceDto {
+        return mooze_app::dto::wallet::AssetBalanceDto {
             chain: var_chain,
             asset_id: var_assetId,
             amount_sat: var_amountSat,
@@ -5987,13 +6354,13 @@ impl SseDecode for crate::api::types::AssetBalanceDto {
     }
 }
 
-impl SseDecode for crate::api::types::AuthEnsureDto {
+impl SseDecode for mooze_app::dto::wallet::AuthEnsureDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_kind = <crate::api::types::AuthEnsureKind>::sse_decode(deserializer);
+        let mut var_kind = <mooze_app::dto::wallet::AuthEnsureKind>::sse_decode(deserializer);
         let mut var_statusCode = <Option<u16>>::sse_decode(deserializer);
         let mut var_message = <Option<String>>::sse_decode(deserializer);
-        return crate::api::types::AuthEnsureDto {
+        return mooze_app::dto::wallet::AuthEnsureDto {
             kind: var_kind,
             status_code: var_statusCode,
             message: var_message,
@@ -6001,38 +6368,39 @@ impl SseDecode for crate::api::types::AuthEnsureDto {
     }
 }
 
-impl SseDecode for crate::api::types::AuthEnsureKind {
+impl SseDecode for mooze_app::dto::wallet::AuthEnsureKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::AuthEnsureKind::Ready,
-            1 => crate::api::types::AuthEnsureKind::MissingMnemonic,
-            2 => crate::api::types::AuthEnsureKind::ApiDown,
-            3 => crate::api::types::AuthEnsureKind::Failed,
+            0 => mooze_app::dto::wallet::AuthEnsureKind::Ready,
+            1 => mooze_app::dto::wallet::AuthEnsureKind::MissingMnemonic,
+            2 => mooze_app::dto::wallet::AuthEnsureKind::ApiDown,
+            3 => mooze_app::dto::wallet::AuthEnsureKind::Failed,
             _ => unreachable!("Invalid variant for AuthEnsureKind: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::BackendDto {
+impl SseDecode for mooze_app::dto::config::BackendDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::BackendDto::Esplora,
-            1 => crate::api::types::BackendDto::Electrum,
+            0 => mooze_app::dto::config::BackendDto::Esplora,
+            1 => mooze_app::dto::config::BackendDto::Electrum,
             _ => unreachable!("Invalid variant for BackendDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::BalanceDto {
+impl SseDecode for mooze_app::dto::wallet::BalanceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_assets = <Vec<crate::api::types::AssetBalanceDto>>::sse_decode(deserializer);
+        let mut var_assets =
+            <Vec<mooze_app::dto::wallet::AssetBalanceDto>>::sse_decode(deserializer);
         let mut var_snapshotAtMs = <u64>::sse_decode(deserializer);
-        return crate::api::types::BalanceDto {
+        return mooze_app::dto::wallet::BalanceDto {
             assets: var_assets,
             snapshot_at_ms: var_snapshotAtMs,
         };
@@ -6046,14 +6414,15 @@ impl SseDecode for bool {
     }
 }
 
-impl SseDecode for crate::api::types::BroadcastResultDto {
+impl SseDecode for mooze_app::dto::wallet::BroadcastResultDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_chain = <crate::api::types::ChainDto>::sse_decode(deserializer);
+        let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
         let mut var_txId = <String>::sse_decode(deserializer);
-        let mut var_transaction = <crate::api::types::TransactionDto>::sse_decode(deserializer);
+        let mut var_transaction =
+            <mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer);
         let mut var_feePaidSat = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::types::BroadcastResultDto {
+        return mooze_app::dto::wallet::BroadcastResultDto {
             chain: var_chain,
             tx_id: var_txId,
             transaction: var_transaction,
@@ -6062,15 +6431,15 @@ impl SseDecode for crate::api::types::BroadcastResultDto {
     }
 }
 
-impl SseDecode for crate::api::types::ChainDto {
+impl SseDecode for mooze_app::dto::wallet::ChainDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::ChainDto::Liquid,
-            1 => crate::api::types::ChainDto::Bitcoin,
-            2 => crate::api::types::ChainDto::Lightning,
-            3 => crate::api::types::ChainDto::Aggregate,
+            0 => mooze_app::dto::wallet::ChainDto::Liquid,
+            1 => mooze_app::dto::wallet::ChainDto::Bitcoin,
+            2 => mooze_app::dto::wallet::ChainDto::Lightning,
+            3 => mooze_app::dto::wallet::ChainDto::Aggregate,
             _ => unreachable!("Invalid variant for ChainDto: {}", inner),
         };
     }
@@ -6080,8 +6449,8 @@ impl SseDecode for crate::api::types::CoreConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_dataDir = <String>::sse_decode(deserializer);
-        let mut var_network = <crate::api::types::NetworkDto>::sse_decode(deserializer);
-        let mut var_backend = <crate::api::types::BackendDto>::sse_decode(deserializer);
+        let mut var_network = <mooze_app::dto::config::NetworkDto>::sse_decode(deserializer);
+        let mut var_backend = <mooze_app::dto::config::BackendDto>::sse_decode(deserializer);
         let mut var_bitcoinNodeUrl = <String>::sse_decode(deserializer);
         let mut var_liquidNodeUrl = <String>::sse_decode(deserializer);
         return crate::api::types::CoreConfig {
@@ -6125,67 +6494,67 @@ impl SseDecode for crate::api::types::CoreErrorKind {
     }
 }
 
-impl SseDecode for crate::api::pix::CpfValidationErrorDto {
+impl SseDecode for mooze_app::dto::pix::CpfValidationErrorDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::pix::CpfValidationErrorDto::Empty,
-            1 => crate::api::pix::CpfValidationErrorDto::Incomplete,
-            2 => crate::api::pix::CpfValidationErrorDto::Invalid,
+            0 => mooze_app::dto::pix::CpfValidationErrorDto::Empty,
+            1 => mooze_app::dto::pix::CpfValidationErrorDto::Incomplete,
+            2 => mooze_app::dto::pix::CpfValidationErrorDto::Invalid,
             _ => unreachable!("Invalid variant for CpfValidationErrorDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::pix::DepositLimitsDto {
+impl SseDecode for mooze_app::dto::pix::DepositLimitsDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_absoluteMinLimit = <f64>::sse_decode(deserializer);
         let mut var_allowedSpending = <f64>::sse_decode(deserializer);
-        return crate::api::pix::DepositLimitsDto {
+        return mooze_app::dto::pix::DepositLimitsDto {
             absolute_min_limit: var_absoluteMinLimit,
             allowed_spending: var_allowedSpending,
         };
     }
 }
 
-impl SseDecode for crate::api::pix::DepositStatusDto {
+impl SseDecode for mooze_app::dto::pix::DepositStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::pix::DepositStatusDto::Pending,
-            1 => crate::api::pix::DepositStatusDto::UnderReview,
-            2 => crate::api::pix::DepositStatusDto::Processing,
-            3 => crate::api::pix::DepositStatusDto::FundsPrepared,
-            4 => crate::api::pix::DepositStatusDto::DepixSent,
-            5 => crate::api::pix::DepositStatusDto::Paid,
-            6 => crate::api::pix::DepositStatusDto::Broadcasted,
-            7 => crate::api::pix::DepositStatusDto::Finished,
-            8 => crate::api::pix::DepositStatusDto::Completed,
-            9 => crate::api::pix::DepositStatusDto::Failed,
-            10 => crate::api::pix::DepositStatusDto::Expired,
-            11 => crate::api::pix::DepositStatusDto::Refunded,
-            12 => crate::api::pix::DepositStatusDto::Med,
-            13 => crate::api::pix::DepositStatusDto::ProcessingRefund,
-            14 => crate::api::pix::DepositStatusDto::BroadcastedRefund,
-            15 => crate::api::pix::DepositStatusDto::FinishedRefund,
-            16 => crate::api::pix::DepositStatusDto::Timeout,
-            17 => crate::api::pix::DepositStatusDto::Unknown,
+            0 => mooze_app::dto::pix::DepositStatusDto::Pending,
+            1 => mooze_app::dto::pix::DepositStatusDto::UnderReview,
+            2 => mooze_app::dto::pix::DepositStatusDto::Processing,
+            3 => mooze_app::dto::pix::DepositStatusDto::FundsPrepared,
+            4 => mooze_app::dto::pix::DepositStatusDto::DepixSent,
+            5 => mooze_app::dto::pix::DepositStatusDto::Paid,
+            6 => mooze_app::dto::pix::DepositStatusDto::Broadcasted,
+            7 => mooze_app::dto::pix::DepositStatusDto::Finished,
+            8 => mooze_app::dto::pix::DepositStatusDto::Completed,
+            9 => mooze_app::dto::pix::DepositStatusDto::Failed,
+            10 => mooze_app::dto::pix::DepositStatusDto::Expired,
+            11 => mooze_app::dto::pix::DepositStatusDto::Refunded,
+            12 => mooze_app::dto::pix::DepositStatusDto::Med,
+            13 => mooze_app::dto::pix::DepositStatusDto::ProcessingRefund,
+            14 => mooze_app::dto::pix::DepositStatusDto::BroadcastedRefund,
+            15 => mooze_app::dto::pix::DepositStatusDto::FinishedRefund,
+            16 => mooze_app::dto::pix::DepositStatusDto::Timeout,
+            17 => mooze_app::dto::pix::DepositStatusDto::Unknown,
             _ => unreachable!("Invalid variant for DepositStatusDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::pix::DepositValidationDto {
+impl SseDecode for mooze_app::dto::pix::DepositValidationDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_isValid = <bool>::sse_decode(deserializer);
         let mut var_error =
-            <Option<crate::api::pix::DepositValidationErrorDto>>::sse_decode(deserializer);
+            <Option<mooze_app::dto::pix::DepositValidationErrorDto>>::sse_decode(deserializer);
         let mut var_limitAmount = <Option<f64>>::sse_decode(deserializer);
-        return crate::api::pix::DepositValidationDto {
+        return mooze_app::dto::pix::DepositValidationDto {
             is_valid: var_isValid,
             error: var_error,
             limit_amount: var_limitAmount,
@@ -6193,30 +6562,30 @@ impl SseDecode for crate::api::pix::DepositValidationDto {
     }
 }
 
-impl SseDecode for crate::api::pix::DepositValidationErrorDto {
+impl SseDecode for mooze_app::dto::pix::DepositValidationErrorDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::pix::DepositValidationErrorDto::InvalidAmount,
-            1 => crate::api::pix::DepositValidationErrorDto::BelowMinimum,
-            2 => crate::api::pix::DepositValidationErrorDto::AboveTransaction,
-            3 => crate::api::pix::DepositValidationErrorDto::AboveRemaining,
+            0 => mooze_app::dto::pix::DepositValidationErrorDto::InvalidAmount,
+            1 => mooze_app::dto::pix::DepositValidationErrorDto::BelowMinimum,
+            2 => mooze_app::dto::pix::DepositValidationErrorDto::AboveTransaction,
+            3 => mooze_app::dto::pix::DepositValidationErrorDto::AboveRemaining,
             _ => unreachable!("Invalid variant for DepositValidationErrorDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::DerivedAddressDto {
+impl SseDecode for mooze_app::dto::wallet::DerivedAddressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_keychain = <crate::api::types::KeychainDto>::sse_decode(deserializer);
+        let mut var_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(deserializer);
         let mut var_index = <u32>::sse_decode(deserializer);
         let mut var_address = <String>::sse_decode(deserializer);
         let mut var_unconfidential = <Option<String>>::sse_decode(deserializer);
         let mut var_scriptHex = <String>::sse_decode(deserializer);
         let mut var_used = <bool>::sse_decode(deserializer);
-        return crate::api::types::DerivedAddressDto {
+        return mooze_app::dto::wallet::DerivedAddressDto {
             keychain: var_keychain,
             index: var_index,
             address: var_address,
@@ -6227,14 +6596,14 @@ impl SseDecode for crate::api::types::DerivedAddressDto {
     }
 }
 
-impl SseDecode for crate::api::types::DeviceMetricsDto {
+impl SseDecode for mooze_app::dto::wallet::DeviceMetricsDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_deviceId = <String>::sse_decode(deserializer);
         let mut var_batteryLevel = <Option<i64>>::sse_decode(deserializer);
         let mut var_screenBrightness = <Option<f64>>::sse_decode(deserializer);
         let mut var_bootTime = <Option<String>>::sse_decode(deserializer);
-        return crate::api::types::DeviceMetricsDto {
+        return mooze_app::dto::wallet::DeviceMetricsDto {
             device_id: var_deviceId,
             battery_level: var_batteryLevel,
             screen_brightness: var_screenBrightness,
@@ -6243,16 +6612,16 @@ impl SseDecode for crate::api::types::DeviceMetricsDto {
     }
 }
 
-impl SseDecode for crate::api::types::DirectionDto {
+impl SseDecode for mooze_app::dto::wallet::DirectionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::DirectionDto::Incoming,
-            1 => crate::api::types::DirectionDto::Outgoing,
-            2 => crate::api::types::DirectionDto::Internal,
-            3 => crate::api::types::DirectionDto::SelfTransfer,
-            4 => crate::api::types::DirectionDto::Swap,
+            0 => mooze_app::dto::wallet::DirectionDto::Incoming,
+            1 => mooze_app::dto::wallet::DirectionDto::Outgoing,
+            2 => mooze_app::dto::wallet::DirectionDto::Internal,
+            3 => mooze_app::dto::wallet::DirectionDto::SelfTransfer,
+            4 => mooze_app::dto::wallet::DirectionDto::Swap,
             _ => unreachable!("Invalid variant for DirectionDto: {}", inner),
         };
     }
@@ -6265,14 +6634,14 @@ impl SseDecode for f64 {
     }
 }
 
-impl SseDecode for crate::api::pix::FavoritePayerDto {
+impl SseDecode for mooze_app::dto::pix::FavoritePayerDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <Option<u64>>::sse_decode(deserializer);
         let mut var_label = <String>::sse_decode(deserializer);
         let mut var_cpf = <String>::sse_decode(deserializer);
         let mut var_maskedCpf = <String>::sse_decode(deserializer);
-        return crate::api::pix::FavoritePayerDto {
+        return mooze_app::dto::pix::FavoritePayerDto {
             id: var_id,
             label: var_label,
             cpf: var_cpf,
@@ -6281,26 +6650,26 @@ impl SseDecode for crate::api::pix::FavoritePayerDto {
     }
 }
 
-impl SseDecode for crate::api::pix::FavoritePayerSaveErrorDto {
+impl SseDecode for mooze_app::dto::pix::FavoritePayerSaveErrorDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::pix::FavoritePayerSaveErrorDto::DuplicateCpf,
+            0 => mooze_app::dto::pix::FavoritePayerSaveErrorDto::DuplicateCpf,
             _ => unreachable!("Invalid variant for FavoritePayerSaveErrorDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::FeeEstimateDto {
+impl SseDecode for mooze_app::dto::wallet::FeeEstimateDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_chain = <crate::api::types::ChainDto>::sse_decode(deserializer);
-        let mut var_priority = <crate::api::types::FeePriorityDto>::sse_decode(deserializer);
+        let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
+        let mut var_priority = <mooze_app::dto::wallet::FeePriorityDto>::sse_decode(deserializer);
         let mut var_absoluteFeeSat = <u64>::sse_decode(deserializer);
         let mut var_feeRateSatPerVbyte = <Option<f64>>::sse_decode(deserializer);
         let mut var_estimatedBlocks = <Option<u16>>::sse_decode(deserializer);
-        return crate::api::types::FeeEstimateDto {
+        return mooze_app::dto::wallet::FeeEstimateDto {
             chain: var_chain,
             priority: var_priority,
             absolute_fee_sat: var_absoluteFeeSat,
@@ -6310,29 +6679,29 @@ impl SseDecode for crate::api::types::FeeEstimateDto {
     }
 }
 
-impl SseDecode for crate::api::types::FeePriorityDto {
+impl SseDecode for mooze_app::dto::wallet::FeePriorityDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::FeePriorityDto::Low,
-            1 => crate::api::types::FeePriorityDto::Medium,
-            2 => crate::api::types::FeePriorityDto::High,
+            0 => mooze_app::dto::wallet::FeePriorityDto::Low,
+            1 => mooze_app::dto::wallet::FeePriorityDto::Medium,
+            2 => mooze_app::dto::wallet::FeePriorityDto::High,
             _ => unreachable!("Invalid variant for FeePriorityDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::HttpMethodDto {
+impl SseDecode for mooze_app::dto::wallet::HttpMethodDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::HttpMethodDto::Get,
-            1 => crate::api::types::HttpMethodDto::Post,
-            2 => crate::api::types::HttpMethodDto::Put,
-            3 => crate::api::types::HttpMethodDto::Patch,
-            4 => crate::api::types::HttpMethodDto::Delete,
+            0 => mooze_app::dto::wallet::HttpMethodDto::Get,
+            1 => mooze_app::dto::wallet::HttpMethodDto::Post,
+            2 => mooze_app::dto::wallet::HttpMethodDto::Put,
+            3 => mooze_app::dto::wallet::HttpMethodDto::Patch,
+            4 => mooze_app::dto::wallet::HttpMethodDto::Delete,
             _ => unreachable!("Invalid variant for HttpMethodDto: {}", inner),
         };
     }
@@ -6359,19 +6728,19 @@ impl SseDecode for isize {
     }
 }
 
-impl SseDecode for crate::api::types::KeychainDto {
+impl SseDecode for mooze_app::dto::wallet::KeychainDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::KeychainDto::External,
-            1 => crate::api::types::KeychainDto::Internal,
+            0 => mooze_app::dto::wallet::KeychainDto::External,
+            1 => mooze_app::dto::wallet::KeychainDto::Internal,
             _ => unreachable!("Invalid variant for KeychainDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::LiquidSendDraftDto {
+impl SseDecode for mooze_app::dto::wallet::LiquidSendDraftDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_pset = <String>::sse_decode(deserializer);
@@ -6380,7 +6749,7 @@ impl SseDecode for crate::api::types::LiquidSendDraftDto {
         let mut var_feeSat = <u64>::sse_decode(deserializer);
         let mut var_feeRateSatPerKvb = <f64>::sse_decode(deserializer);
         let mut var_drain = <bool>::sse_decode(deserializer);
-        return crate::api::types::LiquidSendDraftDto {
+        return mooze_app::dto::wallet::LiquidSendDraftDto {
             pset: var_pset,
             destination: var_destination,
             amount_sat: var_amountSat,
@@ -6391,7 +6760,7 @@ impl SseDecode for crate::api::types::LiquidSendDraftDto {
     }
 }
 
-impl SseDecode for crate::api::types::LiquidUtxoDto {
+impl SseDecode for mooze_app::dto::wallet::LiquidUtxoDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_txid = <String>::sse_decode(deserializer);
@@ -6400,7 +6769,7 @@ impl SseDecode for crate::api::types::LiquidUtxoDto {
         let mut var_assetBlindingFactor = <String>::sse_decode(deserializer);
         let mut var_valueSat = <u64>::sse_decode(deserializer);
         let mut var_valueBlindingFactor = <String>::sse_decode(deserializer);
-        return crate::api::types::LiquidUtxoDto {
+        return mooze_app::dto::wallet::LiquidUtxoDto {
             txid: var_txid,
             vout: var_vout,
             asset_id: var_assetId,
@@ -6423,13 +6792,13 @@ impl SseDecode for Vec<String> {
     }
 }
 
-impl SseDecode for Vec<crate::api::types::AssetBalanceDto> {
+impl SseDecode for Vec<mooze_app::dto::wallet::AssetBalanceDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::AssetBalanceDto>::sse_decode(
+            ans_.push(<mooze_app::dto::wallet::AssetBalanceDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6437,13 +6806,13 @@ impl SseDecode for Vec<crate::api::types::AssetBalanceDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::types::DerivedAddressDto> {
+impl SseDecode for Vec<mooze_app::dto::wallet::DerivedAddressDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::DerivedAddressDto>::sse_decode(
+            ans_.push(<mooze_app::dto::wallet::DerivedAddressDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6451,13 +6820,13 @@ impl SseDecode for Vec<crate::api::types::DerivedAddressDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::pix::FavoritePayerDto> {
+impl SseDecode for Vec<mooze_app::dto::pix::FavoritePayerDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::pix::FavoritePayerDto>::sse_decode(
+            ans_.push(<mooze_app::dto::pix::FavoritePayerDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6465,49 +6834,55 @@ impl SseDecode for Vec<crate::api::pix::FavoritePayerDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::types::LiquidUtxoDto> {
+impl SseDecode for Vec<mooze_app::dto::wallet::LiquidUtxoDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::LiquidUtxoDto>::sse_decode(deserializer));
+            ans_.push(<mooze_app::dto::wallet::LiquidUtxoDto>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
 }
 
-impl SseDecode for Vec<crate::api::swap::PegRecordDto> {
+impl SseDecode for Vec<mooze_app::dto::swap::PegRecordDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::swap::PegRecordDto>::sse_decode(deserializer));
+            ans_.push(<mooze_app::dto::swap::PegRecordDto>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
 }
 
-impl SseDecode for Vec<crate::api::pix::PixDepositDto> {
+impl SseDecode for Vec<mooze_app::dto::pix::PixDepositDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::pix::PixDepositDto>::sse_decode(deserializer));
+            ans_.push(<mooze_app::dto::pix::PixDepositDto>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
 }
 
-impl SseDecode for Vec<crate::api::pix::PixStatusEventDto> {
+impl SseDecode for Vec<mooze_app::dto::pix::PixStatusEventDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::pix::PixStatusEventDto>::sse_decode(
+            ans_.push(<mooze_app::dto::pix::PixStatusEventDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6539,13 +6914,13 @@ impl SseDecode for Vec<u8> {
     }
 }
 
-impl SseDecode for Vec<crate::api::swap::SideswapAssetDto> {
+impl SseDecode for Vec<mooze_app::dto::swap::SideswapAssetDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::swap::SideswapAssetDto>::sse_decode(
+            ans_.push(<mooze_app::dto::swap::SideswapAssetDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6553,13 +6928,13 @@ impl SseDecode for Vec<crate::api::swap::SideswapAssetDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::swap::SideswapMarketDto> {
+impl SseDecode for Vec<mooze_app::dto::swap::SideswapMarketDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::swap::SideswapMarketDto>::sse_decode(
+            ans_.push(<mooze_app::dto::swap::SideswapMarketDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6567,49 +6942,13 @@ impl SseDecode for Vec<crate::api::swap::SideswapMarketDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::types::SkippedRowDto> {
+impl SseDecode for Vec<mooze_app::dto::wallet::SkippedRowDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::SkippedRowDto>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
-impl SseDecode for Vec<crate::api::types::TableCountDto> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = vec![];
-        for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::TableCountDto>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
-impl SseDecode for Vec<crate::api::swap::TrackedPegDto> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = vec![];
-        for idx_ in 0..len_ {
-            ans_.push(<crate::api::swap::TrackedPegDto>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
-impl SseDecode for Vec<crate::api::types::TransactionDto> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = vec![];
-        for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::TransactionDto>::sse_decode(
+            ans_.push(<mooze_app::dto::wallet::SkippedRowDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6617,13 +6956,13 @@ impl SseDecode for Vec<crate::api::types::TransactionDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::types::TransactionEventDto> {
+impl SseDecode for Vec<mooze_app::dto::wallet::TableCountDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::TransactionEventDto>::sse_decode(
+            ans_.push(<mooze_app::dto::wallet::TableCountDto>::sse_decode(
                 deserializer,
             ));
         }
@@ -6631,25 +6970,70 @@ impl SseDecode for Vec<crate::api::types::TransactionEventDto> {
     }
 }
 
-impl SseDecode for Vec<crate::api::types::WalletUtxoDto> {
+impl SseDecode for Vec<mooze_app::dto::swap::TrackedPegDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::types::WalletUtxoDto>::sse_decode(deserializer));
+            ans_.push(<mooze_app::dto::swap::TrackedPegDto>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
 }
 
-impl SseDecode for crate::api::types::MigrationReportDto {
+impl SseDecode for Vec<mooze_app::dto::wallet::TransactionDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<mooze_app::dto::wallet::TransactionDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<mooze_app::dto::wallet::TransactionEventDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<mooze_app::dto::wallet::TransactionEventDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<mooze_app::dto::wallet::WalletUtxoDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<mooze_app::dto::wallet::WalletUtxoDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for mooze_app::dto::wallet::MigrationReportDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_alreadyDone = <bool>::sse_decode(deserializer);
-        let mut var_copied = <Vec<crate::api::types::TableCountDto>>::sse_decode(deserializer);
-        let mut var_skipped = <Vec<crate::api::types::SkippedRowDto>>::sse_decode(deserializer);
-        return crate::api::types::MigrationReportDto {
+        let mut var_copied = <Vec<mooze_app::dto::wallet::TableCountDto>>::sse_decode(deserializer);
+        let mut var_skipped =
+            <Vec<mooze_app::dto::wallet::SkippedRowDto>>::sse_decode(deserializer);
+        return mooze_app::dto::wallet::MigrationReportDto {
             already_done: var_alreadyDone,
             copied: var_copied,
             skipped: var_skipped,
@@ -6657,26 +7041,26 @@ impl SseDecode for crate::api::types::MigrationReportDto {
     }
 }
 
-impl SseDecode for crate::api::types::NetworkDto {
+impl SseDecode for mooze_app::dto::config::NetworkDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::NetworkDto::Mainnet,
-            1 => crate::api::types::NetworkDto::Testnet,
-            2 => crate::api::types::NetworkDto::Regtest,
+            0 => mooze_app::dto::config::NetworkDto::Mainnet,
+            1 => mooze_app::dto::config::NetworkDto::Testnet,
+            2 => mooze_app::dto::config::NetworkDto::Regtest,
             _ => unreachable!("Invalid variant for NetworkDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::NextUnusedAddressDto {
+impl SseDecode for mooze_app::dto::wallet::NextUnusedAddressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_index = <u32>::sse_decode(deserializer);
         let mut var_address = <String>::sse_decode(deserializer);
         let mut var_used = <bool>::sse_decode(deserializer);
-        return crate::api::types::NextUnusedAddressDto {
+        return mooze_app::dto::wallet::NextUnusedAddressDto {
             index: var_index,
             address: var_address,
             used: var_used,
@@ -6695,11 +7079,11 @@ impl SseDecode for Option<String> {
     }
 }
 
-impl SseDecode for Option<crate::api::types::AddressOwnershipDto> {
+impl SseDecode for Option<mooze_app::dto::wallet::AddressOwnershipDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::types::AddressOwnershipDto>::sse_decode(
+            return Some(<mooze_app::dto::wallet::AddressOwnershipDto>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6719,11 +7103,11 @@ impl SseDecode for Option<bool> {
     }
 }
 
-impl SseDecode for Option<crate::api::pix::CpfValidationErrorDto> {
+impl SseDecode for Option<mooze_app::dto::pix::CpfValidationErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::pix::CpfValidationErrorDto>::sse_decode(
+            return Some(<mooze_app::dto::pix::CpfValidationErrorDto>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6732,11 +7116,11 @@ impl SseDecode for Option<crate::api::pix::CpfValidationErrorDto> {
     }
 }
 
-impl SseDecode for Option<crate::api::pix::DepositLimitsDto> {
+impl SseDecode for Option<mooze_app::dto::pix::DepositLimitsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::pix::DepositLimitsDto>::sse_decode(
+            return Some(<mooze_app::dto::pix::DepositLimitsDto>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6745,24 +7129,24 @@ impl SseDecode for Option<crate::api::pix::DepositLimitsDto> {
     }
 }
 
-impl SseDecode for Option<crate::api::pix::DepositValidationErrorDto> {
+impl SseDecode for Option<mooze_app::dto::pix::DepositValidationErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::pix::DepositValidationErrorDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(
+                <mooze_app::dto::pix::DepositValidationErrorDto>::sse_decode(deserializer),
+            );
         } else {
             return None;
         }
     }
 }
 
-impl SseDecode for Option<crate::api::types::DeviceMetricsDto> {
+impl SseDecode for Option<mooze_app::dto::wallet::DeviceMetricsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::types::DeviceMetricsDto>::sse_decode(
+            return Some(<mooze_app::dto::wallet::DeviceMetricsDto>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6782,13 +7166,13 @@ impl SseDecode for Option<f64> {
     }
 }
 
-impl SseDecode for Option<crate::api::pix::FavoritePayerSaveErrorDto> {
+impl SseDecode for Option<mooze_app::dto::pix::FavoritePayerSaveErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::pix::FavoritePayerSaveErrorDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(
+                <mooze_app::dto::pix::FavoritePayerSaveErrorDto>::sse_decode(deserializer),
+            );
         } else {
             return None;
         }
@@ -6806,11 +7190,11 @@ impl SseDecode for Option<i64> {
     }
 }
 
-impl SseDecode for Option<crate::api::swap::PegAmountIssueDto> {
+impl SseDecode for Option<mooze_app::dto::swap::PegAmountIssueDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::swap::PegAmountIssueDto>::sse_decode(
+            return Some(<mooze_app::dto::swap::PegAmountIssueDto>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6819,11 +7203,11 @@ impl SseDecode for Option<crate::api::swap::PegAmountIssueDto> {
     }
 }
 
-impl SseDecode for Option<crate::api::swap::PegServerLimitsDto> {
+impl SseDecode for Option<mooze_app::dto::swap::PegServerLimitsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::swap::PegServerLimitsDto>::sse_decode(
+            return Some(<mooze_app::dto::swap::PegServerLimitsDto>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6832,44 +7216,50 @@ impl SseDecode for Option<crate::api::swap::PegServerLimitsDto> {
     }
 }
 
-impl SseDecode for Option<crate::api::pix::PixDepositDto> {
+impl SseDecode for Option<mooze_app::dto::pix::PixDepositDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::pix::PixDepositDto>::sse_decode(deserializer));
+            return Some(<mooze_app::dto::pix::PixDepositDto>::sse_decode(
+                deserializer,
+            ));
         } else {
             return None;
         }
     }
 }
 
-impl SseDecode for Option<crate::api::swap::QuoteDto> {
+impl SseDecode for Option<mooze_app::dto::swap::QuoteDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::swap::QuoteDto>::sse_decode(deserializer));
+            return Some(<mooze_app::dto::swap::QuoteDto>::sse_decode(deserializer));
         } else {
             return None;
         }
     }
 }
 
-impl SseDecode for Option<crate::api::types::SourceDto> {
+impl SseDecode for Option<mooze_app::dto::wallet::SourceDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::types::SourceDto>::sse_decode(deserializer));
+            return Some(<mooze_app::dto::wallet::SourceDto>::sse_decode(
+                deserializer,
+            ));
         } else {
             return None;
         }
     }
 }
 
-impl SseDecode for Option<crate::api::types::StatusDto> {
+impl SseDecode for Option<mooze_app::dto::wallet::StatusDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::types::StatusDto>::sse_decode(deserializer));
+            return Some(<mooze_app::dto::wallet::StatusDto>::sse_decode(
+                deserializer,
+            ));
         } else {
             return None;
         }
@@ -6909,28 +7299,29 @@ impl SseDecode for Option<u64> {
     }
 }
 
-impl SseDecode for crate::api::swap::PegAmountIssueDto {
+impl SseDecode for mooze_app::dto::swap::PegAmountIssueDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::swap::PegAmountIssueDto::BelowMinimum,
-            1 => crate::api::swap::PegAmountIssueDto::AboveBalance,
+            0 => mooze_app::dto::swap::PegAmountIssueDto::BelowMinimum,
+            1 => mooze_app::dto::swap::PegAmountIssueDto::AboveBalance,
             _ => unreachable!("Invalid variant for PegAmountIssueDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::swap::PegAmountValidationDto {
+impl SseDecode for mooze_app::dto::swap::PegAmountValidationDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_hasAmount = <bool>::sse_decode(deserializer);
         let mut var_isValid = <bool>::sse_decode(deserializer);
-        let mut var_issue = <Option<crate::api::swap::PegAmountIssueDto>>::sse_decode(deserializer);
+        let mut var_issue =
+            <Option<mooze_app::dto::swap::PegAmountIssueDto>>::sse_decode(deserializer);
         let mut var_minimumSats = <Option<u64>>::sse_decode(deserializer);
         let mut var_maximumSats = <Option<u64>>::sse_decode(deserializer);
         let mut var_showsIssue = <bool>::sse_decode(deserializer);
-        return crate::api::swap::PegAmountValidationDto {
+        return mooze_app::dto::swap::PegAmountValidationDto {
             has_amount: var_hasAmount,
             is_valid: var_isValid,
             issue: var_issue,
@@ -6941,40 +7332,40 @@ impl SseDecode for crate::api::swap::PegAmountValidationDto {
     }
 }
 
-impl SseDecode for crate::api::swap::PegDirectionDto {
+impl SseDecode for mooze_app::dto::swap::PegDirectionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::swap::PegDirectionDto::PegIn,
-            1 => crate::api::swap::PegDirectionDto::PegOut,
+            0 => mooze_app::dto::swap::PegDirectionDto::PegIn,
+            1 => mooze_app::dto::swap::PegDirectionDto::PegOut,
             _ => unreachable!("Invalid variant for PegDirectionDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::swap::PegExecutionDto {
+impl SseDecode for mooze_app::dto::swap::PegExecutionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_order = <crate::api::swap::PegOrderDto>::sse_decode(deserializer);
+        let mut var_order = <mooze_app::dto::swap::PegOrderDto>::sse_decode(deserializer);
         let mut var_fundingTxId = <String>::sse_decode(deserializer);
-        return crate::api::swap::PegExecutionDto {
+        return mooze_app::dto::swap::PegExecutionDto {
             order: var_order,
             funding_tx_id: var_fundingTxId,
         };
     }
 }
 
-impl SseDecode for crate::api::swap::PegOrderDto {
+impl SseDecode for mooze_app::dto::swap::PegOrderDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_orderId = <String>::sse_decode(deserializer);
-        let mut var_direction = <crate::api::swap::PegDirectionDto>::sse_decode(deserializer);
+        let mut var_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(deserializer);
         let mut var_depositAddress = <String>::sse_decode(deserializer);
         let mut var_payoutAddress = <String>::sse_decode(deserializer);
         let mut var_createdAtMs = <u64>::sse_decode(deserializer);
         let mut var_expiresAtMs = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::swap::PegOrderDto {
+        return mooze_app::dto::swap::PegOrderDto {
             order_id: var_orderId,
             direction: var_direction,
             deposit_address: var_depositAddress,
@@ -6985,34 +7376,34 @@ impl SseDecode for crate::api::swap::PegOrderDto {
     }
 }
 
-impl SseDecode for crate::api::swap::PegPhaseDto {
+impl SseDecode for mooze_app::dto::swap::PegPhaseDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::swap::PegPhaseDto::AwaitingDeposit,
-            1 => crate::api::swap::PegPhaseDto::Detected,
-            2 => crate::api::swap::PegPhaseDto::Processing,
-            3 => crate::api::swap::PegPhaseDto::Completed,
-            4 => crate::api::swap::PegPhaseDto::InsufficientAmount,
-            5 => crate::api::swap::PegPhaseDto::Failed,
+            0 => mooze_app::dto::swap::PegPhaseDto::AwaitingDeposit,
+            1 => mooze_app::dto::swap::PegPhaseDto::Detected,
+            2 => mooze_app::dto::swap::PegPhaseDto::Processing,
+            3 => mooze_app::dto::swap::PegPhaseDto::Completed,
+            4 => mooze_app::dto::swap::PegPhaseDto::InsufficientAmount,
+            5 => mooze_app::dto::swap::PegPhaseDto::Failed,
             _ => unreachable!("Invalid variant for PegPhaseDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::swap::PegProgressDto {
+impl SseDecode for mooze_app::dto::swap::PegProgressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_orderId = <String>::sse_decode(deserializer);
-        let mut var_direction = <crate::api::swap::PegDirectionDto>::sse_decode(deserializer);
-        let mut var_phase = <crate::api::swap::PegPhaseDto>::sse_decode(deserializer);
+        let mut var_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(deserializer);
+        let mut var_phase = <mooze_app::dto::swap::PegPhaseDto>::sse_decode(deserializer);
         let mut var_depositAddress = <String>::sse_decode(deserializer);
         let mut var_payoutAddress = <String>::sse_decode(deserializer);
         let mut var_totalDepositedSat = <u64>::sse_decode(deserializer);
         let mut var_totalPayoutSat = <u64>::sse_decode(deserializer);
         let mut var_payoutTxId = <Option<String>>::sse_decode(deserializer);
-        return crate::api::swap::PegProgressDto {
+        return mooze_app::dto::swap::PegProgressDto {
             order_id: var_orderId,
             direction: var_direction,
             phase: var_phase,
@@ -7025,17 +7416,17 @@ impl SseDecode for crate::api::swap::PegProgressDto {
     }
 }
 
-impl SseDecode for crate::api::swap::PegQuoteDto {
+impl SseDecode for mooze_app::dto::swap::PegQuoteDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_direction = <crate::api::swap::PegDirectionDto>::sse_decode(deserializer);
+        let mut var_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
         let mut var_networkFeeSat = <u64>::sse_decode(deserializer);
         let mut var_serviceFeeSat = <u64>::sse_decode(deserializer);
         let mut var_minimumSat = <u64>::sse_decode(deserializer);
         let mut var_totalFeeSat = <u64>::sse_decode(deserializer);
         let mut var_estimatedReceiveSat = <u64>::sse_decode(deserializer);
-        return crate::api::swap::PegQuoteDto {
+        return mooze_app::dto::swap::PegQuoteDto {
             direction: var_direction,
             amount_sat: var_amountSat,
             network_fee_sat: var_networkFeeSat,
@@ -7047,11 +7438,11 @@ impl SseDecode for crate::api::swap::PegQuoteDto {
     }
 }
 
-impl SseDecode for crate::api::swap::PegRecordDto {
+impl SseDecode for mooze_app::dto::swap::PegRecordDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_orderId = <String>::sse_decode(deserializer);
-        let mut var_direction = <crate::api::swap::PegDirectionDto>::sse_decode(deserializer);
+        let mut var_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(deserializer);
         let mut var_sideswapAddress = <String>::sse_decode(deserializer);
         let mut var_payoutAddress = <String>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
@@ -7062,7 +7453,7 @@ impl SseDecode for crate::api::swap::PegRecordDto {
         let mut var_payoutTxId = <Option<String>>::sse_decode(deserializer);
         let mut var_errorMessage = <Option<String>>::sse_decode(deserializer);
         let mut var_updatedAtMs = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::swap::PegRecordDto {
+        return mooze_app::dto::swap::PegRecordDto {
             order_id: var_orderId,
             direction: var_direction,
             sideswap_address: var_sideswapAddress,
@@ -7079,14 +7470,14 @@ impl SseDecode for crate::api::swap::PegRecordDto {
     }
 }
 
-impl SseDecode for crate::api::swap::PegRefreshDto {
+impl SseDecode for mooze_app::dto::swap::PegRefreshDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_pegs = <Vec<crate::api::swap::TrackedPegDto>>::sse_decode(deserializer);
+        let mut var_pegs = <Vec<mooze_app::dto::swap::TrackedPegDto>>::sse_decode(deserializer);
         let mut var_changed = <Vec<String>>::sse_decode(deserializer);
-        let mut var_finished = <Vec<crate::api::swap::TrackedPegDto>>::sse_decode(deserializer);
+        let mut var_finished = <Vec<mooze_app::dto::swap::TrackedPegDto>>::sse_decode(deserializer);
         let mut var_nextWakeupMs = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::swap::PegRefreshDto {
+        return mooze_app::dto::swap::PegRefreshDto {
             pegs: var_pegs,
             changed: var_changed,
             finished: var_finished,
@@ -7095,14 +7486,14 @@ impl SseDecode for crate::api::swap::PegRefreshDto {
     }
 }
 
-impl SseDecode for crate::api::swap::PegServerLimitsDto {
+impl SseDecode for mooze_app::dto::swap::PegServerLimitsDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_minPegInSat = <u64>::sse_decode(deserializer);
         let mut var_minPegOutSat = <u64>::sse_decode(deserializer);
         let mut var_serverFeePercentPegIn = <f64>::sse_decode(deserializer);
         let mut var_serverFeePercentPegOut = <f64>::sse_decode(deserializer);
-        return crate::api::swap::PegServerLimitsDto {
+        return mooze_app::dto::swap::PegServerLimitsDto {
             min_peg_in_sat: var_minPegInSat,
             min_peg_out_sat: var_minPegOutSat,
             server_fee_percent_peg_in: var_serverFeePercentPegIn,
@@ -7111,7 +7502,7 @@ impl SseDecode for crate::api::swap::PegServerLimitsDto {
     }
 }
 
-impl SseDecode for crate::api::pix::PixDepositDto {
+impl SseDecode for mooze_app::dto::pix::PixDepositDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_depositId = <String>::sse_decode(deserializer);
@@ -7119,11 +7510,11 @@ impl SseDecode for crate::api::pix::PixDepositDto {
         let mut var_assetId = <String>::sse_decode(deserializer);
         let mut var_amountInCents = <u64>::sse_decode(deserializer);
         let mut var_network = <String>::sse_decode(deserializer);
-        let mut var_status = <crate::api::pix::DepositStatusDto>::sse_decode(deserializer);
+        let mut var_status = <mooze_app::dto::pix::DepositStatusDto>::sse_decode(deserializer);
         let mut var_createdAtMs = <u64>::sse_decode(deserializer);
         let mut var_blockchainTxid = <Option<String>>::sse_decode(deserializer);
         let mut var_assetAmount = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::pix::PixDepositDto {
+        return mooze_app::dto::pix::PixDepositDto {
             deposit_id: var_depositId,
             pix_key: var_pixKey,
             asset_id: var_assetId,
@@ -7137,7 +7528,7 @@ impl SseDecode for crate::api::pix::PixDepositDto {
     }
 }
 
-impl SseDecode for crate::api::pix::PixFeeDto {
+impl SseDecode for mooze_app::dto::pix::PixFeeDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_feeRatePercent = <f64>::sse_decode(deserializer);
@@ -7146,7 +7537,7 @@ impl SseDecode for crate::api::pix::PixFeeDto {
         let mut var_estimatedAssetUnits = <Option<f64>>::sse_decode(deserializer);
         let mut var_activeTier = <Option<u32>>::sse_decode(deserializer);
         let mut var_amountInCents = <u64>::sse_decode(deserializer);
-        return crate::api::pix::PixFeeDto {
+        return mooze_app::dto::pix::PixFeeDto {
             fee_rate_percent: var_feeRatePercent,
             fee_amount: var_feeAmount,
             discounted_amount: var_discountedAmount,
@@ -7157,29 +7548,29 @@ impl SseDecode for crate::api::pix::PixFeeDto {
     }
 }
 
-impl SseDecode for crate::api::pix::PixFlagDto {
+impl SseDecode for mooze_app::dto::pix::PixFlagDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::pix::PixFlagDto::LbtcWarningShown,
-            1 => crate::api::pix::PixFlagDto::MainFirstTimeDialogShown,
-            2 => crate::api::pix::PixFlagDto::MerchantFirstTimeDialogShown,
-            3 => crate::api::pix::PixFlagDto::TutorialShown,
+            0 => mooze_app::dto::pix::PixFlagDto::LbtcWarningShown,
+            1 => mooze_app::dto::pix::PixFlagDto::MainFirstTimeDialogShown,
+            2 => mooze_app::dto::pix::PixFlagDto::MerchantFirstTimeDialogShown,
+            3 => mooze_app::dto::pix::PixFlagDto::TutorialShown,
             _ => unreachable!("Invalid variant for PixFlagDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::pix::PixStatusEventDto {
+impl SseDecode for mooze_app::dto::pix::PixStatusEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_depositId = <String>::sse_decode(deserializer);
-        let mut var_status = <crate::api::pix::DepositStatusDto>::sse_decode(deserializer);
+        let mut var_status = <mooze_app::dto::pix::DepositStatusDto>::sse_decode(deserializer);
         let mut var_blockchainTxid = <Option<String>>::sse_decode(deserializer);
         let mut var_assetAmount = <Option<u64>>::sse_decode(deserializer);
         let mut var_errorMessage = <Option<String>>::sse_decode(deserializer);
-        return crate::api::pix::PixStatusEventDto {
+        return mooze_app::dto::pix::PixStatusEventDto {
             deposit_id: var_depositId,
             status: var_status,
             blockchain_txid: var_blockchainTxid,
@@ -7189,10 +7580,10 @@ impl SseDecode for crate::api::pix::PixStatusEventDto {
     }
 }
 
-impl SseDecode for crate::api::swap::QuoteDto {
+impl SseDecode for mooze_app::dto::swap::QuoteDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_status = <crate::api::swap::QuoteStatusDto>::sse_decode(deserializer);
+        let mut var_status = <mooze_app::dto::swap::QuoteStatusDto>::sse_decode(deserializer);
         let mut var_quoteId = <Option<u64>>::sse_decode(deserializer);
         let mut var_baseAmount = <Option<u64>>::sse_decode(deserializer);
         let mut var_quoteAmount = <Option<u64>>::sse_decode(deserializer);
@@ -7205,7 +7596,7 @@ impl SseDecode for crate::api::swap::QuoteDto {
         let mut var_requestedAmount = <Option<u64>>::sse_decode(deserializer);
         let mut var_baseAssetId = <Option<String>>::sse_decode(deserializer);
         let mut var_quoteAssetId = <Option<String>>::sse_decode(deserializer);
-        return crate::api::swap::QuoteDto {
+        return mooze_app::dto::swap::QuoteDto {
             status: var_status,
             quote_id: var_quoteId,
             base_amount: var_baseAmount,
@@ -7223,28 +7614,28 @@ impl SseDecode for crate::api::swap::QuoteDto {
     }
 }
 
-impl SseDecode for crate::api::swap::QuoteStatusDto {
+impl SseDecode for mooze_app::dto::swap::QuoteStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::swap::QuoteStatusDto::Success,
-            1 => crate::api::swap::QuoteStatusDto::LowBalance,
-            2 => crate::api::swap::QuoteStatusDto::Error,
+            0 => mooze_app::dto::swap::QuoteStatusDto::Success,
+            1 => mooze_app::dto::swap::QuoteStatusDto::LowBalance,
+            2 => mooze_app::dto::swap::QuoteStatusDto::Error,
             _ => unreachable!("Invalid variant for QuoteStatusDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::ReceiveAddressDto {
+impl SseDecode for mooze_app::dto::wallet::ReceiveAddressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_chain = <crate::api::types::ChainDto>::sse_decode(deserializer);
+        let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
         let mut var_address = <Option<String>>::sse_decode(deserializer);
         let mut var_assetId = <Option<String>>::sse_decode(deserializer);
         let mut var_label = <Option<String>>::sse_decode(deserializer);
         let mut var_amountSat = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::types::ReceiveAddressDto {
+        return mooze_app::dto::wallet::ReceiveAddressDto {
             chain: var_chain,
             address: var_address,
             asset_id: var_assetId,
@@ -7254,18 +7645,19 @@ impl SseDecode for crate::api::types::ReceiveAddressDto {
     }
 }
 
-impl SseDecode for crate::api::types::SendRequestDto {
+impl SseDecode for mooze_app::dto::wallet::SendRequestDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_destination = <String>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
         let mut var_assetId = <Option<String>>::sse_decode(deserializer);
-        let mut var_feePriority = <crate::api::types::FeePriorityDto>::sse_decode(deserializer);
+        let mut var_feePriority =
+            <mooze_app::dto::wallet::FeePriorityDto>::sse_decode(deserializer);
         let mut var_label = <Option<String>>::sse_decode(deserializer);
         let mut var_subtractFeeFromAmount = <bool>::sse_decode(deserializer);
         let mut var_feeRateOverrideSatPerVbyte = <Option<f64>>::sse_decode(deserializer);
         let mut var_drain = <bool>::sse_decode(deserializer);
-        return crate::api::types::SendRequestDto {
+        return mooze_app::dto::wallet::SendRequestDto {
             destination: var_destination,
             amount_sat: var_amountSat,
             asset_id: var_assetId,
@@ -7278,14 +7670,14 @@ impl SseDecode for crate::api::types::SendRequestDto {
     }
 }
 
-impl SseDecode for crate::api::swap::SideSwapEventDto {
+impl SseDecode for mooze_app::dto::swap::SideSwapEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_kind = <crate::api::swap::SideSwapEventKind>::sse_decode(deserializer);
-        let mut var_quote = <Option<crate::api::swap::QuoteDto>>::sse_decode(deserializer);
+        let mut var_kind = <mooze_app::dto::swap::SideSwapEventKind>::sse_decode(deserializer);
+        let mut var_quote = <Option<mooze_app::dto::swap::QuoteDto>>::sse_decode(deserializer);
         let mut var_balanceSat = <Option<u64>>::sse_decode(deserializer);
         let mut var_message = <Option<String>>::sse_decode(deserializer);
-        return crate::api::swap::SideSwapEventDto {
+        return mooze_app::dto::swap::SideSwapEventDto {
             kind: var_kind,
             quote: var_quote,
             balance_sat: var_balanceSat,
@@ -7294,22 +7686,22 @@ impl SseDecode for crate::api::swap::SideSwapEventDto {
     }
 }
 
-impl SseDecode for crate::api::swap::SideSwapEventKind {
+impl SseDecode for mooze_app::dto::swap::SideSwapEventKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::swap::SideSwapEventKind::Quote,
-            1 => crate::api::swap::SideSwapEventKind::PegInWalletBalance,
-            2 => crate::api::swap::SideSwapEventKind::PegOutWalletBalance,
-            3 => crate::api::swap::SideSwapEventKind::Disconnected,
-            4 => crate::api::swap::SideSwapEventKind::Closed,
+            0 => mooze_app::dto::swap::SideSwapEventKind::Quote,
+            1 => mooze_app::dto::swap::SideSwapEventKind::PegInWalletBalance,
+            2 => mooze_app::dto::swap::SideSwapEventKind::PegOutWalletBalance,
+            3 => mooze_app::dto::swap::SideSwapEventKind::Disconnected,
+            4 => mooze_app::dto::swap::SideSwapEventKind::Closed,
             _ => unreachable!("Invalid variant for SideSwapEventKind: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::swap::SideswapAssetDto {
+impl SseDecode for mooze_app::dto::swap::SideswapAssetDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_assetId = <String>::sse_decode(deserializer);
@@ -7318,7 +7710,7 @@ impl SseDecode for crate::api::swap::SideswapAssetDto {
         let mut var_precision = <u8>::sse_decode(deserializer);
         let mut var_iconUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_instantSwaps = <Option<bool>>::sse_decode(deserializer);
-        return crate::api::swap::SideswapAssetDto {
+        return mooze_app::dto::swap::SideswapAssetDto {
             asset_id: var_assetId,
             name: var_name,
             ticker: var_ticker,
@@ -7329,14 +7721,14 @@ impl SseDecode for crate::api::swap::SideswapAssetDto {
     }
 }
 
-impl SseDecode for crate::api::swap::SideswapMarketDto {
+impl SseDecode for mooze_app::dto::swap::SideswapMarketDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_baseAssetId = <String>::sse_decode(deserializer);
         let mut var_quoteAssetId = <String>::sse_decode(deserializer);
         let mut var_feeAsset = <String>::sse_decode(deserializer);
         let mut var_marketType = <String>::sse_decode(deserializer);
-        return crate::api::swap::SideswapMarketDto {
+        return mooze_app::dto::swap::SideswapMarketDto {
             base_asset_id: var_baseAssetId,
             quote_asset_id: var_quoteAssetId,
             fee_asset: var_feeAsset,
@@ -7345,13 +7737,13 @@ impl SseDecode for crate::api::swap::SideswapMarketDto {
     }
 }
 
-impl SseDecode for crate::api::types::SkippedRowDto {
+impl SseDecode for mooze_app::dto::wallet::SkippedRowDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_table = <String>::sse_decode(deserializer);
         let mut var_key = <String>::sse_decode(deserializer);
         let mut var_reason = <String>::sse_decode(deserializer);
-        return crate::api::types::SkippedRowDto {
+        return mooze_app::dto::wallet::SkippedRowDto {
             table: var_table,
             key: var_key,
             reason: var_reason,
@@ -7359,27 +7751,27 @@ impl SseDecode for crate::api::types::SkippedRowDto {
     }
 }
 
-impl SseDecode for crate::api::types::SourceDto {
+impl SseDecode for mooze_app::dto::wallet::SourceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::SourceDto::Lwk,
-            1 => crate::api::types::SourceDto::Breez,
-            2 => crate::api::types::SourceDto::Bdk,
+            0 => mooze_app::dto::wallet::SourceDto::Lwk,
+            1 => mooze_app::dto::wallet::SourceDto::Breez,
+            2 => mooze_app::dto::wallet::SourceDto::Bdk,
             _ => unreachable!("Invalid variant for SourceDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::swap::StartQuoteDto {
+impl SseDecode for mooze_app::dto::swap::StartQuoteDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_started = <bool>::sse_decode(deserializer);
         let mut var_quoteSubId = <Option<u64>>::sse_decode(deserializer);
         let mut var_baseAssetId = <Option<String>>::sse_decode(deserializer);
         let mut var_quoteAssetId = <Option<String>>::sse_decode(deserializer);
-        return crate::api::swap::StartQuoteDto {
+        return mooze_app::dto::swap::StartQuoteDto {
             started: var_started,
             quote_sub_id: var_quoteSubId,
             base_asset_id: var_baseAssetId,
@@ -7388,27 +7780,27 @@ impl SseDecode for crate::api::swap::StartQuoteDto {
     }
 }
 
-impl SseDecode for crate::api::types::StatusDto {
+impl SseDecode for mooze_app::dto::wallet::StatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::StatusDto::Pending,
-            1 => crate::api::types::StatusDto::Confirmed,
-            2 => crate::api::types::StatusDto::Failed,
+            0 => mooze_app::dto::wallet::StatusDto::Pending,
+            1 => mooze_app::dto::wallet::StatusDto::Confirmed,
+            2 => mooze_app::dto::wallet::StatusDto::Failed,
             _ => unreachable!("Invalid variant for StatusDto: {}", inner),
         };
     }
 }
 
-impl SseDecode for crate::api::types::SyncOutcomeDto {
+impl SseDecode for mooze_app::dto::wallet::SyncOutcomeDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_chain = <crate::api::types::ChainDto>::sse_decode(deserializer);
+        let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
         let mut var_fetched = <u32>::sse_decode(deserializer);
         let mut var_changed = <u32>::sse_decode(deserializer);
         let mut var_durationMs = <u64>::sse_decode(deserializer);
-        return crate::api::types::SyncOutcomeDto {
+        return mooze_app::dto::wallet::SyncOutcomeDto {
             chain: var_chain,
             fetched: var_fetched,
             changed: var_changed,
@@ -7417,24 +7809,24 @@ impl SseDecode for crate::api::types::SyncOutcomeDto {
     }
 }
 
-impl SseDecode for crate::api::types::TableCountDto {
+impl SseDecode for mooze_app::dto::wallet::TableCountDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_table = <String>::sse_decode(deserializer);
         let mut var_count = <u32>::sse_decode(deserializer);
-        return crate::api::types::TableCountDto {
+        return mooze_app::dto::wallet::TableCountDto {
             table: var_table,
             count: var_count,
         };
     }
 }
 
-impl SseDecode for crate::api::swap::TrackedPegDto {
+impl SseDecode for mooze_app::dto::swap::TrackedPegDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_orderId = <String>::sse_decode(deserializer);
-        let mut var_direction = <crate::api::swap::PegDirectionDto>::sse_decode(deserializer);
-        let mut var_phase = <crate::api::swap::PegPhaseDto>::sse_decode(deserializer);
+        let mut var_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(deserializer);
+        let mut var_phase = <mooze_app::dto::swap::PegPhaseDto>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
         let mut var_depositAddress = <String>::sse_decode(deserializer);
         let mut var_fundingTxId = <Option<String>>::sse_decode(deserializer);
@@ -7442,7 +7834,7 @@ impl SseDecode for crate::api::swap::TrackedPegDto {
         let mut var_confirmations = <Option<u32>>::sse_decode(deserializer);
         let mut var_requiredConfirmations = <Option<u32>>::sse_decode(deserializer);
         let mut var_errorMessage = <Option<String>>::sse_decode(deserializer);
-        return crate::api::swap::TrackedPegDto {
+        return mooze_app::dto::swap::TrackedPegDto {
             order_id: var_orderId,
             direction: var_direction,
             phase: var_phase,
@@ -7457,13 +7849,13 @@ impl SseDecode for crate::api::swap::TrackedPegDto {
     }
 }
 
-impl SseDecode for crate::api::types::TransactionDto {
+impl SseDecode for mooze_app::dto::wallet::TransactionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <String>::sse_decode(deserializer);
-        let mut var_chain = <crate::api::types::ChainDto>::sse_decode(deserializer);
-        let mut var_direction = <crate::api::types::DirectionDto>::sse_decode(deserializer);
-        let mut var_status = <crate::api::types::StatusDto>::sse_decode(deserializer);
+        let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
+        let mut var_direction = <mooze_app::dto::wallet::DirectionDto>::sse_decode(deserializer);
+        let mut var_status = <mooze_app::dto::wallet::StatusDto>::sse_decode(deserializer);
         let mut var_amountSat = <i64>::sse_decode(deserializer);
         let mut var_feeSat = <i64>::sse_decode(deserializer);
         let mut var_timestampMs = <u64>::sse_decode(deserializer);
@@ -7475,10 +7867,10 @@ impl SseDecode for crate::api::types::TransactionDto {
         let mut var_toAssetId = <Option<String>>::sse_decode(deserializer);
         let mut var_sentAmountSat = <Option<i64>>::sse_decode(deserializer);
         let mut var_receivedAmountSat = <Option<i64>>::sse_decode(deserializer);
-        let mut var_source = <Option<crate::api::types::SourceDto>>::sse_decode(deserializer);
+        let mut var_source = <Option<mooze_app::dto::wallet::SourceDto>>::sse_decode(deserializer);
         let mut var_swapLockupTxId = <Option<String>>::sse_decode(deserializer);
         let mut var_swapClaimTxId = <Option<String>>::sse_decode(deserializer);
-        return crate::api::types::TransactionDto {
+        return mooze_app::dto::wallet::TransactionDto {
             id: var_id,
             chain: var_chain,
             direction: var_direction,
@@ -7501,16 +7893,18 @@ impl SseDecode for crate::api::types::TransactionDto {
     }
 }
 
-impl SseDecode for crate::api::types::TransactionEventDto {
+impl SseDecode for mooze_app::dto::wallet::TransactionEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_kind = <crate::api::types::TransactionEventKindDto>::sse_decode(deserializer);
-        let mut var_transaction = <crate::api::types::TransactionDto>::sse_decode(deserializer);
+        let mut var_kind =
+            <mooze_app::dto::wallet::TransactionEventKindDto>::sse_decode(deserializer);
+        let mut var_transaction =
+            <mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer);
         let mut var_observedAtMs = <u64>::sse_decode(deserializer);
         let mut var_previousStatus =
-            <Option<crate::api::types::StatusDto>>::sse_decode(deserializer);
+            <Option<mooze_app::dto::wallet::StatusDto>>::sse_decode(deserializer);
         let mut var_previousConfirmations = <Option<u32>>::sse_decode(deserializer);
-        return crate::api::types::TransactionEventDto {
+        return mooze_app::dto::wallet::TransactionEventDto {
             kind: var_kind,
             transaction: var_transaction,
             observed_at_ms: var_observedAtMs,
@@ -7520,14 +7914,14 @@ impl SseDecode for crate::api::types::TransactionEventDto {
     }
 }
 
-impl SseDecode for crate::api::types::TransactionEventKindDto {
+impl SseDecode for mooze_app::dto::wallet::TransactionEventKindDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::types::TransactionEventKindDto::Created,
-            1 => crate::api::types::TransactionEventKindDto::StatusChanged,
-            2 => crate::api::types::TransactionEventKindDto::ConfirmationsChanged,
+            0 => mooze_app::dto::wallet::TransactionEventKindDto::Created,
+            1 => mooze_app::dto::wallet::TransactionEventKindDto::StatusChanged,
+            2 => mooze_app::dto::wallet::TransactionEventKindDto::ConfirmationsChanged,
             _ => unreachable!("Invalid variant for TransactionEventKindDto: {}", inner),
         };
     }
@@ -7573,7 +7967,7 @@ impl SseDecode for usize {
     }
 }
 
-impl SseDecode for crate::api::types::WalletUtxoDto {
+impl SseDecode for mooze_app::dto::wallet::WalletUtxoDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_txid = <String>::sse_decode(deserializer);
@@ -7581,13 +7975,13 @@ impl SseDecode for crate::api::types::WalletUtxoDto {
         let mut var_address = <String>::sse_decode(deserializer);
         let mut var_unconfidential = <Option<String>>::sse_decode(deserializer);
         let mut var_scriptHex = <String>::sse_decode(deserializer);
-        let mut var_keychain = <crate::api::types::KeychainDto>::sse_decode(deserializer);
+        let mut var_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(deserializer);
         let mut var_index = <u32>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
         let mut var_assetId = <Option<String>>::sse_decode(deserializer);
         let mut var_confirmationHeight = <Option<u32>>::sse_decode(deserializer);
         let mut var_confirmationTimeS = <Option<u64>>::sse_decode(deserializer);
-        return crate::api::types::WalletUtxoDto {
+        return mooze_app::dto::wallet::WalletUtxoDto {
             txid: var_txid,
             vout: var_vout,
             address: var_address,
@@ -8079,194 +8473,203 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<MoozeCore>> for MoozeCore {
 }
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::AddressOwnershipDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::AddressOwnershipDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.keychain.into_into_dart().into_dart(),
-            self.index.into_into_dart().into_dart(),
+            self.0.keychain.into_into_dart().into_dart(),
+            self.0.index.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::AddressOwnershipDto
+    for FrbWrapper<mooze_app::dto::wallet::AddressOwnershipDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::AddressOwnershipDto>
-    for crate::api::types::AddressOwnershipDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::AddressOwnershipDto>>
+    for mooze_app::dto::wallet::AddressOwnershipDto
 {
-    fn into_into_dart(self) -> crate::api::types::AddressOwnershipDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::AddressOwnershipDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::ApiResponseDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::ApiResponseDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.status.into_into_dart().into_dart(),
-            self.body.into_into_dart().into_dart(),
+            self.0.status.into_into_dart().into_dart(),
+            self.0.body.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::ApiResponseDto
+    for FrbWrapper<mooze_app::dto::wallet::ApiResponseDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::ApiResponseDto>
-    for crate::api::types::ApiResponseDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::ApiResponseDto>>
+    for mooze_app::dto::wallet::ApiResponseDto
 {
-    fn into_into_dart(self) -> crate::api::types::ApiResponseDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::ApiResponseDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::AssetBalanceDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::AssetBalanceDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.chain.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.precision.into_into_dart().into_dart(),
-            self.ticker.into_into_dart().into_dart(),
-            self.pending_sat.into_into_dart().into_dart(),
+            self.0.chain.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.precision.into_into_dart().into_dart(),
+            self.0.ticker.into_into_dart().into_dart(),
+            self.0.pending_sat.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::AssetBalanceDto
+    for FrbWrapper<mooze_app::dto::wallet::AssetBalanceDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::AssetBalanceDto>
-    for crate::api::types::AssetBalanceDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::AssetBalanceDto>>
+    for mooze_app::dto::wallet::AssetBalanceDto
 {
-    fn into_into_dart(self) -> crate::api::types::AssetBalanceDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::AssetBalanceDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::AuthEnsureDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.kind.into_into_dart().into_dart(),
-            self.status_code.into_into_dart().into_dart(),
-            self.message.into_into_dart().into_dart(),
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.status_code.into_into_dart().into_dart(),
+            self.0.message.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::AuthEnsureDto
+    for FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::AuthEnsureDto>
-    for crate::api::types::AuthEnsureDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto>>
+    for mooze_app::dto::wallet::AuthEnsureDto
 {
-    fn into_into_dart(self) -> crate::api::types::AuthEnsureDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::AuthEnsureKind {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::AuthEnsureKind> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Ready => 0.into_dart(),
-            Self::MissingMnemonic => 1.into_dart(),
-            Self::ApiDown => 2.into_dart(),
-            Self::Failed => 3.into_dart(),
+        match self.0 {
+            mooze_app::dto::wallet::AuthEnsureKind::Ready => 0.into_dart(),
+            mooze_app::dto::wallet::AuthEnsureKind::MissingMnemonic => 1.into_dart(),
+            mooze_app::dto::wallet::AuthEnsureKind::ApiDown => 2.into_dart(),
+            mooze_app::dto::wallet::AuthEnsureKind::Failed => 3.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::AuthEnsureKind
+    for FrbWrapper<mooze_app::dto::wallet::AuthEnsureKind>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::AuthEnsureKind>
-    for crate::api::types::AuthEnsureKind
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::AuthEnsureKind>>
+    for mooze_app::dto::wallet::AuthEnsureKind
 {
-    fn into_into_dart(self) -> crate::api::types::AuthEnsureKind {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::AuthEnsureKind> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::BackendDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::config::BackendDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Esplora => 0.into_dart(),
-            Self::Electrum => 1.into_dart(),
+        match self.0 {
+            mooze_app::dto::config::BackendDto::Esplora => 0.into_dart(),
+            mooze_app::dto::config::BackendDto::Electrum => 1.into_dart(),
             _ => unreachable!(),
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::BackendDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::BackendDto>
-    for crate::api::types::BackendDto
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::config::BackendDto>
 {
-    fn into_into_dart(self) -> crate::api::types::BackendDto {
-        self
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::config::BackendDto>>
+    for mooze_app::dto::config::BackendDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::config::BackendDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::BalanceDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::BalanceDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.assets.into_into_dart().into_dart(),
-            self.snapshot_at_ms.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::BalanceDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::BalanceDto>
-    for crate::api::types::BalanceDto
-{
-    fn into_into_dart(self) -> crate::api::types::BalanceDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::BroadcastResultDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.chain.into_into_dart().into_dart(),
-            self.tx_id.into_into_dart().into_dart(),
-            self.transaction.into_into_dart().into_dart(),
-            self.fee_paid_sat.into_into_dart().into_dart(),
+            self.0.assets.into_into_dart().into_dart(),
+            self.0.snapshot_at_ms.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::BroadcastResultDto
+    for FrbWrapper<mooze_app::dto::wallet::BalanceDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::BroadcastResultDto>
-    for crate::api::types::BroadcastResultDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::BalanceDto>>
+    for mooze_app::dto::wallet::BalanceDto
 {
-    fn into_into_dart(self) -> crate::api::types::BroadcastResultDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::BalanceDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::ChainDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::BroadcastResultDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Liquid => 0.into_dart(),
-            Self::Bitcoin => 1.into_dart(),
-            Self::Lightning => 2.into_dart(),
-            Self::Aggregate => 3.into_dart(),
+        [
+            self.0.chain.into_into_dart().into_dart(),
+            self.0.tx_id.into_into_dart().into_dart(),
+            self.0.transaction.into_into_dart().into_dart(),
+            self.0.fee_paid_sat.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::BroadcastResultDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::BroadcastResultDto>>
+    for mooze_app::dto::wallet::BroadcastResultDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::BroadcastResultDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::ChainDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::wallet::ChainDto::Liquid => 0.into_dart(),
+            mooze_app::dto::wallet::ChainDto::Bitcoin => 1.into_dart(),
+            mooze_app::dto::wallet::ChainDto::Lightning => 2.into_dart(),
+            mooze_app::dto::wallet::ChainDto::Aggregate => 3.into_dart(),
             _ => unreachable!(),
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::ChainDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::ChainDto>
-    for crate::api::types::ChainDto
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::ChainDto>
 {
-    fn into_into_dart(self) -> crate::api::types::ChainDto {
-        self
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::ChainDto>>
+    for mooze_app::dto::wallet::ChainDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::ChainDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -8337,1264 +8740,1302 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreErrorKind>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::CpfValidationErrorDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::CpfValidationErrorDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Empty => 0.into_dart(),
-            Self::Incomplete => 1.into_dart(),
-            Self::Invalid => 2.into_dart(),
+        match self.0 {
+            mooze_app::dto::pix::CpfValidationErrorDto::Empty => 0.into_dart(),
+            mooze_app::dto::pix::CpfValidationErrorDto::Incomplete => 1.into_dart(),
+            mooze_app::dto::pix::CpfValidationErrorDto::Invalid => 2.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::CpfValidationErrorDto
+    for FrbWrapper<mooze_app::dto::pix::CpfValidationErrorDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::CpfValidationErrorDto>
-    for crate::api::pix::CpfValidationErrorDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::CpfValidationErrorDto>>
+    for mooze_app::dto::pix::CpfValidationErrorDto
 {
-    fn into_into_dart(self) -> crate::api::pix::CpfValidationErrorDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::CpfValidationErrorDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::DepositLimitsDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::DepositLimitsDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.absolute_min_limit.into_into_dart().into_dart(),
-            self.allowed_spending.into_into_dart().into_dart(),
+            self.0.absolute_min_limit.into_into_dart().into_dart(),
+            self.0.allowed_spending.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::DepositLimitsDto
+    for FrbWrapper<mooze_app::dto::pix::DepositLimitsDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::DepositLimitsDto>
-    for crate::api::pix::DepositLimitsDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::DepositLimitsDto>>
+    for mooze_app::dto::pix::DepositLimitsDto
 {
-    fn into_into_dart(self) -> crate::api::pix::DepositLimitsDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::DepositLimitsDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::DepositStatusDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::DepositStatusDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Pending => 0.into_dart(),
-            Self::UnderReview => 1.into_dart(),
-            Self::Processing => 2.into_dart(),
-            Self::FundsPrepared => 3.into_dart(),
-            Self::DepixSent => 4.into_dart(),
-            Self::Paid => 5.into_dart(),
-            Self::Broadcasted => 6.into_dart(),
-            Self::Finished => 7.into_dart(),
-            Self::Completed => 8.into_dart(),
-            Self::Failed => 9.into_dart(),
-            Self::Expired => 10.into_dart(),
-            Self::Refunded => 11.into_dart(),
-            Self::Med => 12.into_dart(),
-            Self::ProcessingRefund => 13.into_dart(),
-            Self::BroadcastedRefund => 14.into_dart(),
-            Self::FinishedRefund => 15.into_dart(),
-            Self::Timeout => 16.into_dart(),
-            Self::Unknown => 17.into_dart(),
+        match self.0 {
+            mooze_app::dto::pix::DepositStatusDto::Pending => 0.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::UnderReview => 1.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Processing => 2.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::FundsPrepared => 3.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::DepixSent => 4.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Paid => 5.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Broadcasted => 6.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Finished => 7.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Completed => 8.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Failed => 9.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Expired => 10.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Refunded => 11.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Med => 12.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::ProcessingRefund => 13.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::BroadcastedRefund => 14.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::FinishedRefund => 15.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Timeout => 16.into_dart(),
+            mooze_app::dto::pix::DepositStatusDto::Unknown => 17.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::DepositStatusDto
+    for FrbWrapper<mooze_app::dto::pix::DepositStatusDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::DepositStatusDto>
-    for crate::api::pix::DepositStatusDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::DepositStatusDto>>
+    for mooze_app::dto::pix::DepositStatusDto
 {
-    fn into_into_dart(self) -> crate::api::pix::DepositStatusDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::DepositStatusDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::DepositValidationDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::DepositValidationDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.is_valid.into_into_dart().into_dart(),
-            self.error.into_into_dart().into_dart(),
-            self.limit_amount.into_into_dart().into_dart(),
+            self.0.is_valid.into_into_dart().into_dart(),
+            self.0.error.into_into_dart().into_dart(),
+            self.0.limit_amount.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::DepositValidationDto
+    for FrbWrapper<mooze_app::dto::pix::DepositValidationDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::DepositValidationDto>
-    for crate::api::pix::DepositValidationDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::DepositValidationDto>>
+    for mooze_app::dto::pix::DepositValidationDto
 {
-    fn into_into_dart(self) -> crate::api::pix::DepositValidationDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::DepositValidationDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::DepositValidationErrorDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::DepositValidationErrorDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::InvalidAmount => 0.into_dart(),
-            Self::BelowMinimum => 1.into_dart(),
-            Self::AboveTransaction => 2.into_dart(),
-            Self::AboveRemaining => 3.into_dart(),
+        match self.0 {
+            mooze_app::dto::pix::DepositValidationErrorDto::InvalidAmount => 0.into_dart(),
+            mooze_app::dto::pix::DepositValidationErrorDto::BelowMinimum => 1.into_dart(),
+            mooze_app::dto::pix::DepositValidationErrorDto::AboveTransaction => 2.into_dart(),
+            mooze_app::dto::pix::DepositValidationErrorDto::AboveRemaining => 3.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::DepositValidationErrorDto
+    for FrbWrapper<mooze_app::dto::pix::DepositValidationErrorDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::DepositValidationErrorDto>
-    for crate::api::pix::DepositValidationErrorDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::DepositValidationErrorDto>>
+    for mooze_app::dto::pix::DepositValidationErrorDto
 {
-    fn into_into_dart(self) -> crate::api::pix::DepositValidationErrorDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::DepositValidationErrorDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::DerivedAddressDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::DerivedAddressDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.keychain.into_into_dart().into_dart(),
-            self.index.into_into_dart().into_dart(),
-            self.address.into_into_dart().into_dart(),
-            self.unconfidential.into_into_dart().into_dart(),
-            self.script_hex.into_into_dart().into_dart(),
-            self.used.into_into_dart().into_dart(),
+            self.0.keychain.into_into_dart().into_dart(),
+            self.0.index.into_into_dart().into_dart(),
+            self.0.address.into_into_dart().into_dart(),
+            self.0.unconfidential.into_into_dart().into_dart(),
+            self.0.script_hex.into_into_dart().into_dart(),
+            self.0.used.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::DerivedAddressDto
+    for FrbWrapper<mooze_app::dto::wallet::DerivedAddressDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::DerivedAddressDto>
-    for crate::api::types::DerivedAddressDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::DerivedAddressDto>>
+    for mooze_app::dto::wallet::DerivedAddressDto
 {
-    fn into_into_dart(self) -> crate::api::types::DerivedAddressDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::DerivedAddressDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::DeviceMetricsDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::DeviceMetricsDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.device_id.into_into_dart().into_dart(),
-            self.battery_level.into_into_dart().into_dart(),
-            self.screen_brightness.into_into_dart().into_dart(),
-            self.boot_time.into_into_dart().into_dart(),
+            self.0.device_id.into_into_dart().into_dart(),
+            self.0.battery_level.into_into_dart().into_dart(),
+            self.0.screen_brightness.into_into_dart().into_dart(),
+            self.0.boot_time.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::DeviceMetricsDto
+    for FrbWrapper<mooze_app::dto::wallet::DeviceMetricsDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::DeviceMetricsDto>
-    for crate::api::types::DeviceMetricsDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::DeviceMetricsDto>>
+    for mooze_app::dto::wallet::DeviceMetricsDto
 {
-    fn into_into_dart(self) -> crate::api::types::DeviceMetricsDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::DeviceMetricsDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::DirectionDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::DirectionDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Incoming => 0.into_dart(),
-            Self::Outgoing => 1.into_dart(),
-            Self::Internal => 2.into_dart(),
-            Self::SelfTransfer => 3.into_dart(),
-            Self::Swap => 4.into_dart(),
+        match self.0 {
+            mooze_app::dto::wallet::DirectionDto::Incoming => 0.into_dart(),
+            mooze_app::dto::wallet::DirectionDto::Outgoing => 1.into_dart(),
+            mooze_app::dto::wallet::DirectionDto::Internal => 2.into_dart(),
+            mooze_app::dto::wallet::DirectionDto::SelfTransfer => 3.into_dart(),
+            mooze_app::dto::wallet::DirectionDto::Swap => 4.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::DirectionDto
+    for FrbWrapper<mooze_app::dto::wallet::DirectionDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::DirectionDto>
-    for crate::api::types::DirectionDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::DirectionDto>>
+    for mooze_app::dto::wallet::DirectionDto
 {
-    fn into_into_dart(self) -> crate::api::types::DirectionDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::DirectionDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::FavoritePayerDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::FavoritePayerDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.id.into_into_dart().into_dart(),
-            self.label.into_into_dart().into_dart(),
-            self.cpf.into_into_dart().into_dart(),
-            self.masked_cpf.into_into_dart().into_dart(),
+            self.0.id.into_into_dart().into_dart(),
+            self.0.label.into_into_dart().into_dart(),
+            self.0.cpf.into_into_dart().into_dart(),
+            self.0.masked_cpf.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::FavoritePayerDto
+    for FrbWrapper<mooze_app::dto::pix::FavoritePayerDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::FavoritePayerDto>
-    for crate::api::pix::FavoritePayerDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::FavoritePayerDto>>
+    for mooze_app::dto::pix::FavoritePayerDto
 {
-    fn into_into_dart(self) -> crate::api::pix::FavoritePayerDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::FavoritePayerDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::FavoritePayerSaveErrorDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::FavoritePayerSaveErrorDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::DuplicateCpf => 0.into_dart(),
+        match self.0 {
+            mooze_app::dto::pix::FavoritePayerSaveErrorDto::DuplicateCpf => 0.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::FavoritePayerSaveErrorDto
+    for FrbWrapper<mooze_app::dto::pix::FavoritePayerSaveErrorDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::FavoritePayerSaveErrorDto>
-    for crate::api::pix::FavoritePayerSaveErrorDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::FavoritePayerSaveErrorDto>>
+    for mooze_app::dto::pix::FavoritePayerSaveErrorDto
 {
-    fn into_into_dart(self) -> crate::api::pix::FavoritePayerSaveErrorDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::FavoritePayerSaveErrorDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::FeeEstimateDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::FeeEstimateDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.chain.into_into_dart().into_dart(),
-            self.priority.into_into_dart().into_dart(),
-            self.absolute_fee_sat.into_into_dart().into_dart(),
-            self.fee_rate_sat_per_vbyte.into_into_dart().into_dart(),
-            self.estimated_blocks.into_into_dart().into_dart(),
+            self.0.chain.into_into_dart().into_dart(),
+            self.0.priority.into_into_dart().into_dart(),
+            self.0.absolute_fee_sat.into_into_dart().into_dart(),
+            self.0.fee_rate_sat_per_vbyte.into_into_dart().into_dart(),
+            self.0.estimated_blocks.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::FeeEstimateDto
+    for FrbWrapper<mooze_app::dto::wallet::FeeEstimateDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::FeeEstimateDto>
-    for crate::api::types::FeeEstimateDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::FeeEstimateDto>>
+    for mooze_app::dto::wallet::FeeEstimateDto
 {
-    fn into_into_dart(self) -> crate::api::types::FeeEstimateDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::FeeEstimateDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::FeePriorityDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::FeePriorityDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Low => 0.into_dart(),
-            Self::Medium => 1.into_dart(),
-            Self::High => 2.into_dart(),
+        match self.0 {
+            mooze_app::dto::wallet::FeePriorityDto::Low => 0.into_dart(),
+            mooze_app::dto::wallet::FeePriorityDto::Medium => 1.into_dart(),
+            mooze_app::dto::wallet::FeePriorityDto::High => 2.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::FeePriorityDto
+    for FrbWrapper<mooze_app::dto::wallet::FeePriorityDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::FeePriorityDto>
-    for crate::api::types::FeePriorityDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::FeePriorityDto>>
+    for mooze_app::dto::wallet::FeePriorityDto
 {
-    fn into_into_dart(self) -> crate::api::types::FeePriorityDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::FeePriorityDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::HttpMethodDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::HttpMethodDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Get => 0.into_dart(),
-            Self::Post => 1.into_dart(),
-            Self::Put => 2.into_dart(),
-            Self::Patch => 3.into_dart(),
-            Self::Delete => 4.into_dart(),
+        match self.0 {
+            mooze_app::dto::wallet::HttpMethodDto::Get => 0.into_dart(),
+            mooze_app::dto::wallet::HttpMethodDto::Post => 1.into_dart(),
+            mooze_app::dto::wallet::HttpMethodDto::Put => 2.into_dart(),
+            mooze_app::dto::wallet::HttpMethodDto::Patch => 3.into_dart(),
+            mooze_app::dto::wallet::HttpMethodDto::Delete => 4.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::HttpMethodDto
+    for FrbWrapper<mooze_app::dto::wallet::HttpMethodDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::HttpMethodDto>
-    for crate::api::types::HttpMethodDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::HttpMethodDto>>
+    for mooze_app::dto::wallet::HttpMethodDto
 {
-    fn into_into_dart(self) -> crate::api::types::HttpMethodDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::HttpMethodDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::KeychainDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::KeychainDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::External => 0.into_dart(),
-            Self::Internal => 1.into_dart(),
+        match self.0 {
+            mooze_app::dto::wallet::KeychainDto::External => 0.into_dart(),
+            mooze_app::dto::wallet::KeychainDto::Internal => 1.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::KeychainDto
+    for FrbWrapper<mooze_app::dto::wallet::KeychainDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::KeychainDto>
-    for crate::api::types::KeychainDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::KeychainDto>>
+    for mooze_app::dto::wallet::KeychainDto
 {
-    fn into_into_dart(self) -> crate::api::types::KeychainDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::KeychainDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::LiquidSendDraftDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::LiquidSendDraftDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.pset.into_into_dart().into_dart(),
-            self.destination.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.fee_sat.into_into_dart().into_dart(),
-            self.fee_rate_sat_per_kvb.into_into_dart().into_dart(),
-            self.drain.into_into_dart().into_dart(),
+            self.0.pset.into_into_dart().into_dart(),
+            self.0.destination.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.fee_sat.into_into_dart().into_dart(),
+            self.0.fee_rate_sat_per_kvb.into_into_dart().into_dart(),
+            self.0.drain.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::LiquidSendDraftDto
+    for FrbWrapper<mooze_app::dto::wallet::LiquidSendDraftDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::LiquidSendDraftDto>
-    for crate::api::types::LiquidSendDraftDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::LiquidSendDraftDto>>
+    for mooze_app::dto::wallet::LiquidSendDraftDto
 {
-    fn into_into_dart(self) -> crate::api::types::LiquidSendDraftDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::LiquidSendDraftDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::LiquidUtxoDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.txid.into_into_dart().into_dart(),
-            self.vout.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.asset_blinding_factor.into_into_dart().into_dart(),
-            self.value_sat.into_into_dart().into_dart(),
-            self.value_blinding_factor.into_into_dart().into_dart(),
+            self.0.txid.into_into_dart().into_dart(),
+            self.0.vout.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.asset_blinding_factor.into_into_dart().into_dart(),
+            self.0.value_sat.into_into_dart().into_dart(),
+            self.0.value_blinding_factor.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::LiquidUtxoDto
+    for FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::LiquidUtxoDto>
-    for crate::api::types::LiquidUtxoDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto>>
+    for mooze_app::dto::wallet::LiquidUtxoDto
 {
-    fn into_into_dart(self) -> crate::api::types::LiquidUtxoDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::MigrationReportDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::MigrationReportDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.already_done.into_into_dart().into_dart(),
-            self.copied.into_into_dart().into_dart(),
-            self.skipped.into_into_dart().into_dart(),
+            self.0.already_done.into_into_dart().into_dart(),
+            self.0.copied.into_into_dart().into_dart(),
+            self.0.skipped.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::MigrationReportDto
+    for FrbWrapper<mooze_app::dto::wallet::MigrationReportDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::MigrationReportDto>
-    for crate::api::types::MigrationReportDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::MigrationReportDto>>
+    for mooze_app::dto::wallet::MigrationReportDto
 {
-    fn into_into_dart(self) -> crate::api::types::MigrationReportDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::MigrationReportDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::NetworkDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::config::NetworkDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Mainnet => 0.into_dart(),
-            Self::Testnet => 1.into_dart(),
-            Self::Regtest => 2.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::NetworkDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::NetworkDto>
-    for crate::api::types::NetworkDto
-{
-    fn into_into_dart(self) -> crate::api::types::NetworkDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::NextUnusedAddressDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.index.into_into_dart().into_dart(),
-            self.address.into_into_dart().into_dart(),
-            self.used.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::NextUnusedAddressDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::NextUnusedAddressDto>
-    for crate::api::types::NextUnusedAddressDto
-{
-    fn into_into_dart(self) -> crate::api::types::NextUnusedAddressDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegAmountIssueDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::BelowMinimum => 0.into_dart(),
-            Self::AboveBalance => 1.into_dart(),
+        match self.0 {
+            mooze_app::dto::config::NetworkDto::Mainnet => 0.into_dart(),
+            mooze_app::dto::config::NetworkDto::Testnet => 1.into_dart(),
+            mooze_app::dto::config::NetworkDto::Regtest => 2.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegAmountIssueDto
+    for FrbWrapper<mooze_app::dto::config::NetworkDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegAmountIssueDto>
-    for crate::api::swap::PegAmountIssueDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::config::NetworkDto>>
+    for mooze_app::dto::config::NetworkDto
 {
-    fn into_into_dart(self) -> crate::api::swap::PegAmountIssueDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::config::NetworkDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegAmountValidationDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::NextUnusedAddressDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.has_amount.into_into_dart().into_dart(),
-            self.is_valid.into_into_dart().into_dart(),
-            self.issue.into_into_dart().into_dart(),
-            self.minimum_sats.into_into_dart().into_dart(),
-            self.maximum_sats.into_into_dart().into_dart(),
-            self.shows_issue.into_into_dart().into_dart(),
+            self.0.index.into_into_dart().into_dart(),
+            self.0.address.into_into_dart().into_dart(),
+            self.0.used.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegAmountValidationDto
+    for FrbWrapper<mooze_app::dto::wallet::NextUnusedAddressDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegAmountValidationDto>
-    for crate::api::swap::PegAmountValidationDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::NextUnusedAddressDto>>
+    for mooze_app::dto::wallet::NextUnusedAddressDto
 {
-    fn into_into_dart(self) -> crate::api::swap::PegAmountValidationDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::NextUnusedAddressDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegDirectionDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegAmountIssueDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::PegIn => 0.into_dart(),
-            Self::PegOut => 1.into_dart(),
+        match self.0 {
+            mooze_app::dto::swap::PegAmountIssueDto::BelowMinimum => 0.into_dart(),
+            mooze_app::dto::swap::PegAmountIssueDto::AboveBalance => 1.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegDirectionDto
+    for FrbWrapper<mooze_app::dto::swap::PegAmountIssueDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegDirectionDto>
-    for crate::api::swap::PegDirectionDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegAmountIssueDto>>
+    for mooze_app::dto::swap::PegAmountIssueDto
 {
-    fn into_into_dart(self) -> crate::api::swap::PegDirectionDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegAmountIssueDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegExecutionDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegAmountValidationDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.order.into_into_dart().into_dart(),
-            self.funding_tx_id.into_into_dart().into_dart(),
+            self.0.has_amount.into_into_dart().into_dart(),
+            self.0.is_valid.into_into_dart().into_dart(),
+            self.0.issue.into_into_dart().into_dart(),
+            self.0.minimum_sats.into_into_dart().into_dart(),
+            self.0.maximum_sats.into_into_dart().into_dart(),
+            self.0.shows_issue.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegExecutionDto
+    for FrbWrapper<mooze_app::dto::swap::PegAmountValidationDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegExecutionDto>
-    for crate::api::swap::PegExecutionDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegAmountValidationDto>>
+    for mooze_app::dto::swap::PegAmountValidationDto
 {
-    fn into_into_dart(self) -> crate::api::swap::PegExecutionDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegAmountValidationDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegOrderDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegDirectionDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.order_id.into_into_dart().into_dart(),
-            self.direction.into_into_dart().into_dart(),
-            self.deposit_address.into_into_dart().into_dart(),
-            self.payout_address.into_into_dart().into_dart(),
-            self.created_at_ms.into_into_dart().into_dart(),
-            self.expires_at_ms.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::swap::PegOrderDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegOrderDto>
-    for crate::api::swap::PegOrderDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegOrderDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegPhaseDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::AwaitingDeposit => 0.into_dart(),
-            Self::Detected => 1.into_dart(),
-            Self::Processing => 2.into_dart(),
-            Self::Completed => 3.into_dart(),
-            Self::InsufficientAmount => 4.into_dart(),
-            Self::Failed => 5.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::swap::PegPhaseDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegPhaseDto>
-    for crate::api::swap::PegPhaseDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegPhaseDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegProgressDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.order_id.into_into_dart().into_dart(),
-            self.direction.into_into_dart().into_dart(),
-            self.phase.into_into_dart().into_dart(),
-            self.deposit_address.into_into_dart().into_dart(),
-            self.payout_address.into_into_dart().into_dart(),
-            self.total_deposited_sat.into_into_dart().into_dart(),
-            self.total_payout_sat.into_into_dart().into_dart(),
-            self.payout_tx_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegProgressDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegProgressDto>
-    for crate::api::swap::PegProgressDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegProgressDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegQuoteDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.direction.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.network_fee_sat.into_into_dart().into_dart(),
-            self.service_fee_sat.into_into_dart().into_dart(),
-            self.minimum_sat.into_into_dart().into_dart(),
-            self.total_fee_sat.into_into_dart().into_dart(),
-            self.estimated_receive_sat.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::swap::PegQuoteDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegQuoteDto>
-    for crate::api::swap::PegQuoteDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegQuoteDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegRecordDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.order_id.into_into_dart().into_dart(),
-            self.direction.into_into_dart().into_dart(),
-            self.sideswap_address.into_into_dart().into_dart(),
-            self.payout_address.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.created_at_ms.into_into_dart().into_dart(),
-            self.wallet_id.into_into_dart().into_dart(),
-            self.status.into_into_dart().into_dart(),
-            self.funding_tx_id.into_into_dart().into_dart(),
-            self.payout_tx_id.into_into_dart().into_dart(),
-            self.error_message.into_into_dart().into_dart(),
-            self.updated_at_ms.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegRecordDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegRecordDto>
-    for crate::api::swap::PegRecordDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegRecordDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegRefreshDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.pegs.into_into_dart().into_dart(),
-            self.changed.into_into_dart().into_dart(),
-            self.finished.into_into_dart().into_dart(),
-            self.next_wakeup_ms.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegRefreshDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegRefreshDto>
-    for crate::api::swap::PegRefreshDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegRefreshDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::PegServerLimitsDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.min_peg_in_sat.into_into_dart().into_dart(),
-            self.min_peg_out_sat.into_into_dart().into_dart(),
-            self.server_fee_percent_peg_in.into_into_dart().into_dart(),
-            self.server_fee_percent_peg_out.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::PegServerLimitsDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::PegServerLimitsDto>
-    for crate::api::swap::PegServerLimitsDto
-{
-    fn into_into_dart(self) -> crate::api::swap::PegServerLimitsDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::PixDepositDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.deposit_id.into_into_dart().into_dart(),
-            self.pix_key.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.amount_in_cents.into_into_dart().into_dart(),
-            self.network.into_into_dart().into_dart(),
-            self.status.into_into_dart().into_dart(),
-            self.created_at_ms.into_into_dart().into_dart(),
-            self.blockchain_txid.into_into_dart().into_dart(),
-            self.asset_amount.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::PixDepositDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::PixDepositDto>
-    for crate::api::pix::PixDepositDto
-{
-    fn into_into_dart(self) -> crate::api::pix::PixDepositDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::PixFeeDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.fee_rate_percent.into_into_dart().into_dart(),
-            self.fee_amount.into_into_dart().into_dart(),
-            self.discounted_amount.into_into_dart().into_dart(),
-            self.estimated_asset_units.into_into_dart().into_dart(),
-            self.active_tier.into_into_dart().into_dart(),
-            self.amount_in_cents.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::pix::PixFeeDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::PixFeeDto> for crate::api::pix::PixFeeDto {
-    fn into_into_dart(self) -> crate::api::pix::PixFeeDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::PixFlagDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::LbtcWarningShown => 0.into_dart(),
-            Self::MainFirstTimeDialogShown => 1.into_dart(),
-            Self::MerchantFirstTimeDialogShown => 2.into_dart(),
-            Self::TutorialShown => 3.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::pix::PixFlagDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::PixFlagDto>
-    for crate::api::pix::PixFlagDto
-{
-    fn into_into_dart(self) -> crate::api::pix::PixFlagDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::pix::PixStatusEventDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.deposit_id.into_into_dart().into_dart(),
-            self.status.into_into_dart().into_dart(),
-            self.blockchain_txid.into_into_dart().into_dart(),
-            self.asset_amount.into_into_dart().into_dart(),
-            self.error_message.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::pix::PixStatusEventDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::pix::PixStatusEventDto>
-    for crate::api::pix::PixStatusEventDto
-{
-    fn into_into_dart(self) -> crate::api::pix::PixStatusEventDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::QuoteDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.status.into_into_dart().into_dart(),
-            self.quote_id.into_into_dart().into_dart(),
-            self.base_amount.into_into_dart().into_dart(),
-            self.quote_amount.into_into_dart().into_dart(),
-            self.server_fee.into_into_dart().into_dart(),
-            self.fixed_fee.into_into_dart().into_dart(),
-            self.ttl_ms.into_into_dart().into_dart(),
-            self.available.into_into_dart().into_dart(),
-            self.error_message.into_into_dart().into_dart(),
-            self.quote_sub_id.into_into_dart().into_dart(),
-            self.requested_amount.into_into_dart().into_dart(),
-            self.base_asset_id.into_into_dart().into_dart(),
-            self.quote_asset_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::swap::QuoteDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::QuoteDto> for crate::api::swap::QuoteDto {
-    fn into_into_dart(self) -> crate::api::swap::QuoteDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::QuoteStatusDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Success => 0.into_dart(),
-            Self::LowBalance => 1.into_dart(),
-            Self::Error => 2.into_dart(),
+        match self.0 {
+            mooze_app::dto::swap::PegDirectionDto::PegIn => 0.into_dart(),
+            mooze_app::dto::swap::PegDirectionDto::PegOut => 1.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::QuoteStatusDto
+    for FrbWrapper<mooze_app::dto::swap::PegDirectionDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::QuoteStatusDto>
-    for crate::api::swap::QuoteStatusDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegDirectionDto>>
+    for mooze_app::dto::swap::PegDirectionDto
 {
-    fn into_into_dart(self) -> crate::api::swap::QuoteStatusDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegDirectionDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::ReceiveAddressDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegExecutionDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.chain.into_into_dart().into_dart(),
-            self.address.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.label.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
+            self.0.order.into_into_dart().into_dart(),
+            self.0.funding_tx_id.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::ReceiveAddressDto
+    for FrbWrapper<mooze_app::dto::swap::PegExecutionDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::ReceiveAddressDto>
-    for crate::api::types::ReceiveAddressDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegExecutionDto>>
+    for mooze_app::dto::swap::PegExecutionDto
 {
-    fn into_into_dart(self) -> crate::api::types::ReceiveAddressDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegExecutionDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::SendRequestDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegOrderDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.destination.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.fee_priority.into_into_dart().into_dart(),
-            self.label.into_into_dart().into_dart(),
-            self.subtract_fee_from_amount.into_into_dart().into_dart(),
-            self.fee_rate_override_sat_per_vbyte
+            self.0.order_id.into_into_dart().into_dart(),
+            self.0.direction.into_into_dart().into_dart(),
+            self.0.deposit_address.into_into_dart().into_dart(),
+            self.0.payout_address.into_into_dart().into_dart(),
+            self.0.created_at_ms.into_into_dart().into_dart(),
+            self.0.expires_at_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::PegOrderDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegOrderDto>>
+    for mooze_app::dto::swap::PegOrderDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegOrderDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegPhaseDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::swap::PegPhaseDto::AwaitingDeposit => 0.into_dart(),
+            mooze_app::dto::swap::PegPhaseDto::Detected => 1.into_dart(),
+            mooze_app::dto::swap::PegPhaseDto::Processing => 2.into_dart(),
+            mooze_app::dto::swap::PegPhaseDto::Completed => 3.into_dart(),
+            mooze_app::dto::swap::PegPhaseDto::InsufficientAmount => 4.into_dart(),
+            mooze_app::dto::swap::PegPhaseDto::Failed => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::PegPhaseDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegPhaseDto>>
+    for mooze_app::dto::swap::PegPhaseDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegPhaseDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegProgressDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.order_id.into_into_dart().into_dart(),
+            self.0.direction.into_into_dart().into_dart(),
+            self.0.phase.into_into_dart().into_dart(),
+            self.0.deposit_address.into_into_dart().into_dart(),
+            self.0.payout_address.into_into_dart().into_dart(),
+            self.0.total_deposited_sat.into_into_dart().into_dart(),
+            self.0.total_payout_sat.into_into_dart().into_dart(),
+            self.0.payout_tx_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::PegProgressDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegProgressDto>>
+    for mooze_app::dto::swap::PegProgressDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegProgressDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegQuoteDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.direction.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.network_fee_sat.into_into_dart().into_dart(),
+            self.0.service_fee_sat.into_into_dart().into_dart(),
+            self.0.minimum_sat.into_into_dart().into_dart(),
+            self.0.total_fee_sat.into_into_dart().into_dart(),
+            self.0.estimated_receive_sat.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::PegQuoteDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegQuoteDto>>
+    for mooze_app::dto::swap::PegQuoteDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegQuoteDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegRecordDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.order_id.into_into_dart().into_dart(),
+            self.0.direction.into_into_dart().into_dart(),
+            self.0.sideswap_address.into_into_dart().into_dart(),
+            self.0.payout_address.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.created_at_ms.into_into_dart().into_dart(),
+            self.0.wallet_id.into_into_dart().into_dart(),
+            self.0.status.into_into_dart().into_dart(),
+            self.0.funding_tx_id.into_into_dart().into_dart(),
+            self.0.payout_tx_id.into_into_dart().into_dart(),
+            self.0.error_message.into_into_dart().into_dart(),
+            self.0.updated_at_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::PegRecordDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegRecordDto>>
+    for mooze_app::dto::swap::PegRecordDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegRecordDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegRefreshDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.pegs.into_into_dart().into_dart(),
+            self.0.changed.into_into_dart().into_dart(),
+            self.0.finished.into_into_dart().into_dart(),
+            self.0.next_wakeup_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::PegRefreshDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegRefreshDto>>
+    for mooze_app::dto::swap::PegRefreshDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegRefreshDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegServerLimitsDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.min_peg_in_sat.into_into_dart().into_dart(),
+            self.0.min_peg_out_sat.into_into_dart().into_dart(),
+            self.0
+                .server_fee_percent_peg_in
                 .into_into_dart()
                 .into_dart(),
-            self.drain.into_into_dart().into_dart(),
+            self.0
+                .server_fee_percent_peg_out
+                .into_into_dart()
+                .into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::SendRequestDto
+    for FrbWrapper<mooze_app::dto::swap::PegServerLimitsDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::SendRequestDto>
-    for crate::api::types::SendRequestDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegServerLimitsDto>>
+    for mooze_app::dto::swap::PegServerLimitsDto
 {
-    fn into_into_dart(self) -> crate::api::types::SendRequestDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::PegServerLimitsDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::SideSwapEventDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixDepositDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.kind.into_into_dart().into_dart(),
-            self.quote.into_into_dart().into_dart(),
-            self.balance_sat.into_into_dart().into_dart(),
-            self.message.into_into_dart().into_dart(),
+            self.0.deposit_id.into_into_dart().into_dart(),
+            self.0.pix_key.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.amount_in_cents.into_into_dart().into_dart(),
+            self.0.network.into_into_dart().into_dart(),
+            self.0.status.into_into_dart().into_dart(),
+            self.0.created_at_ms.into_into_dart().into_dart(),
+            self.0.blockchain_txid.into_into_dart().into_dart(),
+            self.0.asset_amount.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::SideSwapEventDto
+    for FrbWrapper<mooze_app::dto::pix::PixDepositDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::SideSwapEventDto>
-    for crate::api::swap::SideSwapEventDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixDepositDto>>
+    for mooze_app::dto::pix::PixDepositDto
 {
-    fn into_into_dart(self) -> crate::api::swap::SideSwapEventDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::PixDepositDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::SideSwapEventKind {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixFeeDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Quote => 0.into_dart(),
-            Self::PegInWalletBalance => 1.into_dart(),
-            Self::PegOutWalletBalance => 2.into_dart(),
-            Self::Disconnected => 3.into_dart(),
-            Self::Closed => 4.into_dart(),
+        [
+            self.0.fee_rate_percent.into_into_dart().into_dart(),
+            self.0.fee_amount.into_into_dart().into_dart(),
+            self.0.discounted_amount.into_into_dart().into_dart(),
+            self.0.estimated_asset_units.into_into_dart().into_dart(),
+            self.0.active_tier.into_into_dart().into_dart(),
+            self.0.amount_in_cents.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::pix::PixFeeDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixFeeDto>>
+    for mooze_app::dto::pix::PixFeeDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::PixFeeDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixFlagDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::pix::PixFlagDto::LbtcWarningShown => 0.into_dart(),
+            mooze_app::dto::pix::PixFlagDto::MainFirstTimeDialogShown => 1.into_dart(),
+            mooze_app::dto::pix::PixFlagDto::MerchantFirstTimeDialogShown => 2.into_dart(),
+            mooze_app::dto::pix::PixFlagDto::TutorialShown => 3.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::SideSwapEventKind
+    for FrbWrapper<mooze_app::dto::pix::PixFlagDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::SideSwapEventKind>
-    for crate::api::swap::SideSwapEventKind
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixFlagDto>>
+    for mooze_app::dto::pix::PixFlagDto
 {
-    fn into_into_dart(self) -> crate::api::swap::SideSwapEventKind {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::PixFlagDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::SideswapAssetDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixStatusEventDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.asset_id.into_into_dart().into_dart(),
-            self.name.into_into_dart().into_dart(),
-            self.ticker.into_into_dart().into_dart(),
-            self.precision.into_into_dart().into_dart(),
-            self.icon_url.into_into_dart().into_dart(),
-            self.instant_swaps.into_into_dart().into_dart(),
+            self.0.deposit_id.into_into_dart().into_dart(),
+            self.0.status.into_into_dart().into_dart(),
+            self.0.blockchain_txid.into_into_dart().into_dart(),
+            self.0.asset_amount.into_into_dart().into_dart(),
+            self.0.error_message.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::SideswapAssetDto
+    for FrbWrapper<mooze_app::dto::pix::PixStatusEventDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::SideswapAssetDto>
-    for crate::api::swap::SideswapAssetDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixStatusEventDto>>
+    for mooze_app::dto::pix::PixStatusEventDto
 {
-    fn into_into_dart(self) -> crate::api::swap::SideswapAssetDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::PixStatusEventDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::SideswapMarketDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::QuoteDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.base_asset_id.into_into_dart().into_dart(),
-            self.quote_asset_id.into_into_dart().into_dart(),
-            self.fee_asset.into_into_dart().into_dart(),
-            self.market_type.into_into_dart().into_dart(),
+            self.0.status.into_into_dart().into_dart(),
+            self.0.quote_id.into_into_dart().into_dart(),
+            self.0.base_amount.into_into_dart().into_dart(),
+            self.0.quote_amount.into_into_dart().into_dart(),
+            self.0.server_fee.into_into_dart().into_dart(),
+            self.0.fixed_fee.into_into_dart().into_dart(),
+            self.0.ttl_ms.into_into_dart().into_dart(),
+            self.0.available.into_into_dart().into_dart(),
+            self.0.error_message.into_into_dart().into_dart(),
+            self.0.quote_sub_id.into_into_dart().into_dart(),
+            self.0.requested_amount.into_into_dart().into_dart(),
+            self.0.base_asset_id.into_into_dart().into_dart(),
+            self.0.quote_asset_id.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::SideswapMarketDto
+    for FrbWrapper<mooze_app::dto::swap::QuoteDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::SideswapMarketDto>
-    for crate::api::swap::SideswapMarketDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::QuoteDto>>
+    for mooze_app::dto::swap::QuoteDto
 {
-    fn into_into_dart(self) -> crate::api::swap::SideswapMarketDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::QuoteDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::SkippedRowDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::QuoteStatusDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.table.into_into_dart().into_dart(),
-            self.key.into_into_dart().into_dart(),
-            self.reason.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::SkippedRowDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::SkippedRowDto>
-    for crate::api::types::SkippedRowDto
-{
-    fn into_into_dart(self) -> crate::api::types::SkippedRowDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::SourceDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Lwk => 0.into_dart(),
-            Self::Breez => 1.into_dart(),
-            Self::Bdk => 2.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::SourceDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::SourceDto>
-    for crate::api::types::SourceDto
-{
-    fn into_into_dart(self) -> crate::api::types::SourceDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::StartQuoteDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.started.into_into_dart().into_dart(),
-            self.quote_sub_id.into_into_dart().into_dart(),
-            self.base_asset_id.into_into_dart().into_dart(),
-            self.quote_asset_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::StartQuoteDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::StartQuoteDto>
-    for crate::api::swap::StartQuoteDto
-{
-    fn into_into_dart(self) -> crate::api::swap::StartQuoteDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::StatusDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Pending => 0.into_dart(),
-            Self::Confirmed => 1.into_dart(),
-            Self::Failed => 2.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::StatusDto {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::StatusDto>
-    for crate::api::types::StatusDto
-{
-    fn into_into_dart(self) -> crate::api::types::StatusDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::SyncOutcomeDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.chain.into_into_dart().into_dart(),
-            self.fetched.into_into_dart().into_dart(),
-            self.changed.into_into_dart().into_dart(),
-            self.duration_ms.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::SyncOutcomeDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::SyncOutcomeDto>
-    for crate::api::types::SyncOutcomeDto
-{
-    fn into_into_dart(self) -> crate::api::types::SyncOutcomeDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::TableCountDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.table.into_into_dart().into_dart(),
-            self.count.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::TableCountDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::TableCountDto>
-    for crate::api::types::TableCountDto
-{
-    fn into_into_dart(self) -> crate::api::types::TableCountDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::swap::TrackedPegDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.order_id.into_into_dart().into_dart(),
-            self.direction.into_into_dart().into_dart(),
-            self.phase.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.deposit_address.into_into_dart().into_dart(),
-            self.funding_tx_id.into_into_dart().into_dart(),
-            self.payout_tx_id.into_into_dart().into_dart(),
-            self.confirmations.into_into_dart().into_dart(),
-            self.required_confirmations.into_into_dart().into_dart(),
-            self.error_message.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::swap::TrackedPegDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::swap::TrackedPegDto>
-    for crate::api::swap::TrackedPegDto
-{
-    fn into_into_dart(self) -> crate::api::swap::TrackedPegDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::TransactionDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.id.into_into_dart().into_dart(),
-            self.chain.into_into_dart().into_dart(),
-            self.direction.into_into_dart().into_dart(),
-            self.status.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.fee_sat.into_into_dart().into_dart(),
-            self.timestamp_ms.into_into_dart().into_dart(),
-            self.confirmations.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.address.into_into_dart().into_dart(),
-            self.label.into_into_dart().into_dart(),
-            self.from_asset_id.into_into_dart().into_dart(),
-            self.to_asset_id.into_into_dart().into_dart(),
-            self.sent_amount_sat.into_into_dart().into_dart(),
-            self.received_amount_sat.into_into_dart().into_dart(),
-            self.source.into_into_dart().into_dart(),
-            self.swap_lockup_tx_id.into_into_dart().into_dart(),
-            self.swap_claim_tx_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::TransactionDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::TransactionDto>
-    for crate::api::types::TransactionDto
-{
-    fn into_into_dart(self) -> crate::api::types::TransactionDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::TransactionEventDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.kind.into_into_dart().into_dart(),
-            self.transaction.into_into_dart().into_dart(),
-            self.observed_at_ms.into_into_dart().into_dart(),
-            self.previous_status.into_into_dart().into_dart(),
-            self.previous_confirmations.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::TransactionEventDto
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::TransactionEventDto>
-    for crate::api::types::TransactionEventDto
-{
-    fn into_into_dart(self) -> crate::api::types::TransactionEventDto {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::TransactionEventKindDto {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Created => 0.into_dart(),
-            Self::StatusChanged => 1.into_dart(),
-            Self::ConfirmationsChanged => 2.into_dart(),
+        match self.0 {
+            mooze_app::dto::swap::QuoteStatusDto::Success => 0.into_dart(),
+            mooze_app::dto::swap::QuoteStatusDto::LowBalance => 1.into_dart(),
+            mooze_app::dto::swap::QuoteStatusDto::Error => 2.into_dart(),
             _ => unreachable!(),
         }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::TransactionEventKindDto
+    for FrbWrapper<mooze_app::dto::swap::QuoteStatusDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::TransactionEventKindDto>
-    for crate::api::types::TransactionEventKindDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::QuoteStatusDto>>
+    for mooze_app::dto::swap::QuoteStatusDto
 {
-    fn into_into_dart(self) -> crate::api::types::TransactionEventKindDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::QuoteStatusDto> {
+        self.into()
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::types::WalletUtxoDto {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::ReceiveAddressDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.txid.into_into_dart().into_dart(),
-            self.vout.into_into_dart().into_dart(),
-            self.address.into_into_dart().into_dart(),
-            self.unconfidential.into_into_dart().into_dart(),
-            self.script_hex.into_into_dart().into_dart(),
-            self.keychain.into_into_dart().into_dart(),
-            self.index.into_into_dart().into_dart(),
-            self.amount_sat.into_into_dart().into_dart(),
-            self.asset_id.into_into_dart().into_dart(),
-            self.confirmation_height.into_into_dart().into_dart(),
-            self.confirmation_time_s.into_into_dart().into_dart(),
+            self.0.chain.into_into_dart().into_dart(),
+            self.0.address.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.label.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::WalletUtxoDto
+    for FrbWrapper<mooze_app::dto::wallet::ReceiveAddressDto>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::WalletUtxoDto>
-    for crate::api::types::WalletUtxoDto
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::ReceiveAddressDto>>
+    for mooze_app::dto::wallet::ReceiveAddressDto
 {
-    fn into_into_dart(self) -> crate::api::types::WalletUtxoDto {
-        self
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::ReceiveAddressDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::SendRequestDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.destination.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.fee_priority.into_into_dart().into_dart(),
+            self.0.label.into_into_dart().into_dart(),
+            self.0.subtract_fee_from_amount.into_into_dart().into_dart(),
+            self.0
+                .fee_rate_override_sat_per_vbyte
+                .into_into_dart()
+                .into_dart(),
+            self.0.drain.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::SendRequestDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SendRequestDto>>
+    for mooze_app::dto::wallet::SendRequestDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::SendRequestDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::SideSwapEventDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.quote.into_into_dart().into_dart(),
+            self.0.balance_sat.into_into_dart().into_dart(),
+            self.0.message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::SideSwapEventDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::SideSwapEventDto>>
+    for mooze_app::dto::swap::SideSwapEventDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::SideSwapEventDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::SideSwapEventKind> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::swap::SideSwapEventKind::Quote => 0.into_dart(),
+            mooze_app::dto::swap::SideSwapEventKind::PegInWalletBalance => 1.into_dart(),
+            mooze_app::dto::swap::SideSwapEventKind::PegOutWalletBalance => 2.into_dart(),
+            mooze_app::dto::swap::SideSwapEventKind::Disconnected => 3.into_dart(),
+            mooze_app::dto::swap::SideSwapEventKind::Closed => 4.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::SideSwapEventKind>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::SideSwapEventKind>>
+    for mooze_app::dto::swap::SideSwapEventKind
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::SideSwapEventKind> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::SideswapAssetDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.name.into_into_dart().into_dart(),
+            self.0.ticker.into_into_dart().into_dart(),
+            self.0.precision.into_into_dart().into_dart(),
+            self.0.icon_url.into_into_dart().into_dart(),
+            self.0.instant_swaps.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::SideswapAssetDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::SideswapAssetDto>>
+    for mooze_app::dto::swap::SideswapAssetDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::SideswapAssetDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::SideswapMarketDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.base_asset_id.into_into_dart().into_dart(),
+            self.0.quote_asset_id.into_into_dart().into_dart(),
+            self.0.fee_asset.into_into_dart().into_dart(),
+            self.0.market_type.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::SideswapMarketDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::SideswapMarketDto>>
+    for mooze_app::dto::swap::SideswapMarketDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::SideswapMarketDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::SkippedRowDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.table.into_into_dart().into_dart(),
+            self.0.key.into_into_dart().into_dart(),
+            self.0.reason.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::SkippedRowDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SkippedRowDto>>
+    for mooze_app::dto::wallet::SkippedRowDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::SkippedRowDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::SourceDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::wallet::SourceDto::Lwk => 0.into_dart(),
+            mooze_app::dto::wallet::SourceDto::Breez => 1.into_dart(),
+            mooze_app::dto::wallet::SourceDto::Bdk => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::SourceDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SourceDto>>
+    for mooze_app::dto::wallet::SourceDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::SourceDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::StartQuoteDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.started.into_into_dart().into_dart(),
+            self.0.quote_sub_id.into_into_dart().into_dart(),
+            self.0.base_asset_id.into_into_dart().into_dart(),
+            self.0.quote_asset_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::StartQuoteDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::StartQuoteDto>>
+    for mooze_app::dto::swap::StartQuoteDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::StartQuoteDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::StatusDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::wallet::StatusDto::Pending => 0.into_dart(),
+            mooze_app::dto::wallet::StatusDto::Confirmed => 1.into_dart(),
+            mooze_app::dto::wallet::StatusDto::Failed => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::StatusDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::StatusDto>>
+    for mooze_app::dto::wallet::StatusDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::StatusDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::SyncOutcomeDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.chain.into_into_dart().into_dart(),
+            self.0.fetched.into_into_dart().into_dart(),
+            self.0.changed.into_into_dart().into_dart(),
+            self.0.duration_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::SyncOutcomeDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SyncOutcomeDto>>
+    for mooze_app::dto::wallet::SyncOutcomeDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::SyncOutcomeDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::TableCountDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.table.into_into_dart().into_dart(),
+            self.0.count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::TableCountDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::TableCountDto>>
+    for mooze_app::dto::wallet::TableCountDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::TableCountDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::TrackedPegDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.order_id.into_into_dart().into_dart(),
+            self.0.direction.into_into_dart().into_dart(),
+            self.0.phase.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.deposit_address.into_into_dart().into_dart(),
+            self.0.funding_tx_id.into_into_dart().into_dart(),
+            self.0.payout_tx_id.into_into_dart().into_dart(),
+            self.0.confirmations.into_into_dart().into_dart(),
+            self.0.required_confirmations.into_into_dart().into_dart(),
+            self.0.error_message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::swap::TrackedPegDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::TrackedPegDto>>
+    for mooze_app::dto::swap::TrackedPegDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::TrackedPegDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::TransactionDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.id.into_into_dart().into_dart(),
+            self.0.chain.into_into_dart().into_dart(),
+            self.0.direction.into_into_dart().into_dart(),
+            self.0.status.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.fee_sat.into_into_dart().into_dart(),
+            self.0.timestamp_ms.into_into_dart().into_dart(),
+            self.0.confirmations.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.address.into_into_dart().into_dart(),
+            self.0.label.into_into_dart().into_dart(),
+            self.0.from_asset_id.into_into_dart().into_dart(),
+            self.0.to_asset_id.into_into_dart().into_dart(),
+            self.0.sent_amount_sat.into_into_dart().into_dart(),
+            self.0.received_amount_sat.into_into_dart().into_dart(),
+            self.0.source.into_into_dart().into_dart(),
+            self.0.swap_lockup_tx_id.into_into_dart().into_dart(),
+            self.0.swap_claim_tx_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::TransactionDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::TransactionDto>>
+    for mooze_app::dto::wallet::TransactionDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::TransactionDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::TransactionEventDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.transaction.into_into_dart().into_dart(),
+            self.0.observed_at_ms.into_into_dart().into_dart(),
+            self.0.previous_status.into_into_dart().into_dart(),
+            self.0.previous_confirmations.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::TransactionEventDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::TransactionEventDto>>
+    for mooze_app::dto::wallet::TransactionEventDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::TransactionEventDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::TransactionEventKindDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            mooze_app::dto::wallet::TransactionEventKindDto::Created => 0.into_dart(),
+            mooze_app::dto::wallet::TransactionEventKindDto::StatusChanged => 1.into_dart(),
+            mooze_app::dto::wallet::TransactionEventKindDto::ConfirmationsChanged => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::TransactionEventKindDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::TransactionEventKindDto>>
+    for mooze_app::dto::wallet::TransactionEventKindDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::TransactionEventKindDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.txid.into_into_dart().into_dart(),
+            self.0.vout.into_into_dart().into_dart(),
+            self.0.address.into_into_dart().into_dart(),
+            self.0.unconfidential.into_into_dart().into_dart(),
+            self.0.script_hex.into_into_dart().into_dart(),
+            self.0.keychain.into_into_dart().into_dart(),
+            self.0.index.into_into_dart().into_dart(),
+            self.0.amount_sat.into_into_dart().into_dart(),
+            self.0.asset_id.into_into_dart().into_dart(),
+            self.0.confirmation_height.into_into_dart().into_dart(),
+            self.0.confirmation_time_s.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto>>
+    for mooze_app::dto::wallet::WalletUtxoDto
+{
+    fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto> {
+        self.into()
     }
 }
 
@@ -9631,7 +10072,10 @@ impl SseEncode
 }
 
 impl SseEncode
-    for StreamSink<crate::api::swap::SideSwapEventDto, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<
+        mooze_app::dto::swap::SideSwapEventDto,
+        flutter_rust_bridge::for_generated::SseCodec,
+    >
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -9646,15 +10090,15 @@ impl SseEncode for String {
     }
 }
 
-impl SseEncode for crate::api::types::AddressOwnershipDto {
+impl SseEncode for mooze_app::dto::wallet::AddressOwnershipDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::KeychainDto>::sse_encode(self.keychain, serializer);
+        <mooze_app::dto::wallet::KeychainDto>::sse_encode(self.keychain, serializer);
         <u32>::sse_encode(self.index, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::ApiResponseDto {
+impl SseEncode for mooze_app::dto::wallet::ApiResponseDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u16>::sse_encode(self.status, serializer);
@@ -9662,10 +10106,10 @@ impl SseEncode for crate::api::types::ApiResponseDto {
     }
 }
 
-impl SseEncode for crate::api::types::AssetBalanceDto {
+impl SseEncode for mooze_app::dto::wallet::AssetBalanceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::ChainDto>::sse_encode(self.chain, serializer);
+        <mooze_app::dto::wallet::ChainDto>::sse_encode(self.chain, serializer);
         <Option<String>>::sse_encode(self.asset_id, serializer);
         <u64>::sse_encode(self.amount_sat, serializer);
         <u8>::sse_encode(self.precision, serializer);
@@ -9674,24 +10118,24 @@ impl SseEncode for crate::api::types::AssetBalanceDto {
     }
 }
 
-impl SseEncode for crate::api::types::AuthEnsureDto {
+impl SseEncode for mooze_app::dto::wallet::AuthEnsureDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::AuthEnsureKind>::sse_encode(self.kind, serializer);
+        <mooze_app::dto::wallet::AuthEnsureKind>::sse_encode(self.kind, serializer);
         <Option<u16>>::sse_encode(self.status_code, serializer);
         <Option<String>>::sse_encode(self.message, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::AuthEnsureKind {
+impl SseEncode for mooze_app::dto::wallet::AuthEnsureKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::AuthEnsureKind::Ready => 0,
-                crate::api::types::AuthEnsureKind::MissingMnemonic => 1,
-                crate::api::types::AuthEnsureKind::ApiDown => 2,
-                crate::api::types::AuthEnsureKind::Failed => 3,
+                mooze_app::dto::wallet::AuthEnsureKind::Ready => 0,
+                mooze_app::dto::wallet::AuthEnsureKind::MissingMnemonic => 1,
+                mooze_app::dto::wallet::AuthEnsureKind::ApiDown => 2,
+                mooze_app::dto::wallet::AuthEnsureKind::Failed => 3,
                 _ => {
                     unimplemented!("");
                 }
@@ -9701,13 +10145,13 @@ impl SseEncode for crate::api::types::AuthEnsureKind {
     }
 }
 
-impl SseEncode for crate::api::types::BackendDto {
+impl SseEncode for mooze_app::dto::config::BackendDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::BackendDto::Esplora => 0,
-                crate::api::types::BackendDto::Electrum => 1,
+                mooze_app::dto::config::BackendDto::Esplora => 0,
+                mooze_app::dto::config::BackendDto::Electrum => 1,
                 _ => {
                     unimplemented!("");
                 }
@@ -9717,10 +10161,10 @@ impl SseEncode for crate::api::types::BackendDto {
     }
 }
 
-impl SseEncode for crate::api::types::BalanceDto {
+impl SseEncode for mooze_app::dto::wallet::BalanceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Vec<crate::api::types::AssetBalanceDto>>::sse_encode(self.assets, serializer);
+        <Vec<mooze_app::dto::wallet::AssetBalanceDto>>::sse_encode(self.assets, serializer);
         <u64>::sse_encode(self.snapshot_at_ms, serializer);
     }
 }
@@ -9732,25 +10176,25 @@ impl SseEncode for bool {
     }
 }
 
-impl SseEncode for crate::api::types::BroadcastResultDto {
+impl SseEncode for mooze_app::dto::wallet::BroadcastResultDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::ChainDto>::sse_encode(self.chain, serializer);
+        <mooze_app::dto::wallet::ChainDto>::sse_encode(self.chain, serializer);
         <String>::sse_encode(self.tx_id, serializer);
-        <crate::api::types::TransactionDto>::sse_encode(self.transaction, serializer);
+        <mooze_app::dto::wallet::TransactionDto>::sse_encode(self.transaction, serializer);
         <Option<u64>>::sse_encode(self.fee_paid_sat, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::ChainDto {
+impl SseEncode for mooze_app::dto::wallet::ChainDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::ChainDto::Liquid => 0,
-                crate::api::types::ChainDto::Bitcoin => 1,
-                crate::api::types::ChainDto::Lightning => 2,
-                crate::api::types::ChainDto::Aggregate => 3,
+                mooze_app::dto::wallet::ChainDto::Liquid => 0,
+                mooze_app::dto::wallet::ChainDto::Bitcoin => 1,
+                mooze_app::dto::wallet::ChainDto::Lightning => 2,
+                mooze_app::dto::wallet::ChainDto::Aggregate => 3,
                 _ => {
                     unimplemented!("");
                 }
@@ -9764,8 +10208,8 @@ impl SseEncode for crate::api::types::CoreConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.data_dir, serializer);
-        <crate::api::types::NetworkDto>::sse_encode(self.network, serializer);
-        <crate::api::types::BackendDto>::sse_encode(self.backend, serializer);
+        <mooze_app::dto::config::NetworkDto>::sse_encode(self.network, serializer);
+        <mooze_app::dto::config::BackendDto>::sse_encode(self.backend, serializer);
         <String>::sse_encode(self.bitcoin_node_url, serializer);
         <String>::sse_encode(self.liquid_node_url, serializer);
     }
@@ -9802,14 +10246,14 @@ impl SseEncode for crate::api::types::CoreErrorKind {
     }
 }
 
-impl SseEncode for crate::api::pix::CpfValidationErrorDto {
+impl SseEncode for mooze_app::dto::pix::CpfValidationErrorDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::pix::CpfValidationErrorDto::Empty => 0,
-                crate::api::pix::CpfValidationErrorDto::Incomplete => 1,
-                crate::api::pix::CpfValidationErrorDto::Invalid => 2,
+                mooze_app::dto::pix::CpfValidationErrorDto::Empty => 0,
+                mooze_app::dto::pix::CpfValidationErrorDto::Incomplete => 1,
+                mooze_app::dto::pix::CpfValidationErrorDto::Invalid => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -9819,7 +10263,7 @@ impl SseEncode for crate::api::pix::CpfValidationErrorDto {
     }
 }
 
-impl SseEncode for crate::api::pix::DepositLimitsDto {
+impl SseEncode for mooze_app::dto::pix::DepositLimitsDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <f64>::sse_encode(self.absolute_min_limit, serializer);
@@ -9827,29 +10271,29 @@ impl SseEncode for crate::api::pix::DepositLimitsDto {
     }
 }
 
-impl SseEncode for crate::api::pix::DepositStatusDto {
+impl SseEncode for mooze_app::dto::pix::DepositStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::pix::DepositStatusDto::Pending => 0,
-                crate::api::pix::DepositStatusDto::UnderReview => 1,
-                crate::api::pix::DepositStatusDto::Processing => 2,
-                crate::api::pix::DepositStatusDto::FundsPrepared => 3,
-                crate::api::pix::DepositStatusDto::DepixSent => 4,
-                crate::api::pix::DepositStatusDto::Paid => 5,
-                crate::api::pix::DepositStatusDto::Broadcasted => 6,
-                crate::api::pix::DepositStatusDto::Finished => 7,
-                crate::api::pix::DepositStatusDto::Completed => 8,
-                crate::api::pix::DepositStatusDto::Failed => 9,
-                crate::api::pix::DepositStatusDto::Expired => 10,
-                crate::api::pix::DepositStatusDto::Refunded => 11,
-                crate::api::pix::DepositStatusDto::Med => 12,
-                crate::api::pix::DepositStatusDto::ProcessingRefund => 13,
-                crate::api::pix::DepositStatusDto::BroadcastedRefund => 14,
-                crate::api::pix::DepositStatusDto::FinishedRefund => 15,
-                crate::api::pix::DepositStatusDto::Timeout => 16,
-                crate::api::pix::DepositStatusDto::Unknown => 17,
+                mooze_app::dto::pix::DepositStatusDto::Pending => 0,
+                mooze_app::dto::pix::DepositStatusDto::UnderReview => 1,
+                mooze_app::dto::pix::DepositStatusDto::Processing => 2,
+                mooze_app::dto::pix::DepositStatusDto::FundsPrepared => 3,
+                mooze_app::dto::pix::DepositStatusDto::DepixSent => 4,
+                mooze_app::dto::pix::DepositStatusDto::Paid => 5,
+                mooze_app::dto::pix::DepositStatusDto::Broadcasted => 6,
+                mooze_app::dto::pix::DepositStatusDto::Finished => 7,
+                mooze_app::dto::pix::DepositStatusDto::Completed => 8,
+                mooze_app::dto::pix::DepositStatusDto::Failed => 9,
+                mooze_app::dto::pix::DepositStatusDto::Expired => 10,
+                mooze_app::dto::pix::DepositStatusDto::Refunded => 11,
+                mooze_app::dto::pix::DepositStatusDto::Med => 12,
+                mooze_app::dto::pix::DepositStatusDto::ProcessingRefund => 13,
+                mooze_app::dto::pix::DepositStatusDto::BroadcastedRefund => 14,
+                mooze_app::dto::pix::DepositStatusDto::FinishedRefund => 15,
+                mooze_app::dto::pix::DepositStatusDto::Timeout => 16,
+                mooze_app::dto::pix::DepositStatusDto::Unknown => 17,
                 _ => {
                     unimplemented!("");
                 }
@@ -9859,24 +10303,26 @@ impl SseEncode for crate::api::pix::DepositStatusDto {
     }
 }
 
-impl SseEncode for crate::api::pix::DepositValidationDto {
+impl SseEncode for mooze_app::dto::pix::DepositValidationDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_valid, serializer);
-        <Option<crate::api::pix::DepositValidationErrorDto>>::sse_encode(self.error, serializer);
+        <Option<mooze_app::dto::pix::DepositValidationErrorDto>>::sse_encode(
+            self.error, serializer,
+        );
         <Option<f64>>::sse_encode(self.limit_amount, serializer);
     }
 }
 
-impl SseEncode for crate::api::pix::DepositValidationErrorDto {
+impl SseEncode for mooze_app::dto::pix::DepositValidationErrorDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::pix::DepositValidationErrorDto::InvalidAmount => 0,
-                crate::api::pix::DepositValidationErrorDto::BelowMinimum => 1,
-                crate::api::pix::DepositValidationErrorDto::AboveTransaction => 2,
-                crate::api::pix::DepositValidationErrorDto::AboveRemaining => 3,
+                mooze_app::dto::pix::DepositValidationErrorDto::InvalidAmount => 0,
+                mooze_app::dto::pix::DepositValidationErrorDto::BelowMinimum => 1,
+                mooze_app::dto::pix::DepositValidationErrorDto::AboveTransaction => 2,
+                mooze_app::dto::pix::DepositValidationErrorDto::AboveRemaining => 3,
                 _ => {
                     unimplemented!("");
                 }
@@ -9886,10 +10332,10 @@ impl SseEncode for crate::api::pix::DepositValidationErrorDto {
     }
 }
 
-impl SseEncode for crate::api::types::DerivedAddressDto {
+impl SseEncode for mooze_app::dto::wallet::DerivedAddressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::KeychainDto>::sse_encode(self.keychain, serializer);
+        <mooze_app::dto::wallet::KeychainDto>::sse_encode(self.keychain, serializer);
         <u32>::sse_encode(self.index, serializer);
         <String>::sse_encode(self.address, serializer);
         <Option<String>>::sse_encode(self.unconfidential, serializer);
@@ -9898,7 +10344,7 @@ impl SseEncode for crate::api::types::DerivedAddressDto {
     }
 }
 
-impl SseEncode for crate::api::types::DeviceMetricsDto {
+impl SseEncode for mooze_app::dto::wallet::DeviceMetricsDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.device_id, serializer);
@@ -9908,16 +10354,16 @@ impl SseEncode for crate::api::types::DeviceMetricsDto {
     }
 }
 
-impl SseEncode for crate::api::types::DirectionDto {
+impl SseEncode for mooze_app::dto::wallet::DirectionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::DirectionDto::Incoming => 0,
-                crate::api::types::DirectionDto::Outgoing => 1,
-                crate::api::types::DirectionDto::Internal => 2,
-                crate::api::types::DirectionDto::SelfTransfer => 3,
-                crate::api::types::DirectionDto::Swap => 4,
+                mooze_app::dto::wallet::DirectionDto::Incoming => 0,
+                mooze_app::dto::wallet::DirectionDto::Outgoing => 1,
+                mooze_app::dto::wallet::DirectionDto::Internal => 2,
+                mooze_app::dto::wallet::DirectionDto::SelfTransfer => 3,
+                mooze_app::dto::wallet::DirectionDto::Swap => 4,
                 _ => {
                     unimplemented!("");
                 }
@@ -9934,7 +10380,7 @@ impl SseEncode for f64 {
     }
 }
 
-impl SseEncode for crate::api::pix::FavoritePayerDto {
+impl SseEncode for mooze_app::dto::pix::FavoritePayerDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Option<u64>>::sse_encode(self.id, serializer);
@@ -9944,12 +10390,12 @@ impl SseEncode for crate::api::pix::FavoritePayerDto {
     }
 }
 
-impl SseEncode for crate::api::pix::FavoritePayerSaveErrorDto {
+impl SseEncode for mooze_app::dto::pix::FavoritePayerSaveErrorDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::pix::FavoritePayerSaveErrorDto::DuplicateCpf => 0,
+                mooze_app::dto::pix::FavoritePayerSaveErrorDto::DuplicateCpf => 0,
                 _ => {
                     unimplemented!("");
                 }
@@ -9959,25 +10405,25 @@ impl SseEncode for crate::api::pix::FavoritePayerSaveErrorDto {
     }
 }
 
-impl SseEncode for crate::api::types::FeeEstimateDto {
+impl SseEncode for mooze_app::dto::wallet::FeeEstimateDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::ChainDto>::sse_encode(self.chain, serializer);
-        <crate::api::types::FeePriorityDto>::sse_encode(self.priority, serializer);
+        <mooze_app::dto::wallet::ChainDto>::sse_encode(self.chain, serializer);
+        <mooze_app::dto::wallet::FeePriorityDto>::sse_encode(self.priority, serializer);
         <u64>::sse_encode(self.absolute_fee_sat, serializer);
         <Option<f64>>::sse_encode(self.fee_rate_sat_per_vbyte, serializer);
         <Option<u16>>::sse_encode(self.estimated_blocks, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::FeePriorityDto {
+impl SseEncode for mooze_app::dto::wallet::FeePriorityDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::FeePriorityDto::Low => 0,
-                crate::api::types::FeePriorityDto::Medium => 1,
-                crate::api::types::FeePriorityDto::High => 2,
+                mooze_app::dto::wallet::FeePriorityDto::Low => 0,
+                mooze_app::dto::wallet::FeePriorityDto::Medium => 1,
+                mooze_app::dto::wallet::FeePriorityDto::High => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -9987,16 +10433,16 @@ impl SseEncode for crate::api::types::FeePriorityDto {
     }
 }
 
-impl SseEncode for crate::api::types::HttpMethodDto {
+impl SseEncode for mooze_app::dto::wallet::HttpMethodDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::HttpMethodDto::Get => 0,
-                crate::api::types::HttpMethodDto::Post => 1,
-                crate::api::types::HttpMethodDto::Put => 2,
-                crate::api::types::HttpMethodDto::Patch => 3,
-                crate::api::types::HttpMethodDto::Delete => 4,
+                mooze_app::dto::wallet::HttpMethodDto::Get => 0,
+                mooze_app::dto::wallet::HttpMethodDto::Post => 1,
+                mooze_app::dto::wallet::HttpMethodDto::Put => 2,
+                mooze_app::dto::wallet::HttpMethodDto::Patch => 3,
+                mooze_app::dto::wallet::HttpMethodDto::Delete => 4,
                 _ => {
                     unimplemented!("");
                 }
@@ -10030,13 +10476,13 @@ impl SseEncode for isize {
     }
 }
 
-impl SseEncode for crate::api::types::KeychainDto {
+impl SseEncode for mooze_app::dto::wallet::KeychainDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::KeychainDto::External => 0,
-                crate::api::types::KeychainDto::Internal => 1,
+                mooze_app::dto::wallet::KeychainDto::External => 0,
+                mooze_app::dto::wallet::KeychainDto::Internal => 1,
                 _ => {
                     unimplemented!("");
                 }
@@ -10046,7 +10492,7 @@ impl SseEncode for crate::api::types::KeychainDto {
     }
 }
 
-impl SseEncode for crate::api::types::LiquidSendDraftDto {
+impl SseEncode for mooze_app::dto::wallet::LiquidSendDraftDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.pset, serializer);
@@ -10058,7 +10504,7 @@ impl SseEncode for crate::api::types::LiquidSendDraftDto {
     }
 }
 
-impl SseEncode for crate::api::types::LiquidUtxoDto {
+impl SseEncode for mooze_app::dto::wallet::LiquidUtxoDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.txid, serializer);
@@ -10080,72 +10526,72 @@ impl SseEncode for Vec<String> {
     }
 }
 
-impl SseEncode for Vec<crate::api::types::AssetBalanceDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::AssetBalanceDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::AssetBalanceDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::AssetBalanceDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::DerivedAddressDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::DerivedAddressDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::DerivedAddressDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::DerivedAddressDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::pix::FavoritePayerDto> {
+impl SseEncode for Vec<mooze_app::dto::pix::FavoritePayerDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::pix::FavoritePayerDto>::sse_encode(item, serializer);
+            <mooze_app::dto::pix::FavoritePayerDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::LiquidUtxoDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::LiquidUtxoDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::LiquidUtxoDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::LiquidUtxoDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::swap::PegRecordDto> {
+impl SseEncode for Vec<mooze_app::dto::swap::PegRecordDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::swap::PegRecordDto>::sse_encode(item, serializer);
+            <mooze_app::dto::swap::PegRecordDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::pix::PixDepositDto> {
+impl SseEncode for Vec<mooze_app::dto::pix::PixDepositDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::pix::PixDepositDto>::sse_encode(item, serializer);
+            <mooze_app::dto::pix::PixDepositDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::pix::PixStatusEventDto> {
+impl SseEncode for Vec<mooze_app::dto::pix::PixStatusEventDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::pix::PixStatusEventDto>::sse_encode(item, serializer);
+            <mooze_app::dto::pix::PixStatusEventDto>::sse_encode(item, serializer);
         }
     }
 }
@@ -10170,103 +10616,103 @@ impl SseEncode for Vec<u8> {
     }
 }
 
-impl SseEncode for Vec<crate::api::swap::SideswapAssetDto> {
+impl SseEncode for Vec<mooze_app::dto::swap::SideswapAssetDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::swap::SideswapAssetDto>::sse_encode(item, serializer);
+            <mooze_app::dto::swap::SideswapAssetDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::swap::SideswapMarketDto> {
+impl SseEncode for Vec<mooze_app::dto::swap::SideswapMarketDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::swap::SideswapMarketDto>::sse_encode(item, serializer);
+            <mooze_app::dto::swap::SideswapMarketDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::SkippedRowDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::SkippedRowDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::SkippedRowDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::SkippedRowDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::TableCountDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::TableCountDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::TableCountDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::TableCountDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::swap::TrackedPegDto> {
+impl SseEncode for Vec<mooze_app::dto::swap::TrackedPegDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::swap::TrackedPegDto>::sse_encode(item, serializer);
+            <mooze_app::dto::swap::TrackedPegDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::TransactionDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::TransactionDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::TransactionDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::TransactionDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::TransactionEventDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::TransactionEventDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::TransactionEventDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::TransactionEventDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::types::WalletUtxoDto> {
+impl SseEncode for Vec<mooze_app::dto::wallet::WalletUtxoDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::types::WalletUtxoDto>::sse_encode(item, serializer);
+            <mooze_app::dto::wallet::WalletUtxoDto>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for crate::api::types::MigrationReportDto {
+impl SseEncode for mooze_app::dto::wallet::MigrationReportDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.already_done, serializer);
-        <Vec<crate::api::types::TableCountDto>>::sse_encode(self.copied, serializer);
-        <Vec<crate::api::types::SkippedRowDto>>::sse_encode(self.skipped, serializer);
+        <Vec<mooze_app::dto::wallet::TableCountDto>>::sse_encode(self.copied, serializer);
+        <Vec<mooze_app::dto::wallet::SkippedRowDto>>::sse_encode(self.skipped, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::NetworkDto {
+impl SseEncode for mooze_app::dto::config::NetworkDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::NetworkDto::Mainnet => 0,
-                crate::api::types::NetworkDto::Testnet => 1,
-                crate::api::types::NetworkDto::Regtest => 2,
+                mooze_app::dto::config::NetworkDto::Mainnet => 0,
+                mooze_app::dto::config::NetworkDto::Testnet => 1,
+                mooze_app::dto::config::NetworkDto::Regtest => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -10276,7 +10722,7 @@ impl SseEncode for crate::api::types::NetworkDto {
     }
 }
 
-impl SseEncode for crate::api::types::NextUnusedAddressDto {
+impl SseEncode for mooze_app::dto::wallet::NextUnusedAddressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u32>::sse_encode(self.index, serializer);
@@ -10295,12 +10741,12 @@ impl SseEncode for Option<String> {
     }
 }
 
-impl SseEncode for Option<crate::api::types::AddressOwnershipDto> {
+impl SseEncode for Option<mooze_app::dto::wallet::AddressOwnershipDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::types::AddressOwnershipDto>::sse_encode(value, serializer);
+            <mooze_app::dto::wallet::AddressOwnershipDto>::sse_encode(value, serializer);
         }
     }
 }
@@ -10315,42 +10761,42 @@ impl SseEncode for Option<bool> {
     }
 }
 
-impl SseEncode for Option<crate::api::pix::CpfValidationErrorDto> {
+impl SseEncode for Option<mooze_app::dto::pix::CpfValidationErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::pix::CpfValidationErrorDto>::sse_encode(value, serializer);
+            <mooze_app::dto::pix::CpfValidationErrorDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::pix::DepositLimitsDto> {
+impl SseEncode for Option<mooze_app::dto::pix::DepositLimitsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::pix::DepositLimitsDto>::sse_encode(value, serializer);
+            <mooze_app::dto::pix::DepositLimitsDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::pix::DepositValidationErrorDto> {
+impl SseEncode for Option<mooze_app::dto::pix::DepositValidationErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::pix::DepositValidationErrorDto>::sse_encode(value, serializer);
+            <mooze_app::dto::pix::DepositValidationErrorDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::types::DeviceMetricsDto> {
+impl SseEncode for Option<mooze_app::dto::wallet::DeviceMetricsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::types::DeviceMetricsDto>::sse_encode(value, serializer);
+            <mooze_app::dto::wallet::DeviceMetricsDto>::sse_encode(value, serializer);
         }
     }
 }
@@ -10365,12 +10811,12 @@ impl SseEncode for Option<f64> {
     }
 }
 
-impl SseEncode for Option<crate::api::pix::FavoritePayerSaveErrorDto> {
+impl SseEncode for Option<mooze_app::dto::pix::FavoritePayerSaveErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::pix::FavoritePayerSaveErrorDto>::sse_encode(value, serializer);
+            <mooze_app::dto::pix::FavoritePayerSaveErrorDto>::sse_encode(value, serializer);
         }
     }
 }
@@ -10385,62 +10831,62 @@ impl SseEncode for Option<i64> {
     }
 }
 
-impl SseEncode for Option<crate::api::swap::PegAmountIssueDto> {
+impl SseEncode for Option<mooze_app::dto::swap::PegAmountIssueDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::swap::PegAmountIssueDto>::sse_encode(value, serializer);
+            <mooze_app::dto::swap::PegAmountIssueDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::swap::PegServerLimitsDto> {
+impl SseEncode for Option<mooze_app::dto::swap::PegServerLimitsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::swap::PegServerLimitsDto>::sse_encode(value, serializer);
+            <mooze_app::dto::swap::PegServerLimitsDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::pix::PixDepositDto> {
+impl SseEncode for Option<mooze_app::dto::pix::PixDepositDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::pix::PixDepositDto>::sse_encode(value, serializer);
+            <mooze_app::dto::pix::PixDepositDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::swap::QuoteDto> {
+impl SseEncode for Option<mooze_app::dto::swap::QuoteDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::swap::QuoteDto>::sse_encode(value, serializer);
+            <mooze_app::dto::swap::QuoteDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::types::SourceDto> {
+impl SseEncode for Option<mooze_app::dto::wallet::SourceDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::types::SourceDto>::sse_encode(value, serializer);
+            <mooze_app::dto::wallet::SourceDto>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::api::types::StatusDto> {
+impl SseEncode for Option<mooze_app::dto::wallet::StatusDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::types::StatusDto>::sse_encode(value, serializer);
+            <mooze_app::dto::wallet::StatusDto>::sse_encode(value, serializer);
         }
     }
 }
@@ -10475,13 +10921,13 @@ impl SseEncode for Option<u64> {
     }
 }
 
-impl SseEncode for crate::api::swap::PegAmountIssueDto {
+impl SseEncode for mooze_app::dto::swap::PegAmountIssueDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::swap::PegAmountIssueDto::BelowMinimum => 0,
-                crate::api::swap::PegAmountIssueDto::AboveBalance => 1,
+                mooze_app::dto::swap::PegAmountIssueDto::BelowMinimum => 0,
+                mooze_app::dto::swap::PegAmountIssueDto::AboveBalance => 1,
                 _ => {
                     unimplemented!("");
                 }
@@ -10491,25 +10937,25 @@ impl SseEncode for crate::api::swap::PegAmountIssueDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegAmountValidationDto {
+impl SseEncode for mooze_app::dto::swap::PegAmountValidationDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.has_amount, serializer);
         <bool>::sse_encode(self.is_valid, serializer);
-        <Option<crate::api::swap::PegAmountIssueDto>>::sse_encode(self.issue, serializer);
+        <Option<mooze_app::dto::swap::PegAmountIssueDto>>::sse_encode(self.issue, serializer);
         <Option<u64>>::sse_encode(self.minimum_sats, serializer);
         <Option<u64>>::sse_encode(self.maximum_sats, serializer);
         <bool>::sse_encode(self.shows_issue, serializer);
     }
 }
 
-impl SseEncode for crate::api::swap::PegDirectionDto {
+impl SseEncode for mooze_app::dto::swap::PegDirectionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::swap::PegDirectionDto::PegIn => 0,
-                crate::api::swap::PegDirectionDto::PegOut => 1,
+                mooze_app::dto::swap::PegDirectionDto::PegIn => 0,
+                mooze_app::dto::swap::PegDirectionDto::PegOut => 1,
                 _ => {
                     unimplemented!("");
                 }
@@ -10519,19 +10965,19 @@ impl SseEncode for crate::api::swap::PegDirectionDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegExecutionDto {
+impl SseEncode for mooze_app::dto::swap::PegExecutionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::swap::PegOrderDto>::sse_encode(self.order, serializer);
+        <mooze_app::dto::swap::PegOrderDto>::sse_encode(self.order, serializer);
         <String>::sse_encode(self.funding_tx_id, serializer);
     }
 }
 
-impl SseEncode for crate::api::swap::PegOrderDto {
+impl SseEncode for mooze_app::dto::swap::PegOrderDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.order_id, serializer);
-        <crate::api::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
+        <mooze_app::dto::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
         <String>::sse_encode(self.deposit_address, serializer);
         <String>::sse_encode(self.payout_address, serializer);
         <u64>::sse_encode(self.created_at_ms, serializer);
@@ -10539,17 +10985,17 @@ impl SseEncode for crate::api::swap::PegOrderDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegPhaseDto {
+impl SseEncode for mooze_app::dto::swap::PegPhaseDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::swap::PegPhaseDto::AwaitingDeposit => 0,
-                crate::api::swap::PegPhaseDto::Detected => 1,
-                crate::api::swap::PegPhaseDto::Processing => 2,
-                crate::api::swap::PegPhaseDto::Completed => 3,
-                crate::api::swap::PegPhaseDto::InsufficientAmount => 4,
-                crate::api::swap::PegPhaseDto::Failed => 5,
+                mooze_app::dto::swap::PegPhaseDto::AwaitingDeposit => 0,
+                mooze_app::dto::swap::PegPhaseDto::Detected => 1,
+                mooze_app::dto::swap::PegPhaseDto::Processing => 2,
+                mooze_app::dto::swap::PegPhaseDto::Completed => 3,
+                mooze_app::dto::swap::PegPhaseDto::InsufficientAmount => 4,
+                mooze_app::dto::swap::PegPhaseDto::Failed => 5,
                 _ => {
                     unimplemented!("");
                 }
@@ -10559,12 +11005,12 @@ impl SseEncode for crate::api::swap::PegPhaseDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegProgressDto {
+impl SseEncode for mooze_app::dto::swap::PegProgressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.order_id, serializer);
-        <crate::api::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
-        <crate::api::swap::PegPhaseDto>::sse_encode(self.phase, serializer);
+        <mooze_app::dto::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
+        <mooze_app::dto::swap::PegPhaseDto>::sse_encode(self.phase, serializer);
         <String>::sse_encode(self.deposit_address, serializer);
         <String>::sse_encode(self.payout_address, serializer);
         <u64>::sse_encode(self.total_deposited_sat, serializer);
@@ -10573,10 +11019,10 @@ impl SseEncode for crate::api::swap::PegProgressDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegQuoteDto {
+impl SseEncode for mooze_app::dto::swap::PegQuoteDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
+        <mooze_app::dto::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
         <u64>::sse_encode(self.amount_sat, serializer);
         <u64>::sse_encode(self.network_fee_sat, serializer);
         <u64>::sse_encode(self.service_fee_sat, serializer);
@@ -10586,11 +11032,11 @@ impl SseEncode for crate::api::swap::PegQuoteDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegRecordDto {
+impl SseEncode for mooze_app::dto::swap::PegRecordDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.order_id, serializer);
-        <crate::api::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
+        <mooze_app::dto::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
         <String>::sse_encode(self.sideswap_address, serializer);
         <String>::sse_encode(self.payout_address, serializer);
         <u64>::sse_encode(self.amount_sat, serializer);
@@ -10604,17 +11050,17 @@ impl SseEncode for crate::api::swap::PegRecordDto {
     }
 }
 
-impl SseEncode for crate::api::swap::PegRefreshDto {
+impl SseEncode for mooze_app::dto::swap::PegRefreshDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Vec<crate::api::swap::TrackedPegDto>>::sse_encode(self.pegs, serializer);
+        <Vec<mooze_app::dto::swap::TrackedPegDto>>::sse_encode(self.pegs, serializer);
         <Vec<String>>::sse_encode(self.changed, serializer);
-        <Vec<crate::api::swap::TrackedPegDto>>::sse_encode(self.finished, serializer);
+        <Vec<mooze_app::dto::swap::TrackedPegDto>>::sse_encode(self.finished, serializer);
         <Option<u64>>::sse_encode(self.next_wakeup_ms, serializer);
     }
 }
 
-impl SseEncode for crate::api::swap::PegServerLimitsDto {
+impl SseEncode for mooze_app::dto::swap::PegServerLimitsDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u64>::sse_encode(self.min_peg_in_sat, serializer);
@@ -10624,7 +11070,7 @@ impl SseEncode for crate::api::swap::PegServerLimitsDto {
     }
 }
 
-impl SseEncode for crate::api::pix::PixDepositDto {
+impl SseEncode for mooze_app::dto::pix::PixDepositDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.deposit_id, serializer);
@@ -10632,14 +11078,14 @@ impl SseEncode for crate::api::pix::PixDepositDto {
         <String>::sse_encode(self.asset_id, serializer);
         <u64>::sse_encode(self.amount_in_cents, serializer);
         <String>::sse_encode(self.network, serializer);
-        <crate::api::pix::DepositStatusDto>::sse_encode(self.status, serializer);
+        <mooze_app::dto::pix::DepositStatusDto>::sse_encode(self.status, serializer);
         <u64>::sse_encode(self.created_at_ms, serializer);
         <Option<String>>::sse_encode(self.blockchain_txid, serializer);
         <Option<u64>>::sse_encode(self.asset_amount, serializer);
     }
 }
 
-impl SseEncode for crate::api::pix::PixFeeDto {
+impl SseEncode for mooze_app::dto::pix::PixFeeDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <f64>::sse_encode(self.fee_rate_percent, serializer);
@@ -10651,15 +11097,15 @@ impl SseEncode for crate::api::pix::PixFeeDto {
     }
 }
 
-impl SseEncode for crate::api::pix::PixFlagDto {
+impl SseEncode for mooze_app::dto::pix::PixFlagDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::pix::PixFlagDto::LbtcWarningShown => 0,
-                crate::api::pix::PixFlagDto::MainFirstTimeDialogShown => 1,
-                crate::api::pix::PixFlagDto::MerchantFirstTimeDialogShown => 2,
-                crate::api::pix::PixFlagDto::TutorialShown => 3,
+                mooze_app::dto::pix::PixFlagDto::LbtcWarningShown => 0,
+                mooze_app::dto::pix::PixFlagDto::MainFirstTimeDialogShown => 1,
+                mooze_app::dto::pix::PixFlagDto::MerchantFirstTimeDialogShown => 2,
+                mooze_app::dto::pix::PixFlagDto::TutorialShown => 3,
                 _ => {
                     unimplemented!("");
                 }
@@ -10669,21 +11115,21 @@ impl SseEncode for crate::api::pix::PixFlagDto {
     }
 }
 
-impl SseEncode for crate::api::pix::PixStatusEventDto {
+impl SseEncode for mooze_app::dto::pix::PixStatusEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.deposit_id, serializer);
-        <crate::api::pix::DepositStatusDto>::sse_encode(self.status, serializer);
+        <mooze_app::dto::pix::DepositStatusDto>::sse_encode(self.status, serializer);
         <Option<String>>::sse_encode(self.blockchain_txid, serializer);
         <Option<u64>>::sse_encode(self.asset_amount, serializer);
         <Option<String>>::sse_encode(self.error_message, serializer);
     }
 }
 
-impl SseEncode for crate::api::swap::QuoteDto {
+impl SseEncode for mooze_app::dto::swap::QuoteDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::swap::QuoteStatusDto>::sse_encode(self.status, serializer);
+        <mooze_app::dto::swap::QuoteStatusDto>::sse_encode(self.status, serializer);
         <Option<u64>>::sse_encode(self.quote_id, serializer);
         <Option<u64>>::sse_encode(self.base_amount, serializer);
         <Option<u64>>::sse_encode(self.quote_amount, serializer);
@@ -10699,14 +11145,14 @@ impl SseEncode for crate::api::swap::QuoteDto {
     }
 }
 
-impl SseEncode for crate::api::swap::QuoteStatusDto {
+impl SseEncode for mooze_app::dto::swap::QuoteStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::swap::QuoteStatusDto::Success => 0,
-                crate::api::swap::QuoteStatusDto::LowBalance => 1,
-                crate::api::swap::QuoteStatusDto::Error => 2,
+                mooze_app::dto::swap::QuoteStatusDto::Success => 0,
+                mooze_app::dto::swap::QuoteStatusDto::LowBalance => 1,
+                mooze_app::dto::swap::QuoteStatusDto::Error => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -10716,10 +11162,10 @@ impl SseEncode for crate::api::swap::QuoteStatusDto {
     }
 }
 
-impl SseEncode for crate::api::types::ReceiveAddressDto {
+impl SseEncode for mooze_app::dto::wallet::ReceiveAddressDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::ChainDto>::sse_encode(self.chain, serializer);
+        <mooze_app::dto::wallet::ChainDto>::sse_encode(self.chain, serializer);
         <Option<String>>::sse_encode(self.address, serializer);
         <Option<String>>::sse_encode(self.asset_id, serializer);
         <Option<String>>::sse_encode(self.label, serializer);
@@ -10727,13 +11173,13 @@ impl SseEncode for crate::api::types::ReceiveAddressDto {
     }
 }
 
-impl SseEncode for crate::api::types::SendRequestDto {
+impl SseEncode for mooze_app::dto::wallet::SendRequestDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.destination, serializer);
         <u64>::sse_encode(self.amount_sat, serializer);
         <Option<String>>::sse_encode(self.asset_id, serializer);
-        <crate::api::types::FeePriorityDto>::sse_encode(self.fee_priority, serializer);
+        <mooze_app::dto::wallet::FeePriorityDto>::sse_encode(self.fee_priority, serializer);
         <Option<String>>::sse_encode(self.label, serializer);
         <bool>::sse_encode(self.subtract_fee_from_amount, serializer);
         <Option<f64>>::sse_encode(self.fee_rate_override_sat_per_vbyte, serializer);
@@ -10741,26 +11187,26 @@ impl SseEncode for crate::api::types::SendRequestDto {
     }
 }
 
-impl SseEncode for crate::api::swap::SideSwapEventDto {
+impl SseEncode for mooze_app::dto::swap::SideSwapEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::swap::SideSwapEventKind>::sse_encode(self.kind, serializer);
-        <Option<crate::api::swap::QuoteDto>>::sse_encode(self.quote, serializer);
+        <mooze_app::dto::swap::SideSwapEventKind>::sse_encode(self.kind, serializer);
+        <Option<mooze_app::dto::swap::QuoteDto>>::sse_encode(self.quote, serializer);
         <Option<u64>>::sse_encode(self.balance_sat, serializer);
         <Option<String>>::sse_encode(self.message, serializer);
     }
 }
 
-impl SseEncode for crate::api::swap::SideSwapEventKind {
+impl SseEncode for mooze_app::dto::swap::SideSwapEventKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::swap::SideSwapEventKind::Quote => 0,
-                crate::api::swap::SideSwapEventKind::PegInWalletBalance => 1,
-                crate::api::swap::SideSwapEventKind::PegOutWalletBalance => 2,
-                crate::api::swap::SideSwapEventKind::Disconnected => 3,
-                crate::api::swap::SideSwapEventKind::Closed => 4,
+                mooze_app::dto::swap::SideSwapEventKind::Quote => 0,
+                mooze_app::dto::swap::SideSwapEventKind::PegInWalletBalance => 1,
+                mooze_app::dto::swap::SideSwapEventKind::PegOutWalletBalance => 2,
+                mooze_app::dto::swap::SideSwapEventKind::Disconnected => 3,
+                mooze_app::dto::swap::SideSwapEventKind::Closed => 4,
                 _ => {
                     unimplemented!("");
                 }
@@ -10770,7 +11216,7 @@ impl SseEncode for crate::api::swap::SideSwapEventKind {
     }
 }
 
-impl SseEncode for crate::api::swap::SideswapAssetDto {
+impl SseEncode for mooze_app::dto::swap::SideswapAssetDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.asset_id, serializer);
@@ -10782,7 +11228,7 @@ impl SseEncode for crate::api::swap::SideswapAssetDto {
     }
 }
 
-impl SseEncode for crate::api::swap::SideswapMarketDto {
+impl SseEncode for mooze_app::dto::swap::SideswapMarketDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.base_asset_id, serializer);
@@ -10792,7 +11238,7 @@ impl SseEncode for crate::api::swap::SideswapMarketDto {
     }
 }
 
-impl SseEncode for crate::api::types::SkippedRowDto {
+impl SseEncode for mooze_app::dto::wallet::SkippedRowDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.table, serializer);
@@ -10801,14 +11247,14 @@ impl SseEncode for crate::api::types::SkippedRowDto {
     }
 }
 
-impl SseEncode for crate::api::types::SourceDto {
+impl SseEncode for mooze_app::dto::wallet::SourceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::SourceDto::Lwk => 0,
-                crate::api::types::SourceDto::Breez => 1,
-                crate::api::types::SourceDto::Bdk => 2,
+                mooze_app::dto::wallet::SourceDto::Lwk => 0,
+                mooze_app::dto::wallet::SourceDto::Breez => 1,
+                mooze_app::dto::wallet::SourceDto::Bdk => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -10818,7 +11264,7 @@ impl SseEncode for crate::api::types::SourceDto {
     }
 }
 
-impl SseEncode for crate::api::swap::StartQuoteDto {
+impl SseEncode for mooze_app::dto::swap::StartQuoteDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.started, serializer);
@@ -10828,14 +11274,14 @@ impl SseEncode for crate::api::swap::StartQuoteDto {
     }
 }
 
-impl SseEncode for crate::api::types::StatusDto {
+impl SseEncode for mooze_app::dto::wallet::StatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::StatusDto::Pending => 0,
-                crate::api::types::StatusDto::Confirmed => 1,
-                crate::api::types::StatusDto::Failed => 2,
+                mooze_app::dto::wallet::StatusDto::Pending => 0,
+                mooze_app::dto::wallet::StatusDto::Confirmed => 1,
+                mooze_app::dto::wallet::StatusDto::Failed => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -10845,17 +11291,17 @@ impl SseEncode for crate::api::types::StatusDto {
     }
 }
 
-impl SseEncode for crate::api::types::SyncOutcomeDto {
+impl SseEncode for mooze_app::dto::wallet::SyncOutcomeDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::ChainDto>::sse_encode(self.chain, serializer);
+        <mooze_app::dto::wallet::ChainDto>::sse_encode(self.chain, serializer);
         <u32>::sse_encode(self.fetched, serializer);
         <u32>::sse_encode(self.changed, serializer);
         <u64>::sse_encode(self.duration_ms, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::TableCountDto {
+impl SseEncode for mooze_app::dto::wallet::TableCountDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.table, serializer);
@@ -10863,12 +11309,12 @@ impl SseEncode for crate::api::types::TableCountDto {
     }
 }
 
-impl SseEncode for crate::api::swap::TrackedPegDto {
+impl SseEncode for mooze_app::dto::swap::TrackedPegDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.order_id, serializer);
-        <crate::api::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
-        <crate::api::swap::PegPhaseDto>::sse_encode(self.phase, serializer);
+        <mooze_app::dto::swap::PegDirectionDto>::sse_encode(self.direction, serializer);
+        <mooze_app::dto::swap::PegPhaseDto>::sse_encode(self.phase, serializer);
         <u64>::sse_encode(self.amount_sat, serializer);
         <String>::sse_encode(self.deposit_address, serializer);
         <Option<String>>::sse_encode(self.funding_tx_id, serializer);
@@ -10879,13 +11325,13 @@ impl SseEncode for crate::api::swap::TrackedPegDto {
     }
 }
 
-impl SseEncode for crate::api::types::TransactionDto {
+impl SseEncode for mooze_app::dto::wallet::TransactionDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.id, serializer);
-        <crate::api::types::ChainDto>::sse_encode(self.chain, serializer);
-        <crate::api::types::DirectionDto>::sse_encode(self.direction, serializer);
-        <crate::api::types::StatusDto>::sse_encode(self.status, serializer);
+        <mooze_app::dto::wallet::ChainDto>::sse_encode(self.chain, serializer);
+        <mooze_app::dto::wallet::DirectionDto>::sse_encode(self.direction, serializer);
+        <mooze_app::dto::wallet::StatusDto>::sse_encode(self.status, serializer);
         <i64>::sse_encode(self.amount_sat, serializer);
         <i64>::sse_encode(self.fee_sat, serializer);
         <u64>::sse_encode(self.timestamp_ms, serializer);
@@ -10897,31 +11343,31 @@ impl SseEncode for crate::api::types::TransactionDto {
         <Option<String>>::sse_encode(self.to_asset_id, serializer);
         <Option<i64>>::sse_encode(self.sent_amount_sat, serializer);
         <Option<i64>>::sse_encode(self.received_amount_sat, serializer);
-        <Option<crate::api::types::SourceDto>>::sse_encode(self.source, serializer);
+        <Option<mooze_app::dto::wallet::SourceDto>>::sse_encode(self.source, serializer);
         <Option<String>>::sse_encode(self.swap_lockup_tx_id, serializer);
         <Option<String>>::sse_encode(self.swap_claim_tx_id, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::TransactionEventDto {
+impl SseEncode for mooze_app::dto::wallet::TransactionEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::api::types::TransactionEventKindDto>::sse_encode(self.kind, serializer);
-        <crate::api::types::TransactionDto>::sse_encode(self.transaction, serializer);
+        <mooze_app::dto::wallet::TransactionEventKindDto>::sse_encode(self.kind, serializer);
+        <mooze_app::dto::wallet::TransactionDto>::sse_encode(self.transaction, serializer);
         <u64>::sse_encode(self.observed_at_ms, serializer);
-        <Option<crate::api::types::StatusDto>>::sse_encode(self.previous_status, serializer);
+        <Option<mooze_app::dto::wallet::StatusDto>>::sse_encode(self.previous_status, serializer);
         <Option<u32>>::sse_encode(self.previous_confirmations, serializer);
     }
 }
 
-impl SseEncode for crate::api::types::TransactionEventKindDto {
+impl SseEncode for mooze_app::dto::wallet::TransactionEventKindDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::types::TransactionEventKindDto::Created => 0,
-                crate::api::types::TransactionEventKindDto::StatusChanged => 1,
-                crate::api::types::TransactionEventKindDto::ConfirmationsChanged => 2,
+                mooze_app::dto::wallet::TransactionEventKindDto::Created => 0,
+                mooze_app::dto::wallet::TransactionEventKindDto::StatusChanged => 1,
+                mooze_app::dto::wallet::TransactionEventKindDto::ConfirmationsChanged => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -10974,7 +11420,7 @@ impl SseEncode for usize {
     }
 }
 
-impl SseEncode for crate::api::types::WalletUtxoDto {
+impl SseEncode for mooze_app::dto::wallet::WalletUtxoDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.txid, serializer);
@@ -10982,7 +11428,7 @@ impl SseEncode for crate::api::types::WalletUtxoDto {
         <String>::sse_encode(self.address, serializer);
         <Option<String>>::sse_encode(self.unconfidential, serializer);
         <String>::sse_encode(self.script_hex, serializer);
-        <crate::api::types::KeychainDto>::sse_encode(self.keychain, serializer);
+        <mooze_app::dto::wallet::KeychainDto>::sse_encode(self.keychain, serializer);
         <u32>::sse_encode(self.index, serializer);
         <u64>::sse_encode(self.amount_sat, serializer);
         <Option<String>>::sse_encode(self.asset_id, serializer);

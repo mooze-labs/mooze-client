@@ -13,6 +13,10 @@ import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'third_party/mooze_app/dto/config.dart';
+import 'third_party/mooze_app/dto/pix.dart';
+import 'third_party/mooze_app/dto/swap.dart';
+import 'third_party/mooze_app/dto/wallet.dart';
 
 /// Main entrypoint of the Rust API
 class MoozeCoreLib

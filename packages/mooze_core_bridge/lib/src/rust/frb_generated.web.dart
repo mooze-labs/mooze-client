@@ -14,6 +14,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
+import 'third_party/mooze_app/dto/config.dart';
+import 'third_party/mooze_app/dto/pix.dart';
+import 'third_party/mooze_app/dto/swap.dart';
+import 'third_party/mooze_app/dto/wallet.dart';
 
 abstract class MoozeCoreLibApiImplPlatform
     extends BaseApiImpl<MoozeCoreLibWire> {
