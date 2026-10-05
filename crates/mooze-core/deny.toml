@@ -1,7 +1,10 @@
 [advisories]
 version = 2
 yanked = "deny"
-
+ignore = [
+  { id = "RUSTSEC-2025-0057", reason = "fxhash: unmaintained, no known vulnerability; direct dependency of lwk_wollet. Revisit when LWK replaces it." },
+  { id = "RUSTSEC-2026-0173", reason = "proc-macro-error2: compile-time only, via lwk_wollet -> age -> i18n-embed-fl. Revisit on LWK/age upgrades." },
+]
 [bans]
 wildcards = "deny"
 
