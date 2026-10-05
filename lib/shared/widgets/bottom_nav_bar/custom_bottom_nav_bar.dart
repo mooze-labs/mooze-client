@@ -7,13 +7,11 @@ import 'bottom_nav_bar_painter.dart';
 class CustomBottomNavBar extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
-  final Key? centralButtonKey;
 
   const CustomBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
-    this.centralButtonKey,
   });
 
   @override
@@ -45,7 +43,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/home.svg',
                   index: 0,
-                  label: 'Home',
+                  label: t.nav_home,
                 ),
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/asset.svg',
@@ -61,7 +59,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
                 _buildNavItem(
                   icon: 'assets/icons/menu/navigation/menu.svg',
                   index: 4,
-                  label: 'Menu',
+                  label: t.nav_menu,
                 ),
               ],
             ),
@@ -128,7 +126,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     return GestureDetector(
       onTap: () => widget.onTap(2),
       child: Container(
-        key: widget.centralButtonKey,
         width: 60,
         height: 60,
         decoration: BoxDecoration(

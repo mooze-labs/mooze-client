@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
@@ -186,7 +187,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
       AppSnackBar.show(
         context,
-        message: e.toString(),
+        message: humanizeError(context, e),
         type: SnackBarType.error,
         action: SnackBarAction(label: 'OK', onPressed: () {}),
       );
@@ -505,7 +506,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
                         ),
                         SizedBox(height: 8),
                         Text(
-                          error.toString(),
+                          humanizeError(context, error),
                           style: Theme.of(
                             context,
                           ).textTheme.labelSmall?.copyWith(

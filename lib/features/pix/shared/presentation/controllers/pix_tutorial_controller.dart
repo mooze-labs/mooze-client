@@ -5,15 +5,7 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/sel
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_tutorial_service_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-enum PixTutorialStage {
-  inactive,
-
-  home,
-
-  receive,
-
-  confirm,
-}
+enum PixTutorialStage { inactive, receive, confirm }
 
 const double kPixTutorialDemoAmount = 50.0;
 
@@ -33,8 +25,6 @@ class PixTutorialState {
 }
 
 class PixTutorialController extends Notifier<PixTutorialState> {
-  final GlobalKey homePixButtonKey = GlobalKey();
-  final GlobalKey bottomNavPixKey = GlobalKey();
   final GlobalKey assetSelectorKey = GlobalKey();
   final GlobalKey limitsKey = GlobalKey();
   final GlobalKey amountInputKey = GlobalKey();
@@ -45,48 +35,41 @@ class PixTutorialController extends Notifier<PixTutorialState> {
 
   bool get hasSeen => ref.read(pixTutorialServiceProvider).isTutorialShown();
 
+  /// Starts the tutorial on the receive screen. The tutorial no longer
+  /// auto-runs on the home screen; it begins the first time the user opens
+  /// PIX, when the steps are relevant.
   void start() {
     _resetDemoState();
     state = PixTutorialState(
-      stage: PixTutorialStage.home,
+      stage: PixTutorialStage.receive,
       runId: state.runId + 1,
     );
   }
 
-  /// Advances to the receive-screen group (steps 3–7).
+  /// Starts the tutorial only on the user's first visit to PIX.
+  void startIfUnseen() {
+    if (state.isActive || hasSeen) return;
+    start();
+  }
+
+  /// Kept for callers that advance from an earlier stage; now a no-op alias
+  /// for the starting stage.
   void toReceive() {
     state = state.copyWith(stage: PixTutorialStage.receive);
   }
 
-  /// Advances to the confirmation-screen group (steps 8–9).
+  /// Advances to the confirmation-screen step (slide to generate).
   void toConfirm() {
     state = state.copyWith(stage: PixTutorialStage.confirm);
   }
 
-  /// Pre-fills the demonstration amount (step 6 → 7 transition).
+  /// Pre-fills the demonstration amount before highlighting the field.
   void applyDemoAmount() {
     ref.read(depositAmountProvider.notifier).state = kPixTutorialDemoAmount;
   }
 
-  /// Step 4: previews the L-BTC option in the asset selector to show the user
-  /// they can change the receiving asset.
-  void previewLbtcAsset() {
-    ref.read(selectedAssetProvider.notifier).state = Asset.lbtc;
-  }
-
-  /// Step 4 → 5: restores the default dePIX asset after the preview.
-  void restoreDefaultAsset() {
-    ref.read(selectedAssetProvider.notifier).state = Asset.depix;
-  }
-
   /// Replays the tutorial from the beginning without persisting completion.
-  void restart() {
-    _resetDemoState();
-    state = PixTutorialState(
-      stage: PixTutorialStage.home,
-      runId: state.runId + 1,
-    );
-  }
+  void restart() => start();
 
   /// Completes the tutorial: persists the flag and clears demo state so it
   /// never auto-starts again. Keeps [PixTutorialState.runId] monotonic so a

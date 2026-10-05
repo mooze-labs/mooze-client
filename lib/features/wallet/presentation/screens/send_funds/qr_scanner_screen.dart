@@ -4,14 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import '../../providers/send_funds/address_provider.dart';
-import '../../providers/send_funds/address_controller_provider.dart';
-import '../../providers/send_funds/network_detection_provider.dart';
-import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/payment_request_applier.dart';
 import '../../providers/send_funds/qr_validation_service.dart';
-import '../../providers/send_funds/amount_detection_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 class QRCodeScannerScreen extends ConsumerStatefulWidget {
@@ -90,68 +85,11 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen>
       return;
     }
 
-    String cleanedData = validationResult.cleanedData ?? data;
-
-    ref.read(addressStateProvider.notifier).state = cleanedData;
-
-    String displayAddress = cleanedData;
-
-    if (cleanedData.startsWith('bitcoin:') ||
-        cleanedData.startsWith('liquidnetwork:') ||
-        cleanedData.startsWith('liquid:')) {
-      try {
-        final uri = Uri.parse(cleanedData);
-        displayAddress = uri.path;
-      } catch (e) {
-        displayAddress = cleanedData;
-      }
-    }
-
-    ref.read(addressControllerProvider).text = displayAddress;
-
-    _autoSwitchAssetBasedOnNetwork(cleanedData);
+    PaymentRequestApplier.apply(ref, validationResult.cleanedData ?? data);
 
     context.pop();
   }
 
-  void _autoSwitchAssetBasedOnNetwork(String address) {
-    if (address.isEmpty) return;
-
-    final detectedResult = AmountDetectionService.detectAmount(address);
-
-    if (detectedResult.asset != null) {
-      ref.read(selectedAssetProvider.notifier).state = detectedResult.asset!;
-      return;
-    }
-
-    final networkType = NetworkDetectionService.detectNetworkType(address);
-    final currentAsset = ref.read(selectedAssetProvider);
-
-    if (currentAsset != Asset.btc && currentAsset != Asset.lbtc) {
-      return;
-    }
-
-    Asset? newAsset;
-
-    switch (networkType) {
-      case NetworkType.bitcoin:
-        if (currentAsset != Asset.btc) {
-          newAsset = Asset.btc;
-        }
-        break;
-      case NetworkType.liquid:
-        if (currentAsset != Asset.lbtc) {
-          newAsset = Asset.lbtc;
-        }
-        break;
-      case NetworkType.unknown:
-        break;
-    }
-
-    if (newAsset != null) {
-      ref.read(selectedAssetProvider.notifier).state = newAsset;
-    }
-  }
 
   void _toggleFlash() {
     setState(() {

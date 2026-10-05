@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
@@ -196,7 +197,7 @@ class _SendPixProcessingScreenState
     return Scaffold(
       backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
-        title: const Text('Erro no Pagamento'),
+        title: Text(AppLocalizations.of(context).pix_send_error_title),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.go('/pix'),
@@ -229,7 +230,7 @@ class _SendPixProcessingScreenState
               const SizedBox(height: 32),
 
               Text(
-                'Erro no Pagamento',
+                AppLocalizations.of(context).pix_send_error_title,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: context.colors.textPrimary,
                   fontWeight: FontWeight.bold,

@@ -75,7 +75,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   String _buttonText(AppLocalizations t) {
-    return _currentIndex == _pages.length - 1 ? 'Começar' : t.common_next;
+    return _currentIndex == _pages.length - 1 ? t.onboarding_get_started : t.common_next;
   }
 
   @override

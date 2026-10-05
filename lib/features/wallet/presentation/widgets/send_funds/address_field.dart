@@ -4,14 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
-import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
-import '../../providers/send_funds/network_detection_provider.dart';
-import '../../providers/send_funds/selected_asset_provider.dart';
+import '../../providers/send_funds/payment_request_applier.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 
 class AddressField extends ConsumerStatefulWidget {
@@ -33,8 +31,9 @@ class _AddressFieldState extends ConsumerState<AddressField> {
       if (!mounted) return;
       final currentAddress = ref.read(addressStateProvider);
       final controller = ref.read(addressControllerProvider);
-      if (currentAddress.isNotEmpty && controller.text != currentAddress) {
-        controller.text = currentAddress;
+      final display = PaymentRequestApplier.displayAddress(currentAddress);
+      if (currentAddress.isNotEmpty && controller.text != display) {
+        controller.text = display;
       }
     });
   }
@@ -51,37 +50,11 @@ class _AddressFieldState extends ConsumerState<AddressField> {
     super.dispose();
   }
 
-  void _autoSwitchAssetBasedOnNetwork(String address) {
-    if (address.isEmpty) return;
-
-    final detectedResult = ref.read(detectedAmountProvider);
-    if (detectedResult.asset != null) {
-      ref.read(selectedAssetProvider.notifier).state = detectedResult.asset!;
-      return;
-    }
-
-    final networkType = NetworkDetectionService.detectNetworkType(address);
-    final currentAsset = ref.read(selectedAssetProvider);
-
-    Asset? newAsset;
-    switch (networkType) {
-      case NetworkType.bitcoin:
-        if (currentAsset != Asset.btc) newAsset = Asset.btc;
-        break;
-      case NetworkType.liquid:
-      case NetworkType.unknown:
-        break;
-    }
-
-    if (newAsset != null) {
-      ref.read(selectedAssetProvider.notifier).state = newAsset;
-    }
-  }
 
   void _applyAddress(String address) {
     final trimmed = address.trim();
     ref.read(addressStateProvider.notifier).state = trimmed;
-    _autoSwitchAssetBasedOnNetwork(trimmed);
+    PaymentRequestApplier.autoSwitchAsset(ref, trimmed);
     ref.invalidate(detectedAmountProvider);
     ref.read(sendValidationControllerProvider.notifier).validateTransaction();
   }
@@ -98,10 +71,10 @@ class _AddressFieldState extends ConsumerState<AddressField> {
       return;
     }
     HapticFeedback.selectionClick();
-    final controller = ref.read(addressControllerProvider);
-    controller.text = text;
-    controller.selection = TextSelection.collapsed(offset: text.length);
-    _applyAddress(text);
+    final result = PaymentRequestApplier.apply(ref, text);
+    if (!result.isValid && mounted) {
+      AppSnackBar.error(context, result.localize(context));
+    }
   }
 
   void _clearAddress() {
@@ -151,6 +124,7 @@ class _AddressFieldState extends ConsumerState<AddressField> {
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
           child: TextField(
+            autofocus: true,
             controller: controller,
             focusNode: _focusNode,
             // Monospace once filled — addresses are character-by-character

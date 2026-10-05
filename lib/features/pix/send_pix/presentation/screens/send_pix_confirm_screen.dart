@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
@@ -67,7 +68,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
           (context) => LoadingOverlayWidget(
             circleController: _circleController,
             circleAnimation: _circleAnimation,
-            loadingText: 'Processando pagamento...',
+            loadingText: AppLocalizations.of(context).pix_send_processing_payment,
             showLoadingText: true,
           ),
     );
@@ -150,7 +151,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Confirmar Pagamento'),
+        title: Text(AppLocalizations.of(context).pix_send_confirm_title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
@@ -294,7 +295,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
               // Slide to confirm
               SlideToConfirmButton(
                 onSlideComplete: _onSlideComplete,
-                text: 'Confirmar Pagamento',
+                text: AppLocalizations.of(context).pix_send_confirm_title,
                 isLoading: _isLoading,
                 isEnabled: !_isLoading,
               ),

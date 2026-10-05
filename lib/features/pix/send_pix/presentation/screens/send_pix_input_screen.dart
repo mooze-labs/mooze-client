@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/providers/providers.dart';
+import 'package:mooze_mobile/features/pix/send_pix/presentation/widgets/clipboard_pix_key_suggestion.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -201,7 +202,18 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    ClipboardPixKeySuggestion(
+                      enabled: !_isLoading,
+                      onUse: (value) {
+                        _pixKeyController.text = value;
+                        _pixKeyController.selection = TextSelection.collapsed(
+                          offset: value.length,
+                        );
+                        setState(() {});
+                      },
+                    ),
                     TextField(
+                      autofocus: true,
                       controller: _pixKeyController,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: context.colors.textPrimary,

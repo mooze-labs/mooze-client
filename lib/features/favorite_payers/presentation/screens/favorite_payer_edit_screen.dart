@@ -112,6 +112,7 @@ class _FavoritePayerEditScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 MoozeTextField(
+                  autofocus: true,
                   controller: _labelController,
                   textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,

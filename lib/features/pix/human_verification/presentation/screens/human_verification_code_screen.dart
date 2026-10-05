@@ -134,6 +134,7 @@ class _HumanVerificationCodeScreenState
               const SizedBox(height: 50),
 
               Pinput(
+                autofocus: true,
                 keyboardType: TextInputType.number,
                 length: 6,
                 controller: _codeController,

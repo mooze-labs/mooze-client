@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -94,7 +95,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
 
     _confirmCoach = buildPixCoachMark(
       targets: [
-        // Step 8 — the slide-to-generate button.
+        // Final step — the slide-to-generate button.
         TargetFocus(
           identify: "pix_slide_button",
           keyTarget: controller.slideButtonKey,
@@ -108,38 +109,11 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                   (context, coach) => pixTutorialContentCard(
                     title: t.pix_tutorial_step8_title,
                     body: t.pix_tutorial_step8_body,
-                    buttonLabel: t.common_next,
-                    onPressed: () => coach.next(),
-                  ),
-            ),
-          ],
-        ),
-        // Step 9 — QR ready (simulated; does not trigger the real slide).
-        TargetFocus(
-          identify: "pix_qr_ready",
-          targetPosition: pixTutorialCenteredPosition(context),
-          shape: ShapeLightFocus.RRect,
-          radius: 20,
-          enableTargetTab: false,
-          contents: [
-            TargetContent(
-              align: ContentAlign.custom,
-              customPosition: CustomTargetContentPosition(
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-              ),
-              builder:
-                  (context, coach) => pixTutorialContentCard(
-                    title: t.pix_tutorial_step9_title,
-                    body: t.pix_tutorial_step9_body,
                     buttonLabel: t.common_finish,
                     onPressed: () {
                       _confirmAdvancing = true;
                       coach.next();
                     },
-                    center: true,
                   ),
             ),
           ],
@@ -257,7 +231,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
       if (!mounted) return;
       setState(() => _isLoading = false);
       _hideLoadingOverlay();
-      AppSnackBar.error(context, e.toString());
+      AppSnackBar.error(context, humanizeError(context, e));
       _circleController.reset();
     }
   }

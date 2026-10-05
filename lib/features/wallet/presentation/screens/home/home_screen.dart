@@ -21,6 +21,8 @@ import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/deep_links/pending_payment_link.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/payment_request_applier.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
 import '../../widgets/widgets.dart';
 
@@ -54,17 +56,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _markNotifierHomeReached();
       _logMountTime();
       _scheduleDeferredLoads();
-      _maybeStartPixTutorial();
+      _consumePendingPaymentLink();
     });
+    PendingPaymentLink.value.addListener(_consumePendingPaymentLink);
   }
 
-  void _maybeStartPixTutorial() {
+  /// Opens the send flow prefilled when a `bitcoin:` / `liquidnetwork:` link
+  /// was captured by the router (cold start or while running). Home is the
+  /// first screen that exists only after boot, so consuming here guarantees
+  /// the wallet providers are ready. Invalid links get a snackbar.
+  void _consumePendingPaymentLink() {
     if (!mounted) return;
-    final controller = ref.read(pixTutorialControllerProvider.notifier);
-    final alreadyActive = ref.read(pixTutorialControllerProvider).isActive;
-    if (!alreadyActive && !controller.hasSeen) {
-      controller.start();
+    final raw = PendingPaymentLink.take();
+    if (raw == null) return;
+    final result = PaymentRequestApplier.apply(ref, raw);
+    if (!result.isValid) {
+      AppSnackBar.error(
+        context,
+        AppLocalizations.of(context).deeplink_invalid_payment,
+      );
+      return;
     }
+    context.push('/send-asset');
+  }
+
+  /// First tap on PIX starts the three-step tutorial on the receive screen.
+  void _openPix() {
+    final controller = ref.read(pixTutorialControllerProvider.notifier);
+    controller.startIfUnseen();
+    context.go('/pix');
   }
 
   /// Open the V2 transaction notifier's home-reached gate. Sticky for
@@ -112,6 +132,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    PendingPaymentLink.value.removeListener(_consumePendingPaymentLink);
     _scrollController.dispose();
     super.dispose();
   }
@@ -194,12 +215,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       WalletHeaderWidget(),
                       UpdateNotificationWidget(),
                       const SizedBox(height: 15),
-                      _buildActionButtons(
-                        context,
-                        pixButtonKey: ref
-                            .read(pixTutorialControllerProvider.notifier)
-                            .homePixButtonKey,
-                      ),
+                      _buildActionButtons(context, onPix: _openPix),
                       const SizedBox(height: 32),
                       AssetSection(),
                       TransactionSection(),
@@ -244,7 +260,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-Widget _buildActionButtons(BuildContext context, {Key? pixButtonKey}) {
+Widget _buildActionButtons(
+  BuildContext context, {
+  required VoidCallback onPix,
+}) {
   final t = AppLocalizations.of(context);
   return Row(
     children: [
@@ -270,11 +289,10 @@ Widget _buildActionButtons(BuildContext context, {Key? pixButtonKey}) {
       const SizedBox(width: 12),
       Expanded(
         child: ActionButton(
-          key: pixButtonKey,
           svgAsset: 'assets/icons/menu/navigation/pix.svg',
           label: t.wallet_action_buy,
           isPrimary: true,
-          onPressed: () => context.go('/pix'),
+          onPressed: onPix,
         ),
       ),
     ],

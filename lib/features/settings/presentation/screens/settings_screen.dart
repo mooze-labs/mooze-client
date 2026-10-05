@@ -35,7 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Future(() {
       if (!mounted) return;
       ref.read(pixTutorialControllerProvider.notifier).start();
-      if (mounted) context.go('/home');
+      if (mounted) context.go('/pix');
     });
   }
 

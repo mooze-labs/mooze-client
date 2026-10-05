@@ -324,7 +324,7 @@ class _MaxButton extends ConsumerWidget {
               return const SizedBox.shrink();
             }
             return _ChipAction(
-              label: 'MAX',
+              label: AppLocalizations.of(context).common_max,
               isActive: isActive,
               onTap: () => state._setMaxAmount(selectedAsset, amount.toInt()),
             );

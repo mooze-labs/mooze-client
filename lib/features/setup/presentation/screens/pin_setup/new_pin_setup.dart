@@ -126,6 +126,7 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
               const SizedBox(height: 50),
 
               Pinput(
+                autofocus: true,
                 keyboardType: TextInputType.number,
                 length: 6,
                 obscureText: true,

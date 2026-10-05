@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -28,13 +29,13 @@ class PixPaymentScreen extends ConsumerWidget {
       data:
           (data) => data.fold(
             (err) => ErrorPixPaymentScreen(
-              errorMessage: t.pix_payment_qr_error(err.toString()),
+              errorMessage: t.pix_payment_qr_error(humanizeError(context, err)),
             ),
             (deposit) => ValidPixPaymentScreen(deposit: deposit),
           ),
       error:
           (err, stackTrace) => ErrorPixPaymentScreen(
-            errorMessage: t.pix_payment_qr_error(err.toString()),
+            errorMessage: t.pix_payment_qr_error(humanizeError(context, err)),
           ),
       loading: () => LoadingPixPaymentScreen(),
     );

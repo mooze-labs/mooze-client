@@ -354,6 +354,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
           ),
           const SizedBox(height: 50),
           Pinput(
+            autofocus: true,
             keyboardType: TextInputType.number,
             length: 6,
             obscureText: true,
