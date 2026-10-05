@@ -311,6 +311,19 @@ impl ManualTimer {
 
 impl Timer for ManualTimer {
     fn sleep(&self, ms: u64) -> TaskFuture<'static, ()> {
+        if ms == 0 {
+            // A zero sleep is a yield: pending once, then ready, with no advance needed.
+            let mut yielded = false;
+            return Box::pin(std::future::poll_fn(move |cx| {
+                if yielded {
+                    std::task::Poll::Ready(())
+                } else {
+                    yielded = true;
+                    cx.waker().wake_by_ref();
+                    std::task::Poll::Pending
+                }
+            }));
+        }
         let (tx, rx) = oneshot::channel();
         self.pending.lock().expect("poisoned").push((self.now_ms() + ms, tx));
         Box::pin(async move {

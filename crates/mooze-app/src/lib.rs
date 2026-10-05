@@ -9,6 +9,7 @@ pub mod app;
 pub mod convert;
 pub mod dto;
 pub mod error;
+pub mod events;
 pub mod glue;
 pub mod platform;
 pub mod rules;

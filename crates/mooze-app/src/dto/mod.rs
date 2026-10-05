@@ -5,10 +5,12 @@
 
 pub mod config;
 pub mod pix;
+pub mod runtime;
 pub mod swap;
 pub mod wallet;
 
 pub use config::*;
 pub use pix::*;
+pub use runtime::*;
 pub use swap::*;
 pub use wallet::*;

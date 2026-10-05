@@ -5,6 +5,7 @@
 //! behind its own async mutex, so calls on one wallet run one at a time.
 
 mod pix;
+mod swap;
 pub(crate) mod wallets;
 
 use std::future::Future;
@@ -25,6 +26,8 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 use crate::dto::*;
+use crate::events::{EventSink, Subscribers, SubscriptionId};
+use crate::glue::SideSwapState;
 use crate::{AppError, ErrorCode, Platform, Result};
 
 pub(crate) type Bitcoin<P> = BitcoinWallet<<P as Platform>::Kv, <P as Platform>::Clock>;
@@ -48,6 +51,17 @@ pub(crate) struct Inner<P: Platform> {
     metrics: RwLock<Option<Value>>,
     /// PIX deposits being polled, see `pix_poll_tick`.
     pub(crate) pix_polls: std::sync::Mutex<Vec<DepositPoll>>,
+    /// SideSwap client, peg tracker and event driver.
+    pub(crate) sideswap: Arc<SideSwapState<P>>,
+    /// Event sinks of the hosts.
+    pub(crate) subscribers: Subscribers,
+}
+
+impl<P: Platform> Drop for Inner<P> {
+    fn drop(&mut self) {
+        // The driver task holds only the SideSwap state. Stop it with the app.
+        self.sideswap.stop_driver();
+    }
 }
 
 impl<P: Platform> Inner<P> {
@@ -218,8 +232,23 @@ impl<P: Platform> App<P> {
                 device_safe: AtomicBool::new(true),
                 metrics: RwLock::new(None),
                 pix_polls: std::sync::Mutex::new(Vec::new()),
+                sideswap: Arc::new(SideSwapState::default()),
+                subscribers: Subscribers::default(),
             }),
         })
+    }
+
+    // ───────────────────────────── events
+
+    /// Registers an event sink. Events reach it until it returns false or
+    /// `unsubscribe` is called.
+    pub fn subscribe(&self, sink: Box<dyn EventSink>) -> SubscriptionId {
+        self.inner.subscribers.subscribe(sink)
+    }
+
+    /// Removes an event sink.
+    pub fn unsubscribe(&self, id: SubscriptionId) {
+        self.inner.subscribers.unsubscribe(id)
     }
 
     // ───────────────────────────── one-time import

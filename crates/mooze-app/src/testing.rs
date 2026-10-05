@@ -46,7 +46,6 @@ impl TestPlatform {
         (plat, exec)
     }
 
-    #[allow(dead_code)] // used by the SideSwap tests
     pub fn with_ws(mut self, ws: MockWs) -> Self {
         self.ws = ws;
         self
