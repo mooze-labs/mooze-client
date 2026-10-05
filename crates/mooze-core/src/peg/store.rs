@@ -1,7 +1,7 @@
-//! Peg persistence over [`KvStore`]. Replaces `drift_peg_store.dart`.
+//! Peg persistence over [`KvStore`].
 //!
-//! One JSON record per order at `peg/<wallet_id>/<order_id>`. Fields mirror
-//! the Drift `Pegs` table.
+//! One JSON record per order at `peg/<wallet_id>/<order_id>`. Fields match
+//! the legacy Drift `Pegs` table of the Flutter app database.
 
 use std::future::{ready, Future};
 
@@ -35,7 +35,7 @@ pub fn status_for(phase: PegPhase) -> &'static str {
     }
 }
 
-/// One persisted peg. Mirrors the Drift `Pegs` row.
+/// One persisted peg. Matches a legacy Drift `Pegs` row.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PegRecord {
     pub order_id: String,
@@ -201,7 +201,7 @@ impl<K: KvStore, T: Clock, A: SwapAudit> KvPegStore<K, T, A> {
         Ok(out)
     }
 
-    /// Port of `updatePegProgress`: sets only the given fields. No-op if absent.
+    /// Sets only the given fields. No-op if absent.
     async fn update(
         &self,
         order_id: &str,

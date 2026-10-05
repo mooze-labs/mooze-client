@@ -1,8 +1,4 @@
 //! Asset swap flow: markets, quotes, accept, sign, submit.
-//!
-//! Port of `swap_repository_impl.dart`, `liquid_wallet_repository_impl.dart`,
-//! the quote lock in `SideswapService.startQuote` and the quote/confirm logic
-//! of `swap_controller.dart`.
 
 use std::future::Future;
 
@@ -48,7 +44,7 @@ impl NormalizedSwap {
 }
 
 /// Maps `send -> receive` onto a market. Direct market: sell base.
-/// Inverse market: sell with `asset_type = Quote`. Port of `_normalizeSwapParams`.
+/// Inverse market: sell with `asset_type = Quote`.
 pub fn normalize_swap_params(markets: &[SideswapMarket], send: &str, receive: &str) -> Option<NormalizedSwap> {
     if markets.iter().any(|m| m.base_asset_id() == send && m.quote_asset_id() == receive) {
         return Some(NormalizedSwap {
@@ -70,7 +66,6 @@ pub fn normalize_swap_params(markets: &[SideswapMarket], send: &str, receive: &s
 }
 
 /// Picks UTXOs of `asset_id`, smallest first, until `amount` is covered.
-/// Port of `LiquidWalletRepositoryImpl.getUtxos`.
 pub fn select_utxos(utxos: &[LiquidUtxo], asset_id: &str, amount: u64) -> Result<Vec<SwapUtxo>> {
     if amount == 0 {
         return Ok(Vec::new());
@@ -115,7 +110,7 @@ impl QuoteGate {
     /// Returns false when another quote is still in progress.
     pub fn try_begin(&mut self, now_ms: u64) -> bool {
         if let (true, Some(last)) = (self.in_progress, self.last_quote_ms) {
-            // Dart: `inSeconds > 15`.
+            // Compares whole seconds: reset when more than 15 s elapsed.
             if now_ms.saturating_sub(last) / 1000 > QUOTE_STALE_RESET_MS / 1000 {
                 self.reset();
             }
@@ -261,8 +256,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
             change_address: receive_address.clone(),
             receive_address,
         };
-        // NOTE(port): Dart emits a synthetic "Erro de conexão" quote when the
-        // socket is down. Here the transport error is returned instead.
+        // NOTE: when the socket is down, the transport error is returned. No synthetic quote is emitted.
         let result: StartQuotesResult = match self.client.start_quotes(&req).await {
             Ok(r) => r,
             Err(e) => {
@@ -326,7 +320,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
         self.gate.reset();
     }
 
-    /// Stops the quote subscription. Best-effort, like the fire-and-forget Dart call.
+    /// Stops the quote subscription. Best-effort: errors are ignored.
     pub async fn stop_quote(&mut self) {
         self.gate.reset();
         let had_active = self.active.take().is_some();
@@ -347,7 +341,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
     }
 
     /// Confirms a quote: stop quotes, get the PSET, sign, submit.
-    /// Port of `confirmSwap` + `_performSwap`. The 60 s cap is the platform's.
+    /// The platform enforces the 60 s cap.
     pub async fn execute_swap(&mut self, quote_id: u64) -> Result<String> {
         self.stop_quote().await;
         let pset = self.get_quote_pset(quote_id).await?;

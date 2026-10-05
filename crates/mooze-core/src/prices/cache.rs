@@ -1,5 +1,4 @@
-//! Persistent last-known prices. Port of `models/cached_price_data.dart`,
-//! `services/price_cache_service.dart` and `services/cached_price_service.dart`.
+//! Persistent last-known prices.
 
 use std::future::Future;
 
@@ -13,7 +12,7 @@ use crate::Result;
 /// Key prefix of cached prices. Full key: `cached_price_<assetId>_<currency>`.
 pub const CACHE_KEY_PREFIX: &str = "cached_price_";
 
-/// One cached price. JSON shape matches the Dart `CachedPriceData.toJson`.
+/// One cached price. The JSON shape is part of the stored format.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CachedPriceData {
     pub price: f64,
@@ -29,12 +28,12 @@ impl CachedPriceData {
         now_ms as i64 - self.timestamp
     }
 
-    /// Dart `isValid`: age in whole minutes is at most 5.
+    /// True if the age in whole minutes is at most 5.
     pub fn is_valid(&self, now_ms: u64) -> bool {
         self.age_ms(now_ms) / 60_000 <= 5
     }
 
-    /// Dart `isRecentEnough`: age in whole hours is at most 1.
+    /// True if the age in whole hours is at most 1.
     pub fn is_recent_enough(&self, now_ms: u64) -> bool {
         self.age_ms(now_ms) / 3_600_000 <= 1
     }
@@ -45,7 +44,7 @@ impl CachedPriceData {
     }
 }
 
-/// Reads and writes [`CachedPriceData`] in a [`KvStore`]. Dart `PriceCacheService`.
+/// Reads and writes [`CachedPriceData`] in a [`KvStore`].
 #[derive(Debug, Clone)]
 pub struct PriceCacheService<K, C> {
     kv: K,
@@ -97,22 +96,22 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
         Ok(self.get_cached_price(asset, currency).await?.filter(|d| ok(d, now)).map(|d| d.price))
     }
 
-    /// Price younger than 6 minutes. Dart `getValidCachedPrice`.
+    /// Price younger than 6 minutes.
     pub async fn get_valid_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
         self.price_if(asset, currency, CachedPriceData::is_valid).await
     }
 
-    /// Price younger than 2 hours. Dart `getEmergencyCachedPrice`.
+    /// Price younger than 2 hours.
     pub async fn get_emergency_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
         self.price_if(asset, currency, CachedPriceData::is_recent_enough).await
     }
 
-    /// Any cached price. Dart `getAnyCachedPrice`.
+    /// Any cached price.
     pub async fn get_any_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
         self.price_if(asset, currency, |_, _| true).await
     }
 
-    /// Deletes corrupt entries. Dart `cleanExpiredCache` (it removes only corrupt data).
+    /// Deletes corrupt entries. Expired entries stay.
     pub async fn clean_expired_cache(&self) -> Result<()> {
         for key in self.kv.list_keys(CACHE_KEY_PREFIX).await? {
             if let Some(bytes) = self.kv.get(&key).await? {
@@ -125,7 +124,7 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
     }
 }
 
-/// Wraps a [`PriceService`] and falls back to the cache. Dart `CachedPriceService`.
+/// Wraps a [`PriceService`] and falls back to the cache.
 ///
 /// A fresh price is saved. Without a fresh price it tries the valid, then the emergency,
 /// then any cached price. Errors from the wrapped service count as "no price".
@@ -247,7 +246,7 @@ pub(crate) mod tests {
         assert!(!d.is_valid(T0 + 6 * 60_000));
         assert!(d.is_recent_enough(T0 + 2 * 3_600_000 - 1));
         assert!(!d.is_recent_enough(T0 + 2 * 3_600_000));
-        assert!(d.is_valid(T0 - 10 * 60_000)); // future timestamps count as valid, as in Dart
+        assert!(d.is_valid(T0 - 10 * 60_000)); // future timestamps count as valid, by design
         assert_eq!(d.age_minutes(T0 + 125_000), 2);
     }
 

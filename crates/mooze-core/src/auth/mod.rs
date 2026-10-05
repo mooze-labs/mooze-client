@@ -1,7 +1,4 @@
 //! Backend authentication, device id, PIN and app lock logic.
-//!
-//! Port of `lib/shared/authentication/**` (non-UI), `lib/services/auth.dart`,
-//! `lib/domain/services/session_authenticator.dart` and `lib/app/session/**`.
 
 mod b64;
 mod device;

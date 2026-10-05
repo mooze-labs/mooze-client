@@ -1,9 +1,6 @@
 //! Mooze backend HTTP client.
 //!
-//! Port of `lib/shared/network/**` (the authenticated Dio client and its
-//! `AuthInterceptor`) and of the error-family mapping in
-//! `lib/shared/utils/error_message.dart` and
-//! `lib/shared/exceptions/user_friendly_exception.dart` (codes only, no copy).
+//! The authenticated client and the error-family mapping (codes only, no copy).
 
 mod client;
 mod errors;

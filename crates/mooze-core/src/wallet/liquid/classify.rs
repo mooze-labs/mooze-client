@@ -1,6 +1,4 @@
-//! Pure mapping of LWK data to domain types. Port of `_mapTx`,
-//! `_detectSelfTransferSubject`, `_pickMainBalance`, `_mapBalance` and
-//! `applyOptimisticBalanceDelta` in `liquid_wallet_service_impl.dart`.
+//! Pure mapping of LWK data to domain types.
 
 use crate::domain::{
     AssetBalance, Balance, ChainId, Transaction, TransactionDirection, TransactionSource, TransactionStatus,
@@ -23,7 +21,7 @@ pub struct LwkTxOut {
     pub value: u64,
 }
 
-/// Flat view of an LWK wallet transaction, like `lwk.Tx` in lwk-dart.
+/// Flat view of an LWK wallet transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LwkTxView {
     pub txid: String,
@@ -59,7 +57,7 @@ impl LwkTxView {
     }
 }
 
-/// Dart `reduce((a, b) => key(a) > key(b) ? a : b)`: ties keep the later item.
+/// Item with the largest key. Ties keep the later item.
 fn reduce_max<'a, T>(items: &[&'a T], key: impl Fn(&T) -> i64) -> &'a T {
     let mut acc = items[0];
     for b in &items[1..] {
@@ -113,10 +111,10 @@ fn self_transfer_subject(t: &LwkTxView) -> Option<(String, i64)> {
     }
 }
 
-/// Classifies an LWK transaction. Port of `_mapTx`, rules P1 to P7.
+/// Classifies an LWK transaction with rules P1 to P7.
 ///
-/// NOTE(port): the rules compare against the mainnet L-BTC id on every
-/// network, as the Dart code does.
+/// NOTE: the rules compare against the mainnet L-BTC id on every network,
+/// by design.
 pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
     let fee = t.fee as i64;
     let status = if t.height.is_some() { TransactionStatus::Confirmed } else { TransactionStatus::Pending };
@@ -194,7 +192,7 @@ pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
     tx
 }
 
-/// Maps LWK balances (asset id, sats). Port of `_mapBalance`.
+/// Maps LWK balances (asset id, sats).
 pub fn map_balance(balances: &[(String, u64)], now_ms: u64) -> Balance {
     Balance {
         assets: balances
@@ -213,8 +211,8 @@ pub fn map_balance(balances: &[(String, u64)], now_ms: u64) -> Balance {
 }
 
 /// Applies per-asset deltas to a cached balance for instant UI feedback.
-/// Port of `applyOptimisticBalanceDelta`. Amounts floor at zero. A new
-/// asset is added only for a positive delta. Empty deltas return `prev`.
+/// Amounts floor at zero. Only a positive delta adds a new asset.
+/// Empty deltas return `prev`.
 pub fn apply_optimistic_delta(prev: &Balance, deltas: &[(String, i64)], now_ms: u64) -> Balance {
     if deltas.is_empty() {
         return prev.clone();

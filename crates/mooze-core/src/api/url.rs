@@ -2,9 +2,9 @@
 
 use serde_json::Value;
 
-/// Joins a base URL and a path the way Dio does.
+/// Joins a base URL and a path.
 ///
-/// Absolute paths (`http:`/`https:`) win. Otherwise Dio concatenates the two
+/// Absolute paths (`http:`/`https:`) win. Otherwise the function concatenates the two
 /// strings and collapses `//` after the scheme separator.
 pub fn join_url(base: &str, path: &str) -> String {
     if path.starts_with("http:") || path.starts_with("https:") {
@@ -32,7 +32,7 @@ pub fn encode_path_segment(segment: &str) -> String {
     out
 }
 
-/// Dart `json['data'] ?? json`: the `data` field if present and not null.
+/// The `data` field if present and not null, else `value`.
 pub fn data_or_self(value: &Value) -> &Value {
     match value.get("data") {
         Some(data) if !data.is_null() => data,
@@ -40,7 +40,7 @@ pub fn data_or_self(value: &Value) -> &Value {
     }
 }
 
-/// Dart `body['data'] is Map ? body['data'] : body`: `data` only if it is an object.
+/// The `data` field only if it is an object, else `value`.
 pub fn data_object_or_self(value: &Value) -> &Value {
     match value.get("data") {
         Some(data) if data.is_object() => data,

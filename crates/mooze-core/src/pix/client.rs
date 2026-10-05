@@ -1,8 +1,6 @@
 //! HTTP client for the PIX backend endpoints.
 //!
-//! Port of `PixDepositApi` and the request part of `PixRepositoryImpl`.
-//! Dart sends both calls through the authenticated Dio client, so both carry
-//! `Authorization: Bearer <jwt>`.
+//! Both calls carry `Authorization: Bearer <jwt>`.
 
 use std::future::Future;
 
@@ -13,7 +11,7 @@ use crate::{Error, Result};
 
 use super::entities::{NewDepositRequest, PixDepositResponse, PixTransactionDetails};
 
-/// Default backend base URL (Dart `BACKEND_API_URL` default).
+/// Default backend base URL.
 pub const DEFAULT_BACKEND_URL: &str = "https://api.mooze.app";
 
 /// Supplies the API session JWT. Integration wires it to the auth module.
@@ -61,7 +59,7 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
 
     /// Builds the `GET /transactions/status?ids=..` request.
     ///
-    /// Dio 5 encodes lists with `ListFormat.multi`: `ids=a&ids=b`.
+    /// The list repeats the key for each id: `ids=a&ids=b`.
     pub fn deposits_status_request(&self, ids: &[String], token: &str) -> HttpRequest {
         let mut url = format!("{}/transactions/status", self.base_url);
         for (i, id) in ids.iter().enumerate() {
@@ -72,7 +70,7 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
         HttpRequest::get(url).header("Authorization", format!("Bearer {token}"))
     }
 
-    /// Creates a PIX deposit. Only status 200 counts as success, as in Dart.
+    /// Creates a PIX deposit. Only status 200 counts as success.
     pub async fn create_deposit(&self, req: &NewDepositRequest) -> Result<PixDepositResponse> {
         let token = self.tokens.token().await?;
         let request = self.create_deposit_request(req, &token)?;
@@ -96,17 +94,16 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
     }
 }
 
-/// User message for a failed deposit creation, as in Dart `_requestNewPixDeposit`.
+/// User message for a failed deposit creation.
 ///
-// NOTE(port): Dart maps a connect timeout to the "cannot connect" text. The
-// core has one `Timeout` variant, so every timeout gets the "too slow" text.
+// NOTE: the core has one `Timeout` variant, so a connect timeout also gets the "too slow" text.
 pub fn create_deposit_error_message(error: &Error) -> String {
     match error {
         Error::Network(_) => {
             "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.".into()
         }
         Error::Timeout(_) => "O servidor demorou muito para responder. Tente novamente.".into(),
-        // Dio throws only for non-2xx. A 2xx other than 200 is a plain Exception.
+        // A 2xx status other than 200 gets the generic text.
         Error::Http { status, .. } if !(200..300).contains(status) => match status {
             400 => "Dados inválidos. Verifique o valor e tente novamente.".into(),
             401 => "Erro ao processar sua solicitação. Tente novamente.".into(),

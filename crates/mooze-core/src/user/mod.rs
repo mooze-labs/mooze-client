@@ -1,8 +1,4 @@
 //! User account: profile, spending levels, referral and phone verification.
-//!
-//! Port of `lib/shared/user/**`, `lib/shared/models/user_levels.dart`,
-//! `lib/features/wallet_level/**`, `lib/features/referral_input/**` and
-//! `lib/features/phone_verification/**` (data and domain layers).
 
 mod entities;
 mod levels;

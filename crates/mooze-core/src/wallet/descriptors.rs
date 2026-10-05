@@ -1,12 +1,10 @@
-//! Wallet descriptors. They must match the Flutter app byte for byte in
-//! the addresses they produce, or users lose sight of their funds.
+//! Wallet descriptors. They must produce the same addresses as existing
+//! user wallets, byte for byte. Otherwise users lose sight of their funds.
 //!
 //! - Bitcoin (BDK): `wpkh([fp/84'/0'/0'/0]xprv/*)` for receive and
 //!   `wpkh([fp/84'/0'/0'/1]xprv/*)` for change. Coin type `0'` on every
-//!   network, same as the old `bdk_flutter` derivation
-//!   (`bitcoin_wallet_service_impl.dart`, `_buildDescriptor`).
-//! - Liquid (LWK): `lwk_common::singlesig_desc` with `Wpkh` and `Slip77`,
-//!   same as `lwk.Descriptor.newConfidential` in `packages/lwk-dart`.
+//!   network, for compatibility with existing wallets.
+//! - Liquid (LWK): `lwk_common::singlesig_desc` with `Wpkh` and `Slip77`.
 //!   That is `ct(slip77(..),elwpkh([fp/84h/1776h/0h]xpub/<0;1>/*))` on
 //!   mainnet and coin type `1h` on testnet.
 
@@ -23,7 +21,7 @@ use super::mnemonic;
 use crate::domain::{AppNetwork, ChainId, LBTC_ASSET_ID};
 use crate::{Error, Result};
 
-/// L-BTC asset id on Liquid testnet (`lTestAssetId` in lwk-dart).
+/// L-BTC asset id on Liquid testnet.
 pub const LIQUID_TESTNET_POLICY_ASSET: &str = "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49";
 
 /// External (receive) derivation path of the BDK wallet.
@@ -63,7 +61,7 @@ pub fn bitcoin_network_kind(network: AppNetwork) -> NetworkKind {
     }
 }
 
-/// LWK network. Regtest maps to Liquid testnet, as in the Dart `_toLwkNetwork`.
+/// LWK network. Regtest maps to Liquid testnet.
 pub fn liquid_network(network: AppNetwork) -> lwk_wollet::Network {
     match network {
         AppNetwork::Mainnet => lwk_wollet::Network::Liquid,
@@ -71,7 +69,7 @@ pub fn liquid_network(network: AppNetwork) -> lwk_wollet::Network {
     }
 }
 
-/// Policy asset (L-BTC) id for the network, as in the Dart `_policyAssetId`.
+/// Policy asset (L-BTC) id for the network.
 pub fn liquid_policy_asset(network: AppNetwork) -> &'static str {
     match network {
         AppNetwork::Mainnet => LBTC_ASSET_ID,
@@ -185,8 +183,8 @@ mod tests {
     #[test]
     fn liquid_first_address_is_deterministic() {
         // Expected values come from `fixed_addresses_test` in lwk_wollet
-        // 0.9.0, the version lwk-dart pins (Wpkh + Slip77, same mnemonic).
-        // NOTE(port): still cross-check against the Flutter app output.
+        // 0.9.0 (Wpkh + Slip77, same mnemonic).
+        // NOTE: also cross-check these values against existing user wallets.
         let addr = |n| {
             let desc = liquid_descriptor(ABANDON, n).unwrap();
             desc.address(0, liquid_network(n).address_params()).unwrap().to_string()
@@ -201,7 +199,7 @@ mod tests {
             addr(AppNetwork::Testnet),
             "tlq1qq2xvpcvfup5j8zscjq05u2wxxjcyewk7979f3mmz5l7uw5pqmx6xf5xy50hsn6vhkm5euwt72x878eq6zxx2z58hd7zrsg9qn"
         );
-        // Regtest maps to Liquid testnet, as in Dart.
+        // Regtest maps to Liquid testnet.
         assert_eq!(addr(AppNetwork::Regtest), addr(AppNetwork::Testnet));
     }
 

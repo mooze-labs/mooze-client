@@ -6,8 +6,8 @@
 //! the wallet preloads the journal from the `KvStore`.
 //!
 //! LWK encrypts the values with a key derived from the descriptor, because
-//! the store reports `is_persisted() == true`. This replaces the Dart
-//! `lwk-db` directory.
+//! the store reports `is_persisted() == true`. Earlier app releases kept
+//! this state in an `lwk-db` directory.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};

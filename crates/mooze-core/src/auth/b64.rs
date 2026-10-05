@@ -1,4 +1,4 @@
-//! Base64 helpers that match `dart:convert`.
+//! Base64 helpers.
 
 use bdk_wallet::bitcoin::base64::alphabet;
 use bdk_wallet::bitcoin::base64::engine::general_purpose::{GeneralPurpose, GeneralPurposeConfig, STANDARD};
@@ -12,12 +12,12 @@ const LENIENT: GeneralPurposeConfig =
 const LENIENT_STANDARD: GeneralPurpose = GeneralPurpose::new(&alphabet::STANDARD, LENIENT);
 const LENIENT_URL_SAFE: GeneralPurpose = GeneralPurpose::new(&alphabet::URL_SAFE, LENIENT);
 
-/// Standard padded base64 (Dart `base64Encode`).
+/// Standard padded base64.
 pub fn encode(bytes: &[u8]) -> String {
     STANDARD.encode(bytes)
 }
 
-/// Decodes standard or URL-safe base64 (Dart `base64Decode` accepts both).
+/// Decodes standard or URL-safe base64. Padding is optional.
 pub fn decode(text: &str) -> Result<Vec<u8>> {
     LENIENT_STANDARD
         .decode(text)
@@ -25,7 +25,7 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
         .map_err(|e| Error::invalid(format!("base64: {e}")))
 }
 
-/// Decodes a JWT segment like Dart `Session._decodeJwt`.
+/// Decodes a base64url JWT segment.
 pub fn decode_jwt_segment(segment: &str) -> Result<Vec<u8>> {
     let mut text = segment.replace('-', "+").replace('_', "/");
     match text.len() % 4 {

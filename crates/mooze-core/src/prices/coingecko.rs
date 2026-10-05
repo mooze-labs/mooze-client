@@ -1,4 +1,4 @@
-//! CoinGecko simple price API. Port of `api/coingecko.dart` and `coingecko_price_service_impl.dart`.
+//! CoinGecko simple price API.
 
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -16,7 +16,7 @@ pub const COINGECKO_BASE_URL: &str = "https://api.coingecko.com/api/v3";
 /// Prices by coin id, then by currency.
 type CoinPrices = BTreeMap<String, BTreeMap<String, f64>>;
 
-/// Prices from CoinGecko. Dart `CoingeckoPriceServiceImpl` plus `CoingeckoApi`.
+/// Prices from CoinGecko.
 #[derive(Debug, Clone)]
 pub struct CoingeckoPriceService<H> {
     http: H,
@@ -29,7 +29,7 @@ impl<H: HttpClient> CoingeckoPriceService<H> {
         Self { http, currency }
     }
 
-    /// `GET /simple/price`. A non-200 status gives `Ok(None)`, as in Dart.
+    /// `GET /simple/price`. A non-200 status gives `Ok(None)`.
     pub async fn fetch_coin_prices(&self, coins: &[&str], currency: &str) -> Result<Option<CoinPrices>> {
         let url = format!("{COINGECKO_BASE_URL}/simple/price?ids={}&vs_currencies={currency}&precision=full", coins.join(","));
         let resp = self.http.send(HttpRequest::get(url)).await?;
@@ -62,7 +62,7 @@ impl<H: HttpClient> PriceService for CoingeckoPriceService<H> {
             }
             if (asset, currency) == (Asset::Depix, Currency::Usd) {
                 let Some(prices) = self.fetch_coin_prices(&["tether"], "brl").await? else { return Ok(None) };
-                // NOTE(port): Dart casts a missing tether/brl to double and throws. This port errors.
+                // A missing tether/brl price is an error.
                 let brl = prices.get("tether").and_then(|m| m.get("brl")).copied();
                 return brl.map(|b| Some(1.0 / b)).ok_or_else(|| Error::protocol("coingecko: tether/brl missing"));
             }

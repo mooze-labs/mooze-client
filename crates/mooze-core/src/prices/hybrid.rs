@@ -1,4 +1,4 @@
-//! Primary source with fallback. Port of `services/hybrid_price_service.dart`.
+//! Primary source with fallback.
 
 use std::future::Future;
 use std::sync::Arc;
@@ -14,13 +14,13 @@ use crate::Result;
 /// Connectivity hint from [`HybridPriceService::get_coin_price_with_connectivity`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Connectivity {
-    /// A price arrived. Dart calls `markOnline`.
+    /// A price arrived.
     Online,
-    /// No price, but a cached one exists. Dart calls `markOffline`.
+    /// No price, but a cached one exists.
     Offline,
 }
 
-/// Tries the primary source, then the other one. Dart `HybridPriceService`.
+/// Tries the primary source, then the other one.
 ///
 /// `B` is the Binance service, `G` the CoinGecko service. Both are normally
 /// [`CachedPriceService`]s. Errors from any source count as "no price".
@@ -33,8 +33,8 @@ pub struct HybridPriceService<B, G> {
 }
 
 /// The service the app builds: both sources cached in the same [`KvStore`].
-/// NOTE(port): both caches share one key per asset and currency, so a cached price from the
-/// primary source stops the fallback to the other source. Same as Dart.
+/// NOTE: both caches share one key per asset and currency.
+/// A cached price from the primary source stops the fallback to the other source.
 pub type StandardHybridPriceService<H, K, C> = HybridPriceService<
     CachedPriceService<BinancePriceService<H, C>, K, C>,
     CachedPriceService<CoingeckoPriceService<H>, K, C>,
@@ -90,7 +90,7 @@ where
         }
     }
 
-    /// Price plus a connectivity hint. Dart `getCoinPriceWithConnectivityUpdate`.
+    /// Price plus a connectivity hint.
     pub async fn get_coin_price_with_connectivity(&self, asset: Asset, currency: Option<Currency>)
         -> Result<(Option<f64>, Option<Connectivity>)> {
         let price = self.get_coin_price(asset, currency).await?;

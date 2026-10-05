@@ -1,12 +1,9 @@
-//! Wallet state lifecycle. Port of the logic in
-//! `wallet_directory_guard_impl.dart` and the wallet-state steps of
-//! `import_wallet.dart` / `delete_wallet.dart`.
+//! Wallet state lifecycle: the wallet-state steps of wallet import and delete.
 //!
-//! The Dart guard locks SDK working directories and deletes them on wipe.
-//! The core keeps wallet state under `KvStore` prefixes instead, so the
-//! guard tracks held prefixes and a wipe deletes their keys.
+//! The core keeps wallet state under `KvStore` prefixes. The guard tracks
+//! held prefixes, and a wipe deletes their keys.
 //!
-//! NOTE(port): the rest of import/delete (transaction store, notified-tx
+//! NOTE: the rest of import/delete (transaction store, notified-tx
 //! registry, credentials, PIN, session and pix cleanup) belongs to the
 //! store, sync and auth modules. Those steps are out of scope here.
 
@@ -40,8 +37,8 @@ impl NamespaceGuard {
 
     /// Takes the namespace. Fails if it is already held.
     ///
-    /// NOTE(port): Dart waits for the holder to release. The core has no
-    /// executor, so it fails and the caller retries.
+    /// NOTE: the core has no executor, so it does not wait for the holder.
+    /// It fails, and the caller retries.
     pub fn acquire(&mut self, namespace: &str) -> Result<()> {
         if !self.held.insert(namespace.to_owned()) {
             return Err(Error::InvalidState(format!("namespace {namespace} is in use")));
@@ -59,8 +56,8 @@ impl NamespaceGuard {
         self.held.contains(namespace)
     }
 
-    /// Force-releases the namespace and deletes its keys, like the Dart
-    /// wipe that drops a stuck lock and deletes the directory.
+    /// Force-releases the namespace and deletes its keys. A stuck lock does
+    /// not block the wipe.
     pub async fn wipe<K: KvStore>(&mut self, kv: &K, namespace: &str) -> Result<usize> {
         self.held.remove(namespace);
         wipe_prefix(kv, namespace).await

@@ -1,6 +1,5 @@
 //! Bitcoin <-> Liquid pegs through SideSwap: entities, amount validation,
-//! repository, orchestrator, tracker and store. Port of
-//! `lib/features/swap/domain/**` and the peg repositories in `data/`.
+//! repository, orchestrator, tracker and store.
 
 pub mod entities;
 pub mod orchestrator;

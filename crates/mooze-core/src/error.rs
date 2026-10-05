@@ -1,4 +1,4 @@
-//! Error type for the whole crate. Variants match the Dart `Failure` classes.
+//! Error type for the whole crate.
 
 use crate::domain::ChainId;
 

@@ -1,13 +1,10 @@
 //! Amount formatting and input normalization.
 //!
-//! Port of `lib/shared/entities/asset.dart` (format methods), `lib/utils/formatters.dart`,
-//! `lib/utils/transaction_formatters.dart` and `lib/shared/formatters/*_input_formatter.dart`.
-//! The Dart code uses the `intl` package. This module implements the same output for the
-//! locales the app ships (en, pt_BR, es) without a locale crate.
+//! The module covers the locales the app ships (en, pt_BR, es) without a locale crate.
 
 use crate::domain::{Asset, SATS_PER_UNIT};
 
-/// Locale for number grouping. Mirrors `localeStringProvider` in Dart.
+/// Locale for number grouping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Locale {
     /// `en_US`: `1,234.56`.
@@ -20,8 +17,7 @@ pub enum Locale {
 }
 
 impl Locale {
-    /// Parses a tag such as `pt_BR`, `pt-BR`, `es` or `en_US`. Unknown languages give `En`,
-    /// like `_withRegion` in Dart.
+    /// Parses a tag such as `pt_BR`, `pt-BR`, `es` or `en_US`. Unknown languages give `En`.
     pub fn from_tag(tag: &str) -> Self {
         let lang = tag.split(['_', '-']).next().unwrap_or("").to_ascii_lowercase();
         match lang.as_str() {
@@ -31,7 +27,7 @@ impl Locale {
         }
     }
 
-    /// Tag with region, as Dart builds it: `en_US`, `pt_BR`, `es_ES`.
+    /// Tag with region: `en_US`, `pt_BR`, `es_ES`.
     pub fn tag(self) -> &'static str {
         match self {
             Locale::En => "en_US",
@@ -70,8 +66,8 @@ pub fn group_digits(digits: &str, sep: char) -> String {
     out
 }
 
-/// Dart `double.toStringAsFixed(digits)`: exact decimal value, ties round away from zero.
-/// NOTE(port): Dart switches to exponent form at 1e21. This port never does.
+/// Fixed-point string with `digits` decimals: exact decimal value, ties round away from zero.
+/// NOTE: The output never switches to exponent form, also for large values.
 pub fn to_fixed(value: f64, digits: usize) -> String {
     if !value.is_finite() {
         return if value.is_nan() { "NaN".into() } else if value > 0.0 { "Infinity".into() } else { "-Infinity".into() };
@@ -109,7 +105,7 @@ pub fn to_fixed(value: f64, digits: usize) -> String {
     out
 }
 
-/// `intl` `NumberFormat('#,##0' + '.' + '0' * frac)` for a non-negative value.
+/// Grouped number with `frac` decimals (pattern `#,##0.00`) for a non-negative value.
 fn intl_fixed(value: f64, frac: u32, locale: Locale) -> String {
     let value = value.abs();
     let mut int_part = value.floor();
@@ -128,7 +124,7 @@ fn intl_fixed(value: f64, frac: u32, locale: Locale) -> String {
     out
 }
 
-/// Dart `Asset.formatBalance`: `0 SATS`, `1 SAT`, `1500 SATS`, `12.5 USDT`, `3 DEPIX`.
+/// Balance with unit: `0 SATS`, `1 SAT`, `1500 SATS`, `12.5 USDT`, `3 DEPIX`.
 pub fn format_balance(asset: Asset, sats: u64) -> String {
     match asset {
         Asset::Btc | Asset::Lbtc => match sats {
@@ -148,7 +144,7 @@ pub fn format_balance(asset: Asset, sats: u64) -> String {
     }
 }
 
-/// Dart `Asset.fromSatoshis`: sats for BTC and L-BTC, whole units for tokens.
+/// Display value: sats for BTC and L-BTC, whole units for tokens.
 pub fn from_satoshis(asset: Asset, sats: u64) -> f64 {
     match asset {
         Asset::Btc | Asset::Lbtc => sats as f64,
@@ -156,21 +152,21 @@ pub fn from_satoshis(asset: Asset, sats: u64) -> f64 {
     }
 }
 
-/// Dart `Asset.formatAsFiat`: `"<symbol> <value with 2 decimals>"`.
+/// Fiat value: `"<symbol> <value with 2 decimals>"`.
 pub fn format_as_fiat(asset: Asset, sats: u64, price: f64, currency_symbol: &str) -> String {
     format!("{currency_symbol} {}", to_fixed(asset.to_units(sats) * price, 2))
 }
 
-/// Dart `Asset.formatAsAsset`: 8 decimals plus the ticker (`BTC` for on-chain bitcoin).
+/// Amount with 8 decimals plus the ticker (`BTC` for on-chain bitcoin).
 pub fn format_as_asset(asset: Asset, sats: u64) -> String {
     if asset == Asset::Btc {
         return format!("{} BTC", to_fixed(sats as f64 / SATS_PER_UNIT as f64, 8));
     }
-    // NOTE(port): Dart does not divide L-BTC by 1e8 here, so 1 sat prints "1.00000000 BTC L2".
+    // NOTE: L-BTC is not divided by 1e8 here, so 1 sat prints "1.00000000 BTC L2".
     format!("{} {}", to_fixed(from_satoshis(asset, sats), 8), asset.ticker())
 }
 
-/// Dart `Asset.formatAsSatoshis`: `1 sat`, `5 sats`, or [`format_as_asset`] for tokens.
+/// Amount in sats: `1 sat`, `5 sats`, or [`format_as_asset`] for tokens.
 pub fn format_as_satoshis(asset: Asset, sats: u64) -> String {
     if asset.is_bitcoin() {
         format!("{sats} {}", if sats == 1 { "sat" } else { "sats" })
@@ -179,7 +175,7 @@ pub fn format_as_satoshis(asset: Asset, sats: u64) -> String {
     }
 }
 
-/// Dart `Asset.formatAmount`: grouped sats for BTC/L-BTC, 2 decimals for tokens. No unit.
+/// Amount without unit: grouped sats for BTC/L-BTC, 2 decimals for tokens. No unit.
 pub fn format_amount(asset: Asset, sats: u64, locale: Locale) -> String {
     match asset {
         Asset::Btc | Asset::Lbtc => group_digits(&sats.to_string(), locale.group_separator()),
@@ -187,7 +183,7 @@ pub fn format_amount(asset: Asset, sats: u64, locale: Locale) -> String {
     }
 }
 
-/// Dart `Asset.formatQuoteAmount`. `amount` is in whole units.
+/// Quote amount with unit. `amount` is in whole units.
 pub fn format_quote_amount(asset: Asset, amount: f64, locale: Locale) -> String {
     match asset {
         Asset::Btc | Asset::Lbtc => {
@@ -201,7 +197,6 @@ pub fn format_quote_amount(asset: Asset, amount: f64, locale: Locale) -> String 
     }
 }
 
-/// Dart `AssetDisplayName.displayName`.
 pub fn display_name(asset: Asset) -> &'static str {
     match asset {
         Asset::Btc => "Bitcoin",
@@ -211,7 +206,7 @@ pub fn display_name(asset: Asset) -> &'static str {
     }
 }
 
-/// Dart `TransactionValueFormatter.formatTransactionValue`: `+1.500 sats`, `-$ 2.50`, `+R$ 10.00`.
+/// Signed transaction value: `+1.500 sats`, `-$ 2.50`, `+R$ 10.00`.
 pub fn format_transaction_value(asset: Asset, amount_sats: u64, is_receive: bool) -> String {
     let sign = if is_receive { '+' } else { '-' };
     let units = amount_sats as f64 / SATS_PER_UNIT as f64;
@@ -225,7 +220,7 @@ pub fn format_transaction_value(asset: Asset, amount_sats: u64, is_receive: bool
     }
 }
 
-/// Dart `truncateHashId`: `abcde...vwxyz` for ids longer than 15 characters.
+/// Shortened id: `abcde...vwxyz` for ids longer than 15 characters.
 pub fn truncate_hash_id(tx_id: &str, length: usize) -> String {
     let chars: Vec<char> = tx_id.chars().collect();
     if chars.len() <= 15 {
@@ -250,7 +245,7 @@ fn input_digits(text: &str) -> Option<String> {
     Some(d)
 }
 
-/// `FiatInputFormatter.formatEditUpdate`: digits fill from the right, `1234` gives `12,34`.
+/// Fiat input mask: digits fill from the right, `1234` gives `12,34`.
 pub fn fiat_format_input(text: &str) -> String {
     let Some(mut d) = input_digits(text) else { return "0,00".into() };
     if d.len() < 3 {
@@ -261,12 +256,12 @@ pub fn fiat_format_input(text: &str) -> String {
     format!("{},{dec}", group_digits(if int_trim.is_empty() { "0" } else { int_trim }, '.'))
 }
 
-/// `FiatInputFormatter.parseValue`: `1.234,56` gives `1234.56`. Invalid text gives `0.0`.
+/// Parses fiat input: `1.234,56` gives `1234.56`. Invalid text gives `0.0`.
 pub fn fiat_parse_value(formatted: &str) -> f64 {
-    dart_parse_double(&formatted.replace('.', "").replace(',', ".")).unwrap_or(0.0)
+    parse_double(&formatted.replace('.', "").replace(',', ".")).unwrap_or(0.0)
 }
 
-/// `FiatInputFormatter.formatValue`: `1234.56` gives `1.234,56`. Non-positive gives `0,00`.
+/// Formats a fiat value: `1234.56` gives `1.234,56`. Non-positive gives `0,00`.
 pub fn fiat_format_value(value: f64) -> String {
     if value <= 0.0 || value.is_nan() {
         return "0,00".into();
@@ -277,7 +272,7 @@ pub fn fiat_format_value(value: f64) -> String {
     format!("{},{dec}", group_digits(if int_trim.is_empty() { "0" } else { int_trim }, '.'))
 }
 
-/// `BtcInputFormatter.formatEditUpdate`: digits fill 8 decimals from the right.
+/// BTC input mask: digits fill 8 decimals from the right.
 pub fn btc_format_input(text: &str) -> String {
     let Some(d) = input_digits(text) else { return "0.00000000".into() };
     if d.len() <= 8 {
@@ -288,7 +283,7 @@ pub fn btc_format_input(text: &str) -> String {
     }
 }
 
-/// `BtcInputFormatter.parseValue`: reads the digits as an 8-decimal number.
+/// Parses BTC input: reads the digits as an 8-decimal number.
 pub fn btc_parse_value(formatted: &str) -> f64 {
     let digits: String = formatted.chars().filter(char::is_ascii_digit).collect();
     let t = digits.trim_start_matches('0');
@@ -299,7 +294,7 @@ pub fn btc_parse_value(formatted: &str) -> f64 {
     s.parse().unwrap_or(0.0)
 }
 
-/// `BtcInputFormatter.formatValue`: 8 decimals. Non-positive gives `0.00000000`.
+/// Formats a BTC value: 8 decimals. Non-positive gives `0.00000000`.
 pub fn btc_format_value(value: f64) -> String {
     if value <= 0.0 || value.is_nan() {
         return "0.00000000".into();
@@ -307,17 +302,17 @@ pub fn btc_format_value(value: f64) -> String {
     to_fixed(value, 8)
 }
 
-/// `SatsInputFormatter.formatEditUpdate`: digits grouped with `.`.
+/// Sats input mask: digits grouped with `.`.
 pub fn sats_format_input(text: &str) -> String {
     input_digits(text).map_or_else(|| "0".into(), |d| group_digits(&d, '.'))
 }
 
-/// `SatsInputFormatter.parseValue`: removes `.` and parses. Invalid text gives `0`.
+/// Parses sats input: removes `.` and parses. Invalid text gives `0`.
 pub fn sats_parse_value(formatted: &str) -> i64 {
     formatted.replace('.', "").parse().unwrap_or(0)
 }
 
-/// `SatsInputFormatter.formatValue`: `1500000` gives `1.500.000`. Non-positive gives `0`.
+/// Formats a sats value: `1500000` gives `1.500.000`. Non-positive gives `0`.
 pub fn sats_format_value(value: i64) -> String {
     if value <= 0 {
         return "0".into();
@@ -325,10 +320,10 @@ pub fn sats_format_value(value: i64) -> String {
     group_digits(&value.to_string(), '.')
 }
 
-/// `CurrencyInputFormatter` (pt_BR, empty symbol) from `lib/utils/formatters.dart`.
-/// Returns `None` when Dart keeps the text unchanged (empty input).
-/// NOTE(port): intl's pt_BR currency pattern puts a no-break space before the number,
-/// so the output starts with `\u{a0}`. A typed trailing comma is dropped. Both kept.
+/// Currency input mask (pt_BR, empty symbol).
+/// Returns `None` when the text stays unchanged (empty input).
+/// NOTE: The pt_BR currency pattern puts a no-break space before the number,
+/// so the output starts with `\u{a0}`. A typed trailing comma is dropped. Both are intentional.
 pub fn currency_input_format(text: &str) -> Option<String> {
     if text.is_empty() {
         return None;
@@ -351,12 +346,12 @@ pub fn currency_input_format(text: &str) -> Option<String> {
         }
         Some(out)
     } else {
-        Some(currency(dart_parse_double(&new_text).unwrap_or(0.0) / 100.0))
+        Some(currency(parse_double(&new_text).unwrap_or(0.0) / 100.0))
     }
 }
 
-/// Dart `double.tryParse`: trims whitespace, accepts `NaN` and `Infinity`, rejects `inf`.
-pub fn dart_parse_double(s: &str) -> Option<f64> {
+/// Parses a double: trims whitespace, accepts `NaN` and `Infinity`, rejects `inf`.
+pub fn parse_double(s: &str) -> Option<f64> {
     let s = s.trim();
     match s {
         "NaN" => return Some(f64::NAN),
@@ -384,7 +379,7 @@ mod tests {
     }
 
     #[test]
-    fn to_fixed_matches_dart() {
+    fn to_fixed_rounding() {
         assert_eq!(to_fixed(1.005, 2), "1.00"); // 1.005 is 1.00499999... in binary
         assert_eq!(to_fixed(0.125, 2), "0.13"); // exact tie rounds away from zero
         assert_eq!(to_fixed(2.5, 0), "3");
@@ -492,11 +487,11 @@ mod tests {
     }
 
     #[test]
-    fn dart_double_parsing() {
-        assert_eq!(dart_parse_double(" 0.5 "), Some(0.5));
-        assert_eq!(dart_parse_double("1e-3"), Some(0.001));
-        assert_eq!(dart_parse_double("inf"), None);
-        assert!(dart_parse_double("Infinity").unwrap().is_infinite());
-        assert_eq!(dart_parse_double("abc"), None);
+    fn double_parsing() {
+        assert_eq!(parse_double(" 0.5 "), Some(0.5));
+        assert_eq!(parse_double("1e-3"), Some(0.001));
+        assert_eq!(parse_double("inf"), None);
+        assert!(parse_double("Infinity").unwrap().is_infinite());
+        assert_eq!(parse_double("abc"), None);
     }
 }

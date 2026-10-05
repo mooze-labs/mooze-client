@@ -1,4 +1,4 @@
-//! Peg amount validation. Port of `domain/usecases/peg_amount_validation.dart`.
+//! Peg amount validation.
 
 use super::entities::{PegDirection, PegServerLimits};
 
