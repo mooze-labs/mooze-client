@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
@@ -119,7 +118,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _configureSystemUi();
     // Lightweight rebuild counter — fires periodically so a rebuild
     // storm is visible in the log feed without flooding on every
     // build (e.g. each balance/sync tick).
@@ -280,15 +278,5 @@ Widget _buildActionButtons(BuildContext context, {Key? pixButtonKey}) {
         ),
       ),
     ],
-  );
-}
-
-void _configureSystemUi() {
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.black,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-    ),
   );
 }

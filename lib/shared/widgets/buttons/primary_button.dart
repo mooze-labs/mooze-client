@@ -9,7 +9,7 @@ class PrimaryButton extends StatelessWidget {
   final double? height;
   final Color? color;
 
-  PrimaryButton({
+  const PrimaryButton({
     super.key,
     required this.text,
     required this.onPressed,
@@ -24,6 +24,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = color ?? context.colors.primaryColor;
     return Container(
       width: double.infinity,
       height: height,
@@ -32,7 +33,7 @@ class PrimaryButton extends StatelessWidget {
             isEnabled
                 ? [
                   BoxShadow(
-                    color: const Color(0x3D840BCD),
+                    color: backgroundColor.withValues(alpha: 0.24),
                     offset: const Offset(8, 8),
                     blurRadius: 24,
                   ),
@@ -43,7 +44,7 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: (isEnabled && !isLoading) ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: color ?? context.colors.primaryColor,
+          backgroundColor: backgroundColor,
           foregroundColor: _textPrimary,
           padding: const EdgeInsets.symmetric(vertical: 10),
           elevation: 0,
