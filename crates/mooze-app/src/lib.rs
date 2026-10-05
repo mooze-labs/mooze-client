@@ -9,7 +9,9 @@ pub mod app;
 pub mod convert;
 pub mod dto;
 pub mod error;
+pub mod glue;
 pub mod platform;
+pub mod rules;
 #[cfg(test)]
 pub(crate) mod testing;
 

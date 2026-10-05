@@ -4,7 +4,8 @@
 //! `async fn`; the host decides which executor polls it. Each wallet sits
 //! behind its own async mutex, so calls on one wallet run one at a time.
 
-mod wallets;
+mod pix;
+pub(crate) mod wallets;
 
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -46,7 +47,6 @@ pub(crate) struct Inner<P: Platform> {
     device_safe: AtomicBool,
     metrics: RwLock<Option<Value>>,
     /// PIX deposits being polled, see `pix_poll_tick`.
-    #[allow(dead_code)] // read by the PIX methods
     pub(crate) pix_polls: std::sync::Mutex<Vec<DepositPoll>>,
 }
 
