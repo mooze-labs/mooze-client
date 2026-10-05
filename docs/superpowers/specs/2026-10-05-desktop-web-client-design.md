@@ -152,7 +152,7 @@ Adding a method means one line in the macro and one body in `App`. Hosts regener
   tungstenite WebSocket, tokio `Spawner`, `Timer` and `BlockingSpawner`.
 - Security model equals mobile: the keychain holds the mnemonic, the PIN gates the UI with
   the core `PinService` and `SessionLockTimeout` rules.
-- Chain backend: Electrum and Esplora both available. Default follows mobile.
+- Chain backend: Electrum and Esplora both available. Default is Electrum, like mobile.
 - `tauri-plugin-single-instance`. A hidden window counts as background for the lock clock
   only. Sync continues unthrottled.
 - Notifications through the Tauri notification plugin. Optional for the first release.
@@ -199,7 +199,10 @@ Browser ports:
 Deployment requirements:
 
 - CORS: the Mooze API must allow the web origin. Esplora at blockstream.info and
-  mempool.space already allow any origin. Check CoinGecko and Binance. SideSwap is WebSocket.
+  mempool.space already allow any origin. SideSwap is WebSocket.
+- Prices on the web come from a new Mooze backend API, not from CoinGecko or Binance
+  directly. Its contract is pending. The price port in `mooze-app` gets a second source
+  when the contract exists.
 - Strict Content Security Policy: no inline scripts, no third-party origins.
   Self-hosted fonts and assets. No analytics scripts. Subresource Integrity on every bundle.
 - The UI states that the desktop build avoids the web hosting trust problem.
@@ -286,7 +289,8 @@ Each phase ships alone and is testable alone.
 
 ## Open items
 
-1. Default chain backend on desktop: Electrum like mobile, or Esplora like web.
-2. Which price APIs allow browser CORS. Decide a proxy or a different source if one does not.
-3. Argon2id parameters measured in real browsers before the web phase.
-4. UniFFI wrapper crate name and location, when a native mobile host starts.
+1. Contract of the Mooze backend price API for the web. Pending instructions.
+2. Argon2id parameters measured in real browsers before the web phase.
+3. UniFFI wrapper crate name and location, when a native mobile host starts.
+
+Resolved: desktop defaults to Electrum, like mobile.
