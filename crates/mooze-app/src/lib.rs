@@ -13,6 +13,7 @@ pub mod events;
 pub mod glue;
 pub mod platform;
 pub mod rules;
+pub mod runtime;
 #[cfg(test)]
 pub(crate) mod testing;
 

@@ -28,6 +28,7 @@ use tokio::sync::Mutex;
 use crate::dto::*;
 use crate::events::{EventSink, Subscribers, SubscriptionId};
 use crate::glue::SideSwapState;
+use crate::runtime::RuntimeState;
 use crate::{AppError, ErrorCode, Platform, Result};
 
 pub(crate) type Bitcoin<P> = BitcoinWallet<<P as Platform>::Kv, <P as Platform>::Clock>;
@@ -55,12 +56,16 @@ pub(crate) struct Inner<P: Platform> {
     pub(crate) sideswap: Arc<SideSwapState<P>>,
     /// Event sinks of the hosts.
     pub(crate) subscribers: Subscribers,
+    /// Loops and lock state, see `runtime`.
+    pub(crate) runtime: RuntimeState,
 }
 
 impl<P: Platform> Drop for Inner<P> {
     fn drop(&mut self) {
         // The driver task holds only the SideSwap state. Stop it with the app.
         self.sideswap.stop_driver();
+        // The runtime loops hold only a Weak to this state. Wake them so they end now.
+        self.runtime.cancel_all();
     }
 }
 
@@ -234,6 +239,7 @@ impl<P: Platform> App<P> {
                 pix_polls: std::sync::Mutex::new(Vec::new()),
                 sideswap: Arc::new(SideSwapState::default()),
                 subscribers: Subscribers::default(),
+                runtime: RuntimeState::default(),
             }),
         })
     }
