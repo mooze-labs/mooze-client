@@ -1,5 +1,4 @@
-//! Custom chain node settings. Port of `bitcoin_settings_local_datasource.dart`
-//! and `liquid_settings_local_datasource.dart`.
+//! Custom chain node settings.
 //!
 //! An empty value means "default mode": the wallet rotates through the
 //! built-in servers. Pass the value to
@@ -12,9 +11,9 @@ use crate::{Error, Result};
 
 use super::json::{delete_key, get_json, put_json};
 
-/// Key of the Bitcoin node URL. Same name as the Dart preference.
+/// Key of the Bitcoin node URL. The name is part of the stored data format.
 pub const BITCOIN_NODE_URL_KEY: &str = "bitcoin_node_url";
-/// Key of the Liquid node URL. Same name as the Dart preference.
+/// Key of the Liquid node URL. The name is part of the stored data format.
 pub const LIQUID_NODE_URL_KEY: &str = "liquid_node_url";
 
 /// Store of the user's custom node URLs.

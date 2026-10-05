@@ -1,5 +1,4 @@
-//! Peg quote and execution. Port of `domain/usecases/peg_orchestrator.dart`
-//! and `domain/repositories/peg_wallet.dart`.
+//! Peg quote and execution.
 
 use std::future::Future;
 
@@ -137,7 +136,7 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
 
     /// Prices a peg without creating an order. The funding transaction is
     /// sized against the wallet's own address (BTC address for peg-in,
-    /// Liquid address for peg-out), like Dart.
+    /// Liquid address for peg-out).
     pub async fn quote(
         &mut self,
         direction: PegDirection,

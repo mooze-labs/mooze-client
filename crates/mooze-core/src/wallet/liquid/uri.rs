@@ -1,5 +1,4 @@
-//! Liquid destination helpers. Port of `liquidBip21`, `bareLiquidAddress`
-//! and `isLiquidDestination` in `wallet_repository_impl/liquid_spend.dart`.
+//! Liquid destination helpers.
 
 use crate::domain::LBTC_ASSET_ID;
 

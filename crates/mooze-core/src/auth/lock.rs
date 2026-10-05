@@ -1,5 +1,4 @@
-//! App lock decisions. Port of `lib/app/session/**` (logic only) and of
-//! `SessionLockTimeout` (`features/settings/domain/entities`).
+//! App lock decisions: lock timeout, resume lock, privacy shield and overlay.
 
 /// Grace period before a backgrounded app must re-authenticate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -68,7 +67,7 @@ pub enum SessionLockState {
     Locked,
 }
 
-/// Decides whether a resume requires re-authentication (Dart `SessionLockController`).
+/// Decides whether a resume requires re-authentication.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SessionLockController {
     state: SessionLockState,
@@ -136,8 +135,7 @@ pub enum PrivacyShieldState {
     Visible,
 }
 
-/// Shield state when the app starts leaving the foreground
-/// (Dart `PrivacyShieldController.onLeavingForeground`).
+/// Shield state when the app starts leaving the foreground.
 pub fn privacy_shield_on_leaving_foreground(
     current: PrivacyShieldState,
     auth_prompt_active: bool,
@@ -163,7 +161,6 @@ pub struct LockOverlay {
     pub show_authentication: bool,
 }
 
-/// Dart `resolveLockOverlay`.
 pub fn resolve_lock_overlay(privacy_shield_visible: bool, session_locked: bool) -> LockOverlay {
     LockOverlay { show_cover: privacy_shield_visible || session_locked, show_authentication: session_locked }
 }

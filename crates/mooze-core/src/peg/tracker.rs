@@ -1,7 +1,7 @@
-//! Peg tracker. Port of `domain/usecases/peg_tracker.dart`.
+//! Peg tracker.
 //!
-//! The Dart tracker owns timers and a stream. Here the tracker is pure state:
-//! it records the next poll time per order, and the platform asks
+//! The tracker is pure state and owns no timer.
+//! It records the next poll time per order, and the platform asks
 //! [`PegTracker::due`] when to call [`PegTracker::refresh`].
 
 use std::collections::BTreeMap;
@@ -36,7 +36,7 @@ impl TrackedPeg {
         self.phase.is_terminal()
     }
 
-    /// Dart `copyWith`: `None` keeps the old value.
+    /// Copy with new values. `None` keeps the old value.
     fn merged(&self, phase: PegPhase, payout: Option<&str>, confs: Option<u32>, required: Option<u32>) -> Self {
         let mut n = self.clone();
         n.phase = phase;
@@ -62,7 +62,7 @@ pub trait PegRecoverySource: MaybeSend + MaybeSync {
 /// What one status result changed.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TrackerUpdate {
-    /// True if [`PegTracker::current`] changed (Dart emitted).
+    /// True if [`PegTracker::current`] changed.
     pub changed: bool,
     /// Set when the peg became terminal and must be persisted.
     pub terminal: Option<TrackedPeg>,
@@ -141,7 +141,7 @@ impl PegTracker {
     }
 
     /// Adds restored pegs that are not tracked yet and schedules them.
-    /// Idempotent. Returns true (Dart always emits).
+    /// Idempotent. Always returns true.
     pub fn restore(&mut self, pegs: Vec<TrackedPeg>, now_ms: u64) -> bool {
         if self.disposed {
             return false;
@@ -209,7 +209,7 @@ impl PegTracker {
         !self.disposed && !self.offline && self.get(order_id).is_some_and(|p| !p.is_terminal())
     }
 
-    /// Applies one status result. Port of the body of `refresh`.
+    /// Applies one status result.
     ///
     /// Transport errors only reschedule. Order-not-found is terminal (failed).
     /// A backward non-terminal phase is ignored.

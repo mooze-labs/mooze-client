@@ -1,6 +1,5 @@
 //! Cold-start sequence.
 //!
-//! Port of `BootOrchestratorImpl` (`lib/features/boot/data/boot_orchestrator_impl.dart`).
 //! Phases: platform, database, credentials, services, session.
 //! Failure policy: platform, database and credential errors are fatal;
 //! one chain down is a soft degrade; all chains down is fatal; session
@@ -12,11 +11,11 @@ use crate::domain::{ChainId, WalletCredentials};
 use crate::ports::{Clock, MaybeSend, MaybeSync};
 use crate::{Error, Result};
 
-/// Per-service connect timeout in Dart.
+/// Per-service connect timeout.
 pub const CONNECT_TIMEOUT_MS: u64 = 45_000;
-/// Session authentication timeout in Dart.
+/// Session authentication timeout.
 pub const AUTH_TIMEOUT_MS: u64 = 10_000;
-/// Per-service disconnect cap during shutdown in Dart.
+/// Per-service disconnect cap during shutdown.
 pub const DISCONNECT_CAP_MS: u64 = 5_000;
 
 /// Boot phase.
@@ -58,13 +57,13 @@ impl BootState {
 
 /// Side effects the boot sequence needs. Integration implements it.
 pub trait BootServices: MaybeSend + MaybeSync {
-    /// Platform setup (Dart `PlatformInitializer.run`).
+    /// Platform setup.
     fn init_platform(&self) -> impl Future<Output = Result<()>> + MaybeSend;
-    /// Forces the store open (Dart reads `transactionStore.list(limit: 1)`).
+    /// Forces the store open.
     fn open_database(&self) -> impl Future<Output = Result<()>> + MaybeSend;
     /// Loads the wallet credentials.
     fn load_credentials(&self) -> impl Future<Output = Result<WalletCredentials>> + MaybeSend;
-    /// Chains to connect, in Dart order (liquid, bitcoin).
+    /// Chains to connect, in order (liquid, bitcoin).
     fn chains(&self) -> Vec<ChainId>;
     /// Connects one chain service. The platform enforces [`CONNECT_TIMEOUT_MS`].
     fn connect(&self, chain: ChainId, credentials: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend;
@@ -94,7 +93,7 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
         &self.state
     }
 
-    /// Drains every state emitted since the last call (Dart `state` stream).
+    /// Drains every state emitted since the last call.
     pub fn take_state_changes(&mut self) -> Vec<BootState> {
         std::mem::take(&mut self.state_log)
     }
@@ -153,8 +152,7 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
         }
 
         // Database.
-        // NOTE(port): Dart ignores a `Left` from `list` and fails only on a throw.
-        // Rust has no throw, so any error fails the phase.
+        // Any error from `open_database` fails the phase.
         self.enter(BootPhase::InitializingDatabase);
         let t0 = self.clock.now_ms();
         let r = self.services.open_database().await;

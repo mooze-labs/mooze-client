@@ -1,5 +1,4 @@
-//! Device id and request metrics. Port of `DeviceIdService`, `DeviceInfo`
-//! and `AuthInterceptor._collectMetrics`.
+//! Device id and request metrics.
 //!
 //! The platform reads the raw identifiers (unique serial, Android id,
 //! iOS identifierForVendor) and the device info. The core derives and
@@ -15,12 +14,12 @@ use crate::ports::SecureStore;
 /// Secure-store key of the device id.
 pub const DEVICE_ID_KEY: &str = "device_id";
 
-/// Hex SHA-256 of the raw id (Dart `_hashId`).
+/// Hex SHA-256 of the raw id.
 pub fn hash_device_id(raw: &str) -> String {
     sha256::Hash::hash(raw.as_bytes()).to_byte_array().to_lower_hex_string()
 }
 
-/// Hardware-based id (Dart `_getHardwareBasedId`).
+/// Hardware-based id.
 ///
 /// `serial` is `UniqueIdentifier.serial`; it is skipped when empty or
 /// `"unknown"`. `platform_id` is the Android id or the iOS
@@ -47,7 +46,7 @@ pub fn random_uuid_v4() -> String {
 
 /// Returns the persisted device id, or derives and stores one.
 ///
-/// Order (Dart `getDeviceId`): stored id, hardware-based id, random UUID.
+/// Order: stored id, hardware-based id, random UUID.
 /// Storage errors return a fresh UUID that is not persisted.
 pub async fn get_device_id<S: SecureStore>(store: &S, serial: Option<&str>, platform_id: Option<&str>) -> String {
     get_device_id_with_entropy(store, serial, platform_id, bdk_wallet::bitcoin::secp256k1::rand::random()).await
@@ -77,7 +76,7 @@ pub async fn get_device_id_with_entropy<S: SecureStore>(
     }
 }
 
-/// Removes the stored device id. Errors are ignored, as in Dart.
+/// Removes the stored device id. Errors are ignored by design.
 pub async fn clear_device_id<S: SecureStore>(store: &S) {
     let _ = store.delete(DEVICE_ID_KEY).await;
 }
@@ -87,14 +86,14 @@ pub async fn has_device_id<S: SecureStore>(store: &S) -> bool {
     matches!(store.get(DEVICE_ID_KEY).await, Ok(Some(b)) if !b.is_empty())
 }
 
-/// Device info the platform collects (Dart `DeviceInfo`).
+/// Device info the platform collects.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DeviceInfo {
     /// Battery level, 0 to 100.
     pub battery_level: Option<i64>,
     /// Screen brightness, 0.0 to 1.0.
     pub screen_brightness: Option<f64>,
-    /// Boot time as an ISO-8601 string (Dart `DateTime.toIso8601String`).
+    /// Boot time as an ISO-8601 string.
     pub boot_time: Option<String>,
 }
 

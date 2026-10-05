@@ -2,7 +2,7 @@
 
 use crate::Error;
 
-/// Error family. Port of the branches in Dart `humanizeError`.
+/// Error family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     /// Transport failure or timeout.
@@ -23,7 +23,7 @@ pub enum ErrorKind {
     SomethingWentWrong,
 }
 
-/// Maps a crate error to its family, as Dart `humanizeError` does.
+/// Maps a crate error to its family.
 pub fn classify_error(error: &Error) -> ErrorKind {
     match error {
         Error::Network(_) | Error::Timeout(_) => ErrorKind::NoInternet,
@@ -52,9 +52,9 @@ pub struct ServerErrorInfo {
     pub status_code: Option<u16>,
 }
 
-/// Detects "API down" errors the way `ensureAuthSessionProvider` does.
+/// Detects "API down" errors.
 ///
-/// The Dart code inspects the error text: it matches `500`, `502`, `503`,
+/// The check inspects the error text: it matches `500`, `502`, `503`,
 /// `504`, "server error" or "service unavailable", then extracts the first
 /// whole-word `5xx` number.
 pub fn detect_server_error(error: &Error) -> Option<ServerErrorInfo> {

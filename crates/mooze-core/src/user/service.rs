@@ -1,5 +1,4 @@
-//! User API calls and referral flow. Port of `UserServiceImpl`,
-//! `UserLevelStorageService` and `features/referral_input/**` (data/domain).
+//! User API calls and referral flow.
 
 use serde_json::{json, Value};
 
@@ -9,18 +8,18 @@ use crate::ports::{HttpClient, HttpMethod, KvStore};
 use crate::{Error, Result};
 
 /// Preferences key of the last seen spending level.
-/// NOTE(port): Dart names it "verification level" but stores `spending_level`.
+/// NOTE: the key says "verification level", but the value is `spending_level`.
 pub const STORED_LEVEL_KEY: &str = "user_verification_level";
 
 /// `POST /users/me/referral` answered 400.
 pub const REFERRAL_CODE_INVALID: &str = "referral_code_invalid";
 /// `POST /users/me/referral` answered 409.
 pub const REFERRAL_CODE_ALREADY_USED: &str = "referral_code_already_used";
-/// Apply use case: empty code.
+/// [`UserService::apply_referral_code`]: empty code.
 pub const REFERRAL_ERROR_EMPTY_CODE: &str = "referral_error_empty_code";
-/// Apply use case: validation failed or the code is invalid.
+/// [`UserService::apply_referral_code`]: validation failed or the code is invalid.
 pub const REFERRAL_ERROR_INVALID_CODE: &str = "referral_error_invalid_code";
-/// Apply use case: the apply call failed.
+/// [`UserService::apply_referral_code`]: the apply call failed.
 pub const REFERRAL_ERROR_APPLY_FAILED: &str = "referral_error_apply_failed";
 
 /// Result of [`UserService::get_user`].
@@ -28,7 +27,7 @@ pub const REFERRAL_ERROR_APPLY_FAILED: &str = "referral_error_apply_failed";
 pub struct UserFetch {
     /// The user.
     pub user: User,
-    /// Level change since the last fetch (Dart `levelChanges` stream event).
+    /// Level change since the last fetch.
     pub level_change: Option<LevelChange>,
 }
 
@@ -119,13 +118,13 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
         }
     }
 
-    /// The referral code on the account, if any (Dart `GetExistingReferralUseCase`).
+    /// The referral code on the account, if any.
     pub async fn get_existing_referral(&self) -> Result<Option<String>> {
         let fetch = self.get_user().await?;
         Ok(fetch.user.referred_by.filter(|c| !c.is_empty()))
     }
 
-    /// Validates then applies a code (Dart `ApplyReferralCodeUseCase`).
+    /// Validates then applies a code.
     ///
     /// Errors: empty code ([`Error::InvalidInput`] with
     /// [`REFERRAL_ERROR_EMPTY_CODE`]), invalid code or failed validation

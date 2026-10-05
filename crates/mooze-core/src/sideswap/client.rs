@@ -1,5 +1,4 @@
-//! SideSwap WebSocket JSON-RPC client. Port of `SideswapApi` and the request
-//! helpers of `SideswapService` in `sideswap.dart`.
+//! SideSwap WebSocket JSON-RPC client.
 //!
 //! The client runs no background task. [`SideSwapClient::call`] reads frames
 //! until the matching id arrives and queues every other frame as a
@@ -171,7 +170,7 @@ impl<C: WsConnector> SideSwapClient<C> {
             let Some(frame) = self.read_frame().await? else { continue };
             if frame.get("id").and_then(Value::as_u64) == Some(id) {
                 if let Some(err) = frame.get("error").filter(|e| !e.is_null()) {
-                    // Dart also fans the error out to the market stream.
+                    // The error also goes out on the market stream.
                     if let Some(n) = Notification::from_frame(&frame) {
                         self.notifications.push_back(n);
                     }
@@ -200,7 +199,7 @@ impl<C: WsConnector> SideSwapClient<C> {
         match conn.send_text(text).await {
             Ok(()) => Ok(()),
             Err(e) => {
-                // Dart drops the transport on a send error.
+                // A send error drops the transport.
                 self.conn = None;
                 Err(e)
             }
@@ -232,7 +231,7 @@ impl<C: WsConnector> SideSwapClient<C> {
         if trimmed == "ping" || trimmed == "pong" {
             return Ok(None);
         }
-        // Non-JSON frames are ignored, like the Dart listener.
+        // Non-JSON frames are ignored.
         match serde_json::from_str::<Value>(trimmed) {
             Ok(v @ Value::Object(_)) => Ok(Some(v)),
             _ => Ok(None),
@@ -271,7 +270,7 @@ impl<C: WsConnector> SideSwapClient<C> {
         self.call_typed(&Request::server_status()).await
     }
 
-    /// `assets`. Dart defaults: `all_assets` true, `embedded_icons` false.
+    /// `assets`. Usual values: `all_assets` true, `embedded_icons` false.
     pub async fn assets(&mut self, all_assets: bool, embedded_icons: bool) -> Result<Vec<SideswapAsset>> {
         let v = self.call(&Request::assets(all_assets, embedded_icons)).await?;
         sub_field(&v, &["assets"])

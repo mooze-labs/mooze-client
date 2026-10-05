@@ -1,8 +1,7 @@
-//! BIP39 mnemonic helpers. Port of `lib/utils/mnemonic.dart`.
+//! BIP39 mnemonic helpers.
 //!
-//! The Dart app generates 12 words (128 bits of entropy) or 24 words
+//! The app generates 12 words (128 bits of entropy) or 24 words
 //! (256 bits) with the "extended phrase" option. Only English is supported.
-//! NOTE(port): the Dart helper accepts a `Language`; the app always passes English.
 
 use bdk_wallet::bitcoin::secp256k1::rand::{thread_rng, RngCore};
 use bdk_wallet::keys::bip39::Mnemonic;

@@ -1,9 +1,6 @@
 //! Payment request parsing for the send flow: QR codes, pasted text, clipboard and deep links.
 //!
-//! Port of `send_funds/{qr_validation_service,amount_detection_provider,network_detection_provider,
-//! clean_address_provider,payment_request_applier}.dart`, `deep_links/pending_payment_link.dart`
-//! and the clipboard detectors (`clipboard_address_suggestion.dart`, `PixKeyDetector`).
-//! The Dart functions are prefix heuristics. They are kept as is. [`parse_payment_request`]
+//! Validation and detection use prefix heuristics. [`parse_payment_request`]
 //! adds a strict check with `bitcoin::Address` and `elements::Address`.
 
 use std::str::FromStr;
@@ -12,10 +9,10 @@ use bdk_wallet::bitcoin::{self, address::NetworkUnchecked};
 use lwk_wollet::elements::{self, AddressParams};
 
 use crate::domain::{AppNetwork, Asset, DEPIX_ASSET_ID, LBTC_ASSET_ID, USDT_ASSET_ID};
-use crate::format::dart_parse_double;
+use crate::format::parse_double;
 use crate::{Error, Result};
 
-/// Stable error codes for QR validation. Same names as the Dart enum.
+/// Stable error codes for QR validation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum QrErrorCode {
     Empty,
@@ -32,7 +29,7 @@ pub enum QrErrorCode {
     LnurlUnsupported,
 }
 
-/// Network a destination belongs to. Dart `NetworkType`.
+/// Network a destination belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NetworkType {
     Bitcoin,
@@ -57,7 +54,7 @@ fn all_digits(s: &str) -> bool {
     !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit())
 }
 
-/// Minimal Dart `Uri.parse` for `scheme:rest`: returns the path. `Err` means a format error.
+/// Minimal URI parse for `scheme:rest`: returns the path. `Err` means a format error.
 fn uri_path(data: &str) -> std::result::Result<String, ()> {
     let rest = data.split_once(':').map_or(data, |(_, r)| r);
     let rest = rest.split('#').next().unwrap_or("");
@@ -77,7 +74,7 @@ fn uri_path(data: &str) -> std::result::Result<String, ()> {
     }
 }
 
-/// Dart `QrValidationService.validateQrData`. `Ok` holds the cleaned data (the input itself).
+/// Validates scanned or pasted data. `Ok` holds the cleaned data (the input itself).
 pub fn validate_qr_data(data: &str) -> std::result::Result<String, QrErrorCode> {
     if data.is_empty() {
         return Err(QrErrorCode::Empty);
@@ -121,8 +118,8 @@ pub fn validate_qr_data(data: &str) -> std::result::Result<String, QrErrorCode> 
     if lower.starts_with("lnurl") || lower.contains('@') {
         return Err(QrErrorCode::LnurlUnsupported);
     }
-    // NOTE(port): Dart misses `ex1`, `tlq1`, `tex1`, `el1` and `Q` Liquid prefixes, and accepts
-    // any text that starts with `m`, `n`, `H` or `G`. Kept for parity.
+    // NOTE: `ex1`, `tlq1`, `tex1`, `el1` and `Q` Liquid prefixes are not recognized. Any text that
+    // starts with `m`, `n`, `H` or `G` passes. [`parse_payment_request`] covers the strict case.
     if starts_any(data, &BITCOIN_PREFIXES) || starts_any(data, &LIQUID_PREFIXES) {
         return Ok(data.to_owned());
     }
@@ -130,8 +127,8 @@ pub fn validate_qr_data(data: &str) -> std::result::Result<String, QrErrorCode> 
 }
 
 /// Finds the BOLT11 amount section in `rest` (the invoice after `lnbc`, lower case).
-/// Returns the section, multiplier included. `boltz_limit` caps the digit scan at 20 like
-/// `_validateBoltzInvoice`.
+/// Returns the section, multiplier included. `boltz_limit` caps the digit scan at 20
+/// for Boltz invoice validation.
 fn bolt11_amount_section(rest: &str, boltz_limit: bool) -> Option<&str> {
     for m in ['m', 'u', 'n', 'p'] {
         if let Some(i) = rest.find(&format!("{m}1")) {
@@ -145,7 +142,7 @@ fn bolt11_amount_section(rest: &str, boltz_limit: bool) -> Option<&str> {
     (1..limit).find(|&i| bytes[i] == b'1' && i > 1 && all_digits(&rest[..i])).map(|i| &rest[..i])
 }
 
-/// Dart `NetworkDetectionService.isLightningAddress`.
+/// True for a BOLT11 invoice, `lightning:` link, LNURL or `user@domain` address.
 pub fn is_lightning_address(address: &str) -> bool {
     let a = address.trim().to_lowercase();
     if a.is_empty() {
@@ -163,7 +160,7 @@ pub fn is_lightning_address(address: &str) -> bool {
     domain.char_indices().any(|(i, c)| c == '.' && i > 0 && i + 1 < domain.len())
 }
 
-/// Dart `NetworkDetectionService.detectNetworkType`. Lightning gives `Unknown`.
+/// Detects the network from the address prefix. Lightning gives `Unknown`.
 pub fn detect_network_type(address: &str) -> NetworkType {
     if address.is_empty() || is_lightning_address(address) {
         return NetworkType::Unknown;
@@ -181,7 +178,7 @@ fn is_liquid_address_with_params(address: &str) -> bool {
     address.contains('?') && starts_any(address.split('?').next().unwrap_or(""), &LIQUID_PREFIXES)
 }
 
-/// Dart `cleanAddressProvider`: the bare address from a URI, a `lightning:` link or `addr?query`.
+/// Returns the bare address from a URI, a `lightning:` link or `addr?query`.
 pub fn clean_address(full: &str) -> String {
     if full.is_empty() {
         return String::new();
@@ -198,7 +195,7 @@ pub fn clean_address(full: &str) -> String {
     full.to_owned()
 }
 
-/// Dart `normalizedAddressForBreezProvider`: adds `liquidnetwork:` to `liquid-addr?query`.
+/// Adds `liquidnetwork:` to `liquid-addr?query`.
 pub fn normalized_address_for_breez(full: &str) -> String {
     if is_liquid_address_with_params(full) && !full.starts_with("liquidnetwork:") && !full.starts_with("liquid:") {
         format!("liquidnetwork:{full}")
@@ -207,10 +204,10 @@ pub fn normalized_address_for_breez(full: &str) -> String {
     }
 }
 
-/// Dart `AmountDetectionResult`.
+/// Amount, asset and labels found in a payment request.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct AmountDetection {
-    /// Amount in base units. `Some(0)` is possible for tiny amounts, as in Dart.
+    /// Amount in base units. `Some(0)` is possible for tiny amounts.
     pub amount_sats: Option<u64>,
     pub asset: Option<Asset>,
     pub label: Option<String>,
@@ -224,7 +221,7 @@ impl AmountDetection {
     }
 }
 
-/// Dart `AmountDetectionService.detectAmount`.
+/// Reads the amount from a BOLT11 invoice or a URI query.
 pub fn detect_amount(input: &str) -> AmountDetection {
     let clean = input.trim();
     if clean.to_lowercase().starts_with("lnbc") {
@@ -239,8 +236,8 @@ pub fn detect_amount(input: &str) -> AmountDetection {
 fn lightning_amount(lower: &str) -> AmountDetection {
     let base = AmountDetection { asset: Some(Asset::Lbtc), ..Default::default() };
     let Some(section) = bolt11_amount_section(&lower[4..], false) else { return AmountDetection::default() };
-    let num = |s: &str| dart_parse_double(&s[..s.len() - 1]);
-    // NOTE(port): Dart reads a bare amount as millisats; BOLT11 says whole BTC. Kept.
+    let num = |s: &str| parse_double(&s[..s.len() - 1]);
+    // NOTE: A bare amount reads as millisats. BOLT11 specifies whole BTC. This is intentional.
     let sats = match section.chars().last() {
         Some('m') => num(section).map(|b| (b * 100_000.0).round()),
         Some('u') => num(section).map(|b| (b * 100.0).round()),
@@ -254,7 +251,7 @@ fn lightning_amount(lower: &str) -> AmountDetection {
     }
 }
 
-/// Dart `Uri.decodeComponent`: strict `%XX` decoding, UTF-8 output, `+` stays `+`.
+/// Percent-decodes a URI component: strict `%XX` decoding, UTF-8 output, `+` stays `+`.
 fn decode_component(s: &str) -> Option<String> {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
@@ -281,7 +278,7 @@ fn asset_from_hint(asset_id: &str, current: Asset) -> Asset {
     }
 }
 
-/// Dart `_extractQueryParameters`. `None` stands for a Dart exception (empty result).
+/// Reads the query parameters. `None` means a malformed value (empty result).
 fn query_amount(address: &str) -> Option<AmountDetection> {
     let parts: Vec<&str> = address.split('?').collect();
     if parts.len() != 2 {
@@ -305,10 +302,10 @@ fn query_amount(address: &str) -> Option<AmountDetection> {
         asset = asset_from_hint(id, asset);
     }
     let mut amount_sats = None;
-    if let Some(amount) = params.get("amount").filter(|s| !s.is_empty()).and_then(|s| dart_parse_double(s)) {
+    if let Some(amount) = params.get("amount").filter(|s| !s.is_empty()).and_then(|s| parse_double(s)) {
         if amount > 0.0 {
             let sats = (amount * 100_000_000.0).round();
-            // Dart throws on Infinity.round() and the catch returns an empty result.
+            // A non-finite or overflowing amount gives an empty result.
             if !sats.is_finite() || sats > i64::MAX as f64 {
                 return None;
             }
@@ -323,7 +320,7 @@ fn query_amount(address: &str) -> Option<AmountDetection> {
     })
 }
 
-/// Dart `PaymentRequestApplier.displayAddress`: strips a BIP21 scheme and query.
+/// Strips a BIP21 scheme and query.
 pub fn display_address(data: &str) -> String {
     let lower = data.to_lowercase();
     if !starts_any(&lower, &URI_PREFIXES) {
@@ -332,7 +329,7 @@ pub fn display_address(data: &str) -> String {
     uri_path(data).unwrap_or_else(|()| data.to_owned())
 }
 
-/// Dart `PaymentRequestApplier.autoSwitchAsset`. Returns the new selection, if it changes.
+/// Picks the asset for the request. Returns the new selection, if it changes.
 pub fn auto_switch_asset(data: &str, current: Asset) -> Option<Asset> {
     if data.is_empty() {
         return None;
@@ -362,7 +359,7 @@ pub struct AppliedPayment {
     pub selected_asset: Option<Asset>,
 }
 
-/// Dart `PaymentRequestApplier.apply` without the widget glue.
+/// Validates `raw` and computes the send form update.
 pub fn apply_payment_request(raw: &str, current: Asset) -> std::result::Result<AppliedPayment, QrErrorCode> {
     let cleaned = validate_qr_data(raw.trim())?;
     Ok(AppliedPayment {
@@ -372,7 +369,7 @@ pub fn apply_payment_request(raw: &str, current: Asset) -> std::result::Result<A
     })
 }
 
-/// Clipboard text worth offering in the send flow. Dart `ClipboardAddressSuggestion._checkClipboard`.
+/// Clipboard text worth offering in the send flow.
 pub fn clipboard_address_candidate(clipboard: &str, address_state_empty: bool) -> Option<String> {
     let text = clipboard.trim();
     if text.is_empty() || text.chars().count() > 2048 || validate_qr_data(text).is_err() || !address_state_empty {
@@ -381,7 +378,7 @@ pub fn clipboard_address_candidate(clipboard: &str, address_state_empty: bool) -
     Some(text.to_owned())
 }
 
-/// Dart `PixKeyDetector.looksLikePixKey`: BR Code, e-mail, EVP, phone, CPF or CNPJ.
+/// True for a likely Pix key: BR Code, e-mail, EVP, phone, CPF or CNPJ.
 pub fn looks_like_pix_key(value: &str) -> bool {
     let v = value.trim();
     if v.is_empty() || v.chars().count() > 1024 {
@@ -433,10 +430,10 @@ fn is_br_phone(v: &str) -> bool {
     m(v.as_bytes(), 0)
 }
 
-/// Dart `PendingPaymentLink.schemes`.
+/// URI schemes that hold a payment request.
 pub const PAYMENT_SCHEMES: [&str; 3] = ["bitcoin", "liquidnetwork", "liquid"];
 
-/// Holds an incoming payment link until the send flow can use it. Dart `PendingPaymentLink`.
+/// Holds an incoming payment link until the send flow can use it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PendingPaymentLink {
     value: Option<String>,
@@ -449,7 +446,7 @@ impl PendingPaymentLink {
     }
 
     /// Rebuilds `scheme:address?query` and strips leading slashes from the path.
-    /// NOTE(port): like Dart `Uri`, `bitcoin://addr` puts the address in the host and loses it.
+    /// NOTE: `bitcoin://addr` puts the address in the host, so the result loses it.
     pub fn to_raw(uri: &str) -> String {
         let (scheme, rest) = uri.split_once(':').unwrap_or(("", uri));
         let path = uri_path(uri).unwrap_or_default();
@@ -509,9 +506,9 @@ fn is_liquid_address(addr: &str, n: AppNetwork) -> bool {
     elements::Address::from_str(addr).is_ok_and(|a| a.params == liquid_params(n))
 }
 
-/// Strict parse: Dart validation and detection, then a real address parse and network check.
+/// Strict parse: prefix validation and detection, then a real address parse and network check.
 ///
-/// Text that Dart calls unrecognized is still accepted when it parses as an address of
+/// Text that [`validate_qr_data`] calls unrecognized is still accepted when it parses as an address of
 /// `network` (for example `ex1...` or `tlq1...`). Lightning is rejected.
 pub fn parse_payment_request(raw: &str, network: AppNetwork) -> Result<PaymentRequest> {
     let raw = raw.trim();
@@ -564,7 +561,7 @@ mod tests {
     }
 
     #[test]
-    fn qr_validation_matches_dart_tests() {
+    fn qr_validation_vectors() {
         assert_eq!(validate_qr_data(BOLTZ).as_deref(), Ok(BOLTZ));
         assert_eq!(validate_qr_data(BOLTZ_NO_AMOUNT), Err(E::BoltzNoAmount));
         assert_eq!(validate_qr_data("lnbc1p0xlkhkpp5test"), Err(E::LightningUnsupported));
@@ -589,7 +586,7 @@ mod tests {
         }
         assert_eq!(validate_qr_data(""), Err(E::Empty));
         assert_eq!(validate_qr_data("random-invalid-qr-data-12345"), Err(E::Unrecognized));
-        assert_eq!(validate_qr_data(&liquid(&AddressParams::LIQUID, false, false)), Err(E::Unrecognized)); // ex1: Dart gap
+        assert_eq!(validate_qr_data(&liquid(&AddressParams::LIQUID, false, false)), Err(E::Unrecognized)); // ex1: unknown prefix
     }
 
     #[test]
@@ -622,7 +619,7 @@ mod tests {
     }
 
     #[test]
-    fn amount_detection_matches_dart() {
+    fn amount_detection() {
         let d = detect_amount(BOLTZ);
         assert_eq!((d.amount_sats, d.asset), (Some(50_000), Some(Asset::Lbtc)));
         assert_eq!(detect_amount("lnbc500m1p0xlkhkpp5test").amount_sats, Some(50_000_000));
@@ -632,7 +629,7 @@ mod tests {
         assert!(!detect_amount("lnbc1p0xlkhkpp5test").has_amount());
         let d = detect_amount("bitcoin:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.5&label=Donation&message=Thank%20you");
         assert_eq!(d, AmountDetection { amount_sats: Some(50_000_000), asset: Some(Asset::Btc), label: Some("Donation".into()), message: Some("Thank you".into()) });
-        // NOTE(port): Dart tests expect Asset::Btc here; the Dart code returns no asset without a query.
+        // NOTE: A URI without a query gives no asset.
         assert_eq!(detect_amount(&format!("bitcoin:{BC1}")), AmountDetection::default());
         assert_eq!(detect_amount(&format!("bitcoin:{BC1}?amount=0.00000001")).amount_sats, Some(1));
         assert_eq!(detect_amount(&format!("bitcoin:{BC1}?amount=21")).amount_sats, Some(2_100_000_000));
@@ -738,7 +735,7 @@ mod tests {
         assert!(parse_payment_request(&conf, AppNetwork::Testnet).is_err());
         let regtest = liquid(&AddressParams::ELEMENTS, false, false);
         assert_eq!(parse_payment_request(&regtest, AppNetwork::Regtest).unwrap().network, NetworkType::Liquid);
-        assert!(parse_payment_request("VJLCzH7NXR4xbD5jMqZmLz8yGxE6SqYk3P", m).is_err()); // Dart test vector, not a real address
+        assert!(parse_payment_request("VJLCzH7NXR4xbD5jMqZmLz8yGxE6SqYk3P", m).is_err()); // prefix match, not a real address
         assert!(parse_payment_request(&format!("liquidnetwork:{BC1}"), m).is_err());
     }
 }

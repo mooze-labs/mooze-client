@@ -1,4 +1,4 @@
-//! User entities. Port of `lib/shared/user/entities/**`.
+//! User entities.
 
 use std::collections::BTreeMap;
 
@@ -9,8 +9,8 @@ use crate::{Error, Result};
 
 /// The backend user (`GET /users/me`).
 ///
-/// NOTE(port): spending fields are BRL cents sent as JSON numbers; Dart keeps
-/// them as `double`, so the core does too.
+/// NOTE: spending fields are BRL cents sent as JSON numbers. The core keeps
+/// them as `f64`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct User {
     /// JSON `user_id`.
@@ -32,7 +32,7 @@ pub struct User {
 }
 
 impl User {
-    /// Parses `{data: {...}}` or the flat shape (Dart `User.fromJson`).
+    /// Parses `{data: {...}}` or the flat shape.
     pub fn from_json(json: &Value) -> Result<Self> {
         let data = data_or_self(json);
         let mut values_to_receive = BTreeMap::new();
@@ -41,7 +41,7 @@ impl User {
                 if let Some(i) = value.as_i64() {
                     values_to_receive.insert(key.clone(), i);
                 } else if let Some(f) = value.as_f64() {
-                    // Dart `num.toInt()` truncates.
+                    // Fractional values are truncated.
                     values_to_receive.insert(key.clone(), f.trunc() as i64);
                 }
             }
@@ -80,7 +80,7 @@ fn missing(key: &str) -> Error {
 pub enum LevelChangeType {
     /// New level is higher.
     Upgrade,
-    /// New level is lower (or equal, as in Dart).
+    /// New level is lower or equal.
     Downgrade,
 }
 

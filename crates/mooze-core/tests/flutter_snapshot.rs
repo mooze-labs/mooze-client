@@ -1,9 +1,8 @@
-//! Imports the golden snapshot that the Dart exporter test also checks.
+//! Imports the golden snapshot that the app's exporter test also checks.
 //!
-//! `test/infra/migration/flutter_data_exporter_test.dart` asserts that the
-//! exporter writes exactly `tests/fixtures/flutter_snapshot_v1.json`. This
-//! test asserts that the core imports that file. Together they pin the
-//! format on both sides.
+//! The exporter test asserts that the Flutter app writes exactly
+//! `tests/fixtures/flutter_snapshot_v1.json`. This test asserts that the
+//! core imports that file. Together they pin the format on both sides.
 
 use std::sync::Arc;
 

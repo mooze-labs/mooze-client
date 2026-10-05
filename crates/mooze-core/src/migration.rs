@@ -3,12 +3,12 @@
 //! The Flutter app keeps its data in two SQLite databases and in
 //! SharedPreferences:
 //!
-//! - `AppDatabase` (drift): swaps, pegs, deposits, products, sync metadata,
+//! - The drift app database: swaps, pegs, deposits, products, sync metadata,
 //!   favorite payers, app logs and a legacy transactions table.
 //! - `mooze_v2.db`: transactions, notified transaction ids and notifier metadata.
 //! - SharedPreferences: flags and settings.
 //!
-//! The Dart side reads all of it and writes one JSON [`LegacySnapshot`].
+//! The Flutter app reads all of it and exports one JSON [`LegacySnapshot`].
 //! [`import_flutter_data`] writes the snapshot into the core stores once,
 //! then sets a marker. The core needs no SQLite code for this.
 //!
@@ -56,8 +56,8 @@ const META_BASELINE: &str = "baseline_completed";
 /// Notifier metadata key: wallet import time in ms.
 const META_IMPORTED_AT: &str = "wallet_imported_at_ms";
 
-/// Everything the Dart side exports. Field names are the contract with the
-/// Dart exporter. Times are ms since the Unix epoch.
+/// Everything the Flutter app exports. Field names are the contract with the
+/// app's exporter. Times are ms since the Unix epoch.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct LegacySnapshot {
     /// Must equal [`SNAPSHOT_VERSION`].
@@ -316,7 +316,7 @@ async fn import_notifier_state<K: KvStore + Clone>(
 
     for (key, value) in &snapshot.notification_meta {
         match key.as_str() {
-            // Dart writes '1' for true.
+            // The app stores '1' for true.
             META_BASELINE if value == "1" || value == "true" => {
                 registry.set_baseline_complete().await?;
                 report.count("notification_meta");
@@ -553,7 +553,7 @@ mod tests {
 
     const NOW: u64 = 1_759_686_400_000;
 
-    /// A snapshot with the shapes the Dart exporter writes.
+    /// A snapshot with the shapes the app's exporter writes.
     fn snapshot_json() -> serde_json::Value {
         json!({
             "version": 1,

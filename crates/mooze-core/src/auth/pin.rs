@@ -1,8 +1,8 @@
-//! PIN hash and local unlock session. Port of `lib/services/auth.dart`.
+//! PIN hash and local unlock session.
 //!
 //! Secrets (`hashedPin`, `pinSalt`) go to [`SecureStore`]. Counters
 //! (`pinAttempts`, `lastAuthTime`, `sessionLockTimeout`) go to [`KvStore`],
-//! where Dart used SharedPreferences. Integers are stored as decimal text.
+//! the key-value preferences store. Integers are stored as decimal text.
 
 use bdk_wallet::bitcoin::hashes::{sha256, Hash};
 use bdk_wallet::bitcoin::hex::DisplayHex;
@@ -20,12 +20,12 @@ pub const PIN_SALT_KEY: &str = "pinSalt";
 pub const PIN_ATTEMPTS_KEY: &str = "pinAttempts";
 /// Preferences key of the last successful authentication time (ms).
 pub const LAST_AUTH_TIME_KEY: &str = "lastAuthTime";
-/// Maximum PIN attempts (Dart `maxPinAttemps`).
+/// Maximum PIN attempts.
 pub const MAX_PIN_ATTEMPTS: u32 = 5;
 /// Minimum PIN length.
 pub const MIN_PIN_LENGTH: usize = 4;
 
-/// Hex SHA-256 of `pin + salt`, as Dart stores it.
+/// Hex SHA-256 of `pin + salt`. This is the stored hash format.
 pub fn hash_pin(pin: &str, salt: &str) -> String {
     sha256::Hash::hash(format!("{pin}{salt}").as_bytes()).to_byte_array().to_lower_hex_string()
 }
@@ -57,7 +57,7 @@ impl<S: SecureStore, K: KvStore, C: Clock> PinService<S, K, C> {
 
     /// [`Self::create_pin`] with a caller-supplied salt.
     pub async fn create_pin_with_salt(&self, pin: &str, salt: &[u8]) -> Result<bool> {
-        // NOTE(port): Dart checks `String.length` (UTF-16 units); digits make it equal.
+        // NOTE: The check counts chars, not UTF-16 units. Both counts are equal for digit PINs.
         if pin.chars().count() < MIN_PIN_LENGTH {
             return Ok(false);
         }

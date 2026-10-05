@@ -1,7 +1,6 @@
 //! Persisted transactions for every chain.
 //!
-//! Port of `SqliteTransactionStore` (`lib/infra/storage/transaction_store_impl.dart`).
-//! The Dart `watch` stream is replaced by the events that [`TransactionStore::upsert_all`] returns.
+//! [`TransactionStore::upsert_all`] returns change events. The store has no watch stream.
 
 use crate::domain::{ChainFilter, ChainId, Transaction, TransactionEvent, TransactionSource};
 use crate::ports::KvStore;
@@ -15,12 +14,12 @@ pub const TX_PREFIX: &str = "tx/";
 /// Real chains in lookup order for [`TransactionStore::find_by_id`].
 const LOOKUP_CHAINS: [ChainId; 3] = [ChainId::Liquid, ChainId::Bitcoin, ChainId::Lightning];
 
-/// Key of one row. The composite key is `(id, chain)`, as in the SQLite table.
+/// Key of one row. The composite key is `(id, chain)`.
 pub fn tx_key(chain: ChainId, id: &str) -> String {
     format!("{TX_PREFIX}{}/{id}", chain.as_str())
 }
 
-/// Merges an incoming write into the stored row with the Dart source-aware rules.
+/// Merges an incoming write into the stored row with source-aware rules.
 ///
 /// - Authoritative fields (direction, status, amounts, fee, confirmations,
 ///   asset id, timestamp) stay locked once LWK wrote the row, unless LWK writes again.
@@ -32,9 +31,8 @@ pub fn merge_transaction(existing: Option<&Transaction>, incoming: &Transaction)
     };
     let old_lwk = old.source == Some(TransactionSource::Lwk);
     let new_lwk = incoming.source == Some(TransactionSource::Lwk);
-    // NOTE(port): SQL `excluded.source != 'lwk'` is NULL when the incoming
-    // source is NULL, so the CASE falls through to the incoming value.
-    // A source-less write therefore overwrites an LWK row. Kept as in Dart.
+    // NOTE: A write without a source does not lock, so it overwrites an LWK row.
+    // This is intentional.
     let locked = old_lwk && incoming.source.is_some() && !new_lwk;
     let source = if new_lwk || old_lwk { Some(TransactionSource::Lwk) } else { incoming.source };
     let auth = if locked { old } else { incoming };
@@ -105,9 +103,8 @@ impl<K: KvStore> TransactionStore<K> {
 
     /// Finds a row by id on any chain.
     ///
-    /// NOTE(port): Dart runs `WHERE id = ? LIMIT 1` without a chain, so the
-    /// row returned for a cross-chain id is unspecified. This port checks
-    /// liquid, bitcoin, then lightning.
+    /// NOTE: If the id exists on more than one chain, the first match wins.
+    /// The lookup order is liquid, bitcoin, then lightning.
     pub async fn find_by_id(&self, id: &str) -> Result<Option<Transaction>> {
         for chain in LOOKUP_CHAINS {
             if let Some(tx) = get_json(&self.kv, &tx_key(chain, id)).await? {

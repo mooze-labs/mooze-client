@@ -1,8 +1,4 @@
 //! CPF/CNPJ validation and masks, and the PIX key heuristic.
-//!
-//! Port of `pix/shared/cpf/domain/cpf_validator.dart`,
-//! `cpf_cnpj_input_formatter.dart` and `PixKeyDetector` in
-//! `send_pix/presentation/widgets/clipboard_pix_key_suggestion.dart`.
 
 /// Why a CPF/CNPJ input is not valid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,7 +11,7 @@ pub enum CpfValidationError {
     Invalid,
 }
 
-/// Payer CPF is required before a PIX deposit (Dart `_kPixCpfRequired`).
+/// Payer CPF is required before a PIX deposit.
 pub const PIX_CPF_REQUIRED: bool = true;
 
 /// Keeps only ASCII digits.
