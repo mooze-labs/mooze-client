@@ -1,0 +1,53 @@
+name: mooze-core
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths: ["mooze-core/**", ".github/workflows/mooze-core.yml"]
+  pull_request:
+    branches: ["main", "develop"]
+    paths: ["mooze-core/**", ".github/workflows/mooze-core.yml"]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: mooze-core
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      # GNU ar and the default archiver cannot index wasm objects.
+      # The secp256k1-sys C library then fails to link. Use llvm-ar.
+      AR_wasm32_unknown_unknown: llvm-ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install llvm-ar
+        run: sudo apt-get update && sudo apt-get install -y llvm
+
+      - name: Install Rust targets
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build (host)
+        run: cargo build --locked --all-features
+
+      - name: Build (wasm32)
+        run: cargo build --locked --target wasm32-unknown-unknown --all-features
+
+      - name: Test
+        run: cargo test --locked --all-features
+
+      - name: Clippy
+        run: cargo clippy --locked --all-features --all-targets -- -D warnings
+
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: mooze-core/Cargo.toml
+          command: check advisories bans sources
