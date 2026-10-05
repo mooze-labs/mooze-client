@@ -53,10 +53,13 @@ Done:
 - Full iOS simulator build with the flag on (Xcode 27, iOS 27 simulator). The app launches and runs.
   The bundle contains `mooze_core_bridge.framework` next to `lwk.framework` and `bdk_dart_ffi.framework`.
 
+- Full Android debug build with the flag on. The APK contains `libmooze_core_bridge.so` next to
+  `liblwk.so` and `libbdk_dart_ffi.so`.
+
 Open:
-- Exercise the bridge in the iOS app: the core opens at the first wallet connect, so create or import a test wallet.
-- Full Android build. Flutter uses the Java 25 bundled with Android Studio, which Gradle 8.10.2 cannot run.
-  Fix with `flutter config --jdk-dir <Java 23 home>` or a Gradle upgrade.
+- Gradle 8.10.2 cannot run on the Java 25 bundled with Android Studio. Each machine needs
+  `flutter config --jdk-dir <Java 23 home>`, or the project needs Gradle 9.1+ (with AGP 8.13+).
+- Exercise the bridge in the Android and iOS apps: the core opens at the first wallet connect, so create or import a test wallet.
 - The address explorer still needs raw lwk/bdk handles. With the flag on, it shows an error.
 - `libc` is pinned to 0.2.189 in the bridge crate. 0.2.190 breaks `backtrace` on iOS.
 
@@ -86,7 +89,11 @@ Builds there keep `build/` and `.dart_tool` on the external disk.
      -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
      -derivedDataPath /Volumes/Kingston/DerivedData build
    ```
-3. Android. Keep the Gradle caches on the external disk with `GRADLE_USER_HOME`:
+3. Android. Keep the Gradle caches on the external disk with `GRADLE_USER_HOME`.
+   Debug builds also compile the x86 and x86-64 emulator libraries (cargokit adds them), so the
+   first build takes about 40 minutes. Release builds compile only the requested architecture.
+   If `ANDROID_NDK_HOME` points to an NDK that is not installed, set it to the NDK in
+   `android/app/build.gradle.kts` (27.0.12077973) for the build command.
    ```
    cd /Volumes/Kingston/mooze-client-build
    GRADLE_USER_HOME=/Volumes/Kingston/gradle $F build apk --debug --target-platform android-arm64 --dart-define=MOOZE_CORE=true
