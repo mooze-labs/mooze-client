@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "transactions": [
+    {
+      "id": "aa",
+      "chain": "liquid",
+      "direction": "incoming",
+      "status": "confirmed",
+      "amount_sat": 5000,
+      "fee_sat": 0,
+      "timestamp_ms": 1700000000000,
+      "confirmations": 3,
+      "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
+      "address": null,
+      "label": "rent",
+      "from_asset_id": null,
+      "to_asset_id": null,
+      "sent_amount_sat": null,
+      "received_amount_sat": null,
+      "source": "lwk",
+      "swap_lockup_tx_id": null,
+      "swap_claim_tx_id": null,
+      "breez_swap_id": null
+    }
+  ],
+  "notified_tx_ids": [
+    {"chain": "liquid", "tx_id": "aa", "notified_at_ms": 1700000001000}
+  ],
+  "notification_meta": {
+    "baseline_completed": "1",
+    "wallet_imported_at_ms": "1690000000000"
+  },
+  "swaps": [
+    {
+      "id": 1,
+      "send_asset": "LBTC",
+      "receive_asset": "USDT",
+      "send_amount": 1000,
+      "receive_amount": 650,
+      "created_at_ms": 1700000000000,
+      "provider": "sideswap",
+      "status": "completed",
+      "direction": "asset_swap",
+      "tx_id": "cc",
+      "metadata": null,
+      "wallet_id": "w1"
+    }
+  ],
+  "pegs": [
+    {
+      "order_id": "ord1",
+      "peg_in": true,
+      "sideswap_address": "bc1qdeposit",
+      "payout_address": "lq1payout",
+      "amount": 100000,
+      "created_at_ms": 1700000000000,
+      "wallet_id": "w1",
+      "status": "pending",
+      "provider": "sideswap",
+      "funding_tx_id": "ff",
+      "payout_tx_id": null,
+      "error_message": null,
+      "updated_at_ms": 1700000050000,
+      "metadata": "{\"fee\":12}"
+    }
+  ],
+  "deposits": [
+    {
+      "deposit_id": "dep1",
+      "asset_id": "02f22f8d9c76ab41661a2729e4752e2c5d1a263012141b86ea98af5472df5189",
+      "amount_in_cents": 2500,
+      "created_at_ms": 1700000000000,
+      "status": "finished",
+      "asset_amount": 2500000000,
+      "blockchain_txid": "dd",
+      "pix_key": "000201"
+    }
+  ],
+  "products": [
+    {"id": 1, "name": "Café", "price": 7.5, "created_at_ms": 1700000000000}
+  ],
+  "sync_metadata": [
+    {"datasource": "lwk", "last_sync_time_ms": 1700000000000, "transaction_count": 42, "sync_status": "ok"}
+  ],
+  "favorite_payers": [
+    {"id": 1, "label": "Ana", "cpf": "12345678901", "created_at_ms": 1700000000000}
+  ],
+  "preferences": {
+    "bitcoin_node_url": "ssl://my.node:50002",
+    "device_id": "dev-123",
+    "favorite_assets": ["btc", "usdt"],
+    "hasSeenPixTutorial": true,
+    "merchant_mode_active": true,
+    "user_verification_level": 2
+  }
+}

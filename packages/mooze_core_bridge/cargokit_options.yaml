@@ -1,0 +1,3 @@
+# Always build from source. Never download precompiled binaries.
+use_precompiled_binaries: false
+verbose_logging: false

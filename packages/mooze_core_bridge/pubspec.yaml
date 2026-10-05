@@ -1,0 +1,28 @@
+name: mooze_core_bridge
+description: "flutter_rust_bridge plugin that exposes mooze-core to the Mooze app."
+version: 0.1.0
+publish_to: "none"
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.41.0 <3.42.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Must equal the Rust flutter_rust_bridge crate version in rust/Cargo.toml.
+  flutter_rust_bridge: 2.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true

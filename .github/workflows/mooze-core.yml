@@ -1,0 +1,81 @@
+name: mooze-core
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths: ["crates/mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
+  pull_request:
+    branches: ["main", "develop"]
+    paths: ["crates/mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: crates/mooze-core
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      # GNU ar and the default archiver cannot index wasm objects.
+      # The secp256k1-sys C library then fails to link. Use llvm-ar.
+      AR_wasm32_unknown_unknown: llvm-ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install llvm-ar
+        run: sudo apt-get update && sudo apt-get install -y llvm
+
+      - name: Install Rust targets
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build (host)
+        run: cargo build --locked --all-features
+
+      # Not --all-features: the electrum feature is native-only (see Cargo.toml).
+      - name: Build (wasm32)
+        run: cargo build --locked --target wasm32-unknown-unknown --features http-reqwest
+
+      - name: Test
+        run: cargo test --locked --all-features
+
+      - name: Clippy
+        run: cargo clippy --locked --all-features --all-targets -- -D warnings
+
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: crates/mooze-core/Cargo.toml
+          command: check advisories bans sources
+
+  bridge:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/mooze_core_bridge
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test the bridge crate
+        working-directory: packages/mooze_core_bridge/rust
+        run: |
+          cargo build --locked
+          cargo test --locked
+          cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9 # Keep in sync with .fvmrc
+
+      # Calls the host library built above from Dart.
+      - name: Dart smoke test
+        run: |
+          flutter pub get
+          flutter test test/bridge_smoke_test.dart

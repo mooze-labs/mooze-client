@@ -1,0 +1,609 @@
+import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/utils/error_message.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/merchant/domain/entities/cart_item_entity.dart';
+import 'package:mooze_mobile/features/merchant/presentation/controllers/controllers.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/presentation/pix_cpf_gate.dart';
+import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/asset_selector_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
+import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+/// Merchant Charge Screen (Presentation Layer)
+///
+/// The payment/checkout screen for merchant mode transactions.
+/// This screen is reached after the merchant clicks "Finalizar Venda" (Complete Sale)
+/// from the merchant mode screen.
+///
+
+class MerchantChargeScreen extends ConsumerStatefulWidget {
+  /// Total amount to charge (in BRL)
+  final double totalAmount;
+
+  /// List of cart items being purchased
+  final List<CartItemEntity> items;
+
+  const MerchantChargeScreen({
+    super.key,
+    required this.totalAmount,
+    required this.items,
+  });
+
+  @override
+  ConsumerState<MerchantChargeScreen> createState() =>
+      _MerchantChargeScreenState();
+}
+
+class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _circleController;
+  late Animation<double> _circleAnimation;
+  OverlayEntry? _overlayEntry;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTimeAccess();
+      if (mounted) {
+        ref.read(depositAmountProvider.notifier).state = widget.totalAmount;
+      }
+    });
+  }
+
+  void _initializeControllers() {
+    _circleController = AnimationController(
+      duration: Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
+      CurvedAnimation(parent: _circleController, curve: Curves.easeOutCubic),
+    );
+  }
+
+  Future<void> _checkFirstTimeAccess() async {
+    final onboardingService = ref.read(pixOnboardingServiceProvider);
+
+    if (!await onboardingService.hasSeenMerchantFirstTimeDialog() &&
+        mounted) {
+      final accepted = await FirstTimePixDialog.show(context);
+
+      if (accepted == true && mounted) {
+        await onboardingService.markMerchantFirstTimeDialogAsSeen();
+
+        if (mounted) {
+          await PixLimitsInfoDialog.show(context);
+        }
+
+        // TODO: When there is an API, uncomment to sync with the backend
+        // await onboardingService.submitTermsAcceptance();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _circleController.dispose();
+    super.dispose();
+  }
+
+  void _onConfirm() async {
+    setState(() => _isLoading = true);
+
+    // Temporary payer-CPF step (shared with the Pix flow).
+    final cpfGate = await PixCpfGate.ensure(context, ref);
+    if (!mounted) return;
+    if (cpfGate.cancelled) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    _showLoadingOverlay();
+    _circleController.forward();
+
+    final depositAmount = ref.read(depositAmountProvider);
+    final selectedAsset = ref.read(selectedAssetProvider);
+
+    final amountInCents = (depositAmount * 100).toInt();
+
+    final minAnimationTime = Future.delayed(Duration(milliseconds: 1500));
+
+    try {
+      final controller = await ref.read(pixDepositControllerProvider.future);
+      final result =
+          await controller
+              .newDeposit(
+                amountInCents,
+                selectedAsset,
+                taxIdNumber: cpfGate.taxIdNumber,
+              )
+              .run();
+
+      await minAnimationTime;
+
+      result.fold(
+        (err) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _hideLoadingOverlay();
+            _circleController.reset();
+
+            AppSnackBar.show(
+              context,
+              message: err,
+              type: SnackBarType.error,
+              action: SnackBarAction(label: 'OK', onPressed: () {}),
+            );
+          }
+        },
+        (deposit) async {
+          if (!mounted) return;
+
+          setState(() => _isLoading = false);
+
+          context.push("/pix/payment/${deposit.depositId}").then((_) {
+            if (mounted) {
+              _circleController.reset();
+              ref.read(depositAmountProvider.notifier).state =
+                  widget.totalAmount;
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(feeRateProvider);
+              ref.invalidate(feeAmountProvider);
+              ref.invalidate(discountedFeesDepositProvider);
+              ref.invalidate(assetQuoteProvider);
+            }
+          });
+
+          await Future.delayed(Duration(milliseconds: 200));
+          if (mounted) {
+            _hideLoadingOverlay();
+          }
+        },
+      );
+    } catch (e) {
+      await minAnimationTime;
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _hideLoadingOverlay();
+      _circleController.reset();
+
+      AppSnackBar.show(
+        context,
+        message: humanizeError(context, e),
+        type: SnackBarType.error,
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
+      );
+    }
+  }
+
+  void _showLoadingOverlay() {
+    if (_overlayEntry != null) return;
+
+    _overlayEntry = OverlayEntry(
+      builder:
+          (context) => LoadingOverlayWidget(
+            circleController: _circleController,
+            circleAnimation: _circleAnimation,
+            loadingText: AppLocalizations.of(context).pix_generating_qr,
+            showLoadingText: true,
+          ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideLoadingOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFEA1E63), Color(0xFF841138)],
+              ),
+            ),
+            child: PlatformSafeArea(
+              iosTop: true,
+              androidTop: true,
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 16),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: context.colors.backgroundColor,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(40),
+                          topRight: Radius.circular(40),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                        ).copyWith(top: 20),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInstructionText(),
+                              SizedBox(height: 20),
+                              AssetSelectorWidget(),
+                              SizedBox(height: 20),
+                              _buildLimitsInfo(),
+                              SizedBox(height: 20),
+                              _buildItemsList(),
+                              SizedBox(height: 20),
+                              TransactionDisplayWidget(),
+                              SizedBox(height: 20),
+                              Builder(
+                                builder: (context) {
+                                  final validation = ref.watch(
+                                    merchantValidationProvider(
+                                      widget.totalAmount,
+                                    ),
+                                  );
+                                  return PrimaryButton(
+                                    text: t.common_continue,
+                                    isLoading: _isLoading,
+                                    isEnabled: validation.isValid,
+                                    onPressed: _onConfirm,
+                                  );
+                                },
+                              ),
+                              SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ApiUnavailableOverlay(
+            showBackButton: true,
+            onBack: () => context.pop(),
+            onRetry: () {
+              ref.invalidate(pixDepositControllerProvider);
+              ref.invalidate(depositAmountProvider);
+            },
+            customMessage: t.pix_processing_unavailable,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final t = AppLocalizations.of(context);
+    final validation = ref.watch(
+      merchantValidationProvider(widget.totalAmount),
+    );
+
+    return Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              Text(
+                t.merchant_charge_receive_title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(width: 48),
+            ],
+          ),
+          SizedBox(height: 20),
+          Text(
+            'R\$${widget.totalAmount.toStringAsFixed(2)}',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (!validation.isValid && validation.localizedMessage(t) != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                validation.localizedMessage(t)!,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: context.appColors.editColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionText() {
+    final t = AppLocalizations.of(context);
+    return Center(
+      child: RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          text: t.merchant_charge_instruction_prefix,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+            height: 1.4,
+          ),
+          children: [
+            TextSpan(
+              text: 'Mooze',
+              style: TextStyle(
+                color: Color(0xFFE91E63),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextSpan(text: '.'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLimitsInfo() {
+    final t = AppLocalizations.of(context);
+    return Consumer(
+      builder: (context, ref, child) {
+        final levelsData = ref.watch(levelsProvider);
+
+        return levelsData.when(
+          data:
+              (data) => Column(
+                children: [
+                  _buildLimitRow(
+                    t.merchant_limit_daily,
+                    'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
+                  ),
+                  SizedBox(height: 8),
+                  _buildLimitRow(
+                    t.merchant_limit_per_transaction,
+                    'R\$ ${data.allowedSpending.toStringAsFixed(2)}',
+                  ),
+                  SizedBox(height: 8),
+                  _buildLimitRow(
+                    t.merchant_limit_min,
+                    'R\$ ${data.absoluteMinLimit.toStringAsFixed(2)}',
+                  ),
+                ],
+              ),
+          loading:
+              () => Column(
+                children: [
+                  _buildLimitRow(t.merchant_limit_daily, t.common_loading),
+                  SizedBox(height: 8),
+                  _buildLimitRow(
+                    t.merchant_limit_per_transaction,
+                    t.common_loading,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLimitRow(t.merchant_limit_min, t.common_loading),
+                ],
+              ),
+          error:
+              (error, stack) => Column(
+                children: [
+                  _buildLimitRow(
+                    t.merchant_limit_daily,
+                    'R\$ ${UserLevelsData.dailyLimit.toStringAsFixed(2)}',
+                  ),
+                  SizedBox(height: 12),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: context.appColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: context.appColors.warning.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: context.appColors.warning,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                t.merchant_limits_load_error,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelMedium?.copyWith(
+                                  color: context.appColors.warning,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                ref.invalidate(walletLevelsRemoteProvider);
+                                ref.invalidate(userDataProvider);
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.appColors.warning,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.refresh_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      t.common_retry,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          humanizeError(context, error),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLimitRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItemsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context).merchant_items_section,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 12),
+        ...widget.items.map((item) => _buildItemRow(item)),
+      ],
+    );
+  }
+
+  Widget _buildItemRow(CartItemEntity item) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  'R\$ ${item.price.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            AppLocalizations.of(context).merchant_qty_prefix(item.quantity),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

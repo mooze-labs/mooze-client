@@ -1,0 +1,7 @@
+# Stable toolchain for every build. lwk-dart used nightly build-std for
+# release; mooze_core_bridge does not need it.
+cargo:
+  debug:
+    toolchain: stable
+  release:
+    toolchain: stable

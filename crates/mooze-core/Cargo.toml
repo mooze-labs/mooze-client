@@ -1,0 +1,45 @@
+[package]
+name = "mooze-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Application logic for the Mooze wallet. Compiles to native targets and wasm32."
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = []
+# Default HttpClient implementation backed by reqwest.
+http-reqwest = ["dep:reqwest"]
+# Electrum chain backend. Native targets only: Electrum needs raw TCP.
+# Never enable it for wasm32, so never build wasm with --all-features.
+# LWK then pulls in aws-lc, whose C code cannot build for wasm32. Cargo
+# offers no way to scope this feature of a shared dependency to one target.
+electrum = ["dep:bdk_electrum", "lwk_wollet/electrum"]
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151" }
+thiserror = { version = "=2.0.21" }
+futures = { version = "=0.3.34", default-features = false, features = ["std", "async-await"] }
+bdk_wallet = { version = "=3.2.0", default-features = false, features = ["std", "keys-bip39"] }
+bdk_esplora = { version = "=0.22.2", default-features = false, features = ["std", "async-https-rustls"] }
+lwk_wollet = { version = "=0.19.0", default-features = false, features = ["esplora"] }
+lwk_signer = { version = "=0.19.0", default-features = false }
+lwk_common = { version = "=0.19.0" }
+reqwest = { version = "=0.12.28", default-features = false, features = ["rustls-tls"], optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bdk_electrum = { version = "=0.24.0", default-features = false, features = ["use-rustls-ring"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom02 = { package = "getrandom", version = "=0.2.16", features = ["js"] }
+getrandom03 = { package = "getrandom", version = "=0.3.4", features = ["wasm_js"] }
+
+[dev-dependencies]
+futures = { version = "=0.3.34", features = ["executor"] }
+
+[workspace]
