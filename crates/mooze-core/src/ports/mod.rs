@@ -8,12 +8,14 @@ mod blocking;
 mod clock;
 mod http;
 mod kv;
+mod task;
 mod ws;
 
 pub use blocking::{run_blocking, BlockingSpawner};
 pub use clock::Clock;
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse};
 pub use kv::{KvStore, SecureStore};
+pub use task::{Spawner, TaskFuture, Timer};
 pub use ws::{WsConnection, WsConnector, WsMessage};
 
 #[cfg(feature = "http-reqwest")]
