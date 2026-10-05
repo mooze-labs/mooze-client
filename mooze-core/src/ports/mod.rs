@@ -4,11 +4,13 @@
 //! On native targets that means `Send`, so FFI runtimes can move them
 //! across threads. On wasm there is one thread, so there is no bound.
 
+mod blocking;
 mod clock;
 mod http;
 mod kv;
 mod ws;
 
+pub use blocking::{run_blocking, BlockingSpawner};
 pub use clock::Clock;
 pub use http::{HttpClient, HttpMethod, HttpRequest, HttpResponse};
 pub use kv::{KvStore, SecureStore};

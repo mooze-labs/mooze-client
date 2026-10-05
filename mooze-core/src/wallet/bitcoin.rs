@@ -19,6 +19,9 @@ use bdk_wallet::descriptor::IntoWalletDescriptor;
 use bdk_wallet::signer::SignersContainer;
 use bdk_wallet::{ChangeSet, KeychainKind, SignOptions, Wallet};
 
+use super::backend::ChainBackend;
+#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+use super::backend::{BitcoinElectrum, ElectrumConfig};
 use super::descriptors::{bitcoin_descriptors, bitcoin_network, bitcoin_network_kind, BitcoinDescriptors};
 use super::endpoints::EndpointResolver;
 use super::fees::BitcoinFeeEstimate;
@@ -46,6 +49,17 @@ const CHAIN: ChainId = ChainId::Bitcoin;
 
 fn svc(e: impl std::fmt::Display) -> Error {
     Error::service(CHAIN, e)
+}
+
+/// Fails for Electrum when the build cannot run it.
+pub(crate) fn ensure_backend_supported(backend: &ChainBackend) -> Result<()> {
+    let electrum_built = cfg!(all(feature = "electrum", not(target_arch = "wasm32")));
+    if backend.is_electrum() && !electrum_built {
+        return Err(Error::InvalidState(
+            "the Electrum backend needs the `electrum` feature and a native target".into(),
+        ));
+    }
+    Ok(())
 }
 
 /// Sleeper that returns at once. Esplora retries then run back to back.
@@ -265,6 +279,9 @@ pub struct BitcoinWallet<K: KvStore, C: Clock> {
     persisted: ChangeSet,
     endpoints: EndpointResolver,
     client: Option<(String, AsyncClient<NoopSleeper>)>,
+    backend: ChainBackend,
+    #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+    electrum: Option<BitcoinElectrum>,
     needs_full_scan: bool,
     stop_gap: usize,
     tracker: TxTracker,
@@ -313,6 +330,9 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
             persisted,
             endpoints,
             client: None,
+            backend: ChainBackend::Esplora,
+            #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+            electrum: None,
             needs_full_scan: true,
             stop_gap: DEFAULT_STOP_GAP,
             tracker: TxTracker::new(),
@@ -333,6 +353,82 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
             .lookahead(LOOKAHEAD)
             .create_wallet_no_persist()
             .map_err(|e| svc(format!("bdk init failed: {e}")))
+    }
+
+    /// Switches the chain backend. Drops cached connections.
+    ///
+    /// Electrum needs the `electrum` feature and a native target. Pair the
+    /// switch with matching endpoints, for example
+    /// [`EndpointResolver::with_electrum_defaults`].
+    pub fn set_backend(&mut self, backend: ChainBackend, endpoints: EndpointResolver) -> Result<()> {
+        ensure_backend_supported(&backend)?;
+        self.backend = backend;
+        self.endpoints = endpoints;
+        self.client = None;
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        {
+            self.electrum = None;
+        }
+        Ok(())
+    }
+
+    /// Current chain backend.
+    pub fn backend(&self) -> &ChainBackend {
+        &self.backend
+    }
+
+    /// Electrum client for the current endpoint, connecting if needed.
+    #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+    async fn electrum_client(&mut self, config: &ElectrumConfig, what: &str) -> Result<BitcoinElectrum> {
+        let url = self.endpoints.current(CHAIN)?.to_owned();
+        if let Some(c) = &self.electrum {
+            if c.url() == url {
+                return Ok(c.clone());
+            }
+        }
+        match BitcoinElectrum::connect(&url, config).await {
+            Ok(c) => {
+                self.electrum = Some(c.clone());
+                Ok(c)
+            }
+            Err(e) => Err(self.net_err(what, e)),
+        }
+    }
+
+    /// Records an Electrum failure. Drops the connection so the next call
+    /// reconnects, possibly to the next endpoint.
+    #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+    fn electrum_err(&mut self, what: &str, e: impl std::fmt::Display) -> Error {
+        self.electrum = None;
+        self.net_err(what, e)
+    }
+
+    /// Fetches a scan update through the configured backend.
+    async fn fetch_update(&mut self, full: bool, start_s: u64) -> Result<bdk_wallet::Update> {
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        if let ChainBackend::Electrum(config) = self.backend.clone() {
+            let client = self.electrum_client(&config, "bdk sync failed").await?;
+            let result = if full {
+                client.full_scan(self.wallet.start_full_scan_at(start_s).build(), self.stop_gap).await
+            } else {
+                client.sync(self.wallet.start_sync_with_revealed_spks_at(start_s).build()).await
+            };
+            return result.map_err(|e| self.electrum_err("bdk sync failed", e));
+        }
+        let client = self.client()?;
+        if full {
+            let req = self.wallet.start_full_scan_at(start_s).build();
+            match client.full_scan(req, self.stop_gap, PARALLEL_REQUESTS).await {
+                Ok(u) => Ok(u.into()),
+                Err(e) => Err(self.net_err("bdk sync failed", e)),
+            }
+        } else {
+            let req = self.wallet.start_sync_with_revealed_spks_at(start_s).build();
+            match client.sync(req, PARALLEL_REQUESTS).await {
+                Ok(u) => Ok(u.into()),
+                Err(e) => Err(self.net_err("bdk sync failed", e)),
+            }
+        }
     }
 
     /// Sets the full-scan stop gap (default 20).
@@ -414,22 +510,9 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Port of `sync`. NOTE(port): the 60 s Dart timeout is the platform's job.
     pub async fn sync(&mut self) -> Result<SyncOutcome> {
         let t0 = self.clock.now_ms();
-        let client = self.client()?;
         let start_s = t0 / 1000;
         let full = self.needs_full_scan;
-        let update: bdk_wallet::Update = if full {
-            let req = self.wallet.start_full_scan_at(start_s).build();
-            match client.full_scan(req, self.stop_gap, PARALLEL_REQUESTS).await {
-                Ok(u) => u.into(),
-                Err(e) => return Err(self.net_err("bdk sync failed", e)),
-            }
-        } else {
-            let req = self.wallet.start_sync_with_revealed_spks_at(start_s).build();
-            match client.sync(req, PARALLEL_REQUESTS).await {
-                Ok(u) => u.into(),
-                Err(e) => return Err(self.net_err("bdk sync failed", e)),
-            }
-        };
+        let update = self.fetch_update(full, start_s).await?;
         self.endpoints.report_success(CHAIN);
         self.wallet.apply_update(update).map_err(|e| svc(format!("bdk sync failed: {e}")))?;
         self.persist().await?;
@@ -445,8 +528,19 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         Ok(SyncOutcome { chain: CHAIN, fetched: self.last_list.len(), changed, duration_ms: end.saturating_sub(t0) })
     }
 
-    /// Chain tip height from esplora. Port of `getBlockHeight`.
+    /// Chain tip height. Port of `getBlockHeight`.
     pub async fn block_height(&mut self) -> Result<u32> {
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        if let ChainBackend::Electrum(config) = self.backend.clone() {
+            let client = self.electrum_client(&config, "bdk getHeight failed").await?;
+            return match client.tip_height().await {
+                Ok(h) => {
+                    self.endpoints.report_success(CHAIN);
+                    Ok(h)
+                }
+                Err(e) => Err(self.electrum_err("bdk getHeight failed", e)),
+            };
+        }
         let client = self.client()?;
         match client.get_height().await {
             Ok(h) => {
@@ -457,8 +551,19 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         }
     }
 
-    /// Esplora fee estimates mapped to low/medium/fast.
+    /// Backend fee estimates mapped to low/medium/fast.
     pub async fn fee_estimates(&mut self) -> Result<BitcoinFeeEstimate> {
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        if let ChainBackend::Electrum(config) = self.backend.clone() {
+            let client = self.electrum_client(&config, "fee estimates failed").await?;
+            return match client.fee_estimates().await {
+                Ok(m) => {
+                    self.endpoints.report_success(CHAIN);
+                    Ok(BitcoinFeeEstimate::from_esplora_targets(&m))
+                }
+                Err(e) => Err(self.electrum_err("fee estimates failed", e)),
+            };
+        }
         let client = self.client()?;
         match client.get_fee_estimates().await {
             Ok(m) => {
@@ -549,10 +654,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Builds, signs and broadcasts. Port of `sendOnchain`.
     pub async fn send_onchain(&mut self, request: &SendRequest) -> Result<BroadcastResult> {
         let (tx, fee) = self.build_signed(request).await?;
-        let client = self.client()?;
-        if let Err(e) = client.broadcast(&tx).await {
-            return Err(self.net_err("bdk sendOnchain failed", e));
-        }
+        self.broadcast_tx(&tx).await?;
         self.endpoints.report_success(CHAIN);
         let txid = tx.compute_txid().to_string();
         let now = self.clock.now_ms();
@@ -572,6 +674,23 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         self.tracker.force_register(&mapped, now);
         self.last_list.insert(0, mapped.clone());
         Ok(BroadcastResult { chain: CHAIN, tx_id: txid, transaction: mapped, fee_paid_sat: Some(fee) })
+    }
+
+    /// Broadcasts through the configured backend.
+    async fn broadcast_tx(&mut self, tx: &bdk_wallet::bitcoin::Transaction) -> Result<()> {
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        if let ChainBackend::Electrum(config) = self.backend.clone() {
+            let client = self.electrum_client(&config, "bdk sendOnchain failed").await?;
+            return match client.broadcast(tx.clone()).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(self.electrum_err("bdk sendOnchain failed", e)),
+            };
+        }
+        let client = self.client()?;
+        match client.broadcast(tx).await {
+            Ok(()) => Ok(()),
+            Err(e) => Err(self.net_err("bdk sendOnchain failed", e)),
+        }
     }
 
     /// Adds a transaction broadcast elsewhere. Idempotent by id.

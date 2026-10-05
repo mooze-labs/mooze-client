@@ -31,7 +31,7 @@ use crate::sideswap::SwapSigner;
 use crate::store::CredentialStore;
 use crate::sync::ChainSyncer;
 use crate::wallet::bitcoin::PreparedBitcoinSend;
-use crate::wallet::{BitcoinWallet, EndpointResolver, LiquidWallet};
+use crate::wallet::{BitcoinWallet, ChainBackend, EndpointResolver, LiquidWallet};
 use crate::{Error, Result};
 
 /// Gives the `auth` session token to modules that need a bearer token.
@@ -82,13 +82,23 @@ pub struct LiquidService<K: KvStore + Clone, C: Clock + Clone, S: SecureStore> {
     kv: K,
     clock: C,
     endpoints: EndpointResolver,
+    backend: ChainBackend,
     credentials: CredentialStore<S>,
 }
 
 impl<K: KvStore + Clone, C: Clock + Clone, S: SecureStore> LiquidService<K, C, S> {
     /// Service without a connected wallet. Call [`ChainSyncer::connect`].
     pub fn new(kv: K, clock: C, endpoints: EndpointResolver, credentials: CredentialStore<S>) -> Self {
-        Self { slot: Slot::new(), kv, clock, endpoints, credentials }
+        Self { slot: Slot::new(), kv, clock, endpoints, backend: ChainBackend::Esplora, credentials }
+    }
+
+    /// Uses `backend` for every wallet this service connects.
+    ///
+    /// `endpoints` passed to [`Self::new`] must match it, for example
+    /// [`EndpointResolver::with_electrum_defaults`] for Electrum.
+    pub fn with_backend(mut self, backend: ChainBackend) -> Self {
+        self.backend = backend;
+        self
     }
 
     /// Runs `f` with the connected wallet.
@@ -160,6 +170,12 @@ where
             self.slot.set_lifecycle(ServiceLifecycle::Connecting);
             let made = LiquidWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone())
                 .await;
+            let made = made.and_then(|mut wallet| {
+                if self.backend.is_electrum() {
+                    wallet.set_backend(self.backend.clone(), self.endpoints.clone())?;
+                }
+                Ok(wallet)
+            });
             match made {
                 Ok(wallet) => {
                     *self.slot.guard().await = Some(wallet);
@@ -225,12 +241,22 @@ pub struct BitcoinService<K: KvStore + Clone, C: Clock + Clone> {
     kv: K,
     clock: C,
     endpoints: EndpointResolver,
+    backend: ChainBackend,
 }
 
 impl<K: KvStore + Clone, C: Clock + Clone> BitcoinService<K, C> {
     /// Service without a connected wallet. Call [`ChainSyncer::connect`].
     pub fn new(kv: K, clock: C, endpoints: EndpointResolver) -> Self {
-        Self { slot: Slot::new(), kv, clock, endpoints }
+        Self { slot: Slot::new(), kv, clock, endpoints, backend: ChainBackend::Esplora }
+    }
+
+    /// Uses `backend` for every wallet this service connects.
+    ///
+    /// `endpoints` passed to [`Self::new`] must match it, for example
+    /// [`EndpointResolver::with_electrum_defaults`] for Electrum.
+    pub fn with_backend(mut self, backend: ChainBackend) -> Self {
+        self.backend = backend;
+        self
     }
 
     /// Runs `f` with the connected wallet.
@@ -301,6 +327,12 @@ where
             self.slot.set_lifecycle(ServiceLifecycle::Connecting);
             let made = BitcoinWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone())
                 .await;
+            let made = made.and_then(|mut wallet| {
+                if self.backend.is_electrum() {
+                    wallet.set_backend(self.backend.clone(), self.endpoints.clone())?;
+                }
+                Ok(wallet)
+            });
             match made {
                 Ok(wallet) => {
                     *self.slot.guard().await = Some(wallet);
@@ -522,6 +554,105 @@ mod tests {
         assert!(matches!(e, PegError::InsufficientFunds(_)));
         let e = peg_wallet_error(Error::service(ChainId::Bitcoin, "bad address"));
         assert!(matches!(e, PegError::WalletFailure(_)));
+    }
+
+    #[cfg(not(feature = "electrum"))]
+    #[test]
+    fn electrum_needs_the_feature() {
+        let svc = BitcoinService::new(
+            MemoryKv::new(),
+            Arc::new(FixedClock::new(1_759_686_400_000)),
+            EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet),
+        )
+        .with_backend(ChainBackend::Electrum(crate::wallet::ElectrumConfig::new(Arc::new(
+            crate::testing::InlineSpawner,
+        ))));
+        block_on(async {
+            assert!(matches!(svc.connect(&credentials()).await, Err(Error::InvalidState(_))));
+            assert_eq!(svc.lifecycle(), ServiceLifecycle::Errored);
+        });
+    }
+
+    #[cfg(feature = "electrum")]
+    mod electrum {
+        use super::*;
+        use crate::testing::InlineSpawner;
+        use crate::wallet::ElectrumConfig;
+
+        /// Nothing listens on port 1, so connects fail at once.
+        const CLOSED: &str = "tcp://127.0.0.1:1";
+
+        fn config() -> ElectrumConfig {
+            ElectrumConfig { spawner: Arc::new(InlineSpawner), timeout_s: 2, retry: 0, validate_domain: true }
+        }
+
+        #[test]
+        fn bitcoin_electrum_failure_keeps_service_usable() {
+            let endpoints =
+                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Bitcoin, CLOSED);
+            let svc = BitcoinService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints)
+                .with_backend(ChainBackend::Electrum(config()));
+            block_on(async {
+                svc.connect(&credentials()).await.unwrap();
+                let err = svc.sync(60_000).await.unwrap_err();
+                assert!(err.to_string().contains("bdk sync failed"), "{err}");
+                // Offline work still runs after a network failure.
+                assert_eq!(svc.receive_address().await.unwrap(), "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+                assert_eq!(svc.lifecycle(), ServiceLifecycle::Connected);
+            });
+        }
+
+        #[test]
+        fn liquid_electrum_failure_is_reported() {
+            let endpoints =
+                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Liquid, CLOSED);
+            let secure = MemoryKv::new();
+            let store = CredentialStore::new(secure, AppNetwork::Mainnet);
+            block_on(store.save(&credentials())).unwrap();
+            let svc = LiquidService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints, store)
+                .with_backend(ChainBackend::Electrum(config()));
+            block_on(async {
+                svc.connect(&credentials()).await.unwrap();
+                let err = svc.sync(60_000).await.unwrap_err();
+                assert!(err.to_string().contains("lwk sync failed"), "{err}");
+                assert!(svc.liquid_receive_address().await.unwrap().starts_with("lq1"));
+            });
+        }
+
+        /// Live scan against the default Blockstream Electrum servers.
+        /// Run by hand: `cargo test --features electrum -- --ignored live_`
+        #[test]
+        #[ignore = "needs network"]
+        fn live_electrum_scan_both_chains() {
+            let config = ElectrumConfig { spawner: Arc::new(InlineSpawner), timeout_s: 30, retry: 2, validate_domain: true };
+            let clock = Arc::new(FixedClock::new(1_759_686_400_000));
+            let btc = BitcoinService::new(
+                MemoryKv::new(),
+                clock.clone(),
+                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet),
+            )
+            .with_backend(ChainBackend::Electrum(config.clone()));
+            let secure = MemoryKv::new();
+            let store = CredentialStore::new(secure, AppNetwork::Mainnet);
+            block_on(store.save(&credentials())).unwrap();
+            let lq = LiquidService::new(
+                MemoryKv::new(),
+                clock,
+                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet),
+                store,
+            )
+            .with_backend(ChainBackend::Electrum(config));
+            block_on(async {
+                btc.connect(&credentials()).await.unwrap();
+                let outcome = btc.sync(60_000).await.unwrap();
+                eprintln!("bitcoin electrum: {outcome:?}");
+                // The well-known test mnemonic has public mainnet history.
+                assert!(outcome.fetched > 0, "expected history for the abandon wallet");
+                lq.connect(&credentials()).await.unwrap();
+                let outcome = lq.sync(60_000).await.unwrap();
+                eprintln!("liquid electrum: {outcome:?}");
+            });
+        }
     }
 
     struct FakeSession;

@@ -22,6 +22,9 @@ use self::classify::{apply_optimistic_delta, map_balance, map_tx, LwkTxView};
 use self::store::{flush_journal, load_journal, wipe_prefix, JournalStore, STORE_PREFIX};
 use super::descriptors::{liquid_descriptor, liquid_network, liquid_policy_asset, liquid_signer};
 use super::endpoints::EndpointResolver;
+use crate::wallet::backend::ChainBackend;
+#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+use crate::wallet::backend::{ElectrumConfig, LiquidElectrum};
 use super::fees::liquid_fee_rate;
 use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
@@ -73,6 +76,9 @@ pub struct LiquidWallet<K: KvStore, C: Clock> {
     clock: C,
     endpoints: EndpointResolver,
     client: Option<(String, EsploraClient)>,
+    backend: ChainBackend,
+    #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+    electrum: Option<LiquidElectrum>,
     tracker: TxTracker,
     last_list: Vec<Transaction>,
     last_balance: Balance,
@@ -114,6 +120,9 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
             clock,
             endpoints,
             client: None,
+            backend: ChainBackend::Esplora,
+            #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+            electrum: None,
             tracker: TxTracker::new(),
             last_list: Vec::new(),
             last_balance: Balance::default(),
@@ -176,6 +185,94 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         flush_journal(&self.kv, STORE_PREFIX, &self.journal).await.map(|_| ())
     }
 
+    /// Switches the chain backend. Drops cached connections.
+    ///
+    /// Electrum needs the `electrum` feature and a native target. Pair the
+    /// switch with matching endpoints, for example
+    /// [`EndpointResolver::with_electrum_defaults`].
+    pub fn set_backend(&mut self, backend: ChainBackend, endpoints: EndpointResolver) -> Result<()> {
+        crate::wallet::bitcoin::ensure_backend_supported(&backend)?;
+        self.backend = backend;
+        self.endpoints = endpoints;
+        self.client = None;
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        {
+            self.electrum = None;
+        }
+        Ok(())
+    }
+
+    /// Current chain backend.
+    pub fn backend(&self) -> &ChainBackend {
+        &self.backend
+    }
+
+    /// Electrum client for the current endpoint, connecting if needed.
+    #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+    async fn electrum_client(&mut self, config: &ElectrumConfig) -> Result<LiquidElectrum> {
+        let url = self.endpoints.current(CHAIN)?.to_owned();
+        if let Some(c) = &self.electrum {
+            if c.url() == url {
+                return Ok(c.clone());
+            }
+        }
+        match LiquidElectrum::connect(&url, config).await {
+            Ok(c) => {
+                self.electrum = Some(c.clone());
+                Ok(c)
+            }
+            Err(e) => {
+                self.endpoints.report_failure(CHAIN);
+                Err(e)
+            }
+        }
+    }
+
+    /// Full scan through the configured backend.
+    async fn fetch_update(&mut self) -> Result<Option<lwk_wollet::Update>> {
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        if let ChainBackend::Electrum(config) = self.backend.clone() {
+            let client = self
+                .electrum_client(&config)
+                .await
+                .map_err(|e| svc(format!("lwk sync failed: {e}")))?;
+            return match client.full_scan(&self.wollet).await {
+                Ok(u) => Ok(u),
+                Err(e) => {
+                    self.electrum = None;
+                    self.endpoints.report_failure(CHAIN);
+                    Err(svc(format!("lwk sync failed: {e}")))
+                }
+            };
+        }
+        let (url, mut client) = self.take_client()?;
+        let scanned = client.full_scan(&self.wollet).await;
+        self.client = Some((url, client));
+        scanned.map_err(|e| {
+            self.endpoints.report_failure(CHAIN);
+            svc(format!("lwk sync failed: {}", describe(&e)))
+        })
+    }
+
+    /// Broadcasts through the configured backend. Returns the txid.
+    async fn broadcast_tx(&mut self, tx: lwk_wollet::elements::Transaction) -> Result<String> {
+        #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+        if let ChainBackend::Electrum(config) = self.backend.clone() {
+            let client = self
+                .electrum_client(&config)
+                .await
+                .map_err(|e| svc(format!("lwk broadcastSignedPset failed: {e}")))?;
+            return client.broadcast(tx).await.map_err(|e| {
+                self.electrum = None;
+                svc(format!("lwk broadcastSignedPset failed: {e}"))
+            });
+        }
+        let (url, client) = self.take_client()?;
+        let r = client.broadcast(&tx).await;
+        self.client = Some((url, client));
+        r.map(|t| t.to_string()).map_err(|e| svc(format!("lwk broadcastSignedPset failed: {}", describe(&e))))
+    }
+
     fn take_client(&mut self) -> Result<(String, EsploraClient)> {
         let url = self.endpoints.current(CHAIN)?.to_owned();
         match self.client.take() {
@@ -197,16 +294,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// diffs and queues events. Port of `sync`.
     pub async fn sync(&mut self) -> Result<SyncOutcome> {
         let t0 = self.clock.now_ms();
-        let (url, mut client) = self.take_client()?;
-        let scanned = client.full_scan(&self.wollet).await;
-        self.client = Some((url, client));
-        let update = match scanned {
-            Ok(u) => u,
-            Err(e) => {
-                self.endpoints.report_failure(CHAIN);
-                return Err(svc(format!("lwk sync failed: {}", describe(&e))));
-            }
-        };
+        let update = self.fetch_update().await?;
         self.endpoints.report_success(CHAIN);
         if let Some(update) = update {
             self.wollet.apply_update(update).map_err(|e| svc(format!("lwk sync failed: {}", describe(&e))))?;
@@ -441,13 +529,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
             .map_err(|e| e.to_string())
             .and_then(|p| p.extract_tx().map_err(|e| e.to_string()))
             .map_err(|e| svc(format!("lwk broadcastSignedPset failed: {e}")))?;
-        let (url, client) = self.take_client()?;
-        let r = client.broadcast(&tx).await;
-        self.client = Some((url, client));
-        let txid = match r {
-            Ok(t) => t.to_string(),
-            Err(e) => return Err(svc(format!("lwk broadcastSignedPset failed: {}", describe(&e)))),
-        };
+        let txid = self.broadcast_tx(tx).await?;
         self.endpoints.report_success(CHAIN);
         let _ = self.sync().await;
         Ok(txid)

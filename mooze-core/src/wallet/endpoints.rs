@@ -59,6 +59,40 @@ impl EndpointResolver {
         Self::new(endpoints, DEFAULT_FAILURE_THRESHOLD)
     }
 
+    /// Resolver with the default Electrum lists for `network`.
+    pub fn with_electrum_defaults(network: AppNetwork) -> Self {
+        let endpoints = [ChainId::Bitcoin, ChainId::Liquid]
+            .into_iter()
+            .map(|c| (c, super::backend::default_electrum_urls(c, network)))
+            .collect();
+        Self::new(endpoints, DEFAULT_FAILURE_THRESHOLD)
+    }
+
+    /// Resolver with the default lists of `backend` for `network`.
+    pub fn for_backend(network: AppNetwork, backend: &super::backend::ChainBackend) -> Self {
+        if backend.is_electrum() {
+            Self::with_electrum_defaults(network)
+        } else {
+            Self::with_defaults(network)
+        }
+    }
+
+    /// Applies the user's custom node setting for `chain`.
+    ///
+    /// Port of the `bitcoin_node_url` and `liquid_node_url` settings. A
+    /// non-empty URL replaces the whole list, so the wallet uses only that
+    /// node and never rotates away from it. An empty or blank URL keeps the
+    /// defaults, which Dart calls "default mode".
+    pub fn with_custom_node(mut self, chain: ChainId, url: &str) -> Self {
+        let url = url.trim();
+        if !url.is_empty() {
+            self.endpoints.insert(chain, vec![url.to_owned()]);
+            self.cursor.remove(&chain);
+            self.failures.remove(&chain);
+        }
+        self
+    }
+
     /// Configured list for a chain.
     pub fn endpoints(&self, chain: ChainId) -> &[String] {
         self.endpoints.get(&chain).map(Vec::as_slice).unwrap_or(&[])
@@ -130,5 +164,38 @@ mod tests {
         }
         assert_eq!(r.current(ChainId::Bitcoin).unwrap(), "http://127.0.0.1:3002");
         assert!(r.current(ChainId::Lightning).is_err());
+    }
+}
+
+#[cfg(test)]
+mod backend_tests {
+    use super::*;
+    use crate::wallet::backend::ChainBackend;
+
+    #[test]
+    fn electrum_defaults_follow_dart_order() {
+        let r = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet);
+        assert_eq!(r.current(ChainId::Bitcoin).unwrap(), "ssl://electrum.blockstream.info:50002");
+        assert_eq!(r.current(ChainId::Liquid).unwrap(), "blockstream.info:995");
+        let esplora = EndpointResolver::for_backend(AppNetwork::Mainnet, &ChainBackend::Esplora);
+        assert_eq!(esplora.current(ChainId::Bitcoin).unwrap(), "https://blockstream.info/api");
+    }
+
+    #[test]
+    fn custom_node_pins_and_never_rotates() {
+        let mut r = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet)
+            .with_custom_node(ChainId::Bitcoin, " ssl://my.node:50002 ");
+        for _ in 0..5 {
+            r.report_failure(ChainId::Bitcoin);
+        }
+        assert_eq!(r.current(ChainId::Bitcoin).unwrap(), "ssl://my.node:50002");
+        // Liquid keeps its default rotation.
+        assert_eq!(r.endpoints(ChainId::Liquid).len(), 4);
+    }
+
+    #[test]
+    fn blank_custom_node_keeps_defaults() {
+        let r = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Liquid, "  ");
+        assert_eq!(r.endpoints(ChainId::Liquid).len(), 4);
     }
 }

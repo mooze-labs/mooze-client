@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ports::KvStore;
-use crate::store::json::{delete_key, get_json, id_key, list_json, next_id, put_json};
+use crate::store::json::{bump_seq, delete_key, get_json, id_key, list_json, next_id, put_json};
 use crate::{Error, Result};
 
 /// Validation code: empty name.
@@ -82,6 +82,15 @@ impl<K: KvStore> ProductStore<K> {
         let row = Product { id: Some(id), ..product.clone() };
         put_json(&self.kv, &id_key(ROWS, id), &row).await?;
         Ok(id)
+    }
+
+    /// Writes an existing product with its original id, for a data
+    /// migration. Skips validation: old rows stay readable even if they
+    /// break today's rules. Replaces a product with the same id.
+    pub async fn import(&self, product: &Product) -> Result<()> {
+        let id = product.id.filter(|id| *id > 0).ok_or_else(|| Error::invalid("imported product needs a positive id"))?;
+        put_json(&self.kv, &id_key(ROWS, id), product).await?;
+        bump_seq(&self.kv, SEQ, id).await
     }
 
     /// Every product in id order (drift select without `ORDER BY`).

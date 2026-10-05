@@ -176,6 +176,19 @@ impl<K: KvStore, T: Clock, A: SwapAudit> KvPegStore<K, T, A> {
         self.kv.put(&self.key(&rec.order_id), bytes).await
     }
 
+    /// Writes an existing record unchanged, for a data migration.
+    /// Replaces a record with the same order id. The record must belong
+    /// to this store's wallet.
+    pub async fn import(&self, rec: &PegRecord) -> Result<()> {
+        if rec.wallet_id != self.wallet_id {
+            return Err(Error::invalid(format!(
+                "peg {} belongs to wallet {}, not {}",
+                rec.order_id, rec.wallet_id, self.wallet_id
+            )));
+        }
+        self.put(rec).await
+    }
+
     /// Every record of the wallet, oldest first.
     pub async fn list(&self) -> Result<Vec<PegRecord>> {
         let mut out = Vec::new();

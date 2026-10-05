@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::ports::{
-    Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend, SecureStore, WsConnection,
+    BlockingSpawner, Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend, SecureStore, WsConnection,
     WsConnector, WsMessage,
 };
 use crate::{Error, Result};
@@ -305,5 +305,45 @@ mod tests {
             assert_eq!(http.send(HttpRequest::get("https://x/z")).await.unwrap().status, 404);
         });
         assert_eq!(http.requests().len(), 3);
+    }
+}
+
+/// [`BlockingSpawner`] that runs each task at once on the calling thread.
+///
+/// Tests use it. It blocks the caller, so real platforms must not.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct InlineSpawner;
+
+impl BlockingSpawner for InlineSpawner {
+    fn spawn_blocking(&self, task: Box<dyn FnOnce() + Send + 'static>) {
+        task();
+    }
+}
+
+/// [`BlockingSpawner`] that drops every task. Tests the shutdown path.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DroppingSpawner;
+
+impl BlockingSpawner for DroppingSpawner {
+    fn spawn_blocking(&self, task: Box<dyn FnOnce() + Send + 'static>) {
+        drop(task);
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod blocking_tests {
+    use super::*;
+    use crate::ports::run_blocking;
+
+    #[test]
+    fn run_blocking_returns_result() {
+        let v = block_on(run_blocking(&InlineSpawner, || 6 * 7)).unwrap();
+        assert_eq!(v, 42);
+    }
+
+    #[test]
+    fn dropped_task_is_an_error() {
+        let r = block_on(run_blocking(&DroppingSpawner, || 1));
+        assert!(matches!(r, Err(Error::Unexpected(_))));
     }
 }

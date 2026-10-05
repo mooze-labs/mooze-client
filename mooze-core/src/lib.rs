@@ -11,6 +11,7 @@ pub mod domain;
 pub mod error;
 pub mod format;
 pub mod merchant;
+pub mod migration;
 pub mod payment_uri;
 pub mod peg;
 pub mod pix;

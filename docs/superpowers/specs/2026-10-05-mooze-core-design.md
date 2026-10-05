@@ -46,15 +46,33 @@ The core never does I/O directly. It calls ports.
 Port methods return futures bounded by `MaybeSend`.
 `MaybeSend` means `Send` on native targets and no bound on wasm.
 
-Wallets use the esplora HTTP API through `bdk_esplora` and `lwk_wollet`.
-Electrum needs raw TCP, so the core does not include it.
-A native-only Electrum adapter is a later, feature-gated addition.
+Wallets use the esplora HTTP API through `bdk_esplora` and `lwk_wollet` by default.
+Native builds can enable the `electrum` feature. Electrum needs raw TCP, so wasm builds never enable it.
+Do not build wasm with `--all-features`: LWK then pulls in aws-lc, which cannot build for wasm.
+
+The Electrum clients block. Each call runs through the `BlockingSpawner` port.
+The platform implements it with a blocking-task pool, for example `tokio::task::spawn_blocking`.
+The default server lists and client settings match the Dart app.
+A custom node URL replaces the list for its chain, as in Dart.
 
 ## Data
 
 Stores serialize records as JSON into `KvStore` under prefixed keys.
 This replaces drift. The web platform maps `KvStore` to IndexedDB.
 Mobile maps it to SQLite or files.
+
+### One-time copy from the Flutter app
+
+1. The Dart class `FlutterDataExporter` reads the drift database, `mooze_v2.db` and SharedPreferences.
+2. It writes one JSON snapshot.
+3. The core function `migration::import_flutter_data` writes the snapshot into the core stores.
+4. The core sets a marker. Later calls return at once.
+
+Invalid rows are skipped and listed in the report. A storage failure leaves the marker unset, so the copy runs again.
+The golden file `mooze-core/tests/fixtures/flutter_snapshot_v1.json` pins the format. A Dart test and a Rust test both check it.
+
+The copy leaves out secrets, app logs, the legacy drift `Transactions` table, wallet caches and cached prices.
+The mobile `SecureStore` must use the `flutter_secure_storage` entries, because the core uses the same key names.
 
 ## Errors
 
@@ -94,5 +112,6 @@ One `Error` enum with `thiserror`. Variants match the Dart `Failure` classes.
 1. Compare the first Liquid address with the output of the Dart app for the same mnemonic.
 2. Write an FFI layer (flutter_rust_bridge for mobile, wasm-bindgen for web).
 3. Write platform port implementations: IndexedDB `KvStore`, browser `WsConnector`, mobile secure storage.
-4. Add a native-only Electrum chain source behind a feature flag.
-5. Resolve two unmaintained transitive crates that cargo-deny reports (`fxhash`, `proc-macro-error2`, both through `lwk_wollet`).
+4. Call `FlutterDataExporter` and `import_flutter_data` at first launch of the bridged app.
+5. Move `sqlite3` from `dev_dependencies` to `dependencies` in `pubspec.yaml`. `lib/` code imports it.
+6. Resolve two unmaintained transitive crates that cargo-deny reports (`fxhash`, `proc-macro-error2`, both through `lwk_wollet`).

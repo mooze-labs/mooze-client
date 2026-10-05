@@ -128,6 +128,15 @@ impl<K: KvStore> DepositStore<K> {
         put_json(&self.kv, &Self::key(deposit_id), &rec).await
     }
 
+    /// Writes an existing deposit unchanged, for a data migration.
+    /// Replaces a deposit with the same id.
+    pub async fn import(&self, rec: &DepositRecord) -> Result<()> {
+        if rec.deposit_id.is_empty() {
+            return Err(Error::invalid("imported deposit needs a deposit id"));
+        }
+        put_json(&self.kv, &Self::key(&rec.deposit_id), rec).await
+    }
+
     async fn modify(&self, deposit_id: &str, f: impl FnOnce(&mut DepositRecord)) -> Result<()> {
         let key = Self::key(deposit_id);
         let Some(mut rec) = get_json::<K, DepositRecord>(&self.kv, &key).await? else { return Ok(()) };
@@ -271,6 +280,23 @@ impl<K: KvStore> FavoritePayerStore<K> {
         let rec = PayerRecord { id, label: label.to_owned(), cpf: cpf.to_owned(), created_at_ms: now_ms };
         put_json(&self.kv, &Self::key(id), &rec).await?;
         Ok(id)
+    }
+
+    /// Writes an existing payer with its original id and creation time,
+    /// for a data migration. Replaces a payer with the same id. Later
+    /// inserts get higher ids.
+    pub async fn import(&self, id: u64, label: &str, cpf: &str, created_at_ms: u64) -> Result<()> {
+        Self::check_columns(label, cpf)?;
+        if id == 0 {
+            return Err(Error::invalid("imported favorite payer needs a positive id"));
+        }
+        let rec = PayerRecord { id, label: label.to_owned(), cpf: cpf.to_owned(), created_at_ms };
+        put_json(&self.kv, &Self::key(id), &rec).await?;
+        let last: u64 = get_json(&self.kv, PAYER_SEQ_KEY).await?.unwrap_or(0);
+        if id > last {
+            put_json(&self.kv, PAYER_SEQ_KEY, &id).await?;
+        }
+        Ok(())
     }
 
     /// Updates label and cpf. A missing id does nothing.

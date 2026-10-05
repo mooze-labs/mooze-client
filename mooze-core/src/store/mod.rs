@@ -9,11 +9,11 @@ pub mod credentials;
 pub mod json;
 pub mod notified;
 pub mod records;
+pub mod settings;
 pub mod transactions;
 
 pub use credentials::{CredentialStore, PinStore, MNEMONIC_KEY};
 pub use notified::NotifiedTxRegistry;
-pub use records::{
-    AppLogStore, DepositStore, FavoritePayerStore, PegAuditStore, SwapAuditStore, SyncMetadataStore,
-};
+pub use records::{AppLogStore, SwapAuditStore, SyncMetadataStore};
+pub use settings::NodeSettings;
 pub use transactions::{merge_transaction, TransactionStore};

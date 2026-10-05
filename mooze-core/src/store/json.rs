@@ -77,6 +77,18 @@ pub async fn next_id<K: KvStore>(kv: &K, seq_key: &str) -> Result<i64> {
     Ok(next)
 }
 
+/// Raises the sequence at `seq_key` to at least `id`. Never lowers it.
+///
+/// Imports call it after writing a row with a fixed id, so the next
+/// [`next_id`] never reuses an imported id.
+pub async fn bump_seq<K: KvStore>(kv: &K, seq_key: &str, id: i64) -> Result<()> {
+    let current: i64 = get_json(kv, seq_key).await?.unwrap_or(0);
+    if id > current {
+        put_json(kv, seq_key, &id).await?;
+    }
+    Ok(())
+}
+
 /// Key for a row id. Zero padding keeps ascending key order equal to id order.
 pub fn id_key(prefix: &str, id: i64) -> String {
     format!("{prefix}{id:020}")

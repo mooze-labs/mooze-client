@@ -34,8 +34,9 @@ jobs:
       - name: Build (host)
         run: cargo build --locked --all-features
 
+      # Not --all-features: the electrum feature is native-only (see Cargo.toml).
       - name: Build (wasm32)
-        run: cargo build --locked --target wasm32-unknown-unknown --all-features
+        run: cargo build --locked --target wasm32-unknown-unknown --features http-reqwest
 
       - name: Test
         run: cargo test --locked --all-features

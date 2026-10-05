@@ -14,6 +14,11 @@ crate-type = ["rlib"]
 default = []
 # Default HttpClient implementation backed by reqwest.
 http-reqwest = ["dep:reqwest"]
+# Electrum chain backend. Native targets only: Electrum needs raw TCP.
+# Never enable it for wasm32, so never build wasm with --all-features.
+# LWK then pulls in aws-lc, whose C code cannot build for wasm32. Cargo
+# offers no way to scope this feature of a shared dependency to one target.
+electrum = ["dep:bdk_electrum", "lwk_wollet/electrum"]
 
 [dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }
@@ -26,6 +31,9 @@ lwk_wollet = { version = "=0.19.0", default-features = false, features = ["esplo
 lwk_signer = { version = "=0.19.0", default-features = false }
 lwk_common = { version = "=0.19.0" }
 reqwest = { version = "=0.12.28", default-features = false, features = ["rustls-tls"], optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bdk_electrum = { version = "=0.24.0", default-features = false, features = ["use-rustls-ring"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom02 = { package = "getrandom", version = "=0.2.16", features = ["js"] }

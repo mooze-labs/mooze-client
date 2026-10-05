@@ -10,6 +10,7 @@
 //! use `reqwest`. On native targets the platform must poll those futures
 //! inside a tokio runtime. On wasm they use `fetch`.
 
+pub mod backend;
 pub mod bitcoin;
 pub mod descriptors;
 pub mod endpoints;
@@ -20,6 +21,7 @@ pub mod liquid;
 pub mod mnemonic;
 pub mod tracker;
 
+pub use backend::{ChainBackend, ElectrumConfig};
 pub use bitcoin::BitcoinWallet;
 pub use endpoints::EndpointResolver;
 pub use liquid::LiquidWallet;
