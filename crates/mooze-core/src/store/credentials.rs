@@ -40,10 +40,15 @@ impl<S: SecureStore> CredentialStore<S> {
     }
 
     /// Loads the credentials. A missing or empty mnemonic gives absent credentials.
+    ///
+    /// A store that reports its own state (`InvalidState`: not registered
+    /// yet, locked) passes that error through. Every other failure is a
+    /// credential failure.
     pub async fn load(&self) -> Result<WalletCredentials> {
-        let v = get_string(&self.store, &self.mnemonic_key)
-            .await
-            .map_err(|e| Error::Credential(format!("load failed: {e}")))?;
+        let v = get_string(&self.store, &self.mnemonic_key).await.map_err(|e| match e {
+            Error::InvalidState(_) => e,
+            other => Error::Credential(format!("load failed: {other}")),
+        })?;
         Ok(match v {
             Some(m) if !m.is_empty() => WalletCredentials { mnemonic: m, network: self.network },
             _ => WalletCredentials::absent(self.network),
@@ -176,6 +181,35 @@ mod tests {
     use crate::testing::{block_on, MemoryKv};
 
     const WORDS12: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+    /// Store whose every call fails with a fixed error.
+    #[derive(Clone)]
+    struct FailingStore(fn() -> Error);
+    impl KvStore for FailingStore {
+        fn get(&self, _k: &str) -> impl std::future::Future<Output = Result<Option<Vec<u8>>>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+        fn put(&self, _k: &str, _v: Vec<u8>) -> impl std::future::Future<Output = Result<()>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+        fn delete(&self, _k: &str) -> impl std::future::Future<Output = Result<()>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+        fn list_keys(&self, _p: &str) -> impl std::future::Future<Output = Result<Vec<String>>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+    }
+    impl crate::ports::SecureStore for FailingStore {}
+
+    #[test]
+    fn load_passes_store_state_errors_through_and_wraps_the_rest() {
+        block_on(async {
+            let locked = CredentialStore::new(FailingStore(|| Error::InvalidState("not set".into())), AppNetwork::Mainnet);
+            assert!(matches!(locked.load().await, Err(Error::InvalidState(m)) if m == "not set"));
+            let broken = CredentialStore::new(FailingStore(|| Error::storage("disk")), AppNetwork::Mainnet);
+            assert!(matches!(broken.load().await, Err(Error::Credential(m)) if m.contains("disk")));
+        });
+    }
 
     #[test]
     fn credentials_roundtrip_raw_string() {

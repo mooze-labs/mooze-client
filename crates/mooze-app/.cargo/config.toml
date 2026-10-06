@@ -1,0 +1,9 @@
+# getrandom 0.3 selects its wasm backend through this cfg flag.
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
+
+# The macOS system ar writes empty archives for wasm objects.
+# The secp256k1-sys C library then fails to link. Use llvm-ar.
+# On Linux CI, override with: AR_wasm32_unknown_unknown=llvm-ar
+[env]
+AR_wasm32_unknown_unknown = { value = "/opt/homebrew/opt/llvm/bin/llvm-ar", force = false }

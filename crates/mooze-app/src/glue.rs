@@ -1,13 +1,13 @@
-//! Connects the bridge state to the core feature traits.
+//! Wires the App wallets into the core feature traits.
 //!
-//! - [`LiquidPort`]: the bridge Liquid wallet as PIX `AddressProvider` and
-//!   SideSwap `SwapSigner`. Signing reads the mnemonic from the secure store.
-//! - [`WalletPegPort`]: both bridge wallets as the `PegWallet`.
+//! - [`LiquidPort`]: the Liquid wallet as PIX `AddressProvider` and SideSwap
+//!   `SwapSigner`. Signing reads the mnemonic from the secure store.
+//! - [`WalletPegPort`]: both wallets as the `PegWallet`.
 //! - [`SideSwapState`]: one SideSwap connection shared by swaps and pegs,
 //!   the peg tracker, and the event driver task.
 //!
-//! The ports hold a `Weak` reference to the core state. The SideSwap state
-//! lives inside that state, so a strong reference would leak it.
+//! The ports hold a `Weak` reference to the app state, so a port stored
+//! inside that state never keeps it alive.
 
 // Trait impls return explicit futures so the MaybeSend bound stays visible.
 #![allow(clippy::manual_async_fn)]
@@ -15,7 +15,6 @@
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex as StdMutex, Weak};
-use std::time::Duration;
 
 use futures::future::{select, Either};
 use futures::pin_mut;
@@ -24,16 +23,20 @@ use mooze_core::domain::{ChainId, LiquidUtxo, SendRequest};
 use mooze_core::peg::entities::classify_wallet_error;
 use mooze_core::peg::{PegError, PegFundingQuote, PegTracker, PegWallet};
 use mooze_core::pix::AddressProvider;
-use mooze_core::ports::{Clock, MaybeSend};
+use mooze_core::ports::{Clock, MaybeSend, Spawner, Timer};
 use mooze_core::sideswap::{Notification, ReconnectPolicy, SwapService, SwapSigner};
-use mooze_core::store::CredentialStore;
 use mooze_core::{Error, Result};
 use tokio::sync::{Mutex, MutexGuard, Notify};
 
-use crate::api::core::Inner;
-use crate::api::swap::{QuoteDto, SideSwapEventDto, SideSwapEventKind};
-use crate::ports::SystemClock;
-use crate::ws::TungsteniteConnector;
+use crate::convert::{
+    sideswap_balance_event, sideswap_closed_event, sideswap_disconnected_event,
+    sideswap_quote_event,
+};
+use crate::dto::{QuoteDto, SideSwapEventDto, SideSwapEventKind};
+
+use crate::app::wallets::load_mnemonic;
+use crate::app::Inner;
+use crate::Platform;
 
 fn gone() -> Error {
     Error::InvalidState("core closed".into())
@@ -43,52 +46,64 @@ fn not_connected(chain: ChainId) -> Error {
     Error::InvalidState(format!("{} wallet not connected", chain.as_str()))
 }
 
-/// Mnemonic from the secure store (`mnemonic_mainWallet`).
-async fn load_mnemonic(inner: &Inner) -> Result<String> {
-    let credentials = CredentialStore::new(inner.secure_store()?, inner.network).load().await?;
-    if credentials.is_absent() {
-        return Err(Error::Credential("no mnemonic in the secure store".into()));
-    }
-    Ok(credentials.mnemonic)
+/// Reads the mnemonic, mapping the facade error back to the core error.
+async fn mnemonic<P: Platform>(inner: &Inner<P>) -> Result<String> {
+    load_mnemonic(inner)
+        .await
+        .map_err(|e| Error::Credential(e.message))
 }
 
 // ───────────────────────────── Liquid port
 
-/// The bridge Liquid wallet as address source and swap signer.
-#[derive(Clone)]
-pub(crate) struct LiquidPort {
-    inner: Weak<Inner>,
+/// The Liquid wallet as address source and swap signer.
+pub struct LiquidPort<P: Platform> {
+    inner: Weak<Inner<P>>,
 }
 
-impl LiquidPort {
-    pub(crate) fn new(inner: &Arc<Inner>) -> Self {
-        Self { inner: Arc::downgrade(inner) }
+impl<P: Platform> Clone for LiquidPort<P> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<P: Platform> LiquidPort<P> {
+    pub(crate) fn new(inner: &Arc<Inner<P>>) -> Self {
+        Self {
+            inner: Arc::downgrade(inner),
+        }
     }
 
-    fn inner(&self) -> Result<Arc<Inner>> {
+    fn inner(&self) -> Result<Arc<Inner<P>>> {
         self.inner.upgrade().ok_or_else(gone)
     }
 
     async fn receive_address(&self) -> Result<String> {
         let inner = self.inner()?;
         let mut guard = inner.liquid.lock().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Liquid))?;
         wallet.receive_address().await
     }
 }
 
-impl AddressProvider for LiquidPort {
+impl<P: Platform> AddressProvider for LiquidPort<P> {
     fn liquid_receive_address(&self) -> impl Future<Output = Result<String>> + MaybeSend {
         async move { self.receive_address().await }
     }
 }
 
-impl SwapSigner for LiquidPort {
+impl<P: Platform> SwapSigner for LiquidPort<P> {
     fn liquid_utxos(&self) -> impl Future<Output = Result<Vec<LiquidUtxo>>> + MaybeSend {
         async move {
             let inner = self.inner()?;
             let guard = inner.liquid.lock().await;
-            guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?.utxos()
+            guard
+                .as_ref()
+                .ok_or_else(|| not_connected(ChainId::Liquid))?
+                .utxos()
         }
     }
 
@@ -100,9 +115,12 @@ impl SwapSigner for LiquidPort {
         let pset = pset_b64.to_owned();
         async move {
             let inner = self.inner()?;
-            let mnemonic = load_mnemonic(&inner).await?;
+            let mnemonic = mnemonic(&inner).await?;
             let guard = inner.liquid.lock().await;
-            guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?.sign_swap_pset(&pset, &mnemonic)
+            guard
+                .as_ref()
+                .ok_or_else(|| not_connected(ChainId::Liquid))?
+                .sign_swap_pset(&pset, &mnemonic)
         }
     }
 }
@@ -113,40 +131,54 @@ fn peg_error(e: Error) -> PegError {
     classify_wallet_error(&e.to_string())
 }
 
-/// Both bridge wallets as the funding source of pegs. Port of `WalletPeg`.
-pub(crate) struct WalletPegPort {
-    inner: Weak<Inner>,
+/// Both wallets as the funding source of pegs. Port of `WalletPeg`.
+pub struct WalletPegPort<P: Platform> {
+    inner: Weak<Inner<P>>,
 }
 
-impl WalletPegPort {
-    pub(crate) fn new(inner: &Arc<Inner>) -> Self {
-        Self { inner: Arc::downgrade(inner) }
+impl<P: Platform> WalletPegPort<P> {
+    pub(crate) fn new(inner: &Arc<Inner<P>>) -> Self {
+        Self {
+            inner: Arc::downgrade(inner),
+        }
     }
 
-    fn inner(&self) -> std::result::Result<Arc<Inner>, PegError> {
+    fn inner(&self) -> std::result::Result<Arc<Inner<P>>, PegError> {
         self.inner.upgrade().ok_or_else(|| peg_error(gone()))
     }
 }
 
-impl PegWallet for WalletPegPort {
+impl<P: Platform> PegWallet for WalletPegPort<P> {
     type Handle = PegFunding;
 
-    fn liquid_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+    fn liquid_payout_address(
+        &self,
+    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let inner = self.inner()?;
             let mut guard = inner.liquid.lock().await;
-            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
             wallet.receive_address().await.map_err(peg_error)
         }
     }
 
-    fn bitcoin_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+    fn bitcoin_payout_address(
+        &self,
+    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let inner = self.inner()?;
             let mut guard = inner.bitcoin.lock().await;
-            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
-            let r = wallet.next_receive_address(None, None).await.map_err(peg_error)?;
-            r.address.ok_or_else(|| PegError::WalletFailure("wallet returned no address".into()))
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
+            let r = wallet
+                .next_receive_address(None, None)
+                .await
+                .map_err(peg_error)?;
+            r.address
+                .ok_or_else(|| PegError::WalletFailure("wallet returned no address".into()))
         }
     }
 
@@ -156,16 +188,24 @@ impl PegWallet for WalletPegPort {
         amount_sat: u64,
         fee_rate_sat_per_vbyte: Option<u32>,
         drain: bool,
-    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend {
+    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend
+    {
         let destination = destination.to_owned();
         async move {
             let inner = self.inner()?;
             let mut guard = inner.bitcoin.lock().await;
-            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
             // BDK rejects addresses of other networks, so a Liquid
             // destination fails here instead of burning funds.
             let prepared = wallet
-                .prepare_send(&destination, amount_sat, drain, fee_rate_sat_per_vbyte.map(u64::from))
+                .prepare_send(
+                    &destination,
+                    amount_sat,
+                    drain,
+                    fee_rate_sat_per_vbyte.map(u64::from),
+                )
                 .await
                 .map_err(peg_error)?;
             Ok(PegFundingQuote {
@@ -182,15 +222,24 @@ impl PegWallet for WalletPegPort {
         amount_sat: u64,
         fee_rate_sat_per_vb: Option<f64>,
         drain: bool,
-    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend {
+    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend
+    {
         let destination = destination.to_owned();
         async move {
             let inner = self.inner()?;
             let mut guard = inner.liquid.lock().await;
-            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
-            let draft =
-                wallet.build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain).await.map_err(peg_error)?;
-            Ok(PegFundingQuote { amount_sat: draft.amount_sat, network_fee_sat: draft.fee_sat, handle: PegFunding::Liquid(draft) })
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
+            let draft = wallet
+                .build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain)
+                .await
+                .map_err(peg_error)?;
+            Ok(PegFundingQuote {
+                amount_sat: draft.amount_sat,
+                network_fee_sat: draft.fee_sat,
+                handle: PegFunding::Liquid(draft),
+            })
         }
     }
 
@@ -200,15 +249,25 @@ impl PegWallet for WalletPegPort {
     ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let PegFunding::Bitcoin(prepared) = quote.handle else {
-                return Err(PegError::WalletFailure("expected a Bitcoin funding handle".into()));
+                return Err(PegError::WalletFailure(
+                    "expected a Bitcoin funding handle".into(),
+                ));
             };
-            let mut request = SendRequest::new(ChainId::Bitcoin, prepared.destination, prepared.amount_sat);
+            let mut request =
+                SendRequest::new(ChainId::Bitcoin, prepared.destination, prepared.amount_sat);
             request.drain = prepared.drain;
-            request.fee_rate_override_sat_per_vbyte = prepared.fee_rate_sat_per_vbyte.map(|r| r as f64);
+            request.fee_rate_override_sat_per_vbyte =
+                prepared.fee_rate_sat_per_vbyte.map(|r| r as f64);
             let inner = self.inner()?;
             let mut guard = inner.bitcoin.lock().await;
-            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
-            Ok(wallet.send_onchain(&request).await.map_err(peg_error)?.tx_id)
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
+            Ok(wallet
+                .send_onchain(&request)
+                .await
+                .map_err(peg_error)?
+                .tx_id)
         }
     }
 
@@ -218,27 +277,39 @@ impl PegWallet for WalletPegPort {
     ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let PegFunding::Liquid(draft) = quote.handle else {
-                return Err(PegError::WalletFailure("expected a Liquid funding handle".into()));
+                return Err(PegError::WalletFailure(
+                    "expected a Liquid funding handle".into(),
+                ));
             };
             let inner = self.inner()?;
-            let mnemonic = load_mnemonic(&inner).await.map_err(peg_error)?;
+            let mnemonic = mnemonic(&inner).await.map_err(peg_error)?;
             let mut guard = inner.liquid.lock().await;
-            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
-            wallet.sign_and_broadcast_pset(&draft.pset, &mnemonic).await.map_err(peg_error)
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
+            wallet
+                .sign_and_broadcast_pset(&draft.pset, &mnemonic)
+                .await
+                .map_err(peg_error)
         }
     }
 }
 
 // ───────────────────────────── SideSwap state and driver
 
-pub(crate) type Swap = SwapService<TungsteniteConnector, LiquidPort>;
+pub(crate) type Swap<P> = SwapService<<P as Platform>::Ws, LiquidPort<P>>;
 
 /// How often the driver checks the quote timeout and yields the lock.
-const DRIVER_TICK: Duration = Duration::from_millis(500);
+const DRIVER_TICK_MS: u64 = 500;
 
-/// Receives driver events. Returns false when the receiver is gone, which
+/// Receives driver events. Returns false when no receiver is left, which
 /// stops the driver.
-pub(crate) type Emit = Box<dyn Fn(SideSwapEventDto) -> bool + Send + Sync>;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) type Emit = Arc<dyn Fn(SideSwapEventDto) -> bool + Send + Sync>;
+/// Receives driver events. Returns false when no receiver is left, which
+/// stops the driver.
+#[cfg(target_arch = "wasm32")]
+pub(crate) type Emit = Arc<dyn Fn(SideSwapEventDto) -> bool>;
 
 /// Control block of one driver task.
 #[derive(Default)]
@@ -258,9 +329,9 @@ impl DriverCtl {
         self.wake.notify_one();
     }
 
-    /// Waits up to `d`, or less if woken. Returns true when cancelled.
-    async fn pause(&self, d: Duration) -> bool {
-        let sleep = tokio::time::sleep(d);
+    /// Waits up to `ms`, or less if woken. Returns true when cancelled.
+    async fn pause(&self, timer: &dyn Timer, ms: u64) -> bool {
+        let sleep = timer.sleep(ms);
         let woken = self.wake.notified();
         pin_mut!(sleep, woken);
         let _ = select(sleep, woken).await;
@@ -268,24 +339,36 @@ impl DriverCtl {
     }
 }
 
-/// SideSwap connection, peg tracker and event driver of one core.
-#[derive(Default)]
-pub(crate) struct SideSwapState {
-    /// Swap service over the client. `None` until `sideswapConnect`.
-    session: Mutex<Option<Swap>>,
+/// SideSwap connection, peg tracker and event driver of one app.
+pub(crate) struct SideSwapState<P: Platform> {
+    /// Swap service over the client. `None` until `sideswap_connect`.
+    session: Mutex<Option<Swap<P>>>,
     /// Tracked pegs. Lock after `session` when both are needed.
     pub(crate) pegs: Mutex<PegTracker>,
     driver: StdMutex<Option<Arc<DriverCtl>>>,
 }
 
-impl SideSwapState {
+impl<P: Platform> Default for SideSwapState<P> {
+    fn default() -> Self {
+        Self {
+            session: Mutex::new(None),
+            pegs: Mutex::new(PegTracker::default()),
+            driver: StdMutex::new(None),
+        }
+    }
+}
+
+impl<P: Platform> SideSwapState<P> {
     fn driver(&self) -> Option<Arc<DriverCtl>> {
-        self.driver.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.driver
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     /// Locks the session for a command. Wakes the driver first, so it
     /// releases the lock instead of waiting for the next frame.
-    pub(crate) async fn lock(&self) -> MutexGuard<'_, Option<Swap>> {
+    pub(crate) async fn lock(&self) -> MutexGuard<'_, Option<Swap<P>>> {
         if let Some(ctl) = self.driver() {
             ctl.wake.notify_one();
         }
@@ -304,18 +387,35 @@ impl SideSwapState {
         }
     }
 
-    /// Replaces the driver task. Must run inside the tokio runtime.
-    pub(crate) fn start_driver(self: &Arc<Self>, emit: Emit) {
+    /// Replaces the driver task.
+    pub(crate) fn start_driver(
+        self: &Arc<Self>,
+        spawner: &dyn Spawner,
+        timer: Arc<dyn Timer>,
+        clock: Arc<dyn Clock>,
+        emit: Emit,
+    ) {
         let ctl = Arc::new(DriverCtl::default());
-        if let Some(old) = self.driver.lock().unwrap_or_else(|e| e.into_inner()).replace(ctl.clone()) {
+        if let Some(old) = self
+            .driver
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(ctl.clone())
+        {
             old.cancel();
         }
         let state = self.clone();
-        tokio::spawn(async move {
-            drive(&state, &ctl, &emit).await;
+        spawner.spawn(Box::pin(async move {
+            drive(&state, &ctl, timer.as_ref(), clock.as_ref(), &emit).await;
             ctl.cancelled.store(true, Ordering::SeqCst);
-            let _ = emit(SideSwapEventDto::closed());
-        });
+            // `closed` ends this driver's stream. A replaced driver stays
+            // silent: its successor owns the subscribers now, and the host
+            // already closed the old stream itself.
+            let current = state.driver();
+            if current.is_none_or(|c| Arc::ptr_eq(&c, &ctl)) {
+                let _ = emit(sideswap_closed_event());
+            }
+        }));
     }
 }
 
@@ -335,7 +435,13 @@ enum Step {
 /// from commands and a tick. Frames are read with a cancel-safe receive, so
 /// dropping the read loses nothing. Transport errors emit `disconnected` and
 /// back off with the reconnect policy; the next read reconnects and logs in.
-async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
+async fn drive<P: Platform>(
+    state: &SideSwapState<P>,
+    ctl: &DriverCtl,
+    timer: &dyn Timer,
+    clock: &dyn Clock,
+    emit: &Emit,
+) {
     let policy = ReconnectPolicy::default();
     let mut attempt: u32 = 0;
     while !ctl.is_cancelled() {
@@ -344,10 +450,13 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             match guard.as_mut() {
                 None => Step::Idle,
                 Some(swap) => {
-                    let mut ready: Vec<SideSwapEventDto> =
-                        swap.drain_quotes().into_iter().map(|q| SideSwapEventDto::quote(QuoteDto::from(&q))).collect();
-                    if let Some(t) = swap.poll_quote_timeout(SystemClock.now_ms()) {
-                        ready.push(SideSwapEventDto::quote(QuoteDto::from(&t)));
+                    let mut ready: Vec<SideSwapEventDto> = swap
+                        .drain_quotes()
+                        .into_iter()
+                        .map(|q| sideswap_quote_event(QuoteDto::from(&q)))
+                        .collect();
+                    if let Some(t) = swap.poll_quote_timeout(clock.now_ms()) {
+                        ready.push(sideswap_quote_event(QuoteDto::from(&t)));
                     }
                     if !ready.is_empty() {
                         drop(guard);
@@ -366,7 +475,7 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
                             Step::Note(swap.client_mut().next_event().await)
                         }
                     };
-                    let woken = ctl.pause(DRIVER_TICK);
+                    let woken = ctl.pause(timer, DRIVER_TICK_MS);
                     pin_mut!(read, woken);
                     match select(read, woken).await {
                         Either::Left((step, _)) => step,
@@ -377,19 +486,19 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
         };
         let failed = match step {
             Step::Idle => {
-                if ctl.pause(DRIVER_TICK).await {
+                if ctl.pause(timer, DRIVER_TICK_MS).await {
                     return;
                 }
                 continue;
             }
             Step::Woken => {
                 // Let the waiting command take the (fair) lock first.
-                tokio::task::yield_now().await;
+                timer.sleep(0).await;
                 continue;
             }
             Step::Quote(Ok(q)) => {
                 attempt = 0;
-                if !emit(SideSwapEventDto::quote(QuoteDto::from(&q))) {
+                if !emit(sideswap_quote_event(QuoteDto::from(&q))) {
                     return;
                 }
                 continue;
@@ -397,10 +506,14 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             Step::Note(Ok(n)) => {
                 attempt = 0;
                 let event = match n {
-                    Notification::PegInWalletBalance(sat) => Some(SideSwapEventDto::balance(SideSwapEventKind::PegInWalletBalance, sat)),
-                    Notification::PegOutWalletBalance(sat) => {
-                        Some(SideSwapEventDto::balance(SideSwapEventKind::PegOutWalletBalance, sat))
-                    }
+                    Notification::PegInWalletBalance(sat) => Some(sideswap_balance_event(
+                        SideSwapEventKind::PegInWalletBalance,
+                        sat,
+                    )),
+                    Notification::PegOutWalletBalance(sat) => Some(sideswap_balance_event(
+                        SideSwapEventKind::PegOutWalletBalance,
+                        sat,
+                    )),
                     _ => None,
                 };
                 if let Some(e) = event {
@@ -414,7 +527,7 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             Step::Quote(Err(Error::Timeout(_))) | Step::Note(Err(Error::Timeout(_))) => continue,
             Step::Quote(Err(e)) | Step::Note(Err(e)) => e,
         };
-        if !emit(SideSwapEventDto::disconnected(failed.to_string())) {
+        if !emit(sideswap_disconnected_event(failed.to_string())) {
             return;
         }
         attempt += 1;
@@ -422,17 +535,17 @@ async fn drive(state: &SideSwapState, ctl: &DriverCtl, emit: &Emit) {
             // Reconnect budget spent: the stream ends with `closed`.
             return;
         };
-        let deadline = SystemClock.now_ms() + delay;
+        let deadline = clock.now_ms() + delay;
         loop {
-            let now = SystemClock.now_ms();
+            let now = clock.now_ms();
             if now >= deadline {
                 break;
             }
-            if ctl.pause(Duration::from_millis(deadline - now)).await {
+            if ctl.pause(timer, deadline - now).await {
                 return;
             }
             // Woken by a command: wait for it, then keep backing off.
-            tokio::task::yield_now().await;
+            timer.sleep(0).await;
         }
     }
 }

@@ -8,9 +8,11 @@ use std::future::{ready, Future};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use futures::channel::{mpsc, oneshot};
+
 use crate::ports::{
     BlockingSpawner, Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend, SecureStore, WsConnection,
-    WsConnector, WsMessage,
+    WsConnector, WsMessage, Spawner, TaskFuture, Timer,
 };
 use crate::{Error, Result};
 
@@ -271,6 +273,135 @@ impl WsConnection for MockWsConnection {
     }
 }
 
+/// [`Timer`] that fires only when the test calls [`ManualTimer::advance`].
+#[derive(Debug, Default)]
+pub struct ManualTimer {
+    now_ms: AtomicU64,
+    pending: Mutex<Vec<(u64, oneshot::Sender<()>)>>,
+}
+
+impl ManualTimer {
+    /// Timer at time zero with no pending sleeps.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Current virtual time.
+    pub fn now_ms(&self) -> u64 {
+        self.now_ms.load(Ordering::SeqCst)
+    }
+
+    /// Moves time forward and completes every sleep that is due.
+    pub fn advance(&self, ms: u64) {
+        let now = self.now_ms.fetch_add(ms, Ordering::SeqCst) + ms;
+        let mut pending = self.pending.lock().expect("poisoned");
+        let (mut due, later): (Vec<_>, Vec<_>) = pending.drain(..).partition(|(at, _)| *at <= now);
+        *pending = later;
+        due.sort_by_key(|(at, _)| *at);
+        for (_, tx) in due {
+            let _ = tx.send(());
+        }
+    }
+
+    /// Number of sleeps that have not fired.
+    pub fn pending(&self) -> usize {
+        self.pending.lock().expect("poisoned").len()
+    }
+}
+
+impl Timer for ManualTimer {
+    fn sleep(&self, ms: u64) -> TaskFuture<'static, ()> {
+        if ms == 0 {
+            // A zero sleep is a yield: pending once, then ready, with no advance needed.
+            let mut yielded = false;
+            return Box::pin(std::future::poll_fn(move |cx| {
+                if yielded {
+                    std::task::Poll::Ready(())
+                } else {
+                    yielded = true;
+                    cx.waker().wake_by_ref();
+                    std::task::Poll::Pending
+                }
+            }));
+        }
+        let (tx, rx) = oneshot::channel();
+        self.pending
+            .lock()
+            .expect("poisoned")
+            .push((self.now_ms() + ms, tx));
+        Box::pin(async move {
+            let _ = rx.await;
+        })
+    }
+}
+
+/// [`Spawner`] that queues tasks on a channel. [`TestExecutor`] runs them.
+#[derive(Debug, Clone)]
+pub struct ChannelSpawner {
+    tx: mpsc::UnboundedSender<TaskFuture<'static, ()>>,
+}
+
+impl Spawner for ChannelSpawner {
+    fn spawn(&self, task: TaskFuture<'static, ()>) {
+        let _ = self.tx.unbounded_send(task);
+    }
+}
+
+/// Single-threaded executor for runtime tests. Native only.
+#[cfg(not(target_arch = "wasm32"))]
+pub struct TestExecutor {
+    pool: futures::executor::LocalPool,
+    rx: mpsc::UnboundedReceiver<TaskFuture<'static, ()>>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl TestExecutor {
+    /// A spawner and the executor that runs what it spawns.
+    pub fn new() -> (ChannelSpawner, Self) {
+        let (tx, rx) = mpsc::unbounded();
+        (
+            ChannelSpawner { tx },
+            Self {
+                pool: futures::executor::LocalPool::new(),
+                rx,
+            },
+        )
+    }
+
+    /// Moves queued tasks onto the pool and runs until every task waits.
+    pub fn run_until_stalled(&mut self) {
+        use futures::task::{FutureObj, Spawn};
+        loop {
+            let mut moved = false;
+            while let Ok(task) = self.rx.try_recv() {
+                self.pool
+                    .spawner()
+                    .spawn_obj(FutureObj::new(task))
+                    .expect("pool open");
+                moved = true;
+            }
+            self.pool.run_until_stalled();
+            if !moved {
+                break;
+            }
+        }
+    }
+
+    /// Runs one future to completion, driving queued tasks alongside it.
+    pub fn block_on<F: Future>(&mut self, f: F) -> F::Output {
+        let mut f = Box::pin(f);
+        loop {
+            self.run_until_stalled();
+            let waker = futures::task::noop_waker();
+            let mut cx = std::task::Context::from_waker(&waker);
+            if let std::task::Poll::Ready(v) = f.as_mut().poll(&mut cx) {
+                return v;
+            }
+            self.pool.run_until_stalled();
+        }
+    }
+}
+
 /// Runs a future to completion on the current thread. Test helper.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn block_on<F: Future>(f: F) -> F::Output {
@@ -345,5 +476,50 @@ mod blocking_tests {
     fn dropped_task_is_an_error() {
         let r = block_on(run_blocking(&DroppingSpawner, || 1));
         assert!(matches!(r, Err(Error::Unexpected(_))));
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod task_tests {
+    use super::*;
+    use crate::ports::{Spawner, Timer};
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    #[test]
+    fn manual_timer_fires_in_deadline_order() {
+        let timer = Arc::new(ManualTimer::new());
+        let (spawner, mut exec) = TestExecutor::new();
+        let log = Arc::new(Mutex::new(Vec::new()));
+        for (ms, tag) in [(300u64, "c"), (100, "a"), (200, "b")] {
+            let (t, l) = (timer.clone(), log.clone());
+            spawner.spawn(Box::pin(async move {
+                t.sleep(ms).await;
+                l.lock().unwrap().push(tag);
+            }));
+        }
+        exec.run_until_stalled();
+        assert!(log.lock().unwrap().is_empty());
+        timer.advance(150);
+        exec.run_until_stalled();
+        assert_eq!(*log.lock().unwrap(), vec!["a"]);
+        timer.advance(200);
+        exec.run_until_stalled();
+        assert_eq!(*log.lock().unwrap(), vec!["a", "b", "c"]);
+        assert_eq!(timer.pending(), 0);
+    }
+
+    #[test]
+    fn channel_spawner_runs_tasks_on_the_executor() {
+        let (spawner, mut exec) = TestExecutor::new();
+        let count = Arc::new(AtomicU32::new(0));
+        for _ in 0..3 {
+            let c = count.clone();
+            spawner.spawn(Box::pin(async move {
+                c.fetch_add(1, Ordering::SeqCst);
+            }));
+        }
+        assert_eq!(count.load(Ordering::SeqCst), 0);
+        exec.run_until_stalled();
+        assert_eq!(count.load(Ordering::SeqCst), 3);
     }
 }

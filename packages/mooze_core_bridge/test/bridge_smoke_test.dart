@@ -157,7 +157,7 @@ void main() {
       final core = await openCore();
       expect(await core.isMigrated(), isFalse);
       final json = File(
-        '../../mooze-core/tests/fixtures/flutter_snapshot_v1.json',
+        '../../crates/mooze-core/tests/fixtures/flutter_snapshot_v1.json',
       ).readAsStringSync();
       final report = await core.importFlutterSnapshot(snapshotJson: json);
       expect(report.alreadyDone, isFalse);

@@ -9,3 +9,7 @@ export 'src/rust/api/pix.dart';
 export 'src/rust/api/swap.dart';
 export 'src/rust/api/types.dart';
 export 'src/rust/frb_generated.dart' show MoozeCoreLib;
+export 'src/rust/third_party/mooze_app/dto/config.dart';
+export 'src/rust/third_party/mooze_app/dto/pix.dart';
+export 'src/rust/third_party/mooze_app/dto/swap.dart';
+export 'src/rust/third_party/mooze_app/dto/wallet.dart';

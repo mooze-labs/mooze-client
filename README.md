@@ -26,6 +26,7 @@ The app logic lives in a Rust core. A Flutter app calls the core through flutter
 |---|---|
 | `apps/mobile` | Flutter app (UI, state management, platform integration). |
 | `crates/mooze-core` | Rust core with the application logic. Builds for native targets and for `wasm32-unknown-unknown`. |
+| `crates/mooze-app` | Host-neutral application facade over `mooze-core`. Every client (flutter_rust_bridge today, Tauri and wasm next) binds it. |
 | `packages/mooze_core_bridge` | Flutter plugin that connects the app to the core through flutter_rust_bridge. |
 | `docs/superpowers` | Design spec and implementation plans. |
 
