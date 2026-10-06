@@ -24,6 +24,21 @@ pub(crate) async fn load_mnemonic<P: Platform>(inner: &Inner<P>) -> Result<Strin
 }
 
 impl<P: Platform> App<P> {
+    /// Exact string amounts for new hosts; legacy balance DTOs remain unchanged.
+    pub async fn wallet_holdings(&self) -> Result<Vec<HoldingDto>> {
+        if self.inner.network != mooze_core::domain::AppNetwork::Testnet {
+            return Err(AppError::new(ErrorCode::InvalidState, "testnet holdings only"));
+        }
+        let mut balances = self.bitcoin_balance().await?.assets;
+        balances.extend(self.liquid_balance().await?.assets);
+        let mut rows: Vec<_> = balances.iter().map(crate::assets::holding).collect();
+        for metadata in crate::assets::approved_testnet_assets() {
+            if !rows.iter().any(|r| r.metadata.key == metadata.key) {
+                rows.push(HoldingDto {metadata, balance_units:"0".into(),available_units:None,pending_units:None});
+            }
+        }
+        Ok(rows)
+    }
     // ───────────────────────────── bitcoin
 
     /// Loads or creates the Bitcoin wallet for `mnemonic`.

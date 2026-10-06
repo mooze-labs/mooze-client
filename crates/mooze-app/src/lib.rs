@@ -6,6 +6,7 @@
 //! and starts no tasks by itself. A [`Platform`] supplies the ports.
 
 pub mod app;
+pub mod assets;
 pub mod convert;
 pub mod dto;
 pub mod error;

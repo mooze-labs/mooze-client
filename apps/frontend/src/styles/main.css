@@ -609,3 +609,7 @@ select {
     animation: none !important;
   }
 }
+.full-width { grid-column: 1 / -1; }
+.table-scroll { overflow-x: auto; }
+.asset-link { display: flex; flex-direction: column; gap: 4px; max-width: 260px; }
+.network-state + .network-state { border-top: 1px solid var(--line); padding-top: 16px; }

@@ -56,3 +56,8 @@ pub async fn confirm_send(state: State<'_>, review_id: String) -> Result<Broadca
 pub async fn acknowledge_submission(state: State<'_>) -> Result<()> {
     state.acknowledge_submission().await
 }
+
+#[tauri::command]
+pub async fn holdings(state: State<'_>) -> Result<HoldingsSnapshotDto> { state.holdings().await }
+#[tauri::command]
+pub fn approved_assets(state: State<'_>) -> Result<Vec<mooze_app::dto::AssetMetadataDto>> { state.approved_assets() }

@@ -32,6 +32,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::host_info,
+            commands::holdings,
+            commands::approved_assets,
             commands::session_status,
             commands::import_wallet,
             commands::unlock,

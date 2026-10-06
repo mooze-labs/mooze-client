@@ -24,6 +24,10 @@ export type DesktopEvent =
   | { type: "core"; generation: number; data: AppEvent }
   | { type: "submission"; generation: number };
 export interface DesktopClient {
+  holdings(): Promise<import("./desktop.generated").HoldingsSnapshotDto>;
+  approvedAssets(): Promise<
+    import("../../../../crates/mooze-app/generated/types").AssetMetadataDto[]
+  >;
   hostInfo(): Promise<HostInfo>;
   sessionStatus(): Promise<Session>;
   importWallet(mnemonic: string, pin: string): Promise<Session>;

@@ -1,0 +1,20 @@
+import { createContext, useContext, type ReactNode } from "react";
+export const PrivacyContext = createContext(false);
+export function SensitiveValue({
+  children,
+  hidden,
+  className = "mono",
+}: {
+  children: ReactNode;
+  hidden?: boolean;
+  className?: string;
+}) {
+  const privacy = useContext(PrivacyContext);
+  return (hidden ?? privacy) ? (
+    <span className={className} aria-label="Valor oculto">
+      ••••••
+    </span>
+  ) : (
+    <span className={className}>{children}</span>
+  );
+}

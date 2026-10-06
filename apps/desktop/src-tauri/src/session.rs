@@ -381,6 +381,17 @@ impl<P: Platform + Clone> WalletSession<P> {
         )?;
         Ok(snapshot)
     }
+    pub async fn holdings(&self) -> Result<HoldingsSnapshotDto> {
+        let generation = self.authorize()?;
+        let app = self.inner.lock().await.app.clone().ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?;
+        let holdings = app.wallet_holdings().await?;
+        if generation != self.authorize()? {return Err(DesktopError::new("locked", "Sessão alterada."));}
+        Ok(HoldingsSnapshotDto {generation, holdings, chains:self.chains.lock().unwrap().clone()})
+    }
+    pub fn approved_assets(&self) -> Result<Vec<AssetMetadataDto>> {
+        self.authorize()?;
+        Ok(mooze_app::assets::approved_testnet_assets())
+    }
     pub async fn refresh(&self) -> Result<()> {
         self.authorize()?;
         let app = {

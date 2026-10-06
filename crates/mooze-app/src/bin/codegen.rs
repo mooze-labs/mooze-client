@@ -154,6 +154,7 @@ fn main() {
     use mooze_app::events::AppEvent;
     use mooze_app::{AppError, ErrorCode};
     export!(
+        AssetKeyDto, AssetMetadataDto, AssetAmountDto, HoldingDto,
         AppError,
         ErrorCode,
         AppEvent,

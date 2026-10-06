@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import type { DesktopClient, DesktopEvent } from "./client";
 export const inDesktop = isTauri;
 export const client: DesktopClient = {
+  holdings: () => invoke("holdings"),
+  approvedAssets: () => invoke("approved_assets"),
   hostInfo: () => invoke("host_info"),
   sessionStatus: () => invoke("session_status"),
   importWallet: (mnemonic, pin) => invoke("import_wallet", { mnemonic, pin }),
