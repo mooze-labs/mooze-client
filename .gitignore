@@ -38,3 +38,9 @@ firebase.json
 
 # FVM Version Cache
 .fvm/
+# Desktop / React workspace
+node_modules/
+apps/frontend/dist/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+.superpowers/

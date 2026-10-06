@@ -1,0 +1,42 @@
+:root {
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  font-feature-settings: "tnum" 1;
+  color: #f0ede9;
+  background: #10121a;
+  --bg: #10121a;
+  --surface: #1b1e29;
+  --raised: #242836;
+  --line: #353a49;
+  --separator: #ffffff10;
+  --muted: #a1a5b4;
+  --pink: #cf1855;
+  --pink-hover: #db1b5c;
+  --accent: #ff7aa7;
+  --blue: #81afca;
+  --gold: #edb564;
+  --green: #8bd0b7;
+  --background: var(--bg);
+  --foreground: #f0ede9;
+  --primary: var(--pink);
+  --primary-foreground: #fff;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent);
+  --destructive: #f39296;
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-muted: var(--raised);
+  --color-destructive: var(--destructive);
+}

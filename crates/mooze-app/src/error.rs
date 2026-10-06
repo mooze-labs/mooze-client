@@ -63,7 +63,14 @@ impl From<mooze_core::Error> for AppError {
             E::Session(_) => ErrorCode::Session,
             _ => ErrorCode::Other,
         };
-        Self { code, message: e.to_string(), details: None }
+        let details = match &e {
+            E::InsufficientFeeAsset { .. } => Some("insufficient_fee_asset".into()),
+            E::FeeLimitExceeded { .. } => Some("fee_changed".into()),
+            E::AmountChanged { .. } => Some("amount_changed".into()),
+            E::SubmissionUnknown { .. } => Some("submission_unknown".into()),
+            _ => None,
+        };
+        Self { code, message: e.to_string(), details }
     }
 }
 
@@ -72,6 +79,16 @@ mod tests {
     use super::*;
     use mooze_core::domain::ChainId;
     use mooze_core::Error as E;
+
+    #[test]
+    fn bounded_send_errors_preserve_stable_detail_tags() {
+        let fee = AppError::from(mooze_core::Error::FeeLimitExceeded { actual_sat: 101, max_sat: 100 });
+        assert_eq!(fee.details.as_deref(), Some("fee_changed"));
+        let uncertain =
+            AppError::from(mooze_core::Error::SubmissionUnknown { chain: ChainId::Liquid, message: "timeout".into() });
+        assert_eq!(uncertain.details.as_deref(), Some("submission_unknown"));
+        assert_ne!(AppError::from(mooze_core::Error::Network("timeout".into())).details, uncertain.details);
+    }
 
     #[test]
     fn core_errors_map_to_stable_codes() {

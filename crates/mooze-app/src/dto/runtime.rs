@@ -47,3 +47,12 @@ pub struct StartConfigDto {
     /// Wallet id under which pegs are stored. `None` disables the peg loop.
     pub peg_wallet_id: Option<String>,
 }
+
+/// Result of one chain in a refresh, independent of the other chain.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub struct ChainSyncStateDto {
+    pub chain: super::ChainDto,
+    pub succeeded: bool,
+    pub observed_at_ms: u64,
+}

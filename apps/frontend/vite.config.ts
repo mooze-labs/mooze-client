@@ -1,0 +1,16 @@
+import { defineConfig } from "vitest/config";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { fileURLToPath, URL } from "node:url";
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {alias: {"@": fileURLToPath(new URL("./src", import.meta.url))}},
+  clearScreen: false,
+  server: {
+    host: "127.0.0.1",
+    port: 1420,
+    strictPort: true,
+    fs: { allow: [fileURLToPath(new URL("../..", import.meta.url))] },
+  },
+  test: { environment: "jsdom", setupFiles: ["./src/testing/setup.ts"] },
+});

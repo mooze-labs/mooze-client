@@ -1,0 +1,18 @@
+{
+  "name": "mooze-desktop-workspace",
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "desktop:dev": "npm run dev -w @mooze/desktop",
+    "desktop:build": "npm run build -w @mooze/desktop",
+    "frontend:test": "npm run test -w @mooze/frontend",
+    "frontend:typecheck": "npm run typecheck -w @mooze/frontend",
+    "frontend:build": "npm run build -w @mooze/frontend"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9"
+  }
+}

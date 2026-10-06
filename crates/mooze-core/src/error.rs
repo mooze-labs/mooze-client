@@ -8,6 +8,14 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Every error the core returns.
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum Error {
+    #[error("insufficient L-BTC for fees: missing {missing_sat} sats")]
+    InsufficientFeeAsset { missing_sat: u64 },
+    #[error("recipient amount changed from {expected_sat} to {actual_sat}")]
+    AmountChanged { expected_sat: u64, actual_sat: u64 },
+    #[error("fee {actual_sat} exceeds approved maximum {max_sat}")]
+    FeeLimitExceeded { actual_sat: u64, max_sat: u64 },
+    #[error("submission outcome unknown on {chain:?}: {message}")]
+    SubmissionUnknown { chain: ChainId, message: String },
     /// The app could not finish a boot phase.
     #[error("boot failed in phase {phase}: {message}")]
     Boot { phase: String, message: String },

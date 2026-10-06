@@ -3,7 +3,7 @@
 //! Calls run on the shared tokio runtime (see [`crate::ports`]) because
 //! reqwest and the Electrum spawner need a tokio context. The Dart-facing
 //! names, parameters and error kinds are frozen; see
-//! `docs/superpowers/specs/2026-10-05-desktop-web-client-design.md`.
+//! `docs/desktop-mvp.md`.
 
 use std::path::PathBuf;
 use std::sync::Mutex as StdMutex;

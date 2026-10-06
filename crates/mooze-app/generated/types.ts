@@ -28,9 +28,17 @@ export type AppError = { code: ErrorCode, message: string,
  */
 details: string | null, };
 
-export type AppEvent = { "type": "side_swap", "data": SideSwapEventDto } | { "type": "transactions", "data": Array<TransactionEventDto> } | { "type": "pix_status", "data": Array<PixStatusEventDto> } | { "type": "sync_state", "data": SyncStateDto } | { "type": "peg_progress", "data": PegRefreshDto } | { "type": "session_lock", "data": SessionLockStateDto } | { "type": "auth_session", "data": AuthEnsureDto };
+export type AppEvent = { "type": "side_swap", "data": SideSwapEventDto } | { "type": "transactions", "data": Array<TransactionEventDto> } | { "type": "pix_status", "data": Array<PixStatusEventDto> } | { "type": "sync_state", "data": SyncStateDto } | { "type": "chain_sync_state", "data": ChainSyncStateDto } | { "type": "peg_progress", "data": PegRefreshDto } | { "type": "session_lock", "data": SessionLockStateDto } | { "type": "auth_session", "data": AuthEnsureDto };
+
+export type AssetAmountDto = { asset: AssetKeyDto, units: string, };
 
 export type AssetBalanceDto = { chain: ChainDto, asset_id: string | null, amount_sat: number, precision: number, ticker: string | null, pending_sat: number, };
+
+export type AssetKeyDto = { chain: ChainDto, asset_id: string | null, };
+
+export type AssetMetadataDto = { key: AssetKeyDto, ticker: string | null, precision: number | null, approved: boolean, };
+
+export type AssetMovementDto = { asset: AssetKeyDto, delta_units: string, };
 
 export type AuthEnsureDto = { kind: AuthEnsureKind, 
 /**
@@ -51,6 +59,8 @@ export type BalanceDto = { assets: Array<AssetBalanceDto>, snapshot_at_ms: numbe
 export type BroadcastResultDto = { chain: ChainDto, tx_id: string, transaction: TransactionDto, fee_paid_sat: number | null, };
 
 export type ChainDto = "Liquid" | "Bitcoin" | "Lightning" | "Aggregate";
+
+export type ChainSyncStateDto = { chain: ChainDto, succeeded: boolean, observed_at_ms: number, };
 
 export type CpfValidationErrorDto = "Empty" | "Incomplete" | "Invalid";
 
@@ -121,6 +131,8 @@ export type FavoritePayerSaveErrorDto = "DuplicateCpf";
 export type FeeEstimateDto = { chain: ChainDto, priority: FeePriorityDto, absolute_fee_sat: number, fee_rate_sat_per_vbyte: number | null, estimated_blocks: number | null, };
 
 export type FeePriorityDto = "Low" | "Medium" | "High";
+
+export type HoldingDto = { metadata: AssetMetadataDto, balance_units: string, available_units: string | null, pending_units: string | null, };
 
 export type HttpMethodDto = "Get" | "Post" | "Put" | "Patch" | "Delete";
 
@@ -333,6 +345,8 @@ export type TransactionDto = { id: string, chain: ChainDto, direction: Direction
 export type TransactionEventDto = { kind: TransactionEventKindDto, transaction: TransactionDto, observed_at_ms: number, previous_status: StatusDto | null, previous_confirmations: number | null, };
 
 export type TransactionEventKindDto = "Created" | "StatusChanged" | "ConfirmationsChanged";
+
+export type WalletActivityDto = { id: string, chain: ChainDto, timestamp_ms: number | null, status: StatusDto, confirmations: number, movements: Array<AssetMovementDto>, fee: AssetAmountDto | null, addresses: Array<string>, };
 
 export type WalletUtxoDto = { txid: string, vout: number, 
 /**
