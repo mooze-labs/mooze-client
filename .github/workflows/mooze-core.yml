@@ -3,10 +3,10 @@ name: mooze-core
 on:
   push:
     branches: ["main", "develop"]
-    paths: ["crates/mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
+    paths: ["crates/mooze-core/**", "crates/mooze-app/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
   pull_request:
     branches: ["main", "develop"]
-    paths: ["crates/mooze-core/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
+    paths: ["crates/mooze-core/**", "crates/mooze-app/**", "packages/mooze_core_bridge/**", ".github/workflows/mooze-core.yml"]
 
 permissions:
   contents: read
@@ -44,6 +44,39 @@ jobs:
       - name: Clippy
         run: cargo clippy --locked --all-features --all-targets -- -D warnings
 
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/mooze-app
+    env:
+      AR_wasm32_unknown_unknown: llvm-ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install llvm-ar
+        run: sudo apt-get update && sudo apt-get install -y llvm
+
+      - name: Install Rust targets
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build (host)
+        run: cargo build --locked --features electrum,http-reqwest
+
+      # Not electrum: that feature is native-only (see mooze-core/Cargo.toml).
+      - name: Build (wasm32)
+        run: cargo build --locked --target wasm32-unknown-unknown --features http-reqwest
+
+      - name: Test
+        run: cargo test --locked --features electrum,http-reqwest
+
+      # Fails when generated/types.ts or client.ts are stale.
+      - name: Generated TypeScript is current
+        run: cargo test --locked --features codegen --test generated_up_to_date
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets --features electrum,http-reqwest,codegen -- -D warnings
+
   deny:
     runs-on: ubuntu-latest
     steps:
@@ -51,6 +84,10 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           manifest-path: crates/mooze-core/Cargo.toml
+          command: check advisories bans sources
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: crates/mooze-app/Cargo.toml
           command: check advisories bans sources
 
   bridge:
@@ -67,6 +104,8 @@ jobs:
           cargo build --locked
           cargo test --locked
           cargo clippy --locked --all-targets -- -D warnings
+          cargo install cargo-deny --locked
+          cargo deny check advisories bans sources
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

@@ -41,6 +41,7 @@ Mooze is built with a modern Flutter architecture:
 
 - `apps/mobile`: Flutter app.
 - `crates/mooze-core`: Rust core with the application logic.
+- `crates/mooze-app`: host-neutral application facade over `mooze-core`; every client binds it.
 - `packages/mooze_core_bridge`: flutter_rust_bridge plugin that connects the app to `mooze-core`.
 
 ### Setup
