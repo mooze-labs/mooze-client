@@ -140,7 +140,12 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
     /// Persists a status event.
     pub async fn apply_status_event(&self, event: &PixStatusEvent) -> Result<()> {
         self.deposits
-            .update_deposit(&event.deposit_id, event.status.as_api_str(), event.asset_amount, event.blockchain_txid.as_deref())
+            .update_deposit(
+                &event.deposit_id,
+                event.status.as_api_str(),
+                event.asset_amount,
+                event.blockchain_txid.as_deref(),
+            )
             .await
     }
 
@@ -256,7 +261,8 @@ mod tests {
         assert_eq!(out.poll.first_tick_at_ms(), 35_000);
         let stored = block_on(s.get_deposit("dep-1")).unwrap().unwrap();
         assert_eq!(stored, out.deposit);
-        let body: serde_json::Value = serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
+        let body: serde_json::Value =
+            serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
         assert_eq!(body["address"], "lq1qqaddr");
         assert_eq!(body["network"], "liquid");
     }
@@ -290,7 +296,10 @@ mod tests {
         let events = block_on(s.poll_tick(&mut out.poll, 60_000));
         assert_eq!(events[0].status, DepositStatus::DepixSent);
         let d = block_on(s.require_deposit("dep-1")).unwrap();
-        assert_eq!((d.status, d.asset_amount, d.blockchain_txid.as_deref()), (DepositStatus::DepixSent, Some(970_000), Some("tx9")));
+        assert_eq!(
+            (d.status, d.asset_amount, d.blockchain_txid.as_deref()),
+            (DepositStatus::DepixSent, Some(970_000), Some("tx9"))
+        );
         assert!(block_on(s.poll_tick(&mut out.poll, 90_000)).is_empty());
     }
 

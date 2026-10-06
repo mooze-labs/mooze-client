@@ -335,7 +335,11 @@ async fn import_notifier_state<K: KvStore + Clone>(
     Ok(())
 }
 
-async fn import_swaps<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, report: &mut MigrationReport) -> Result<()> {
+async fn import_swaps<K: KvStore + Clone>(
+    kv: &K,
+    snapshot: &LegacySnapshot,
+    report: &mut MigrationReport,
+) -> Result<()> {
     let store = SwapAuditStore::new(kv.clone());
     for s in &snapshot.swaps {
         let rec = SwapRecord {
@@ -401,7 +405,11 @@ async fn import_pegs<K: KvStore + Clone, C: Clock + Clone>(
     Ok(())
 }
 
-async fn import_deposits<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, report: &mut MigrationReport) -> Result<()> {
+async fn import_deposits<K: KvStore + Clone>(
+    kv: &K,
+    snapshot: &LegacySnapshot,
+    report: &mut MigrationReport,
+) -> Result<()> {
     let store = DepositStore::new(kv.clone());
     for d in &snapshot.deposits {
         let (Ok(cents), asset_amount) = (u64::try_from(d.amount_in_cents), d.asset_amount.map(u64::try_from)) else {
@@ -433,7 +441,11 @@ async fn import_deposits<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, 
     Ok(())
 }
 
-async fn import_products<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, report: &mut MigrationReport) -> Result<()> {
+async fn import_products<K: KvStore + Clone>(
+    kv: &K,
+    snapshot: &LegacySnapshot,
+    report: &mut MigrationReport,
+) -> Result<()> {
     let store = ProductStore::new(kv.clone());
     for p in &snapshot.products {
         let product = Product { id: Some(p.id), name: p.name.clone(), price: p.price, created_at_ms: p.created_at_ms };

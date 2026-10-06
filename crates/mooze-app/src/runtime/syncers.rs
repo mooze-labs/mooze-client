@@ -25,9 +25,7 @@ pub struct AppSyncer<P: Platform> {
 
 impl<P: Platform> AppSyncer<P> {
     fn inner(&self) -> Result<Arc<Inner<P>>> {
-        self.inner
-            .upgrade()
-            .ok_or_else(|| Error::InvalidState("core closed".into()))
+        self.inner.upgrade().ok_or_else(|| Error::InvalidState("core closed".into()))
     }
 }
 
@@ -45,11 +43,7 @@ impl<P: Platform> ChainSyncer for AppSyncer<P> {
             return ServiceLifecycle::Disconnected;
         };
         let connected = match self.chain {
-            ChainId::Bitcoin => inner
-                .bitcoin
-                .try_lock()
-                .map(|g| g.is_some())
-                .unwrap_or(true),
+            ChainId::Bitcoin => inner.bitcoin.try_lock().map(|g| g.is_some()).unwrap_or(true),
             _ => inner.liquid.try_lock().map(|g| g.is_some()).unwrap_or(true),
         };
         if connected {
@@ -80,18 +74,14 @@ impl<P: Platform> ChainSyncer for AppSyncer<P> {
                     ChainId::Bitcoin => {
                         let mut g = inner.bitcoin.lock().await;
                         g.as_mut()
-                            .ok_or_else(|| {
-                                Error::InvalidState("bitcoin wallet not connected".into())
-                            })?
+                            .ok_or_else(|| Error::InvalidState("bitcoin wallet not connected".into()))?
                             .sync()
                             .await
                     }
                     _ => {
                         let mut g = inner.liquid.lock().await;
                         g.as_mut()
-                            .ok_or_else(|| {
-                                Error::InvalidState("liquid wallet not connected".into())
-                            })?
+                            .ok_or_else(|| Error::InvalidState("liquid wallet not connected".into()))?
                             .sync()
                             .await
                     }
@@ -101,10 +91,9 @@ impl<P: Platform> ChainSyncer for AppSyncer<P> {
             match select(work, stop).await {
                 Either::Left((r, _)) => r,
                 Either::Right((true, _)) => Err(Error::InvalidState("sync cancelled".into())),
-                Either::Right((false, _)) => Err(Error::Timeout(format!(
-                    "{} sync exceeded {timeout_ms} ms",
-                    self.chain.as_str()
-                ))),
+                Either::Right((false, _)) => {
+                    Err(Error::Timeout(format!("{} sync exceeded {timeout_ms} ms", self.chain.as_str())))
+                }
             }
         }
     }
@@ -113,29 +102,16 @@ impl<P: Platform> ChainSyncer for AppSyncer<P> {
         async move {
             let inner = self.inner()?;
             Ok(match self.chain {
-                ChainId::Bitcoin => inner
-                    .bitcoin
-                    .lock()
-                    .await
-                    .as_ref()
-                    .map(|w| w.list_transactions().to_vec())
-                    .unwrap_or_default(),
-                _ => inner
-                    .liquid
-                    .lock()
-                    .await
-                    .as_ref()
-                    .map(|w| w.list_transactions().to_vec())
-                    .unwrap_or_default(),
+                ChainId::Bitcoin => {
+                    inner.bitcoin.lock().await.as_ref().map(|w| w.list_transactions().to_vec()).unwrap_or_default()
+                }
+                _ => inner.liquid.lock().await.as_ref().map(|w| w.list_transactions().to_vec()).unwrap_or_default(),
             })
         }
     }
 
     /// Hosts connect through `App::bitcoin_connect` and `App::liquid_connect`.
-    fn connect(
-        &self,
-        _credentials: &WalletCredentials,
-    ) -> impl Future<Output = Result<()>> + MaybeSend {
+    fn connect(&self, _credentials: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend {
         async { Ok(()) }
     }
 
@@ -165,13 +141,7 @@ mod tests {
             cancel: cancel.clone(),
         };
         let err = block_on(syncer.sync(60_000)).unwrap_err();
-        assert!(
-            matches!(err, Error::InvalidState(ref m) if m == "sync cancelled"),
-            "{err}"
-        );
-        assert!(
-            plat.http.requests().is_empty(),
-            "no network call after cancel"
-        );
+        assert!(matches!(err, Error::InvalidState(ref m) if m == "sync cancelled"), "{err}");
+        assert!(plat.http.requests().is_empty(), "no network call after cancel");
     }
 }

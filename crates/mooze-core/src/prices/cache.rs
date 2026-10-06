@@ -91,7 +91,12 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
         }
     }
 
-    async fn price_if(&self, asset: Asset, currency: Currency, ok: impl Fn(&CachedPriceData, u64) -> bool) -> Result<Option<f64>> {
+    async fn price_if(
+        &self,
+        asset: Asset,
+        currency: Currency,
+        ok: impl Fn(&CachedPriceData, u64) -> bool,
+    ) -> Result<Option<f64>> {
         let now = self.clock.now_ms();
         Ok(self.get_cached_price(asset, currency).await?.filter(|d| ok(d, now)).map(|d| d.price))
     }
@@ -169,8 +174,11 @@ impl<S: PriceService, K: KvStore, C: Clock> PriceService for CachedPriceService<
         self.currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let target = currency.unwrap_or(self.currency);
         async move {
             if let Ok(Some(fresh)) = self.inner.get_coin_price(asset, Some(target)).await {
@@ -217,7 +225,11 @@ pub(crate) mod tests {
         fn currency(&self) -> Currency {
             Currency::Brl
         }
-        fn get_coin_price(&self, _: Asset, _: Option<Currency>) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+        fn get_coin_price(
+            &self,
+            _: Asset,
+            _: Option<Currency>,
+        ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
             self.calls.fetch_add(1, Ordering::SeqCst);
             std::future::ready(self.answer.lock().unwrap().clone().unwrap_or(Ok(None)))
         }
@@ -235,7 +247,10 @@ pub(crate) mod tests {
             cache.cache_price(Asset::Btc, 600_000.5, Currency::Brl).await.unwrap();
             let raw = kv.get("cached_price_btc-native-blockchain_brl").await.unwrap().unwrap();
             let v: serde_json::Value = serde_json::from_slice(&raw).unwrap();
-            assert_eq!(v, serde_json::json!({"price": 600000.5, "timestamp": T0, "currency": "brl", "assetId": "btc-native-blockchain"}));
+            assert_eq!(
+                v,
+                serde_json::json!({"price": 600000.5, "timestamp": T0, "currency": "brl", "assetId": "btc-native-blockchain"})
+            );
         });
     }
 
@@ -270,7 +285,11 @@ pub(crate) mod tests {
     fn fresh_then_cache_fallback() {
         let clock = Arc::new(FixedClock::new(T0));
         let inner = ScriptedPrices::new(Ok(Some(100.0)));
-        let svc = CachedPriceService::new(inner.clone(), PriceCacheService::new(MemoryKv::new(), clock.clone()), Currency::Brl);
+        let svc = CachedPriceService::new(
+            inner.clone(),
+            PriceCacheService::new(MemoryKv::new(), clock.clone()),
+            Currency::Brl,
+        );
         block_on(async {
             assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), Some(100.0));
             inner.set(Err(Error::Network("down".into())));

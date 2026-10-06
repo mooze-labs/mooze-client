@@ -56,9 +56,9 @@ pub fn is_liquid_destination(destination: &str) -> bool {
     }
     // Base58 confidential (VJL..., Az...) and unconfidential (G, H, Q) forms:
     // ^(VJL|VT|VG|Az|G|H|Q)[base58]{25,}$
-    ["VJL", "VT", "VG", "Az", "G", "H", "Q"].iter().any(|p| {
-        a.strip_prefix(p).is_some_and(|rest| rest.chars().count() >= 25 && rest.chars().all(is_base58))
-    })
+    ["VJL", "VT", "VG", "Az", "G", "H", "Q"]
+        .iter()
+        .any(|p| a.strip_prefix(p).is_some_and(|rest| rest.chars().count() >= 25 && rest.chars().all(is_base58)))
 }
 
 #[cfg(test)]
@@ -68,7 +68,10 @@ mod tests {
 
     #[test]
     fn bip21_shapes() {
-        assert_eq!(liquid_bip21("lq1abc", USDT_ASSET_ID, None), format!("liquidnetwork:lq1abc?assetid={USDT_ASSET_ID}"));
+        assert_eq!(
+            liquid_bip21("lq1abc", USDT_ASSET_ID, None),
+            format!("liquidnetwork:lq1abc?assetid={USDT_ASSET_ID}")
+        );
         assert_eq!(
             liquid_bip21("lq1abc", LBTC_ASSET_ID, Some(150_000_001)),
             format!("liquidnetwork:lq1abc?assetid={LBTC_ASSET_ID}&amount=1.50000001")
@@ -91,7 +94,9 @@ mod tests {
         assert!(is_liquid_destination("liquidnetwork:whatever"));
         assert!(is_liquid_destination("LQ1QQ"));
         assert!(is_liquid_destination("tlq1qq"));
-        assert!(is_liquid_destination("VJLCbLBTCdxhWyjVLdjcSmGAksVMtabYg15maSi93zknQD2ihC38R7CUd8KbDFnV8A4hiykxnRB3Uv6d"));
+        assert!(is_liquid_destination(
+            "VJLCbLBTCdxhWyjVLdjcSmGAksVMtabYg15maSi93zknQD2ihC38R7CUd8KbDFnV8A4hiykxnRB3Uv6d"
+        ));
         assert!(is_liquid_destination("GswWrNwJpKdBaVLuHAeBzJwSxSuEYnHUvw"));
         assert!(!is_liquid_destination("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"));
         assert!(!is_liquid_destination("1BoatSLRHtKNngkdXEeobR76b53LETtpyT"));

@@ -95,7 +95,9 @@ impl WsConnection for TungsteniteConnection {
                     let timeout = self.recv_timeout;
                     match tokio::time::timeout(timeout, self.next_frame()).await {
                         Ok(next) => next,
-                        Err(_) => return Err(Error::Timeout(format!("ws recv: no frame in {} ms", timeout.as_millis()))),
+                        Err(_) => {
+                            return Err(Error::Timeout(format!("ws recv: no frame in {} ms", timeout.as_millis())))
+                        }
                     }
                 } else {
                     self.next_frame().await

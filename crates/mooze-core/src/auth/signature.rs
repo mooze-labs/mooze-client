@@ -18,7 +18,9 @@ use std::fmt;
 
 use bdk_wallet::bitcoin::hashes::hmac::{Hmac, HmacEngine};
 use bdk_wallet::bitcoin::hashes::{sha256, Hash, HashEngine};
-use bdk_wallet::bitcoin::secp256k1::{constants::CURVE_ORDER, ecdsa::Signature, All, Message, PublicKey, Secp256k1, SecretKey};
+use bdk_wallet::bitcoin::secp256k1::{
+    constants::CURVE_ORDER, ecdsa::Signature, All, Message, PublicKey, Secp256k1, SecretKey,
+};
 
 use super::b64;
 use crate::{Error, Result};
@@ -148,7 +150,7 @@ fn pbkdf2_sha256_32(password: &[u8], salt: &[u8], iterations: u32) -> [u8; 32] {
 fn reduce_private_key(k: [u8; 32]) -> [u8; 32] {
     let mut n_minus_1 = CURVE_ORDER;
     n_minus_1[31] -= 1; // order ends in 0x41, no borrow.
-    // k < 2^256 < 2 (n - 1), so one subtraction is enough.
+                        // k < 2^256 < 2 (n - 1), so one subtraction is enough.
     let mut d = if k >= n_minus_1 { sub_be(k, n_minus_1) } else { k };
     // d < n - 1, so d + 1 < n and cannot overflow.
     for byte in d.iter_mut().rev() {

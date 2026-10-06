@@ -32,14 +32,7 @@ pub fn peg_validate_amount(
     fallback_minimum_sats: u64,
     drain: bool,
 ) -> PegAmountValidationDto {
-    rules::peg_validate_amount(
-        direction,
-        amount_sat,
-        spendable_sat,
-        limits,
-        fallback_minimum_sats,
-        drain,
-    )
+    rules::peg_validate_amount(direction, amount_sat, spendable_sat, limits, fallback_minimum_sats, drain)
 }
 
 /// Default SideSwap endpoint.
@@ -53,11 +46,7 @@ pub fn sideswap_default_url() -> String {
 impl MoozeCore {
     /// Opens the SideSwap connection and logs in (Dart `SideswapService.init`).
     /// `url` null uses `sideswapDefaultUrl`. No-op when connected.
-    pub async fn sideswap_connect(
-        &self,
-        api_key: String,
-        url: Option<String>,
-    ) -> Result<(), CoreError> {
+    pub async fn sideswap_connect(&self, api_key: String, url: Option<String>) -> Result<(), CoreError> {
         delegate!(self.sideswap_connect(api_key, url))
     }
 
@@ -76,16 +65,9 @@ impl MoozeCore {
     /// stream replaces the old one, which ends with a `closed` item. Close
     /// it with `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling
     /// the Dart subscription (the driver stops at its next item).
-    pub async fn sideswap_events(
-        &self,
-        sink: StreamSink<SideSwapEventDto>,
-    ) -> Result<(), CoreError> {
+    pub async fn sideswap_events(&self, sink: StreamSink<SideSwapEventDto>) -> Result<(), CoreError> {
         let id = self.app.subscribe(Box::new(SinkForwarder(sink.clone())));
-        let previous = self
-            .events
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .replace((id, sink));
+        let previous = self.events.lock().unwrap_or_else(|e| e.into_inner()).replace((id, sink));
         if let Some((old_id, old_sink)) = previous {
             self.app.unsubscribe(old_id);
             let _ = old_sink.add(sideswap_closed_event());
@@ -178,11 +160,7 @@ impl MoozeCore {
     }
 
     /// One-shot status of an order.
-    pub async fn peg_status(
-        &self,
-        direction: PegDirectionDto,
-        order_id: String,
-    ) -> Result<PegProgressDto, CoreError> {
+    pub async fn peg_status(&self, direction: PegDirectionDto, order_id: String) -> Result<PegProgressDto, CoreError> {
         delegate!(self.peg_status(direction, order_id))
     }
 

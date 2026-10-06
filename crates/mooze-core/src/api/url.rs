@@ -56,10 +56,7 @@ mod tests {
     #[test]
     fn join_collapses_double_slash() {
         assert_eq!(join_url("https://api.mooze.app", "/users/me"), "https://api.mooze.app/users/me");
-        assert_eq!(
-            join_url("https://api.mooze.app/v1/", "/phone/verify"),
-            "https://api.mooze.app/v1/phone/verify"
-        );
+        assert_eq!(join_url("https://api.mooze.app/v1/", "/phone/verify"), "https://api.mooze.app/v1/phone/verify");
         assert_eq!(join_url("https://a", "https://b/c"), "https://b/c");
     }
 

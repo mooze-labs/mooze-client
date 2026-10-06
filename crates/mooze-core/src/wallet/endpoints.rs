@@ -21,7 +21,9 @@ pub fn default_esplora_urls(chain: ChainId, network: AppNetwork) -> Vec<String> 
         (ChainId::Bitcoin, AppNetwork::Testnet) => {
             &["https://blockstream.info/testnet/api", "https://mempool.space/testnet/api"]
         }
-        (ChainId::Liquid, AppNetwork::Mainnet) => &["https://blockstream.info/liquid/api", "https://liquid.network/api"],
+        (ChainId::Liquid, AppNetwork::Mainnet) => {
+            &["https://blockstream.info/liquid/api", "https://liquid.network/api"]
+        }
         (ChainId::Liquid, AppNetwork::Testnet) => {
             &["https://blockstream.info/liquidtestnet/api", "https://liquid.network/liquidtestnet/api"]
         }
@@ -49,10 +51,8 @@ impl EndpointResolver {
 
     /// Resolver with the default bitcoin and liquid lists for `network`.
     pub fn with_defaults(network: AppNetwork) -> Self {
-        let endpoints = [ChainId::Bitcoin, ChainId::Liquid]
-            .into_iter()
-            .map(|c| (c, default_esplora_urls(c, network)))
-            .collect();
+        let endpoints =
+            [ChainId::Bitcoin, ChainId::Liquid].into_iter().map(|c| (c, default_esplora_urls(c, network))).collect();
         Self::new(endpoints, DEFAULT_FAILURE_THRESHOLD)
     }
 

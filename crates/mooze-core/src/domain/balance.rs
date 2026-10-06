@@ -35,10 +35,6 @@ impl Balance {
 
     /// Confirmed amount of one asset id, 0 if absent.
     pub fn amount_for_asset(&self, asset_id: &str) -> u64 {
-        self.assets
-            .iter()
-            .filter(|a| a.asset_id.as_deref() == Some(asset_id))
-            .map(|a| a.amount_sat)
-            .sum()
+        self.assets.iter().filter(|a| a.asset_id.as_deref() == Some(asset_id)).map(|a| a.amount_sat).sum()
     }
 }

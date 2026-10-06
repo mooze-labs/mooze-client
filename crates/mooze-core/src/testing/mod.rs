@@ -11,8 +11,8 @@ use std::sync::{Arc, Mutex};
 use futures::channel::{mpsc, oneshot};
 
 use crate::ports::{
-    BlockingSpawner, Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend, SecureStore, WsConnection,
-    WsConnector, WsMessage, Spawner, TaskFuture, Timer,
+    BlockingSpawner, Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend, SecureStore,
+    Spawner, TaskFuture, Timer, WsConnection, WsConnector, WsMessage,
 };
 use crate::{Error, Result};
 
@@ -175,8 +175,7 @@ impl HttpClient for MockHttp {
         self.requests.lock().expect("poisoned").push(request.clone());
         let mut routes = self.routes.lock().expect("poisoned");
         let hit = routes.iter().rposition(|r| {
-            r.method == request.method
-                && if r.prefix { request.url.starts_with(&r.url) } else { request.url == r.url }
+            r.method == request.method && if r.prefix { request.url.starts_with(&r.url) } else { request.url == r.url }
         });
         let result = match hit {
             Some(i) if routes[i].once => routes.remove(i).response,
@@ -325,10 +324,7 @@ impl Timer for ManualTimer {
             }));
         }
         let (tx, rx) = oneshot::channel();
-        self.pending
-            .lock()
-            .expect("poisoned")
-            .push((self.now_ms() + ms, tx));
+        self.pending.lock().expect("poisoned").push((self.now_ms() + ms, tx));
         Box::pin(async move {
             let _ = rx.await;
         })
@@ -359,13 +355,7 @@ impl TestExecutor {
     /// A spawner and the executor that runs what it spawns.
     pub fn new() -> (ChannelSpawner, Self) {
         let (tx, rx) = mpsc::unbounded();
-        (
-            ChannelSpawner { tx },
-            Self {
-                pool: futures::executor::LocalPool::new(),
-                rx,
-            },
-        )
+        (ChannelSpawner { tx }, Self { pool: futures::executor::LocalPool::new(), rx })
     }
 
     /// Moves queued tasks onto the pool and runs until every task waits.
@@ -374,10 +364,7 @@ impl TestExecutor {
         loop {
             let mut moved = false;
             while let Ok(task) = self.rx.try_recv() {
-                self.pool
-                    .spawner()
-                    .spawn_obj(FutureObj::new(task))
-                    .expect("pool open");
+                self.pool.spawner().spawn_obj(FutureObj::new(task)).expect("pool open");
                 moved = true;
             }
             self.pool.run_until_stalled();

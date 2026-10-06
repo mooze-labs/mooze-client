@@ -25,10 +25,7 @@ impl WalletCredentials {
 
 impl fmt::Debug for WalletCredentials {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WalletCredentials")
-            .field("network", &self.network)
-            .field("mnemonic", &"<redacted>")
-            .finish()
+        f.debug_struct("WalletCredentials").field("network", &self.network).field("mnemonic", &"<redacted>").finish()
     }
 }
 

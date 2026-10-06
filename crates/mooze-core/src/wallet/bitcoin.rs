@@ -11,9 +11,9 @@ use std::time::Duration;
 
 use bdk_esplora::esplora_client::{self, r#async::Sleeper, AsyncClient};
 use bdk_esplora::EsploraAsyncExt;
+use bdk_wallet::bitcoin::secp256k1::Secp256k1;
 use bdk_wallet::bitcoin::{Address, Amount, FeeRate, Psbt, ScriptBuf};
 use bdk_wallet::chain::{ChainPosition, Merge};
-use bdk_wallet::bitcoin::secp256k1::Secp256k1;
 use bdk_wallet::descriptor::IntoWalletDescriptor;
 use bdk_wallet::signer::SignersContainer;
 use bdk_wallet::{ChangeSet, KeychainKind, SignOptions, Wallet};
@@ -23,7 +23,9 @@ use super::backend::ChainBackend;
 use super::backend::{BitcoinElectrum, ElectrumConfig};
 use super::descriptors::{bitcoin_descriptors, bitcoin_network, bitcoin_network_kind, BitcoinDescriptors};
 use super::endpoints::EndpointResolver;
-use super::explorer::{hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
+use super::explorer::{
+    hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo,
+};
 use super::fees::BitcoinFeeEstimate;
 use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
@@ -75,7 +77,9 @@ impl Sleeper for NoopSleeper {
 
 /// Builds an async esplora client for `url`.
 pub fn esplora_client(url: &str) -> Result<AsyncClient<NoopSleeper>> {
-    esplora_client::Builder::new(url).build_async_with_sleeper::<NoopSleeper>().map_err(|e| Error::Network(e.to_string()))
+    esplora_client::Builder::new(url)
+        .build_async_with_sleeper::<NoopSleeper>()
+        .map_err(|e| Error::Network(e.to_string()))
 }
 
 /// Flat view of one wallet transaction.
@@ -164,7 +168,9 @@ pub fn tx_views(wallet: &Wallet) -> Vec<BdkTxView> {
             let (sent, received) = wallet.sent_and_received(tx);
             let fee = wallet.calculate_fee(tx).ok().map(|a| a.to_sat());
             let (time, height) = match &c.chain_position {
-                ChainPosition::Confirmed { anchor, .. } => (Some(anchor.confirmation_time), Some(anchor.block_id.height)),
+                ChainPosition::Confirmed { anchor, .. } => {
+                    (Some(anchor.confirmation_time), Some(anchor.block_id.height))
+                }
                 ChainPosition::Unconfirmed { .. } => (None, None),
             };
             BdkTxView {
@@ -375,13 +381,18 @@ pub struct BitcoinWallet<K: KvStore, C: Clock> {
 impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Loads the wallet from `kv`, or creates it if the store is empty.
     /// Primes balance and history from the stored state (cold restore).
-    pub async fn connect(credentials: &WalletCredentials, kv: K, clock: C, endpoints: EndpointResolver) -> Result<Self> {
+    pub async fn connect(
+        credentials: &WalletCredentials,
+        kv: K,
+        clock: C,
+        endpoints: EndpointResolver,
+    ) -> Result<Self> {
         if credentials.is_absent() {
             return Err(Error::Credential("mnemonic is empty".into()));
         }
         let network = credentials.network;
-        let desc = bitcoin_descriptors(&credentials.mnemonic, network)
-            .map_err(|e| svc(format!("bdk init failed: {e}")))?;
+        let desc =
+            bitcoin_descriptors(&credentials.mnemonic, network).map_err(|e| svc(format!("bdk init failed: {e}")))?;
         let stored = kv.get(CHANGESET_KEY).await?;
         let (wallet, persisted) = match stored {
             Some(bytes) => {
@@ -604,8 +615,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         self.refresh_cache(now);
         let changed = self.tracker.diff(&self.last_list, now);
         let end = self.clock.now_ms();
-        self.state =
-            ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
+        self.state = ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
         Ok(SyncOutcome { chain: CHAIN, fetched: self.last_list.len(), changed, duration_ms: end.saturating_sub(t0) })
     }
 
@@ -700,7 +710,11 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     }
 
     /// Next unused receive address.
-    pub async fn next_receive_address(&mut self, asset_id: Option<&str>, label: Option<&str>) -> Result<ReceiveAddress> {
+    pub async fn next_receive_address(
+        &mut self,
+        asset_id: Option<&str>,
+        label: Option<&str>,
+    ) -> Result<ReceiveAddress> {
         if let Some(a) = asset_id {
             return Err(svc(format!("bitcoin service does not handle asset receives (got assetId: {a})")));
         }

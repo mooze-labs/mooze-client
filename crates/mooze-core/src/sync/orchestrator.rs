@@ -9,9 +9,7 @@ use std::future::Future;
 
 use futures::stream::{FuturesUnordered, StreamExt};
 
-use crate::domain::{
-    ChainId, ServiceLifecycle, SyncOutcome, Transaction, TransactionEvent, WalletCredentials,
-};
+use crate::domain::{ChainId, ServiceLifecycle, SyncOutcome, Transaction, TransactionEvent, WalletCredentials};
 use crate::ports::{Clock, KvStore, MaybeSend, MaybeSync};
 use crate::store::TransactionStore;
 use crate::{Error, Result};
@@ -296,15 +294,15 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
         }
 
         let duration = self.clock.now_ms().saturating_sub(t0);
-        let aggregate =
-            SyncOutcome { chain: ChainId::Aggregate, fetched: total_fetched, changed: total_changed, duration_ms: duration };
+        let aggregate = SyncOutcome {
+            chain: ChainId::Aggregate,
+            fetched: total_fetched,
+            changed: total_changed,
+            duration_ms: duration,
+        };
 
-        let operational: Vec<ChainId> =
-            self.syncers.iter().filter(|s| s.is_operational()).map(|s| s.chain()).collect();
-        let failed = operational
-            .iter()
-            .filter(|c| outcomes.iter().any(|(oc, r)| oc == *c && r.is_err()))
-            .count();
+        let operational: Vec<ChainId> = self.syncers.iter().filter(|s| s.is_operational()).map(|s| s.chain()).collect();
+        let failed = operational.iter().filter(|c| outcomes.iter().any(|(oc, r)| oc == *c && r.is_err())).count();
         let all_failed = !operational.is_empty() && failed == operational.len();
         let new_per_chain: BTreeMap<ChainId, ServiceLifecycle> =
             self.syncers.iter().map(|s| (s.chain(), s.lifecycle())).collect();
